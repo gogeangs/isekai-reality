@@ -69,6 +69,11 @@ void main() {
 
   testWidgets('각성 화면: 소개를 넘기고 이름을 넣어 깨어나면 상태창이 열린다',
       (tester) async {
+    // 실제 휴대폰 크기 (430 × 932)
+    tester.view.physicalSize = const Size(1290, 2796);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
     final controller = AppController(
       store: InMemoryRecordStore(),
       health: FakeHealthSource(granted: false),
@@ -89,7 +94,11 @@ void main() {
     expect(find.text('당신의 각성'), findsOneWidget);
     await tester.enterText(find.byType(TextField), '하루');
     await tester.pump();
-    await tester.ensureVisible(find.text('깨어나기'));
+    await tester.scrollUntilVisible(
+      find.text('깨어나기'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('깨어나기'));
     await tester.pump();
     await tester.pump();

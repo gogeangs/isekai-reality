@@ -275,11 +275,16 @@ void main() {
     ));
     expect(find.text('열쇠 2개'), findsOneWidget);
 
+    await tester.scrollUntilVisible(find.text('던전 열기'), 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('던전 열기'));
     await tester.pump();
     expect(find.text('1층 / 3층'), findsOneWidget);
 
-    for (var i = 0; i < 200 && find.text('돌아가기').evaluate().isEmpty; i++) {
+    for (var i = 0;
+        i < 200 && find.text('던전 정화 완료!').evaluate().isEmpty;
+        i++) {
       if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
         await tester.tap(find.text('불씨의 일격!'));
       }

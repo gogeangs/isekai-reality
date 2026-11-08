@@ -193,6 +193,8 @@ void main() {
       await tester.tap(find.text('기록'));
       await tester.pump();
       expect(find.textContaining('최근 7일'), findsOneWidget);
+      await tester.scrollUntilVisible(find.textContaining('오늘 ·'), 300,
+          scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('오늘 ·'), findsOneWidget);
     });
 
@@ -200,6 +202,8 @@ void main() {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
+      await tester.scrollUntilVisible(find.text('직업'), 300,
+          scrollable: find.byType(Scrollable).first);
       expect(find.text('직업'), findsOneWidget);
       expect(find.textContaining('칭호 '), findsOneWidget);
       await tester.scrollUntilVisible(find.text('몬스터 도감 0 / 6'), 300,

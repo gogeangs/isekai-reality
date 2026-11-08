@@ -176,14 +176,17 @@ class _DungeonScreenState extends State<DungeonScreen> {
               const Icon(Icons.directions_walk_rounded,
                   size: 18, color: AppColors.textMuted),
               const SizedBox(width: 6),
-              Text(
-                gauge.dailyKeyLimitReached
-                    ? '오늘 열쇠는 다 모았어요'
-                    : '다음 열쇠 ${comma(gauge.stepsIntoNextKey)} / '
-                        '${comma(gauge.stepsPerKey)}보',
-                style: const TextStyle(color: AppColors.text, fontSize: 13),
+              Expanded(
+                child: Text(
+                  gauge.dailyKeyLimitReached
+                      ? '오늘 열쇠는 다 모았어요'
+                      : '다음 열쇠 ${comma(gauge.stepsIntoNextKey)} / '
+                          '${comma(gauge.stepsPerKey)}보',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.text, fontSize: 13),
+                ),
               ),
-              Text('   전투력 ${comma(power)}',
+              Text('전투력 ${comma(power)}',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
             ]),
@@ -199,10 +202,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
           children: [
             const _FloorTrack(),
             const SizedBox(height: 8),
-            SizedBox(
+            const SizedBox(
               height: 110,
               child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
+                colorFilter: ColorFilter.mode(
                     Color(0xFF0B0D26), BlendMode.srcATop),
                 child: Opacity(
                   opacity: 0.85,

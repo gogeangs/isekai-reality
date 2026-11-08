@@ -1,5 +1,6 @@
 # 코드를 올릴 때마다 GitHub 서버에서 Flutter 분석과 테스트를 돌린다.
 # 결과는 저장소의 Actions 탭에서 확인 (초록 체크 = 통과, 빨간 X = 실패)
+# 전체 출력은 ci-results 브랜치의 test-output.txt 에도 남긴다.
 name: Flutter 테스트
 
 on:
@@ -7,6 +8,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -27,8 +31,25 @@ jobs:
         run: flutter pub get
 
       - name: 코드 분석
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze --no-fatal-infos 2>&1 | tee analyze-output.txt; exit ${PIPESTATUS[0]}
+        shell: bash
 
       - name: 테스트
-        # github 리포터: 실패한 테스트와 오류 메시지를 요약(Annotations)에 남긴다
-        run: flutter test --reporter github
+        run: flutter test --reporter expanded 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}
+        shell: bash
+
+      - name: 결과를 ci-results 브랜치에 저장
+        if: always() && github.event_name == 'push'
+        shell: bash
+        run: |
+          mkdir -p /tmp/ci && cp analyze-output.txt test-output.txt /tmp/ci/ 2>/dev/null || true
+          echo "${GITHUB_SHA}" > /tmp/ci/commit.txt
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git fetch origin ci-results || true
+          git switch --orphan ci-results-tmp
+          git rm -rf --quiet . || true
+          cp /tmp/ci/* .
+          git add -A
+          git commit -m "CI 결과 ${GITHUB_SHA::7}"
+          git push --force origin HEAD:ci-results

@@ -1,6 +1,7 @@
 # 코드를 올릴 때마다 GitHub 서버에서 Flutter 분석과 테스트를 돌린다.
 # 결과는 저장소의 Actions 탭에서 확인 (초록 체크 = 통과, 빨간 X = 실패)
 # 전체 출력은 ci-results 브랜치의 test-output.txt 에도 남긴다.
+# 화면 미리보기(screenshots/)와 밸런스 보고서(reports/)도 같은 브랜치에 올린다.
 name: Flutter 테스트
 
 on:
@@ -46,6 +47,8 @@ jobs:
         run: |
           mkdir -p /tmp/ci
           cp analyze-output.txt test-output.txt /tmp/ci/ 2>/dev/null || true
+          cp -r build/screenshots /tmp/ci/screenshots 2>/dev/null || true
+          cp -r build/reports /tmp/ci/reports 2>/dev/null || true
           echo "${GITHUB_SHA}" > /tmp/ci/commit.txt
           cd /tmp/ci
           git init -q -b ci-results

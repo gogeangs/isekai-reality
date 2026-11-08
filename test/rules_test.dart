@@ -110,6 +110,30 @@ void main() {
       expect(DungeonGaugeRules.carryOverToTomorrow(g), 3);
     });
 
+    test('자기 걸음 목표를 채운 날은 보너스 열쇠 1개 (걸음 한도와 별도)', () {
+      final under = DungeonGaugeRules.today(steps: 4900, stepGoal: 5000);
+      expect(under.keysEarnedToday, 1);
+      expect(under.goalBonusKey, isFalse);
+      expect(under.stepsToGoal, 100);
+
+      final reached = DungeonGaugeRules.today(steps: 5000, stepGoal: 5000);
+      expect(reached.keysEarnedToday, 3);
+      expect(reached.goalBonusKey, isTrue);
+      expect(reached.stepsToGoal, isNull);
+
+      final max = DungeonGaugeRules.today(steps: 12000, stepGoal: 8000);
+      expect(max.keysEarnedToday, 5);
+      expect(max.dailyKeyLimitReached, isTrue);
+    });
+
+    test('보너스 열쇠도 다음 날로 넘어간다 (이월 최대 3개)', () {
+      final carried = DungeonGaugeRules.carriedIntoLastDay([
+        (date: DateTime(2026, 11, 1), steps: 3000, goal: 3000, runs: 0),
+        (date: DateTime(2026, 11, 2), steps: 0, goal: 3000, runs: 0),
+      ]);
+      expect(carried, 2);
+    });
+
     test('쓴 열쇠는 빠진다', () {
       final g = DungeonGaugeRules.today(steps: 6400, keysUsedToday: 1);
       expect(g.keysAvailable, 1);

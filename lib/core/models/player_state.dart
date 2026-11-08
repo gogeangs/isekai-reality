@@ -44,7 +44,12 @@ class PlayerState {
     final today = history.isEmpty ? null : history.last;
     final carried = DungeonGaugeRules.carriedIntoLastDay([
       for (final d in history)
-        (date: d.date, steps: d.steps, runs: d.dungeonRuns.length),
+        (
+          date: d.date,
+          steps: d.steps,
+          goal: d.stepGoal,
+          runs: d.dungeonRuns.length,
+        ),
     ]);
 
     return PlayerState._(
@@ -57,6 +62,7 @@ class PlayerState {
       job: job,
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,
+        stepGoal: today?.stepGoal,
         carriedKeys: carried,
         keysUsedToday: today?.dungeonRuns.length ?? 0,
       ),

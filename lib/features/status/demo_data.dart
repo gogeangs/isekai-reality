@@ -24,7 +24,7 @@ class DemoData {
     final records = <DailyRecord>[];
     for (var i = 0; i < 14; i++) {
       final isToday = i == 13;
-      final keys = DungeonGaugeRules.keysEarnedFromSteps(steps[i]);
+      final keys = DungeonGaugeRules.keysEarnedForDay(steps[i], stepGoal: 8000);
       final base = DailyRecord(
         date: DateTime(end.year, end.month, end.day)
             .subtract(Duration(days: 13 - i)),

@@ -157,10 +157,14 @@ class _DungeonScreenState extends State<DungeonScreen> {
               const SizedBox(width: 6),
               Text('열쇠 $keys개', style: AppText.title(19, color: AppColors.text)),
               const Spacer(),
-              for (var i = 0; i < RuleConstants.maxKeysEarnedPerDay; i++)
+              for (var i = 0;
+                  i <
+                      RuleConstants.maxKeysEarnedPerDay +
+                          RuleConstants.goalBonusKeys;
+                  i++)
                 Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: GameIcon(i < keys ? 'key' : 'key_empty', size: 30),
+                  padding: const EdgeInsets.only(left: 3),
+                  child: GameIcon(i < keys ? 'key' : 'key_empty', size: 26),
                 ),
             ]),
             const SizedBox(height: 10),
@@ -183,6 +187,28 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ]),
             const SizedBox(height: 6),
             GlowBar(ratio: gauge.ratio, colors: BarColors.exp, height: 8),
+            if (gauge.goalBonusKey || gauge.stepsToGoal != null) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                GameIcon(gauge.goalBonusKey ? 'check' : 'quest', size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    gauge.goalBonusKey
+                        ? '오늘 걸음 목표 달성! 보너스 열쇠 +1'
+                        : '걸음 목표까지 ${comma(gauge.stepsToGoal!)}보 · '
+                            '채우면 보너스 열쇠 +1',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: gauge.goalBonusKey
+                            ? AppColors.goldBright
+                            : AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ]),
+            ],
           ],
         ),
       ),

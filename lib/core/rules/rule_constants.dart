@@ -28,6 +28,9 @@ class RuleConstants {
   static const int maxKeysEarnedPerDay = 4; // 10,000보
   static const int maxKeysCarryOver = 3;
 
+  /// 자기 걸음 목표를 채운 날 주는 보너스 열쇠 (밸런스 A안)
+  static const int goalBonusKeys = 1;
+
   // ---------------------------------------------------------------- 경험치
   static const int dungeonClearExp = 50;
   static const int dungeonFailExp = 10;

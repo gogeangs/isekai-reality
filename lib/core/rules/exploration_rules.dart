@@ -6,12 +6,6 @@ enum PlaceKind {
   /// 미궁 입구 (지하철역) — 던전 보상 1.5배
   labyrinthGate,
 
-  /// 여관 (카페)
-  inn,
-
-  /// 잡화상 (편의점)
-  generalStore,
-
   /// 정령의 호수 (호수공원)
   spiritLake,
 

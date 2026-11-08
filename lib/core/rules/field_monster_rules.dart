@@ -97,7 +97,6 @@ class FieldMonsterRules {
         PlaceKind.labyrinthGate => MonsterId.labyrinthBat,
         PlaceKind.spiritLake => MonsterId.roughWaterSpirit,
         PlaceKind.bardTheater => MonsterId.shadowButterfly,
-        PlaceKind.inn || PlaceKind.generalStore => MonsterId.ashSlime,
       };
 
   /// [from] 에서 [meters] 만큼 [bearing] 방향으로 옮긴 점 (짧은 거리용 근사)

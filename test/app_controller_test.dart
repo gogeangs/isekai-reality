@@ -29,7 +29,9 @@ void main() {
     expect(today.sleepMinutes, 430);
     expect(today.stepGoal, 5000);
     expect(today.questsCompleted, 2); // 수면, 걸음 완료 / 공부 미완료
-    expect(controller.player.gauge.keysAvailable, 2);
+    // 걸음 열쇠 2개 + 목표(5,000보) 달성 보너스 1개
+    expect(controller.player.gauge.keysAvailable, 3);
+    expect(controller.player.gauge.goalBonusKey, isTrue);
 
     final saved = await store.loadHistory();
     expect(saved.single.steps, 6400);

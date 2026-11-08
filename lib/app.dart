@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
-import 'data/storage/record_store.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'data/weather/weather_source.dart';
 import 'features/battle/dungeon_screen.dart';
@@ -13,6 +12,7 @@ import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
 import 'theme/app_colors.dart';
+import 'theme/ornaments.dart';
 
 class IsekaiRealityApp extends StatelessWidget {
   const IsekaiRealityApp({super.key, required this.controller});
@@ -119,9 +119,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 builder: (_) => DungeonScreen(controller: controller),
               ),
             ),
-            heroAsset: controller.profile.look == HeroLook.female
-                ? 'assets/images/hero_female.png'
-                : 'assets/images/hero_male.png',
+            look: controller.profile.look,
             weatherLabel: controller.weatherLabel,
             weatherIcon: _weatherIcon(controller),
           ),
@@ -131,7 +129,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             player: controller.player,
             purifiedMonsters: controller.purifiedEver,
           ),
-          SettingsScreen(controller: controller),
+          NightBackground(child: SettingsScreen(controller: controller)),
         ];
 
         return Scaffold(
@@ -140,21 +138,108 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             spiritName: controller.profile.spiritName,
             child: IndexedStack(index: _tab, children: pages),
           ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _tab,
-            onDestinationSelected: (i) => setState(() => _tab = i),
-            backgroundColor: AppColors.night,
-            indicatorColor: AppColors.gold.withValues(alpha: 0.25),
-            destinations: const [
-              NavigationDestination(icon: Icon(Icons.person_rounded), label: '상태'),
-              NavigationDestination(icon: Icon(Icons.map_rounded), label: '지도'),
-              NavigationDestination(icon: Icon(Icons.bar_chart_rounded), label: '기록'),
-              NavigationDestination(icon: Icon(Icons.military_tech_rounded), label: '도감'),
-              NavigationDestination(icon: Icon(Icons.settings_rounded), label: '설정'),
-            ],
+          backgroundColor: const Color(0xFF0F1233),
+          bottomNavigationBar: OrnateNavBar(
+            index: _tab,
+            onTap: (i) => setState(() => _tab = i),
           ),
         );
       },
+    );
+  }
+}
+
+/// 하단 메뉴: 금테 막대, 고른 메뉴는 금색 상자 (목업 구도)
+class OrnateNavBar extends StatelessWidget {
+  const OrnateNavBar({super.key, required this.index, required this.onTap});
+
+  final int index;
+  final ValueChanged<int> onTap;
+
+  static const items = [
+    (Icons.person_rounded, '상태'),
+    (Icons.map_rounded, '지도'),
+    (Icons.bar_chart_rounded, '기록'),
+    (Icons.military_tech_rounded, '도감'),
+    (Icons.settings_rounded, '설정'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1233),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+          child: OrnatePanel(
+            padding: const EdgeInsets.all(4),
+            radius: 18,
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: Semantics(
+                      selected: i == index,
+                      button: true,
+                      child: InkWell(
+                        onTap: () => onTap(i),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          height: 54,
+                          decoration: i == index
+                              ? BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0xFFB98330),
+                                      Color(0xFF6E4B1A)
+                                    ],
+                                  ),
+                                  border: Border.all(
+                                      color: AppColors.goldBright, width: 1.2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: AppColors.gold
+                                            .withValues(alpha: 0.45),
+                                        blurRadius: 10),
+                                  ],
+                                )
+                              : null,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(items[i].$1,
+                                  color: i == index
+                                      ? AppColors.goldBright
+                                      : AppColors.text,
+                                  size: 24),
+                              const SizedBox(height: 2),
+                              Text(items[i].$2,
+                                  style: TextStyle(
+                                    color: i == index
+                                        ? AppColors.goldBright
+                                        : AppColors.textMuted,
+                                    fontSize: 12,
+                                    fontWeight: i == index
+                                        ? FontWeight.w800
+                                        : FontWeight.w500,
+                                  )),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

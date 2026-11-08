@@ -147,7 +147,7 @@ void main() {
 
     // 레벨업 연출
     showDialog<void>(
-      context: tester.element(find.byType(NavigationBar)),
+      context: tester.element(find.byType(OrnateNavBar)),
       builder: (_) => const LevelUpDialog(from: 9, to: 10),
     );
     await tester.pumpAndSettle();
@@ -159,7 +159,7 @@ void main() {
     final spawn = c.todaySpawns.firstWhere(
         (s) => s.info.name == '거칠어진 물방울 정령',
         orElse: () => c.todaySpawns.first);
-    Navigator.of(tester.element(find.byType(NavigationBar))).push(
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
       MaterialPageRoute<void>(
           builder: (_) => FieldBattleScreen(controller: c, spawn: spawn)),
     );

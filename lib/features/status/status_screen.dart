@@ -1,36 +1,41 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
+import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 
-/// 메인 상태창 (목업 확정본 기준).
+/// 메인 상태창 (목업 확정본 구도).
 ///
-/// [player] 의 마지막 기록이 '오늘'이다. 공부 기록은 [onLogStudy] 로 알린다.
+/// 위: 각성자 그림 + 월계관 레벨 배지 / 가운데: 경험치·던전 게이지·MP·스탯 /
+/// 아래: 일일 퀘스트와 불씨.
 class StatusScreen extends StatelessWidget {
   const StatusScreen({
     super.key,
     required this.player,
     required this.onLogStudy,
     this.onOpenDungeon,
-    this.heroAsset = 'assets/images/hero_male.png',
+    this.look = HeroLook.male,
     this.weatherLabel = '맑음',
     this.weatherIcon = Icons.wb_sunny_rounded,
   });
-
-  /// 위쪽 날씨 표시 (예: '맑음 12°')
-  final String weatherLabel;
-  final IconData weatherIcon;
 
   final PlayerState player;
   final ValueChanged<int> onLogStudy;
 
   /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
   final VoidCallback? onOpenDungeon;
-  final String heroAsset;
+  final HeroLook look;
+
+  /// 위쪽 날씨 표시 (예: '맑음 12°')
+  final String weatherLabel;
+  final IconData weatherIcon;
 
   Future<void> _openStudySheet(BuildContext context) async {
     final minutes = await showModalBottomSheet<int>(
@@ -47,45 +52,70 @@ class StatusScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = player.today!;
+    final top = MediaQuery.paddingOf(context).top;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.duskPink, AppColors.dusk, AppColors.night],
-          stops: [0, 0.35, 0.8],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            _TopBar(weatherLabel: weatherLabel, weatherIcon: weatherIcon),
-            const SizedBox(height: 8),
-            _Hero(asset: heroAsset),
-            _LevelBadge(
-              level: player.level.level,
-              title: _equippedTitle(player.titles),
+    return NightBackground(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // ─────────── 각성자 그림
+          SizedBox(
+            height: 330 + top,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _HeroArt(look: look),
+                const Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FadeToNight(height: 110)),
+                Positioned(
+                  top: top + 8,
+                  left: 14,
+                  right: 14,
+                  child: Row(children: [
+                    const EyeEmblem(size: 42),
+                    const Spacer(),
+                    ChipBadge(text: weatherLabel, icon: weatherIcon),
+                  ]),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            _StatusPanel(player: player, onOpenDungeon: onOpenDungeon),
-            const SizedBox(height: 16),
-            _QuestPanel(
-              quests: QuestRules.forDay(today),
-              onLogStudy: () => _openStudySheet(context),
-            ),
-            const SizedBox(height: 16),
-            BulssiBubble(
-              line: BulssiLines.forStatus(
-                today: today,
-                gauge: player.gauge,
-                now: DateTime.now(),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -70),
+            child: Center(
+              child: LaurelBadge(
+                level: player.level.level,
+                title: _equippedTitle(player.titles),
               ),
             ),
-          ],
-        ),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -64),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _StatusPanel(player: player, onOpenDungeon: onOpenDungeon),
+                  const SizedBox(height: 14),
+                  _QuestPanel(
+                    quests: QuestRules.forDay(today),
+                    onLogStudy: () => _openStudySheet(context),
+                  ),
+                  const SizedBox(height: 14),
+                  BulssiBubble(
+                    line: BulssiLines.forStatus(
+                      today: today,
+                      gauge: player.gauge,
+                      now: DateTime.now(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -102,144 +132,55 @@ class StatusScreen extends StatelessWidget {
   }
 }
 
-// ───────────────────────────────────────────────────────────── 위쪽 바
+// ───────────────────────────────────────────────────────────── 각성자 그림
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.weatherLabel, required this.weatherIcon});
+class _HeroArt extends StatelessWidget {
+  const _HeroArt({required this.look});
 
-  final String weatherLabel;
-  final IconData weatherIcon;
+  final HeroLook look;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    const male = 'assets/images/bg_status_male.jpg';
+    if (look == HeroLook.male) {
+      return Image.asset(male,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          semanticLabel: '기본 각성자',
+          errorBuilder: (_, __, ___) => const SizedBox());
+    }
+    // 여성 전신 그림이 생기기 전까지: 흐린 배경 + 초상화
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.gold, width: 1.5),
-          ),
-          child: const Icon(Icons.remove_red_eye_outlined,
-              color: AppColors.gold, size: 24, semanticLabel: '탑의 문장'),
+        ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Image.asset(male,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox()),
         ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.panel,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.6)),
-          ),
-          child: Row(children: [
-            Icon(weatherIcon, color: AppColors.gold, size: 18),
-            const SizedBox(width: 6),
-            Text(weatherLabel,
-                style: const TextStyle(color: AppColors.text, fontSize: 14)),
-          ]),
-        ),
-      ],
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────── 캐릭터
-
-class _Hero extends StatelessWidget {
-  const _Hero({required this.asset});
-
-  final String asset;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 300,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          // 발밑의 마법진
-          Container(
-            width: 240,
-            height: 56,
+        Center(
+          child: Container(
+            width: 190,
+            height: 190,
+            margin: const EdgeInsets.only(bottom: 30),
             decoration: BoxDecoration(
-              shape: BoxShape.rectangle,
-              borderRadius: const BorderRadius.all(Radius.elliptical(120, 28)),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.8), width: 2),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.goldBright, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.gold.withValues(alpha: 0.35),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                ),
+                    color: AppColors.gold.withValues(alpha: 0.6),
+                    blurRadius: 30),
               ],
             ),
-          ),
-          Positioned(
-            bottom: 20,
-            child: Image.asset(
-              asset,
-              height: 270,
-              semanticLabel: '기본 각성자',
-              errorBuilder: (_, __, ___) => const Icon(
-                Icons.person_rounded,
-                size: 200,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────── 레벨·칭호
-
-class _LevelBadge extends StatelessWidget {
-  const _LevelBadge({required this.level, required this.title});
-
-  final int level;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.night,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.gold, width: 1.5),
-          ),
-          child: Text(
-            'Lv.$level',
-            style: const TextStyle(
-              color: AppColors.goldBright,
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-            ),
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(0, -4),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFD9B865), AppColors.goldBright, Color(0xFFD9B865)],
-              ),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.night,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+            child: ClipOval(
+              child: Image.asset('assets/images/portrait_female.jpg',
+                  fit: BoxFit.cover,
+                  semanticLabel: '기본 각성자',
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.person_rounded,
+                      size: 120,
+                      color: AppColors.textMuted)),
             ),
           ),
         ),
@@ -262,27 +203,34 @@ class _StatusPanel extends StatelessWidget {
     final gauge = player.gauge;
     final sleep = today.sleepMinutes ?? 0;
 
-    return _Panel(
+    return OrnatePanel(
+      ornament: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Bar(
-            label: 'EXP',
-            ratio: player.level.ratio,
-            color: AppColors.gold,
-            value: '${comma(player.level.expIntoLevel)} / '
-                '${comma(player.level.expToNext)}',
-          ),
+          Row(children: [
+            Text('EXP', style: AppText.title(16)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: GlowBar(
+                    ratio: player.level.ratio, colors: BarColors.exp)),
+            const SizedBox(width: 10),
+            Text(
+              '${comma(player.level.expIntoLevel)} / '
+              '${comma(player.level.expToNext)}',
+              style: const TextStyle(color: AppColors.text, fontSize: 13),
+            ),
+          ]),
           const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _Bar(
+                child: _Gauge(
                   icon: Icons.vpn_key_rounded,
                   label: '던전 게이지 · 열쇠 ${gauge.keysAvailable}',
                   ratio: gauge.ratio,
-                  color: AppColors.gauge,
+                  colors: BarColors.gauge,
                   value: gauge.dailyKeyLimitReached
                       ? '오늘은 다 모았어요'
                       : '${comma(gauge.stepsIntoNextKey)} / '
@@ -291,13 +239,13 @@ class _StatusPanel extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: _Bar(
+                child: _Gauge(
                   icon: Icons.nightlight_round,
                   label: 'MP · 수면',
                   ratio: (sleep / RuleConstants.sleepGoodMinutes)
                       .clamp(0, 1)
                       .toDouble(),
-                  color: AppColors.mana,
+                  colors: BarColors.mana,
                   value: today.sleepMinutes == null
                       ? '기록 없음'
                       : '${hoursMinutes(sleep)} / 7시간',
@@ -307,29 +255,34 @@ class _StatusPanel extends StatelessWidget {
           ),
           if (onOpenDungeon != null) ...[
             const SizedBox(height: 12),
-            OutlinedButton.icon(
+            FrameButton(
               onPressed: onOpenDungeon,
-              icon: const Icon(Icons.door_front_door_rounded),
-              label: Text(gauge.keysAvailable > 0
+              icon: Icons.door_front_door_rounded,
+              height: 46,
+              label: gauge.keysAvailable > 0
                   ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
-                  : '던전 (열쇠 없음)'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.gauge,
-                side: BorderSide(
-                    color: gauge.keysAvailable > 0
-                        ? AppColors.gauge
-                        : AppColors.track),
-                minimumSize: const Size.fromHeight(48),
-              ),
+                  : '던전 (열쇠 없음)',
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: [
-              _StatCard(icon: Icons.favorite_rounded, name: '체력', value: player.stats.vitality),
-              _StatCard(icon: Icons.air_rounded, name: '민첩', value: player.stats.agility),
-              _StatCard(icon: Icons.menu_book_rounded, name: '지력', value: player.stats.wisdom),
-              _StatCard(icon: Icons.auto_awesome_rounded, name: '정신', value: player.stats.spirit),
+              _StatTile(
+                  icon: Icons.favorite_rounded,
+                  name: '체력',
+                  value: player.stats.vitality),
+              _StatTile(
+                  icon: Icons.air_rounded,
+                  name: '민첩',
+                  value: player.stats.agility),
+              _StatTile(
+                  icon: Icons.menu_book_rounded,
+                  name: '지력',
+                  value: player.stats.wisdom),
+              _StatTile(
+                  icon: Icons.auto_awesome_rounded,
+                  name: '정신',
+                  value: player.stats.spirit),
             ],
           ),
         ],
@@ -338,20 +291,20 @@ class _StatusPanel extends StatelessWidget {
   }
 }
 
-class _Bar extends StatelessWidget {
-  const _Bar({
+class _Gauge extends StatelessWidget {
+  const _Gauge({
     required this.label,
     required this.ratio,
-    required this.color,
+    required this.colors,
     required this.value,
-    this.icon,
+    required this.icon,
   });
 
   final String label;
   final double ratio;
-  final Color color;
+  final List<Color> colors;
   final String value;
-  final IconData? icon;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -359,10 +312,8 @@ class _Bar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 4),
-          ],
+          Icon(icon, size: 16, color: colors.last),
+          const SizedBox(width: 4),
           Flexible(
             child: Text(label,
                 overflow: TextOverflow.ellipsis,
@@ -370,23 +321,7 @@ class _Bar extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: Container(
-            height: 10,
-            color: AppColors.track,
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: ratio.clamp(0, 1).toDouble(),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 6)],
-                ),
-              ),
-            ),
-          ),
-        ),
+        GlowBar(ratio: ratio, colors: colors),
         const SizedBox(height: 4),
         Text(value,
             textAlign: TextAlign.right,
@@ -396,8 +331,8 @@ class _Bar extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.icon, required this.name, required this.value});
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.icon, required this.name, required this.value});
 
   final IconData icon;
   final String name;
@@ -407,20 +342,23 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.night.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.7)),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2B2F6B), Color(0xFF1B1E4C)],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.75)),
         ),
         child: Column(children: [
-          Icon(icon, color: AppColors.gold, size: 22),
-          const SizedBox(height: 4),
-          Text(name, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          Text('$value',
-              style: const TextStyle(
-                  color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w700)),
+          Icon(icon, color: AppColors.goldBright, size: 20),
+          const SizedBox(height: 2),
+          Text(name,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('$value', style: AppText.title(20, color: AppColors.text)),
         ]),
       ),
     );
@@ -437,33 +375,49 @@ class _QuestPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Panel(
+    return OrnatePanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const Icon(Icons.receipt_long_rounded, color: AppColors.gold),
+            const Icon(Icons.receipt_long_rounded, color: AppColors.goldBright),
             const SizedBox(width: 8),
-            const Expanded(
-              child: Text('일일 퀘스트',
-                  style: TextStyle(
-                      color: AppColors.goldBright,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700)),
-            ),
-            FilledButton.icon(
-              onPressed: onLogStudy,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.gold,
-                foregroundColor: AppColors.night,
-                minimumSize: const Size(44, 44),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+            Text('일일 퀘스트', style: AppText.title(19)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 1,
+                color: AppColors.gold.withValues(alpha: 0.4),
               ),
-              icon: const Icon(Icons.menu_book_rounded, size: 18),
-              label: const Text('공부 기록'),
+            ),
+            const SizedBox(width: 8),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onLogStudy,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    gradient: kGoldGradient,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.menu_book_rounded,
+                        size: 16, color: Color(0xFF3A2208)),
+                    SizedBox(width: 4),
+                    Text('공부 기록',
+                        style: TextStyle(
+                            color: Color(0xFF3A2208),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13)),
+                  ]),
+                ),
+              ),
             ),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           for (final q in quests) _QuestRow(quest: q),
         ],
       ),
@@ -483,31 +437,47 @@ class _QuestRow extends StatelessWidget {
     final target = quest.unit == '보' ? comma(quest.target) : '${quest.target}';
     return Container(
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.night.withValues(alpha: 0.5),
+        color: const Color(0x66101333),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        Icon(
-          quest.completed
-              ? Icons.check_box_rounded
-              : Icons.check_box_outline_blank_rounded,
-          color: AppColors.gold,
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            gradient: quest.completed ? kGoldGradient : null,
+            border: Border.all(color: AppColors.gold, width: 1.4),
+          ),
+          child: quest.completed
+              ? const Icon(Icons.check_rounded,
+                  size: 18, color: Color(0xFF3A2208))
+              : null,
         ),
         const SizedBox(width: 10),
         Expanded(
+          flex: 5,
           child: Text(quest.title,
               style: const TextStyle(color: AppColors.text, fontSize: 15)),
         ),
         if (quest.completed)
-          const Text('완료',
-              style: TextStyle(
-                  color: AppColors.goldBright, fontWeight: FontWeight.w700))
-        else
+          Text('완료', style: AppText.title(15))
+        else ...[
+          Expanded(
+            flex: 3,
+            child: GlowBar(
+              ratio: quest.target == 0 ? 0 : quest.current / quest.target,
+              colors: BarColors.exp,
+              height: 7,
+            ),
+          ),
+          const SizedBox(width: 8),
           Text('$current / $target${quest.unit}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        ],
       ]),
     );
   }
@@ -527,11 +497,7 @@ class _StudySheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('얼마나 공부·독서했나요?',
-                style: TextStyle(
-                    color: AppColors.text,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
+            Text('얼마나 공부·독서했나요?', style: AppText.title(19)),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -539,14 +505,9 @@ class _StudySheet extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: OutlinedButton(
+                      child: FrameButton(
                         onPressed: () => Navigator.pop(context, m),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.goldBright,
-                          side: const BorderSide(color: AppColors.gold),
-                          minimumSize: const Size(44, 52),
-                        ),
-                        child: Text('+$m분'),
+                        label: '+$m분',
                       ),
                     ),
                   ),
@@ -555,27 +516,6 @@ class _StudySheet extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────── 공통 패널
-
-class _Panel extends StatelessWidget {
-  const _Panel({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.8)),
-      ),
-      child: child,
     );
   }
 }

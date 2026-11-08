@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
+import '../bulssi/bulssi_bubble.dart';
 
-/// 도감: 직업 · 칭호 8종 · 몬스터 6종
+/// 도감 (목업 '칭호' 구도): 칭호 8종 카드, 직업, 몬스터 6종
 class CodexScreen extends StatelessWidget {
   const CodexScreen({
     super.key,
@@ -23,6 +25,28 @@ class CodexScreen extends StatelessWidget {
         Job.cleric => '푹 잔 날이 많은 각성자. 맑은 정신으로 동료를 돕는다.',
       };
 
+  static IconData titleIcon(TitleId id) => switch (id) {
+        TitleId.firstSteps => Icons.hiking_rounded,
+        TitleId.persistentTraveler => Icons.flag_rounded,
+        TitleId.morningSpiritFriend => Icons.wb_twilight_rounded,
+        TitleId.bookwormSage => Icons.menu_book_rounded,
+        TitleId.forcedMarchKnight => Icons.shield_rounded,
+        TitleId.nightWalker => Icons.nightlight_round,
+        TitleId.awakened => Icons.auto_awesome_rounded,
+        TitleId.lanternKeeper => Icons.emoji_objects_rounded,
+      };
+
+  /// 상태창과 같은 규칙의 대표 칭호
+  TitleId? get _equipped {
+    if (player.titles.contains(TitleId.persistentTraveler)) {
+      return TitleId.persistentTraveler;
+    }
+    for (final t in TitleRules.all.reversed) {
+      if (player.titles.contains(t.id)) return t.id;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final days = player.history.length;
@@ -30,96 +54,105 @@ class CodexScreen extends StatelessWidget {
     final job = player.job;
     final scores = JobRules.scores(
         player.history.take(RuleConstants.jobAwakeningDay).toList());
+    final top = MediaQuery.paddingOf(context).top;
+    final equipped = _equipped;
 
-    return SafeArea(
-      bottom: false,
+    return NightBackground(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
         children: [
-          const Text('도감',
-              style: TextStyle(
-                  color: AppColors.goldBright,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800)),
+          const OrnateTopBar(title: '도감'),
+          const SizedBox(height: 8),
+          Center(
+            child: Text('칭호 ${player.titles.length} / ${TitleRules.all.length}',
+                style: AppText.title(18, color: AppColors.text)),
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.25,
+            children: [
+              for (final t in TitleRules.all)
+                _TitleCard(
+                  info: t,
+                  icon: titleIcon(t.id),
+                  earned: player.titles.contains(t.id),
+                  equipped: t.id == equipped,
+                ),
+            ],
+          ),
           const SizedBox(height: 12),
+          const BulssiBubble(line: '숨은 칭호를 같이 찾아보자!'),
+          const SizedBox(height: 16),
 
           // ─────────────── 직업
-          _Section(
-            title: '직업',
-            child: job != null
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(job.koreanName,
-                          style: const TextStyle(
-                              color: AppColors.gold,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 4),
-                      Text(jobDescription(job),
-                          style: const TextStyle(color: AppColors.text)),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        '$daysLeft일 뒤 직업 각성 · 첫 7일의 생활로 정해져요',
-                        style: const TextStyle(color: AppColors.text),
-                      ),
-                      const SizedBox(height: 10),
-                      for (final j in Job.values)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(children: [
-                            SizedBox(
-                              width: 64,
-                              child: Text(j.koreanName,
-                                  style: const TextStyle(
-                                      color: AppColors.textMuted)),
-                            ),
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: scores[j],
-                                  minHeight: 8,
-                                  color: AppColors.gold,
-                                  backgroundColor: AppColors.track,
-                                ),
-                              ),
-                            ),
-                          ]),
-                        ),
-                    ],
-                  ),
-          ),
-
-          // ─────────────── 칭호
-          _Section(
-            title: '칭호 ${player.titles.length} / ${TitleRules.all.length}',
+          OrnatePanel(
+            ornament: true,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final t in TitleRules.all)
-                  _TitleRow(info: t, earned: player.titles.contains(t.id)),
+                Text('직업', style: AppText.title(18)),
+                const SizedBox(height: 6),
+                if (job != null) ...[
+                  Text(job.koreanName,
+                      style: AppText.title(26, color: AppColors.text)),
+                  const SizedBox(height: 4),
+                  Text(jobDescription(job),
+                      style: const TextStyle(color: AppColors.text)),
+                ] else ...[
+                  Text('$daysLeft일 뒤 직업 각성 · 첫 7일의 생활로 정해져요',
+                      style: const TextStyle(color: AppColors.text)),
+                  const SizedBox(height: 8),
+                  for (final j in Job.values)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(children: [
+                        SizedBox(
+                          width: 64,
+                          child: Text(j.koreanName,
+                              style:
+                                  const TextStyle(color: AppColors.textMuted)),
+                        ),
+                        Expanded(
+                          child: GlowBar(
+                              ratio: scores[j] ?? 0,
+                              colors: BarColors.exp,
+                              height: 8),
+                        ),
+                      ]),
+                    ),
+                ],
               ],
             ),
           ),
+          const SizedBox(height: 14),
 
           // ─────────────── 몬스터
-          _Section(
-            title: '몬스터 도감 ${purifiedMonsters.length} / ${Monsters.all.length}',
-            child: GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.72,
+          OrnatePanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final m in Monsters.all)
-                  _MonsterTile(
-                      info: m, purified: purifiedMonsters.contains(m.id)),
+                Text(
+                    '몬스터 도감 ${purifiedMonsters.length} / ${Monsters.all.length}',
+                    style: AppText.title(18)),
+                const SizedBox(height: 10),
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 0.72,
+                  children: [
+                    for (final m in Monsters.all)
+                      _MonsterTile(
+                          info: m, purified: purifiedMonsters.contains(m.id)),
+                  ],
+                ),
               ],
             ),
           ),
@@ -129,37 +162,76 @@ class CodexScreen extends StatelessWidget {
   }
 }
 
-class _TitleRow extends StatelessWidget {
-  const _TitleRow({required this.info, required this.earned});
+class _TitleCard extends StatelessWidget {
+  const _TitleCard({
+    required this.info,
+    required this.icon,
+    required this.earned,
+    required this.equipped,
+  });
 
   final TitleInfo info;
+  final IconData icon;
   final bool earned;
+  final bool equipped;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(children: [
-        Icon(
-          earned ? Icons.military_tech_rounded : Icons.lock_outline_rounded,
-          color: earned ? AppColors.gold : AppColors.textMuted,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(earned ? info.name : '???',
+    return OrnatePanel(
+      highlight: equipped,
+      radius: 14,
+      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (equipped)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              decoration: BoxDecoration(
+                gradient: kGoldGradient,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('장착',
                   style: TextStyle(
-                      color: earned ? AppColors.goldBright : AppColors.textMuted,
-                      fontWeight: FontWeight.w700)),
-              Text(info.hint,
-                  style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 13)),
-            ],
+                      color: Color(0xFF3A2208),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900)),
+            ),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  earned
+                      ? AppColors.gold.withValues(alpha: 0.45)
+                      : const Color(0x22B8B2C8),
+                  Colors.transparent,
+                ]),
+              ),
+              child: Center(
+                child: Icon(
+                  earned ? icon : Icons.lock_rounded,
+                  size: 40,
+                  color: earned ? AppColors.goldBright : AppColors.textMuted,
+                  shadows: earned
+                      ? const [Shadow(color: AppColors.gold, blurRadius: 14)]
+                      : null,
+                ),
+              ),
+            ),
           ),
-        ),
-      ]),
+          Text(earned ? info.name : '???',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.title(15,
+                  color: earned ? AppColors.goldBright : AppColors.textMuted)),
+          Text(info.hint,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+        ],
+      ),
     );
   }
 }
@@ -175,12 +247,20 @@ class _MonsterTile extends StatelessWidget {
     return Tooltip(
       message: purified ? '${info.name} → ${info.purifiedName}' : info.habitat,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: AppColors.track.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: purified
+                ? const [Color(0xFF3A2E6E), Color(0xFF1B1E4C)]
+                : const [Color(0xFF1E2152), Color(0xFF14173E)],
+          ),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: purified ? AppColors.gold : AppColors.track),
+              color: purified
+                  ? AppColors.goldBright
+                  : AppColors.gold.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -190,7 +270,7 @@ class _MonsterTile extends StatelessWidget {
                   : ColorFiltered(
                       // 아직 정화하지 않은 몬스터는 그림자로만 보인다
                       colorFilter: const ColorFilter.mode(
-                          Color(0xFF0E1330), BlendMode.srcIn),
+                          Color(0xFF0B0D26), BlendMode.srcATop),
                       child: MonsterPicture(monster: info.id, size: 88),
                     ),
             ),
@@ -207,38 +287,6 @@ class _MonsterTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  color: AppColors.goldBright,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          child,
-        ],
       ),
     );
   }

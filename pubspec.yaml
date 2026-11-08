@@ -23,3 +23,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+  # 제목·숫자용 글꼴 (고운바탕 Bold, OFL). 자주 쓰는 한글 2,350자만 남겨 크기를 줄였다.
+  fonts:
+    - family: Title
+      fonts:
+        - asset: assets/fonts/GowunBatang-Bold.ttf
+          weight: 700

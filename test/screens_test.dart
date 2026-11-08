@@ -192,7 +192,7 @@ void main() {
       await openDemo(tester);
       await tester.tap(find.text('기록'));
       await tester.pump();
-      expect(find.text('최근 7일'), findsOneWidget);
+      expect(find.textContaining('최근 7일'), findsOneWidget);
       expect(find.textContaining('오늘 ·'), findsOneWidget);
     });
 

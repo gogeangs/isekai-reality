@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 
 /// 첫 실행 화면: 불씨의 짧은 소개 → 외형(남·여)과 이름 정하기 → 깨어나기.
@@ -52,186 +53,215 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.duskPink, AppColors.dusk, AppColors.night],
-            stops: [0, 0.4, 0.85],
-          ),
-        ),
-        child: SafeArea(
-          child: _inIntro ? _buildIntro() : _buildForm(),
-        ),
+      backgroundColor: const Color(0xFF0F1233),
+      body: NightBackground(
+        child: _inIntro ? _buildIntro() : _buildForm(),
       ),
+    );
+  }
+
+  /// 위쪽 그림 (노을 속 각성자)
+  Widget _art(double height, {Widget? overlay}) {
+    return SizedBox(
+      height: height,
+      child: Stack(fit: StackFit.expand, children: [
+        Image.asset('assets/images/bg_awakening.jpg',
+            fit: BoxFit.cover,
+            alignment: const Alignment(0.2, -0.2),
+            errorBuilder: (_, __, ___) => const SizedBox()),
+        const Align(
+            alignment: Alignment.bottomCenter,
+            child: FadeToNight(height: 120)),
+        if (overlay != null) overlay,
+      ]),
     );
   }
 
   Widget _buildIntro() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const Spacer(),
-          const Icon(Icons.remove_red_eye_outlined,
-              color: AppColors.gold, size: 64, semanticLabel: '탑의 문장'),
-          const SizedBox(height: 32),
-          BulssiBubble(line: _introLines[_introStep], size: 88),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => setState(() => _introStep++),
-              style: _goldButton,
-              child: Text(
-                  _introStep == _introLines.length - 1 ? '좋아!' : '다음',
-                  style: _buttonText),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildForm() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+    final top = MediaQuery.paddingOf(context).top;
+    return Column(
       children: [
-        const Text('당신의 각성',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: AppColors.goldBright,
-                fontSize: 24,
-                fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 240,
-          child: Image.asset(
-            _look == HeroLook.female
-                ? 'assets/images/hero_female.png'
-                : 'assets/images/hero_male.png',
-            semanticLabel: '기본 각성자',
-            errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded,
-                size: 160, color: AppColors.textMuted),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text('각성자',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: AppColors.goldBright,
-                fontSize: 20,
-                fontWeight: FontWeight.w700)),
-        const Text('당신의 진짜 모습이 곧 깨어날 거예요…',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
-        const SizedBox(height: 20),
-        Row(children: [
-          _LookCard(
-            label: '남',
-            selected: _look == HeroLook.male,
-            onTap: () => setState(() => _look = HeroLook.male),
-          ),
-          const SizedBox(width: 12),
-          _LookCard(
-            label: '여',
-            selected: _look == HeroLook.female,
-            onTap: () => setState(() => _look = HeroLook.female),
-          ),
-        ]),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _nameController,
-          maxLength: maxNameLength,
-          onChanged: (_) => setState(() {}),
-          onSubmitted: (_) => _awaken(),
-          style: const TextStyle(color: AppColors.text, fontSize: 18),
-          decoration: InputDecoration(
-            labelText: '이름',
-            labelStyle: const TextStyle(color: AppColors.textMuted),
-            hintText: '불씨가 부를 이름',
-            prefixIcon: const Icon(Icons.edit_rounded, color: AppColors.gold),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: const BorderSide(color: AppColors.panelBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: const BorderSide(color: AppColors.gold, width: 2),
+        _art(420 + top,
+            overlay: Positioned(
+              top: top + 14,
+              left: 0,
+              right: 0,
+              child: const Center(child: EyeEmblem(size: 56)),
+            )),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              children: [
+                BulssiBubble(line: _introLines[_introStep], size: 96),
+                const Spacer(),
+                GoldButton(
+                  label: _introStep == _introLines.length - 1 ? '좋아!' : '다음',
+                  onPressed: () => setState(() => _introStep++),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        const BulssiBubble(line: '뭐라고 불러 줄까?'),
-        const SizedBox(height: 20),
-        FilledButton(
-          onPressed: _canAwaken ? _awaken : null,
-          style: _goldButton,
-          child: _submitting
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.night))
-              : const Text('깨어나기', style: _buttonText),
         ),
       ],
     );
   }
 
-  // 글자 크기는 Text 에 준다 (ButtonStyle.textStyle 은 테마 글꼴과 합쳐지지 않음)
-  static const TextStyle _buttonText =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.w800);
-
-  static final ButtonStyle _goldButton = FilledButton.styleFrom(
-    backgroundColor: AppColors.gold,
-    foregroundColor: AppColors.night,
-    disabledBackgroundColor: AppColors.track,
-    minimumSize: const Size.fromHeight(56),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-  );
+  Widget _buildForm() {
+    final top = MediaQuery.paddingOf(context).top;
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _art(330 + top,
+            overlay: Positioned(
+              top: top + 8,
+              left: 20,
+              right: 20,
+              child: const RibbonHeading('당신의 각성', size: 24),
+            )),
+        Transform.translate(
+          offset: const Offset(0, -40),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xEE1A1D4A),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.goldBright),
+                    ),
+                    child: Column(children: [
+                      Text('각성자', style: AppText.title(22)),
+                      const Text('당신의 진짜 모습이 곧 깨어날 거예요…',
+                          style: TextStyle(
+                              color: AppColors.textMuted, fontSize: 13)),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                OrnatePanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(children: [
+                        _LookCard(
+                          label: '남',
+                          image: 'assets/images/portrait_male.jpg',
+                          selected: _look == HeroLook.male,
+                          onTap: () => setState(() => _look = HeroLook.male),
+                        ),
+                        const SizedBox(width: 12),
+                        _LookCard(
+                          label: '여',
+                          image: 'assets/images/portrait_female.jpg',
+                          selected: _look == HeroLook.female,
+                          onTap: () =>
+                              setState(() => _look = HeroLook.female),
+                        ),
+                      ]),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _nameController,
+                        maxLength: maxNameLength,
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (_) => _awaken(),
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 18),
+                        decoration: InputDecoration(
+                          labelText: '이름',
+                          labelStyle:
+                              const TextStyle(color: AppColors.textMuted),
+                          hintText: '불씨가 부를 이름',
+                          filled: true,
+                          fillColor: const Color(0xFF14173E),
+                          suffixIcon: const Icon(Icons.edit_rounded,
+                              color: AppColors.goldBright),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide:
+                                const BorderSide(color: AppColors.panelBorder),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: const BorderSide(
+                                color: AppColors.goldBright, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const BulssiBubble(line: '뭐라고 불러 줄까?', size: 64),
+                      const SizedBox(height: 16),
+                      _submitting
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.gold))
+                          : GoldButton(
+                              label: '깨어나기',
+                              onPressed: _canAwaken ? _awaken : null,
+                            ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _LookCard extends StatelessWidget {
   const _LookCard({
     required this.label,
+    required this.image,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final String image;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Material(
-        color: AppColors.panel,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: selected ? AppColors.gold : AppColors.panelBorder.withValues(alpha: 0.5),
-            width: selected ? 2.5 : 1,
-          ),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: GestureDetector(
           onTap: onTap,
-          child: Semantics(
-            selected: selected,
-            button: true,
-            child: SizedBox(
-              height: 64,
-              child: Center(
-                child: Text(label,
-                    style: TextStyle(
-                        color: selected ? AppColors.goldBright : AppColors.text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700)),
+          child: OrnatePanel(
+            highlight: selected,
+            radius: 14,
+            padding: const EdgeInsets.all(4),
+            child: Column(children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Opacity(
+                    opacity: selected ? 1 : 0.6,
+                    child: Image.asset(image,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person_rounded,
+                            size: 80,
+                            color: AppColors.textMuted)),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: AppText.title(20,
+                      color: selected ? AppColors.goldBright : AppColors.text)),
+            ]),
           ),
         ),
       ),

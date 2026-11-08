@@ -6,6 +6,7 @@ import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 
 /// 설정: 걸음 목표 · 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
@@ -24,7 +25,8 @@ class SettingsScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          const _PageTitle('설정'),
+          const OrnateTopBar(title: '설정'),
+          const SizedBox(height: 8),
           _Section(
             title: '하루 걸음 목표',
             children: [
@@ -285,24 +287,6 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _PageTitle extends StatelessWidget {
-  const _PageTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(text,
-          style: const TextStyle(
-              color: AppColors.goldBright,
-              fontSize: 24,
-              fontWeight: FontWeight.w800)),
-    );
-  }
-}
-
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.children});
 
@@ -311,25 +295,17 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.6)),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: OrnatePanel(
+       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  color: AppColors.goldBright,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700)),
+          Text(title, style: AppText.title(18)),
           const SizedBox(height: 10),
           ...children,
         ],
+       ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/geo/geo.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
 import '../battle/field_battle_screen.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -84,19 +85,11 @@ class _TopPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.panel,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.panelBorder),
-      ),
+    return OrnatePanel(
+      radius: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(children: [
-        Text(areaName,
-            style: const TextStyle(
-                color: AppColors.goldBright,
-                fontSize: 18,
-                fontWeight: FontWeight.w700)),
+        Text(areaName, style: AppText.title(19)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -105,15 +98,7 @@ class _TopPanel extends StatelessWidget {
               Text('${(ratio * 100).floor()}% 밝힘',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
               const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: ratio,
-                  minHeight: 6,
-                  color: AppColors.gold,
-                  backgroundColor: AppColors.track,
-                ),
-              ),
+              GlowBar(ratio: ratio, colors: BarColors.exp, height: 7),
             ],
           ),
         ),
@@ -247,8 +232,7 @@ class _ExploreSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final visited = controller.everVisitedPlaceIds;
     final fix = controller.lastFix;
-    return Container(
-      color: AppColors.night,
+    return NightBackground(
       child: ListView(
         padding: EdgeInsets.fromLTRB(
             16, MediaQuery.paddingOf(context).top + 90, 16, 24),

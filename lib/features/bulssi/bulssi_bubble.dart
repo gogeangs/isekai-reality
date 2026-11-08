@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
 import 'bulssi_mood.dart';
 
 /// 불씨 그림 + 말풍선. 모든 화면에서 같은 모양으로 쓴다.
@@ -59,13 +60,7 @@ class BulssiBubble extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w700)),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFBF5E6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+              SpeechBubbleArt(
                 child: Text(
                   line,
                   style: const TextStyle(

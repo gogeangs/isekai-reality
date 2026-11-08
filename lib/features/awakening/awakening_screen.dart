@@ -74,12 +74,28 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
             fit: BoxFit.cover,
             alignment: intro
                 ? const Alignment(0, -0.5)
-                : const Alignment(-0.42, -0.6),
+                : const Alignment(-0.42, -0.95),
             errorBuilder: (_, __, ___) => const SizedBox()),
         const Align(
             alignment: Alignment.bottomCenter,
             child: FadeToNight(height: 120)),
-        if (overlay != null) overlay,
+        if (overlay != null) ...[
+          // 제목이 그림 위에서도 읽히게 위쪽을 어둡게
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              height: MediaQuery.paddingOf(context).top + 80,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xCC0B0D26), Color(0x000B0D26)],
+                ),
+              ),
+            ),
+          ),
+          overlay,
+        ],
       ]),
     );
   }

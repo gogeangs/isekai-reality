@@ -95,7 +95,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
             '${days.first.month}월 ${days.first.day}일 ~ '
             '${days.last.month}월 ${days.last.day}일 · 최근 7일',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              shadows: [
+                Shadow(color: Color(0xE60B0D26), blurRadius: 6),
+                Shadow(color: Color(0xE60B0D26), blurRadius: 2),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           _ChartPanel(
@@ -253,8 +261,12 @@ class _ChartPanel extends StatelessWidget {
             const SizedBox(width: 6),
             Text(title, style: AppText.title(17)),
             const Spacer(),
-            Text(goalLabel,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Text(goalLabel,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 12)),
+            ),
           ]),
           const SizedBox(height: 8),
           SizedBox(

@@ -66,7 +66,11 @@ class CodexScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Center(
             child: Text('칭호 ${player.titles.length} / ${TitleRules.all.length}',
-                style: AppText.title(18, color: AppColors.text)),
+                style: AppText.title(18, color: AppColors.text).copyWith(
+                  shadows: const [
+                    Shadow(color: Color(0xE60B0D26), blurRadius: 6),
+                  ],
+                )),
           ),
           const SizedBox(height: 10),
           GridView.count(
@@ -75,7 +79,7 @@ class CodexScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.0,
+            childAspectRatio: 1.18,
             children: [
               for (final t in TitleRules.all)
                 _TitleCard(
@@ -178,68 +182,129 @@ class _TitleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrnatePanel(
-      highlight: equipped,
-      radius: 14,
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (equipped)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-              decoration: BoxDecoration(
-                gradient: kGoldGradient,
-                borderRadius: BorderRadius.circular(6),
+    final picture = ColorFiltered(
+      // 얻지 못한 칭호는 어둡게
+      colorFilter: earned
+          ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+          : const ColorFilter.matrix([
+              0.12, 0.12, 0.12, 0, 0,
+              0.12, 0.12, 0.14, 0, 0,
+              0.16, 0.16, 0.22, 0, 0,
+              0, 0, 0, 1, 0,
+            ]),
+      child: Image.asset(
+        'assets/images/title_${info.id.name}.png',
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(icon,
+            size: 40,
+            color: earned ? AppColors.goldBright : AppColors.textMuted),
+      ),
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: OrnatePanel(
+            highlight: equipped,
+            radius: 14,
+            padding: EdgeInsets.zero,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        // 트로피 그림: 카드 위쪽에 크게, 이름 리본은 그림 아래에 겹친다
+        Positioned.fill(
+          child: LayoutBuilder(builder: (context, c) {
+            final w = c.maxWidth;
+            final ribbonW = w * 0.86;
+            final ribbonH = ribbonW / (488 / 176);
+            return Stack(alignment: Alignment.topCenter, children: [
+              Positioned(
+                top: c.maxHeight * 0.07,
+                left: w * 0.14,
+                right: w * 0.14,
+                bottom: earned ? ribbonH * 0.62 : ribbonH * 0.62 + 12,
+                child: Stack(alignment: Alignment.center, children: [
+                  Positioned.fill(child: picture),
+                  if (!earned)
+                    const Icon(Icons.lock_rounded,
+                        size: 30, color: AppColors.goldBright),
+                ]),
               ),
-              child: const Text('장착',
-                  style: TextStyle(
-                      color: Color(0xFF3A2208),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900)),
-            ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Stack(alignment: Alignment.center, children: [
-                // 얻지 못한 칭호는 어둡게, 자물쇠를 얹는다
-                ColorFiltered(
-                  colorFilter: earned
-                      ? const ColorFilter.mode(
-                          Colors.transparent, BlendMode.dst)
-                      : const ColorFilter.matrix([
-                          0.12, 0.12, 0.12, 0, 0,
-                          0.12, 0.12, 0.14, 0, 0,
-                          0.16, 0.16, 0.22, 0, 0,
-                          0, 0, 0, 1, 0,
-                        ]),
-                  child: Image.asset(
-                    'assets/images/title_${info.id.name}.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(icon,
-                        size: 40,
-                        color: earned
-                            ? AppColors.goldBright
-                            : AppColors.textMuted),
+              Positioned(
+                bottom: earned ? 4 : 16,
+                width: ribbonW,
+                height: ribbonH,
+                child: Stack(alignment: Alignment.center, children: [
+                  Positioned.fill(
+                    child: ColorFiltered(
+                      colorFilter: earned
+                          ? const ColorFilter.mode(
+                              Colors.transparent, BlendMode.dst)
+                          : const ColorFilter.matrix([
+                              0.45, 0.2, 0.1, 0, 0,
+                              0.4, 0.2, 0.1, 0, 0,
+                              0.35, 0.2, 0.2, 0, 0,
+                              0, 0, 0, 1, 0,
+                            ]),
+                      child: Image.asset('assets/images/ui_ribbon.png',
+                          fit: BoxFit.fill,
+                          errorBuilder: (_, __, ___) => const SizedBox()),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                        ribbonW * 0.16, 0, ribbonW * 0.16, ribbonH * 0.22),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(earned ? info.name : '???',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontFamily: 'Title',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: earned
+                                ? const Color(0xFF3A2208)
+                                : const Color(0xFFE8DCC0),
+                          )),
+                    ),
+                  ),
+                ]),
+              ),
+              if (!earned)
+                Positioned(
+                  bottom: 6,
+                  left: 10,
+                  right: 10,
+                  child: Text('✦ ${info.hint} ✦',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 10)),
+                ),
+              if (equipped)
+                Positioned(
+                  top: 6,
+                  right: 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                    decoration: BoxDecoration(
+                      gradient: kGoldGradient,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('장착',
+                        style: TextStyle(
+                            color: Color(0xFF3A2208),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900)),
                   ),
                 ),
-                if (!earned)
-                  const Icon(Icons.lock_rounded,
-                      size: 30, color: AppColors.goldBright),
-              ]),
-            ),
-          ),
-          Text(earned ? info.name : '???',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.title(15,
-                  color: earned ? AppColors.goldBright : AppColors.textMuted)),
-          Text(info.hint,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-        ],
-      ),
+            ]);
+          }),
+        ),
+      ],
     );
   }
 }

@@ -97,6 +97,36 @@ class _NineSlice extends StatelessWidget {
 ///
 /// 폭이 120 이상이면 그림 테두리(ui_panel_wide / ui_panel)를,
 /// 그보다 작으면 코드로 그린 테두리를 쓴다.
+/// 불씨 말풍선 그림 (ui_bubble.png, 477×234, 왼쪽 아래 꼬리)
+class SpeechBubbleArt extends StatelessWidget {
+  const SpeechBubbleArt({super.key, required this.child});
+
+  final Widget child;
+
+  static const double _scale = 2.8;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
+      child: _NineSlice(
+        asset: 'assets/images/ui_bubble.png',
+        slice: const Rect.fromLTRB(110, 55, 400, 175),
+        scale: _scale,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(30, 13, 20, 19),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: 1,
+            heightFactor: 1,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class OrnatePanel extends StatelessWidget {
   const OrnatePanel({
     super.key,

@@ -65,7 +65,10 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     return SizedBox(
       height: height,
       child: Stack(fit: StackFit.expand, children: [
-        Image.asset(
+        // 이름 짓기 화면은 제목 자리를 비우려고 그림을 조금 내린다
+        Positioned.fill(
+          top: overlay != null ? MediaQuery.paddingOf(context).top + 46 : 0,
+          child: Image.asset(
             intro
                 ? 'assets/images/splash.jpg'
                 : _look == HeroLook.female
@@ -74,8 +77,9 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
             fit: BoxFit.cover,
             alignment: intro
                 ? const Alignment(0, -0.5)
-                : const Alignment(-0.42, -0.95),
+                : const Alignment(-0.42, -0.6),
             errorBuilder: (_, __, ___) => const SizedBox()),
+        ),
         const Align(
             alignment: Alignment.bottomCenter,
             child: FadeToNight(height: 120)),
@@ -84,12 +88,13 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           Align(
             alignment: Alignment.topCenter,
             child: Container(
-              height: MediaQuery.paddingOf(context).top + 80,
+              height: MediaQuery.paddingOf(context).top + 110,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xCC0B0D26), Color(0x000B0D26)],
+                  colors: [Color(0xFF0B0D26), Color(0xFF0B0D26), Color(0x000B0D26)],
+                  stops: [0, 0.4, 1],
                 ),
               ),
             ),

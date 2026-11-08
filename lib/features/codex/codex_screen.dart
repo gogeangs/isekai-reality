@@ -79,7 +79,7 @@ class CodexScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.18,
+            childAspectRatio: 1.08,
             children: [
               for (final t in TitleRules.all)
                 _TitleCard(
@@ -223,7 +223,7 @@ class _TitleCard extends StatelessWidget {
                 top: c.maxHeight * 0.07,
                 left: w * 0.14,
                 right: w * 0.14,
-                bottom: earned ? ribbonH * 0.62 : ribbonH * 0.62 + 12,
+                bottom: earned ? ribbonH * 0.62 : ribbonH * 0.62 + 22,
                 child: Stack(alignment: Alignment.center, children: [
                   Positioned.fill(child: picture),
                   if (!earned)
@@ -232,7 +232,7 @@ class _TitleCard extends StatelessWidget {
                 ]),
               ),
               Positioned(
-                bottom: earned ? 4 : 16,
+                bottom: earned ? 6 : 24,
                 width: ribbonW,
                 height: ribbonH,
                 child: Stack(alignment: Alignment.center, children: [
@@ -273,9 +273,9 @@ class _TitleCard extends StatelessWidget {
               ),
               if (!earned)
                 Positioned(
-                  bottom: 6,
-                  left: 10,
-                  right: 10,
+                  bottom: 12,
+                  left: 14,
+                  right: 14,
                   child: Text('✦ ${info.hint} ✦',
                       textAlign: TextAlign.center,
                       maxLines: 1,

@@ -262,7 +262,7 @@ class _ChartPanel extends StatelessWidget {
             Text(title, style: AppText.title(17)),
             const Spacer(),
             Padding(
-              padding: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.only(right: 14),
               child: Text(goalLabel,
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),

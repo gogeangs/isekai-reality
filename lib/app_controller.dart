@@ -24,6 +24,7 @@ class AppController extends ChangeNotifier {
     return AppController(
       store: InMemoryRecordStore(
         profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+        // 예시 모드는 처음부터 레벨업 연출이 뜨지 않도록 확인한 레벨을 비워 둔다
         history: DemoData.twoWeeks(today: now),
       ),
       health: FakeHealthSource(granted: false),
@@ -38,9 +39,13 @@ class AppController extends ChangeNotifier {
   PlayerProfile _profile = const PlayerProfile(name: '각성자');
   List<DailyRecord> _history = [];
   bool _ready = false;
+  bool _needsAwakening = false;
   bool _healthGranted = false;
 
   bool get ready => _ready;
+
+  /// 처음 실행이라 각성 화면(이름·외형)을 보여 줘야 하는지
+  bool get needsAwakening => _needsAwakening;
   bool get healthGranted => _healthGranted;
   PlayerProfile get profile => _profile;
   List<DailyRecord> get history => List.unmodifiable(_history);
@@ -48,10 +53,48 @@ class AppController extends ChangeNotifier {
   PlayerState get player =>
       PlayerState.fromHistory(name: _profile.name, history: _history);
 
+  /// 확인하지 않은 레벨업. 없으면 null.
+  ({int from, int to})? get pendingLevelUp {
+    final seen = _profile.lastSeenLevel;
+    final now = player.level.level;
+    if (seen == null || now <= seen) return null;
+    return (from: seen, to: now);
+  }
+
   Future<void> init() async {
-    _profile = await store.loadProfile() ?? _profile;
+    final saved = await store.loadProfile();
+    if (saved == null) {
+      // 처음 실행: 각성 화면에서 이름과 외형을 정한 뒤 시작한다
+      _needsAwakening = true;
+      _ready = true;
+      notifyListeners();
+      return;
+    }
+    _profile = saved;
+    await _startPlaying();
+  }
+
+  /// 각성 화면에서 '깨어나기'를 눌렀을 때
+  Future<void> awaken({required String name, required HeroLook look}) async {
+    _profile = PlayerProfile(name: name.trim(), look: look, lastSeenLevel: 1);
+    await store.saveProfile(_profile);
+    _needsAwakening = false;
+    await _startPlaying();
+  }
+
+  /// 레벨업 연출을 닫았을 때
+  Future<void> acknowledgeLevelUp() async {
+    await updateProfile(_profile.copyWith(lastSeenLevel: player.level.level));
+  }
+
+  Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     await sync();
+    // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
+    if (_profile.lastSeenLevel == null) {
+      _profile = _profile.copyWith(lastSeenLevel: player.level.level);
+      await store.saveProfile(_profile);
+    }
     _ready = true;
     notifyListeners();
   }

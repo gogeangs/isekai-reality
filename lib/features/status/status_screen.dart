@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 
 /// 메인 상태창 (목업 확정본 기준).
@@ -66,7 +67,7 @@ class StatusScreen extends StatelessWidget {
               onLogStudy: () => _openStudySheet(context),
             ),
             const SizedBox(height: 16),
-            _BulssiBubble(
+            BulssiBubble(
               line: BulssiLines.forStatus(
                 today: today,
                 gauge: player.gauge,
@@ -478,52 +479,6 @@ class _QuestRow extends StatelessWidget {
           Text('$current / $target${quest.unit}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
       ]),
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────── 불씨
-
-class _BulssiBubble extends StatelessWidget {
-  const _BulssiBubble({required this.line});
-
-  final String line;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Image.asset(
-          'assets/images/bulssi.png',
-          width: 72,
-          height: 72,
-          semanticLabel: '정령 불씨',
-          errorBuilder: (_, __, ___) => const Icon(
-            Icons.local_fire_department_rounded,
-            color: AppColors.gold,
-            size: 56,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFBF5E6),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              line,
-              style: const TextStyle(
-                color: AppColors.night,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

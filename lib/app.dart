@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
 import 'data/storage/record_store.dart';
+import 'features/awakening/awakening_screen.dart';
+import 'features/level_up/level_up_dialog.dart';
 import 'features/status/status_screen.dart';
 import 'theme/app_colors.dart';
 
@@ -41,6 +43,24 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
+  bool _levelUpShowing = false;
+
+  /// 확인하지 않은 레벨업이 있으면 화면이 그려진 뒤 연출을 띄운다
+  void _maybeShowLevelUp() {
+    final pending = widget.controller.pendingLevelUp;
+    if (pending == null || _levelUpShowing) return;
+    _levelUpShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => LevelUpDialog(from: pending.from, to: pending.to),
+      );
+      await widget.controller.acknowledgeLevelUp();
+      _levelUpShowing = false;
+    });
+  }
 
   @override
   void initState() {
@@ -75,6 +95,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ),
           );
         }
+        if (controller.needsAwakening) {
+          return AwakeningScreen(
+            onAwaken: (name, look) =>
+                controller.awaken(name: name, look: look),
+          );
+        }
+        _maybeShowLevelUp();
         final pages = <Widget>[
           StatusScreen(
             player: controller.player,

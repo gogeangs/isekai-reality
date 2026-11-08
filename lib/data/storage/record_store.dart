@@ -14,6 +14,7 @@ class PlayerProfile {
     this.look = HeroLook.male,
     this.stepGoal = RuleConstants.defaultStepGoal,
     this.spiritName = '불씨',
+    this.lastSeenLevel,
   });
 
   final String name;
@@ -23,17 +24,22 @@ class PlayerProfile {
   /// 정령 동료 이름 (플레이어가 바꿀 수 있음)
   final String spiritName;
 
+  /// 플레이어가 마지막으로 확인한 레벨. 이보다 오르면 레벨업 연출을 보여 준다.
+  final int? lastSeenLevel;
+
   PlayerProfile copyWith({
     String? name,
     HeroLook? look,
     int? stepGoal,
     String? spiritName,
+    int? lastSeenLevel,
   }) =>
       PlayerProfile(
         name: name ?? this.name,
         look: look ?? this.look,
         stepGoal: stepGoal ?? this.stepGoal,
         spiritName: spiritName ?? this.spiritName,
+        lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
       );
 
   Map<String, dynamic> toJson() => {
@@ -41,6 +47,7 @@ class PlayerProfile {
         'look': look.name,
         'stepGoal': stepGoal,
         'spiritName': spiritName,
+        'lastSeenLevel': lastSeenLevel,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) => PlayerProfile(
@@ -50,6 +57,7 @@ class PlayerProfile {
             : HeroLook.male,
         stepGoal: json['stepGoal'] as int? ?? RuleConstants.defaultStepGoal,
         spiritName: json['spiritName'] as String? ?? '불씨',
+        lastSeenLevel: json['lastSeenLevel'] as int?,
       );
 }
 

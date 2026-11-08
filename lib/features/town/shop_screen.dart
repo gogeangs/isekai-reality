@@ -175,7 +175,7 @@ class _ItemCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 96,
+            width: 106,
             child: GoldButton(
               label: '${info.price}개',
               height: 46,

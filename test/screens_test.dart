@@ -101,27 +101,38 @@ void main() {
     });
 
     test('첫 3일 평균에 맞춘 목표를 권한다 (500보 단위)', () async {
-      final c = make(InMemoryRecordStore(
+      // 어제 기록은 건강 앱 값으로 다시 마감하므로 건강 앱에도 같은 걸음을 둔다
+      final c = AppController(
+        store: InMemoryRecordStore(
         profile: const PlayerProfile(name: '하루', stepGoal: 5000),
         history: [
           DailyRecord(date: DateTime(2026, 11, 5), steps: 3900),
           DailyRecord(date: DateTime(2026, 11, 6), steps: 4300),
           DailyRecord(date: DateTime(2026, 11, 7), steps: 4100),
         ],
-      ));
+        ),
+        health: FakeHealthSource(
+            stepsByDay: {'2026-11-07': 4100, '2026-11-08': 1000}),
+        clock: () => now,
+      );
       await c.init();
       expect(c.stepGoalSuggestion, 4000);
     });
 
     test('3일 연속 목표를 넘으면 1,000보 올리기를 권한다', () async {
-      final c = make(InMemoryRecordStore(
-        profile: const PlayerProfile(name: '하루', stepGoal: 5000),
-        history: [
-          for (var d = 1; d <= 7; d++)
-            DailyRecord(
-                date: DateTime(2026, 11, d), steps: 6000, stepGoal: 5000),
-        ],
-      ));
+      final c = AppController(
+        store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 5000),
+          history: [
+            for (var d = 1; d <= 7; d++)
+              DailyRecord(
+                  date: DateTime(2026, 11, d), steps: 6000, stepGoal: 5000),
+          ],
+        ),
+        health: FakeHealthSource(
+            stepsByDay: {'2026-11-07': 6000, '2026-11-08': 1000}),
+        clock: () => now,
+      );
       await c.init();
       expect(c.stepGoalSuggestion, 6000);
     });

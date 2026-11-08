@@ -112,7 +112,7 @@ class _StepChart extends StatelessWidget {
         (m, d) => [m, d.steps, d.stepGoal].reduce((a, b) => a > b ? a : b));
 
     return SizedBox(
-      height: 150,
+      height: 160,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -131,13 +131,21 @@ class _StepChart extends StatelessWidget {
                           color: AppColors.textMuted, fontSize: 11),
                     ),
                     const SizedBox(height: 4),
-                    Container(
-                      height: 96 * (d.steps / maxSteps).clamp(0.02, 1.0),
-                      decoration: BoxDecoration(
-                        color: d.stepGoalAchieved
-                            ? AppColors.gold
-                            : AppColors.gauge.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(6),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: FractionallySizedBox(
+                          heightFactor:
+                              (d.steps / maxSteps).clamp(0.02, 1.0).toDouble(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: d.stepGoalAchieved
+                                  ? AppColors.gold
+                                  : AppColors.gauge.withValues(alpha: 0.45),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),

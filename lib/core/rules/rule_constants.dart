@@ -63,6 +63,34 @@ class RuleConstants {
   static const int wisdomStudyMinutesPerPoint = 180; // 지력: 누적 공부 3시간
   // 민첩: 걸음 목표 달성한 날 +1, 정신: 7시간 이상 잔 날 +1
 
+  // ---------------------------------------------------------------- 전투
+  // 자동 전투: 1틱(약 1초)마다 서로 한 번씩 공격한다.
+  // '보통으로 생활한 사람'의 전투력을 기준으로 몬스터를 맞춘다.
+
+  /// 던전 층마다 기준 공격 횟수 (층당 10~15초)
+  static const int floorHitsToClear = 12;
+  static const int bossHitsToClear = 20;
+
+  /// 기준 체력을 이 틱 수에 걸쳐 잃도록 몬스터 공격력을 정한다
+  /// (스킬 없이 보통 사람이 보스까지 이기고 체력 20% 정도 남음)
+  static const int dungeonHpBudgetTicks = 80;
+  static const double bossAttackMultiplier = 1.3;
+
+  /// 필드 몬스터: 6번쯤 때리면 정화, 거의 지지 않음
+  static const int fieldHitsToClear = 6;
+  static const int fieldHpBudgetTicks = 60;
+
+  /// 스킬 '불씨의 일격': 5틱마다 충전, 공격력 4배
+  static const int skillChargeTicks = 5;
+  static const int skillDamageMultiplier = 4;
+
+  /// 공격력 = 전투력 ÷ 4
+  static const int attackDivisor = 4;
+
+  /// 필드 몬스터: 하루 나타나는 수, 만나는 거리(미터)
+  static const int fieldSpawnsPerDay = 8;
+  static const double fieldEncounterRadiusM = 40;
+
   // ---------------------------------------------------------------- 칭호
   static const int firstStepsThreshold = 1000;
   static const int persistentTravelerDays = 7;

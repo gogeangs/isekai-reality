@@ -1,0 +1,294 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/geo/geo.dart';
+import 'package:isekai_reality/core/models/daily_record.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
+import 'package:isekai_reality/data/health/health_source.dart';
+import 'package:isekai_reality/data/location/location_source.dart';
+import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/battle/dungeon_screen.dart';
+import 'package:isekai_reality/features/map/gojan_area.dart';
+
+const area = GojanArea.area;
+const jungang = GeoPoint(37.31596, 126.83864);
+
+Battle dungeonFor(int level, Stats stats, {int seed = 1, bool atGate = false}) {
+  final rng = Random(seed);
+  return Battle.forPlayer(
+    level: level,
+    stats: stats,
+    floors: BattleRules.dungeonFloors(level: level, atGate: atGate, rng: rng),
+    rng: rng,
+  );
+}
+
+const weak = Stats(vitality: 10, agility: 10, wisdom: 10, spirit: 10);
+
+void main() {
+  group('던전 구성', () {
+    test('일반 3층 + 마지막 보스 미궁 문지기', () {
+      final floors =
+          BattleRules.dungeonFloors(level: 5, atGate: false, rng: Random(3));
+      expect(floors, hasLength(4));
+      expect(floors.last.monster, MonsterId.labyrinthWarden);
+      expect(floors.take(3).every((f) => !f.isBoss), isTrue);
+    });
+
+    test('미궁 입구에서 열면 일반 층은 모두 미궁 박쥐', () {
+      final floors =
+          BattleRules.dungeonFloors(level: 5, atGate: true, rng: Random(3));
+      expect(floors.take(3).map((f) => f.monster).toSet(),
+          {MonsterId.labyrinthBat});
+    });
+  });
+
+  group('밸런스', () {
+    test('보통으로 생활한 사람은 스킬 없이도 대부분 클리어한다', () {
+      for (final level in [1, 5, 10, 15, 20]) {
+        var wins = 0;
+        for (var seed = 0; seed < 20; seed++) {
+          final b = dungeonFor(level, BattleRules.expectedStats(level),
+                  seed: seed)
+              .runToEnd();
+          if (b.phase == BattlePhase.cleared) wins++;
+        }
+        expect(wins, greaterThanOrEqualTo(18), reason: 'Lv.$level');
+      }
+    });
+
+    test('층마다 10~15번 공격, 보스까지 1분 안팎', () {
+      final b =
+          dungeonFor(10, BattleRules.expectedStats(10)).runToEnd();
+      expect(b.ticks, inInclusiveRange(40, 75));
+    });
+
+    test('스킬을 쓰면 더 빨리 끝나고 체력이 더 남는다', () {
+      final stats = BattleRules.expectedStats(10);
+      final plain = dungeonFor(10, stats, seed: 7).runToEnd();
+      final skilled = dungeonFor(10, stats, seed: 7).runToEnd(useSkills: true);
+      expect(skilled.phase, BattlePhase.cleared);
+      expect(skilled.ticks, lessThan(plain.ticks));
+      expect(skilled.playerHp, greaterThan(plain.playerHp));
+    });
+
+    test('스탯을 거의 키우지 않았으면 스킬이 승패를 가른다', () {
+      var plainWins = 0;
+      var skillWins = 0;
+      for (var seed = 0; seed < 20; seed++) {
+        if (dungeonFor(18, weak, seed: seed).runToEnd().phase ==
+            BattlePhase.cleared) {
+          plainWins++;
+        }
+        if (dungeonFor(18, weak, seed: seed).runToEnd(useSkills: true).phase ==
+            BattlePhase.cleared) {
+          skillWins++;
+        }
+      }
+      expect(skillWins, 20);
+      expect(plainWins, lessThan(10));
+    });
+
+    test('필드 몬스터는 짧고 거의 지지 않는다', () {
+      final b = Battle.forPlayer(
+        level: 3,
+        stats: weak,
+        floors: [BattleRules.fieldFoe(level: 3, monster: MonsterId.ashSlime)],
+        rng: Random(1),
+      ).runToEnd();
+      expect(b.phase, BattlePhase.cleared);
+      expect(b.ticks, lessThanOrEqualTo(9));
+      expect(b.purified, [MonsterId.ashSlime]);
+    });
+  });
+
+  group('전투 진행', () {
+    test('스킬은 충전되어야만 쓸 수 있다', () {
+      final b = dungeonFor(5, BattleRules.expectedStats(5));
+      expect(b.useSkill(), isFalse);
+      for (var i = 0; i < RuleConstants.skillChargeTicks; i++) {
+        b.tick();
+      }
+      expect(b.skillReady, isTrue);
+      expect(b.useSkill(), isTrue);
+      expect(b.skillReady, isFalse);
+    });
+
+    test('층을 정화하면 다음 틱에 다음 층으로 가고, 체력은 이어진다', () {
+      final b = dungeonFor(5, BattleRules.expectedStats(5));
+      while (b.phase != BattlePhase.floorCleared) {
+        b.tick();
+      }
+      final hp = b.playerHp;
+      expect(b.purified, hasLength(1));
+      b.tick();
+      expect(b.floor, 1);
+      expect(b.phase, BattlePhase.fighting);
+      expect(b.playerHp, hp);
+    });
+  });
+
+  group('필드 몬스터 자리', () {
+    final day = DateTime(2026, 11, 8);
+
+    test('하루 8마리, 같은 날에는 같은 자리', () {
+      final a = FieldMonsterRules.spawnsFor(area, day);
+      final b = FieldMonsterRules.spawnsFor(area, day);
+      expect(a, hasLength(RuleConstants.fieldSpawnsPerDay));
+      expect(a.map((s) => s.id), b.map((s) => s.id));
+      expect(a.first.point.lat, b.first.point.lat);
+      final other = FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 9));
+      expect(other.first.point.lat, isNot(a.first.point.lat));
+    });
+
+    test('지역 안, 제외 구역 밖에만 나온다 (30일 확인)', () {
+      for (var i = 0; i < 30; i++) {
+        for (final s in FieldMonsterRules.spawnsFor(
+            area, day.add(Duration(days: i)))) {
+          expect(area.bounds.contains(s.point), isTrue);
+          expect(area.isExcluded(s.point), isFalse);
+        }
+      }
+    });
+
+    test('장소 근처에는 그 장소의 몬스터가 나온다', () {
+      final spawns = FieldMonsterRules.spawnsFor(area, day);
+      final kinds = spawns.map((s) => s.monster).toSet();
+      expect(kinds, contains(MonsterId.labyrinthBat));
+      expect(kinds, contains(MonsterId.roughWaterSpirit));
+    });
+
+    test('40m 안에서 걸어가면 만나고, 차로 지나가면 만나지 않는다', () {
+      final spawn = FieldMonsterRules.spawnsFor(area, day).first;
+      expect(
+          FieldMonsterRules.encounter(
+              area: area,
+              spawns: [spawn],
+              fix: LocationFix(point: spawn.point, speedMps: 1.2))?.id,
+          spawn.id);
+      expect(
+          FieldMonsterRules.encounter(
+              area: area,
+              spawns: [spawn],
+              fix: LocationFix(point: spawn.point, speedMps: 12)),
+          isNull);
+      expect(
+          FieldMonsterRules.encounter(
+              area: area,
+              spawns: [spawn],
+              fix: const LocationFix(point: GeoPoint(37.30, 126.84))),
+          isNull);
+    });
+  });
+
+  group('기록', () {
+    final now = DateTime(2026, 11, 8, 14);
+
+    Future<AppController> start({int steps = 6000, InMemoryRecordStore? store}) async {
+      final c = AppController(
+        store: store ??
+            InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
+        health: FakeHealthSource(stepsByDay: {'2026-11-08': steps}),
+        location: FakeLocationSource(),
+        clock: () => now,
+        random: Random(1),
+      );
+      await c.init();
+      return c;
+    }
+
+    test('던전을 마치면 열쇠를 쓰고 경험치와 도감이 기록된다', () async {
+      final c = await start();
+      expect(c.player.gauge.keysAvailable, 2);
+      final expBefore = c.player.totalExp;
+
+      final battle = c.startDungeon()!..runToEnd(useSkills: true);
+      final exp = await c.finishDungeon(battle, atGate: false);
+
+      expect(exp, RuleConstants.dungeonClearExp);
+      expect(c.player.gauge.keysAvailable, 1);
+      expect(c.player.totalExp - expBefore, RuleConstants.dungeonClearExp);
+      expect(c.purifiedEver, contains(MonsterId.labyrinthWarden));
+    });
+
+    test('미궁 입구에서는 보너스, 열쇠가 없으면 열 수 없다', () async {
+      final c = await start(steps: 2600);
+      await c.handleFix(const LocationFix(point: jungang, speedMps: 0.5));
+      expect(c.atGate, isTrue);
+      final b = c.startDungeon()!..runToEnd(useSkills: true);
+      expect(await c.finishDungeon(b, atGate: c.atGate), 75);
+      expect(c.startDungeon(), isNull);
+    });
+
+    test('차량 속도로 움직이는 중에는 전투를 시작하지 않는다', () async {
+      final c = await start();
+      await c.handleFix(const LocationFix(point: jungang, speedMps: 14));
+      expect(c.canFightNow, isFalse);
+      expect(c.startDungeon(), isNull);
+    });
+
+    test('필드 몬스터를 정화하면 경험치, 그 자리 안개, 다시 나오지 않음', () async {
+      final c = await start();
+      final spawn = c.todaySpawns.first;
+      await c.handleFix(LocationFix(point: spawn.point, speedMps: 1));
+      expect(c.nearbySpawn?.id, spawn.id);
+
+      final b = c.startFieldBattle(spawn)!..runToEnd();
+      expect(await c.finishFieldBattle(spawn, b), RuleConstants.fieldMonsterExp);
+      expect(c.history.last.fieldMonstersPurified, 1);
+      expect(c.todaySpawns.map((s) => s.id), isNot(contains(spawn.id)));
+      expect(c.revealedCells, contains(area.cellIdOf(spawn.point)));
+      // 같은 자리를 두 번 기록하지 않는다
+      expect(await c.finishFieldBattle(spawn, b), 0);
+    });
+
+    test('하루 5마리를 정화하면 더 나오지 않는다', () async {
+      final store = InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루'),
+        history: [
+          DailyRecord(date: DateTime(2026, 11, 8), fieldMonstersPurified: 5),
+        ],
+      );
+      final c = await start(store: store);
+      expect(c.todaySpawns, isEmpty);
+    });
+  });
+
+  testWidgets('던전 화면: 입장 → 전투 → 결과', (tester) async {
+    tester.view.physicalSize = const Size(1290, 2796);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final c = AppController(
+      store: InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
+      health: FakeHealthSource(stepsByDay: {'2026-11-08': 6000}),
+      clock: () => DateTime(2026, 11, 8, 14),
+      random: Random(2),
+    );
+    await c.init();
+
+    await tester.pumpWidget(MaterialApp(
+      home: DungeonScreen(
+          controller: c, tickInterval: const Duration(milliseconds: 100)),
+    ));
+    expect(find.text('열쇠 2개'), findsOneWidget);
+
+    await tester.tap(find.text('던전 열기'));
+    await tester.pump();
+    expect(find.text('1층 / 3층'), findsOneWidget);
+
+    for (var i = 0; i < 200 && find.text('돌아가기').evaluate().isEmpty; i++) {
+      if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
+        await tester.tap(find.text('불씨의 일격!'));
+      }
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text('던전 정화 완료!'), findsOneWidget);
+    expect(find.text('경험치 +50'), findsOneWidget);
+    expect(c.history.last.dungeonRuns, hasLength(1));
+  });
+}

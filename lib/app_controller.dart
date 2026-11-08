@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -23,7 +24,9 @@ class AppController extends ChangeNotifier {
     this.location,
     this.area = GojanArea.area,
     DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+    math.Random? random,
+  })  : _clock = clock ?? DateTime.now,
+        _random = random ?? math.Random();
 
   /// 건강 앱 없이 2주치 예시 기록으로 화면을 보는 모드
   factory AppController.demo({DateTime Function()? clock}) {
@@ -48,6 +51,9 @@ class AppController extends ChangeNotifier {
   /// 탐험 지역 (페이즈 1: 고잔동)
   final ExploreArea area;
   final DateTime Function() _clock;
+
+  /// 전투의 피해량 흔들림 (테스트에서는 고정 시드)
+  final math.Random _random;
 
   Set<String> _revealedCells = {};
   bool _locationGranted = false;
@@ -226,6 +232,138 @@ class AppController extends ChangeNotifier {
     await store.upsert(updated);
     _history = await store.loadHistory();
     if (!visitedBefore) _lastDiscovery = place;
+  }
+
+  // ───────────────────────────────────────────── 던전 · 필드 몬스터
+
+  /// 지금 싸울 수 있는지. 차량 속도로 움직이는 중에는 전투하지 않는다.
+  bool get canFightNow {
+    final fix = _lastFix;
+    return fix == null || ExplorationRules.countsAsExploring(fix);
+  }
+
+  /// 지금 미궁 입구 근처인지 (던전 보상 1.5배, 장소 전용 몬스터)
+  bool get atGate {
+    final fix = _lastFix;
+    if (fix == null) return false;
+    return ExplorationRules.placesInReach(area, fix.point)
+        .any((p) => p.kind == PlaceKind.labyrinthGate);
+  }
+
+  /// 오늘 경험치를 받을 수 있는 던전 횟수가 남았는지
+  bool get dungeonExpLeftToday =>
+      (player.today?.dungeonRuns.length ?? 0) <
+      RuleConstants.maxDungeonRunsPerDay;
+
+  /// 던전을 연다. 열쇠가 없거나 이동 중이면 null.
+  /// 열쇠는 전투가 끝날 때([finishDungeon]) 쓴다. 중간에 나가면 쓰지 않는다.
+  Battle? startDungeon() {
+    final p = player;
+    if (p.gauge.keysAvailable <= 0 || !canFightNow) return null;
+    return Battle.forPlayer(
+      level: p.level.level,
+      stats: p.stats,
+      floors: BattleRules.dungeonFloors(
+          level: p.level.level, atGate: atGate, rng: _random),
+      rng: _random,
+    );
+  }
+
+  /// 던전이 끝났을 때 결과를 기록한다. 받은 경험치를 돌려준다.
+  Future<int> finishDungeon(Battle battle, {required bool atGate}) async {
+    if (!battle.isOver) return 0;
+    final today = await _todayRecord();
+    final run = DungeonRun(
+        cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
+    final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
+        ? ExpRules.dungeonRunExp(run)
+        : 0;
+    await _save(today.copyWith(
+      dungeonRuns: [...today.dungeonRuns, run],
+      purifiedMonsterIds: _addMonsters(today, battle.purified),
+    ));
+    return exp;
+  }
+
+  /// 오늘 아직 정화하지 않은 필드 몬스터.
+  /// 하루 상한(5마리)을 채우면 더 나오지 않는다.
+  List<FieldSpawn> get todaySpawns {
+    final today = player.today;
+    if (today != null &&
+        today.fieldMonstersPurified >= RuleConstants.maxFieldMonstersPerDay) {
+      return const [];
+    }
+    final done = today?.purifiedSpawnIds.toSet() ?? const <String>{};
+    return FieldMonsterRules.spawnsFor(area, _clock())
+        .where((s) => !done.contains(s.id))
+        .toList();
+  }
+
+  /// 지금 위치에서 만난 필드 몬스터 (없으면 null)
+  FieldSpawn? get nearbySpawn {
+    final fix = _lastFix;
+    if (fix == null) return null;
+    return FieldMonsterRules.encounter(
+        area: area, spawns: todaySpawns, fix: fix);
+  }
+
+  Battle? startFieldBattle(FieldSpawn spawn) {
+    if (!canFightNow) return null;
+    final p = player;
+    return Battle.forPlayer(
+      level: p.level.level,
+      stats: p.stats,
+      floors: [BattleRules.fieldFoe(level: p.level.level, monster: spawn.monster)],
+      rng: _random,
+    );
+  }
+
+  /// 필드 전투가 끝났을 때. 정화하면 그 자리의 안개도 걷힌다.
+  Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
+    if (battle.phase != BattlePhase.cleared) return 0;
+    final today = await _todayRecord();
+    if (today.purifiedSpawnIds.contains(spawn.id)) return 0;
+    final exp =
+        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
+            ? RuleConstants.fieldMonsterExp
+            : 0;
+    final cell = area.cellIdOf(spawn.point);
+    if (cell != null && _revealedCells.add(cell)) {
+      await store.saveRevealedCells(area.id, _revealedCells);
+    }
+    await _save(today.copyWith(
+      fieldMonstersPurified: today.fieldMonstersPurified + 1,
+      purifiedSpawnIds: [...today.purifiedSpawnIds, spawn.id],
+      purifiedMonsterIds: _addMonsters(today, [spawn.monster]),
+    ));
+    return exp;
+  }
+
+  /// 지금까지 정화한 몬스터 종류 (도감)
+  Set<MonsterId> get purifiedEver => {
+        for (final r in _history)
+          for (final name in r.purifiedMonsterIds)
+            if (Monsters.byName(name) case final id?) id,
+      };
+
+  List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => [
+        ...today.purifiedMonsterIds,
+        for (final id in ids)
+          if (!today.purifiedMonsterIds.contains(id.name)) id.name,
+      ].toSet().toList();
+
+  Future<DailyRecord> _todayRecord() async {
+    if (_history.isEmpty ||
+        _history.last.dayKey != DailyRecord.dayKeyOf(_clock())) {
+      await sync(); // 자정이 지났으면 오늘 기록부터 만든다
+    }
+    return _history.last;
+  }
+
+  Future<void> _save(DailyRecord record) async {
+    await store.upsert(_withQuests(record));
+    _history = await store.loadHistory();
+    notifyListeners();
   }
 
   @override

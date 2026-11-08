@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_controller.dart';
 import 'data/storage/record_store.dart';
 import 'features/awakening/awakening_screen.dart';
+import 'features/battle/dungeon_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
@@ -107,6 +108,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           StatusScreen(
             player: controller.player,
             onLogStudy: controller.logStudy,
+            onOpenDungeon: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => DungeonScreen(controller: controller),
+              ),
+            ),
             heroAsset: controller.profile.look == HeroLook.female
                 ? 'assets/images/hero_female.png'
                 : 'assets/images/hero_male.png',

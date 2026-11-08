@@ -35,6 +35,8 @@ class DailyRecord {
     this.questsCompleted = 0,
     this.openedApp = true,
     this.visitedPlaceIds = const [],
+    this.purifiedMonsterIds = const [],
+    this.purifiedSpawnIds = const [],
   });
 
   final DateTime date;
@@ -62,6 +64,12 @@ class DailyRecord {
   /// 오늘 방문한 장소 id (같은 장소는 하루 한 번만 센다)
   final List<String> visitedPlaceIds;
 
+  /// 오늘 정화한 몬스터 종류 (던전·필드 모두, 도감용. [MonsterId] 이름)
+  final List<String> purifiedMonsterIds;
+
+  /// 오늘 정화한 필드 몬스터 자리 id (같은 자리는 다시 나오지 않음)
+  final List<String> purifiedSpawnIds;
+
   /// 날짜만 남긴 키 (예: '2026-11-08')
   String get dayKey => dayKeyOf(date);
 
@@ -84,6 +92,8 @@ class DailyRecord {
         'questsCompleted': questsCompleted,
         'openedApp': openedApp,
         'visitedPlaceIds': visitedPlaceIds,
+        'purifiedMonsterIds': purifiedMonsterIds,
+        'purifiedSpawnIds': purifiedSpawnIds,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -106,6 +116,12 @@ class DailyRecord {
       visitedPlaceIds: ((json['visitedPlaceIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      purifiedMonsterIds: ((json['purifiedMonsterIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      purifiedSpawnIds: ((json['purifiedSpawnIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
     );
   }
 
@@ -126,6 +142,8 @@ class DailyRecord {
     int? questsCompleted,
     bool? openedApp,
     List<String>? visitedPlaceIds,
+    List<String>? purifiedMonsterIds,
+    List<String>? purifiedSpawnIds,
   }) {
     return DailyRecord(
       date: date,
@@ -142,6 +160,8 @@ class DailyRecord {
       questsCompleted: questsCompleted ?? this.questsCompleted,
       openedApp: openedApp ?? this.openedApp,
       visitedPlaceIds: visitedPlaceIds ?? this.visitedPlaceIds,
+      purifiedMonsterIds: purifiedMonsterIds ?? this.purifiedMonsterIds,
+      purifiedSpawnIds: purifiedSpawnIds ?? this.purifiedSpawnIds,
     );
   }
 }

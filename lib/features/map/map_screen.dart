@@ -6,6 +6,8 @@ import '../../core/format.dart';
 import '../../core/geo/geo.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../battle/battle_view.dart';
+import '../battle/field_battle_screen.dart';
 import '../bulssi/bulssi_bubble.dart';
 import 'map_config.dart';
 
@@ -19,6 +21,7 @@ class MapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final area = controller.area;
     final gauge = controller.player.gauge;
+    final spawn = controller.nearbySpawn;
     return Stack(
       children: [
         Positioned.fill(
@@ -44,6 +47,21 @@ class MapScreen extends StatelessWidget {
             child: _DiscoveryCard(
               place: controller.lastDiscovery!,
               onClose: controller.clearDiscovery,
+            ),
+          )
+        else if (spawn != null)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24,
+            child: _MonsterCard(
+              spawn: spawn,
+              onPurify: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      FieldBattleScreen(controller: controller, spawn: spawn),
+                ),
+              ),
             ),
           ),
       ],
@@ -166,6 +184,57 @@ class _DiscoveryCard extends StatelessWidget {
       };
 }
 
+// ───────────────────────────────────────────── 필드 몬스터 만남
+
+class _MonsterCard extends StatelessWidget {
+  const _MonsterCard({required this.spawn, required this.onPurify});
+
+  final FieldSpawn spawn;
+  final VoidCallback onPurify;
+
+  @override
+  Widget build(BuildContext context) {
+    final info = spawn.info;
+    return Material(
+      color: AppColors.night,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.gauge, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(children: [
+          MonsterPicture(monster: info.id, size: 56),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${info.name}이(가) 나타났어!',
+                    style: const TextStyle(
+                        color: AppColors.goldBright,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700)),
+                const Text('멈춰 선 다음 정화해 주세요',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ],
+            ),
+          ),
+          FilledButton(
+            onPressed: onPurify,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.gauge,
+              foregroundColor: AppColors.night,
+              minimumSize: const Size(88, 48),
+            ),
+            child: const Text('정화하기'),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 // ───────────────────────────────────────────── 지도 없이 보는 탐험 현황
 
 /// 네이버 지도 Client ID 가 없을 때(테스트, 설정 전) 보여 주는 화면
@@ -198,6 +267,11 @@ class _ExploreSummary extends StatelessWidget {
               '${fix.point.lng.toStringAsFixed(4)}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
+          Text(
+            '오늘 남은 몬스터 ${controller.todaySpawns.length}마리 · '
+            '가까이(${RuleConstants.fieldEncounterRadiusM.round()}m) 가면 만날 수 있어요',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
           const SizedBox(height: 12),
           for (final place in controller.area.places)
             ListTile(
@@ -236,6 +310,7 @@ class _NaverMapLayer extends StatefulWidget {
 class _NaverMapLayerState extends State<_NaverMapLayer> {
   NaverMapController? _map;
   int _drawnCells = -1;
+  int _drawnSpawns = -1;
   String? _drawnFix;
 
   static NLatLng _ll(GeoPoint p) => NLatLng(p.lat, p.lng);
@@ -255,8 +330,14 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final fixKey = fix == null
         ? null
         : '${fix.point.lat.toStringAsFixed(5)},${fix.point.lng.toStringAsFixed(5)}';
-    if (_drawnCells == c.revealedCells.length && _drawnFix == fixKey) return;
+    final spawns = c.todaySpawns;
+    if (_drawnCells == c.revealedCells.length &&
+        _drawnSpawns == spawns.length &&
+        _drawnFix == fixKey) {
+      return;
+    }
     _drawnCells = c.revealedCells.length;
+    _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
 
     final area = c.area;
@@ -292,6 +373,13 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           caption: NOverlayCaption(
             text: visited.contains(place.id) ? place.name : '???',
           ),
+        ),
+      for (final spawn in spawns)
+        NMarker(
+          id: 'monster_${spawn.id}',
+          position: _ll(spawn.point),
+          caption: NOverlayCaption(text: spawn.info.name),
+          iconTintColor: const Color(0xFF9C93B8),
         ),
       if (fix != null)
         NMarker(

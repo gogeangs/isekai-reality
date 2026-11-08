@@ -15,11 +15,15 @@ class StatusScreen extends StatelessWidget {
     super.key,
     required this.player,
     required this.onLogStudy,
+    this.onOpenDungeon,
     this.heroAsset = 'assets/images/hero_male.png',
   });
 
   final PlayerState player;
   final ValueChanged<int> onLogStudy;
+
+  /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
+  final VoidCallback? onOpenDungeon;
   final String heroAsset;
 
   Future<void> _openStudySheet(BuildContext context) async {
@@ -60,7 +64,7 @@ class StatusScreen extends StatelessWidget {
               title: _equippedTitle(player.titles),
             ),
             const SizedBox(height: 12),
-            _StatusPanel(player: player),
+            _StatusPanel(player: player, onOpenDungeon: onOpenDungeon),
             const SizedBox(height: 16),
             _QuestPanel(
               quests: QuestRules.forDay(today),
@@ -240,9 +244,10 @@ class _LevelBadge extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 상태 패널
 
 class _StatusPanel extends StatelessWidget {
-  const _StatusPanel({required this.player});
+  const _StatusPanel({required this.player, this.onOpenDungeon});
 
   final PlayerState player;
+  final VoidCallback? onOpenDungeon;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +298,24 @@ class _StatusPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (onOpenDungeon != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onOpenDungeon,
+              icon: const Icon(Icons.door_front_door_rounded),
+              label: Text(gauge.keysAvailable > 0
+                  ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
+                  : '던전 (열쇠 없음)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.gauge,
+                side: BorderSide(
+                    color: gauge.keysAvailable > 0
+                        ? AppColors.gauge
+                        : AppColors.track),
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [

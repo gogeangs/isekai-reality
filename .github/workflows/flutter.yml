@@ -1,0 +1,33 @@
+# 코드를 올릴 때마다 GitHub 서버에서 Flutter 분석과 테스트를 돌린다.
+# 결과는 저장소의 Actions 탭에서 확인 (초록 체크 = 통과, 빨간 X = 실패)
+name: Flutter 테스트
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter 버전
+        run: flutter --version
+
+      - name: 패키지 설치
+        run: flutter pub get
+
+      - name: 코드 분석
+        run: flutter analyze --no-fatal-infos
+
+      - name: 테스트
+        run: flutter test

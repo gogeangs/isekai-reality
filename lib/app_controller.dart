@@ -346,11 +346,10 @@ class AppController extends ChangeNotifier {
             if (Monsters.byName(name) case final id?) id,
       };
 
-  List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => [
+  List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => {
         ...today.purifiedMonsterIds,
-        for (final id in ids)
-          if (!today.purifiedMonsterIds.contains(id.name)) id.name,
-      ].toSet().toList();
+        for (final id in ids) id.name,
+      }.toList();
 
   Future<DailyRecord> _todayRecord() async {
     if (_history.isEmpty ||

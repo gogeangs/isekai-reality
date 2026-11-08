@@ -147,10 +147,14 @@ class _FoeCard extends StatelessWidget {
         children: [
           SizedBox(
             height: 140,
-            child: AnimatedOpacity(
-              opacity: cleared ? 0.55 : 1,
-              duration: const Duration(milliseconds: 300),
-              child: MonsterPicture(monster: foe.monster, size: 140),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: MonsterPicture(
+                key: ValueKey('${foe.monster.name}_$cleared'),
+                monster: foe.monster,
+                size: 140,
+                purified: cleared,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -173,10 +177,18 @@ class _FoeCard extends StatelessWidget {
 
 /// 몬스터 그림. 그림 파일이 없으면 아이콘으로 대신한다.
 class MonsterPicture extends StatelessWidget {
-  const MonsterPicture({super.key, required this.monster, this.size = 64});
+  const MonsterPicture({
+    super.key,
+    required this.monster,
+    this.size = 64,
+    this.purified = false,
+  });
 
   final MonsterId monster;
   final double size;
+
+  /// true 면 정화된 모습
+  final bool purified;
 
   static IconData iconOf(MonsterId id) => switch (id) {
         MonsterId.ashSlime => Icons.water_drop_rounded,
@@ -190,16 +202,17 @@ class MonsterPicture extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final info = Monsters.info(monster);
+    final label = purified ? info.purifiedName : info.name;
     return Image.asset(
-      info.asset,
+      purified ? info.purifiedAsset : info.asset,
       width: size,
       height: size,
-      semanticLabel: info.name,
+      semanticLabel: label,
       errorBuilder: (_, __, ___) => Icon(
         iconOf(monster),
         size: size * 0.7,
-        color: const Color(0xFFB8B2C8),
-        semanticLabel: info.name,
+        color: purified ? AppColors.goldBright : const Color(0xFFB8B2C8),
+        semanticLabel: label,
       ),
     );
   }

@@ -87,7 +87,13 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   style: const TextStyle(color: AppColors.gold, fontSize: 16),
                 ),
               const SizedBox(height: 20),
-              Center(child: MonsterPicture(monster: info.id, size: 120)),
+              Center(
+                child: MonsterPicture(
+                  monster: info.id,
+                  size: 160,
+                  purified: battle.phase == BattlePhase.cleared,
+                ),
+              ),
               const SizedBox(height: 16),
               BulssiBubble(
                 line: battle.phase == BattlePhase.cleared

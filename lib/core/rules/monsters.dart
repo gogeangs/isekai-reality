@@ -38,6 +38,9 @@ class MonsterInfo {
 
   /// 그림 파일. 없으면 화면에서 아이콘으로 대신 그린다.
   String get asset => 'assets/images/monster_${id.name}.png';
+
+  /// 정화된 모습 그림
+  String get purifiedAsset => 'assets/images/monster_${id.name}_purified.png';
 }
 
 class Monsters {

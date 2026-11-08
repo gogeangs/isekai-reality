@@ -197,7 +197,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(children: [
-                    MonsterPicture(monster: m.id, size: 36),
+                    MonsterPicture(monster: m.id, size: 44, purified: true),
                     const SizedBox(width: 10),
                     Text('${m.name} → ${m.purifiedName}',
                         style: const TextStyle(color: AppColors.text)),

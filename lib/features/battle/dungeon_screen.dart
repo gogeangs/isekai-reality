@@ -152,10 +152,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.night,
           minimumSize: const Size.fromHeight(56),
-          textStyle:
-              const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
-        child: const Text('던전 열기'),
+        child: const Text('던전 열기',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       ),
     ];
   }

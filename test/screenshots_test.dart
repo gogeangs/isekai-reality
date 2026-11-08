@@ -111,13 +111,15 @@ void main() {
     }
     await _shot(tester, '05_던전_전투');
 
+    var bossShot = false;
     for (var i = 0; i < 200 && find.text('돌아가기').evaluate().isEmpty; i++) {
+      if (!bossShot && find.text('BOSS').evaluate().isNotEmpty) {
+        bossShot = true;
+        await tester.pump(const Duration(milliseconds: 900));
+        await _shot(tester, '06_던전_보스');
+      }
       if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
         await tester.tap(find.text('불씨의 일격!'));
-        if (i > 40 && find.text('BOSS').evaluate().isNotEmpty) {
-          await tester.pump();
-          await _shot(tester, '06_던전_보스');
-        }
       }
       await tester.pump(const Duration(milliseconds: 900));
     }

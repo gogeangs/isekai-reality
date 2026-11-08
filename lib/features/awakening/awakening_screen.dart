@@ -85,7 +85,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
               onPressed: () => setState(() => _introStep++),
               style: _goldButton,
               child: Text(
-                  _introStep == _introLines.length - 1 ? '좋아!' : '다음'),
+                  _introStep == _introLines.length - 1 ? '좋아!' : '다음',
+                  style: _buttonText),
             ),
           ),
         ],
@@ -173,18 +174,21 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                   height: 22,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: AppColors.night))
-              : const Text('깨어나기'),
+              : const Text('깨어나기', style: _buttonText),
         ),
       ],
     );
   }
+
+  // 글자 크기는 Text 에 준다 (ButtonStyle.textStyle 은 테마 글꼴과 합쳐지지 않음)
+  static const TextStyle _buttonText =
+      TextStyle(fontSize: 20, fontWeight: FontWeight.w800);
 
   static final ButtonStyle _goldButton = FilledButton.styleFrom(
     backgroundColor: AppColors.gold,
     foregroundColor: AppColors.night,
     disabledBackgroundColor: AppColors.track,
     minimumSize: const Size.fromHeight(56),
-    textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
   );
 }

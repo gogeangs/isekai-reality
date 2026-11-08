@@ -82,10 +82,10 @@ class LevelUpDialog extends StatelessWidget {
                       backgroundColor: AppColors.gold,
                       foregroundColor: AppColors.night,
                       minimumSize: const Size.fromHeight(52),
-                      textStyle: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800),
                     ),
-                    child: const Text('계속'),
+                    child: const Text('계속',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w800)),
                   ),
                 ),
               ],

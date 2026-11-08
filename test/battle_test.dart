@@ -188,8 +188,10 @@ void main() {
 
     Future<AppController> start({int steps = 6000, InMemoryRecordStore? store}) async {
       final c = AppController(
+        // 목표 8,000보: 보너스 열쇠 없이 걸음 열쇠만 센다
         store: store ??
-            InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
+            InMemoryRecordStore(
+                profile: const PlayerProfile(name: '하루', stepGoal: 8000)),
         health: FakeHealthSource(stepsByDay: {'2026-11-08': steps}),
         location: FakeLocationSource(),
         clock: () => now,
@@ -262,7 +264,8 @@ void main() {
     addTearDown(tester.view.reset);
 
     final c = AppController(
-      store: InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
+      store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000)),
       health: FakeHealthSource(stepsByDay: {'2026-11-08': 6000}),
       clock: () => DateTime(2026, 11, 8, 14),
       random: Random(2),

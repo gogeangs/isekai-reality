@@ -394,6 +394,9 @@ class AppController extends ChangeNotifier {
       floors: BattleRules.dungeonFloors(
           level: p.level.level, atGate: atGate, rng: _random),
       rng: _random,
+      skillChargeTicks: TownRules.potionActive(p.today)
+          ? RuleConstants.potionSkillChargeTicks
+          : RuleConstants.skillChargeTicks,
     );
   }
 
@@ -465,6 +468,62 @@ class AppController extends ChangeNotifier {
       purifiedMonsterIds: _addMonsters(today, [spawn.monster]),
     ));
     return exp;
+  }
+
+  // ───────────────────────────────────────────── 여관 · 잡화상 (앱 안 시설)
+
+  /// 잡화상에서 물건을 산다. 사지 못하면 그 이유를 돌려준다.
+  /// 마법 돋보기는 사는 즉시 지금 위치 주변 안개를 걷는다.
+  Future<PurchaseCheck> buy(ShopItem item) async {
+    final today = await _todayRecord();
+    final fix = _lastFix;
+    final check =
+        TownRules.canBuy(_history, item, hasLocation: fix != null);
+    if (check != PurchaseCheck.ok) return check;
+
+    if (item == ShopItem.magicLens && fix != null) {
+      var changed = false;
+      for (final cell in _cellsAround(fix.point, RuleConstants.lensRadiusM)) {
+        changed = _revealedCells.add(cell) || changed;
+      }
+      if (changed) await store.saveRevealedCells(area.id, _revealedCells);
+    }
+    await _save(today.copyWith(
+      shopPurchases: [...today.shopPurchases, item.name],
+    ));
+    return PurchaseCheck.ok;
+  }
+
+  /// [center] 에서 [radiusM] 안에 걸치는 지역 칸 id
+  Set<String> _cellsAround(GeoPoint center, double radiusM) {
+    const step = 25.0;
+    final cells = <String>{};
+    final latPerM = 1 / 111320.0;
+    final lngPerM = 1 / (111320.0 * math.cos(center.lat * math.pi / 180));
+    for (var dy = -radiusM; dy <= radiusM; dy += step) {
+      for (var dx = -radiusM; dx <= radiusM; dx += step) {
+        if (dx * dx + dy * dy > radiusM * radiusM) continue;
+        final cell = area.cellIdOf(GeoPoint(
+            center.lat + dy * latPerM, center.lng + dx * lngPerM));
+        if (cell != null) cells.add(cell);
+      }
+    }
+    return cells;
+  }
+
+  /// 게임 시계 (테스트에서는 고정 시각)
+  DateTime get now => _clock();
+
+  /// 여관 체크인이 지금 열려 있는지 (18시 ~ 23시)
+  bool get innOpen => TownRules.innOpen(_clock());
+
+  /// 여관에 체크인한다. 시간이 아니거나 이미 했으면 false.
+  Future<bool> restAtInn() async {
+    if (!innOpen) return false;
+    final today = await _todayRecord();
+    if (today.restedAtInn) return false;
+    await _save(today.copyWith(restedAtInn: true));
+    return true;
   }
 
   /// 지금까지 정화한 몬스터 종류 (도감)

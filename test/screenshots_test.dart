@@ -14,10 +14,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
+import 'package:isekai_reality/features/town/inn_screen.dart';
 
 final _root = GlobalKey();
 
@@ -233,6 +235,33 @@ void main() {
       await tester.pump(const Duration(milliseconds: 700));
     }
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('화면 미리보기: 여관과 잡화상', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 20));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+
+    final inn = find.text('여관');
+    await tester.scrollUntilVisible(inn, 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '20_상태창_마을');
+
+    await tester.tap(inn);
+    await tester.pumpAndSettle();
+    await _shot(tester, '21_여관');
+    Navigator.of(tester.element(find.byType(InnScreen))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('잡화상'));
+    await tester.pumpAndSettle();
+    await c.buy(ShopItem.bulssiPotion);
+    await tester.pumpAndSettle();
+    await _shot(tester, '22_잡화상');
   });
 
   testWidgets('화면 미리보기: 첫 실행 각성', (tester) async {

@@ -19,6 +19,8 @@ class StatusScreen extends StatelessWidget {
     required this.player,
     required this.onLogStudy,
     this.onOpenDungeon,
+    this.onOpenInn,
+    this.onOpenShop,
     this.look = HeroLook.male,
     this.weatherLabel = '맑음',
     this.weatherIcon = Icons.wb_sunny_rounded,
@@ -29,6 +31,10 @@ class StatusScreen extends StatelessWidget {
 
   /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
   final VoidCallback? onOpenDungeon;
+
+  /// 앱 안 시설 (없으면 마을 줄을 그리지 않음)
+  final VoidCallback? onOpenInn;
+  final VoidCallback? onOpenShop;
   final HeroLook look;
 
   /// 위쪽 날씨 표시 (예: '맑음 12°')
@@ -101,6 +107,28 @@ class StatusScreen extends StatelessWidget {
                     quests: QuestRules.forDay(today),
                     onLogStudy: () => _openStudySheet(context),
                   ),
+                  if (onOpenInn != null || onOpenShop != null) ...[
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                        child: _TownTile(
+                          asset: 'map_inn',
+                          title: '여관',
+                          subtitle: today.restedAtInn ? '체크인 완료' : '하루 마무리',
+                          onTap: onOpenInn,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _TownTile(
+                          asset: 'map_store',
+                          title: '잡화상',
+                          subtitle: '결정 ${player.crystals}개',
+                          onTap: onOpenShop,
+                        ),
+                      ),
+                    ]),
+                  ],
                   const SizedBox(height: 14),
                   BulssiBubble(
                     line: BulssiLines.forStatus(
@@ -131,6 +159,54 @@ class StatusScreen extends StatelessWidget {
 }
 
 // ───────────────────────────────────────────────────────────── 각성자 그림
+
+/// 마을 시설 입구 (여관 · 잡화상)
+class _TownTile extends StatelessWidget {
+  const _TownTile({
+    required this.asset,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  final String asset;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: OrnatePanel(
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+        child: Row(children: [
+          Image.asset('assets/images/$asset.png',
+              width: 46,
+              height: 46,
+              errorBuilder: (_, __, ___) => const SizedBox(width: 46)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.title(18, color: AppColors.text)),
+                Text(subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.goldBright,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
 
 class _HeroArt extends StatelessWidget {
   const _HeroArt({required this.look});

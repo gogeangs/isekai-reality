@@ -11,3 +11,4 @@ export 'rule_constants.dart';
 export 'stat_rules.dart';
 export 'step_goal_rules.dart';
 export 'title_rules.dart';
+export 'town_rules.dart';

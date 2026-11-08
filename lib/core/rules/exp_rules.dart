@@ -1,5 +1,6 @@
 import '../models/daily_record.dart';
 import 'rule_constants.dart';
+import 'town_rules.dart';
 
 /// 하루 경험치의 내역
 class DailyExpBreakdown {
@@ -11,6 +12,7 @@ class DailyExpBreakdown {
     required this.study,
     required this.quest,
     required this.streakBonus,
+    this.innRest = 0,
   });
 
   final int dungeon;
@@ -21,8 +23,18 @@ class DailyExpBreakdown {
   final int quest;
   final int streakBonus;
 
+  /// 어젯밤 여관에서 쉬고 푹 잔 보너스
+  final int innRest;
+
   int get total =>
-      dungeon + fieldMonster + exploration + sleep + study + quest + streakBonus;
+      dungeon +
+      fieldMonster +
+      exploration +
+      sleep +
+      study +
+      quest +
+      streakBonus +
+      innRest;
 }
 
 class ExpRules {
@@ -67,6 +79,7 @@ class ExpRules {
   static DailyExpBreakdown forDay(
     DailyRecord record, {
     int consecutiveDays = 0,
+    bool restedLastNight = false,
   }) {
     final runs = record.dungeonRuns
         .take(RuleConstants.maxDungeonRunsPerDay)
@@ -96,6 +109,8 @@ class ExpRules {
       study: studyExp(record.studyMinutes),
       quest: quests * RuleConstants.questExp,
       streakBonus: streakBonus(consecutiveDays),
+      innRest: TownRules.innRestExp(
+          restedLastNight: restedLastNight, sleepMinutes: record.sleepMinutes),
     );
   }
 }

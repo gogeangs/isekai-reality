@@ -107,4 +107,24 @@ class RuleConstants {
 
   // ---------------------------------------------------------------- 직업 각성
   static const int jobAwakeningDay = 7;
+
+  // ───────────────────────── 앱 안 시설 (여관 · 잡화상)
+
+  /// 정화 결정: 던전 클리어 3개, 던전 실패 1개, 필드 몬스터 정화 1개
+  static const int crystalsPerDungeonClear = 3;
+  static const int crystalsPerDungeonFail = 1;
+  static const int crystalsPerFieldMonster = 1;
+
+  /// 여관 체크인 가능 시간 (18시 ~ 22시 59분)
+  static const int innOpenHour = 18;
+  static const int innCloseHour = 23;
+
+  /// 여관에 체크인하고 다음 날 푹 자면(7시간 이상) 받는 경험치
+  static const int innRestExp = 10;
+
+  /// 불씨 물약을 마신 날 던전 스킬 충전 틱 (평소 5)
+  static const int potionSkillChargeTicks = 3;
+
+  /// 마법 돋보기로 안개를 걷는 반경 (m)
+  static const double lensRadiusM = 150;
 }

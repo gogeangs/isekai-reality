@@ -16,6 +16,7 @@ class PlayerState {
     required this.job,
     required this.gauge,
     required this.dailyExp,
+    required this.crystals,
   });
 
   /// [history] 는 날짜순이며 마지막 기록이 오늘이다.
@@ -26,12 +27,16 @@ class PlayerState {
     var totalExp = 0;
     var streak = 0;
     DateTime? previous;
+    var restedLastNight = false;
     final dailyExp = <DailyExpBreakdown>[];
     for (final day in history) {
       final continuous =
           previous != null && day.date.difference(previous).inDays == 1;
       streak = day.openedApp ? (continuous ? streak + 1 : 1) : 0;
-      final exp = ExpRules.forDay(day, consecutiveDays: streak);
+      final exp = ExpRules.forDay(day,
+          consecutiveDays: streak,
+          restedLastNight: continuous && restedLastNight);
+      restedLastNight = day.restedAtInn;
       dailyExp.add(exp);
       totalExp += exp.total;
       previous = day.date;
@@ -48,6 +53,7 @@ class PlayerState {
           date: d.date,
           steps: d.steps,
           goal: d.stepGoal,
+          extra: TownRules.spareKeysOn(d),
           runs: d.dungeonRuns.length,
         ),
     ]);
@@ -63,10 +69,12 @@ class PlayerState {
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,
         stepGoal: today?.stepGoal,
+        extraKeys: today == null ? 0 : TownRules.spareKeysOn(today),
         carriedKeys: carried,
         keysUsedToday: today?.dungeonRuns.length ?? 0,
       ),
       dailyExp: dailyExp,
+      crystals: TownRules.crystals(history),
     );
   }
 
@@ -84,6 +92,9 @@ class PlayerState {
 
   /// [history] 와 같은 순서의 하루 경험치 내역
   final List<DailyExpBreakdown> dailyExp;
+
+  /// 가진 정화 결정 (잡화상 돈)
+  final int crystals;
 
   DailyRecord? get today => history.isEmpty ? null : history.last;
 }

@@ -56,6 +56,7 @@ class DungeonGaugeRules {
   static DungeonGaugeState today({
     required int steps,
     int? stepGoal,
+    int extraKeys = 0,
     int carriedKeys = 0,
     int keysUsedToday = 0,
   }) {
@@ -63,7 +64,7 @@ class DungeonGaugeRules {
         ? RuleConstants.maxKeysCarryOver
         : carriedKeys;
     final fromSteps = keysEarnedFromSteps(steps);
-    final earned = keysEarnedForDay(steps, stepGoal: stepGoal);
+    final earned = keysEarnedForDay(steps, stepGoal: stepGoal) + extraKeys;
     final limitReached = fromSteps >= RuleConstants.maxKeysEarnedPerDay;
     final available = carried + earned - keysUsedToday;
 
@@ -74,7 +75,7 @@ class DungeonGaugeRules {
           limitReached ? 0 : steps % RuleConstants.stepsPerKey,
       stepsPerKey: RuleConstants.stepsPerKey,
       dailyKeyLimitReached: limitReached,
-      goalBonusKey: earned > fromSteps,
+      goalBonusKey: earned - extraKeys > fromSteps,
       stepsToGoal: stepGoal != null && stepGoal > 0 && steps < stepGoal
           ? stepGoal - steps
           : null,
@@ -84,12 +85,14 @@ class DungeonGaugeRules {
   /// 날짜순 기록에서 마지막 날(오늘)로 넘어온 열쇠 수를 계산한다.
   /// 하루에 쓴 열쇠 수 = 그날 연 던전 수. 기록이 하루 이상 비면 이월은 사라진다.
   static int carriedIntoLastDay(
-      List<({DateTime date, int steps, int? goal, int runs})> days) {
+      List<({DateTime date, int steps, int? goal, int extra, int runs})>
+          days) {
     var carried = 0;
     for (var i = 0; i < days.length - 1; i++) {
       final gapDays = days[i + 1].date.difference(days[i].date).inDays;
       final left = carried +
-          keysEarnedForDay(days[i].steps, stepGoal: days[i].goal) -
+          keysEarnedForDay(days[i].steps, stepGoal: days[i].goal) +
+          days[i].extra -
           days[i].runs;
       carried = gapDays == 1
           ? (left < 0

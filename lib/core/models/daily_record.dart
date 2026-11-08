@@ -37,6 +37,8 @@ class DailyRecord {
     this.visitedPlaceIds = const [],
     this.purifiedMonsterIds = const [],
     this.purifiedSpawnIds = const [],
+    this.shopPurchases = const [],
+    this.restedAtInn = false,
   });
 
   final DateTime date;
@@ -70,6 +72,12 @@ class DailyRecord {
   /// 오늘 정화한 필드 몬스터 자리 id (같은 자리는 다시 나오지 않음)
   final List<String> purifiedSpawnIds;
 
+  /// 오늘 잡화상에서 산 물건 ([ShopItem] 이름, 산 순서대로)
+  final List<String> shopPurchases;
+
+  /// 오늘 밤 여관에 체크인했는지 (다음 날 수면 보상 +10)
+  final bool restedAtInn;
+
   /// 날짜만 남긴 키 (예: '2026-11-08')
   String get dayKey => dayKeyOf(date);
 
@@ -94,6 +102,8 @@ class DailyRecord {
         'visitedPlaceIds': visitedPlaceIds,
         'purifiedMonsterIds': purifiedMonsterIds,
         'purifiedSpawnIds': purifiedSpawnIds,
+        'shopPurchases': shopPurchases,
+        'restedAtInn': restedAtInn,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -122,6 +132,10 @@ class DailyRecord {
       purifiedSpawnIds: ((json['purifiedSpawnIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      shopPurchases: ((json['shopPurchases'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      restedAtInn: json['restedAtInn'] as bool? ?? false,
     );
   }
 
@@ -144,6 +158,8 @@ class DailyRecord {
     List<String>? visitedPlaceIds,
     List<String>? purifiedMonsterIds,
     List<String>? purifiedSpawnIds,
+    List<String>? shopPurchases,
+    bool? restedAtInn,
   }) {
     return DailyRecord(
       date: date,
@@ -162,6 +178,8 @@ class DailyRecord {
       visitedPlaceIds: visitedPlaceIds ?? this.visitedPlaceIds,
       purifiedMonsterIds: purifiedMonsterIds ?? this.purifiedMonsterIds,
       purifiedSpawnIds: purifiedSpawnIds ?? this.purifiedSpawnIds,
+      shopPurchases: shopPurchases ?? this.shopPurchases,
+      restedAtInn: restedAtInn ?? this.restedAtInn,
     );
   }
 }

@@ -107,6 +107,7 @@ class Battle {
     required this.playerAttack,
     required List<Foe> floors,
     math.Random? rng,
+    this.skillChargeTicks = RuleConstants.skillChargeTicks,
   })  : floors = List.unmodifiable(floors),
         _rng = rng ?? math.Random(),
         playerHp = playerMaxHp,
@@ -118,6 +119,7 @@ class Battle {
     required Stats stats,
     required List<Foe> floors,
     math.Random? rng,
+    int skillChargeTicks = RuleConstants.skillChargeTicks,
   }) {
     return Battle(
       playerMaxHp: StatRules.battleMaxHp(level: level, stats: stats),
@@ -125,6 +127,7 @@ class Battle {
           BattleRules.attackOf(StatRules.combatPower(level: level, stats: stats)),
       floors: floors,
       rng: rng,
+      skillChargeTicks: skillChargeTicks,
     );
   }
 
@@ -132,6 +135,9 @@ class Battle {
   final int playerAttack;
   final List<Foe> floors;
   final math.Random _rng;
+
+  /// 스킬이 다 차는 데 걸리는 틱 (불씨 물약을 마신 날은 더 짧다)
+  final int skillChargeTicks;
 
   int playerHp;
   int foeHp;
@@ -150,9 +156,9 @@ class Battle {
       phase == BattlePhase.cleared || phase == BattlePhase.failed;
   bool get skillReady =>
       phase == BattlePhase.fighting &&
-      skillCharge >= RuleConstants.skillChargeTicks;
+      skillCharge >= skillChargeTicks;
   double get skillRatio =>
-      (skillCharge / RuleConstants.skillChargeTicks).clamp(0, 1).toDouble();
+      (skillCharge / skillChargeTicks).clamp(0, 1).toDouble();
 
   /// 정화한 몬스터 (층 순서)
   List<MonsterId> get purified => [
@@ -193,7 +199,7 @@ class Battle {
       phase = BattlePhase.failed;
       return;
     }
-    if (skillCharge < RuleConstants.skillChargeTicks) skillCharge++;
+    if (skillCharge < skillChargeTicks) skillCharge++;
   }
 
   /// 스킬 '불씨의 일격'. 충전이 다 됐을 때만 쓸 수 있다.

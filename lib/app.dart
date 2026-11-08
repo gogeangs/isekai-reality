@@ -11,6 +11,8 @@ import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
+import 'features/town/inn_screen.dart';
+import 'features/town/shop_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/ornaments.dart';
 
@@ -125,6 +127,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onOpenDungeon: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => DungeonScreen(controller: controller),
+              ),
+            ),
+            onOpenInn: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InnScreen(controller: controller),
+              ),
+            ),
+            onOpenShop: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ShopScreen(controller: controller),
               ),
             ),
             look: controller.profile.look,

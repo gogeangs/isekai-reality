@@ -60,7 +60,7 @@ class StatusScreen extends StatelessWidget {
         children: [
           // ─────────── 각성자 그림
           SizedBox(
-            height: 330 + top,
+            height: 300 + top,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -145,7 +145,7 @@ class _HeroArt extends StatelessWidget {
     if (look == HeroLook.male) {
       return Image.asset(male,
           fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
+          alignment: const Alignment(-0.3, -0.5),
           semanticLabel: '기본 각성자',
           errorBuilder: (_, __, ___) => const SizedBox());
     }

@@ -206,7 +206,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               height: 110,
               child: ColorFiltered(
                 colorFilter: ColorFilter.mode(
-                    Color(0xFF0B0D26), BlendMode.srcATop),
+                    Color(0xFF55557A), BlendMode.modulate),
                 child: Opacity(
                   opacity: 0.85,
                   child: MonsterPicture(

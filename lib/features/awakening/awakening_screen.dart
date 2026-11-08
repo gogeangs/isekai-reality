@@ -67,7 +67,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       child: Stack(fit: StackFit.expand, children: [
         Image.asset('assets/images/bg_awakening.jpg',
             fit: BoxFit.cover,
-            alignment: const Alignment(0.2, -0.2),
+            alignment: const Alignment(-0.35, -0.3),
             errorBuilder: (_, __, ___) => const SizedBox()),
         const Align(
             alignment: Alignment.bottomCenter,

@@ -43,7 +43,41 @@ const LinearGradient _frameGradient = LinearGradient(
   stops: [0, 0.35, 0.65, 1],
 );
 
+/// 9조각 그림 (모서리는 그대로, 가운데만 늘림). [scale] 은 그림 픽셀 ÷ 화면 크기.
+class _NineSlice extends StatelessWidget {
+  const _NineSlice({
+    required this.asset,
+    required this.slice,
+    required this.scale,
+    required this.child,
+  });
+
+  final String asset;
+  final Rect slice;
+  final double scale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(asset),
+          centerSlice: slice,
+          scale: scale,
+          fit: BoxFit.fill,
+          onError: (_, __) {},
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// 금테 패널. 목업의 모든 상자 모양.
+///
+/// 폭이 120 이상이면 그림 테두리(ui_panel_wide / ui_panel)를,
+/// 그보다 작으면 코드로 그린 테두리를 쓴다.
 class OrnatePanel extends StatelessWidget {
   const OrnatePanel({
     super.key,
@@ -52,6 +86,7 @@ class OrnatePanel extends StatelessWidget {
     this.radius = 16,
     this.highlight = false,
     this.ornament = false,
+    this.art = true,
   });
 
   final Widget child;
@@ -61,11 +96,55 @@ class OrnatePanel extends StatelessWidget {
   /// 고른 상태처럼 더 밝게 빛난다
   final bool highlight;
 
-  /// 위쪽 가운데 작은 마름모 장식
+  /// (코드 테두리일 때) 위쪽 가운데 작은 마름모 장식
   final bool ornament;
+
+  /// false 면 항상 코드 테두리 (작은 막대 등)
+  final bool art;
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, c) {
+      final w = c.maxWidth;
+      if (!art || !w.isFinite || w < 120) return _codePanel();
+      final wide = w >= 260;
+      final imgW = wide ? 947.0 : 422.0;
+      final s = imgW / w;
+      final slice = wide
+          ? const Rect.fromLTRB(70, 72, 947 - 70, 394 - 64)
+          : const Rect.fromLTRB(60, 66, 422 - 60, 410 - 58);
+      final framed = _NineSlice(
+        asset: wide
+            ? 'assets/images/ui_panel_wide.png'
+            : 'assets/images/ui_panel.png',
+        slice: slice,
+        scale: s,
+        child: Padding(
+          // 테두리 두께만큼 안쪽으로
+          padding: EdgeInsets.fromLTRB(
+            24 / s + padding.left * 0.5,
+            (wide ? 60 : 50) / s + padding.top * 0.4,
+            24 / s + padding.right * 0.5,
+            (wide ? 44 : 40) / s + padding.bottom * 0.4,
+          ),
+          child: child,
+        ),
+      );
+      if (!highlight) return framed;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.gold.withValues(alpha: 0.45), blurRadius: 18),
+          ],
+        ),
+        child: framed,
+      );
+    });
+  }
+
+  Widget _codePanel() {
     final panel = Container(
       padding: EdgeInsets.all(highlight ? 2 : 1.3),
       decoration: BoxDecoration(
@@ -115,6 +194,28 @@ class OrnatePanel extends StatelessWidget {
   }
 }
 
+/// 게임 아이콘 그림 (assets/images/icon_<name>.png). 없으면 [fallback] 아이콘.
+class GameIcon extends StatelessWidget {
+  const GameIcon(this.name,
+      {super.key, this.size = 22, this.fallback = Icons.circle_outlined});
+
+  final String name;
+  final double size;
+  final IconData fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/images/icon_$name.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Icon(fallback, size: size, color: AppColors.goldBright),
+    );
+  }
+}
+
 /// 작은 금색 마름모
 class Diamond extends StatelessWidget {
   const Diamond({super.key, this.size = 8, this.color = AppColors.goldBright});
@@ -140,7 +241,7 @@ class Diamond extends StatelessWidget {
   }
 }
 
-/// ─◆ 제목 ◆─ 모양의 리본 제목
+/// ─◆ 제목 ◆─ 모양의 리본 제목 (ui_divider 그림의 왼쪽·오른쪽 반)
 class RibbonHeading extends StatelessWidget {
   const RibbonHeading(this.text, {super.key, this.size = 22});
 
@@ -149,24 +250,25 @@ class RibbonHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget line(bool left) => Expanded(
-          child: Container(
-            height: 1.2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: left
-                    ? [Colors.transparent, AppColors.gold]
-                    : [AppColors.gold, Colors.transparent],
+    Widget half(bool left) => Expanded(
+          child: SizedBox(
+            height: size * 0.75,
+            child: Image.asset(
+              left
+                  ? 'assets/images/ui_divider_left.png'
+                  : 'assets/images/ui_divider_right.png',
+              fit: BoxFit.fitHeight,
+              alignment: left ? Alignment.centerRight : Alignment.centerLeft,
+              errorBuilder: (_, __, ___) => Center(
+                child: Container(height: 1.2, color: AppColors.gold),
               ),
             ),
           ),
         );
     return Row(
       children: [
-        line(true),
-        const SizedBox(width: 6),
-        const Diamond(size: 7),
-        const SizedBox(width: 10),
+        half(true),
+        const SizedBox(width: 8),
         Flexible(
           flex: 8,
           child: Text(text,
@@ -175,16 +277,14 @@ class RibbonHeading extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: AppText.title(size)),
         ),
-        const SizedBox(width: 10),
-        const Diamond(size: 7),
-        const SizedBox(width: 6),
-        line(false),
+        const SizedBox(width: 8),
+        half(false),
       ],
     );
   }
 }
 
-/// 빛나는 금색 버튼 (✦ 글자 ✦)
+/// 빛나는 금색 버튼 (ui_button_gold 그림)
 class GoldButton extends StatelessWidget {
   const GoldButton({
     super.key,
@@ -202,63 +302,32 @@ class GoldButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final textColor = enabled ? const Color(0xFF3A2208) : AppColors.textMuted;
-    return Opacity(
-      opacity: enabled ? 1 : 0.55,
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(height / 2),
-          gradient: enabled
-              ? kGoldGradient
-              : const LinearGradient(
-                  colors: [Color(0xFF3A3F70), Color(0xFF2A2E58)]),
-          border: Border.all(
-              color: enabled ? const Color(0xFFFFF1C4) : AppColors.track,
-              width: 1.5),
-          boxShadow: enabled
-              ? [
-                  BoxShadow(
-                      color: AppColors.gold.withValues(alpha: 0.55),
-                      blurRadius: 18,
-                      spreadRadius: 1),
-                ]
-              : null,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(height / 2),
-            onTap: onPressed,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('✦', style: TextStyle(color: textColor, fontSize: 13)),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Title',
-                      fontWeight: FontWeight.w700,
-                      fontSize: fontSize,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text('✦', style: TextStyle(color: textColor, fontSize: 13)),
-              ],
-            ),
-          ),
+    return _ArtButton(
+      asset: enabled
+          ? 'assets/images/ui_button_gold.png'
+          : 'assets/images/ui_button_dark.png',
+      imgH: enabled ? 159 : 160,
+      slice: enabled
+          ? const Rect.fromLTRB(110, 48, 668 - 110, 159 - 48)
+          : const Rect.fromLTRB(90, 48, 662 - 90, 160 - 48),
+      height: height,
+      onPressed: onPressed,
+      glow: enabled,
+      child: Text(
+        label,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontFamily: 'Title',
+          fontWeight: FontWeight.w700,
+          fontSize: fontSize,
+          color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
         ),
       ),
     );
   }
 }
 
-/// 금테 두른 어두운 버튼 (보조)
+/// 금테 두른 어두운 버튼 (ui_button_dark 그림)
 class FrameButton extends StatelessWidget {
   const FrameButton({
     super.key,
@@ -275,45 +344,85 @@ class FrameButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color =
+        onPressed == null ? AppColors.textMuted : AppColors.goldBright;
+    return _ArtButton(
+      asset: 'assets/images/ui_button_dark.png',
+      imgH: 160,
+      slice: const Rect.fromLTRB(90, 48, 662 - 90, 160 - 48),
+      height: height,
+      onPressed: onPressed,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Title',
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArtButton extends StatelessWidget {
+  const _ArtButton({
+    required this.asset,
+    required this.imgH,
+    required this.slice,
+    required this.height,
+    required this.onPressed,
+    required this.child,
+    this.glow = false,
+  });
+
+  final String asset;
+  final double imgH;
+  final Rect slice;
+  final double height;
+  final VoidCallback? onPressed;
+  final Widget child;
+  final bool glow;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: height,
-      padding: const EdgeInsets.all(1.3),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(height / 2),
-        gradient: _frameGradient,
-      ),
-      child: Material(
-        color: const Color(0xFF1C1F4C),
-        borderRadius: BorderRadius.circular(height / 2),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(height / 2),
-          onTap: onPressed,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(icon,
-                    size: 20,
-                    color: onPressed == null
-                        ? AppColors.textMuted
-                        : AppColors.goldBright),
-                const SizedBox(width: 8),
+      decoration: glow
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(height / 2),
+              boxShadow: [
+                BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.45),
+                    blurRadius: 16),
               ],
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Title',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    color: onPressed == null
-                        ? AppColors.textMuted
-                        : AppColors.goldBright,
-                  ),
-                ),
-              ),
-            ],
+            )
+          : null,
+      child: _NineSlice(
+        asset: asset,
+        slice: slice,
+        scale: imgH / height,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(height / 2),
+            onTap: onPressed,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: height * 0.7),
+              child: Center(child: child),
+            ),
           ),
         ),
       ),
@@ -375,7 +484,7 @@ class BarColors {
   static const foe = [Color(0xFFA8323C), Color(0xFFE86A6A)];
 }
 
-/// 레벨 배지: 월계관 + 'Lv.12' + 아래 칭호 리본
+/// 레벨 배지: 월계관 판(ui_level_plaque) + 'Lv.12' + 아래 칭호 리본(ui_ribbon)
 class LaurelBadge extends StatelessWidget {
   const LaurelBadge({super.key, required this.level, required this.title});
 
@@ -386,48 +495,46 @@ class LaurelBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 260,
-      height: 112,
+      height: 172,
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
-          const Positioned.fill(
-            child: CustomPaint(painter: _LaurelPainter()),
-          ),
           Positioned(
-            top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1D4A),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: AppColors.goldBright, width: 1.6),
-                boxShadow: [
-                  BoxShadow(
-                      color: AppColors.gold.withValues(alpha: 0.5),
-                      blurRadius: 16),
-                ],
-              ),
-              child: Text('Lv.$level', style: AppText.title(38)),
+            top: 0,
+            child: SizedBox(
+              width: 250,
+              height: 116,
+              child: Stack(alignment: Alignment.center, children: [
+                Image.asset('assets/images/ui_level_plaque.png',
+                    width: 250, fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: Text('Lv.$level', style: AppText.title(36)),
+                ),
+              ]),
             ),
           ),
           Positioned(
-            top: 64,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: kGoldGradient,
-                borderRadius: BorderRadius.circular(4),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x88000000), blurRadius: 6),
-                ],
-              ),
-              child: Text(title,
-                  style: const TextStyle(
-                    fontFamily: 'Title',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: Color(0xFF3A2208),
-                  )),
+            top: 104,
+            child: SizedBox(
+              width: 190,
+              height: 68,
+              child: Stack(alignment: Alignment.center, children: [
+                Image.asset('assets/images/ui_ribbon.png',
+                    width: 190, fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(title,
+                      style: const TextStyle(
+                        fontFamily: 'Title',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Color(0xFF3A2208),
+                      )),
+                ),
+              ]),
             ),
           ),
         ],
@@ -436,44 +543,46 @@ class LaurelBadge extends StatelessWidget {
   }
 }
 
-class _LaurelPainter extends CustomPainter {
-  const _LaurelPainter();
+/// 글자를 얹는 그림 배너 (레벨업·던전 클리어·입구 보너스)
+class ArtBanner extends StatelessWidget {
+  const ArtBanner({
+    super.key,
+    required this.asset,
+    required this.width,
+    required this.aspect,
+    required this.text,
+    this.textOffset = 0,
+    this.fontSize = 26,
+  });
+
+  final String asset;
+  final double width;
+
+  /// 그림의 가로 ÷ 세로
+  final double aspect;
+  final String text;
+
+  /// 글자를 세로로 옮기는 정도 (-1 위 ~ 1 아래)
+  final double textOffset;
+  final double fontSize;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final leaf = Paint()..color = const Color(0xFFE2B85A);
-    final stem = Paint()
-      ..color = const Color(0xFFC99A3E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    for (final side in [-1.0, 1.0]) {
-      canvas.save();
-      canvas.translate(size.width / 2, size.height * 0.62);
-      canvas.scale(side, 1);
-      final path = Path();
-      const r = 70.0;
-      for (var i = 0; i <= 20; i++) {
-        final a = math.pi * (0.55 + i * 0.022);
-        final p = Offset(math.cos(a) * r * 1.35, -math.sin(a) * r * 0.75);
-        i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-      }
-      canvas.drawPath(path, stem);
-      for (var i = 1; i <= 7; i++) {
-        final a = math.pi * (0.58 + i * 0.055);
-        final p = Offset(math.cos(a) * r * 1.35, -math.sin(a) * r * 0.75);
-        canvas.save();
-        canvas.translate(p.dx, p.dy);
-        canvas.rotate(-a + math.pi / 2 + 0.6);
-        canvas.drawOval(
-            const Rect.fromLTWH(-4, -13, 8, 16), leaf); // 위쪽 잎
-        canvas.restore();
-      }
-      canvas.restore();
-    }
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: width / aspect,
+      child: Stack(fit: StackFit.expand, children: [
+        Image.asset(asset,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const SizedBox()),
+        Align(
+          alignment: Alignment(0, textOffset),
+          child: Text(text,
+              style: AppText.title(fontSize, color: const Color(0xFFFFF3C8))),
+        ),
+      ]),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// 탑의 눈 문장 (동그란 금테 안의 눈)
@@ -572,12 +681,46 @@ class ChipBadge extends StatelessWidget {
 
 /// 화면 전체 배경 (남색 + 보랏빛)
 class NightBackground extends StatelessWidget {
-  const NightBackground({super.key, required this.child});
+  const NightBackground({super.key, required this.child, this.header = false});
 
   final Widget child;
 
+  /// 위쪽에 노을 속 탑 그림 띠(bg_header)를 깐다
+  final bool header;
+
   @override
   Widget build(BuildContext context) {
+    final base = _base(header
+        ? Stack(children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 230,
+              child: ShaderMask(
+                shaderCallback: (r) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.white, Colors.white, Colors.transparent],
+                  stops: [0, 0.45, 1],
+                ).createShader(r),
+                blendMode: BlendMode.dstIn,
+                child: Opacity(
+                  opacity: 0.85,
+                  child: Image.asset('assets/images/bg_header.jpg',
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0.4, -0.2),
+                      errorBuilder: (_, __, ___) => const SizedBox()),
+                ),
+              ),
+            ),
+            Positioned.fill(child: child),
+          ])
+        : child);
+    return base;
+  }
+
+  Widget _base(Widget child) {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(

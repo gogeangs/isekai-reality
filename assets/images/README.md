@@ -23,3 +23,19 @@ ChatGPT로 만든 그림을 반으로 잘라 정사각형으로 맞췄습니다.
 | shadowButterfly | 그림자 나비 → 노을 나비 |
 | lostStoneSpirit | 길 잃은 돌정령 → 길 찾은 돌정령 |
 | labyrinthWarden | 미궁 문지기 → 미궁 수호자 (보스) |
+
+## UI 그림 (2026년 11월 9일)
+
+ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프트는 '목업 재현용 에셋 목록과 프롬프트' 문서에 있습니다.
+
+| 묶음 | 파일 |
+| --- | --- |
+| 테두리·버튼 | ui_panel(가운데를 비워 9조각으로 늘림), ui_panel_wide, ui_button_gold, ui_button_dark, ui_divider_left/right, ui_level_plaque, ui_ribbon, ui_bubble |
+| 아이콘 | icon_vitality, agility, wisdom, spirit, quest, steps, moon, key, key_empty, crystal, exp, levelup, medal, study, check, sun |
+| 하단 메뉴 | nav_status, nav_map, nav_records, nav_codex, nav_settings |
+| 지도 | map_gate, inn, store, lake, theater, monster, player, unknown |
+| 던전 | floor_1~3, floor_boss, banner_clear, badge_gate, bg_gate, bg_battle, bg_victory |
+| 레벨업 | banner_levelup |
+| 배경 | bg_header, bg_status_male, bg_status_female, splash |
+| 각성자 | hero_attack/victory_male·female, portrait_male·female, hero_chibi_male |
+| 효과 | fx_slash, fx_hit, fx_purify |

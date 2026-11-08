@@ -77,7 +77,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final goal = history.isEmpty ? 5000 : history.last.stepGoal;
     final top = MediaQuery.paddingOf(context).top;
 
-    return NightBackground(
+    return ColoredBox(
+      color: Colors.transparent,
       child: ListView(
         padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
         children: [
@@ -98,7 +99,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
           const SizedBox(height: 10),
           _ChartPanel(
-            icon: Icons.directions_walk_rounded,
+            icon: 'steps',
             title: '걸음',
             goalLabel: '목표 ${comma(goal)}보',
             days: days,
@@ -111,7 +112,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
           const SizedBox(height: 12),
           _ChartPanel(
-            icon: Icons.nightlight_round,
+            icon: 'moon',
             title: '수면',
             goalLabel: '목표 7시간',
             days: days,
@@ -124,7 +125,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
           const SizedBox(height: 12),
           _ChartPanel(
-            icon: Icons.menu_book_rounded,
+            icon: 'study',
             title: '공부·독서',
             goalLabel: '목표 30분',
             days: days,
@@ -136,17 +137,17 @@ class _RecordsScreenState extends State<RecordsScreen> {
           const SizedBox(height: 12),
           Row(children: [
             _SummaryTile(
-                icon: Icons.auto_awesome_rounded,
+                icon: 'exp',
                 label: '주간 경험치',
                 value: comma(weekExp)),
             const SizedBox(width: 8),
             _SummaryTile(
-                icon: Icons.keyboard_double_arrow_up_rounded,
+                icon: 'levelup',
                 label: '레벨 업',
                 value: '$levelUps'),
             const SizedBox(width: 8),
             _SummaryTile(
-                icon: Icons.military_tech_rounded,
+                icon: 'medal',
                 label: '새 칭호',
                 value: '$newTitles'),
           ]),
@@ -230,7 +231,7 @@ class _ChartPanel extends StatelessWidget {
     required this.format,
   });
 
-  final IconData icon;
+  final String icon;
   final String title;
   final String goalLabel;
   final List<DateTime> days;
@@ -248,7 +249,7 @@ class _ChartPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            Icon(icon, size: 18, color: AppColors.goldBright),
+            GameIcon(icon, size: 24),
             const SizedBox(width: 6),
             Text(title, style: AppText.title(17)),
             const Spacer(),
@@ -357,7 +358,7 @@ class _SummaryTile extends StatelessWidget {
     required this.value,
   });
 
-  final IconData icon;
+  final String icon;
   final String label;
   final String value;
 
@@ -368,7 +369,7 @@ class _SummaryTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         radius: 12,
         child: Column(children: [
-          Icon(icon, color: AppColors.goldBright, size: 20),
+          GameIcon(icon, size: 28),
           Text(label,
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           Text(value, style: AppText.title(22, color: AppColors.text)),

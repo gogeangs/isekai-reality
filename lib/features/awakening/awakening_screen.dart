@@ -61,13 +61,20 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   }
 
   /// 위쪽 그림 (노을 속 각성자)
-  Widget _art(double height, {Widget? overlay}) {
+  Widget _art(double height, {Widget? overlay, bool intro = false}) {
     return SizedBox(
       height: height,
       child: Stack(fit: StackFit.expand, children: [
-        Image.asset('assets/images/bg_awakening.jpg',
+        Image.asset(
+            intro
+                ? 'assets/images/splash.jpg'
+                : _look == HeroLook.female
+                    ? 'assets/images/bg_status_female.jpg'
+                    : 'assets/images/bg_status_male.jpg',
             fit: BoxFit.cover,
-            alignment: const Alignment(-0.35, -0.3),
+            alignment: intro
+                ? const Alignment(0, -0.5)
+                : const Alignment(-0.42, -0.6),
             errorBuilder: (_, __, ___) => const SizedBox()),
         const Align(
             alignment: Alignment.bottomCenter,
@@ -81,13 +88,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     final top = MediaQuery.paddingOf(context).top;
     return Column(
       children: [
-        _art(420 + top,
-            overlay: Positioned(
-              top: top + 14,
-              left: 0,
-              right: 0,
-              child: const Center(child: EyeEmblem(size: 56)),
-            )),
+        _art(460 + top, intro: true),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -151,14 +152,14 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                       Row(children: [
                         _LookCard(
                           label: '남',
-                          image: 'assets/images/portrait_male.jpg',
+                          image: 'assets/images/portrait_male.png',
                           selected: _look == HeroLook.male,
                           onTap: () => setState(() => _look = HeroLook.male),
                         ),
                         const SizedBox(width: 12),
                         _LookCard(
                           label: '여',
-                          image: 'assets/images/portrait_female.jpg',
+                          image: 'assets/images/portrait_female.png',
                           selected: _look == HeroLook.female,
                           onTap: () =>
                               setState(() => _look = HeroLook.female),
@@ -244,8 +245,16 @@ class _LookCard extends StatelessWidget {
             child: Column(children: [
               AspectRatio(
                 aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF3A3F86), Color(0xFF1B1E4C)],
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: Opacity(
                     opacity: selected ? 1 : 0.6,
                     child: Image.asset(image,

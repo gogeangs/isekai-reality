@@ -70,6 +70,15 @@ class MapScreen extends StatelessWidget {
   }
 }
 
+/// 장소 종류별 지도 표시 그림
+String placeIconAsset(PlaceKind kind) => switch (kind) {
+      PlaceKind.labyrinthGate => 'assets/images/map_gate.png',
+      PlaceKind.inn => 'assets/images/map_inn.png',
+      PlaceKind.generalStore => 'assets/images/map_store.png',
+      PlaceKind.spiritLake => 'assets/images/map_lake.png',
+      PlaceKind.bardTheater => 'assets/images/map_theater.png',
+    };
+
 // ───────────────────────────────────────────── 위쪽 패널
 
 class _TopPanel extends StatelessWidget {
@@ -103,7 +112,7 @@ class _TopPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Icon(Icons.vpn_key_rounded, color: AppColors.gold, size: 20),
+        const GameIcon('key', size: 26),
         const SizedBox(width: 4),
         Text('$keys',
             style: const TextStyle(color: AppColors.text, fontSize: 16)),
@@ -259,13 +268,15 @@ class _ExploreSummary extends StatelessWidget {
           const SizedBox(height: 12),
           for (final place in controller.area.places)
             ListTile(
-              leading: Icon(
+              leading: Image.asset(
                 visited.contains(place.id)
-                    ? Icons.check_circle_rounded
-                    : Icons.help_outline_rounded,
-                color: visited.contains(place.id)
-                    ? AppColors.gold
-                    : AppColors.textMuted,
+                    ? placeIconAsset(place.kind)
+                    : 'assets/images/map_unknown.png',
+                width: 44,
+                height: 44,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.place_rounded,
+                    color: AppColors.gold),
               ),
               title: Text(
                 visited.contains(place.id) ? place.name : '???',
@@ -354,6 +365,10 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         NMarker(
           id: 'place_${place.id}',
           position: _ll(place.point),
+          icon: NOverlayImage.fromAssetImage(visited.contains(place.id)
+              ? placeIconAsset(place.kind)
+              : 'assets/images/map_unknown.png'),
+          size: const Size(46, 46),
           caption: NOverlayCaption(
             text: visited.contains(place.id) ? place.name : '???',
           ),
@@ -363,12 +378,17 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           id: 'monster_${spawn.id}',
           position: _ll(spawn.point),
           caption: NOverlayCaption(text: spawn.info.name),
-          iconTintColor: const Color(0xFF9C93B8),
+          icon: NOverlayImage.fromAssetImage(
+              'assets/images/map_monster.png'),
+          size: const Size(40, 40),
         ),
       if (fix != null)
         NMarker(
           id: 'player',
           position: _ll(fix.point),
+          icon: NOverlayImage.fromAssetImage(
+              'assets/images/map_player.png'),
+          size: const Size(48, 48),
           caption: NOverlayCaption(text: c.profile.name),
         ),
     };

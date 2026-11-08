@@ -96,10 +96,18 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       listenable: controller,
       builder: (context, _) {
         if (!controller.ready) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(color: AppColors.gold),
-            ),
+          // 시작 화면 (불러오는 동안)
+          return Scaffold(
+            backgroundColor: const Color(0xFF0F1233),
+            body: Stack(fit: StackFit.expand, children: [
+              Image.asset('assets/images/splash.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox()),
+              const Align(
+                alignment: Alignment(0, 0.15),
+                child: CircularProgressIndicator(color: AppColors.gold),
+              ),
+            ]),
           );
         }
         if (controller.needsAwakening) {
@@ -124,12 +132,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             weatherIcon: _weatherIcon(controller),
           ),
           MapScreen(controller: controller),
-          RecordsScreen(player: controller.player),
-          CodexScreen(
-            player: controller.player,
-            purifiedMonsters: controller.purifiedEver,
+          NightBackground(header: true, child: RecordsScreen(player: controller.player)),
+          NightBackground(
+            header: true,
+            child: CodexScreen(
+              player: controller.player,
+              purifiedMonsters: controller.purifiedEver,
+            ),
           ),
-          NightBackground(child: SettingsScreen(controller: controller)),
+          NightBackground(header: true, child: SettingsScreen(controller: controller)),
         ];
 
         return Scaffold(
@@ -157,11 +168,11 @@ class OrnateNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const items = [
-    (Icons.person_rounded, '상태'),
-    (Icons.map_rounded, '지도'),
-    (Icons.bar_chart_rounded, '기록'),
-    (Icons.military_tech_rounded, '도감'),
-    (Icons.settings_rounded, '설정'),
+    ('status', '상태'),
+    ('map', '지도'),
+    ('records', '기록'),
+    ('codex', '도감'),
+    ('settings', '설정'),
   ];
 
   @override
@@ -175,6 +186,7 @@ class OrnateNavBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
           child: OrnatePanel(
+            art: false,
             padding: const EdgeInsets.all(4),
             radius: 18,
             child: Row(
@@ -213,11 +225,16 @@ class OrnateNavBar extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(items[i].$1,
-                                  color: i == index
-                                      ? AppColors.goldBright
-                                      : AppColors.text,
-                                  size: 24),
+                              Opacity(
+                                opacity: i == index ? 1 : 0.7,
+                                child: Image.asset(
+                                    'assets/images/nav_${items[i].$1}.png',
+                                    width: 30,
+                                    height: 30,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.circle_outlined,
+                                        color: AppColors.text)),
+                              ),
                               const SizedBox(height: 2),
                               Text(items[i].$2,
                                   style: TextStyle(

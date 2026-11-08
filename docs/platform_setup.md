@@ -66,6 +66,17 @@ Client ID 없이 실행하면 지도 탭에 '탐험 현황'(밝힌 칸 수, 방�
 불씨 색(맑음 황금, 비 하늘색, 밤 보라, 눈 흰색)은 [Open-Meteo](https://open-meteo.com) 무료 날씨 API 로 정합니다. 키가 필요 없고, 위치는 소수점 둘째 자리(약 1km)까지만 보냅니다. 30분에 한 번만 읽고, 실패하면 시간(밤이면 보라)으로만 정합니다.
 상업적으로 출시할 때는 Open-Meteo 이용 조건(상업 이용은 유료 요금제)을 다시 확인하세요.
 
+## 앱 아이콘
+
+아이콘 원본은 `assets/branding/app_icon.png`(1024×1024)입니다. `flutter create` 로 휴대폰 폴더를 만든 뒤 한 번만 실행합니다.
+
+```bash
+flutter pub add dev:flutter_launcher_icons
+dart run flutter_launcher_icons --image-path assets/branding/app_icon.png
+```
+
+시작 화면 그림은 `assets/images/splash.jpg` 이고, 앱이 불러오는 동안 보여 줍니다.
+
 ## 예시 데이터로 실행
 
 건강 앱 없이 2주치 예시 기록으로 화면만 보고 싶을 때:

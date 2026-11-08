@@ -32,40 +32,15 @@ class LevelUpDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // 빛과 리본 배너
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 300,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [
-                    AppColors.goldBright.withValues(alpha: 0.55),
-                    Colors.transparent,
-                  ]),
-                ),
-              ),
-              Column(children: [
-                const EyeEmblem(size: 54),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 26, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [
-                      Color(0xFF4A2C7A),
-                      Color(0xFF6E3FA0),
-                      Color(0xFF4A2C7A)
-                    ]),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.goldBright, width: 1.5),
-                  ),
-                  child: Text('LEVEL UP', style: AppText.title(30)),
-                ),
-              ]),
-            ],
+          const ArtBanner(
+            asset: 'assets/images/banner_levelup.png',
+            width: 290,
+            aspect: 520 / 489,
+            text: 'LEVEL UP',
+            textOffset: 0.08,
+            fontSize: 30,
           ),
+          const SizedBox(height: 4),
           OrnatePanel(
             highlight: true,
             ornament: true,

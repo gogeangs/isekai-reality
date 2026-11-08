@@ -146,7 +146,7 @@ class _HeroArt extends StatelessWidget {
         fit: BoxFit.cover,
         alignment: look == HeroLook.female
             ? const Alignment(-0.45, -0.6)
-            : const Alignment(-0.3, -0.5),
+            : const Alignment(-0.42, -0.6),
         semanticLabel: '기본 각성자',
         errorBuilder: (_, __, ___) => const SizedBox());
   }
@@ -190,7 +190,7 @@ class _StatusPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: _Gauge(
-                  icon: Icons.vpn_key_rounded,
+                  icon: 'key',
                   label: '던전 게이지 · 열쇠 ${gauge.keysAvailable}',
                   ratio: gauge.ratio,
                   colors: BarColors.gauge,
@@ -203,7 +203,7 @@ class _StatusPanel extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: _Gauge(
-                  icon: Icons.nightlight_round,
+                  icon: 'moon',
                   label: 'MP · 수면',
                   ratio: (sleep / RuleConstants.sleepGoodMinutes)
                       .clamp(0, 1)
@@ -231,19 +231,19 @@ class _StatusPanel extends StatelessWidget {
           Row(
             children: [
               _StatTile(
-                  icon: Icons.favorite_rounded,
+                  icon: 'vitality',
                   name: '체력',
                   value: player.stats.vitality),
               _StatTile(
-                  icon: Icons.air_rounded,
+                  icon: 'agility',
                   name: '민첩',
                   value: player.stats.agility),
               _StatTile(
-                  icon: Icons.menu_book_rounded,
+                  icon: 'wisdom',
                   name: '지력',
                   value: player.stats.wisdom),
               _StatTile(
-                  icon: Icons.auto_awesome_rounded,
+                  icon: 'spirit',
                   name: '정신',
                   value: player.stats.spirit),
             ],
@@ -267,7 +267,7 @@ class _Gauge extends StatelessWidget {
   final double ratio;
   final List<Color> colors;
   final String value;
-  final IconData icon;
+  final String icon;
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +275,7 @@ class _Gauge extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(children: [
-          Icon(icon, size: 16, color: colors.last),
+          GameIcon(icon, size: 20),
           const SizedBox(width: 4),
           Flexible(
             child: Text(label,
@@ -297,7 +297,7 @@ class _Gauge extends StatelessWidget {
 class _StatTile extends StatelessWidget {
   const _StatTile({required this.icon, required this.name, required this.value});
 
-  final IconData icon;
+  final String icon;
   final String name;
   final int value;
 
@@ -317,7 +317,7 @@ class _StatTile extends StatelessWidget {
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.75)),
         ),
         child: Column(children: [
-          Icon(icon, color: AppColors.goldBright, size: 20),
+          GameIcon(icon, size: 26),
           const SizedBox(height: 2),
           Text(name,
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -343,7 +343,7 @@ class _QuestPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const Icon(Icons.receipt_long_rounded, color: AppColors.goldBright),
+            const GameIcon('quest', size: 28),
             const SizedBox(width: 8),
             Text('일일 퀘스트', style: AppText.title(19)),
             const SizedBox(width: 8),
@@ -367,8 +367,7 @@ class _QuestPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.menu_book_rounded,
-                        size: 16, color: Color(0xFF3A2208)),
+                    GameIcon('study', size: 18),
                     SizedBox(width: 4),
                     Text('공부 기록',
                         style: TextStyle(
@@ -427,7 +426,11 @@ class _QuestRow extends StatelessWidget {
               style: const TextStyle(color: AppColors.text, fontSize: 15)),
         ),
         if (quest.completed)
-          Text('완료', style: AppText.title(15))
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const GameIcon('check', size: 24),
+            const SizedBox(width: 2),
+            Text('완료', style: AppText.title(15)),
+          ])
         else ...[
           Expanded(
             flex: 3,

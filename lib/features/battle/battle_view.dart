@@ -130,8 +130,7 @@ class _BattleViewState extends State<BattleView> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 child: Row(children: [
-                  const Icon(Icons.diamond_rounded,
-                      color: Color(0xFFB08CF0), size: 34),
+                  const GameIcon('crystal', size: 40),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,17 +249,36 @@ class _Scene extends StatelessWidget {
                 ),
               ),
             ),
-            // 일격의 빛
-            if (skill && !cleared)
+            // 타격 효과: 일격은 금빛 베기, 보통 공격은 작은 불꽃, 정화는 빛 기둥
+            if (cleared)
               Positioned(
-                right: 60,
-                top: 110,
-                child: Icon(Icons.auto_awesome_rounded,
-                    size: 90,
-                    color: AppColors.goldBright.withValues(alpha: 0.9),
-                    shadows: const [
-                      Shadow(color: AppColors.gold, blurRadius: 30),
-                    ]),
+                right: 10,
+                top: 30,
+                width: 180,
+                height: 220,
+                child: Image.asset('assets/images/fx_purify.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              )
+            else if (skill)
+              Positioned(
+                right: 40,
+                top: 80,
+                width: 190,
+                height: 150,
+                child: Image.asset('assets/images/fx_slash.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              )
+            else if (dealt > 0)
+              Positioned(
+                right: 70,
+                top: 120,
+                width: 90,
+                height: 80,
+                child: Image.asset('assets/images/fx_hit.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
               ),
             // 준 피해
             Positioned(
@@ -346,14 +364,16 @@ class _Avatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        color: const Color(0xFF2B2F6B),
         border: Border.all(color: AppColors.goldBright, width: 1.6),
       ),
       child: ClipOval(
         child: Image.asset(
           look == HeroLook.female
-              ? 'assets/images/portrait_female.jpg'
-              : 'assets/images/portrait_male.jpg',
+              ? 'assets/images/portrait_female.png'
+              : 'assets/images/portrait_male.png',
           fit: BoxFit.cover,
+          alignment: const Alignment(0, -0.6),
           errorBuilder: (_, __, ___) =>
               const Icon(Icons.person_rounded, color: AppColors.textMuted),
         ),

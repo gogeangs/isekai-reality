@@ -153,27 +153,19 @@ class _DungeonScreenState extends State<DungeonScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(children: [
-              const Icon(Icons.vpn_key_rounded, color: AppColors.goldBright),
-              const SizedBox(width: 8),
+              const GameIcon('key', size: 28),
+              const SizedBox(width: 6),
               Text('열쇠 $keys개', style: AppText.title(19, color: AppColors.text)),
               const Spacer(),
               for (var i = 0; i < RuleConstants.maxKeysEarnedPerDay; i++)
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.key_rounded,
-                      size: 24,
-                      color: i < keys
-                          ? AppColors.goldBright
-                          : AppColors.textMuted.withValues(alpha: 0.35),
-                      shadows: i < keys
-                          ? const [Shadow(color: AppColors.gold, blurRadius: 8)]
-                          : null),
+                  child: GameIcon(i < keys ? 'key' : 'key_empty', size: 30),
                 ),
             ]),
             const SizedBox(height: 10),
             Row(children: [
-              const Icon(Icons.directions_walk_rounded,
-                  size: 18, color: AppColors.textMuted),
+              const GameIcon('steps', size: 20),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -253,22 +245,47 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
     return [
       // 배너
-      Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          gradient: const LinearGradient(
-            colors: [Color(0x00B98330), Color(0xCC6E3FA0), Color(0x00B98330)],
-          ),
-        ),
-        child: Text(cleared ? '던전 정화 완료!' : '이번엔 물러났어요',
-            textAlign: TextAlign.center, style: AppText.title(30)),
-      ),
       SizedBox(
-        height: 190,
+        height: 300,
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: ShaderMask(
+                  shaderCallback: (r) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Colors.white, Colors.transparent],
+                    stops: [0, 0.7, 1],
+                  ).createShader(r),
+                  blendMode: BlendMode.dstIn,
+                  child: Image.asset(
+                      cleared
+                          ? 'assets/images/bg_victory.jpg'
+                          : 'assets/images/bg_battle.jpg',
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0, 0.2),
+                      errorBuilder: (_, __, ___) => const SizedBox()),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 6,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ArtBanner(
+                  asset: 'assets/images/banner_clear.png',
+                  width: 330,
+                  aspect: 760 / 302,
+                  text: cleared ? '던전 정화 완료!' : '이번엔 물러났어요',
+                  textOffset: -0.12,
+                  fontSize: 25,
+                ),
+              ),
+            ),
             Container(
               width: 220,
               height: 220,
@@ -280,17 +297,18 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 ]),
               ),
             ),
-            SizedBox(
-              height: 180,
+            Positioned(
+              bottom: 6,
+              height: 170,
               child: HeroSprite(
                   look: _c.profile.look,
                   pose: cleared ? HeroPose.victory : HeroPose.attack),
             ),
             Positioned(
-              right: 40,
-              top: 20,
+              right: 36,
+              bottom: 60,
               child: Image.asset('assets/images/bulssi.png',
-                  width: 80, errorBuilder: (_, __, ___) => const SizedBox()),
+                  width: 76, errorBuilder: (_, __, ___) => const SizedBox()),
             ),
           ],
         ),
@@ -303,8 +321,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.auto_awesome_rounded,
-                    color: AppColors.goldBright, size: 28),
+                const GameIcon('exp', size: 34),
                 const SizedBox(width: 8),
                 Text(
                   _exp > 0 ? '경험치 +$_exp' : '오늘 던전 경험치는 다 받았어요',
@@ -368,7 +385,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
       BulssiBubble(line: line),
       const SizedBox(height: 14),
       Center(
-        child: ChipBadge(text: '남은 열쇠 $keys개', icon: Icons.vpn_key_rounded),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const GameIcon('key', size: 26),
+          const SizedBox(width: 6),
+          Text('남은 열쇠 $keys개', style: AppText.title(16, color: AppColors.text)),
+        ]),
       ),
       const SizedBox(height: 14),
       if (keys > 0 && _c.canFightNow) ...[
@@ -394,33 +415,16 @@ class _FloorTrack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget node(String label, {bool boss = false}) => Column(
+    Widget node(String label, String asset) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (boss)
-              const Icon(Icons.workspace_premium_rounded,
-                  color: AppColors.goldBright, size: 18)
-            else
-              const SizedBox(height: 18),
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  boss ? const Color(0xFF6E3FA0) : const Color(0xFF3C4386),
-                  const Color(0xFF14173E),
-                ]),
-                border: Border.all(
-                    color: boss ? AppColors.goldBright : AppColors.gold,
-                    width: boss ? 2 : 1.2),
-              ),
-              child: Icon(
-                  boss ? Icons.shield_moon_rounded : Icons.door_back_door_rounded,
-                  color: AppColors.goldBright.withValues(alpha: 0.9),
-                  size: 24),
-            ),
-            const SizedBox(height: 4),
+            Image.asset('assets/images/$asset.png',
+                width: 62,
+                height: 62,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.door_back_door_rounded,
+                    color: AppColors.goldBright)),
+            const SizedBox(height: 2),
             Text(label, style: AppText.title(14, color: AppColors.text)),
           ],
         );
@@ -433,13 +437,13 @@ class _FloorTrack extends StatelessWidget {
         );
     return Row(
       children: [
-        node('1층'),
+        node('1층', 'floor_1'),
         link(),
-        node('2층'),
+        node('2층', 'floor_2'),
         link(),
-        node('3층'),
+        node('3층', 'floor_3'),
         link(),
-        node('보스', boss: true),
+        node('보스', 'floor_boss'),
       ],
     );
   }
@@ -452,24 +456,13 @@ class _GateBonusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-          horizontal: small ? 8 : 12, vertical: small ? 2 : 6),
-      decoration: BoxDecoration(
-        color: const Color(0xDD14173E),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.goldBright, width: 1.4),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.gold.withValues(alpha: 0.5), blurRadius: 12),
-        ],
-      ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('입구 보너스',
-            style: TextStyle(
-                color: AppColors.goldBright, fontSize: small ? 10 : 12)),
-        Text('×1.5', style: AppText.title(small ? 18 : 26)),
-      ]),
+    return ArtBanner(
+      asset: 'assets/images/badge_gate.png',
+      width: small ? 56 : 92,
+      aspect: 240 / 225,
+      text: '×1.5',
+      textOffset: -0.1,
+      fontSize: small ? 15 : 22,
     );
   }
 }

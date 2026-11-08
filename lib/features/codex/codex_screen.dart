@@ -57,7 +57,8 @@ class CodexScreen extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
     final equipped = _equipped;
 
-    return NightBackground(
+    return ColoredBox(
+      color: Colors.transparent,
       child: ListView(
         padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
         children: [

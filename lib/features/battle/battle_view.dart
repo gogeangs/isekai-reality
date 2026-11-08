@@ -230,19 +230,9 @@ class _Scene extends StatelessWidget {
             Positioned(
               left: 30,
               bottom: 26,
-              height: 230,
-              child: look == HeroLook.male
-                  ? Image.asset('assets/images/hero_chibi_male.png',
-                      fit: BoxFit.contain,
-                      semanticLabel: '각성자',
-                      errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person_rounded,
-                          size: 140,
-                          color: AppColors.textMuted))
-                  : const Padding(
-                      padding: EdgeInsets.only(top: 80),
-                      child: _Avatar(look: HeroLook.female, size: 120),
-                    ),
+              height: 210,
+              child: HeroSprite(
+                  look: look, pose: cleared ? HeroPose.victory : HeroPose.attack),
             ),
             // 몬스터
             Positioned(
@@ -502,6 +492,35 @@ class _SkillOrb extends StatelessWidget {
                   color: ready ? AppColors.goldBright : AppColors.textMuted)),
         ),
       ],
+    );
+  }
+}
+
+enum HeroPose { attack, victory }
+
+/// 각성자 SD 그림 (공격·승리 자세). 그림이 없으면 서 있는 그림이나 초상화로 대신한다.
+/// 파일 이름: hero_attack_male.png, hero_victory_female.png ...
+class HeroSprite extends StatelessWidget {
+  const HeroSprite({super.key, required this.look, required this.pose});
+
+  final HeroLook look;
+  final HeroPose pose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/images/hero_${pose.name}_${look.name}.png',
+      fit: BoxFit.contain,
+      semanticLabel: '각성자',
+      errorBuilder: (_, __, ___) => look == HeroLook.male
+          ? Image.asset('assets/images/hero_chibi_male.png',
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded,
+                  size: 140, color: AppColors.textMuted))
+          : const Padding(
+              padding: EdgeInsets.only(top: 60),
+              child: _Avatar(look: HeroLook.female, size: 120),
+            ),
     );
   }
 }

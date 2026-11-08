@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
-import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -281,10 +280,12 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 ]),
               ),
             ),
-            if (_c.profile.look == HeroLook.male)
-              Image.asset('assets/images/hero_chibi_male.png',
-                  height: 180,
-                  errorBuilder: (_, __, ___) => const SizedBox()),
+            SizedBox(
+              height: 180,
+              child: HeroSprite(
+                  look: _c.profile.look,
+                  pose: cleared ? HeroPose.victory : HeroPose.attack),
+            ),
             Positioned(
               right: 40,
               top: 20,

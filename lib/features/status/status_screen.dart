@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
@@ -141,51 +139,16 @@ class _HeroArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const male = 'assets/images/bg_status_male.jpg';
-    if (look == HeroLook.male) {
-      return Image.asset(male,
-          fit: BoxFit.cover,
-          alignment: const Alignment(-0.3, -0.5),
-          semanticLabel: '기본 각성자',
-          errorBuilder: (_, __, ___) => const SizedBox());
-    }
-    // 여성 전신 그림이 생기기 전까지: 흐린 배경 + 초상화
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        ImageFiltered(
-          imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Image.asset(male,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox()),
-        ),
-        Center(
-          child: Container(
-            width: 190,
-            height: 190,
-            margin: const EdgeInsets.only(bottom: 30),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.goldBright, width: 3),
-              boxShadow: [
-                BoxShadow(
-                    color: AppColors.gold.withValues(alpha: 0.6),
-                    blurRadius: 30),
-              ],
-            ),
-            child: ClipOval(
-              child: Image.asset('assets/images/portrait_female.jpg',
-                  fit: BoxFit.cover,
-                  semanticLabel: '기본 각성자',
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.person_rounded,
-                      size: 120,
-                      color: AppColors.textMuted)),
-            ),
-          ),
-        ),
-      ],
-    );
+    final asset = look == HeroLook.female
+        ? 'assets/images/bg_status_female.jpg'
+        : 'assets/images/bg_status_male.jpg';
+    return Image.asset(asset,
+        fit: BoxFit.cover,
+        alignment: look == HeroLook.female
+            ? const Alignment(-0.45, -0.6)
+            : const Alignment(-0.3, -0.5),
+        semanticLabel: '기본 각성자',
+        errorBuilder: (_, __, ___) => const SizedBox());
   }
 }
 

@@ -74,7 +74,7 @@ class CodexScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.25,
+            childAspectRatio: 1.0,
             children: [
               for (final t in TitleRules.all)
                 _TitleCard(
@@ -198,27 +198,34 @@ class _TitleCard extends StatelessWidget {
                       fontWeight: FontWeight.w900)),
             ),
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  earned
-                      ? AppColors.gold.withValues(alpha: 0.45)
-                      : const Color(0x22B8B2C8),
-                  Colors.transparent,
-                ]),
-              ),
-              child: Center(
-                child: Icon(
-                  earned ? icon : Icons.lock_rounded,
-                  size: 40,
-                  color: earned ? AppColors.goldBright : AppColors.textMuted,
-                  shadows: earned
-                      ? const [Shadow(color: AppColors.gold, blurRadius: 14)]
-                      : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Stack(alignment: Alignment.center, children: [
+                // 얻지 못한 칭호는 어둡게, 자물쇠를 얹는다
+                ColorFiltered(
+                  colorFilter: earned
+                      ? const ColorFilter.mode(
+                          Colors.transparent, BlendMode.dst)
+                      : const ColorFilter.matrix([
+                          0.12, 0.12, 0.12, 0, 0,
+                          0.12, 0.12, 0.14, 0, 0,
+                          0.16, 0.16, 0.22, 0, 0,
+                          0, 0, 0, 1, 0,
+                        ]),
+                  child: Image.asset(
+                    'assets/images/title_${info.id.name}.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(icon,
+                        size: 40,
+                        color: earned
+                            ? AppColors.goldBright
+                            : AppColors.textMuted),
+                  ),
                 ),
-              ),
+                if (!earned)
+                  const Icon(Icons.lock_rounded,
+                      size: 30, color: AppColors.goldBright),
+              ]),
             ),
           ),
           Text(earned ? info.name : '???',

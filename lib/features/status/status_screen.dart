@@ -119,7 +119,7 @@ class _TopBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.panel,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.panelBorder.withOpacity(0.6)),
+            border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.6)),
           ),
           child: Row(children: [
             const Icon(Icons.wb_sunny_rounded, color: AppColors.gold, size: 18),
@@ -154,10 +154,10 @@ class _Hero extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
               borderRadius: const BorderRadius.all(Radius.elliptical(120, 28)),
-              border: Border.all(color: AppColors.gold.withOpacity(0.8), width: 2),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.8), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.gold.withOpacity(0.35),
+                  color: AppColors.gold.withValues(alpha: 0.35),
                   blurRadius: 24,
                   spreadRadius: 2,
                 ),
@@ -351,7 +351,7 @@ class _Bar extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
-                  boxShadow: [BoxShadow(color: color.withOpacity(0.6), blurRadius: 6)],
+                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 6)],
                 ),
               ),
             ),
@@ -380,9 +380,9 @@ class _StatCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.night.withOpacity(0.6),
+          color: AppColors.night.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.panelBorder.withOpacity(0.7)),
+          border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.7)),
         ),
         child: Column(children: [
           Icon(icon, color: AppColors.gold, size: 22),
@@ -455,9 +455,9 @@ class _QuestRow extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.night.withOpacity(0.5),
+        color: AppColors.night.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.panelBorder.withOpacity(0.3)),
+        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
         Icon(
@@ -543,7 +543,7 @@ class _Panel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.panel,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.panelBorder.withOpacity(0.8)),
+        border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.8)),
       ),
       child: child,
     );

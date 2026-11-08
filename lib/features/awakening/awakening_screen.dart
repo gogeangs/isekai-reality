@@ -208,7 +208,7 @@ class _LookCard extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: selected ? AppColors.gold : AppColors.panelBorder.withOpacity(0.5),
+            color: selected ? AppColors.gold : AppColors.panelBorder.withValues(alpha: 0.5),
             width: selected ? 2.5 : 1,
           ),
         ),

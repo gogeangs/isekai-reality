@@ -29,7 +29,7 @@ class StatRules {
   StatRules._();
 
   static Stats fromHistory(List<DailyRecord> history) {
-    final start = RuleConstants.statStartValue;
+    const start = RuleConstants.statStartValue;
     var totalSteps = 0;
     var goalDays = 0;
     var totalStudy = 0;

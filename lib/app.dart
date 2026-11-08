@@ -122,7 +122,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             selectedIndex: _tab,
             onDestinationSelected: (i) => setState(() => _tab = i),
             backgroundColor: AppColors.night,
-            indicatorColor: AppColors.gold.withOpacity(0.25),
+            indicatorColor: AppColors.gold.withValues(alpha: 0.25),
             destinations: const [
               NavigationDestination(icon: Icon(Icons.person_rounded), label: '상태'),
               NavigationDestination(icon: Icon(Icons.map_rounded), label: '지도'),

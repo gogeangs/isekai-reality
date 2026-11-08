@@ -39,7 +39,7 @@ class LevelUpDialog extends StatelessWidget {
               border: Border.all(color: AppColors.gold, width: 2),
               boxShadow: [
                 BoxShadow(
-                    color: AppColors.gold.withOpacity(0.45),
+                    color: AppColors.gold.withValues(alpha: 0.45),
                     blurRadius: 40,
                     spreadRadius: 4),
               ],

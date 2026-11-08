@@ -16,11 +16,11 @@ class ShopScreen extends StatelessWidget {
       switch (check) {
         PurchaseCheck.ok => '',
         PurchaseCheck.limitReached => info.limit == ShopLimit.perDay
-            ? '오늘은 이미 샀어요'
-            : '이번 주에는 이미 샀어요',
+            ? '오늘 샀어요'
+            : '이번 주 샀어요',
         PurchaseCheck.notEnoughCrystals =>
-          '결정이 ${info.price - crystals}개 모자라요',
-        PurchaseCheck.needsLocation => '위치를 켜야 쓸 수 있어요',
+          '결정 ${info.price - crystals}개 부족',
+        PurchaseCheck.needsLocation => '위치를 켜 주세요',
       };
 
   static String boughtLine(ShopItem item) => switch (item) {

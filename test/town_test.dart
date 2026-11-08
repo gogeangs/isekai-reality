@@ -228,6 +228,6 @@ void main() {
     await tester.tap(find.text('5개'));
     await tester.pumpAndSettle();
     expect(c.player.crystals, crystals - 5);
-    expect(find.text('오늘은 이미 샀어요'), findsOneWidget);
+    expect(find.text('오늘 샀어요'), findsOneWidget);
   });
 }

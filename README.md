@@ -34,6 +34,10 @@ lib/
       step_goal_rules.dart     맞춤 걸음 목표 제안
       quest_rules.dart         일일 퀘스트 3개
     models/                    하루 기록(DailyRecord), 플레이어 상태(PlayerState)
+  data/
+    health/                    건강 앱 읽기 (실제 기기 / 테스트용 가짜)
+    storage/                   기록·프로필 저장 (shared_preferences)
+  app_controller.dart          저장소·건강 앱·화면 연결, 동기화
   features/
     status/                    메인 상태창 화면, 예시 데이터
     bulssi/                    불씨 대사 고르기
@@ -51,10 +55,12 @@ test/
 ## 지금 상태와 다음 작업
 
 - [x] 게임 규칙 엔진과 테스트
-- [x] 메인 상태창 (예시 데이터, 공부 기록 버튼 동작)
-- [ ] 건강 앱 연동 (아이폰 HealthKit, 안드로이드 Health Connect)
+- [x] 메인 상태창 (공부 기록 버튼 동작)
+- [x] 건강 앱 연동 (아이폰 HealthKit, 안드로이드 Health Connect) — 휴대폰별 설정은 [docs/platform_setup.md](docs/platform_setup.md)
+- [x] 기록 저장 (기기 저장소, 앱을 열 때마다 오늘·어제 걸음과 수면 동기화)
 - [ ] 각성 화면, 레벨업 연출
 - [ ] 고잔동 지도, 장소 아이콘, 잿빛 안개
 - [ ] 던전 입장·전투·결과, 필드 몬스터
 - [ ] 기록·칭호 도감 화면
-- [ ] 기록 저장 (기기 저장소)
+
+예시 데이터로 실행하려면 `flutter run --dart-define=DEMO=true`

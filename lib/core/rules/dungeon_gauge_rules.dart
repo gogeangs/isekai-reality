@@ -58,6 +58,24 @@ class DungeonGaugeRules {
     );
   }
 
+  /// 날짜순 기록에서 마지막 날(오늘)로 넘어온 열쇠 수를 계산한다.
+  /// 하루에 쓴 열쇠 수 = 그날 연 던전 수. 기록이 하루 이상 비면 이월은 사라진다.
+  static int carriedIntoLastDay(List<({DateTime date, int steps, int runs})> days) {
+    var carried = 0;
+    for (var i = 0; i < days.length - 1; i++) {
+      final gapDays = days[i + 1].date.difference(days[i].date).inDays;
+      final left = carried + keysEarnedFromSteps(days[i].steps) - days[i].runs;
+      carried = gapDays == 1
+          ? (left < 0
+              ? 0
+              : (left > RuleConstants.maxKeysCarryOver
+                  ? RuleConstants.maxKeysCarryOver
+                  : left))
+          : 0;
+    }
+    return carried;
+  }
+
   /// 하루가 끝날 때 다음 날로 넘어가는 열쇠 수
   static int carryOverToTomorrow(DungeonGaugeState endOfDay) {
     return endOfDay.keysAvailable > RuleConstants.maxKeysCarryOver

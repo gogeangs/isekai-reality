@@ -7,6 +7,13 @@ class DungeonRun {
 
   /// 지도의 미궁 입구 근처에서 열었는지 (보상 1.5배)
   final bool atGate;
+
+  Map<String, dynamic> toJson() => {'cleared': cleared, 'atGate': atGate};
+
+  factory DungeonRun.fromJson(Map<String, dynamic> json) => DungeonRun(
+        cleared: json['cleared'] as bool? ?? false,
+        atGate: json['atGate'] as bool? ?? false,
+      );
 }
 
 /// 하루 동안의 활동 기록. 규칙 엔진의 입력값이다.
@@ -50,6 +57,49 @@ class DailyRecord {
 
   final int questsCompleted;
   final bool openedApp;
+
+  /// 날짜만 남긴 키 (예: '2026-11-08')
+  String get dayKey => dayKeyOf(date);
+
+  static String dayKeyOf(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  Map<String, dynamic> toJson() => {
+        'date': dayKey,
+        'steps': steps,
+        'stepsAfter8pm': stepsAfter8pm,
+        'sleepMinutes': sleepMinutes,
+        'studyMinutes': studyMinutes,
+        'stepGoal': stepGoal,
+        'dungeonRuns': dungeonRuns.map((r) => r.toJson()).toList(),
+        'fieldMonstersPurified': fieldMonstersPurified,
+        'newPlacesVisited': newPlacesVisited,
+        'placesRevisited': placesRevisited,
+        'questsCompleted': questsCompleted,
+        'openedApp': openedApp,
+      };
+
+  factory DailyRecord.fromJson(Map<String, dynamic> json) {
+    final parts = (json['date'] as String).split('-').map(int.parse).toList();
+    return DailyRecord(
+      date: DateTime(parts[0], parts[1], parts[2]),
+      steps: json['steps'] as int? ?? 0,
+      stepsAfter8pm: json['stepsAfter8pm'] as int? ?? 0,
+      sleepMinutes: json['sleepMinutes'] as int?,
+      studyMinutes: json['studyMinutes'] as int? ?? 0,
+      stepGoal: json['stepGoal'] as int? ?? 5000,
+      dungeonRuns: ((json['dungeonRuns'] as List?) ?? const [])
+          .map((e) => DungeonRun.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      fieldMonstersPurified: json['fieldMonstersPurified'] as int? ?? 0,
+      newPlacesVisited: json['newPlacesVisited'] as int? ?? 0,
+      placesRevisited: json['placesRevisited'] as int? ?? 0,
+      questsCompleted: json['questsCompleted'] as int? ?? 0,
+      openedApp: json['openedApp'] as bool? ?? true,
+    );
+  }
 
   bool get stepGoalAchieved => steps >= stepGoal;
 

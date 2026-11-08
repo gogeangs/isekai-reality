@@ -17,17 +17,20 @@ class PlayerState {
     required this.gauge,
   });
 
+  /// [history] 는 날짜순이며 마지막 기록이 오늘이다.
   factory PlayerState.fromHistory({
     required String name,
     required List<DailyRecord> history,
-    int carriedKeys = 0,
-    int keysUsedToday = 0,
   }) {
     var totalExp = 0;
     var streak = 0;
+    DateTime? previous;
     for (final day in history) {
-      streak = day.openedApp ? streak + 1 : 0;
+      final continuous =
+          previous != null && day.date.difference(previous).inDays == 1;
+      streak = day.openedApp ? (continuous ? streak + 1 : 1) : 0;
       totalExp += ExpRules.forDay(day, consecutiveDays: streak).total;
+      previous = day.date;
     }
     final level = LevelRules.fromTotalExp(totalExp);
     final stats = StatRules.fromHistory(history);
@@ -35,6 +38,10 @@ class PlayerState {
         ? JobRules.awaken(history.take(RuleConstants.jobAwakeningDay).toList())
         : null;
     final today = history.isEmpty ? null : history.last;
+    final carried = DungeonGaugeRules.carriedIntoLastDay([
+      for (final d in history)
+        (date: d.date, steps: d.steps, runs: d.dungeonRuns.length),
+    ]);
 
     return PlayerState._(
       name: name,
@@ -46,8 +53,8 @@ class PlayerState {
       job: job,
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,
-        carriedKeys: carriedKeys,
-        keysUsedToday: keysUsedToday,
+        carriedKeys: carried,
+        keysUsedToday: today?.dungeonRuns.length ?? 0,
       ),
     );
   }

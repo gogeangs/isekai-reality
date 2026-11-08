@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
-import '../../core/models/daily_record.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
@@ -9,63 +8,33 @@ import '../bulssi/bulssi_lines.dart';
 
 /// 메인 상태창 (목업 확정본 기준).
 ///
-/// [history] 의 마지막 기록이 '오늘'이다.
-class StatusScreen extends StatefulWidget {
+/// [player] 의 마지막 기록이 '오늘'이다. 공부 기록은 [onLogStudy] 로 알린다.
+class StatusScreen extends StatelessWidget {
   const StatusScreen({
     super.key,
-    required this.playerName,
-    required this.initialHistory,
-    this.carriedKeys = 0,
+    required this.player,
+    required this.onLogStudy,
+    this.heroAsset = 'assets/images/hero_male.png',
   });
 
-  final String playerName;
-  final List<DailyRecord> initialHistory;
-  final int carriedKeys;
+  final PlayerState player;
+  final ValueChanged<int> onLogStudy;
+  final String heroAsset;
 
-  @override
-  State<StatusScreen> createState() => _StatusScreenState();
-}
-
-class _StatusScreenState extends State<StatusScreen> {
-  late List<DailyRecord> _history = List.of(widget.initialHistory);
-  int _keysUsedToday = 0;
-
-  PlayerState get _player => PlayerState.fromHistory(
-        name: widget.playerName,
-        history: _history,
-        carriedKeys: widget.carriedKeys,
-        keysUsedToday: _keysUsedToday,
-      );
-
-  /// '+ 공부 기록' 버튼: 오늘 기록에 공부 시간을 더한다
-  void _logStudy(int minutes) {
-    setState(() {
-      final today = _history.last;
-      final updated = today.copyWith(
-        studyMinutes: today.studyMinutes + minutes,
-      );
-      _history = [
-        ..._history.sublist(0, _history.length - 1),
-        updated.copyWith(questsCompleted: QuestRules.completedCount(updated)),
-      ];
-    });
-  }
-
-  Future<void> _openStudySheet() async {
+  Future<void> _openStudySheet(BuildContext context) async {
     final minutes = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: AppColors.night,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _StudySheet(),
+      builder: (context) => const _StudySheet(),
     );
-    if (minutes != null) _logStudy(minutes);
+    if (minutes != null) onLogStudy(minutes);
   }
 
   @override
   Widget build(BuildContext context) {
-    final player = _player;
     final today = player.today!;
 
     return Container(
@@ -84,7 +53,7 @@ class _StatusScreenState extends State<StatusScreen> {
           children: [
             const _TopBar(weatherLabel: '맑음'),
             const SizedBox(height: 8),
-            const _Hero(),
+            _Hero(asset: heroAsset),
             _LevelBadge(
               level: player.level.level,
               title: _equippedTitle(player.titles),
@@ -94,7 +63,7 @@ class _StatusScreenState extends State<StatusScreen> {
             const SizedBox(height: 16),
             _QuestPanel(
               quests: QuestRules.forDay(today),
-              onLogStudy: _openStudySheet,
+              onLogStudy: () => _openStudySheet(context),
             ),
             const SizedBox(height: 16),
             _BulssiBubble(
@@ -166,7 +135,9 @@ class _TopBar extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 캐릭터
 
 class _Hero extends StatelessWidget {
-  const _Hero();
+  const _Hero({required this.asset});
+
+  final String asset;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +166,7 @@ class _Hero extends StatelessWidget {
           Positioned(
             bottom: 20,
             child: Image.asset(
-              'assets/images/hero_male.png',
+              asset,
               height: 270,
               semanticLabel: '기본 각성자',
               errorBuilder: (_, __, ___) => const Icon(
@@ -560,6 +531,8 @@ class _BulssiBubble extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 공부 기록 시트
 
 class _StudySheet extends StatelessWidget {
+  const _StudySheet();
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

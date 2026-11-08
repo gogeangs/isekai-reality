@@ -4,6 +4,7 @@ import 'app_controller.dart';
 import 'data/storage/record_store.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
+import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
 import 'theme/app_colors.dart';
 
@@ -110,7 +111,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 ? 'assets/images/hero_female.png'
                 : 'assets/images/hero_male.png',
           ),
-          const _ComingSoon(label: '지도'),
+          MapScreen(controller: controller),
           const _ComingSoon(label: '기록'),
           const _ComingSoon(label: '칭호'),
           const _ComingSoon(label: '설정'),

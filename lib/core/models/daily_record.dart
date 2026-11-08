@@ -34,6 +34,7 @@ class DailyRecord {
     this.placesRevisited = 0,
     this.questsCompleted = 0,
     this.openedApp = true,
+    this.visitedPlaceIds = const [],
   });
 
   final DateTime date;
@@ -58,6 +59,9 @@ class DailyRecord {
   final int questsCompleted;
   final bool openedApp;
 
+  /// 오늘 방문한 장소 id (같은 장소는 하루 한 번만 센다)
+  final List<String> visitedPlaceIds;
+
   /// 날짜만 남긴 키 (예: '2026-11-08')
   String get dayKey => dayKeyOf(date);
 
@@ -79,6 +83,7 @@ class DailyRecord {
         'placesRevisited': placesRevisited,
         'questsCompleted': questsCompleted,
         'openedApp': openedApp,
+        'visitedPlaceIds': visitedPlaceIds,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -98,6 +103,9 @@ class DailyRecord {
       placesRevisited: json['placesRevisited'] as int? ?? 0,
       questsCompleted: json['questsCompleted'] as int? ?? 0,
       openedApp: json['openedApp'] as bool? ?? true,
+      visitedPlaceIds: ((json['visitedPlaceIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
     );
   }
 
@@ -117,6 +125,7 @@ class DailyRecord {
     int? placesRevisited,
     int? questsCompleted,
     bool? openedApp,
+    List<String>? visitedPlaceIds,
   }) {
     return DailyRecord(
       date: date,
@@ -132,6 +141,7 @@ class DailyRecord {
       placesRevisited: placesRevisited ?? this.placesRevisited,
       questsCompleted: questsCompleted ?? this.questsCompleted,
       openedApp: openedApp ?? this.openedApp,
+      visitedPlaceIds: visitedPlaceIds ?? this.visitedPlaceIds,
     );
   }
 }

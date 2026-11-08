@@ -1,5 +1,6 @@
 export 'dungeon_gauge_rules.dart';
 export 'exp_rules.dart';
+export 'exploration_rules.dart';
 export 'job_rules.dart';
 export 'level_rules.dart';
 export 'quest_rules.dart';

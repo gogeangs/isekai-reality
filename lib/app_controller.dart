@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import 'core/geo/geo.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
+import 'data/location/location_source.dart';
 import 'data/storage/record_store.dart';
+import 'features/map/gojan_area.dart';
 import 'features/status/demo_data.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
@@ -15,6 +20,8 @@ class AppController extends ChangeNotifier {
   AppController({
     required this.store,
     required this.health,
+    this.location,
+    this.area = GojanArea.area,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
@@ -34,7 +41,32 @@ class AppController extends ChangeNotifier {
 
   final RecordStore store;
   final HealthSource health;
+
+  /// 위치 (없으면 지도 탐험 없이 동작)
+  final LocationSource? location;
+
+  /// 탐험 지역 (페이즈 1: 고잔동)
+  final ExploreArea area;
   final DateTime Function() _clock;
+
+  Set<String> _revealedCells = {};
+  bool _locationGranted = false;
+  LocationFix? _lastFix;
+  GamePlace? _lastDiscovery;
+  StreamSubscription<LocationFix>? _locationSub;
+
+  bool get locationGranted => _locationGranted;
+  LocationFix? get lastFix => _lastFix;
+  Set<String> get revealedCells => Set.unmodifiable(_revealedCells);
+  double get revealedRatio =>
+      ExplorationRules.revealedRatio(area, _revealedCells);
+
+  /// 처음 방문해서 새로 발견한 장소 (화면에서 알림을 띄우고 [clearDiscovery])
+  GamePlace? get lastDiscovery => _lastDiscovery;
+
+  /// 지금까지 한 번이라도 방문한 장소 id
+  Set<String> get everVisitedPlaceIds =>
+      {for (final r in _history) ...r.visitedPlaceIds};
 
   PlayerProfile _profile = const PlayerProfile(name: '각성자');
   List<DailyRecord> _history = [];
@@ -89,7 +121,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
+    _revealedCells = await store.loadRevealedCells(area.id);
     await sync();
+    await _startExploring();
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
     if (_profile.lastSeenLevel == null) {
       _profile = _profile.copyWith(lastSeenLevel: player.level.level);
@@ -137,6 +171,67 @@ class AppController extends ChangeNotifier {
     _profile = profile;
     await store.saveProfile(profile);
     notifyListeners();
+  }
+
+  // ───────────────────────────────────────────── 탐험
+
+  Future<void> _startExploring() async {
+    final source = location;
+    if (source == null) return;
+    _locationGranted = await source.requestPermission();
+    if (!_locationGranted) return;
+    await _locationSub?.cancel();
+    _locationSub = source.fixes().listen(handleFix);
+  }
+
+  /// 위치가 바뀔 때: 안개를 걷고, 가까운 장소를 방문으로 기록한다
+  Future<void> handleFix(LocationFix fix) async {
+    _lastFix = fix;
+    if (ExplorationRules.countsAsExploring(fix)) {
+      final cell = area.cellIdOf(fix.point);
+      if (cell != null && _revealedCells.add(cell)) {
+        await store.saveRevealedCells(area.id, _revealedCells);
+      }
+      for (final place in ExplorationRules.placesInReach(area, fix.point)) {
+        await _visitPlace(place);
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearDiscovery() {
+    _lastDiscovery = null;
+    notifyListeners();
+  }
+
+  Future<void> _visitPlace(GamePlace place) async {
+    final now = _clock();
+    if (_history.isEmpty ||
+        _history.last.dayKey != DailyRecord.dayKeyOf(now)) {
+      await sync(); // 자정이 지났으면 오늘 기록부터 만든다
+    }
+    final today = _history.last;
+    if (today.visitedPlaceIds.contains(place.id)) return;
+
+    final visitedBefore = _history
+        .sublist(0, _history.length - 1)
+        .any((r) => r.visitedPlaceIds.contains(place.id));
+    final updated = today.copyWith(
+      visitedPlaceIds: [...today.visitedPlaceIds, place.id],
+      newPlacesVisited:
+          visitedBefore ? today.newPlacesVisited : today.newPlacesVisited + 1,
+      placesRevisited:
+          visitedBefore ? today.placesRevisited + 1 : today.placesRevisited,
+    );
+    await store.upsert(updated);
+    _history = await store.loadHistory();
+    if (!visitedBefore) _lastDiscovery = place;
+  }
+
+  @override
+  void dispose() {
+    _locationSub?.cancel();
+    super.dispose();
   }
 
   DailyRecord? _find(DateTime day) {

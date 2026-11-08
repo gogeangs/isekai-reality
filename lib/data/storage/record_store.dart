@@ -71,6 +71,10 @@ abstract class RecordStore {
 
   /// 같은 날짜의 기록이 있으면 바꾸고, 없으면 추가한다
   Future<void> upsert(DailyRecord record);
+
+  /// 지역별로 안개를 걷어 낸 칸 id
+  Future<Set<String>> loadRevealedCells(String areaId);
+  Future<void> saveRevealedCells(String areaId, Set<String> cells);
 }
 
 /// 테스트·예시용 메모리 저장소
@@ -95,6 +99,16 @@ class InMemoryRecordStore implements RecordStore {
   @override
   Future<void> upsert(DailyRecord record) async =>
       _records[record.dayKey] = record;
+
+  final Map<String, Set<String>> _cells = {};
+
+  @override
+  Future<Set<String>> loadRevealedCells(String areaId) async =>
+      {...?_cells[areaId]};
+
+  @override
+  Future<void> saveRevealedCells(String areaId, Set<String> cells) async =>
+      _cells[areaId] = {...cells};
 }
 
 /// shared_preferences 에 JSON 으로 저장한다 (페이즈 1 규모에 충분).
@@ -142,5 +156,17 @@ class SharedPrefsRecordStore implements RecordStore {
       _historyKey,
       jsonEncode(history.map((r) => r.toJson()).toList()),
     );
+  }
+
+  String _cellsKey(String areaId) => 'cells.$areaId.v1';
+
+  @override
+  Future<Set<String>> loadRevealedCells(String areaId) async =>
+      ((await _prefs).getStringList(_cellsKey(areaId)) ?? const <String>[])
+          .toSet();
+
+  @override
+  Future<void> saveRevealedCells(String areaId, Set<String> cells) async {
+    await (await _prefs).setStringList(_cellsKey(areaId), cells.toList());
   }
 }

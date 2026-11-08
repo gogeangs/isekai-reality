@@ -36,7 +36,8 @@ lib/
     models/                    하루 기록(DailyRecord), 플레이어 상태(PlayerState)
   data/
     health/                    건강 앱 읽기 (실제 기기 / 테스트용 가짜)
-    storage/                   기록·프로필 저장 (shared_preferences)
+    storage/                   기록·프로필·밝힌 칸 저장 (shared_preferences)
+    location/                  위치 읽기 (geolocator)
   app_controller.dart          저장소·건강 앱·화면 연결, 동기화
   features/
     status/                    메인 상태창 화면, 예시 데이터
@@ -58,8 +59,8 @@ test/
 - [x] 메인 상태창 (공부 기록 버튼 동작)
 - [x] 건강 앱 연동 (아이폰 HealthKit, 안드로이드 Health Connect) — 휴대폰별 설정은 [docs/platform_setup.md](docs/platform_setup.md)
 - [x] 기록 저장 (기기 저장소, 앱을 열 때마다 오늘·어제 걸음과 수면 동기화)
-- [ ] 각성 화면, 레벨업 연출
-- [ ] 고잔동 지도, 장소 아이콘, 잿빛 안개
+- [x] 각성 화면, 레벨업 연출
+- [x] 고잔동 지도, 장소 아이콘, 잿빛 안개 (네이버 지도, 위치 연동) — 장소 목록은 [docs/gojan_places.md](docs/gojan_places.md)
 - [ ] 던전 입장·전투·결과, 필드 몬스터
 - [ ] 기록·칭호 도감 화면
 

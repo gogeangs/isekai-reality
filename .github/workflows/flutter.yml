@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
@@ -30,4 +30,5 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: 테스트
-        run: flutter test
+        # github 리포터: 실패한 테스트와 오류 메시지를 요약(Annotations)에 남긴다
+        run: flutter test --reporter github

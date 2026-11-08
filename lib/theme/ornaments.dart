@@ -59,19 +59,36 @@ class _NineSlice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(asset),
-          // centerSlice 는 그림의 논리 크기(픽셀 ÷ scale) 기준
-          centerSlice: Rect.fromLTRB(slice.left / scale, slice.top / scale,
-              slice.right / scale, slice.bottom / scale),
-          scale: scale,
-          fit: BoxFit.fill,
-          onError: (_, __) {},
+    // 그림을 원래 픽셀 크기(화면 크기 × scale)로 9조각 그린 뒤 화면 크기로 줄인다.
+    // (DecorationImage 의 scale 을 쓰면 소수 계산 오차로 디버그 검사에 걸린다)
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: LayoutBuilder(builder: (context, c) {
+            if (!c.maxWidth.isFinite || !c.maxHeight.isFinite) {
+              return const SizedBox();
+            }
+            return FittedBox(
+              fit: BoxFit.fill,
+              child: SizedBox(
+                width: c.maxWidth * scale,
+                height: c.maxHeight * scale,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(asset),
+                      centerSlice: slice,
+                      fit: BoxFit.fill,
+                      onError: (_, __) {},
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
-      ),
-      child: child,
+        child,
+      ],
     );
   }
 }

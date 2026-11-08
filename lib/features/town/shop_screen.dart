@@ -135,13 +135,16 @@ class _ItemCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(info.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.title(18, color: AppColors.text)),
+                const SizedBox(height: 3),
+                Text(info.description,
+                    style: const TextStyle(
+                        color: AppColors.text, fontSize: 13, height: 1.35)),
+                const SizedBox(height: 4),
                 Row(children: [
-                  Flexible(
-                    child: Text(info.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.title(18, color: AppColors.text)),
-                  ),
-                  const SizedBox(width: 6),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -154,25 +157,25 @@ class _ItemCard extends StatelessWidget {
                         style: const TextStyle(
                             color: AppColors.gold, fontSize: 10)),
                   ),
+                  if (!ok) ...[
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(ShopScreen.reason(check, info, crystals),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ],
                 ]),
-                const SizedBox(height: 3),
-                Text(info.description,
-                    style: const TextStyle(
-                        color: AppColors.text, fontSize: 13, height: 1.35)),
-                if (!ok) ...[
-                  const SizedBox(height: 3),
-                  Text(ShopScreen.reason(check, info, crystals),
-                      style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                ],
               ],
             ),
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 112,
+            width: 96,
             child: GoldButton(
               label: '${info.price}개',
               height: 46,

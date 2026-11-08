@@ -223,6 +223,9 @@ void main() {
       final reset = find.text('모든 기록 지우고 처음부터');
       await tester.scrollUntilVisible(reset, 300,
           scrollable: find.byType(Scrollable).first);
+      // 하단 메뉴에 가리지 않게 조금 더 올린다
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
+      await tester.pumpAndSettle();
       await tester.tap(reset);
       await tester.pumpAndSettle();
       await tester.tap(find.text('모두 지우기'));

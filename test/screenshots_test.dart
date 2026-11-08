@@ -195,6 +195,40 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('화면 미리보기: 여성 각성자', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await c.updateProfile(c.profile.copyWith(look: HeroLook.female));
+    await tester.pumpAndSettle();
+    await _shot(tester, '17_여성_상태창');
+
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '18_여성_도감');
+
+    final spawn = c.todaySpawns.first;
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+      MaterialPageRoute<void>(
+          builder: (_) => FieldBattleScreen(controller: c, spawn: spawn)),
+    );
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 2; i++) {
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await _shot(tester, '19_여성_전투');
+    for (var i = 0;
+        i < 60 &&
+            find.text('정화 완료!').evaluate().isEmpty &&
+            find.text('이번엔 물러났어요').evaluate().isEmpty;
+        i++) {
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('화면 미리보기: 첫 실행 각성', (tester) async {
     _phone(tester);
     final c = AppController(

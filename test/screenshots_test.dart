@@ -56,6 +56,12 @@ Future<void> _shot(WidgetTester tester, String name) async {
     }
   });
   await tester.pump();
+  // 배경으로 쓰는 그림(테두리·버튼)은 따로 읽히므로 잠깐 기다렸다가 다시 그린다
+  for (var i = 0; i < 2; i++) {
+    await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 400)));
+    await tester.pump();
+  }
 
   final boundary =
       tester.renderObject(find.byKey(_root)) as RenderRepaintBoundary;

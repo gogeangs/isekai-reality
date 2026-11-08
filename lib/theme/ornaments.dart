@@ -141,9 +141,9 @@ class OrnatePanel extends StatelessWidget {
         child: Padding(
           // 테두리 두께만큼 안쪽으로
           padding: EdgeInsets.fromLTRB(
-            24 / s + padding.left * 0.5,
+            30 / s + padding.left * 0.6,
             (wide ? 60 : 50) / s + padding.top * 0.4,
-            24 / s + padding.right * 0.5,
+            30 / s + padding.right * 0.6,
             (wide ? 44 : 40) / s + padding.bottom * 0.4,
           ),
           child: child,

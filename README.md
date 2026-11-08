@@ -42,6 +42,7 @@ lib/
     health/                    건강 앱 읽기 (실제 기기 / 테스트용 가짜)
     storage/                   기록·프로필·밝힌 칸 저장 (shared_preferences)
     location/                  위치 읽기 (geolocator)
+    weather/                   지금 날씨 (Open-Meteo)
   app_controller.dart          저장소·건강 앱·화면 연결, 동기화
   features/
     status/                    메인 상태창 화면, 예시 데이터
@@ -49,6 +50,7 @@ lib/
     awakening/, level_up/      각성 화면, 레벨업 연출
     map/                       고잔동 지도, 장소 목록
     battle/                    던전·필드 전투 화면
+    records/, codex/, settings/ 기록·도감·설정 탭
   theme/                       목업 색상
 test/
   rules_test.dart              규칙 단위 테스트
@@ -69,7 +71,8 @@ test/
 - [x] 각성 화면, 레벨업 연출
 - [x] 고잔동 지도, 장소 아이콘, 잿빛 안개 (네이버 지도, 위치 연동) — 장소 목록은 [docs/gojan_places.md](docs/gojan_places.md)
 - [x] 던전 입장·전투(3층 + 보스, 스킬 버튼 1개)·결과, 필드 몬스터 정화 (몬스터 6종)
-- [ ] 기록·칭호 도감 화면
+- [x] 기록 탭(최근 7일), 도감 탭(직업·칭호·몬스터), 설정 탭(걸음 목표·이름·기록 삭제·제외 구역 요청)
+- [x] 실제 날씨로 불씨 색 바꾸기 (Open-Meteo, 키 필요 없음)
 
 미뤄 둔 일(네이버 지도 키, 장소 좌표 확인 등)은 [docs/later_tasks.md](docs/later_tasks.md)에 모아 두었습니다.
 

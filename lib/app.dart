@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'app_controller.dart';
 import 'data/storage/record_store.dart';
 import 'features/awakening/awakening_screen.dart';
+import 'data/weather/weather_source.dart';
 import 'features/battle/dungeon_screen.dart';
+import 'features/bulssi/bulssi_mood.dart';
+import 'features/codex/codex_screen.dart';
+import 'features/records/records_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
@@ -98,6 +103,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           );
         }
         if (controller.needsAwakening) {
+          _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(
             onAwaken: (name, look) =>
                 controller.awaken(name: name, look: look),
@@ -116,15 +122,24 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             heroAsset: controller.profile.look == HeroLook.female
                 ? 'assets/images/hero_female.png'
                 : 'assets/images/hero_male.png',
+            weatherLabel: controller.weatherLabel,
+            weatherIcon: _weatherIcon(controller),
           ),
           MapScreen(controller: controller),
-          const _ComingSoon(label: '기록'),
-          const _ComingSoon(label: '칭호'),
-          const _ComingSoon(label: '설정'),
+          RecordsScreen(player: controller.player),
+          CodexScreen(
+            player: controller.player,
+            purifiedMonsters: controller.purifiedEver,
+          ),
+          SettingsScreen(controller: controller),
         ];
 
         return Scaffold(
-          body: IndexedStack(index: _tab, children: pages),
+          body: BulssiScope(
+            mood: controller.bulssiMood,
+            spiritName: controller.profile.spiritName,
+            child: IndexedStack(index: _tab, children: pages),
+          ),
           bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
             onDestinationSelected: (i) => setState(() => _tab = i),
@@ -134,7 +149,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               NavigationDestination(icon: Icon(Icons.person_rounded), label: '상태'),
               NavigationDestination(icon: Icon(Icons.map_rounded), label: '지도'),
               NavigationDestination(icon: Icon(Icons.bar_chart_rounded), label: '기록'),
-              NavigationDestination(icon: Icon(Icons.military_tech_rounded), label: '칭호'),
+              NavigationDestination(icon: Icon(Icons.military_tech_rounded), label: '도감'),
               NavigationDestination(icon: Icon(Icons.settings_rounded), label: '설정'),
             ],
           ),
@@ -144,16 +159,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   }
 }
 
-class _ComingSoon extends StatelessWidget {
-  const _ComingSoon({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('$label 화면은 다음 작업에서 만들어요',
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 16)),
-    );
-  }
+IconData _weatherIcon(AppController controller) {
+  if (controller.bulssiMood == BulssiMood.night) return Icons.nightlight_round;
+  return switch (controller.weather?.kind) {
+    WeatherKind.rain => Icons.umbrella_rounded,
+    WeatherKind.snow => Icons.ac_unit_rounded,
+    WeatherKind.cloudy => Icons.cloud_rounded,
+    _ => Icons.wb_sunny_rounded,
+  };
 }

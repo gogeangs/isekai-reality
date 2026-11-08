@@ -17,7 +17,13 @@ class StatusScreen extends StatelessWidget {
     required this.onLogStudy,
     this.onOpenDungeon,
     this.heroAsset = 'assets/images/hero_male.png',
+    this.weatherLabel = '맑음',
+    this.weatherIcon = Icons.wb_sunny_rounded,
   });
+
+  /// 위쪽 날씨 표시 (예: '맑음 12°')
+  final String weatherLabel;
+  final IconData weatherIcon;
 
   final PlayerState player;
   final ValueChanged<int> onLogStudy;
@@ -56,7 +62,7 @@ class StatusScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            const _TopBar(weatherLabel: '맑음'),
+            _TopBar(weatherLabel: weatherLabel, weatherIcon: weatherIcon),
             const SizedBox(height: 8),
             _Hero(asset: heroAsset),
             _LevelBadge(
@@ -99,9 +105,10 @@ class StatusScreen extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 위쪽 바
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.weatherLabel});
+  const _TopBar({required this.weatherLabel, required this.weatherIcon});
 
   final String weatherLabel;
+  final IconData weatherIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +133,7 @@ class _TopBar extends StatelessWidget {
             border: Border.all(color: AppColors.panelBorder.withValues(alpha: 0.6)),
           ),
           child: Row(children: [
-            const Icon(Icons.wb_sunny_rounded, color: AppColors.gold, size: 18),
+            Icon(weatherIcon, color: AppColors.gold, size: 18),
             const SizedBox(width: 6),
             Text(weatherLabel,
                 style: const TextStyle(color: AppColors.text, fontSize: 14)),

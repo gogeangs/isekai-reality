@@ -6,6 +6,7 @@ import 'app_controller.dart';
 import 'data/health/device_health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/storage/record_store.dart';
+import 'data/weather/weather_source.dart';
 import 'features/map/map_config.dart';
 
 /// 예시 데이터로 실행: flutter run --dart-define=DEMO=true
@@ -28,6 +29,7 @@ Future<void> main() async {
           store: SharedPrefsRecordStore(),
           health: DeviceHealthSource(),
           location: DeviceLocationSource(),
+          weatherSource: OpenMeteoWeatherSource(),
         );
   runApp(IsekaiRealityApp(controller: controller));
   controller.init();

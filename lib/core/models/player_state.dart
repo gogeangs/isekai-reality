@@ -15,6 +15,7 @@ class PlayerState {
     required this.titles,
     required this.job,
     required this.gauge,
+    required this.dailyExp,
   });
 
   /// [history] 는 날짜순이며 마지막 기록이 오늘이다.
@@ -25,11 +26,14 @@ class PlayerState {
     var totalExp = 0;
     var streak = 0;
     DateTime? previous;
+    final dailyExp = <DailyExpBreakdown>[];
     for (final day in history) {
       final continuous =
           previous != null && day.date.difference(previous).inDays == 1;
       streak = day.openedApp ? (continuous ? streak + 1 : 1) : 0;
-      totalExp += ExpRules.forDay(day, consecutiveDays: streak).total;
+      final exp = ExpRules.forDay(day, consecutiveDays: streak);
+      dailyExp.add(exp);
+      totalExp += exp.total;
       previous = day.date;
     }
     final level = LevelRules.fromTotalExp(totalExp);
@@ -56,6 +60,7 @@ class PlayerState {
         carriedKeys: carried,
         keysUsedToday: today?.dungeonRuns.length ?? 0,
       ),
+      dailyExp: dailyExp,
     );
   }
 
@@ -70,6 +75,9 @@ class PlayerState {
   final Job? job;
 
   final DungeonGaugeState gauge;
+
+  /// [history] 와 같은 순서의 하루 경험치 내역
+  final List<DailyExpBreakdown> dailyExp;
 
   DailyRecord? get today => history.isEmpty ? null : history.last;
 }

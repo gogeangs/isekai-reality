@@ -75,6 +75,9 @@ abstract class RecordStore {
   /// 지역별로 안개를 걷어 낸 칸 id
   Future<Set<String>> loadRevealedCells(String areaId);
   Future<void> saveRevealedCells(String areaId, Set<String> cells);
+
+  /// 모든 기록·프로필·탐험 기록을 지운다 (데이터 동의 철회)
+  Future<void> clearAll();
 }
 
 /// 테스트·예시용 메모리 저장소
@@ -109,6 +112,13 @@ class InMemoryRecordStore implements RecordStore {
   @override
   Future<void> saveRevealedCells(String areaId, Set<String> cells) async =>
       _cells[areaId] = {...cells};
+
+  @override
+  Future<void> clearAll() async {
+    _profile = null;
+    _records.clear();
+    _cells.clear();
+  }
 }
 
 /// shared_preferences 에 JSON 으로 저장한다 (페이즈 1 규모에 충분).
@@ -168,5 +178,17 @@ class SharedPrefsRecordStore implements RecordStore {
   @override
   Future<void> saveRevealedCells(String areaId, Set<String> cells) async {
     await (await _prefs).setStringList(_cellsKey(areaId), cells.toList());
+  }
+
+  @override
+  Future<void> clearAll() async {
+    final prefs = await _prefs;
+    for (final key in prefs.getKeys().toList()) {
+      if (key == _profileKey ||
+          key == _historyKey ||
+          key.startsWith('cells.')) {
+        await prefs.remove(key);
+      }
+    }
   }
 }

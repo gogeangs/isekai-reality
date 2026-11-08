@@ -15,6 +15,7 @@
 <uses-permission android:name="android.permission.health.READ_SLEEP"/>
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.INTERNET"/>  <!-- 지도·날씨 -->
 ```
 
 3. 같은 파일의 `<activity android:name=".MainActivity" ...>` 안에, 헬스 커넥트가 권한 설명 화면을 열 수 있게 추가합니다.
@@ -59,6 +60,11 @@ flutter run --dart-define=NAVER_MAP_CLIENT_ID=발급받은ID
 ```
 
 Client ID 없이 실행하면 지도 탭에 '탐험 현황'(밝힌 칸 수, 방문한 장소)이 대신 나옵니다.
+
+## 날씨
+
+불씨 색(맑음 황금, 비 하늘색, 밤 보라, 눈 흰색)은 [Open-Meteo](https://open-meteo.com) 무료 날씨 API 로 정합니다. 키가 필요 없고, 위치는 소수점 둘째 자리(약 1km)까지만 보냅니다. 30분에 한 번만 읽고, 실패하면 시간(밤이면 보라)으로만 정합니다.
+상업적으로 출시할 때는 Open-Meteo 이용 조건(상업 이용은 유료 요금제)을 다시 확인하세요.
 
 ## 예시 데이터로 실행
 

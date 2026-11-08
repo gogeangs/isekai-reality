@@ -10,6 +10,8 @@ import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/storage/record_store.dart';
+import 'data/weather/weather_source.dart';
+import 'features/bulssi/bulssi_mood.dart';
 import 'features/map/gojan_area.dart';
 import 'features/status/demo_data.dart';
 
@@ -22,6 +24,7 @@ class AppController extends ChangeNotifier {
     required this.store,
     required this.health,
     this.location,
+    this.weatherSource,
     this.area = GojanArea.area,
     DateTime Function()? clock,
     math.Random? random,
@@ -38,6 +41,8 @@ class AppController extends ChangeNotifier {
         history: DemoData.twoWeeks(today: now),
       ),
       health: FakeHealthSource(granted: false),
+      weatherSource: FakeWeatherSource(
+          const WeatherNow(kind: WeatherKind.clear, temperatureC: 12)),
       clock: clock,
     );
   }
@@ -47,6 +52,9 @@ class AppController extends ChangeNotifier {
 
   /// 위치 (없으면 지도 탐험 없이 동작)
   final LocationSource? location;
+
+  /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
+  final WeatherSource? weatherSource;
 
   /// 탐험 지역 (페이즈 1: 고잔동)
   final ExploreArea area;
@@ -160,6 +168,96 @@ class AppController extends ChangeNotifier {
     await store.upsert(_withQuests(todayRecord.copyWith(openedApp: true)));
 
     _history = await store.loadHistory();
+    notifyListeners();
+    unawaited(refreshWeather());
+  }
+
+  // ───────────────────────────────────────────── 날씨 · 불씨 색
+
+  WeatherNow? _weather;
+  DateTime? _weatherAt;
+
+  WeatherNow? get weather => _weather;
+
+  /// 불씨 빛 색 (맑음 황금, 비 하늘색, 밤 보라, 눈 흰색)
+  BulssiMood get bulssiMood => BulssiMoods.of(weather: _weather, now: _clock());
+
+  /// 상태창 위쪽에 보이는 날씨 이름
+  String get weatherLabel {
+    final w = _weather;
+    if (w == null) return '날씨 확인 중';
+    final t = w.temperatureC;
+    return t == null ? w.kind.koreanName : '${w.kind.koreanName} ${t.round()}°';
+  }
+
+  /// 30분에 한 번만 새로 읽는다. 실패해도 게임은 그대로.
+  Future<void> refreshWeather({bool force = false}) async {
+    final source = weatherSource;
+    if (source == null) return;
+    final now = _clock();
+    final last = _weatherAt;
+    if (!force && last != null && now.difference(last).inMinutes < 30) return;
+    _weatherAt = now;
+    final w = await source.current(_lastFix?.point ?? area.bounds.center);
+    if (w != null) {
+      _weather = w;
+      notifyListeners();
+    }
+  }
+
+  // ───────────────────────────────────────────── 설정
+
+  /// 걸음 목표를 바꾼다. 오늘 기록에도 바로 적용한다 (지난날은 그대로).
+  Future<void> setStepGoal(int goal) async {
+    final clamped = goal
+        .clamp(RuleConstants.minStepGoal, RuleConstants.maxStepGoal)
+        .toInt();
+    await updateProfile(_profile.copyWith(stepGoal: clamped));
+    if (_history.isEmpty) return;
+    final today = await _todayRecord();
+    await _save(today.copyWith(stepGoal: clamped));
+  }
+
+  /// 불씨가 권하는 걸음 목표 (권할 게 없으면 null).
+  /// 첫 3~6일: 평소 걸음에 맞춘 목표 / 그 뒤: 3일 연속 달성하면 1,000보 올리기.
+  int? get stepGoalSuggestion {
+    if (_history.length < 2) return null;
+    final done = _history.sublist(0, _history.length - 1); // 오늘은 아직 진행 중
+    final goal = _profile.stepGoal;
+    final raise = StepGoalRules.suggestRaise(done, goal);
+    if (raise != null) return raise;
+    if (done.length >= RuleConstants.adaptiveObserveDays &&
+        done.length < RuleConstants.jobAwakeningDay) {
+      final initial = StepGoalRules.suggestInitialGoal(done);
+      if (initial != null && initial != goal) return initial;
+    }
+    return null;
+  }
+
+  Future<void> renameHero(String name) async {
+    final n = name.trim();
+    if (n.isEmpty) return;
+    await updateProfile(_profile.copyWith(name: n));
+  }
+
+  Future<void> renameSpirit(String name) async {
+    final n = name.trim();
+    if (n.isEmpty) return;
+    await updateProfile(_profile.copyWith(spiritName: n));
+  }
+
+  /// 데이터 동의 철회: 기기에 저장한 모든 기록을 지우고 처음(각성)으로 돌아간다.
+  /// 건강 앱·위치 권한 자체는 휴대폰 설정에서 끈다.
+  Future<void> resetAll() async {
+    await _locationSub?.cancel();
+    _locationSub = null;
+    await store.clearAll();
+    _history = [];
+    _revealedCells = {};
+    _lastFix = null;
+    _lastDiscovery = null;
+    _profile = const PlayerProfile(name: '각성자');
+    _needsAwakening = true;
     notifyListeners();
   }
 

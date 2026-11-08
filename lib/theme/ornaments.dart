@@ -63,7 +63,9 @@ class _NineSlice extends StatelessWidget {
       decoration: BoxDecoration(
         image: DecorationImage(
           image: AssetImage(asset),
-          centerSlice: slice,
+          // centerSlice 는 그림의 논리 크기(픽셀 ÷ scale) 기준
+          centerSlice: Rect.fromLTRB(slice.left / scale, slice.top / scale,
+              slice.right / scale, slice.bottom / scale),
           scale: scale,
           fit: BoxFit.fill,
           onError: (_, __) {},

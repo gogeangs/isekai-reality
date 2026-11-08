@@ -378,7 +378,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           id: 'monster_${spawn.id}',
           position: _ll(spawn.point),
           caption: NOverlayCaption(text: spawn.info.name),
-          icon: NOverlayImage.fromAssetImage(
+          icon: const NOverlayImage.fromAssetImage(
               'assets/images/map_monster.png'),
           size: const Size(40, 40),
         ),
@@ -386,7 +386,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         NMarker(
           id: 'player',
           position: _ll(fix.point),
-          icon: NOverlayImage.fromAssetImage(
+          icon: const NOverlayImage.fromAssetImage(
               'assets/images/map_player.png'),
           size: const Size(48, 48),
           caption: NOverlayCaption(text: c.profile.name),

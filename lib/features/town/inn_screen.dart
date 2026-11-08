@@ -110,11 +110,11 @@ class InnScreen extends StatelessWidget {
                       rested: rested, open: open, now: controller.now),
                 ),
                 const SizedBox(height: 12),
-                OrnatePanel(
+                const OrnatePanel(
                   child: Row(children: [
-                    const GameIcon('moon', size: 34),
-                    const SizedBox(width: 10),
-                    const Expanded(
+                    GameIcon('moon', size: 34),
+                    SizedBox(width: 10),
+                    Expanded(
                       child: Text(
                         '저녁 6시 ~ 11시에 체크인하고 7시간 이상 자면\n'
                         '내일 경험치 +${RuleConstants.innRestExp}',

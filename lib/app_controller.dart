@@ -498,7 +498,7 @@ class AppController extends ChangeNotifier {
   Set<String> _cellsAround(GeoPoint center, double radiusM) {
     const step = 25.0;
     final cells = <String>{};
-    final latPerM = 1 / 111320.0;
+    const latPerM = 1 / 111320.0;
     final lngPerM = 1 / (111320.0 * math.cos(center.lat * math.pi / 180));
     for (var dy = -radiusM; dy <= radiusM; dy += step) {
       for (var dx = -radiusM; dx <= radiusM; dx += step) {

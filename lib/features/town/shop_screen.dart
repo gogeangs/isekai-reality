@@ -58,7 +58,6 @@ class ShopScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 OrnatePanel(
-                  highlight: true,
                   child: Column(children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -173,11 +172,11 @@ class _ItemCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 92,
+            width: 112,
             child: GoldButton(
               label: '${info.price}개',
               height: 46,
-              fontSize: 17,
+              fontSize: 16,
               onPressed: ok ? onBuy : null,
             ),
           ),

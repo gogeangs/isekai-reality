@@ -90,12 +90,12 @@ void main() {
     await _shot(tester, '01_상태창');
 
     await tester.tap(find.text('지도'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await _shot(tester, '02_지도_키없음');
 
     // 던전
     await tester.tap(find.text('상태'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     final open = find.textContaining('던전 열기 (열쇠');
     await tester.scrollUntilVisible(open, 300,
         scrollable: find.byType(Scrollable).first);
@@ -129,11 +129,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('기록'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await _shot(tester, '08_기록');
 
     await tester.tap(find.text('도감'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await _shot(tester, '09_도감');
     await tester.scrollUntilVisible(find.textContaining('몬스터 도감'), 300,
         scrollable: find.byType(Scrollable).first);
@@ -142,7 +142,7 @@ void main() {
     await _shot(tester, '10_도감_몬스터');
 
     await tester.tap(find.text('설정'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await _shot(tester, '11_설정');
 
     // 레벨업 연출

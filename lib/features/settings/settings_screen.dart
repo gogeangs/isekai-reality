@@ -163,6 +163,35 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           _Section(
+            title: '테스트 기록 보내기',
+            children: [
+              const Text(
+                '테스트가 끝나면 하루별 기록(걸음·수면·던전·레벨 등)을 복사해 설문에 붙여 주세요. '
+                '위치 좌표와 이름은 들어가지 않아요.',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                        ClipboardData(text: controller.exportRecordsCsv()));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('기록을 복사했어요')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.ios_share_rounded),
+                  label: const Text('기록 내보내기 (복사)'),
+                  style: TextButton.styleFrom(
+                      foregroundColor: AppColors.gold,
+                      minimumSize: const Size(64, 44)),
+                ),
+              ),
+            ],
+          ),
+          _Section(
             title: '앱 정보',
             children: [
               const _Row(label: '버전', value: kAppVersion),

@@ -246,6 +246,36 @@ class AppController extends ChangeNotifier {
     await updateProfile(_profile.copyWith(spiritName: n));
   }
 
+  /// 테스트 결과 모으기용 하루별 기록 (CSV). 위치 좌표·이름은 넣지 않는다.
+  String exportRecordsCsv() {
+    final p = player;
+    final b = StringBuffer(
+        '날짜,걸음,목표,수면분,공부분,던전,던전클리어,필드몬스터,새장소,다시방문,경험치,레벨\n');
+    var total = 0;
+    for (var i = 0; i < _history.length; i++) {
+      final r = _history[i];
+      total += p.dailyExp[i].total;
+      b.writeln([
+        r.dayKey,
+        r.steps,
+        r.stepGoal,
+        r.sleepMinutes ?? '',
+        r.studyMinutes,
+        r.dungeonRuns.length,
+        r.dungeonRuns.where((x) => x.cleared).length,
+        r.fieldMonstersPurified,
+        r.newPlacesVisited,
+        r.placesRevisited,
+        p.dailyExp[i].total,
+        LevelRules.fromTotalExp(total).level,
+      ].join(','));
+    }
+    b.writeln('# 밝힌 비율 ${(revealedRatio * 100).toStringAsFixed(1)}%, '
+        '직업 ${p.job?.koreanName ?? '-'}, 칭호 ${p.titles.length}개, '
+        '도감 ${purifiedEver.length}종');
+    return b.toString();
+  }
+
   /// 데이터 동의 철회: 기기에 저장한 모든 기록을 지우고 처음(각성)으로 돌아간다.
   /// 건강 앱·위치 권한 자체는 휴대폰 설정에서 끈다.
   Future<void> resetAll() async {

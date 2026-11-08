@@ -148,6 +148,19 @@ void main() {
       expect(c.profile.spiritName, '반딧불');
     });
 
+    test('기록 내보내기: 하루별 한 줄, 좌표·이름 없음', () async {
+      final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+      await c.init();
+      final csv = c.exportRecordsCsv();
+      final lines = csv.trim().split('\n');
+      expect(lines.first, startsWith('날짜,걸음,목표'));
+      expect(lines.length, 1 + 14 + 1);
+      expect(lines[14], startsWith('2026-11-08,6400,8000,430,10,0,0'));
+      expect(lines[14], endsWith(',${c.player.level.level}'));
+      expect(csv, isNot(contains('하루')));
+      expect(csv, isNot(contains('37.')));
+    });
+
     test('모든 기록을 지우면 처음(각성)으로 돌아간다', () async {
       final store = InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루'));

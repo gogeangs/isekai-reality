@@ -40,7 +40,7 @@ class TitleRules {
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
     TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '두 미궁 입구 모두 가 보기'),
     TitleInfo(TitleId.lakeFriend, '호수의 친구', '호수에 다섯 번 놀러 가기'),
-    TitleInfo(TitleId.townLight, '고잔동의 빛', '동네 절반 밝히기'),
+    TitleInfo(TitleId.townLight, '동네의 빛', '내 동네 절반 밝히기'),
   ];
 
   /// 탐험 칭호가 보는 장소 id (lib/features/map/gojan_area.dart)

@@ -1,0 +1,127 @@
+# iPhone 테스트 앱을 GitHub 서버의 Mac 에서 만들어 TestFlight 로 올린다.
+# 필요한 저장소 비밀값 (Settings › Secrets and variables › Actions):
+#   APPLE_TEAM_ID            Apple 개발자 팀 ID (10자리)
+#   ASC_KEY_ID               App Store Connect API 키 ID
+#   ASC_ISSUER_ID            App Store Connect API 발급자(Issuer) ID
+#   ASC_KEY_P8               내려받은 AuthKey_XXXX.p8 파일 내용 전체
+#   NAVER_MAP_CLIENT_ID      네이버 지도 Client ID (Android 와 같음)
+# 비밀값이 없으면 빌드를 건너뛴다.
+name: iPhone 테스트 빌드
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "tool/prepare_ios.py"
+      - ".github/workflows/ios.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
+jobs:
+  testflight:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
+    steps:
+      - name: 비밀값 확인
+        id: check
+        run: |
+          if [ -z "$APPLE_TEAM_ID" ] || [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+            echo "Apple 비밀값이 아직 없어 건너뜁니다."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: subosito/flutter-action@v2
+        if: steps.check.outputs.ready == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: ios 폴더 만들기와 설정
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          flutter create --platforms ios --org kr.itso --project-name isekai_reality .
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          python3 tool/prepare_ios.py
+
+      - name: API 키 파일
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$ASC_KEY_P8" > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: 앱 만들기 (서명 전)
+        if: steps.check.outputs.ready == 'true'
+        shell: bash
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-number=${{ github.run_number }} \
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" 2>&1 | tee build-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: 서명하고 TestFlight 로 올리기
+        if: steps.check.outputs.ready == 'true'
+        shell: bash
+        run: |
+          KEY="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          AUTH=(-allowProvisioningUpdates
+                -authenticationKeyPath "$KEY"
+                -authenticationKeyID "$ASC_KEY_ID"
+                -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath build/Runner.xcarchive \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            "${AUTH[@]}" archive 2>&1 | tee -a build-output.txt | grep -E "error|warning: .*sign|ARCHIVE" || true
+          test -d build/Runner.xcarchive
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath build/Runner.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -exportPath build/export \
+            "${AUTH[@]}" 2>&1 | tee -a build-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: 빌드 기록을 ios-log 브랜치에 저장
+        if: always() && steps.check.outputs.ready == 'true'
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/log
+          tail -c 200000 build-output.txt > /tmp/log/build-output.txt 2>/dev/null || echo "(빌드 전에 멈춤)" > /tmp/log/build-output.txt
+          echo "${GITHUB_SHA}" > /tmp/log/commit.txt
+          cd /tmp/log
+          git init -q -b ios-log
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "iPhone 빌드 기록 ${GITHUB_SHA::7}"
+          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ios-log

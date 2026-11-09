@@ -26,6 +26,7 @@ class AppController extends ChangeNotifier {
     this.location,
     this.weatherSource,
     this.area = AnsanArea.area,
+    this.stepGoal = RuleConstants.defaultStepGoal,
     DateTime Function()? clock,
     math.Random? random,
   })  : _clock = clock ?? DateTime.now,
@@ -36,13 +37,14 @@ class AppController extends ChangeNotifier {
     final now = (clock ?? DateTime.now)();
     return AppController(
       store: InMemoryRecordStore(
-        profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+        profile: const PlayerProfile(name: '하루'),
         // 예시 모드는 처음부터 레벨업 연출이 뜨지 않도록 확인한 레벨을 비워 둔다
         history: DemoData.twoWeeks(today: now),
       ),
       health: FakeHealthSource(granted: false),
       weatherSource: FakeWeatherSource(
           const WeatherNow(kind: WeatherKind.clear, temperatureC: 12)),
+      stepGoal: 8000, // 예시 기록과 같은 목표
       clock: clock,
     );
   }
@@ -55,6 +57,10 @@ class AppController extends ChangeNotifier {
 
   /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
   final WeatherSource? weatherSource;
+
+  /// 하루 걸음 목표. 모든 각성자에게 같다 (2026-11-09 결정, 설정에서 바꾸지 않음).
+  /// 일일 퀘스트 'N보 걷기', 목표 달성 보너스 열쇠, '끈기의 여행자' 칭호가 이 값을 쓴다.
+  final int stepGoal;
 
   /// 탐험 지역 (안산시 시내)
   final ExploreArea area;
@@ -183,7 +189,7 @@ class AppController extends ChangeNotifier {
     }
 
     var todayRecord =
-        _find(today) ?? DailyRecord(date: today, stepGoal: _profile.stepGoal);
+        _find(today) ?? DailyRecord(date: today, stepGoal: stepGoal);
     if (_healthGranted) {
       todayRecord = await _withHealth(todayRecord, today, now);
     }
@@ -229,33 +235,6 @@ class AppController extends ChangeNotifier {
   }
 
   // ───────────────────────────────────────────── 설정
-
-  /// 걸음 목표를 바꾼다. 오늘 기록에도 바로 적용한다 (지난날은 그대로).
-  Future<void> setStepGoal(int goal) async {
-    final clamped = goal
-        .clamp(RuleConstants.minStepGoal, RuleConstants.maxStepGoal)
-        .toInt();
-    await updateProfile(_profile.copyWith(stepGoal: clamped));
-    if (_history.isEmpty) return;
-    final today = await _todayRecord();
-    await _save(today.copyWith(stepGoal: clamped));
-  }
-
-  /// 불씨가 권하는 걸음 목표 (권할 게 없으면 null).
-  /// 첫 3~6일: 평소 걸음에 맞춘 목표 / 그 뒤: 3일 연속 달성하면 1,000보 올리기.
-  int? get stepGoalSuggestion {
-    if (_history.length < 2) return null;
-    final done = _history.sublist(0, _history.length - 1); // 오늘은 아직 진행 중
-    final goal = _profile.stepGoal;
-    final raise = StepGoalRules.suggestRaise(done, goal);
-    if (raise != null) return raise;
-    if (done.length >= RuleConstants.adaptiveObserveDays &&
-        done.length < RuleConstants.jobAwakeningDay) {
-      final initial = StepGoalRules.suggestInitialGoal(done);
-      if (initial != null && initial != goal) return initial;
-    }
-    return null;
-  }
 
   Future<void> renameHero(String name) async {
     final n = name.trim();

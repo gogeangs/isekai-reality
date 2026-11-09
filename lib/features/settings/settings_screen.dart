@@ -3,14 +3,11 @@ import 'package:flutter/services.dart';
 
 import '../../app_config.dart';
 import '../../app_controller.dart';
-import '../../core/format.dart';
-import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../legal/legal_screen.dart';
 
-/// 설정: 걸음 목표 · 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
+/// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
 
@@ -19,7 +16,6 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = controller.profile;
-    final suggestion = controller.stepGoalSuggestion;
 
     return SafeArea(
       bottom: false,
@@ -28,60 +24,6 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const OrnateTopBar(title: '설정'),
           const SizedBox(height: 8),
-          _Section(
-            title: '하루 걸음 목표',
-            children: [
-              Text(
-                '지금 목표 ${comma(profile.stepGoal)}보 · '
-                '${comma(RuleConstants.stepsPerKey)}보마다 던전 열쇠 1개',
-                style: const TextStyle(color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final preset in RuleConstants.stepGoalPresets)
-                    ChoiceChip(
-                      label: Text('${comma(preset)}보'),
-                      selected: profile.stepGoal == preset,
-                      onSelected: (_) => controller.setStepGoal(preset),
-                      selectedColor: AppColors.gold,
-                      labelStyle: TextStyle(
-                        color: profile.stepGoal == preset
-                            ? AppColors.night
-                            : AppColors.text,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '목표를 낮춰도 불이익은 없어요. 바꾼 목표는 오늘부터 적용돼요.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-              ),
-              if (suggestion != null) ...[
-                const SizedBox(height: 12),
-                BulssiBubble(
-                  size: 56,
-                  line: suggestion > profile.stepGoal
-                      ? '요즘 계속 목표를 넘었네! ${comma(suggestion)}보로 올려 볼까? 안 올려도 괜찮아.'
-                      : '평소 걸음을 보니 ${comma(suggestion)}보가 딱 맞을 것 같아.',
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => controller.setStepGoal(suggestion),
-                    style: TextButton.styleFrom(
-                        foregroundColor: AppColors.gold,
-                        minimumSize: const Size(64, 44)),
-                    child: Text('${comma(suggestion)}보로 바꾸기'),
-                  ),
-                ),
-              ],
-            ],
-          ),
           _Section(
             title: '각성자와 정령',
             children: [

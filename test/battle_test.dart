@@ -211,6 +211,7 @@ void main() {
                 profile: const PlayerProfile(name: '하루', stepGoal: 8000)),
         health: FakeHealthSource(stepsByDay: {'2026-11-08': steps}),
         location: FakeLocationSource(),
+        stepGoal: 8000,
         clock: () => now,
         random: Random(1),
       );
@@ -284,6 +285,7 @@ void main() {
       store: InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루', stepGoal: 8000)),
       health: FakeHealthSource(stepsByDay: {'2026-11-08': 6000}),
+      stepGoal: 8000,
       clock: () => DateTime(2026, 11, 8, 14),
       random: Random(2),
     );

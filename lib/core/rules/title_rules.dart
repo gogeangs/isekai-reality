@@ -10,6 +10,10 @@ enum TitleId {
   nightWalker,
   awakened,
   lanternKeeper,
+  // 탐험 칭호 (2026-11-09)
+  gateKeeper,
+  lakeFriend,
+  townLight,
 }
 
 class TitleInfo {
@@ -34,12 +38,44 @@ class TitleRules {
     TitleInfo(TitleId.nightWalker, '밤길의 산책자', '저녁 8시 이후에 걷기'),
     TitleInfo(TitleId.awakened, '각성자', 'Lv.5 달성'),
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
+    TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '두 미궁 입구 모두 가 보기'),
+    TitleInfo(TitleId.lakeFriend, '호수의 친구', '호수에 다섯 번 놀러 가기'),
+    TitleInfo(TitleId.townLight, '고잔동의 빛', '동네 절반 밝히기'),
   ];
+
+  /// 탐험 칭호가 보는 장소 id (lib/features/map/gojan_area.dart)
+  static const List<String> gatePlaceIds = ['gate_jungang', 'gate_gojan'];
+  static const String lakePlaceId = 'lake_ansan';
+
+  /// 대표 칭호: 플레이어가 고른 칭호가 있고 얻은 칭호면 그것,
+  /// 아니면 '끈기의 여행자' → 가장 나중 칭호 순으로 자동.
+  static TitleId? equipped(Set<TitleId> earned, {TitleId? chosen}) {
+    if (chosen != null && earned.contains(chosen)) return chosen;
+    if (earned.contains(TitleId.persistentTraveler)) {
+      return TitleId.persistentTraveler;
+    }
+    for (final t in all.reversed) {
+      if (earned.contains(t.id)) return t.id;
+    }
+    return null;
+  }
+
+  static TitleId? parse(String? name) {
+    for (final t in TitleId.values) {
+      if (t.name == name) return t;
+    }
+    return null;
+  }
 
   static TitleInfo info(TitleId id) => all.firstWhere((t) => t.id == id);
 
   /// 날짜순으로 정렬된 [history] 와 현재 [level] 로 얻은 칭호를 계산한다
-  static Set<TitleId> earned(List<DailyRecord> history, int level) {
+  /// [revealedRatio] 지역 안개를 걷은 비율 (0~1, 탐험 기록은 하루 기록 밖에 있다)
+  static Set<TitleId> earned(
+    List<DailyRecord> history,
+    int level, {
+    double revealedRatio = 0,
+  }) {
     final result = <TitleId>{};
 
     final totalSteps = history.fold<int>(0, (s, d) => s + d.steps);
@@ -71,6 +107,17 @@ class TitleRules {
     if (level >= RuleConstants.awakenedLevel) result.add(TitleId.awakened);
     if (level >= RuleConstants.lanternKeeperLevel) {
       result.add(TitleId.lanternKeeper);
+    }
+
+    final visited = <String>{for (final d in history) ...d.visitedPlaceIds};
+    if (gatePlaceIds.every(visited.contains)) result.add(TitleId.gateKeeper);
+    final lakeDays =
+        history.where((d) => d.visitedPlaceIds.contains(lakePlaceId)).length;
+    if (lakeDays >= RuleConstants.lakeFriendVisits) {
+      result.add(TitleId.lakeFriend);
+    }
+    if (revealedRatio >= RuleConstants.brightTownRatio) {
+      result.add(TitleId.townLight);
     }
     return result;
   }

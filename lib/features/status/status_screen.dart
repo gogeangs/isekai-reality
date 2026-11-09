@@ -21,6 +21,7 @@ class StatusScreen extends StatelessWidget {
     this.onOpenDungeon,
     this.onOpenInn,
     this.onOpenShop,
+    this.equippedTitle,
     this.look = HeroLook.male,
     this.weatherLabel = '맑음',
     this.weatherIcon = Icons.wb_sunny_rounded,
@@ -35,6 +36,9 @@ class StatusScreen extends StatelessWidget {
   /// 앱 안 시설 (없으면 마을 줄을 그리지 않음)
   final VoidCallback? onOpenInn;
   final VoidCallback? onOpenShop;
+
+  /// 대표 칭호 (없으면 '새내기 각성자')
+  final TitleId? equippedTitle;
   final HeroLook look;
 
   /// 위쪽 날씨 표시 (예: '맑음 12°')
@@ -90,7 +94,9 @@ class StatusScreen extends StatelessWidget {
             child: Center(
               child: LaurelBadge(
                 level: player.level.level,
-                title: _equippedTitle(player.titles),
+                title: equippedTitle == null
+                    ? '새내기 각성자'
+                    : TitleRules.info(equippedTitle!).name,
               ),
             ),
           ),
@@ -144,17 +150,6 @@ class StatusScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// 대표 칭호: '끈기의 여행자'를 우선, 없으면 가장 마지막에 얻을 수 있는 칭호
-  String _equippedTitle(Set<TitleId> titles) {
-    if (titles.contains(TitleId.persistentTraveler)) {
-      return TitleRules.info(TitleId.persistentTraveler).name;
-    }
-    for (final t in TitleRules.all.reversed) {
-      if (titles.contains(t.id)) return t.name;
-    }
-    return '새내기 각성자';
   }
 }
 

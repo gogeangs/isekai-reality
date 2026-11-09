@@ -182,6 +182,41 @@ void main() {
       expect(TitleRules.earned([], 10),
           containsAll([TitleId.awakened, TitleId.lanternKeeper]));
     });
+
+    DailyRecord visit(int i, List<String> ids) =>
+        DailyRecord(date: DateTime(2026, 11, 1 + i), visitedPlaceIds: ids);
+
+    test('두 미궁 입구를 모두 가면 미궁의 문지기', () {
+      expect(TitleRules.earned([visit(0, ['gate_jungang'])], 1),
+          isNot(contains(TitleId.gateKeeper)));
+      expect(
+          TitleRules.earned(
+              [visit(0, ['gate_jungang']), visit(3, ['gate_gojan'])], 1),
+          contains(TitleId.gateKeeper));
+    });
+
+    test('호수를 서로 다른 5일 가면 호수의 친구', () {
+      final four = [for (var i = 0; i < 4; i++) visit(i, ['lake_ansan'])];
+      expect(TitleRules.earned(four, 1), isNot(contains(TitleId.lakeFriend)));
+      expect(TitleRules.earned([...four, visit(9, ['lake_ansan'])], 1),
+          contains(TitleId.lakeFriend));
+    });
+
+    test('안개를 50% 걷으면 고잔동의 빛', () {
+      expect(TitleRules.earned([], 1, revealedRatio: 0.49),
+          isNot(contains(TitleId.townLight)));
+      expect(TitleRules.earned([], 1, revealedRatio: 0.5),
+          contains(TitleId.townLight));
+    });
+
+    test('대표 칭호: 고른 것이 우선, 얻지 못했으면 자동', () {
+      final earned = {TitleId.firstSteps, TitleId.nightWalker};
+      expect(TitleRules.equipped(earned, chosen: TitleId.firstSteps),
+          TitleId.firstSteps);
+      expect(TitleRules.equipped(earned, chosen: TitleId.lakeFriend),
+          TitleId.nightWalker);
+      expect(TitleRules.equipped({}), isNull);
+    });
   });
 
   group('직업 각성', () {

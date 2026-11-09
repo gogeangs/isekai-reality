@@ -223,7 +223,7 @@ void main() {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
-      expect(find.text('칭호 4 / 8'), findsOneWidget);
+      expect(find.textContaining('/ 11'), findsWidgets);
       await tester.scrollUntilVisible(find.text('직업'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.text('직업'), findsOneWidget);

@@ -23,6 +23,7 @@ class PlayerState {
   factory PlayerState.fromHistory({
     required String name,
     required List<DailyRecord> history,
+    double revealedRatio = 0,
   }) {
     var totalExp = 0;
     var streak = 0;
@@ -64,7 +65,8 @@ class PlayerState {
       totalExp: totalExp,
       level: level,
       stats: stats,
-      titles: TitleRules.earned(history, level.level),
+      titles: TitleRules.earned(history, level.level,
+          revealedRatio: revealedRatio),
       job: job,
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,

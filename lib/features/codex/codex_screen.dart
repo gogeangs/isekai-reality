@@ -13,10 +13,18 @@ class CodexScreen extends StatelessWidget {
     super.key,
     required this.player,
     required this.purifiedMonsters,
+    this.equipped,
+    this.onEquip,
   });
 
   final PlayerState player;
   final Set<MonsterId> purifiedMonsters;
+
+  /// 지금 대표 칭호
+  final TitleId? equipped;
+
+  /// 얻은 칭호 카드를 눌러 대표 칭호로 걸 때
+  final Future<bool> Function(TitleId id)? onEquip;
 
   static String jobDescription(Job job) => switch (job) {
         Job.explorer => '목표보다 꾸준히 더 걸은 각성자. 새 장소를 찾는 눈이 밝다.',
@@ -34,17 +42,62 @@ class CodexScreen extends StatelessWidget {
         TitleId.nightWalker => Icons.nightlight_round,
         TitleId.awakened => Icons.auto_awesome_rounded,
         TitleId.lanternKeeper => Icons.emoji_objects_rounded,
+        TitleId.gateKeeper => Icons.door_back_door_rounded,
+        TitleId.lakeFriend => Icons.water_drop_rounded,
+        TitleId.townLight => Icons.light_mode_rounded,
       };
 
-  /// 상태창과 같은 규칙의 대표 칭호
-  TitleId? get _equipped {
-    if (player.titles.contains(TitleId.persistentTraveler)) {
-      return TitleId.persistentTraveler;
-    }
-    for (final t in TitleRules.all.reversed) {
-      if (player.titles.contains(t.id)) return t.id;
-    }
-    return null;
+  Future<void> _showTitle(
+      BuildContext context, TitleInfo t, bool earned) async {
+    final isEquipped = t.id == equipped;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 120,
+                child: Image.asset('assets/images/title_${t.id.name}.png',
+                    color: earned ? null : const Color(0xFF2A2D55),
+                    colorBlendMode: earned ? null : BlendMode.srcATop,
+                    errorBuilder: (_, __, ___) => Icon(titleIcon(t.id),
+                        size: 64, color: AppColors.goldBright)),
+              ),
+              const SizedBox(height: 8),
+              Text(earned ? t.name : '???',
+                  style: AppText.title(22, color: AppColors.goldBright)),
+              const SizedBox(height: 4),
+              Text(earned ? '얻은 칭호 · ${t.hint}' : '얻는 방법: ${t.hint}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textMuted)),
+              const SizedBox(height: 16),
+              if (earned && onEquip != null)
+                GoldButton(
+                  label: isEquipped ? '지금 대표 칭호예요' : '대표 칭호로 걸기',
+                  onPressed: isEquipped
+                      ? null
+                      : () async {
+                          await onEquip!(t.id);
+                          if (sheet.mounted) Navigator.of(sheet).pop();
+                        },
+                )
+              else
+                FrameButton(
+                  label: '닫기',
+                  onPressed: () => Navigator.of(sheet).pop(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -55,7 +108,6 @@ class CodexScreen extends StatelessWidget {
     final scores = JobRules.scores(
         player.history.take(RuleConstants.jobAwakeningDay).toList());
     final top = MediaQuery.paddingOf(context).top;
-    final equipped = _equipped;
 
     return ColoredBox(
       color: Colors.transparent,
@@ -87,6 +139,8 @@ class CodexScreen extends StatelessWidget {
                   icon: titleIcon(t.id),
                   earned: player.titles.contains(t.id),
                   equipped: t.id == equipped,
+                  onTap: () => _showTitle(
+                      context, t, player.titles.contains(t.id)),
                 ),
             ],
           ),
@@ -173,12 +227,14 @@ class _TitleCard extends StatelessWidget {
     required this.icon,
     required this.earned,
     required this.equipped,
+    this.onTap,
   });
 
   final TitleInfo info;
   final IconData icon;
   final bool earned;
   final bool equipped;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +257,10 @@ class _TitleCard extends StatelessWidget {
       ),
     );
 
-    return Stack(
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
@@ -305,6 +364,7 @@ class _TitleCard extends StatelessWidget {
           }),
         ),
       ],
+    ),
     );
   }
 }

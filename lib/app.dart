@@ -129,6 +129,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 builder: (_) => DungeonScreen(controller: controller),
               ),
             ),
+            equippedTitle: controller.equippedTitle,
             onOpenInn: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => InnScreen(controller: controller),
@@ -150,6 +151,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             child: CodexScreen(
               player: controller.player,
               purifiedMonsters: controller.purifiedEver,
+              equipped: controller.equippedTitle,
+              onEquip: controller.setEquippedTitle,
             ),
           ),
           NightBackground(header: true, child: SettingsScreen(controller: controller)),

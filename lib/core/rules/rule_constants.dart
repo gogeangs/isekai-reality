@@ -105,6 +105,10 @@ class RuleConstants {
   static const int awakenedLevel = 5;
   static const int lanternKeeperLevel = 10;
 
+  // 탐험 칭호
+  static const int lakeFriendVisits = 5; // 정령의 호수 서로 다른 날 5번
+  static const double brightTownRatio = 0.5; // 지역 안개 50%
+
   // ---------------------------------------------------------------- 직업 각성
   static const int jobAwakeningDay = 7;
 

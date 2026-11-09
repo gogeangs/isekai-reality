@@ -196,6 +196,24 @@ void main() {
       expect(await night.restAtInn(), isFalse);
     });
 
+    test('대표 칭호는 얻은 칭호만 고를 수 있고 저장된다', () async {
+      final store = InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+        history: [rich],
+      );
+      final c = AppController(
+        store: store,
+        health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
+        clock: () => DateTime(2026, 11, 8, 14),
+      );
+      await c.init();
+      expect(c.player.titles, contains(TitleId.firstSteps));
+      expect(await c.setEquippedTitle(TitleId.lakeFriend), isFalse);
+      expect(await c.setEquippedTitle(TitleId.firstSteps), isTrue);
+      expect(c.equippedTitle, TitleId.firstSteps);
+      expect((await store.loadProfile())!.equippedTitle, 'firstSteps');
+    });
+
     test('산 물건과 체크인은 저장했다 되살려도 같다', () {
       final r = DailyRecord(
           date: DateTime(2026, 11, 8),

@@ -96,8 +96,19 @@ class AppController extends ChangeNotifier {
   PlayerProfile get profile => _profile;
   List<DailyRecord> get history => List.unmodifiable(_history);
 
-  PlayerState get player =>
-      PlayerState.fromHistory(name: _profile.name, history: _history);
+  PlayerState get player => PlayerState.fromHistory(
+      name: _profile.name, history: _history, revealedRatio: revealedRatio);
+
+  /// 대표 칭호 (고른 것이 없으면 자동)
+  TitleId? get equippedTitle => TitleRules.equipped(player.titles,
+      chosen: TitleRules.parse(_profile.equippedTitle));
+
+  /// 대표 칭호를 고른다. 얻지 못한 칭호는 고를 수 없다.
+  Future<bool> setEquippedTitle(TitleId id) async {
+    if (!player.titles.contains(id)) return false;
+    await updateProfile(_profile.copyWith(equippedTitle: id.name));
+    return true;
+  }
 
   /// 확인하지 않은 레벨업. 없으면 null.
   ({int from, int to})? get pendingLevelUp {

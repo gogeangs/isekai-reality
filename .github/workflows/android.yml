@@ -1,6 +1,6 @@
 # 테스트용 Android 설치 파일(APK)을 GitHub 서버에서 만든다.
 # 결과: 저장소 Releases 의 'android-test' 에 isekai-reality.apk 로 올라간다.
-# 네이버 지도 Client ID 는 저장소 비밀값 NAVER_MAP_CLIENT_ID 에서 읽는다 (없으면 지도 대신 탐험 현황).
+# 네이버 지도 Client ID 는 저장소 비밀값 NAVER_MAP_CLIENT_ID 에서 읽는다 (2026-11-09 등록, 없으면 지도 대신 탐험 현황).
 name: Android 테스트 빌드
 
 on:

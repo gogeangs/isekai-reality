@@ -64,7 +64,7 @@ class TownRules {
       description: '오늘 던전에서 불씨의 일격이 더 빨리 충전돼요.',
       price: 5,
       limit: ShopLimit.perDay,
-      icon: 'spirit',
+      icon: 'potion',
     ),
     ShopItemInfo(
       item: ShopItem.magicLens,
@@ -72,7 +72,7 @@ class TownRules {
       description: '지금 있는 곳 주변 150m의 안개를 걷어요.',
       price: 6,
       limit: ShopLimit.perDay,
-      icon: 'sun',
+      icon: 'lens',
     ),
   ];
 

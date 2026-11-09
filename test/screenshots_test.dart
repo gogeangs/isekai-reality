@@ -126,6 +126,17 @@ void main() {
     }
     await _shot(tester, '05_던전_전투');
 
+    // 연출 중간 모습: 타격 순간, 불씨의 일격
+    await tester.pump(const Duration(milliseconds: 250));
+    await _shot(tester, '05b_던전_타격');
+    if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
+      await tester.pump(const Duration(milliseconds: 650));
+      await tester.tap(find.text('불씨의 일격!').last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 240));
+      await _shot(tester, '05c_던전_일격');
+    }
+
     var bossShot = false;
     for (var i = 0;
         i < 200 &&

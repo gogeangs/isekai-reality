@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/player_state.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 
@@ -27,9 +28,9 @@ void main() {
     expect(today.steps, 6400);
     expect(today.stepsAfter8pm, 1200);
     expect(today.sleepMinutes, 430);
-    expect(today.stepGoal, 5000);
+    expect(today.stepGoal, RuleConstants.defaultStepGoal);
     expect(today.questsCompleted, 2); // 수면, 걸음 완료 / 공부 미완료
-    // 걸음 열쇠 2개 + 목표(5,000보) 달성 보너스 1개
+    // 걸음 열쇠 2개 + 목표 달성 보너스 1개
     expect(controller.player.gauge.keysAvailable, 3);
     expect(controller.player.gauge.goalBonusKey, isTrue);
 

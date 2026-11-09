@@ -11,7 +11,7 @@ class RuleConstants {
   static const int levelStepExp = 25;
 
   // ---------------------------------------------------------------- 걸음 목표
-  static const int defaultStepGoal = 5000;
+  static const int defaultStepGoal = 3000; // 모두 같은 목표 (2026-11-09: 적게 걷는 사람도 충분히 즐기도록)
   static const List<int> stepGoalPresets = [3000, 5000, 8000];
   static const int minStepGoal = 3000;
   static const int maxStepGoal = 10000;

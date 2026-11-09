@@ -85,3 +85,13 @@ dart run flutter_launcher_icons --image-path assets/branding/app_icon.png
 ```bash
 flutter run --dart-define=DEMO=true
 ```
+
+## 테스트용 Android 설치 파일 (APK)
+
+컴퓨터에 개발 도구를 설치하지 않고 GitHub 서버에서 만듭니다 (`.github/workflows/android.yml`).
+
+- 코드를 올리면 자동으로 다시 만들고, [Releases › android-test](https://github.com/gogeangs/isekai-reality/releases/tag/android-test) 에 `isekai-reality.apk` 로 올라갑니다.
+- 휴대폰용 설정(권한, 헬스 커넥트, 앱 아이콘)은 `tool/prepare_android.py` 가 넣습니다.
+- 네이버 지도 Client ID 는 저장소 Settings › Secrets and variables › Actions 의 `NAVER_MAP_CLIENT_ID` 에서 읽습니다. 없으면 지도 탭에 탐험 현황이 나옵니다.
+- 빌드 기록은 `android-log` 브랜치에 남습니다.
+- 테스트용이라 개발용 서명으로 만듭니다. 설치할 때 '출처를 알 수 없는 앱 허용'이 필요하고, Play 스토어 출시 전에는 정식 서명 키를 만들어야 합니다.

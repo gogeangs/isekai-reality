@@ -32,13 +32,14 @@ class LevelUpDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Column(
+      child: SingleChildScrollView(
+       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // 빛과 리본 배너
           const ArtBanner(
             asset: 'assets/images/banner_levelup.png',
-            width: 290,
+            width: 230,
             aspect: 520 / 489,
             text: 'LEVEL UP',
             textOffset: 0.08,
@@ -69,6 +70,7 @@ class LevelUpDialog extends StatelessWidget {
             ),
           ),
         ],
+       ),
       ),
     );
   }

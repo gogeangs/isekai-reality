@@ -57,7 +57,7 @@ class FieldMonsterRules {
     const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
     final b = area.bounds;
     final midLat = (b.south + b.north) / 2;
-    final blockLat = RuleConstants.fieldSpawnBlockM / 111320;
+    const blockLat = RuleConstants.fieldSpawnBlockM / 111320;
     final blockLng = RuleConstants.fieldSpawnBlockM /
         (111320 * math.cos(midLat * math.pi / 180));
     final night = isNight(day);

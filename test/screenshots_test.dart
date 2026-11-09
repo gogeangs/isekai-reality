@@ -130,7 +130,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await _shot(tester, '05b_던전_타격');
     if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
-      await tester.pump(const Duration(milliseconds: 650));
+      await tester.pump(const Duration(milliseconds: 550));
+      await _shot(tester, '05a_던전_대기');
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(find.text('불씨의 일격!').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));

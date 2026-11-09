@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../app_config.dart';
 import '../../app_controller.dart';
+import '../../core/format.dart';
+import '../../data/device/device_links.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -50,90 +52,63 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          // 11-10 D1: 긴 설명 대신 한 줄 + 목록 항목
           _Section(
             title: '제외 구역 요청',
             children: [
-              const Text(
-                '추모 공간, 학교, 병원처럼 게임이 열리면 안 되는 곳을 알려 주세요. '
-                '확인 후 몬스터·전투·이벤트를 두지 않는 제외 구역으로 정해요.',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                kSupportContact.isEmpty
-                    ? '요청 받는 곳: 테스트 시작 전에 안내해 드려요'
-                    : '요청 받는 곳: $kSupportContact',
-                style: const TextStyle(color: AppColors.text),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                        ClipboardData(text: _exclusionRequestText()));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('요청 내용을 복사했어요')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.copy_rounded),
-                  label: const Text('요청 내용 복사'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: AppColors.gold,
-                      minimumSize: const Size(64, 44)),
-                ),
+              const _Note('게임이 열리면 안 되는 장소 알리기'),
+              _Row(
+                label: '요청하기',
+                value: '',
+                onTap: () => _requestExclusion(context),
               ),
             ],
           ),
           _Section(
             title: '내 데이터',
             children: [
-              const Text(
-                '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요. '
-                '위치는 앱을 보고 있을 때만 쓰고, 방문 기록은 휴대폰에만 저장해요.\n'
-                '건강 앱·위치 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
-                style: TextStyle(color: AppColors.textMuted),
+              const _Note('걸음과 위치 기록은 휴대폰에만 저장돼요'),
+              _Row(
+                label: '자세히 보기',
+                value: '',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => const DataInfoScreen())),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _confirmReset(context),
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text('모든 기록 지우고 처음부터'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFE57373),
-                  side: const BorderSide(color: Color(0xFFE57373)),
-                  minimumSize: const Size.fromHeight(48),
-                ),
+              _Row(
+                label: '휴대폰 설정 열기',
+                value: '권한',
+                onTap: () async {
+                  final ok = await DeviceLinks.openAppSettings();
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('휴대폰 설정 앱에서 이 앱을 찾아 주세요')));
+                  }
+                },
+              ),
+              _Row(
+                label: '모든 기록 지우고 처음부터',
+                value: '',
+                danger: true,
+                onTap: () => _confirmReset(context),
               ),
             ],
           ),
           _Section(
             title: '테스트 기록 보내기',
             children: [
-              const Text(
-                '테스트가 끝나면 하루별 기록(걸음·던전·레벨 등)을 복사해 설문에 붙여 주세요. '
-                '위치 좌표와 이름은 들어가지 않아요.',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                        ClipboardData(text: controller.exportRecordsCsv()));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('기록을 복사했어요')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.ios_share_rounded),
-                  label: const Text('기록 내보내기 (복사)'),
-                  style: TextButton.styleFrom(
-                      foregroundColor: AppColors.gold,
-                      minimumSize: const Size(64, 44)),
-                ),
+              const _Note('하루별 기록을 복사해 설문에 붙여 주세요'),
+              _Row(
+                label: '기록 내보내기 (복사)',
+                value: '',
+                onTap: () async {
+                  await Clipboard.setData(
+                      ClipboardData(text: controller.exportRecordsCsv()));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('기록을 복사했어요')),
+                    );
+                  }
+                },
               ),
             ],
           ),
@@ -147,7 +122,7 @@ class SettingsScreen extends StatelessWidget {
                 activeTrackColor: AppColors.gold,
                 title: const Text('날씨로 불씨 색 바꾸기',
                     style: TextStyle(color: AppColors.text)),
-                subtitle: const Text('약 1km 단위 위치로 날씨를 조회해요 (Open-Meteo)',
+                subtitle: const Text('약 1km 단위 위치로 조회 (Open-Meteo)',
                     style:
                         TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ),
@@ -183,15 +158,32 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _requestExclusion(BuildContext context) async {
+    final ok = await DeviceLinks.openMail(
+      to: kSupportContact,
+      subject: '[제외 구역 요청] 이세계가 현실이라면?',
+      body: _exclusionRequestText(),
+    );
+    if (ok || !context.mounted) return;
+    // 메일 앱이 없으면 요청 내용을 복사해 둔다
+    await Clipboard.setData(ClipboardData(text: _exclusionRequestText()));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('메일 앱을 열 수 없어 요청 내용을 복사했어요. '
+              '받는 곳: $kSupportContact')));
+    }
+  }
+
   String _exclusionRequestText() {
     final fix = controller.lastFix;
     final where = fix == null
         ? '(장소 이름이나 주소를 적어 주세요)'
         : '현재 위치 ${fix.point.lat.toStringAsFixed(5)}, '
             '${fix.point.lng.toStringAsFixed(5)}';
-    return '[제외 구역 요청] 이세계가 현실이라면?\n'
-        '장소: $where\n'
-        '이유: ';
+    return '장소: $where\n'
+        '이유: \n\n'
+        '(추모 공간, 학교, 병원처럼 게임이 열리면 안 되는 곳을 알려 주세요. '
+        '확인 후 몬스터·전투·이벤트를 두지 않는 제외 구역으로 정해요.)';
   }
 
   Future<void> _confirmReset(BuildContext context) async {
@@ -281,12 +273,30 @@ class _Section extends StatelessWidget {
   }
 }
 
+class _Note extends StatelessWidget {
+  const _Note(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Text(keepAll(text),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+      );
+}
+
 class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value, this.onTap});
+  const _Row(
+      {required this.label,
+      required this.value,
+      this.onTap,
+      this.danger = false});
 
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final bool danger;
 
   @override
   Widget build(BuildContext context) {
@@ -296,12 +306,62 @@ class _Row extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48),
         child: Row(children: [
-          Text(label, style: const TextStyle(color: AppColors.text)),
-          const Spacer(),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    color: danger ? const Color(0xFFE57373) : AppColors.text)),
+          ),
           Text(value, style: const TextStyle(color: AppColors.textMuted)),
           if (onTap != null)
             const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
         ]),
+      ),
+    );
+  }
+}
+
+/// 내 데이터 자세히 보기 (설정에서 옮겨 온 설명)
+class DataInfoScreen extends StatelessWidget {
+  const DataInfoScreen({super.key});
+
+  static const _paras = [
+    '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요.',
+    '위치는 앱을 보고 있을 때만 쓰고, 방문 기록과 밝힌 지도는 휴대폰에만 저장해요.',
+    '날씨를 켜면 약 1km 단위의 대략 위치로 날씨 서비스(Open-Meteo)에 날씨를 물어봐요.',
+    '건강 앱·위치·알림 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
+    '설정의 「모든 기록 지우고 처음부터」를 누르면 이 앱에 저장된 기록이 모두 지워져요. 건강 앱의 원래 기록은 그대로예요.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: NightBackground(
+        header: true,
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            children: [
+              OrnateTopBar(
+                  title: '내 데이터',
+                  onBack: () => Navigator.of(context).pop()),
+              const SizedBox(height: 12),
+              OrnatePanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final p in _paras)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(keepAll(p),
+                            style: const TextStyle(
+                                color: AppColors.text, height: 1.45)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

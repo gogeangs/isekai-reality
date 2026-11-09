@@ -137,6 +137,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
     }
 
     return [
+      // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
+      BulssiLine(line: line),
+      const SizedBox(height: 10),
       // 미궁 문 그림
       ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -280,8 +283,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
-      BulssiBubble(line: line),
     ];
   }
 
@@ -328,6 +329,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
         : '쓰러졌지만 괜찮아. 여관에서 쉬거나 걸으면 HP가 다시 차!';
 
     return [
+      // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
+      BulssiLine(line: line),
+      const SizedBox(height: 10),
       // 배너
       SizedBox(
         height: 300,
@@ -465,8 +469,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ],
           ),
         ),
-      const SizedBox(height: 14),
-      BulssiBubble(line: line),
       const SizedBox(height: 14),
       Center(
         child: Row(mainAxisSize: MainAxisSize.min, children: [

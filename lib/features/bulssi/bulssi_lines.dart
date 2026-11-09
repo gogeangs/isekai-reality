@@ -13,12 +13,20 @@ class BulssiLines {
     required DungeonGaugeState gauge,
     required DateTime now,
     double hpRatio = 1,
+    double mpRatio = 1,
     bool resting = false,
     bool spiritAway = false,
   }) {
     final hour = now.hour;
 
-    if (resting) return '푹 쉬는 중이야. 다 쉬고 나면 HP와 MP가 가득 찰 거야.';
+    final full = hpRatio >= 1 && mpRatio >= 1;
+
+    // 11-10 C4: 가득 찼는데 쉬는 중이면 회복 대신 휴식 보너스를 말한다
+    if (resting) {
+      return full
+          ? '기운은 벌써 가득해. 푹 쉬면 휴식 보너스를 받을 수 있어.'
+          : '푹 쉬는 중이야. 다 쉬고 나면 HP와 MP가 가득 찰 거야.';
+    }
 
     // 쓰러지면 쉬자고 한다 (혼내지 않는다)
     if (hpRatio <= 0) {
@@ -32,6 +40,9 @@ class BulssiLines {
     if (hour >= 22) {
       return '오늘 하루 수고했어. 여관에서 쉬면 내일 아침엔 기운이 가득할 거야.';
     }
+
+    // 여관에서 다 쉬고 가득 찬 날
+    if (full && today.rested) return '다 회복했어! 이제 나가볼까?';
 
     // 하루 걸음 상한에 닿으면 쉬게 한다
     if (gauge.dailyKeyLimitReached) {

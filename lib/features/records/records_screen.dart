@@ -84,6 +84,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
         padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
         children: [
           const OrnateTopBar(title: '기록'),
+          const SizedBox(height: 6),
+          BulssiLine(line: best < 0
+                ? '이 주에는 기록이 없어. 이번 주에 같이 채워 보자!'
+                : '가장 많이 걸은 날은 ${RecordsScreen.week[days[best].weekday - 1]}요일이야! '
+                    '${comma(records[best]!.steps)}보나 걸었어.'),
           const SizedBox(height: 8),
           Center(
             child: _WeekToggle(
@@ -163,13 +168,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 label: '새 칭호',
                 value: '$newTitles'),
           ]),
-          const SizedBox(height: 14),
-          BulssiBubble(
-            line: best < 0
-                ? '이 주에는 기록이 없어. 이번 주에 같이 채워 보자!'
-                : '가장 많이 걸은 날은 ${RecordsScreen.week[days[best].weekday - 1]}요일이야! '
-                    '${comma(records[best]!.steps)}보나 걸었어.',
-          ),
           const SizedBox(height: 16),
           Text('하루별 기록', style: AppText.title(18)),
           const SizedBox(height: 8),

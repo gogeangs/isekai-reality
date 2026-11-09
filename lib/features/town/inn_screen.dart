@@ -15,7 +15,12 @@ class InnScreen extends StatelessWidget {
 
   final AppController controller;
 
-  static String bulssiLine({required bool resting, required bool restedToday}) {
+  static String bulssiLine(
+      {required bool resting, required bool restedToday, bool full = false}) {
+    // 11-10 C4: 이미 가득하면 회복이 아니라 휴식 보너스를 말한다
+    if (resting && full) {
+      return '기운은 벌써 가득해. 푹 쉬면 휴식 보너스를 받을 수 있어.';
+    }
     if (resting) return '푹 쉬는 중이야. 다른 일 하다가 와도 돼. 다 쉬면 알려 줄게!';
     if (restedToday) return '오늘은 이미 푹 쉬었어. 지치면 언제든 또 쉬어도 돼.';
     return '오늘 하루 고생 많았어. 여기서 쉬면 HP와 MP가 가득 찰 거야.';
@@ -42,6 +47,8 @@ class InnScreen extends StatelessWidget {
             final today = p.today!;
             final exp = p.dailyExp.isEmpty ? null : p.dailyExp.last;
             final resting = controller.resting;
+            final full = controller.hp >= controller.maxHp &&
+                controller.mp >= RuleConstants.mpMax;
             final streak = p.restStreak;
             final next = TownRules.nextRestReward(streak);
             final cleared = today.dungeonRuns.where((r) => r.cleared).length;
@@ -52,6 +59,13 @@ class InnScreen extends StatelessWidget {
                 OrnateTopBar(
                   title: '여관',
                   onBack: () => Navigator.of(context).maybePop(),
+                ),
+                const SizedBox(height: 6),
+                BulssiLine(
+                  line: bulssiLine(
+                      resting: resting,
+                      restedToday: today.rested,
+                      full: full),
                 ),
                 const SizedBox(height: 4),
                 Center(
@@ -116,11 +130,6 @@ class InnScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                BulssiBubble(
-                  line: bulssiLine(
-                      resting: resting, restedToday: today.rested),
-                ),
-                const SizedBox(height: 12),
                 OrnatePanel(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -170,7 +179,9 @@ class InnScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 if (resting) ...[
                   GoldButton(
-                    label: '쉬는 중 · ${left(controller.restLeft)} 남음',
+                    label: full
+                        ? '회복 완료 · 보너스까지 ${left(controller.restLeft)}'
+                        : '쉬는 중 · ${left(controller.restLeft)} 남음',
                     onPressed: null,
                   ),
                   const SizedBox(height: 8),

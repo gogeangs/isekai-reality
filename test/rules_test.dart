@@ -267,4 +267,22 @@ void main() {
       expect(StepGoalRules.suggestRaise(days.sublist(0, 2), 5000), isNull);
     });
   });
+
+  group('일일 퀘스트 전체 완료 (11-10)', () {
+    DailyRecord d(int day, int done) => DailyRecord(
+        date: DateTime(2026, 11, day), stepGoal: 3000, questsCompleted: done);
+
+    test('3개를 모두 마친 날은 경험치 +30 더', () {
+      expect(ExpRules.forDay(d(5, 3)).questAll, RuleConstants.questAllBonusExp);
+      expect(ExpRules.forDay(d(5, 2)).questAll, 0);
+      expect(ExpRules.forDay(d(5, 3)).quest, 3 * RuleConstants.questExp);
+    });
+
+    test('연속 달성 일수: 오늘 못 했으면 어제까지, 빈 날이 있으면 끊긴다', () {
+      expect(QuestRules.allDoneStreak([d(3, 3), d(4, 3), d(5, 3)]), 3);
+      expect(QuestRules.allDoneStreak([d(3, 3), d(4, 3), d(5, 1)]), 2);
+      expect(QuestRules.allDoneStreak([d(2, 3), d(4, 3), d(5, 3)]), 2);
+      expect(QuestRules.allDoneStreak([d(4, 1), d(5, 1)]), 0);
+    });
+  });
 }

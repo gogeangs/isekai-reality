@@ -69,97 +69,106 @@ class StatusScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = player.today!;
     final top = MediaQuery.paddingOf(context).top;
+    final curHp = hp ?? player.maxHp;
+    final curMp = mp ?? RuleConstants.mpMax;
+    final full = curHp >= player.maxHp && curMp >= RuleConstants.mpMax;
+    final line = BulssiLines.forStatus(
+      today: today,
+      gauge: player.gauge,
+      now: DateTime.now(),
+      hpRatio: curHp / player.maxHp,
+      mpRatio: curMp / RuleConstants.mpMax,
+      resting: restLeft != null,
+      spiritAway: spiritAway != null,
+    );
 
     return NightBackground(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // ─────────── 각성자 그림
+          // ─────────── 각성자 그림 + 그 오른쪽 빈자리의 정령 (11-10 A3)
+          // 날씨 칩은 게임에 영향이 없어 평소에는 숨긴다 (C6),
+          // 눈 문장은 누를 기능이 없어 뺐다 (A4).
           SizedBox(
-            height: 360 + top,
+            height: 340 + top,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 _HeroArt(look: look, top: top),
                 Positioned(
-                  top: top + 8,
-                  left: 14,
-                  right: 14,
-                  child: Row(children: [
-                    const EyeEmblem(size: 42),
-                    const Spacer(),
-                    ChipBadge(text: weatherLabel, icon: weatherIcon),
-                  ]),
+                  top: top + 36,
+                  right: 12,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.sizeOf(context).width * 0.5),
+                    child: ArtSpirit(line: line),
+                  ),
                 ),
               ],
             ),
           ),
-          Transform.translate(
-            offset: const Offset(0, -70),
-            child: Center(
-              child: LaurelBadge(
-                level: player.level.level,
-                title: equippedTitle == null
-                    ? '새내기 각성자'
-                    : TitleRules.info(equippedTitle!).name,
-              ),
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(0, -64),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 불씨: 각성자 그림 바로 아래에서 오늘의 한마디
-                  BulssiBubble(
-                    line: BulssiLines.forStatus(
-                      today: today,
-                      gauge: player.gauge,
-                      now: DateTime.now(),
-                      hpRatio: (hp ?? player.maxHp) / player.maxHp,
-                      resting: restLeft != null,
-                      spiritAway: spiritAway != null,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 레벨 · 칭호 · 경험치 한 줄 (C1). 큰 배지는 레벨업 연출에서만.
+                _LevelLine(
+                  player: player,
+                  title: equippedTitle == null
+                      ? '새내기 각성자'
+                      : TitleRules.info(equippedTitle!).name,
+                ),
+                const SizedBox(height: 12),
+                _QuestPanel(
+                  quests: QuestRules.forDay(today),
+                  allDone: QuestRules.allDone(today),
+                  streak: QuestRules.allDoneStreak(player.history),
+                ),
+                const SizedBox(height: 12),
+                _StatusPanel(
+                  player: player,
+                  hp: curHp,
+                  mp: curMp,
+                  spiritAway: spiritAway,
+                  onOpenBag: onOpenBag,
+                  onOpenDungeon: onOpenDungeon,
+                ),
+                if (onOpenInn != null || onOpenShop != null) ...[
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: _TownTile(
+                        asset: 'map_inn',
+                        title: '여관',
+                        // C5: 상태와 남은 시간을 두 줄로 (말줄임 없이)
+                        subtitle: restLeft == null
+                            ? '하루 마무리'
+                            : full
+                                ? '회복 완료'
+                                : '쉬는 중',
+                        detail: restLeft == null
+                            ? null
+                            : full
+                                ? '보너스까지 ${_left(restLeft!)}'
+                                : '${_left(restLeft!)} 남음',
+                        onTap: onOpenInn,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  _StatusPanel(
-                    player: player,
-                    hp: hp ?? player.maxHp,
-                    mp: mp ?? RuleConstants.mpMax,
-                    spiritAway: spiritAway,
-                    onOpenBag: onOpenBag,
-                    onOpenDungeon: onOpenDungeon,
-                  ),
-                  const SizedBox(height: 14),
-                  _QuestPanel(quests: QuestRules.forDay(today)),
-                  if (onOpenInn != null || onOpenShop != null) ...[
-                    const SizedBox(height: 14),
-                    Row(children: [
-                      Expanded(
-                        child: _TownTile(
-                          asset: 'map_inn',
-                          title: '여관',
-                          subtitle: restLeft != null
-                              ? '쉬는 중 · ${_left(restLeft!)}'
-                              : '하루 마무리',
-                          onTap: onOpenInn,
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _TownTile(
+                        asset: 'map_store',
+                        title: '잡화상',
+                        subtitle: '결정 ${player.crystals}개',
+                        onTap: onOpenShop,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _TownTile(
-                          asset: 'map_store',
-                          title: '잡화상',
-                          subtitle: '결정 ${player.crystals}개',
-                          onTap: onOpenShop,
-                        ),
-                      ),
-                    ]),
-                  ],
+                    ),
+                  ]),
                 ],
-              ),
+                const SizedBox(height: 12),
+                _StatsSection(player: player),
+              ],
             ),
           ),
         ],
@@ -176,12 +185,16 @@ class _TownTile extends StatelessWidget {
     required this.asset,
     required this.title,
     required this.subtitle,
+    this.detail,
     this.onTap,
   });
 
   final String asset;
   final String title;
   final String subtitle;
+
+  /// 둘째 줄 (예: '3시간 10분 남음')
+  final String? detail;
   final VoidCallback? onTap;
 
   @override
@@ -209,6 +222,15 @@ class _TownTile extends StatelessWidget {
                         color: AppColors.goldBright,
                         fontSize: 12,
                         fontWeight: FontWeight.w600)),
+                if (detail != null)
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(detail!,
+                        maxLines: 1,
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 12)),
+                  ),
               ],
             ),
           ),
@@ -230,7 +252,7 @@ class _HeroArt extends StatelessWidget {
   final double top;
 
   /// 아래 레벨 배지가 겹치는 높이
-  static const double badgeOverlap = 64;
+  static const double badgeOverlap = 12;
 
   @override
   Widget build(BuildContext context) {
@@ -327,6 +349,7 @@ String _left(Duration d) {
   return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
 }
 
+/// 오늘 정보: HP | 정령 MP 나란히, 던전 게이지·열쇠는 던전 버튼 바로 위 (11-10 C3)
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
@@ -350,40 +373,12 @@ class _StatusPanel extends StatelessWidget {
     final maxHp = player.maxHp;
 
     return OrnatePanel(
-      ornament: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [
-            Text('EXP', style: AppText.title(16)),
-            const SizedBox(width: 10),
-            Expanded(
-                child: GlowBar(
-                    ratio: player.level.ratio, colors: BarColors.exp)),
-            const SizedBox(width: 10),
-            Text(
-              '${comma(player.level.expIntoLevel)} / '
-              '${comma(player.level.expToNext)}',
-              style: const TextStyle(color: AppColors.text, fontSize: 13),
-            ),
-          ]),
-          const SizedBox(height: 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _Gauge(
-                  icon: 'key',
-                  label: '던전 게이지 · 열쇠 ${gauge.keysAvailable}',
-                  ratio: gauge.ratio,
-                  colors: BarColors.gauge,
-                  value: gauge.dailyKeyLimitReached
-                      ? '오늘은 다 모았어요'
-                      : '${comma(gauge.stepsIntoNextKey)} / '
-                          '${comma(gauge.stepsPerKey)}보',
-                ),
-              ),
-              const SizedBox(width: 14),
               Expanded(
                 child: _Gauge(
                   icon: 'vitality',
@@ -393,27 +388,41 @@ class _StatusPanel extends StatelessWidget {
                   value: '${comma(hp)} / ${comma(maxHp)}',
                 ),
               ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _Gauge(
+                  icon: 'mp',
+                  label: spiritAway == null ? '정령 MP' : '정령 MP · 원정 중',
+                  ratio: mp / RuleConstants.mpMax,
+                  colors: BarColors.mana,
+                  value: '$mp / ${RuleConstants.mpMax}',
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 12),
+          Container(height: 1, color: AppColors.gold.withValues(alpha: 0.25)),
           const SizedBox(height: 10),
           _Gauge(
-            icon: 'mp',
-            label: spiritAway ?? '정령 MP',
-            ratio: mp / RuleConstants.mpMax,
-            colors: BarColors.mana,
-            value: '$mp / ${RuleConstants.mpMax}',
+            icon: 'key',
+            label: '던전 게이지 · 열쇠 ${gauge.keysAvailable}',
+            ratio: gauge.ratio,
+            colors: BarColors.gauge,
+            value: gauge.dailyKeyLimitReached
+                ? '오늘은 다 모았어요'
+                : '${comma(gauge.stepsIntoNextKey)} / '
+                    '${comma(gauge.stepsPerKey)}보',
           ),
           if (onOpenDungeon != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(children: [
               Expanded(
                 child: FrameButton(
                   onPressed: onOpenDungeon,
                   icon: Icons.door_front_door_rounded,
                   height: 46,
-                  label: gauge.keysAvailable > 0
-                      ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
-                      : '던전 (열쇠 없음)',
+                  // 열쇠 개수는 바로 위 게이지에 있어 짧게
+                  label: gauge.keysAvailable > 0 ? '던전 열기' : '열쇠 없음',
                 ),
               ),
               if (onOpenBag != null) ...[
@@ -429,29 +438,115 @@ class _StatusPanel extends StatelessWidget {
               ],
             ]),
           ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _StatTile(
-                  icon: 'vitality',
-                  name: '체력',
-                  value: player.stats.vitality),
-              _StatTile(
-                  icon: 'agility',
-                  name: '민첩',
-                  value: player.stats.agility),
-              _StatTile(
-                  icon: 'wisdom',
-                  name: '지력',
-                  value: player.stats.wisdom),
-              _StatTile(
-                  icon: 'spirit',
-                  name: '정신',
-                  value: player.stats.spirit),
-            ],
-          ),
         ],
       ),
+    );
+  }
+}
+
+/// 레벨 · 칭호 · 경험치 막대 한 줄 (11-10 C1)
+class _LevelLine extends StatelessWidget {
+  const _LevelLine({required this.player, required this.title});
+
+  final PlayerState player;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = player.level;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+      decoration: BoxDecoration(
+        color: const Color(0xE6161A44),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
+      ),
+      child: Row(children: [
+        Text('Lv.${level.level}', style: AppText.title(18)),
+        const SizedBox(width: 8),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 120),
+          child: Text(title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: GlowBar(ratio: level.ratio, colors: BarColors.exp, height: 7),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${comma(level.expIntoLevel)}/${comma(level.expToNext)}',
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        ),
+      ]),
+    );
+  }
+}
+
+/// 스탯 4종 (접어 두고 눌러서 펼친다, 11-10 C2)
+class _StatsSection extends StatefulWidget {
+  const _StatsSection({required this.player});
+
+  final PlayerState player;
+
+  @override
+  State<_StatsSection> createState() => _StatsSectionState();
+}
+
+class _StatsSectionState extends State<_StatsSection> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final st = widget.player.stats;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Row(children: [
+              const GameIcon('spirit', size: 20),
+              const SizedBox(width: 6),
+              const Text('스탯',
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '체력 ${st.vitality} · 민첩 ${st.agility} · '
+                  '지력 ${st.wisdom} · 정신 ${st.spirit}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 12),
+                ),
+              ),
+              Icon(
+                  _open
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.goldBright),
+            ]),
+          ),
+        ),
+        if (_open)
+          Row(children: [
+            _StatTile(icon: 'vitality', name: '체력', value: st.vitality),
+            _StatTile(icon: 'agility', name: '민첩', value: st.agility),
+            _StatTile(icon: 'wisdom', name: '지력', value: st.wisdom),
+            _StatTile(icon: 'spirit', name: '정신', value: st.spirit),
+          ]),
+      ],
     );
   }
 }
@@ -533,9 +628,17 @@ class _StatTile extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 일일 퀘스트
 
 class _QuestPanel extends StatelessWidget {
-  const _QuestPanel({required this.quests});
+  const _QuestPanel({
+    required this.quests,
+    required this.allDone,
+    required this.streak,
+  });
 
   final List<QuestProgress> quests;
+  final bool allDone;
+
+  /// 3개를 모두 마친 날이 이어진 일수 (표시만)
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
@@ -544,9 +647,9 @@ class _QuestPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const GameIcon('quest', size: 28),
+            const GameIcon('quest', size: 26),
             const SizedBox(width: 8),
-            Text('일일 퀘스트', style: AppText.title(19)),
+            Text('일일 퀘스트', style: AppText.title(18)),
             const SizedBox(width: 8),
             Expanded(
               child: Container(
@@ -555,10 +658,46 @@ class _QuestPanel extends StatelessWidget {
               ),
             ),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           for (final q in quests) _QuestRow(quest: q),
+          const SizedBox(height: 8),
+          _AllDoneRow(done: allDone, streak: streak),
         ],
       ),
+    );
+  }
+}
+
+/// 보상 표시 (아이콘 + 수량)
+class _Reward extends StatelessWidget {
+  const _Reward({required this.text, this.done = false});
+
+  final String text;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(5, 3, 8, 3),
+      decoration: BoxDecoration(
+        color: done ? const Color(0x3346E0A0) : const Color(0x33E8B04A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: done
+                ? const Color(0xAA6FE3B0)
+                : AppColors.gold.withValues(alpha: 0.7)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        done
+            ? const Icon(Icons.check_rounded, size: 15, color: Color(0xFF8FF0C4))
+            : const GameIcon('exp', size: 16),
+        const SizedBox(width: 3),
+        Text(text,
+            style: TextStyle(
+                color: done ? const Color(0xFF8FF0C4) : AppColors.goldBright,
+                fontSize: 12,
+                fontWeight: FontWeight.w800)),
+      ]),
     );
   }
 }
@@ -575,7 +714,7 @@ class _QuestRow extends StatelessWidget {
     final target = quest.unit == '보' ? comma(quest.target) : '${quest.target}';
     return Container(
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
       decoration: BoxDecoration(
         color: const Color(0x66101333),
         borderRadius: BorderRadius.circular(10),
@@ -596,30 +735,88 @@ class _QuestRow extends StatelessWidget {
               : null,
         ),
         const SizedBox(width: 10),
+        // 이름은 넓게, 진행 막대는 이름 아래 짧게 (C2)
         Expanded(
-          flex: 5,
-          child: Text(quest.title,
-              style: const TextStyle(color: AppColors.text, fontSize: 15)),
-        ),
-        if (quest.completed)
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            const GameIcon('check', size: 24),
-            const SizedBox(width: 2),
-            Text('완료', style: AppText.title(15)),
-          ])
-        else ...[
-          Expanded(
-            flex: 3,
-            child: GlowBar(
-              ratio: quest.target == 0 ? 0 : quest.current / quest.target,
-              colors: BarColors.exp,
-              height: 7,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(keepAll(quest.title),
+                  style: const TextStyle(color: AppColors.text, fontSize: 15)),
+              const SizedBox(height: 4),
+              if (quest.completed)
+                Text('완료', style: AppText.title(13))
+              else
+                Row(children: [
+                  SizedBox(
+                    width: 70,
+                    child: GlowBar(
+                      ratio: quest.target == 0
+                          ? 0
+                          : quest.current / quest.target,
+                      colors: BarColors.exp,
+                      height: 6,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text('$current / $target${quest.unit}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                ]),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text('$current / $target${quest.unit}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-        ],
+        ),
+        const SizedBox(width: 6),
+        _Reward(
+            text: 'EXP ${QuestRules.rewardExp}', done: quest.completed),
+      ]),
+    );
+  }
+}
+
+/// 3개 모두 완료 보너스 + 연속 달성 일수 (11-10 C2)
+class _AllDoneRow extends StatelessWidget {
+  const _AllDoneRow({required this.done, required this.streak});
+
+  final bool done;
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: LinearGradient(colors: [
+          AppColors.gold.withValues(alpha: done ? 0.28 : 0.14),
+          AppColors.gold.withValues(alpha: 0.04),
+        ]),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
+      ),
+      child: Row(children: [
+        const GameIcon('medal', size: 26),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(done ? '모두 완료!' : '3개 모두 완료하면 보너스',
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+              Text(
+                streak > 0 ? '연속 달성 $streak일째' : '연속 달성을 시작해 보세요',
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        _Reward(text: 'EXP +${QuestRules.allDoneBonusExp}', done: done),
       ]),
     );
   }

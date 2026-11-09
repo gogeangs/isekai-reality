@@ -49,6 +49,9 @@ class RuleConstants {
   static const int questExp = 20;
   static const int questsPerDay = 3;
 
+  /// 일일 퀘스트 3개를 모두 마친 날의 추가 경험치 (11-10 결정)
+  static const int questAllBonusExp = 30;
+
   /// 일일 퀘스트 '새 안개 N칸 걷기'
   static const int questNewCells = 20;
 

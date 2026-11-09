@@ -49,6 +49,34 @@ class QuestRules {
   static int completedCount(DailyRecord record) =>
       forDay(record).where((q) => q.completed).length;
 
+  /// 퀘스트 하나를 마치면 받는 경험치
+  static int get rewardExp => RuleConstants.questExp;
+
+  /// 3개를 모두 마치면 더 받는 경험치
+  static int get allDoneBonusExp => RuleConstants.questAllBonusExp;
+
+  static bool allDone(DailyRecord r) =>
+      r.questsCompleted >= RuleConstants.questsPerDay;
+
+  /// 3개를 모두 마친 날이 며칠째 이어지는지 (보상 없이 표시만, 11-10 결정).
+  /// 오늘을 아직 다 못 했으면 어제까지 이어진 일수.
+  static int allDoneStreak(List<DailyRecord> history) {
+    if (history.isEmpty) return 0;
+    var i = history.length - 1;
+    if (!allDone(history[i])) i--;
+    var n = 0;
+    DateTime? prev;
+    for (; i >= 0; i--) {
+      final r = history[i];
+      if (!allDone(r)) break;
+      final d = DateTime(r.date.year, r.date.month, r.date.day);
+      if (prev != null && prev.difference(d).inDays != 1) break;
+      prev = d;
+      n++;
+    }
+    return n;
+  }
+
   static String _comma(int n) => n.toString().replaceAllMapped(
       RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
 }

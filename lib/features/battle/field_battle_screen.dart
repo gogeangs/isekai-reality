@@ -64,12 +64,21 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   : null,
             ),
             const SizedBox(height: 10),
+            // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
             if (battle == null)
-              BulssiBubble(
+              BulssiLine(
                   line: widget.controller.hp <= 0
                       ? '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.'
                       : '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.')
-            else if (!_done)
+            else if (_done) ...[
+              BulssiLine(
+                line: cleared
+                    ? info.purifiedLine
+                    : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',
+              ),
+              const SizedBox(height: 4),
+            ],
+            if (battle != null && !_done)
               BattleView(
                 battle: battle,
                 onFinished: _finish,
@@ -77,7 +86,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,
               )
-            else ...[
+            else if (_done) ...[
               const SizedBox(height: 8),
               Text(cleared ? '정화 완료!' : '이번엔 물러났어요',
                   textAlign: TextAlign.center, style: AppText.title(30)),
@@ -111,12 +120,6 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                             color: AppColors.text, fontSize: 14)),
                   ]),
                 ),
-              const SizedBox(height: 14),
-              BulssiBubble(
-                line: cleared
-                    ? info.purifiedLine
-                    : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',
-              ),
             ],
             if (battle == null || _done) ...[
               const SizedBox(height: 20),

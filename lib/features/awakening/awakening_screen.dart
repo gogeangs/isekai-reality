@@ -2,6 +2,8 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../core/format.dart';
+
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -232,17 +234,31 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
               ),
               Text(_spirit.elementName, style: AppText.title(22)),
               const SizedBox(height: 2),
-              Text(spiritTrait(_spirit),
-                  style: const TextStyle(color: AppColors.textMuted)),
-              const SizedBox(height: 10),
-              Text(spiritIntro(_spirit),
+              // 11-10 B1: 세 정령의 소개를 겹쳐 두고 고른 것만 보인다.
+              // 가장 긴 소개만큼 자리를 잡아 박스와 버튼이 움직이지 않는다.
+              _SameHeight(
+                selected: _spirit.index,
+                children: [
+                  for (final k in SpiritKind.values)
+                    Column(children: [
+                      Text(keepAll(spiritTrait(k)),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textMuted)),
+                      const SizedBox(height: 10),
+                      Text(keepAll(spiritIntro(k)),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 15,
+                              height: 1.45)),
+                    ]),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(keepAll('세 정령은 생김새와 말투만 달라요. 마음에 드는 정령을 골라 주세요.'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: AppColors.text, fontSize: 15, height: 1.45)),
-              const SizedBox(height: 6),
-              const Text('세 정령은 생김새와 말투만 달라요. 마음에 드는 정령을 골라 주세요.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      color: AppColors.textMuted, fontSize: 12)),
             ]),
           ),
           const SizedBox(height: 16),
@@ -266,15 +282,15 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       padding: EdgeInsets.fromLTRB(18, top + 14, 18, 28),
       children: [
         const RibbonHeading('정령의 이름', size: 24),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
+        const BulssiLine(line: '나를 뭐라고 불러 줄래?'),
+        const SizedBox(height: 12),
         Center(child: SpiritArt(kind: _spirit, size: 150)),
         const SizedBox(height: 16),
         OrnatePanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const BulssiBubble(line: '나를 뭐라고 불러 줄래?', size: 64),
-              const SizedBox(height: 12),
               _field(_spiritNameController,
                   label: '정령 이름', max: maxSpiritNameLength),
               const SizedBox(height: 4),
@@ -460,8 +476,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       padding: EdgeInsets.fromLTRB(16, top + 10, 16, 28),
       children: [
         const RibbonHeading('시작하기 전에', size: 22),
-        const SizedBox(height: 12),
-        const BulssiBubble(
+        const SizedBox(height: 8),
+        const BulssiLine(
             line: '네 하루를 이세계에 비추려면 몇 가지가 필요해. 모두 네 휴대폰 안에만 있어!'),
         const SizedBox(height: 12),
         OrnatePanel(
@@ -517,11 +533,25 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 8),
       children: [
         _art(330 + top,
-            overlay: Positioned(
-              top: top + 8,
-              left: 20,
-              right: 20,
-              child: const RibbonHeading('당신의 각성', size: 24),
+            overlay: Positioned.fill(
+              child: Stack(children: [
+                Positioned(
+                  top: top + 8,
+                  left: 20,
+                  right: 20,
+                  child: const RibbonHeading('당신의 각성', size: 24),
+                ),
+                // 11-10 A3: 그림 속 각성자 오른쪽 빈자리에 작은 정령
+                Positioned(
+                  top: top + 80,
+                  right: 12,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.sizeOf(context).width * 0.48),
+                    child: const ArtSpirit(line: '너는 뭐라고 부를까?'),
+                  ),
+                ),
+              ]),
             )),
         Transform.translate(
           offset: const Offset(0, -40),
@@ -573,9 +603,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                           label: '이름',
                           max: maxNameLength,
                           hint: '정령이 부를 이름'),
-                      const SizedBox(height: 4),
-                      const BulssiBubble(line: '너는 뭐라고 부를까?', size: 80),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       GoldButton(
                         label: '다음',
                         onPressed: _canAwaken
@@ -591,6 +619,28 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         ),
       ],
     );
+  }
+}
+
+/// 여러 내용 중 [selected] 하나만 보이되, 가장 큰 것만큼 자리를 잡는다
+class _SameHeight extends StatelessWidget {
+  const _SameHeight({required this.selected, required this.children});
+
+  final int selected;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(alignment: Alignment.topCenter, children: [
+      for (var i = 0; i < children.length; i++)
+        Visibility(
+          visible: i == selected,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: children[i],
+        ),
+    ]);
   }
 }
 

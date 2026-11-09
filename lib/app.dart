@@ -79,7 +79,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => LevelUpDialog(from: pending.from, to: pending.to),
+        builder: (_) => LevelUpDialog(
+          from: pending.from,
+          to: pending.to,
+          title: widget.controller.equippedTitle == null
+              ? null
+              : TitleRules.info(widget.controller.equippedTitle!).name,
+        ),
       );
       await widget.controller.acknowledgeLevelUp();
       _levelUpShowing = false;

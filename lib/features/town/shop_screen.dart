@@ -62,6 +62,9 @@ class ShopScreen extends StatelessWidget {
                   title: '잡화상',
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
+                const SizedBox(height: 6),
+                const BulssiLine(
+                    line: '몬스터를 정화하면 결정이 남아. 모아서 필요한 걸 사자!'),
                 const SizedBox(height: 4),
                 Center(
                   child: Image.asset('assets/images/map_store.png',
@@ -126,9 +129,6 @@ class ShopScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                const SizedBox(height: 4),
-                const BulssiBubble(
-                    line: '몬스터를 정화하면 결정이 남아. 모아서 필요한 걸 사자!'),
               ],
             );
           },

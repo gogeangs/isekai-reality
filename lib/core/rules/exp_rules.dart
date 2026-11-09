@@ -11,6 +11,7 @@ class DailyExpBreakdown {
     required this.quest,
     this.rest = 0,
     this.restStreak = 0,
+    this.questAll = 0,
   });
 
   final int dungeon;
@@ -24,8 +25,11 @@ class DailyExpBreakdown {
   /// 연속 휴식 보너스 (3일·7일·14일째, 그 뒤 7일마다)
   final int restStreak;
 
+  /// 일일 퀘스트 3개를 모두 마친 날의 추가 보상
+  final int questAll;
+
   int get total =>
-      dungeon + fieldMonster + exploration + quest + rest + restStreak;
+      dungeon + fieldMonster + exploration + quest + rest + restStreak + questAll;
 }
 
 class ExpRules {
@@ -74,6 +78,9 @@ class ExpRules {
       quest: quests * RuleConstants.questExp,
       rest: record.rested ? RuleConstants.restBonusExp : 0,
       restStreak: record.rested ? TownRules.restStreakReward(restStreak).$1 : 0,
+      questAll: quests >= RuleConstants.questsPerDay
+          ? RuleConstants.questAllBonusExp
+          : 0,
     );
   }
 }

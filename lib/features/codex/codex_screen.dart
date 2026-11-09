@@ -7,8 +7,9 @@ import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 
-/// 도감 (목업 '칭호' 구도): 칭호 8종 카드, 직업, 몬스터 6종
-class CodexScreen extends StatelessWidget {
+/// 도감: 위쪽 「칭호 | 몬스터」 탭으로 그룹을 바꿔 본다 (11-10 E1).
+/// 그룹이 늘면 [_CodexScreenState._groups] 에 하나 더하면 된다.
+class CodexScreen extends StatefulWidget {
   const CodexScreen({
     super.key,
     required this.player,
@@ -94,75 +95,170 @@ class CodexScreen extends StatelessWidget {
   }
 
   @override
+  State<CodexScreen> createState() => _CodexScreenState();
+}
+
+/// 도감 그룹 하나 (탭 이름, 모은 수 / 전체, 내용)
+class _CodexGroup {
+  const _CodexGroup(this.label, this.have, this.total, this.line, this.build);
+
+  final String label;
+  final int have;
+  final int total;
+
+  /// 이 탭에서 정령이 할 한 줄
+  final String line;
+  final Widget Function(BuildContext) build;
+}
+
+class _CodexScreenState extends State<CodexScreen> {
+  int _tab = 0;
+
+  List<_CodexGroup> get _groups => [
+        _CodexGroup('칭호', widget.player.titles.length, TitleRules.all.length,
+            '숨은 칭호를 같이 찾아보자!', _titles),
+        _CodexGroup(
+            '몬스터',
+            widget.purifiedMonsters.length,
+            Monsters.all.length,
+            '정화한 몬스터는 여기 기록돼. 6종 모두 만나 보자!',
+            _monsters),
+      ];
+
+  Widget _titles(BuildContext context) => GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.08,
+        children: [
+          for (final t in TitleRules.all)
+            _TitleCard(
+              info: t,
+              icon: CodexScreen.titleIcon(t.id),
+              earned: widget.player.titles.contains(t.id),
+              equipped: t.id == widget.equipped,
+              onTap: () => widget._showTitle(
+                  context, t, widget.player.titles.contains(t.id)),
+            ),
+        ],
+      );
+
+  Widget _monsters(BuildContext context) => OrnatePanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+                '몬스터 도감 ${widget.purifiedMonsters.length} / '
+                '${Monsters.all.length}',
+                style: AppText.title(18)),
+            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.72,
+              children: [
+                for (final m in Monsters.all)
+                  _MonsterTile(
+                      info: m,
+                      purified: widget.purifiedMonsters.contains(m.id)),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
+    final groups = _groups;
+    final g = groups[_tab.clamp(0, groups.length - 1)];
 
-    return ColoredBox(
-      color: Colors.transparent,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const OrnateTopBar(title: '도감'),
-          const SizedBox(height: 8),
-          Center(
-            child: Text('칭호 ${player.titles.length} / ${TitleRules.all.length}',
-                style: AppText.title(18, color: AppColors.text).copyWith(
-                  shadows: const [
-                    Shadow(color: Color(0xE60B0D26), blurRadius: 6),
-                  ],
-                )),
+          const SizedBox(height: 6),
+          BulssiLine(line: g.line),
+          const SizedBox(height: 10),
+          _CodexTabs(
+            labels: [for (final x in groups) '${x.label} ${x.have}/${x.total}'],
+            index: _tab,
+            onTap: (i) => setState(() => _tab = i),
           ),
           const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.08,
-            children: [
-              for (final t in TitleRules.all)
-                _TitleCard(
-                  info: t,
-                  icon: titleIcon(t.id),
-                  earned: player.titles.contains(t.id),
-                  equipped: t.id == equipped,
-                  onTap: () => _showTitle(
-                      context, t, player.titles.contains(t.id)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const BulssiBubble(line: '숨은 칭호를 같이 찾아보자!'),
-          const SizedBox(height: 16),
-
-          // ─────────────── 몬스터
-          OrnatePanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                    '몬스터 도감 ${purifiedMonsters.length} / ${Monsters.all.length}',
-                    style: AppText.title(18)),
-                const SizedBox(height: 10),
-                GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 0.72,
-                  children: [
-                    for (final m in Monsters.all)
-                      _MonsterTile(
-                          info: m, purified: purifiedMonsters.contains(m.id)),
-                  ],
-                ),
-              ],
+          Expanded(
+            child: ListView(
+              key: PageStorageKey('codex_${g.label}'),
+              padding: const EdgeInsets.only(bottom: 24),
+              children: [g.build(context)],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 도감 그룹 탭 (칭호 | 몬스터 …)
+class _CodexTabs extends StatelessWidget {
+  const _CodexTabs(
+      {required this.labels, required this.index, required this.onTap});
+
+  final List<String> labels;
+  final int index;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: const Color(0xCC12153A),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.55)),
+      ),
+      child: Row(children: [
+        for (var i = 0; i < labels.length; i++)
+          Expanded(
+            child: Semantics(
+              button: true,
+              selected: i == index,
+              child: GestureDetector(
+                onTap: () => onTap(i),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: i == index
+                      ? BoxDecoration(
+                          borderRadius: BorderRadius.circular(11),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFFB98330), Color(0xFF6E4B1A)],
+                          ),
+                          border: Border.all(color: AppColors.goldBright),
+                        )
+                      : null,
+                  child: Text(labels[i],
+                      style: TextStyle(
+                          color: i == index
+                              ? const Color(0xFFFFF3C8)
+                              : AppColors.textMuted,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+      ]),
     );
   }
 }

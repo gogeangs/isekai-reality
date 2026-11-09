@@ -7,10 +7,14 @@ import '../bulssi/bulssi_bubble.dart';
 
 /// 레벨업 연출 (목업 확정본 기준). [from] → [to] 로 여러 레벨이 한 번에 오를 수도 있다.
 class LevelUpDialog extends StatelessWidget {
-  const LevelUpDialog({super.key, required this.from, required this.to});
+  const LevelUpDialog(
+      {super.key, required this.from, required this.to, this.title});
 
   final int from;
   final int to;
+
+  /// 대표 칭호 (월계관 배지 리본에 쓴다)
+  final String? title;
 
   /// 불씨 대사 36~39
   String get _line {
@@ -47,8 +51,9 @@ class LevelUpDialog extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
             child: Column(
               children: [
-                const LaurelRow(),
-                Text('Lv.$from  →  Lv.$to', style: AppText.title(36)),
+                // 큰 월계관 배지는 평소 상태창에서 빼고 레벨업 순간에만 (11-10 C1)
+                LaurelBadge(level: to, title: title ?? '새내기 각성자'),
+                Text('Lv.$from  →  Lv.$to', style: AppText.title(24)),
                 const SizedBox(height: 14),
                 ChipBadge(
                     text: '다음 레벨까지 ${LevelRules.expRequiredFor(to)}',

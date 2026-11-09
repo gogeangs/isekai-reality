@@ -127,6 +127,10 @@ class SpeechBubbleArt extends StatelessWidget {
   }
 }
 
+/// 금테 박스 안쪽 여백 (테두리 두께 밖으로 더하는 값)
+const double kPanelGapH = 14;
+const double kPanelGapV = 10;
+
 class OrnatePanel extends StatelessWidget {
   const OrnatePanel({
     super.key,
@@ -169,13 +173,14 @@ class OrnatePanel extends StatelessWidget {
         slice: slice,
         scale: s,
         child: Padding(
-          // 테두리 두께와 모서리 장식만큼 안쪽으로
-          // (11-10: 글자가 모서리 장식에 겹쳐서 여백을 늘림)
+          // 모든 금테 박스의 안쪽 여백 기준 (11-10 A1):
+          // 그림 테두리 두께 + 좌우 14, 위아래 10.
+          // 안쪽 모서리 장식 조각은 그림에서 지웠다.
           padding: EdgeInsets.fromLTRB(
-            46 / s + padding.left * 0.6,
-            (wide ? 74 : 62) / s + padding.top * 0.4,
-            46 / s + padding.right * 0.6,
-            (wide ? 58 : 52) / s + padding.bottom * 0.4,
+            (wide ? 24 : 26) / s + kPanelGapH,
+            (wide ? 60 : 56) / s + kPanelGapV,
+            (wide ? 24 : 26) / s + kPanelGapH,
+            (wide ? 50 : 48) / s + kPanelGapV,
           ),
           child: child,
         ),
@@ -325,7 +330,14 @@ class RibbonHeading extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.title(size)),
+              // 밝은 그림 위에서도 읽히게 짙은 그림자 (11-10 A5)
+              style: AppText.title(size).copyWith(shadows: const [
+                Shadow(color: Color(0xE6000000), blurRadius: 6),
+                Shadow(
+                    color: Color(0xCC0B0D26),
+                    blurRadius: 2,
+                    offset: Offset(0, 1.5)),
+              ])),
         ),
         const SizedBox(width: 8),
         half(false),
@@ -697,7 +709,8 @@ class OrnateTopBar extends StatelessWidget {
               ),
             )
           else
-            const EyeEmblem(size: 40),
+            // 눈 문장은 누를 기능이 없어 뺐다 (11-10 A4). 제목이 가운데 오게 빈칸
+            const SizedBox(width: 40),
           const SizedBox(width: 6),
           // 제목 뒤에 어두운 띠 (하늘 그림에 글자가 묻히지 않게)
           Expanded(
@@ -707,8 +720,8 @@ class OrnateTopBar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 gradient: const RadialGradient(
                   radius: 2.2,
-                  colors: [Color(0xCC0B0D26), Color(0x000B0D26)],
-                  stops: [0.35, 1],
+                  colors: [Color(0xE00B0D26), Color(0x000B0D26)],
+                  stops: [0.45, 1],
                 ),
               ),
               child: RibbonHeading(title, size: 21),
@@ -752,9 +765,18 @@ class ChipBadge extends StatelessWidget {
 
 /// 화면 전체 배경 (남색 + 보랏빛)
 class NightBackground extends StatelessWidget {
-  const NightBackground({super.key, required this.child, this.header = false});
+  const NightBackground({
+    super.key,
+    required this.child,
+    this.header = false,
+    this.statusScrim = true,
+  });
 
   final Widget child;
+
+  /// 휴대폰 상태 표시줄(시계·배터리) 뒤에 어두운 띠를 깐다.
+  /// 스크롤하는 내용이 표시줄 글자와 겹치지 않게 (11-10 A2).
+  final bool statusScrim;
 
   /// 위쪽에 노을 속 탑 그림 띠(bg_header)를 깐다
   final bool header;
@@ -788,7 +810,11 @@ class NightBackground extends StatelessWidget {
             Positioned.fill(child: child),
           ])
         : child);
-    return base;
+    if (!statusScrim) return base;
+    return Stack(children: [
+      Positioned.fill(child: base),
+      const Positioned(top: 0, left: 0, right: 0, child: StatusBarScrim()),
+    ]);
   }
 
   Widget _base(Widget child) {
@@ -802,6 +828,30 @@ class NightBackground extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+/// 상태 표시줄 높이만큼의 어두운 띠 (아래로 살짝 번진다)
+class StatusBarScrim extends StatelessWidget {
+  const StatusBarScrim({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    if (top <= 0) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: Container(
+        height: top + 10,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xF50B0D26), Color(0xF50B0D26), Color(0x000B0D26)],
+            stops: [0, 0.8, 1],
+          ),
+        ),
+      ),
     );
   }
 }

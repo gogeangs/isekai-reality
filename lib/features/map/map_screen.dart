@@ -161,7 +161,7 @@ class _DiscoveryCard extends StatelessWidget {
             Text('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
                 style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
-            BulssiBubble(line: _discoveryLine(place.kind), size: 72),
+            BulssiLine(line: _discoveryLine(place.kind)),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -252,7 +252,7 @@ class _ExploreSummary extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(
             16, MediaQuery.paddingOf(context).top + 90, 16, 24),
         children: [
-          const BulssiBubble(
+          const BulssiLine(
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),
           const SizedBox(height: 16),
           Text(

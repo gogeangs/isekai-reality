@@ -180,11 +180,11 @@ void main() {
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
     await _shot(tester, '09_도감');
-    await tester.scrollUntilVisible(find.textContaining('몬스터 도감'), 300,
-        scrollable: find.byType(Scrollable).first);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
-    await tester.pump();
+    await tester.tap(find.textContaining('몬스터 ').first);
+    await tester.pumpAndSettle();
     await _shot(tester, '10_도감_몬스터');
+    await tester.tap(find.textContaining('칭호 ').first);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('설정'));
     await tester.pumpAndSettle();

@@ -69,7 +69,7 @@ test/
 - [x] 건강 앱 연동 (아이폰 HealthKit, 안드로이드 Health Connect) — 휴대폰별 설정은 [docs/platform_setup.md](docs/platform_setup.md)
 - [x] 기록 저장 (기기 저장소, 앱을 열 때마다 오늘·어제 걸음과 수면 동기화)
 - [x] 각성 화면, 레벨업 연출
-- [x] 고잔동 지도, 장소 아이콘, 잿빛 안개 (네이버 지도, 위치 연동) — 장소 목록은 [docs/gojan_places.md](docs/gojan_places.md)
+- [x] 고잔동 지도, 장소 아이콘, 잿빛 안개 (네이버 지도, 위치 연동) — 장소 목록은 [docs/ansan_places.md](docs/ansan_places.md)
 - [x] 던전 입장·전투(3층 + 보스, 스킬 버튼 1개)·결과, 필드 몬스터 정화 (몬스터 6종)
 - [x] 기록 탭(최근 7일), 도감 탭(직업·칭호·몬스터), 설정 탭(걸음 목표·이름·기록 삭제·제외 구역 요청)
 - [x] 실제 날씨로 불씨 색 바꾸기 (Open-Meteo, 키 필요 없음)

@@ -108,6 +108,7 @@ class RuleConstants {
   static const int lanternKeeperLevel = 10;
 
   // 탐험 칭호
+  static const int gateKeeperGates = 5; // 서로 다른 미궁 입구 5곳
   static const int lakeFriendVisits = 5; // 정령의 호수 서로 다른 날 5번
   static const int brightTownCells = 300; // 안개 300칸 (100m 칸, 약 3km²)
 

@@ -50,7 +50,7 @@ class ExclusionZone {
   bool contains(GeoPoint p) => center.distanceTo(p) <= radiusM;
 }
 
-/// 탐험 지역 (예: 고잔동). 안개는 [cellSizeM] 칸 단위로 걷힌다.
+/// 탐험 지역 (예: 안산시). 안개는 [cellSizeM] 칸 단위로 걷힌다.
 class ExploreArea {
   const ExploreArea({
     required this.id,

@@ -1,4 +1,4 @@
-/// 고잔동 몬스터 6종 (기획 '몬스터 정화' 후보).
+/// 안산 몬스터 6종 (기획 '몬스터 정화' 후보).
 ///
 /// 몬스터는 악당이 아니라 잿빛에 물든 존재다. 쓰러뜨리면 '정화'되어
 /// 원래 모습으로 돌아간다.
@@ -58,14 +58,14 @@ class Monsters {
       id: MonsterId.labyrinthBat,
       name: '미궁 박쥐',
       purifiedName: '별빛 박쥐',
-      habitat: '미궁 입구 (중앙역·고잔역)',
+      habitat: '미궁 입구 (지하철역)',
       purifiedLine: '날개에 별빛이 돌아왔어. 이제 길을 비춰 줄 거야.',
     ),
     MonsterInfo(
       id: MonsterId.roughWaterSpirit,
       name: '거칠어진 물방울 정령',
       purifiedName: '맑은 물방울 정령',
-      habitat: '정령의 호수 (호수공원)',
+      habitat: '정령의 물가 (호수·습지·공원)',
       purifiedLine: '물결이 잔잔해졌어. 호수가 고맙대!',
     ),
     MonsterInfo(

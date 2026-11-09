@@ -10,9 +10,9 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/dungeon_screen.dart';
-import 'package:isekai_reality/features/map/gojan_area.dart';
+import 'package:isekai_reality/features/map/ansan_area.dart';
 
-const area = GojanArea.area;
+const area = AnsanArea.area;
 const jungang = GeoPoint(37.31596, 126.83864);
 
 Battle dungeonFor(int level, Stats stats, {int seed = 1, bool atGate = false}) {

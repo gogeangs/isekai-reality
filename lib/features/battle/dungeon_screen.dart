@@ -348,7 +348,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               height: 170,
               child: HeroSprite(
                   look: _c.profile.look,
-                  pose: cleared ? HeroPose.victory : HeroPose.attack),
+                  pose: cleared ? HeroPose.victory : HeroPose.idle),
             ),
             Positioned(
               right: 36,

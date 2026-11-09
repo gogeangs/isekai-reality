@@ -60,6 +60,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
       backgroundColor: const Color(0xFF0F1233),
+      // 입장 화면의 '던전 열기'는 스크롤과 상관없이 화면 아래에 늘 보이게 고정한다
+      bottomNavigationBar: _stage == _Stage.entry ? _entryButton() : null,
       body: NightBackground(
         child: ListView(
           padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -128,7 +130,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
       ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          height: 210,
+          height: 170,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
@@ -247,12 +249,30 @@ class _DungeonScreenState extends State<DungeonScreen> {
       ),
       const SizedBox(height: 14),
       BulssiBubble(line: line),
-      const SizedBox(height: 18),
-      GoldButton(
-        label: '던전 열기',
-        onPressed: keys > 0 && canFight ? _start : null,
-      ),
     ];
+  }
+
+  Widget _entryButton() {
+    final keys = _c.player.gauge.keysAvailable;
+    final canFight = _c.canFightNow;
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x000F1233), Color(0xFF0F1233)],
+          stops: [0, 0.35],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: SafeArea(
+        top: false,
+        child: GoldButton(
+          label: keys > 0 ? '던전 열기 · 열쇠 1개' : '열쇠가 없어요',
+          onPressed: keys > 0 && canFight ? _start : null,
+        ),
+      ),
+    );
   }
 
   // ───────────────────────────────────────────── 결과

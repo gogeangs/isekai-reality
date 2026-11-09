@@ -115,11 +115,11 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '04_던전_입장');
 
-    await tester.scrollUntilVisible(find.text('던전 열기'), 300,
+    await tester.scrollUntilVisible(find.text('던전 열기 · 열쇠 1개'), 300,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     await _shot(tester, '04b_던전_입장_아래');
-    await tester.tap(find.text('던전 열기'));
+    await tester.tap(find.text('던전 열기 · 열쇠 1개'));
     await tester.pump();
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 900));

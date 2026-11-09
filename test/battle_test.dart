@@ -297,10 +297,10 @@ void main() {
     ));
     expect(find.text('열쇠 2개'), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('던전 열기'), 300,
+    await tester.scrollUntilVisible(find.text('던전 열기 · 열쇠 1개'), 300,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('던전 열기'));
+    await tester.tap(find.text('던전 열기 · 열쇠 1개'));
     await tester.pump();
     expect(find.text('1층 / 3층'), findsOneWidget);
 

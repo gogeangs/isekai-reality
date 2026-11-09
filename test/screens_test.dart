@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
-import 'package:isekai_reality/core/models/daily_record.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/data/weather/weather_source.dart';
@@ -106,56 +106,12 @@ void main() {
           clock: () => now,
         );
 
-    test('걸음 목표를 바꾸면 오늘 기록에도 바로 적용된다', () async {
+    test('걸음 목표는 모두 같다 (5,000보, 예전에 바꾼 목표는 무시)', () async {
       final c = make(InMemoryRecordStore(
-          profile: const PlayerProfile(name: '하루', stepGoal: 5000)));
+          profile: const PlayerProfile(name: '하루', stepGoal: 3000)));
       await c.init();
-      expect(c.history.last.stepGoalAchieved, isFalse);
-
-      await c.setStepGoal(3000);
-      expect(c.profile.stepGoal, 3000);
-      expect(c.history.last.stepGoal, 3000);
-      expect(c.history.last.stepGoalAchieved, isTrue);
-
-      await c.setStepGoal(99999); // 최대 10,000보
-      expect(c.profile.stepGoal, 10000);
-    });
-
-    test('첫 3일 평균에 맞춘 목표를 권한다 (500보 단위)', () async {
-      // 어제 기록은 건강 앱 값으로 다시 마감하므로 건강 앱에도 같은 걸음을 둔다
-      final c = AppController(
-        store: InMemoryRecordStore(
-        profile: const PlayerProfile(name: '하루', stepGoal: 5000),
-        history: [
-          DailyRecord(date: DateTime(2026, 11, 5), steps: 3900),
-          DailyRecord(date: DateTime(2026, 11, 6), steps: 4300),
-          DailyRecord(date: DateTime(2026, 11, 7), steps: 4100),
-        ],
-        ),
-        health: FakeHealthSource(
-            stepsByDay: {'2026-11-07': 4100, '2026-11-08': 1000}),
-        clock: () => now,
-      );
-      await c.init();
-      expect(c.stepGoalSuggestion, 4000);
-    });
-
-    test('3일 연속 목표를 넘으면 1,000보 올리기를 권한다', () async {
-      final c = AppController(
-        store: InMemoryRecordStore(
-          profile: const PlayerProfile(name: '하루', stepGoal: 5000),
-          history: [
-            for (var d = 1; d <= 7; d++)
-              DailyRecord(
-                  date: DateTime(2026, 11, d), steps: 6000, stepGoal: 5000),
-          ],
-        ),
-        health: FakeHealthSource(
-            stepsByDay: {'2026-11-07': 6000, '2026-11-08': 1000}),
-        clock: () => now,
-      );
-      await c.init();
-      expect(c.stepGoalSuggestion, 6000);
+      expect(c.history.last.stepGoal, RuleConstants.defaultStepGoal);
+      expect(c.history.last.stepGoalAchieved, isFalse); // 4,000보
     });
 
     test('이름과 정령 이름을 바꾼다 (빈 이름은 무시)', () async {
@@ -232,14 +188,11 @@ void main() {
       expect(find.text('몬스터 도감 0 / 6'), findsOneWidget);
     });
 
-    testWidgets('설정 탭: 걸음 목표 바꾸기, 기록 지우기', (tester) async {
+    testWidgets('설정 탭: 기록 지우기', (tester) async {
       final c = await openDemo(tester);
       await tester.tap(find.text('설정'));
       await tester.pump();
 
-      await tester.tap(find.text('3,000보'));
-      await tester.pumpAndSettle();
-      expect(c.profile.stepGoal, 3000);
 
       final reset = find.text('모든 기록 지우고 처음부터');
       await tester.scrollUntilVisible(reset, 300,

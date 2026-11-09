@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
+import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -81,7 +82,7 @@ class ShopScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'HP ${controller.hp} / ${controller.maxHp} · '
+                      'HP ${comma(controller.hp)} / ${comma(controller.maxHp)} · '
                       '정령 MP ${controller.mp} / ${RuleConstants.mpMax}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(

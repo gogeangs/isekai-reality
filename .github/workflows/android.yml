@@ -42,7 +42,9 @@ jobs:
         run: flutter create --platforms android --org kr.itso --project-name isekai_reality .
 
       - name: 게임에 필요한 설정 넣기
-        run: python3 tool/prepare_android.py
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 tool/prepare_android.py
 
       - name: APK 만들기
         env:

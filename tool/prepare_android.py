@@ -5,7 +5,6 @@ python3 tool/prepare_android.py
 """
 import pathlib
 import re
-import subprocess
 
 root = pathlib.Path(__file__).resolve().parent.parent
 app = root / "android" / "app"
@@ -73,9 +72,12 @@ for f in (app / "src" / "main").rglob("MainActivity.kt"):
 icon = root / "assets" / "branding" / "app_icon.png"
 sizes = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
 if icon.exists():
+    from PIL import Image  # pip install pillow
+
+    src = Image.open(icon).convert("RGBA")
     for dpi, px in sizes.items():
         out = app / "src" / "main" / "res" / f"mipmap-{dpi}" / "ic_launcher.png"
         out.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["convert", str(icon), "-resize", f"{px}x{px}", str(out)], check=True)
+        src.resize((px, px), Image.LANCZOS).save(out)
 
 print("android/ 준비 완료")

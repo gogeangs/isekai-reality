@@ -187,13 +187,13 @@ void main() {
           profile: const PlayerProfile(name: '하루'));
       final c = make(store);
       await c.init();
-      await store.saveRevealedCells('ansan_gojan', {'1_1'});
+      await store.saveRevealedCells('ansan', {'1_1'});
 
       await c.resetAll();
       expect(c.needsAwakening, isTrue);
       expect(await store.loadProfile(), isNull);
       expect(await store.loadHistory(), isEmpty);
-      expect(await store.loadRevealedCells('ansan_gojan'), isEmpty);
+      expect(await store.loadRevealedCells('ansan'), isEmpty);
     });
   });
 

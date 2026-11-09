@@ -38,14 +38,14 @@ class TitleRules {
     TitleInfo(TitleId.nightWalker, '밤길의 산책자', '저녁 8시 이후에 걷기'),
     TitleInfo(TitleId.awakened, '각성자', 'Lv.5 달성'),
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
-    TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '두 미궁 입구 모두 가 보기'),
-    TitleInfo(TitleId.lakeFriend, '호수의 친구', '호수에 다섯 번 놀러 가기'),
-    TitleInfo(TitleId.townLight, '동네의 빛', '내 동네 절반 밝히기'),
+    TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '미궁 입구 다섯 곳 가 보기'),
+    TitleInfo(TitleId.lakeFriend, '호수의 친구', '정령의 물가에 다섯 번 놀러 가기'),
+    TitleInfo(TitleId.townLight, '동네의 빛', '안개 300칸 걷기'),
   ];
 
-  /// 탐험 칭호가 보는 장소 id (lib/features/map/gojan_area.dart)
-  static const List<String> gatePlaceIds = ['gate_jungang', 'gate_gojan'];
-  static const String lakePlaceId = 'lake_ansan';
+  /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
+  static const String gatePrefix = 'gate_';
+  static const String lakePrefix = 'lake_';
 
   /// 대표 칭호: 플레이어가 고른 칭호가 있고 얻은 칭호면 그것,
   /// 아니면 '끈기의 여행자' → 가장 나중 칭호 순으로 자동.
@@ -70,11 +70,11 @@ class TitleRules {
   static TitleInfo info(TitleId id) => all.firstWhere((t) => t.id == id);
 
   /// 날짜순으로 정렬된 [history] 와 현재 [level] 로 얻은 칭호를 계산한다
-  /// [revealedRatio] 지역 안개를 걷은 비율 (0~1, 탐험 기록은 하루 기록 밖에 있다)
+  /// [revealedCells] 안개를 걷은 칸 수 (탐험 기록은 하루 기록 밖에 있다)
   static Set<TitleId> earned(
     List<DailyRecord> history,
     int level, {
-    double revealedRatio = 0,
+    int revealedCells = 0,
   }) {
     final result = <TitleId>{};
 
@@ -110,13 +110,15 @@ class TitleRules {
     }
 
     final visited = <String>{for (final d in history) ...d.visitedPlaceIds};
-    if (gatePlaceIds.every(visited.contains)) result.add(TitleId.gateKeeper);
-    final lakeDays =
-        history.where((d) => d.visitedPlaceIds.contains(lakePlaceId)).length;
+    final gates = visited.where((id) => id.startsWith(gatePrefix)).length;
+    if (gates >= RuleConstants.gateKeeperGates) result.add(TitleId.gateKeeper);
+    final lakeDays = history
+        .where((d) => d.visitedPlaceIds.any((id) => id.startsWith(lakePrefix)))
+        .length;
     if (lakeDays >= RuleConstants.lakeFriendVisits) {
       result.add(TitleId.lakeFriend);
     }
-    if (revealedRatio >= RuleConstants.brightTownRatio) {
+    if (revealedCells >= RuleConstants.brightTownCells) {
       result.add(TitleId.townLight);
     }
     return result;

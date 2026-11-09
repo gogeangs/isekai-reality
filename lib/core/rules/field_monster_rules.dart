@@ -23,8 +23,9 @@ class FieldMonsterRules {
   /// 그날의 필드 몬스터. 날짜로 정해지므로 같은 날에는 누구에게나 같은 자리.
   ///
   /// - 장소마다 한 마리: 장소에서 80~150m 떨어진 곳, 장소에 맞는 몬스터
-  /// - 나머지는 지역 안 아무 곳: 잿빛 슬라임 또는 길 잃은 돌정령
-  /// - 밤(오후 7시 ~ 새벽 5시)에는 아무 곳 몬스터 중 2마리가 그림자 나비로 바뀐다
+  /// - 지역을 1km 블록으로 나눠 블록마다 70% 확률로 한 마리:
+  ///   잿빛 슬라임 또는 길 잃은 돌정령
+  /// - 밤(오후 7시 ~ 새벽 5시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비가 된다
   /// - 제외 구역과 지역 밖에는 두지 않는다
   static List<FieldSpawn> spawnsFor(ExploreArea area, DateTime day) {
     final key = '${day.year}-${day.month}-${day.day}';
@@ -32,7 +33,7 @@ class FieldMonsterRules {
     final spawns = <FieldSpawn>[];
 
     GeoPoint? pick(GeoPoint Function() candidate) {
-      for (var attempt = 0; attempt < 20; attempt++) {
+      for (var attempt = 0; attempt < 8; attempt++) {
         final p = candidate();
         if (area.bounds.contains(p) && !area.isExcluded(p)) return p;
       }
@@ -40,7 +41,6 @@ class FieldMonsterRules {
     }
 
     for (final place in area.places) {
-      if (spawns.length >= RuleConstants.fieldSpawnsPerDay) break;
       final p = pick(() => _offset(
             place.point,
             80 + rng.nextDouble() * 70,
@@ -56,34 +56,37 @@ class FieldMonsterRules {
 
     const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
     final b = area.bounds;
-    var guard = 0;
-    while (spawns.length < RuleConstants.fieldSpawnsPerDay && guard++ < 100) {
-      final p = pick(() => GeoPoint(
-            b.south + rng.nextDouble() * (b.north - b.south),
-            b.west + rng.nextDouble() * (b.east - b.west),
-          ));
-      if (p == null) continue;
-      spawns.add(FieldSpawn(
-        id: '$key#${spawns.length}',
-        monster: commons[rng.nextInt(commons.length)],
-        point: p,
-      ));
-    }
-    if (isNight(day)) {
-      var changed = 0;
-      for (var i = 0; i < spawns.length && changed < nightButterflies; i++) {
-        final s = spawns[i];
-        if (!commons.contains(s.monster)) continue;
-        spawns[i] = FieldSpawn(
-            id: s.id, monster: MonsterId.shadowButterfly, point: s.point);
-        changed++;
+    final midLat = (b.south + b.north) / 2;
+    final blockLat = RuleConstants.fieldSpawnBlockM / 111320;
+    final blockLng = RuleConstants.fieldSpawnBlockM /
+        (111320 * math.cos(midLat * math.pi / 180));
+    final night = isNight(day);
+    for (var lat = b.south; lat < b.north; lat += blockLat) {
+      for (var lng = b.west; lng < b.east; lng += blockLng) {
+        // 블록마다 같은 순서로 난수를 쓴다 (밤낮에 따라 자리가 바뀌지 않게)
+        final roll = rng.nextDouble();
+        final kind = rng.nextInt(commons.length);
+        final butterflyRoll = rng.nextDouble();
+        final s0 = lat, w0 = lng;
+        final p = pick(() => GeoPoint(
+              s0 + rng.nextDouble() * blockLat,
+              w0 + rng.nextDouble() * blockLng,
+            ));
+        if (roll >= RuleConstants.fieldSpawnChance || p == null) continue;
+        spawns.add(FieldSpawn(
+          id: '$key#${spawns.length}',
+          monster: night && butterflyRoll < nightButterflyShare
+              ? MonsterId.shadowButterfly
+              : commons[kind],
+          point: p,
+        ));
       }
     }
     return spawns;
   }
 
-  /// 밤에 그림자 나비로 바뀌는 몬스터 수
-  static const int nightButterflies = 2;
+  /// 밤에 그림자 나비가 되는 블록 몬스터 비율
+  static const double nightButterflyShare = 0.2;
 
   /// 그림자 나비가 나오는 시간 (오후 7시 ~ 새벽 5시)
   static bool isNight(DateTime t) => t.hour >= 19 || t.hour < 5;

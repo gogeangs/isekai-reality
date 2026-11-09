@@ -186,26 +186,27 @@ void main() {
     DailyRecord visit(int i, List<String> ids) =>
         DailyRecord(date: DateTime(2026, 11, 1 + i), visitedPlaceIds: ids);
 
-    test('두 미궁 입구를 모두 가면 미궁의 문지기', () {
-      expect(TitleRules.earned([visit(0, ['gate_jungang'])], 1),
-          isNot(contains(TitleId.gateKeeper)));
-      expect(
-          TitleRules.earned(
-              [visit(0, ['gate_jungang']), visit(3, ['gate_gojan'])], 1),
+    test('서로 다른 미궁 입구 다섯 곳을 가면 미궁의 문지기', () {
+      final four = [
+        visit(0, ['gate_jungang', 'gate_gojan']),
+        visit(1, ['gate_jungang', 'gate_choji', 'gate_ansan']),
+      ];
+      expect(TitleRules.earned(four, 1), isNot(contains(TitleId.gateKeeper)));
+      expect(TitleRules.earned([...four, visit(2, ['gate_banwol'])], 1),
           contains(TitleId.gateKeeper));
     });
 
     test('호수를 서로 다른 5일 가면 호수의 친구', () {
       final four = [for (var i = 0; i < 4; i++) visit(i, ['lake_ansan'])];
       expect(TitleRules.earned(four, 1), isNot(contains(TitleId.lakeFriend)));
-      expect(TitleRules.earned([...four, visit(9, ['lake_ansan'])], 1),
+      expect(TitleRules.earned([...four, visit(9, ['lake_reed'])], 1),
           contains(TitleId.lakeFriend));
     });
 
-    test('안개를 50% 걷으면 동네의 빛', () {
-      expect(TitleRules.earned([], 1, revealedRatio: 0.49),
+    test('안개를 300칸 걷으면 동네의 빛', () {
+      expect(TitleRules.earned([], 1, revealedCells: 299),
           isNot(contains(TitleId.townLight)));
-      expect(TitleRules.earned([], 1, revealedRatio: 0.5),
+      expect(TitleRules.earned([], 1, revealedCells: 300),
           contains(TitleId.townLight));
     });
 

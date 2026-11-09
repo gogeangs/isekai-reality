@@ -10,9 +10,9 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/dungeon_screen.dart';
-import 'package:isekai_reality/features/map/gojan_area.dart';
+import 'package:isekai_reality/features/map/ansan_area.dart';
 
-const area = GojanArea.area;
+const area = AnsanArea.area;
 const jungang = GeoPoint(37.31596, 126.83864);
 
 Battle dungeonFor(int level, Stats stats, {int seed = 1, bool atGate = false}) {
@@ -133,10 +133,12 @@ void main() {
   group('필드 몬스터 자리', () {
     final day = DateTime(2026, 11, 8);
 
-    test('하루 8마리, 같은 날에는 같은 자리', () {
+    test('시내 1km 블록마다 한 마리꼴, 같은 날에는 같은 자리', () {
       final a = FieldMonsterRules.spawnsFor(area, day);
       final b = FieldMonsterRules.spawnsFor(area, day);
-      expect(a, hasLength(RuleConstants.fieldSpawnsPerDay));
+      // 장소마다 1 + 블록(약 1km²)의 70%
+      expect(a.length, greaterThan(area.places.length + 50));
+      expect(a.length, lessThan(area.places.length + 250));
       expect(a.map((s) => s.id), b.map((s) => s.id));
       expect(a.first.point.lat, b.first.point.lat);
       final other = FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 9));
@@ -160,13 +162,13 @@ void main() {
       expect(kinds, contains(MonsterId.roughWaterSpirit));
     });
 
-    test('밤에는 아무 곳 몬스터 중 2마리가 그림자 나비가 된다', () {
+    test('밤에는 블록 몬스터 일부가 그림자 나비가 된다', () {
       int butterflies(DateTime t) => FieldMonsterRules.spawnsFor(area, t)
           .where((s) => s.monster == MonsterId.shadowButterfly)
           .length;
       expect(butterflies(DateTime(2026, 11, 8, 14)), 0);
-      expect(butterflies(DateTime(2026, 11, 8, 21)), 2);
-      expect(butterflies(DateTime(2026, 11, 9, 3)), 2);
+      expect(butterflies(DateTime(2026, 11, 8, 21)), greaterThan(5));
+      expect(butterflies(DateTime(2026, 11, 9, 3)), greaterThan(5));
       // 자리는 낮과 같다
       expect(
           FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 8, 21))

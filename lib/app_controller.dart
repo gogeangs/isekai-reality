@@ -12,7 +12,7 @@ import 'data/location/location_source.dart';
 import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
-import 'features/map/gojan_area.dart';
+import 'features/map/ansan_area.dart';
 import 'features/status/demo_data.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
@@ -25,7 +25,7 @@ class AppController extends ChangeNotifier {
     required this.health,
     this.location,
     this.weatherSource,
-    this.area = GojanArea.area,
+    this.area = AnsanArea.area,
     DateTime Function()? clock,
     math.Random? random,
   })  : _clock = clock ?? DateTime.now,
@@ -56,7 +56,7 @@ class AppController extends ChangeNotifier {
   /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
   final WeatherSource? weatherSource;
 
-  /// 탐험 지역 (페이즈 1: 고잔동)
+  /// 탐험 지역 (안산시 시내)
   final ExploreArea area;
   final DateTime Function() _clock;
 
@@ -97,7 +97,9 @@ class AppController extends ChangeNotifier {
   List<DailyRecord> get history => List.unmodifiable(_history);
 
   PlayerState get player => PlayerState.fromHistory(
-      name: _profile.name, history: _history, revealedRatio: revealedRatio);
+      name: _profile.name,
+      history: _history,
+      revealedCells: _revealedCells.length);
 
   /// 대표 칭호 (고른 것이 없으면 자동)
   TitleId? get equippedTitle => TitleRules.equipped(player.titles,
@@ -291,7 +293,7 @@ class AppController extends ChangeNotifier {
         LevelRules.fromTotalExp(total).level,
       ].join(','));
     }
-    b.writeln('# 밝힌 비율 ${(revealedRatio * 100).toStringAsFixed(1)}%, '
+    b.writeln('# 걷은 안개 ${_revealedCells.length}칸, '
         '직업 ${p.job?.koreanName ?? '-'}, 칭호 ${p.titles.length}개, '
         '도감 ${purifiedEver.length}종');
     return b.toString();

@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
@@ -68,14 +70,14 @@ class StatusScreen extends StatelessWidget {
         children: [
           // ─────────── 각성자 그림
           SizedBox(
-            height: 300 + top,
+            height: 360 + top,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _HeroArt(look: look),
+                _HeroArt(look: look, top: top),
                 const Align(
                     alignment: Alignment.bottomCenter,
-                    child: FadeToNight(height: 110)),
+                    child: FadeToNight(height: 80)),
                 Positioned(
                   top: top + 8,
                   left: 14,
@@ -203,23 +205,65 @@ class _TownTile extends StatelessWidget {
   }
 }
 
+/// 각성자 그림. 머리가 휴대폰 상태 표시줄(시계·배터리)에, 발이 레벨 배지에
+/// 가리지 않도록 그림 전체를 상태 표시줄 아래 ~ 배지 위 사이에 넣는다.
+/// 그 바깥(상태 표시줄 뒤, 배지 뒤)은 같은 그림을 흐리게 깔아 이어 보이게 한다.
 class _HeroArt extends StatelessWidget {
-  const _HeroArt({required this.look});
+  const _HeroArt({required this.look, required this.top});
 
   final HeroLook look;
+
+  /// 상태 표시줄 높이
+  final double top;
+
+  /// 아래 레벨 배지가 겹치는 높이
+  static const double badgeOverlap = 64;
 
   @override
   Widget build(BuildContext context) {
     final asset = look == HeroLook.female
         ? 'assets/images/bg_status_female.jpg'
         : 'assets/images/bg_status_male.jpg';
-    return Image.asset(asset,
-        fit: BoxFit.cover,
-        alignment: look == HeroLook.female
-            ? const Alignment(-0.45, -0.6)
-            : const Alignment(-0.42, -0.6),
-        semanticLabel: '기본 각성자',
-        errorBuilder: (_, __, ___) => const SizedBox());
+    final alignment = look == HeroLook.female
+        ? const Alignment(-0.45, 0)
+        : const Alignment(-0.42, 0);
+    return Stack(fit: StackFit.expand, children: [
+      // 바탕: 같은 그림을 흐리게
+      ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Image.asset(asset,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            errorBuilder: (_, __, ___) => const SizedBox()),
+      ),
+      // 각성자 전신
+      Positioned(
+        top: top,
+        left: 0,
+        right: 0,
+        bottom: badgeOverlap,
+        child: ShaderMask(
+          // 위아래 가장자리를 바탕에 녹인다
+          shaderCallback: (r) => const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0x00FFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0x00FFFFFF),
+            ],
+            stops: [0, 0.04, 0.9, 1],
+          ).createShader(r),
+          blendMode: BlendMode.dstIn,
+          child: Image.asset(asset,
+              fit: BoxFit.cover,
+              alignment: alignment,
+              semanticLabel: '기본 각성자',
+              errorBuilder: (_, __, ___) => const SizedBox()),
+        ),
+      ),
+    ]);
   }
 }
 

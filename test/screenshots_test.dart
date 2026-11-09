@@ -78,8 +78,11 @@ Future<void> _shot(WidgetTester tester, String name) async {
 }
 
 void _phone(WidgetTester tester) {
-  tester.view.physicalSize = const Size(1170, 2532); // 아이폰 14 크기
+  tester.view.physicalSize = const Size(1170, 2532); // 아이폰 13·14 크기
   tester.view.devicePixelRatio = 3;
+  // 상태 표시줄(위 47pt)과 홈 표시줄(아래 34pt)까지 실제 아이폰처럼
+  tester.view.padding = const FakeViewPadding(top: 141, bottom: 102);
+  tester.view.viewPadding = const FakeViewPadding(top: 141, bottom: 102);
   addTearDown(tester.view.reset);
 }
 

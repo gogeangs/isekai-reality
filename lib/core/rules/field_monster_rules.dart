@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../geo/geo.dart';
 import 'exploration_rules.dart';
 import 'monsters.dart';
+import 'road_mask.dart';
 import 'rule_constants.dart';
 
 /// 지도에 나타난 필드 몬스터 하나
@@ -26,8 +27,10 @@ class FieldMonsterRules {
   /// - 지역을 1km 블록으로 나눠 블록마다 70% 확률로 한 마리:
   ///   잿빛 슬라임 또는 길 잃은 돌정령
   /// - 밤(오후 7시 ~ 새벽 5시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비가 된다
-  /// - 제외 구역과 지역 밖에는 두지 않는다
-  static List<FieldSpawn> spawnsFor(ExploreArea area, DateTime day) {
+  /// - 제외 구역과 지역 밖, 큰길·철로 둘레에는 두지 않는다
+  /// [roads] 가 있으면 큰길·철로 둘레에는 두지 않는다 (11-10).
+  static List<FieldSpawn> spawnsFor(ExploreArea area, DateTime day,
+      {RoadMask? roads}) {
     final key = '${day.year}-${day.month}-${day.day}';
     final rng = math.Random(_stableHash('${area.id}|$key'));
     final spawns = <FieldSpawn>[];
@@ -35,7 +38,11 @@ class FieldMonsterRules {
     GeoPoint? pick(GeoPoint Function() candidate) {
       for (var attempt = 0; attempt < 8; attempt++) {
         final p = candidate();
-        if (area.bounds.contains(p) && !area.isExcluded(p)) return p;
+        if (area.bounds.contains(p) &&
+            !area.isExcluded(p) &&
+            !(roads?.isRoad(p) ?? false)) {
+          return p;
+        }
       }
       return null;
     }

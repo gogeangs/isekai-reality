@@ -41,6 +41,7 @@ class DailyRecord {
     this.restedAtInn = false,
     this.newCellsRevealed = 0,
     this.restsCompleted = 0,
+    this.itemsUsed = const [],
   });
 
   final DateTime date;
@@ -87,6 +88,9 @@ class DailyRecord {
   /// 오늘 여관 휴식(체크인하고 4시간)을 마친 횟수
   final int restsCompleted;
 
+  /// 오늘 가방에서 꺼내 쓴 물건 ([ShopItem] 이름, 쓴 순서대로)
+  final List<String> itemsUsed;
+
   /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
   bool get rested => restsCompleted > 0;
 
@@ -118,6 +122,7 @@ class DailyRecord {
         'restedAtInn': restedAtInn,
         'newCellsRevealed': newCellsRevealed,
         'restsCompleted': restsCompleted,
+        'itemsUsed': itemsUsed,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -152,6 +157,9 @@ class DailyRecord {
       restedAtInn: json['restedAtInn'] as bool? ?? false,
       newCellsRevealed: json['newCellsRevealed'] as int? ?? 0,
       restsCompleted: json['restsCompleted'] as int? ?? 0,
+      itemsUsed: ((json['itemsUsed'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
     );
   }
 
@@ -176,6 +184,7 @@ class DailyRecord {
     bool? restedAtInn,
     int? newCellsRevealed,
     int? restsCompleted,
+    List<String>? itemsUsed,
   }) {
     return DailyRecord(
       date: date,
@@ -198,6 +207,7 @@ class DailyRecord {
       restedAtInn: restedAtInn ?? this.restedAtInn,
       newCellsRevealed: newCellsRevealed ?? this.newCellsRevealed,
       restsCompleted: restsCompleted ?? this.restsCompleted,
+      itemsUsed: itemsUsed ?? this.itemsUsed,
     );
   }
 }

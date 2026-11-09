@@ -73,7 +73,23 @@ enum PurchaseCheck {
   limitReached,
   needsLocation,
   levelTooLow,
+
+  /// 가방에 이미 [TownRules.bagMax] 개
+  bagFull,
+}
+
+/// 가방에서 꺼내 쓸 수 있는지
+enum UseCheck {
+  ok,
+
+  /// 가방에 없다
+  none,
+
+  /// HP·MP가 이미 가득
   alreadyFull,
+
+  /// 정령 물약을 오늘 이미 마셨다
+  alreadyActive,
 }
 
 /// 앱 안 시설 규칙: 정화 결정(돈), 잡화상, 여관.
@@ -87,7 +103,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.healSmall,
       name: '작은 회복 물약',
-      description: '마시면 HP가 20% 차요.',
+      description: '가방에 넣어 두고, 마시면 HP가 20% 차요.',
       price: 1,
       limit: ShopLimit.perDay,
       perLimit: 3,
@@ -97,7 +113,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.heal,
       name: '회복 물약',
-      description: '마시면 HP가 40% 차요.',
+      description: '가방에 넣어 두고, 마시면 HP가 40% 차요.',
       price: 3,
       limit: ShopLimit.perDay,
       perLimit: 3,
@@ -108,7 +124,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.manaSmall,
       name: '작은 마나 물약',
-      description: '정령의 MP가 20% 차요.',
+      description: '가방에 넣어 두고, 마시면 정령 MP가 20% 차요.',
       price: 1,
       limit: ShopLimit.perDay,
       perLimit: 3,
@@ -118,7 +134,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.mana,
       name: '마나 물약',
-      description: '정령의 MP가 40% 차요.',
+      description: '가방에 넣어 두고, 마시면 정령 MP가 40% 차요.',
       price: 3,
       limit: ShopLimit.perDay,
       perLimit: 3,
@@ -137,7 +153,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.bulssiPotion,
       name: '정령 물약',
-      description: '오늘 던전에서 정령의 일격이 더 빨리 충전돼요.',
+      description: '가방에 넣어 두고, 마신 날은 던전에서 정령의 일격이 빨리 차요.',
       price: 5,
       limit: ShopLimit.perDay,
       icon: 'potion_spirit_fire',
@@ -220,14 +236,54 @@ class TownRules {
         .fold(0, (sum, r) => sum + boughtOn(r, item));
   }
 
-  /// [hpFull]·[mpFull] 은 지금 HP·MP가 가득인지 (가득이면 물약을 살 수 없다)
+  // ───────────────────────── 가방 (2026-11-10)
+
+  /// 사면 가방에 들어가는 물건 (나머지는 사자마자 쓴다)
+  static const Set<ShopItem> bagItems = {
+    ShopItem.healSmall,
+    ShopItem.heal,
+    ShopItem.manaSmall,
+    ShopItem.mana,
+    ShopItem.bulssiPotion,
+  };
+
+  /// 물건마다 가방에 들고 다닐 수 있는 개수
+  static const int bagMax = 3;
+
+  static int usedOn(DailyRecord r, ShopItem item) =>
+      r.itemsUsed.where((p) => p == item.name).length;
+
+  /// 가방에 남은 개수 (산 것 − 쓴 것)
+  static int bagCount(List<DailyRecord> history, ShopItem item) {
+    var n = 0;
+    for (final r in history) {
+      n += boughtOn(r, item) - usedOn(r, item);
+    }
+    return n < 0 ? 0 : n;
+  }
+
+  /// 가방에서 꺼내 쓸 수 있는지. [hpFull]·[mpFull] 은 지금 HP·MP가 가득인지.
+  static UseCheck canUse(
+    List<DailyRecord> history,
+    ShopItem item, {
+    bool hpFull = false,
+    bool mpFull = false,
+  }) {
+    if (bagCount(history, item) <= 0) return UseCheck.none;
+    final i = info(item);
+    if (i.hpRatio > 0 && hpFull) return UseCheck.alreadyFull;
+    if (i.mpRatio > 0 && mpFull) return UseCheck.alreadyFull;
+    if (item == ShopItem.bulssiPotion && potionActive(history.lastOrNull)) {
+      return UseCheck.alreadyActive;
+    }
+    return UseCheck.ok;
+  }
+
   static PurchaseCheck canBuy(
     List<DailyRecord> history,
     ShopItem item, {
     bool hasLocation = true,
     int level = 99,
-    bool hpFull = false,
-    bool mpFull = false,
   }) {
     final i = info(item);
     if (level < i.minLevel) return PurchaseCheck.levelTooLow;
@@ -238,17 +294,18 @@ class TownRules {
     if (item == ShopItem.magicLens && !hasLocation) {
       return PurchaseCheck.needsLocation;
     }
-    if (i.hpRatio > 0 && hpFull) return PurchaseCheck.alreadyFull;
-    if (i.mpRatio > 0 && mpFull) return PurchaseCheck.alreadyFull;
+    if (bagItems.contains(item) && bagCount(history, item) >= bagMax) {
+      return PurchaseCheck.bagFull;
+    }
     return PurchaseCheck.ok;
   }
 
   /// 그날 산 여분의 열쇠 수 (열쇠 계산에 더한다)
   static int spareKeysOn(DailyRecord r) => boughtOn(r, ShopItem.spareKey);
 
-  /// 그날 정령 물약을 마셨는지
+  /// 그날 정령 물약을 마셨는지 (가방에서 꺼내 마신 날)
   static bool potionActive(DailyRecord? r) =>
-      r != null && boughtOn(r, ShopItem.bulssiPotion) > 0;
+      r != null && usedOn(r, ShopItem.bulssiPotion) > 0;
 
   // ───────────────────────── 여관
 

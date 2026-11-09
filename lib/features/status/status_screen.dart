@@ -23,6 +23,7 @@ class StatusScreen extends StatelessWidget {
     this.mp,
     this.restLeft,
     this.spiritAway,
+    this.onOpenBag,
     this.onOpenDungeon,
     this.onOpenInn,
     this.onOpenShop,
@@ -45,6 +46,9 @@ class StatusScreen extends StatelessWidget {
 
   /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
   final String? spiritAway;
+
+  /// 가방 열기 (없으면 버튼을 그리지 않음)
+  final VoidCallback? onOpenBag;
 
   /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
   final VoidCallback? onOpenDungeon;
@@ -79,7 +83,7 @@ class StatusScreen extends StatelessWidget {
                 _HeroArt(look: look, top: top),
                 const Align(
                     alignment: Alignment.bottomCenter,
-                    child: FadeToNight(height: 80)),
+                    child: FadeToNight(height: 120)),
                 Positioned(
                   top: top + 8,
                   left: 14,
@@ -128,6 +132,7 @@ class StatusScreen extends StatelessWidget {
                     hp: hp ?? player.maxHp,
                     mp: mp ?? RuleConstants.mpMax,
                     spiritAway: spiritAway,
+                    onOpenBag: onOpenBag,
                     onOpenDungeon: onOpenDungeon,
                   ),
                   const SizedBox(height: 14),
@@ -242,13 +247,23 @@ class _HeroArt extends StatelessWidget {
         ? const Alignment(-0.45, 0)
         : const Alignment(-0.42, 0);
     return Stack(fit: StackFit.expand, children: [
-      // 바탕: 같은 그림을 흐리게
-      ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Image.asset(asset,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            errorBuilder: (_, __, ___) => const SizedBox()),
+      // 바탕: 같은 그림을 흐리게. 아래쪽은 밤하늘 배경에 경계 없이 녹인다
+      ShaderMask(
+        shaderCallback: (r) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+          stops: [0, 0.62, 1],
+        ).createShader(r),
+        blendMode: BlendMode.dstIn,
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(
+              sigmaX: 10, sigmaY: 10, tileMode: TileMode.decal),
+          child: Image.asset(asset,
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              errorBuilder: (_, __, ___) => const SizedBox()),
+        ),
       ),
       // 각성자 전신
       Positioned(
@@ -325,6 +340,7 @@ class _StatusPanel extends StatelessWidget {
     required this.hp,
     required this.mp,
     this.spiritAway,
+    this.onOpenBag,
     this.onOpenDungeon,
   });
 
@@ -332,6 +348,7 @@ class _StatusPanel extends StatelessWidget {
   final int hp;
   final int mp;
   final String? spiritAway;
+  final VoidCallback? onOpenBag;
   final VoidCallback? onOpenDungeon;
 
   @override
@@ -395,14 +412,30 @@ class _StatusPanel extends StatelessWidget {
           ),
           if (onOpenDungeon != null) ...[
             const SizedBox(height: 12),
-            FrameButton(
-              onPressed: onOpenDungeon,
-              icon: Icons.door_front_door_rounded,
-              height: 46,
-              label: gauge.keysAvailable > 0
-                  ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
-                  : '던전 (열쇠 없음)',
-            ),
+            Row(children: [
+              Expanded(
+                child: FrameButton(
+                  onPressed: onOpenDungeon,
+                  icon: Icons.door_front_door_rounded,
+                  height: 46,
+                  label: gauge.keysAvailable > 0
+                      ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
+                      : '던전 (열쇠 없음)',
+                ),
+              ),
+              if (onOpenBag != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 92,
+                  child: FrameButton(
+                    onPressed: onOpenBag,
+                    icon: Icons.backpack_rounded,
+                    height: 46,
+                    label: '가방',
+                  ),
+                ),
+              ],
+            ]),
           ],
           const SizedBox(height: 14),
           Row(

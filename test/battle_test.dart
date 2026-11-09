@@ -155,6 +155,37 @@ void main() {
       }
     });
 
+    test('길 격자가 있으면 큰길·철로 둘레에는 나오지 않는다', () {
+      // 서쪽 절반을 모두 길로 칠한 격자
+      const rows = 110, cols = 185;
+      final bits = List<int>.filled((rows * cols + 7) ~/ 8, 0);
+      for (var r = 0; r < rows; r++) {
+        for (var c = 0; c < cols ~/ 2; c++) {
+          final i = r * cols + c;
+          bits[i >> 3] |= 1 << (i & 7);
+        }
+      }
+      final mask = RoadMask(
+          south: area.bounds.south,
+          west: area.bounds.west,
+          latStep: 0.001,
+          lngStep: 0.001,
+          rows: rows,
+          cols: cols,
+          bits: bits);
+      expect(mask.isRoad(const GeoPoint(37.30, 126.75)), isTrue);
+      expect(mask.isRoad(const GeoPoint(37.30, 126.90)), isFalse);
+      expect(mask.isRoad(const GeoPoint(36.0, 126.75)), isFalse); // 격자 밖
+
+      final all = FieldMonsterRules.spawnsFor(area, day);
+      final safe = FieldMonsterRules.spawnsFor(area, day, roads: mask);
+      expect(safe, isNotEmpty);
+      expect(safe.length, lessThan(all.length));
+      for (final sp in safe) {
+        expect(mask.isRoad(sp.point), isFalse);
+      }
+    });
+
     test('장소 근처에는 그 장소의 몬스터가 나온다', () {
       final spawns = FieldMonsterRules.spawnsFor(area, day);
       final kinds = spawns.map((s) => s.monster).toSet();

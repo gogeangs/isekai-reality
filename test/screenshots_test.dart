@@ -286,8 +286,14 @@ void main() {
     await tester.tap(find.text('잡화상'));
     await tester.pumpAndSettle();
     await c.buy(ShopItem.bulssiPotion);
+    await c.buy(ShopItem.healSmall);
     await tester.pumpAndSettle();
     await _shot(tester, '22_잡화상');
+    await tester.ensureVisible(find.text('가방 열기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('가방 열기'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '22b_가방');
   });
 
   testWidgets('화면 미리보기: 첫 실행 각성', (tester) async {

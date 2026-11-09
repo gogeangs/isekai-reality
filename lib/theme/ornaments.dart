@@ -169,12 +169,13 @@ class OrnatePanel extends StatelessWidget {
         slice: slice,
         scale: s,
         child: Padding(
-          // 테두리 두께만큼 안쪽으로
+          // 테두리 두께와 모서리 장식만큼 안쪽으로
+          // (11-10: 글자가 모서리 장식에 겹쳐서 여백을 늘림)
           padding: EdgeInsets.fromLTRB(
-            30 / s + padding.left * 0.6,
-            (wide ? 60 : 50) / s + padding.top * 0.4,
-            30 / s + padding.right * 0.6,
-            (wide ? 44 : 40) / s + padding.bottom * 0.4,
+            46 / s + padding.left * 0.6,
+            (wide ? 74 : 62) / s + padding.top * 0.4,
+            46 / s + padding.right * 0.6,
+            (wide ? 58 : 52) / s + padding.bottom * 0.4,
           ),
           child: child,
         ),
@@ -682,16 +683,37 @@ class OrnateTopBar extends StatelessWidget {
       child: Row(
         children: [
           if (onBack != null)
-            IconButton(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: AppColors.goldBright),
-              tooltip: '뒤로',
+            // 밝은 하늘 그림 위에서도 보이게 어두운 동그라미를 깐다
+            DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0x990B0D26),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.goldBright),
+                tooltip: '뒤로',
+              ),
             )
           else
             const EyeEmblem(size: 40),
           const SizedBox(width: 6),
-          Expanded(child: RibbonHeading(title, size: 21)),
+          // 제목 뒤에 어두운 띠 (하늘 그림에 글자가 묻히지 않게)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const RadialGradient(
+                  radius: 2.2,
+                  colors: [Color(0xCC0B0D26), Color(0x000B0D26)],
+                  stops: [0.35, 1],
+                ),
+              ),
+              child: RibbonHeading(title, size: 21),
+            ),
+          ),
           const SizedBox(width: 6),
           trailing ?? const SizedBox(width: 40),
         ],

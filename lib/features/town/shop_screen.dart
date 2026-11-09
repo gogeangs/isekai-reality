@@ -8,6 +8,7 @@ import '../../theme/ornaments.dart';
 import '../../data/storage/record_store.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
+import 'bag_sheet.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터를 정화하고 모은 정화 결정으로 편의 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -25,16 +26,18 @@ class ShopScreen extends StatelessWidget {
           '결정 ${info.price - crystals}개 부족',
         PurchaseCheck.needsLocation => '위치를 켜 주세요',
         PurchaseCheck.levelTooLow => 'Lv.${info.minLevel}부터',
-        PurchaseCheck.alreadyFull =>
-          info.hpRatio > 0 ? 'HP가 가득해요' : 'MP가 가득해요',
+        PurchaseCheck.bagFull => '가방에 ${TownRules.bagMax}개 있어요',
       };
 
   static String boughtLine(ShopItem item) => switch (item) {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
-        ShopItem.bulssiPotion => '정령이 물약을 마셨어요. 오늘 던전에서 일격이 빨리 차요!',
+        ShopItem.bulssiPotion => '정령 물약을 가방에 넣었어요. 던전 가기 전에 마셔요!',
         ShopItem.magicLens => '마법 돋보기로 주변 안개를 걷었어요. 지도를 확인해 보세요!',
-        ShopItem.healSmall || ShopItem.heal => '물약을 마셨어요. HP가 찼어요!',
-        ShopItem.manaSmall || ShopItem.mana => '정령이 물약을 마셨어요. MP가 찼어요!',
+        ShopItem.healSmall ||
+        ShopItem.heal ||
+        ShopItem.manaSmall ||
+        ShopItem.mana =>
+          '가방에 넣었어요. 필요할 때 가방에서 마셔요!',
       };
 
   @override
@@ -51,8 +54,6 @@ class ShopScreen extends StatelessWidget {
             final crystals = controller.player.crystals;
             final hasLocation = controller.lastFix != null;
             final level = controller.player.level.level;
-            final hpFull = controller.hp >= controller.maxHp;
-            final mpFull = controller.mp >= RuleConstants.mpMax;
 
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -97,15 +98,20 @@ class ShopScreen extends StatelessWidget {
                     ),
                   ]),
                 ),
+                const SizedBox(height: 10),
+                FrameButton(
+                  onPressed: () => showBagSheet(context, controller),
+                  icon: Icons.backpack_rounded,
+                  height: 44,
+                  label: '가방 열기',
+                ),
                 const SizedBox(height: 12),
                 for (final info in TownRules.items) ...[
                   _ItemCard(
                     info: info,
                     check: TownRules.canBuy(history, info.item,
                         hasLocation: hasLocation,
-                        level: level,
-                        hpFull: hpFull,
-                        mpFull: mpFull),
+                        level: level),
                     crystals: crystals,
                     spiritKind: controller.profile.spiritKind,
                     onBuy: () async {

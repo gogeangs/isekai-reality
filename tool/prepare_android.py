@@ -16,6 +16,16 @@ for name in ["build.gradle.kts", "build.gradle"]:
         s = f.read_text()
         s = re.sub(r"minSdk\s*=\s*flutter\.minSdkVersion", "minSdk = 26", s)
         s = re.sub(r"minSdkVersion\s+flutter\.minSdkVersion", "minSdkVersion 26", s)
+        # 휴대폰 알림(flutter_local_notifications)에 필요한 자바 라이브러리 desugaring
+        if "CoreLibraryDesugaring" not in s and "coreLibraryDesugaring" not in s:
+            if name.endswith(".kts"):
+                s = s.replace("compileOptions {",
+                              "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
+                s += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+            else:
+                s = s.replace("compileOptions {",
+                              "compileOptions {\n        coreLibraryDesugaringEnabled true", 1)
+                s += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
         f.write_text(s)
 
 # 2. 권한, 앱 이름, 헬스 커넥트 연결
@@ -25,7 +35,8 @@ perms = """
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
-    <uses-permission android:name="android.permission.health.READ_SLEEP"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 """
@@ -58,6 +69,18 @@ if "com.google.android.apps.healthdata" not in s:
         s = s.replace("<queries>", "<queries>" + queries, 1)
     else:
         s = s.replace("</manifest>", "    <queries>" + queries + "\n    </queries>\n</manifest>", 1)
+receivers = """
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>"""
+if "ScheduledNotificationReceiver" not in s:
+    s = s.replace("</application>", receivers + "\n    </application>", 1)
 manifest.write_text(s)
 
 # 3. MainActivity 는 FlutterFragmentActivity (헬스 커넥트 권한 창)

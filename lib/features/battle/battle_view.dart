@@ -251,6 +251,8 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
               final lunge = t < 0.22
                   ? Curves.easeIn.transform(_seg(t, 0, 0.22))
                   : 1 - Curves.easeOut.transform(_seg(t, 0.22, 0.5));
+              // 달려들어 휘두르는 동안만 공격 자세, 나머지는 대기 자세
+              final swinging = !idle && widget.dealt > 0 && t < 0.5;
               // 타격 순간부터
               final hit = _seg(t, 0.22, 0.6);
               final hitting = !idle && t >= 0.22 && widget.dealt > 0;
@@ -352,11 +354,20 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                               BlendMode.srcATop),
                           child: Align(
                             alignment: Alignment.bottomLeft,
-                            child: HeroSprite(
-                                look: widget.look,
-                                pose: cleared
-                                    ? HeroPose.victory
-                                    : HeroPose.attack),
+                            // 쉬는 동안 살짝 숨 쉬듯 늘었다 줄었다 한다
+                            child: Transform.scale(
+                              scaleY: swinging || cleared
+                                  ? 1
+                                  : 1 + math.sin(t * math.pi * 2) * 0.015,
+                              alignment: Alignment.bottomCenter,
+                              child: HeroSprite(
+                                  look: widget.look,
+                                  pose: cleared
+                                      ? HeroPose.victory
+                                      : swinging
+                                          ? HeroPose.attack
+                                          : HeroPose.idle),
+                            ),
                           ),
                         ),
                       ),
@@ -795,7 +806,7 @@ class _SkillOrb extends StatelessWidget {
   }
 }
 
-enum HeroPose { attack, victory }
+enum HeroPose { idle, attack, victory }
 
 /// 각성자 SD 그림 (공격·승리 자세). 그림이 없으면 서 있는 그림이나 초상화로 대신한다.
 /// 파일 이름: hero_attack_male.png, hero_victory_female.png ...

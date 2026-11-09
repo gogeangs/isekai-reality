@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
-import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/data/weather/weather_source.dart';
@@ -106,12 +105,12 @@ void main() {
           clock: () => now,
         );
 
-    test('걸음 목표는 모두 같다 (5,000보, 예전에 바꾼 목표는 무시)', () async {
+    test('걸음 목표는 모두 같다 (3,000보, 예전에 바꾼 목표는 무시)', () async {
       final c = make(InMemoryRecordStore(
-          profile: const PlayerProfile(name: '하루', stepGoal: 3000)));
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000)));
       await c.init();
-      expect(c.history.last.stepGoal, RuleConstants.defaultStepGoal);
-      expect(c.history.last.stepGoalAchieved, isFalse); // 4,000보
+      expect(c.history.last.stepGoal, 3000);
+      expect(c.history.last.stepGoalAchieved, isTrue); // 4,000보
     });
 
     test('이름과 정령 이름을 바꾼다 (빈 이름은 무시)', () async {

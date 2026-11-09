@@ -244,8 +244,10 @@ class _HeroArt extends StatelessWidget {
         ? const Alignment(-0.45, 0)
         : const Alignment(-0.42, 0);
     return Stack(fit: StackFit.expand, children: [
-      // 바탕: 같은 그림을 흐리게. 아래쪽은 밤하늘 배경에 경계 없이 녹인다
-      ShaderMask(
+      // 바탕: 같은 그림을 흐리게. 아래쪽은 밤하늘 배경에 경계 없이 녹인다.
+      // 흐림이 상자 밖으로 번지면 배지 뒤에 띠가 생겨서 잘라 둔다.
+      ClipRect(
+        child: ShaderMask(
         shaderCallback: (r) => const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -266,6 +268,7 @@ class _HeroArt extends StatelessWidget {
                 errorBuilder: (_, __, ___) => const SizedBox()),
           ),
         ),
+      ),
       ),
       // 각성자 전신
       Positioned(

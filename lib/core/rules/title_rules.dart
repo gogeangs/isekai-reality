@@ -40,7 +40,7 @@ class TitleRules {
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
     TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '두 미궁 입구 모두 가 보기'),
     TitleInfo(TitleId.lakeFriend, '호수의 친구', '호수에 다섯 번 놀러 가기'),
-    TitleInfo(TitleId.townLight, '동네의 빛', '내 동네 절반 밝히기'),
+    TitleInfo(TitleId.townLight, '동네의 빛', '안개 300칸 걷기'),
   ];
 
   /// 탐험 칭호가 보는 장소 id (lib/features/map/gojan_area.dart)
@@ -70,11 +70,11 @@ class TitleRules {
   static TitleInfo info(TitleId id) => all.firstWhere((t) => t.id == id);
 
   /// 날짜순으로 정렬된 [history] 와 현재 [level] 로 얻은 칭호를 계산한다
-  /// [revealedRatio] 지역 안개를 걷은 비율 (0~1, 탐험 기록은 하루 기록 밖에 있다)
+  /// [revealedCells] 안개를 걷은 칸 수 (탐험 기록은 하루 기록 밖에 있다)
   static Set<TitleId> earned(
     List<DailyRecord> history,
     int level, {
-    double revealedRatio = 0,
+    int revealedCells = 0,
   }) {
     final result = <TitleId>{};
 
@@ -116,7 +116,7 @@ class TitleRules {
     if (lakeDays >= RuleConstants.lakeFriendVisits) {
       result.add(TitleId.lakeFriend);
     }
-    if (revealedRatio >= RuleConstants.brightTownRatio) {
+    if (revealedCells >= RuleConstants.brightTownCells) {
       result.add(TitleId.townLight);
     }
     return result;

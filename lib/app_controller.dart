@@ -97,7 +97,9 @@ class AppController extends ChangeNotifier {
   List<DailyRecord> get history => List.unmodifiable(_history);
 
   PlayerState get player => PlayerState.fromHistory(
-      name: _profile.name, history: _history, revealedRatio: revealedRatio);
+      name: _profile.name,
+      history: _history,
+      revealedCells: _revealedCells.length);
 
   /// 대표 칭호 (고른 것이 없으면 자동)
   TitleId? get equippedTitle => TitleRules.equipped(player.titles,
@@ -291,7 +293,7 @@ class AppController extends ChangeNotifier {
         LevelRules.fromTotalExp(total).level,
       ].join(','));
     }
-    b.writeln('# 밝힌 비율 ${(revealedRatio * 100).toStringAsFixed(1)}%, '
+    b.writeln('# 걷은 안개 ${_revealedCells.length}칸, '
         '직업 ${p.job?.koreanName ?? '-'}, 칭호 ${p.titles.length}개, '
         '도감 ${purifiedEver.length}종');
     return b.toString();

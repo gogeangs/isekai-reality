@@ -90,8 +90,10 @@ class RuleConstants {
   /// 공격력 = 전투력 ÷ 4
   static const int attackDivisor = 4;
 
-  /// 필드 몬스터: 하루 나타나는 수, 만나는 거리(미터)
-  static const int fieldSpawnsPerDay = 8;
+  /// 필드 몬스터: 지역을 이 크기(미터) 블록으로 나눠 블록마다 하루 한 마리,
+  /// 블록에 몬스터가 나올 확률, 만나는 거리(미터)
+  static const double fieldSpawnBlockM = 1000;
+  static const double fieldSpawnChance = 0.7;
   static const double fieldEncounterRadiusM = 40;
 
   // ---------------------------------------------------------------- 칭호
@@ -107,7 +109,7 @@ class RuleConstants {
 
   // 탐험 칭호
   static const int lakeFriendVisits = 5; // 정령의 호수 서로 다른 날 5번
-  static const double brightTownRatio = 0.5; // 지역 안개 50%
+  static const int brightTownCells = 300; // 안개 300칸 (100m 칸, 약 3km²)
 
   // ---------------------------------------------------------------- 직업 각성
   static const int jobAwakeningDay = 7;

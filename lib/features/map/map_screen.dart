@@ -12,7 +12,7 @@ import '../battle/field_battle_screen.dart';
 import '../bulssi/bulssi_bubble.dart';
 import 'map_config.dart';
 
-/// 고잔동 지도: 장소 아이콘 · 잿빛 안개 · 밝힌 비율 · 내 위치
+/// 안산시 지도: 장소 아이콘 · 잿빛 안개 · 걷은 칸 수 · 내 위치
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key, required this.controller});
 
@@ -36,7 +36,7 @@ class MapScreen extends StatelessWidget {
           top: MediaQuery.paddingOf(context).top + 8,
           child: _TopPanel(
             areaName: area.name,
-            ratio: controller.revealedRatio,
+            cells: controller.revealedCells.length,
             keys: gauge.keysAvailable,
           ),
         ),
@@ -81,12 +81,14 @@ String placeIconAsset(PlaceKind kind) => switch (kind) {
 class _TopPanel extends StatelessWidget {
   const _TopPanel({
     required this.areaName,
-    required this.ratio,
+    required this.cells,
     required this.keys,
   });
 
   final String areaName;
-  final double ratio;
+
+  /// 걷은 안개 칸 수 (막대는 '동네의 빛' 칭호까지)
+  final int cells;
   final int keys;
 
   @override
@@ -101,10 +103,15 @@ class _TopPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${(ratio * 100).floor()}% 밝힘',
+              Text('안개 ${comma(cells)}칸 걷음',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
               const SizedBox(height: 4),
-              GlowBar(ratio: ratio, colors: BarColors.exp, height: 7),
+              GlowBar(
+                  ratio: (cells / RuleConstants.brightTownCells)
+                      .clamp(0, 1)
+                      .toDouble(),
+                  colors: BarColors.exp,
+                  height: 7),
             ],
           ),
         ),
@@ -244,8 +251,7 @@ class _ExploreSummary extends StatelessWidget {
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),
           const SizedBox(height: 16),
           Text(
-            '밝힌 칸 ${comma(controller.revealedCells.length)} / '
-            '${comma(controller.area.totalCells)}',
+            '안개 ${comma(controller.revealedCells.length)}칸 걷음',
             style: const TextStyle(color: AppColors.text, fontSize: 15),
           ),
           if (fix != null)
@@ -371,7 +377,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         NMarker(
           id: 'monster_${spawn.id}',
           position: _ll(spawn.point),
-          caption: NOverlayCaption(text: spawn.info.name),
+          // 시내 전체에 몬스터가 많아 이름은 빼고 그림만 (만나면 카드에 이름이 나온다)
           icon: const NOverlayImage.fromAssetImage(
               'assets/images/map_monster.png'),
           size: const Size(40, 40),

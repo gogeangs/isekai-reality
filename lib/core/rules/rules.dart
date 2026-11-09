@@ -6,6 +6,7 @@ export 'field_monster_rules.dart';
 export 'level_rules.dart';
 export 'monsters.dart';
 export 'quest_rules.dart';
+export 'road_mask.dart';
 export 'rule_constants.dart';
 export 'stat_rules.dart';
 export 'step_goal_rules.dart';

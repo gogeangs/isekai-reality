@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 import 'app.dart';
 import 'app_controller.dart';
+import 'core/rules/road_mask.dart';
 import 'data/health/device_health_source.dart';
 import 'data/location/location_source.dart';
+import 'data/notify/notifier.dart';
 import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/map/map_config.dart';
@@ -30,7 +33,14 @@ Future<void> main() async {
           health: DeviceHealthSource(),
           location: DeviceLocationSource(),
           weatherSource: OpenMeteoWeatherSource(),
+          notifier: DeviceNotifier(),
         );
+  try {
+    controller.roads = RoadMask.tryParse(
+        await rootBundle.loadString('assets/data/road_mask.json'));
+  } catch (_) {
+    // 격자가 없으면 길 검사 없이 둔다
+  }
   runApp(IsekaiRealityApp(controller: controller));
   controller.init();
 }

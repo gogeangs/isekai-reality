@@ -13,6 +13,8 @@ dependencies:
   shared_preferences: ^2.2.0
   flutter_naver_map: ^1.4.4
   geolocator: ">=12.0.0 <15.0.0"
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -24,6 +26,7 @@ flutter:
   assets:
     - assets/images/
     - assets/legal/
+    - assets/data/
   # 제목·숫자용 글꼴 (고운바탕 Bold, OFL). 자주 쓰는 한글 2,350자만 남겨 크기를 줄였다.
   fonts:
     - family: Title

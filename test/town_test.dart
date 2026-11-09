@@ -10,6 +10,7 @@ import 'package:isekai_reality/core/models/player_state.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
+import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 
 class _Location implements LocationSource {
@@ -164,12 +165,12 @@ void main() {
       expect(VitalRules.expeditionOneWay(100), const Duration(minutes: 3));
     });
 
-    test('회복 물약은 레벨·하루 개수·가득 여부를 본다', () {
+    test('회복 물약은 레벨·하루 개수를 본다', () {
       final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
       expect(TownRules.canBuy([rich], ShopItem.heal, level: 2),
           PurchaseCheck.levelTooLow);
-      expect(TownRules.canBuy([rich], ShopItem.healSmall, hpFull: true),
-          PurchaseCheck.alreadyFull);
+      expect(TownRules.canBuy([rich], ShopItem.healSmall, level: 1),
+          PurchaseCheck.ok);
       expect(
           TownRules.canBuy([
             _day(2,
@@ -179,6 +180,45 @@ void main() {
           PurchaseCheck.limitReached);
       expect(TownRules.canBuy([rich], ShopItem.manaSmall),
           PurchaseCheck.ok);
+    });
+
+    test('가방: 산 것은 쌓이고, 마시면 줄고, 3개까지만 담는다', () {
+      final rich = _day(2, runs: List.filled(20, const DungeonRun(cleared: true)));
+      final d3 = DailyRecord(
+        date: DateTime(2026, 11, 3),
+        stepGoal: 8000,
+        shopPurchases: const ['healSmall', 'healSmall'],
+        itemsUsed: const ['healSmall'],
+      );
+      expect(TownRules.bagCount([rich, d3], ShopItem.healSmall), 1);
+      expect(TownRules.canUse([rich, d3], ShopItem.healSmall), UseCheck.ok);
+      expect(TownRules.canUse([rich, d3], ShopItem.healSmall, hpFull: true),
+          UseCheck.alreadyFull);
+      expect(TownRules.canUse([rich, d3], ShopItem.manaSmall), UseCheck.none);
+
+      // 다음 날 2개 더 사면 3개 → 가방이 가득
+      final d4 = _day(4, bought: ['healSmall', 'healSmall']);
+      expect(TownRules.bagCount([rich, d3, d4], ShopItem.healSmall), 3);
+      expect(TownRules.canBuy([rich, d3, d4], ShopItem.healSmall),
+          PurchaseCheck.bagFull);
+      expect(TownRules.canBuy([rich, d3, d4], ShopItem.manaSmall),
+          PurchaseCheck.ok);
+    });
+
+    test('정령 물약은 마신 날 하루만 효과가 있다', () {
+      final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
+      final d3 = DailyRecord(
+        date: DateTime(2026, 11, 3),
+        stepGoal: 8000,
+        shopPurchases: const ['bulssiPotion', 'bulssiPotion'],
+        itemsUsed: const ['bulssiPotion'],
+      );
+      expect(TownRules.potionActive(d3), isTrue);
+      expect(TownRules.canUse([rich, d3], ShopItem.bulssiPotion),
+          UseCheck.alreadyActive);
+      expect(TownRules.potionActive(_day(4)), isFalse);
+      expect(TownRules.canUse([rich, d3, _day(4)], ShopItem.bulssiPotion),
+          UseCheck.ok);
     });
   });
 
@@ -218,6 +258,11 @@ void main() {
       final c = await start(DateTime(2026, 11, 8, 14), history: [rich]);
       expect(c.startDungeon()!.skillChargeTicks, RuleConstants.skillChargeTicks);
       await c.buy(ShopItem.bulssiPotion);
+      // 사기만 하면 가방에 들어가고, 마셔야 효과가 난다
+      expect(c.startDungeon()!.skillChargeTicks, RuleConstants.skillChargeTicks);
+      expect(c.bagCount(ShopItem.bulssiPotion), 1);
+      expect(await c.useItem(ShopItem.bulssiPotion), UseCheck.ok);
+      expect(c.bagCount(ShopItem.bulssiPotion), 0);
       expect(c.startDungeon()!.skillChargeTicks,
           RuleConstants.potionSkillChargeTicks);
     });
@@ -270,6 +315,24 @@ void main() {
       expect(c.player.dailyExp.last.rest, RuleConstants.restBonusExp);
     });
 
+    test('알림: 여관 체크인 4시간 뒤 예약, 그만 쉬면 취소', () async {
+      final now = DateTime(2026, 11, 8, 14);
+      final n = FakeNotifier();
+      final c = AppController(
+        store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+        ),
+        health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
+        notifier: n,
+        clock: () => now,
+      );
+      await c.init();
+      await c.restAtInn();
+      expect(n.scheduled[NotifyId.rest]?.$1, DateTime(2026, 11, 8, 18));
+      await c.stopResting();
+      expect(n.scheduled.containsKey(NotifyId.rest), isFalse);
+    });
+
     test('HP는 전투 사이에 이어지고, 0이면 싸울 수 없고, 걸으면 찬다', () async {
       final health = FakeHealthSource(stepsByDay: {'2026-11-08': 2600});
       final c = AppController(
@@ -297,20 +360,26 @@ void main() {
       expect(c.startDungeon(), isNotNull);
     });
 
-    test('회복 물약을 사면 바로 HP가 찬다', () async {
+    test('회복 물약은 가방에 넣어 두었다가 마시면 HP가 찬다', () async {
       final c = await start(DateTime(2026, 11, 8, 14), history: [rich]);
-      expect(await c.buy(ShopItem.healSmall), PurchaseCheck.alreadyFull);
+      expect(await c.buy(ShopItem.healSmall), PurchaseCheck.ok);
+      expect(c.bagCount(ShopItem.healSmall), 1);
+      expect(await c.useItem(ShopItem.healSmall), UseCheck.alreadyFull);
       final spawn = c.todaySpawns.first;
       final battle = c.startFieldBattle(spawn)!;
       battle.playerHp = 0;
       await c.finishFieldBattle(spawn, battle);
-      expect(await c.buy(ShopItem.healSmall), PurchaseCheck.ok);
+      expect(c.hp, 0);
+      expect(await c.useItem(ShopItem.healSmall), UseCheck.ok);
       expect(c.hp, (c.maxHp * 0.2).round());
+      expect(c.bagCount(ShopItem.healSmall), 0);
+      expect(await c.useItem(ShopItem.healSmall), UseCheck.none);
     });
 
     test('정령 원정: 안개를 걷은 곳만, MP를 쓰고, 돌아오면 정화', () async {
       var now = DateTime(2026, 11, 8, 14);
       final loc = _Location();
+      final notifier = FakeNotifier();
       final c = AppController(
         store: InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루', stepGoal: 8000),
@@ -318,6 +387,7 @@ void main() {
         ),
         health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
         location: loc,
+        notifier: notifier,
         clock: () => now,
       );
       await c.init();
@@ -341,6 +411,8 @@ void main() {
 
       final purifiedBefore = c.history.last.fieldMonstersPurified;
       expect(await c.sendSpirit(spawn), ExpeditionCheck.ok);
+      expect(notifier.scheduled[NotifyId.expedition]?.$1,
+          c.expedition!.returnAt);
       expect(c.mp, RuleConstants.mpMax - plan.mpCost);
       expect(c.todaySpawns.any((s) => s.id == spawn.id), isFalse);
       expect(await c.sendSpirit(c.todaySpawns.first), ExpeditionCheck.busy);

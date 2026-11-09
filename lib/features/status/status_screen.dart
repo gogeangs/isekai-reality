@@ -23,6 +23,7 @@ class StatusScreen extends StatelessWidget {
     this.mp,
     this.restLeft,
     this.spiritAway,
+    this.onOpenBag,
     this.onOpenDungeon,
     this.onOpenInn,
     this.onOpenShop,
@@ -45,6 +46,9 @@ class StatusScreen extends StatelessWidget {
 
   /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
   final String? spiritAway;
+
+  /// 가방 열기 (없으면 버튼을 그리지 않음)
+  final VoidCallback? onOpenBag;
 
   /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
   final VoidCallback? onOpenDungeon;
@@ -77,9 +81,6 @@ class StatusScreen extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 _HeroArt(look: look, top: top),
-                const Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FadeToNight(height: 80)),
                 Positioned(
                   top: top + 8,
                   left: 14,
@@ -128,6 +129,7 @@ class StatusScreen extends StatelessWidget {
                     hp: hp ?? player.maxHp,
                     mp: mp ?? RuleConstants.mpMax,
                     spiritAway: spiritAway,
+                    onOpenBag: onOpenBag,
                     onOpenDungeon: onOpenDungeon,
                   ),
                   const SizedBox(height: 14),
@@ -235,17 +237,38 @@ class _HeroArt extends StatelessWidget {
     final asset = look == HeroLook.female
         ? 'assets/images/bg_status_female.jpg'
         : 'assets/images/bg_status_male.jpg';
+    final cutout = look == HeroLook.female
+        ? 'assets/images/hero_status_female.png'
+        : 'assets/images/hero_status_male.png';
     final alignment = look == HeroLook.female
         ? const Alignment(-0.45, 0)
         : const Alignment(-0.42, 0);
     return Stack(fit: StackFit.expand, children: [
-      // 바탕: 같은 그림을 흐리게
-      ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Image.asset(asset,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            errorBuilder: (_, __, ___) => const SizedBox()),
+      // 바탕: 같은 그림을 흐리게. 아래쪽은 밤하늘 배경에 경계 없이 녹인다.
+      // 흐림이 상자 밖으로 번지면 배지 뒤에 띠가 생겨서 잘라 둔다.
+      ClipRect(
+        child: ShaderMask(
+        shaderCallback: (r) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+          stops: [0, 0.62, 1],
+        ).createShader(r),
+        blendMode: BlendMode.dstIn,
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(
+              sigmaX: 10, sigmaY: 10, tileMode: TileMode.decal),
+          child: ColorFiltered(
+            // 살짝 어둡게 눌러 각성자가 앞으로 나오게
+            colorFilter:
+                const ColorFilter.mode(Color(0x660B0D26), BlendMode.srcATop),
+            child: Image.asset(asset,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                errorBuilder: (_, __, ___) => const SizedBox()),
+          ),
+        ),
+      ),
       ),
       // 각성자 전신
       Positioned(
@@ -264,14 +287,30 @@ class _HeroArt extends StatelessWidget {
               Color(0xFFFFFFFF),
               Color(0x00FFFFFF),
             ],
-            stops: [0, 0.04, 0.9, 1],
+            stops: [0, 0.02, 0.92, 1],
           ).createShader(r),
           blendMode: BlendMode.dstIn,
-          child: Image.asset(asset,
-              fit: BoxFit.cover,
-              alignment: alignment,
-              semanticLabel: '기본 각성자',
-              errorBuilder: (_, __, ___) => const SizedBox()),
+          child: Stack(fit: StackFit.expand, children: [
+            // 각성자 둘레의 금빛 후광
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                    AppColors.goldBright.withValues(alpha: 0.75),
+                    BlendMode.srcIn),
+                child: Image.asset(cutout,
+                    fit: BoxFit.cover,
+                    alignment: alignment,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              ),
+            ),
+            // 각성자 (배경과 분리된 그림, 원래 자리 그대로)
+            Image.asset(cutout,
+                fit: BoxFit.cover,
+                alignment: alignment,
+                semanticLabel: '기본 각성자',
+                errorBuilder: (_, __, ___) => const SizedBox()),
+          ]),
         ),
       ),
     ]);
@@ -294,6 +333,7 @@ class _StatusPanel extends StatelessWidget {
     required this.hp,
     required this.mp,
     this.spiritAway,
+    this.onOpenBag,
     this.onOpenDungeon,
   });
 
@@ -301,6 +341,7 @@ class _StatusPanel extends StatelessWidget {
   final int hp;
   final int mp;
   final String? spiritAway;
+  final VoidCallback? onOpenBag;
   final VoidCallback? onOpenDungeon;
 
   @override
@@ -364,14 +405,29 @@ class _StatusPanel extends StatelessWidget {
           ),
           if (onOpenDungeon != null) ...[
             const SizedBox(height: 12),
-            FrameButton(
-              onPressed: onOpenDungeon,
-              icon: Icons.door_front_door_rounded,
-              height: 46,
-              label: gauge.keysAvailable > 0
-                  ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
-                  : '던전 (열쇠 없음)',
-            ),
+            Row(children: [
+              Expanded(
+                child: FrameButton(
+                  onPressed: onOpenDungeon,
+                  icon: Icons.door_front_door_rounded,
+                  height: 46,
+                  label: gauge.keysAvailable > 0
+                      ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
+                      : '던전 (열쇠 없음)',
+                ),
+              ),
+              if (onOpenBag != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 112,
+                  child: FrameButton(
+                    onPressed: onOpenBag,
+                    height: 46,
+                    label: '가방',
+                  ),
+                ),
+              ],
+            ]),
           ],
           const SizedBox(height: 14),
           Row(

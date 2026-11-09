@@ -10,6 +10,7 @@ import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
+import 'data/notify/notifier.dart';
 import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
@@ -27,6 +28,8 @@ class AppController extends ChangeNotifier {
     required this.health,
     this.location,
     this.weatherSource,
+    this.notifier,
+    this.roads,
     this.area = AnsanArea.area,
     this.stepGoal = RuleConstants.defaultStepGoal,
     DateTime Function()? clock,
@@ -59,6 +62,12 @@ class AppController extends ChangeNotifier {
 
   /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
   final WeatherSource? weatherSource;
+
+  /// 휴대폰 알림 (없으면 앱 안에서만 알려 준다)
+  final Notifier? notifier;
+
+  /// 큰길·철로 격자. 있으면 필드 몬스터가 차도·철로 위에 나오지 않는다.
+  RoadMask? roads;
 
   /// 하루 걸음 목표. 모든 각성자에게 같다 (2026-11-09 결정, 설정에서 바꾸지 않음).
   /// 일일 퀘스트 'N보 걷기', 목표 달성 보너스 열쇠, '끈기의 여행자' 칭호가 이 값을 쓴다.
@@ -459,7 +468,7 @@ class AppController extends ChangeNotifier {
     final done = {...?today?.purifiedSpawnIds};
     final away = expedition;
     if (away != null && !away.finished) done.add(away.spawnId);
-    return FieldMonsterRules.spawnsFor(area, _clock())
+    return FieldMonsterRules.spawnsFor(area, _clock(), roads: roads)
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -527,10 +536,7 @@ class AppController extends ChangeNotifier {
     final fix = _lastFix;
     await refreshVitals();
     final check = TownRules.canBuy(_history, item,
-        hasLocation: fix != null,
-        level: player.level.level,
-        hpFull: hp >= maxHp,
-        mpFull: mp >= RuleConstants.mpMax);
+        hasLocation: fix != null, level: player.level.level);
     if (check != PurchaseCheck.ok) return check;
 
     var newCells = 0;
@@ -540,22 +546,39 @@ class AppController extends ChangeNotifier {
       }
       if (newCells > 0) await store.saveRevealedCells(area.id, _revealedCells);
     }
+    await _save(today.copyWith(
+      shopPurchases: [...today.shopPurchases, item.name],
+      newCellsRevealed: today.newCellsRevealed + newCells,
+    ));
+    return PurchaseCheck.ok;
+  }
+
+  /// 가방에 든 개수
+  int bagCount(ShopItem item) => TownRules.bagCount(_history, item);
+
+  UseCheck canUse(ShopItem item) => TownRules.canUse(_history, item,
+      hpFull: hp >= maxHp, mpFull: mp >= RuleConstants.mpMax);
+
+  /// 가방에서 물약을 꺼내 마신다
+  Future<UseCheck> useItem(ShopItem item) async {
+    await refreshVitals();
+    final check = canUse(item);
+    if (check != UseCheck.ok) return check;
     final info = TownRules.info(item);
     if (info.hpRatio > 0) {
       _vitals = _vitals.copyWith(
-          hp: math.min(maxHp, hp + (maxHp * info.hpRatio).round()));
+          hp: math.min(maxHp, hp + (maxHp * info.hpRatio).round()),
+          lastMaxHp: maxHp);
     }
     if (info.mpRatio > 0) {
       _vitals = _vitals.copyWith(
           mp: math.min(RuleConstants.mpMax,
               mp + (RuleConstants.mpMax * info.mpRatio).round()));
     }
-    if (info.hpRatio > 0 || info.mpRatio > 0) await store.saveVitals(_vitals);
-    await _save(today.copyWith(
-      shopPurchases: [...today.shopPurchases, item.name],
-      newCellsRevealed: today.newCellsRevealed + newCells,
-    ));
-    return PurchaseCheck.ok;
+    await store.saveVitals(_vitals);
+    final today = await _todayRecord();
+    await _save(today.copyWith(itemsUsed: [...today.itemsUsed, item.name]));
+    return UseCheck.ok;
   }
 
   /// [center] 에서 [radiusM] 안에 걸치는 지역 칸 id
@@ -714,8 +737,15 @@ class AppController extends ChangeNotifier {
   Future<bool> restAtInn() async {
     if (resting) return false;
     await refreshVitals();
-    _vitals = _vitals.copyWith(restStartedAt: _clock());
+    final now = _clock();
+    _vitals = _vitals.copyWith(restStartedAt: now);
     await store.saveVitals(_vitals);
+    unawaited(notifier?.schedule(
+      NotifyId.rest,
+      now.add(const Duration(hours: RuleConstants.restHours)),
+      '푹 쉬었어요',
+      'HP와 ${_profile.spiritName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+    ));
     notifyListeners();
     return true;
   }
@@ -732,6 +762,7 @@ class AppController extends ChangeNotifier {
     if (_vitals.restStartedAt != null) {
       _vitals = _vitals.copyWith(clearRest: true);
       unawaited(store.saveVitals(_vitals));
+      unawaited(notifier?.cancel(NotifyId.rest));
     }
   }
 
@@ -783,6 +814,13 @@ class AppController extends ChangeNotifier {
       ),
     );
     await store.saveVitals(_vitals);
+    final ret = _vitals.expedition!.returnAt;
+    unawaited(notifier?.schedule(
+      NotifyId.expedition,
+      ret,
+      '${_profile.spiritName}이(가) 돌아왔어요',
+      '${spawn.info.name} 원정 결과를 확인해 보세요!',
+    ));
     notifyListeners();
     return ExpeditionCheck.ok;
   }

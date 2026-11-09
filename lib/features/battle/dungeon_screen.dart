@@ -6,6 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../town/bag_sheet.dart';
 import 'battle_view.dart';
 
 enum _Stage { entry, battle, result }
@@ -211,6 +212,14 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     ratio: maxHp == 0 ? 0 : hp / maxHp,
                     colors: BarColors.hp,
                     height: 8),
+              ),
+              const SizedBox(width: 6),
+              TextButton.icon(
+                onPressed: () => showBagSheet(context, _c),
+                icon: const Icon(Icons.backpack_rounded,
+                    size: 18, color: AppColors.goldBright),
+                label: const Text('가방',
+                    style: TextStyle(color: AppColors.goldBright)),
               ),
             ]),
             if (gauge.goalBonusKey || gauge.stepsToGoal != null) ...[

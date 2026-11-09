@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../app_config.dart';
 import '../../app_controller.dart';
+import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../legal/legal_screen.dart';
@@ -37,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               _Row(
-                label: '정령 이름',
+                label: '정령 이름 (${profile.spiritKind.elementName})',
                 value: profile.spiritName,
                 onTap: () async {
                   final name = await _askText(context,
@@ -89,7 +90,7 @@ class SettingsScreen extends StatelessWidget {
             title: '내 데이터',
             children: [
               const Text(
-                '걸음·수면은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요. '
+                '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요. '
                 '위치는 앱을 보고 있을 때만 쓰고, 방문 기록은 휴대폰에만 저장해요.\n'
                 '건강 앱·위치 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
                 style: TextStyle(color: AppColors.textMuted),
@@ -111,7 +112,7 @@ class SettingsScreen extends StatelessWidget {
             title: '테스트 기록 보내기',
             children: [
               const Text(
-                '테스트가 끝나면 하루별 기록(걸음·수면·던전·레벨 등)을 복사해 설문에 붙여 주세요. '
+                '테스트가 끝나면 하루별 기록(걸음·던전·레벨 등)을 복사해 설문에 붙여 주세요. '
                 '위치 좌표와 이름은 들어가지 않아요.',
                 style: TextStyle(color: AppColors.textMuted),
               ),

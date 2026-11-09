@@ -16,10 +16,10 @@ class Stats {
   /// 민첩: 걸음 목표 달성한 날 수
   final int agility;
 
-  /// 지력: 누적 공부·독서 시간
+  /// 지력: 도감에 새 몬스터, 새 장소를 처음 발견한 수
   final int wisdom;
 
-  /// 정신: 7시간 이상 잔 날 수
+  /// 정신: 7일 연속 접속한 횟수 + 여관 휴식을 마친 날 수
   final int spirit;
 
   int get total => vitality + agility + wisdom + spirit;
@@ -32,21 +32,42 @@ class StatRules {
     const start = RuleConstants.statStartValue;
     var totalSteps = 0;
     var goalDays = 0;
-    var totalStudy = 0;
-    var goodSleepDays = 0;
+    var discoveries = 0;
+    var restDays = 0;
+    var loginStreaks = 0;
+    final seenMonsters = <String>{};
 
+    var streak = 0;
+    DateTime? prev;
     for (final day in history) {
       totalSteps += day.steps;
-      totalStudy += day.studyMinutes;
       if (day.stepGoalAchieved) goalDays++;
-      if (day.sleptWell) goodSleepDays++;
+      if (day.rested) restDays++;
+
+      // 지력: 처음 보는 몬스터 + 처음 가 본 장소
+      for (final m in day.purifiedMonsterIds) {
+        if (seenMonsters.add(m)) discoveries++;
+      }
+      discoveries += day.newPlacesVisited;
+
+      // 정신: 7일 연속 접속할 때마다 +1
+      final continuous = prev != null &&
+          DateTime(day.date.year, day.date.month, day.date.day)
+                  .difference(DateTime(prev.year, prev.month, prev.day))
+                  .inDays ==
+              1;
+      streak = day.openedApp ? (continuous ? streak + 1 : 1) : 0;
+      if (streak > 0 && streak % RuleConstants.spiritLoginStreakDays == 0) {
+        loginStreaks++;
+      }
+      prev = day.date;
     }
 
     return Stats(
       vitality: start + totalSteps ~/ RuleConstants.vitalityStepsPerPoint,
       agility: start + goalDays,
-      wisdom: start + totalStudy ~/ RuleConstants.wisdomStudyMinutesPerPoint,
-      spirit: start + goodSleepDays,
+      wisdom: start + discoveries,
+      spirit: start + loginStreaks + restDays,
     );
   }
 

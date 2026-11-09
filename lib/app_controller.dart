@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'core/geo/geo.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
+import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
@@ -17,8 +18,9 @@ import 'features/status/demo_data.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
 ///
-/// 앱을 열 때마다 [sync] 로 오늘(과 어제 마감) 걸음·수면을 건강 앱에서 읽어
-/// 하루 기록에 반영하고 저장한다. 게임 안에서 생긴 기록(던전, 공부 등)은 그대로 둔다.
+/// 앱을 열 때마다 [sync] 로 오늘(과 어제 마감) 걸음을 건강 앱에서 읽어
+/// 하루 기록에 반영하고 저장한다. 게임 안에서 생긴 기록(던전 등)은 그대로 둔다.
+/// HP · 정령 MP · 여관 휴식 · 정령 원정은 [Vitals] 로 따로 저장한다.
 class AppController extends ChangeNotifier {
   AppController({
     required this.store,
@@ -144,13 +146,19 @@ class AppController extends ChangeNotifier {
     required String name,
     required HeroLook look,
     bool weatherEnabled = true,
+    SpiritKind spirit = SpiritKind.fire,
+    String? spiritName,
   }) async {
+    final sn = spiritName?.trim();
     _profile = PlayerProfile(
       name: name.trim(),
       look: look,
       lastSeenLevel: 1,
       weatherEnabled: weatherEnabled,
+      spiritKind: spirit,
+      spiritName: sn == null || sn.isEmpty ? spirit.defaultName : sn,
     );
+    _vitals = const Vitals(); // 처음 각성은 HP·MP 가득
     await store.saveProfile(_profile);
     _needsAwakening = false;
     await _startPlaying();
@@ -164,6 +172,7 @@ class AppController extends ChangeNotifier {
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     _revealedCells = await store.loadRevealedCells(area.id);
+    _vitals = await store.loadVitals();
     await sync();
     await _startExploring();
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
@@ -196,6 +205,7 @@ class AppController extends ChangeNotifier {
     await store.upsert(_withQuests(todayRecord.copyWith(openedApp: true)));
 
     _history = await store.loadHistory();
+    await refreshVitals();
     notifyListeners();
     unawaited(refreshWeather());
   }
@@ -252,7 +262,7 @@ class AppController extends ChangeNotifier {
   String exportRecordsCsv() {
     final p = player;
     final b = StringBuffer(
-        '날짜,걸음,목표,수면분,공부분,던전,던전클리어,필드몬스터,새장소,다시방문,경험치,레벨\n');
+        '날짜,걸음,목표,던전,던전클리어,필드몬스터,새장소,다시방문,새안개,휴식,경험치,레벨\n');
     var total = 0;
     for (var i = 0; i < _history.length; i++) {
       final r = _history[i];
@@ -261,19 +271,19 @@ class AppController extends ChangeNotifier {
         r.dayKey,
         r.steps,
         r.stepGoal,
-        r.sleepMinutes ?? '',
-        r.studyMinutes,
         r.dungeonRuns.length,
         r.dungeonRuns.where((x) => x.cleared).length,
         r.fieldMonstersPurified,
         r.newPlacesVisited,
         r.placesRevisited,
+        r.newCellsRevealed,
+        r.restsCompleted,
         p.dailyExp[i].total,
         LevelRules.fromTotalExp(total).level,
       ].join(','));
     }
     b.writeln('# 걷은 안개 ${_revealedCells.length}칸, '
-        '직업 ${p.job?.koreanName ?? '-'}, 칭호 ${p.titles.length}개, '
+        '칭호 ${p.titles.length}개, '
         '도감 ${purifiedEver.length}종');
     return b.toString();
   }
@@ -288,18 +298,9 @@ class AppController extends ChangeNotifier {
     _revealedCells = {};
     _lastFix = null;
     _lastDiscovery = null;
+    _vitals = const Vitals();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
-    notifyListeners();
-  }
-
-  /// '공부 기록' 버튼
-  Future<void> logStudy(int minutes) async {
-    final today = _history.isEmpty ? null : _history.last;
-    if (today == null || minutes <= 0) return;
-    final updated = today.copyWith(studyMinutes: today.studyMinutes + minutes);
-    await store.upsert(_withQuests(updated));
-    _history = await store.loadHistory();
     notifyListeners();
   }
 
@@ -327,12 +328,22 @@ class AppController extends ChangeNotifier {
       final cell = area.cellIdOf(fix.point);
       if (cell != null && _revealedCells.add(cell)) {
         await store.saveRevealedCells(area.id, _revealedCells);
+        await _countNewCells(1);
       }
       for (final place in ExplorationRules.placesInReach(area, fix.point)) {
         await _visitPlace(place);
       }
     }
     notifyListeners();
+  }
+
+  /// 오늘 처음 걷은 안개 칸을 센다 (일일 퀘스트)
+  Future<void> _countNewCells(int n) async {
+    if (n <= 0) return;
+    final today = await _todayRecord();
+    await store.upsert(_withQuests(
+        today.copyWith(newCellsRevealed: today.newCellsRevealed + n)));
+    _history = await store.loadHistory();
   }
 
   void clearDiscovery() {
@@ -387,24 +398,43 @@ class AppController extends ChangeNotifier {
 
   /// 던전을 연다. 열쇠가 없거나 이동 중이면 null.
   /// 열쇠는 전투가 끝날 때([finishDungeon]) 쓴다. 중간에 나가면 쓰지 않는다.
+  /// HP가 0이면 싸울 수 없다 (여관에서 쉬거나 물약·걷기로 채운다).
+  /// 여관에서 쉬는 중이었다면 싸우는 순간 휴식이 끝난다 (화면에서 먼저 묻는다).
   Battle? startDungeon() {
     final p = player;
-    if (p.gauge.keysAvailable <= 0 || !canFightNow) return null;
+    if (p.gauge.keysAvailable <= 0 || !canFightNow || hp <= 0) return null;
+    _stopResting();
     return Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
       floors: BattleRules.dungeonFloors(
           level: p.level.level, atGate: atGate, rng: _random),
       rng: _random,
-      skillChargeTicks: TownRules.potionActive(p.today)
-          ? RuleConstants.potionSkillChargeTicks
-          : RuleConstants.skillChargeTicks,
+      startHp: hp,
+      skillChargeTicks: _skillTicks(p),
     );
+  }
+
+  int _skillTicks(PlayerState p) {
+    if (expedition != null && !expedition!.finished) {
+      return Battle.skillUnavailable; // 정령이 원정을 가 있다
+    }
+    return TownRules.potionActive(p.today)
+        ? RuleConstants.potionSkillChargeTicks
+        : RuleConstants.skillChargeTicks;
+  }
+
+  /// 전투가 끝났거나 중간에 나왔을 때 남은 HP를 저장한다
+  Future<void> keepBattleHp(Battle battle) async {
+    _vitals = _vitals.copyWith(hp: battle.playerHp, lastMaxHp: maxHp);
+    await store.saveVitals(_vitals);
+    notifyListeners();
   }
 
   /// 던전이 끝났을 때 결과를 기록한다. 받은 경험치를 돌려준다.
   Future<int> finishDungeon(Battle battle, {required bool atGate}) async {
     if (!battle.isOver) return 0;
+    await keepBattleHp(battle);
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
@@ -426,7 +456,9 @@ class AppController extends ChangeNotifier {
         today.fieldMonstersPurified >= RuleConstants.maxFieldMonstersPerDay) {
       return const [];
     }
-    final done = today?.purifiedSpawnIds.toSet() ?? const <String>{};
+    final done = {...?today?.purifiedSpawnIds};
+    final away = expedition;
+    if (away != null && !away.finished) done.add(away.spawnId);
     return FieldMonsterRules.spawnsFor(area, _clock())
         .where((s) => !done.contains(s.id))
         .toList();
@@ -441,33 +473,47 @@ class AppController extends ChangeNotifier {
   }
 
   Battle? startFieldBattle(FieldSpawn spawn) {
-    if (!canFightNow) return null;
+    if (!canFightNow || hp <= 0) return null;
+    _stopResting();
     final p = player;
     return Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
       floors: [BattleRules.fieldFoe(level: p.level.level, monster: spawn.monster)],
       rng: _random,
+      startHp: hp,
+      skillChargeTicks: _skillTicks(p),
     );
   }
 
   /// 필드 전투가 끝났을 때. 정화하면 그 자리의 안개도 걷힌다.
   Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
+    await keepBattleHp(battle);
     if (battle.phase != BattlePhase.cleared) return 0;
+    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point);
+  }
+
+  /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
+  /// 하루 5마리까지만 경험치·결정을 준다. 정화한 자리의 안개도 걷힌다.
+  Future<int> _recordFieldPurify(
+      String spawnId, MonsterId monster, GeoPoint point) async {
     final today = await _todayRecord();
-    if (today.purifiedSpawnIds.contains(spawn.id)) return 0;
+    if (today.purifiedSpawnIds.contains(spawnId)) return 0;
     final exp =
         today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
             ? RuleConstants.fieldMonsterExp
             : 0;
-    final cell = area.cellIdOf(spawn.point);
+    var newCells = 0;
+    final cell = area.cellIdOf(point);
     if (cell != null && _revealedCells.add(cell)) {
+      newCells = 1;
       await store.saveRevealedCells(area.id, _revealedCells);
     }
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
-      purifiedSpawnIds: [...today.purifiedSpawnIds, spawn.id],
-      purifiedMonsterIds: _addMonsters(today, [spawn.monster]),
+      purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
+      purifiedMonsterIds: _addMonsters(today, [monster]),
+      newCellsRevealed: today.newCellsRevealed + newCells,
     ));
     return exp;
   }
@@ -479,19 +525,35 @@ class AppController extends ChangeNotifier {
   Future<PurchaseCheck> buy(ShopItem item) async {
     final today = await _todayRecord();
     final fix = _lastFix;
-    final check =
-        TownRules.canBuy(_history, item, hasLocation: fix != null);
+    await refreshVitals();
+    final check = TownRules.canBuy(_history, item,
+        hasLocation: fix != null,
+        level: player.level.level,
+        hpFull: hp >= maxHp,
+        mpFull: mp >= RuleConstants.mpMax);
     if (check != PurchaseCheck.ok) return check;
 
+    var newCells = 0;
     if (item == ShopItem.magicLens && fix != null) {
-      var changed = false;
       for (final cell in _cellsAround(fix.point, RuleConstants.lensRadiusM)) {
-        changed = _revealedCells.add(cell) || changed;
+        if (_revealedCells.add(cell)) newCells++;
       }
-      if (changed) await store.saveRevealedCells(area.id, _revealedCells);
+      if (newCells > 0) await store.saveRevealedCells(area.id, _revealedCells);
     }
+    final info = TownRules.info(item);
+    if (info.hpRatio > 0) {
+      _vitals = _vitals.copyWith(
+          hp: math.min(maxHp, hp + (maxHp * info.hpRatio).round()));
+    }
+    if (info.mpRatio > 0) {
+      _vitals = _vitals.copyWith(
+          mp: math.min(RuleConstants.mpMax,
+              mp + (RuleConstants.mpMax * info.mpRatio).round()));
+    }
+    if (info.hpRatio > 0 || info.mpRatio > 0) await store.saveVitals(_vitals);
     await _save(today.copyWith(
       shopPurchases: [...today.shopPurchases, item.name],
+      newCellsRevealed: today.newCellsRevealed + newCells,
     ));
     return PurchaseCheck.ok;
   }
@@ -528,16 +590,233 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  /// 여관 체크인이 지금 열려 있는지 (18시 ~ 23시)
-  bool get innOpen => TownRules.innOpen(_clock());
+  // ───────────────────────────────────────────── HP · 정령 MP · 여관 · 정령 원정
 
-  /// 여관에 체크인한다. 시간이 아니거나 이미 했으면 false.
+  Vitals _vitals = const Vitals();
+
+  /// 전투용 최대 HP
+  int get maxHp => player.maxHp;
+
+  /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
+  int get hp => math.min(maxHp, _vitals.hp ?? maxHp);
+
+  /// 정령 MP (원정에 쓴다)
+  int get mp => math.min(RuleConstants.mpMax, _vitals.mp ?? RuleConstants.mpMax);
+
+  /// 여관에서 쉬는 중이면 체크인 시각
+  DateTime? get restStartedAt => _vitals.restStartedAt;
+  bool get resting => _vitals.restStartedAt != null;
+
+  /// 휴식이 끝나기까지 남은 시간
+  Duration get restLeft => resting
+      ? TownRules.restLeft(_vitals.restStartedAt!, _clock())
+      : Duration.zero;
+
+  /// 진행 중이거나 결과를 아직 보지 않은 원정
+  Expedition? get expedition => _vitals.expedition;
+
+  /// 다음 HP 회복까지 남은 걸음
+  int get stepsToNextHeal => VitalRules.stepsToNextHeal(
+      player.today?.steps ?? 0,
+      _vitals.stepsDay == player.today?.dayKey ? _vitals.stepsCounted : 0);
+
+  /// 시간·걸음에 따라 HP·MP를 채우고, 끝난 휴식과 원정을 마무리한다.
+  /// 앱을 열 때, 화면을 볼 때 부른다.
+  Future<void> refreshVitals() async {
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      await _refreshVitals();
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  bool _refreshing = false;
+
+  Future<void> _refreshVitals() async {
+    final now = _clock();
+    final p = player;
+    final max = p.maxHp;
+    var v = _vitals;
+    var changed = false;
+
+    // 처음이거나 레벨이 올라 최대 HP가 늘었으면 그만큼 지금 HP도 늘린다
+    var curHp = v.hp ?? max;
+    final lastMax = v.lastMaxHp;
+    if (lastMax != max) {
+      if (lastMax != null && max > lastMax) curHp += max - lastMax;
+      curHp = math.min(curHp, max);
+      v = v.copyWith(hp: curHp, lastMaxHp: max);
+      changed = true;
+    }
+
+    // 걷기 회복: 1,000보마다 10%
+    final today = p.today;
+    if (today != null) {
+      final counted = v.stepsDay == today.dayKey ? v.stepsCounted : 0;
+      final (healed, used) = VitalRules.regenHpFromSteps(
+        hp: curHp,
+        maxHp: max,
+        stepsToday: today.steps,
+        stepsCounted: counted,
+      );
+      if (healed != curHp || used != counted || v.stepsDay != today.dayKey) {
+        curHp = healed;
+        v = v.copyWith(hp: healed, stepsDay: today.dayKey, stepsCounted: used);
+        changed = true;
+      }
+    }
+
+    // MP 자연 회복
+    final (newMp, newAt) =
+        VitalRules.regenMp(v.mp ?? RuleConstants.mpMax, v.mpAt ?? now, now);
+    if (newMp != v.mp || newAt != v.mpAt) {
+      v = v.copyWith(mp: newMp, mpAt: newAt);
+      changed = true;
+    }
+
+    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
+    final restAt = v.restStartedAt;
+    if (restAt != null && TownRules.restDone(restAt, now)) {
+      v = v.copyWith(
+          hp: max, mp: RuleConstants.mpMax, mpAt: now, clearRest: true);
+      _vitals = v;
+      await store.saveVitals(v);
+      _justRested = true;
+      final rec = await _todayRecord();
+      await store.upsert(
+          _withQuests(rec.copyWith(restsCompleted: rec.restsCompleted + 1)));
+      _history = await store.loadHistory();
+    }
+
+    _vitals = v;
+    if (changed) await store.saveVitals(v);
+
+    // 돌아온 원정 마무리
+    final ex = v.expedition;
+    if (ex != null && !ex.finished && !now.isBefore(ex.returnAt)) {
+      await _resolveExpedition(ex);
+    }
+    notifyListeners();
+  }
+
+  bool _justRested = false;
+
+  /// 방금 휴식을 마쳤는지 (화면에서 한 번 알려 주고 [clearJustRested])
+  bool get justRested => _justRested;
+  void clearJustRested() {
+    _justRested = false;
+    notifyListeners();
+  }
+
+  /// 여관에 체크인한다. 언제든, 하루 여러 번. 이미 쉬는 중이면 false.
   Future<bool> restAtInn() async {
-    if (!innOpen) return false;
-    final today = await _todayRecord();
-    if (today.restedAtInn) return false;
-    await _save(today.copyWith(restedAtInn: true));
+    if (resting) return false;
+    await refreshVitals();
+    _vitals = _vitals.copyWith(restStartedAt: _clock());
+    await store.saveVitals(_vitals);
+    notifyListeners();
     return true;
+  }
+
+  /// 휴식을 그만둔다 (보상 없이)
+  Future<void> stopResting() async {
+    if (!resting) return;
+    _stopResting();
+    await store.saveVitals(_vitals);
+    notifyListeners();
+  }
+
+  void _stopResting() {
+    if (_vitals.restStartedAt != null) {
+      _vitals = _vitals.copyWith(clearRest: true);
+      unawaited(store.saveVitals(_vitals));
+    }
+  }
+
+  // ───────────── 정령 원정
+
+  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함)
+  ExpeditionPlan planExpedition(FieldSpawn spawn) {
+    final from = _lastFix?.point;
+    if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
+    final cell = area.cellIdOf(spawn.point);
+    final dist = from.distanceTo(spawn.point);
+    final cost = VitalRules.expeditionCost(dist);
+    final oneWay = VitalRules.expeditionOneWay(dist);
+    ExpeditionCheck check;
+    if (expedition != null && !expedition!.finished) {
+      check = ExpeditionCheck.busy;
+    } else if (cell == null || !_revealedCells.contains(cell)) {
+      check = ExpeditionCheck.inFog;
+    } else if (mp < cost) {
+      check = ExpeditionCheck.notEnoughMp;
+    } else {
+      check = ExpeditionCheck.ok;
+    }
+    return ExpeditionPlan(check, distanceM: dist, mpCost: cost, oneWay: oneWay);
+  }
+
+  /// 정령을 보낸다. MP는 보내는 순간 쓴다.
+  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn) async {
+    await refreshVitals();
+    final plan = planExpedition(spawn);
+    if (plan.check != ExpeditionCheck.ok) return plan.check;
+    final now = _clock();
+    final arrive = now.add(plan.oneWay);
+    _vitals = _vitals.copyWith(
+      mp: mp - plan.mpCost,
+      mpAt: mp >= RuleConstants.mpMax ? now : _vitals.mpAt,
+      expedition: Expedition(
+        spawnId: spawn.id,
+        monster: spawn.monster.name,
+        lat: spawn.point.lat,
+        lng: spawn.point.lng,
+        fromLat: _lastFix?.point.lat,
+        fromLng: _lastFix?.point.lng,
+        distanceM: plan.distanceM,
+        mpCost: plan.mpCost,
+        startedAt: now,
+        arriveAt: arrive,
+        returnAt: arrive.add(plan.oneWay),
+      ),
+    );
+    await store.saveVitals(_vitals);
+    notifyListeners();
+    return ExpeditionCheck.ok;
+  }
+
+  /// 원정 결과를 확인했을 때 (결과 카드를 닫으면)
+  Future<void> acknowledgeExpedition() async {
+    final ex = expedition;
+    if (ex == null || !ex.finished) return;
+    _vitals = _vitals.copyWith(clearExpedition: true);
+    await store.saveVitals(_vitals);
+    notifyListeners();
+  }
+
+  /// 원정 경험치 (결과 카드에 보여 준다)
+  int _lastExpeditionExp = 0;
+  int get lastExpeditionExp => _lastExpeditionExp;
+
+  /// 돌아온 정령의 전투 결과를 정한다. 정령은 각성자의 전투력으로 싸우고
+  /// 각성자의 HP는 쓰지 않는다. 지면 MP만 잃고, 몬스터는 그대로 남는다.
+  Future<void> _resolveExpedition(Expedition ex) async {
+    final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
+    final p = player;
+    final battle = Battle.forPlayer(
+      level: p.level.level,
+      stats: p.stats,
+      floors: [BattleRules.fieldFoe(level: p.level.level, monster: monster)],
+      rng: math.Random(ex.spawnId.hashCode),
+    ).runToEnd(useSkills: true);
+    final cleared = battle.phase == BattlePhase.cleared;
+    _lastExpeditionExp = cleared
+        ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng))
+        : 0;
+    _vitals = _vitals.copyWith(expedition: ex.withResult(cleared));
+    await store.saveVitals(_vitals);
   }
 
   /// 지금까지 정화한 몬스터 종류 (도감)
@@ -593,11 +872,25 @@ class AppController extends ChangeNotifier {
         DateTime(dayStart.year, dayStart.month, dayStart.day, 20);
     final after8 =
         end.isAfter(eightPm) ? await health.stepsBetween(eightPm, end) : 0;
-    final sleep = await health.sleepMinutesForNightBefore(dayStart);
-    return record.copyWith(
-      steps: steps,
-      stepsAfter8pm: after8,
-      sleepMinutes: sleep,
-    );
+    return record.copyWith(steps: steps, stepsAfter8pm: after8);
   }
+}
+
+/// 정령 원정을 보낼 수 있는지
+enum ExpeditionCheck { ok, needsLocation, inFog, notEnoughMp, busy }
+
+class ExpeditionPlan {
+  const ExpeditionPlan(
+    this.check, {
+    this.distanceM = 0,
+    this.mpCost = 0,
+    this.oneWay = Duration.zero,
+  });
+
+  final ExpeditionCheck check;
+  final double distanceM;
+  final int mpCost;
+
+  /// 한쪽 길 시간 (돌아오기까지는 두 배)
+  final Duration oneWay;
 }

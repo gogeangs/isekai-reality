@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
 
+import '../../data/storage/record_store.dart';
+import 'spirit_art.dart';
+
 import '../../data/weather/weather_source.dart';
 
 /// 불씨의 빛 색: 맑음 황금, 비 하늘색, 밤 보라, 눈 흰색
@@ -36,16 +39,29 @@ class BulssiScope extends InheritedWidget {
     super.key,
     required this.mood,
     required this.spiritName,
+    this.kind = SpiritKind.fire,
     required super.child,
   });
 
   final BulssiMood mood;
   final String spiritName;
 
+  /// 함께하는 정령 종류
+  final SpiritKind kind;
+
+  /// 정령 빛 색: 속성 색을 바탕으로, 비·눈·밤에는 살짝 물든다
+  Color get glow {
+    final base = spiritColor(kind);
+    if (mood == BulssiMood.gold) return base;
+    return Color.lerp(base, mood.color, 0.35)!;
+  }
+
   static BulssiScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<BulssiScope>();
 
   @override
   bool updateShouldNotify(BulssiScope oldWidget) =>
-      mood != oldWidget.mood || spiritName != oldWidget.spiritName;
+      mood != oldWidget.mood ||
+      spiritName != oldWidget.spiritName ||
+      kind != oldWidget.kind;
 }

@@ -9,7 +9,7 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 void main() {
   final now = DateTime(2026, 11, 8, 21, 30); // 일요일 저녁 9시 반
 
-  test('건강 앱에서 오늘 걸음·저녁 걸음·지난밤 수면을 읽어 저장한다', () async {
+  test('건강 앱에서 오늘 걸음·저녁 걸음을 읽어 저장한다', () async {
     final store = InMemoryRecordStore(
         profile: const PlayerProfile(name: '하루', stepGoal: 5000));
     final controller = AppController(
@@ -17,7 +17,6 @@ void main() {
       health: FakeHealthSource(
         stepsByDay: {'2026-11-08': 6400},
         stepsAfter8pmByDay: {'2026-11-08': 1200},
-        sleepByDay: {'2026-11-08': 430},
       ),
       clock: () => now,
     );
@@ -27,30 +26,14 @@ void main() {
     expect(today.dayKey, '2026-11-08');
     expect(today.steps, 6400);
     expect(today.stepsAfter8pm, 1200);
-    expect(today.sleepMinutes, 430);
     expect(today.stepGoal, RuleConstants.defaultStepGoal);
-    expect(today.questsCompleted, 2); // 수면, 걸음 완료 / 공부 미완료
+    expect(today.questsCompleted, 1); // 걸음 완료 / 새 안개·필드 몬스터 미완료
     // 걸음 열쇠 2개 + 목표 달성 보너스 1개
     expect(controller.player.gauge.keysAvailable, 3);
     expect(controller.player.gauge.goalBonusKey, isTrue);
 
     final saved = await store.loadHistory();
     expect(saved.single.steps, 6400);
-  });
-
-  test('공부 기록은 저장되고 퀘스트에 반영된다', () async {
-    final store = InMemoryRecordStore(profile: const PlayerProfile(name: '하루'));
-    final controller = AppController(
-      store: store,
-      health: FakeHealthSource(sleepByDay: {'2026-11-08': 300}),
-      clock: () => now,
-    );
-    await controller.init();
-    await controller.logStudy(30);
-
-    final saved = (await store.loadHistory()).last;
-    expect(saved.studyMinutes, 30);
-    expect(saved.questsCompleted, 1);
   });
 
   test('어제 기록은 하루 전체 걸음으로 마감한다', () async {
@@ -106,14 +89,14 @@ void main() {
       date: DateTime(2026, 11, 8),
       steps: 6400,
       stepsAfter8pm: 1200,
-      sleepMinutes: 430,
-      studyMinutes: 10,
       stepGoal: 8000,
       dungeonRuns: const [DungeonRun(cleared: true, atGate: true)],
       fieldMonstersPurified: 2,
       newPlacesVisited: 1,
       placesRevisited: 1,
       questsCompleted: 1,
+      newCellsRevealed: 12,
+      restsCompleted: 2,
     );
     final back = DailyRecord.fromJson(r.toJson());
     expect(back.toJson(), r.toJson());

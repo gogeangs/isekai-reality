@@ -108,9 +108,10 @@ class Battle {
     required List<Foe> floors,
     math.Random? rng,
     this.skillChargeTicks = RuleConstants.skillChargeTicks,
+    int? startHp,
   })  : floors = List.unmodifiable(floors),
         _rng = rng ?? math.Random(),
-        playerHp = playerMaxHp,
+        playerHp = math.min(playerMaxHp, math.max(0, startHp ?? playerMaxHp)),
         foeHp = floors.first.maxHp;
 
   /// 플레이어 상태로 전투를 만든다
@@ -120,8 +121,10 @@ class Battle {
     required List<Foe> floors,
     math.Random? rng,
     int skillChargeTicks = RuleConstants.skillChargeTicks,
+    int? startHp,
   }) {
     return Battle(
+      startHp: startHp,
       playerMaxHp: StatRules.battleMaxHp(level: level, stats: stats),
       playerAttack:
           BattleRules.attackOf(StatRules.combatPower(level: level, stats: stats)),
@@ -136,8 +139,13 @@ class Battle {
   final List<Foe> floors;
   final math.Random _rng;
 
-  /// 스킬이 다 차는 데 걸리는 틱 (불씨 물약을 마신 날은 더 짧다)
+  /// 스킬이 다 차는 데 걸리는 틱 (정령 물약을 마신 날은 더 짧다).
+  /// [skillUnavailable] 이면 정령이 원정을 가서 스킬을 쓸 수 없다.
   final int skillChargeTicks;
+
+  /// 정령이 원정 중이라 '정령의 일격'을 쓸 수 없는 전투
+  static const int skillUnavailable = 1 << 30;
+  bool get skillDisabled => skillChargeTicks >= skillUnavailable;
 
   int playerHp;
   int foeHp;

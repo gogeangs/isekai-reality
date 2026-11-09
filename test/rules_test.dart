@@ -6,27 +6,27 @@ DailyRecord day(
   int index, {
   int steps = 0,
   int stepsAfter8pm = 0,
-  int? sleep,
-  int study = 0,
   int goal = 5000,
   List<DungeonRun> runs = const [],
   int monsters = 0,
   int newPlaces = 0,
   int revisits = 0,
   int quests = 0,
+  int rests = 0,
+  List<String> monsterIds = const [],
 }) =>
     DailyRecord(
       date: DateTime(2026, 11, 1).add(Duration(days: index)),
       steps: steps,
       stepsAfter8pm: stepsAfter8pm,
-      sleepMinutes: sleep,
-      studyMinutes: study,
       stepGoal: goal,
       dungeonRuns: runs,
       fieldMonstersPurified: monsters,
       newPlacesVisited: newPlaces,
       placesRevisited: revisits,
       questsCompleted: quests,
+      restsCompleted: rests,
+      purifiedMonsterIds: monsterIds,
     );
 
 void main() {
@@ -66,27 +66,28 @@ void main() {
         runs: List.filled(6, const DungeonRun(cleared: true)),
         monsters: 9,
         newPlaces: 5,
-        study: 300,
         quests: 5,
       ));
       expect(b.dungeon, 200); // 4회
       expect(b.fieldMonster, 75); // 5마리
       expect(b.exploration, 90); // 3곳
-      expect(b.study, 60); // 2시간
       expect(b.quest, 60); // 3개
     });
 
-    test('수면 경험치', () {
-      expect(ExpRules.sleepExp(430), 30);
-      expect(ExpRules.sleepExp(390), 15);
-      expect(ExpRules.sleepExp(300), 0);
-      expect(ExpRules.sleepExp(null), 0);
+    test('여관 휴식을 마친 날은 하루 한 번 +20 (여러 번 쉬어도 같다)', () {
+      expect(ExpRules.forDay(day(0, rests: 1)).rest, 20);
+      expect(ExpRules.forDay(day(0, rests: 3)).rest, 20);
+      expect(ExpRules.forDay(day(0)).rest, 0);
     });
 
-    test('7일째마다 연속 접속 보너스', () {
-      expect(ExpRules.streakBonus(7), 100);
-      expect(ExpRules.streakBonus(14), 100);
-      expect(ExpRules.streakBonus(6), 0);
+    test('연속 휴식 보너스: 3일 30, 7일 70, 14일 100, 그 뒤 7일마다 100', () {
+      expect(TownRules.restStreakReward(3), (30, 0));
+      expect(TownRules.restStreakReward(7), (70, 5));
+      expect(TownRules.restStreakReward(14), (100, 10));
+      expect(TownRules.restStreakReward(21), (100, 10));
+      expect(TownRules.restStreakReward(28), (100, 10));
+      expect(TownRules.restStreakReward(10), (0, 0));
+      expect(ExpRules.forDay(day(0, rests: 1), restStreak: 7).restStreak, 70);
     });
   });
 
@@ -148,15 +149,27 @@ void main() {
 
     test('기록에 따라 오른다', () {
       final history = [
-        day(0, steps: 16000, sleep: 450, study: 120), // 목표 달성, 잘 잠
-        day(1, steps: 15000, sleep: 380, study: 90), // 목표 달성
-        day(2, steps: 2000, sleep: 480), // 잘 잠
+        // 목표 달성, 새 몬스터 2종, 새 장소 1곳, 휴식
+        day(0,
+            steps: 16000,
+            monsterIds: ['ashSlime', 'labyrinthBat'],
+            newPlaces: 1,
+            rests: 1),
+        // 목표 달성, 이미 본 몬스터
+        day(1, steps: 15000, monsterIds: ['ashSlime']),
+        day(2, steps: 2000, rests: 2), // 휴식
       ];
       final s = StatRules.fromHistory(history);
       expect(s.vitality, 11); // 33,000보
       expect(s.agility, 12);
-      expect(s.wisdom, 11); // 210분
-      expect(s.spirit, 12);
+      expect(s.wisdom, 13); // 새 몬스터 2 + 새 장소 1
+      expect(s.spirit, 12); // 휴식한 날 2
+    });
+
+    test('7일 연속 접속할 때마다 정신 +1', () {
+      expect(StatRules.fromHistory(List.generate(6, (i) => day(i))).spirit, 10);
+      expect(StatRules.fromHistory(List.generate(7, (i) => day(i))).spirit, 11);
+      expect(StatRules.fromHistory(List.generate(14, (i) => day(i))).spirit, 12);
     });
 
     test('전투 체력: Lv.12, 체력 12 → 1,500', () {
@@ -176,6 +189,23 @@ void main() {
           7, (i) => day(i, steps: i == 3 ? 1000 : 5200));
       expect(TitleRules.earned(history, 1),
           isNot(contains(TitleId.persistentTraveler)));
+    });
+
+    test('여관에서 7일 연속 쉬면 아침 정령의 친구', () {
+      final six = List.generate(6, (i) => day(i, rests: 1));
+      expect(TitleRules.earned(six, 1),
+          isNot(contains(TitleId.morningSpiritFriend)));
+      expect(TitleRules.earned([...six, day(6, rests: 1)], 1),
+          contains(TitleId.morningSpiritFriend));
+    });
+
+    test('몬스터 6종을 모두 정화하면 도감의 현자', () {
+      final ids = [for (final m in MonsterId.values) m.name];
+      expect(TitleRules.earned([day(0, monsterIds: ids.sublist(1))], 1),
+          isNot(contains(TitleId.bookwormSage)));
+      expect(TitleRules.earned([day(0, monsterIds: ids)], 1),
+          contains(TitleId.bookwormSage));
+      expect(TitleRules.info(TitleId.bookwormSage).name, '도감의 현자');
     });
 
     test('레벨 칭호', () {
@@ -217,25 +247,6 @@ void main() {
       expect(TitleRules.equipped(earned, chosen: TitleId.lakeFriend),
           TitleId.nightWalker);
       expect(TitleRules.equipped({}), isNull);
-    });
-  });
-
-  group('직업 각성', () {
-    test('공부를 많이 하면 현자', () {
-      final week = List.generate(
-          7, (i) => day(i, steps: 3000, sleep: 360, study: 60));
-      expect(JobRules.awaken(week), Job.sage);
-    });
-
-    test('적게 걷는 사람도 목표의 2배를 자주 걸으면 기사', () {
-      final week = List.generate(
-          7, (i) => day(i, steps: i < 4 ? 6000 : 1000, goal: 3000));
-      expect(JobRules.awaken(week), Job.knight);
-    });
-
-    test('잠을 규칙적으로 자면 성직자', () {
-      final week = List.generate(7, (i) => day(i, steps: 2000, sleep: 450));
-      expect(JobRules.awaken(week), Job.cleric);
     });
   });
 

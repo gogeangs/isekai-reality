@@ -25,16 +25,14 @@ DailyRecord _day(int d,
         {List<DungeonRun> runs = const [],
         int field = 0,
         List<String> bought = const [],
-        bool rested = false,
-        int? sleep,
+        int rests = 0,
         int steps = 0}) =>
     DailyRecord(
       date: DateTime(2026, 11, d),
       dungeonRuns: runs,
       fieldMonstersPurified: field,
       shopPurchases: bought,
-      restedAtInn: rested,
-      sleepMinutes: sleep,
+      restsCompleted: rests,
       steps: steps,
       stepGoal: 8000,
     );
@@ -106,29 +104,81 @@ void main() {
   });
 
   group('여관', () {
-    test('저녁 6시 ~ 11시에만 체크인', () {
-      expect(TownRules.innOpen(DateTime(2026, 11, 8, 17, 59)), isFalse);
-      expect(TownRules.innOpen(DateTime(2026, 11, 8, 18)), isTrue);
-      expect(TownRules.innOpen(DateTime(2026, 11, 8, 22, 59)), isTrue);
-      expect(TownRules.innOpen(DateTime(2026, 11, 8, 23)), isFalse);
+    test('연속 휴식: 하루라도 비거나 안 쉬면 다시 1부터', () {
+      final h = [
+        _day(2, rests: 1),
+        _day(3, rests: 2),
+        _day(4),
+        _day(5, rests: 1),
+        _day(7, rests: 1), // 6일이 빠짐
+      ];
+      expect(TownRules.restStreaks(h), [1, 2, 0, 1, 1]);
     });
 
-    test('체크인한 다음 날 7시간 이상 자면 경험치 +10', () {
-      PlayerState of(List<DailyRecord> h) =>
-          PlayerState.fromHistory(name: '하루', history: h);
+    test('오늘 아직 안 쉬었으면 어제까지의 연속을 보여 준다', () {
+      final h = [_day(2, rests: 1), _day(3, rests: 1), _day(4)];
+      expect(TownRules.currentRestStreak(h), 2);
+    });
 
-      final good = of([_day(2, rested: true), _day(3, sleep: 430)]);
-      expect(good.dailyExp.last.innRest, RuleConstants.innRestExp);
+    test('7일 연속 쉬면 경험치 +70과 정화 결정 +5', () {
+      final h = List.generate(7, (i) => _day(2 + i, rests: 1));
+      final p = PlayerState.fromHistory(name: '하루', history: h);
+      expect(p.dailyExp.last.rest, RuleConstants.restBonusExp);
+      expect(p.dailyExp.last.restStreak, 70);
+      expect(p.dailyExp[2].restStreak, 30); // 3일째
+      expect(TownRules.crystals(h), 5);
+    });
 
-      final short = of([_day(2, rested: true), _day(3, sleep: 380)]);
-      expect(short.dailyExp.last.innRest, 0);
+    test('4시간이 지나야 휴식이 끝난다', () {
+      final at = DateTime(2026, 11, 8, 14);
+      expect(TownRules.restDone(at, DateTime(2026, 11, 8, 17, 59)), isFalse);
+      expect(TownRules.restDone(at, DateTime(2026, 11, 8, 18)), isTrue);
+      expect(TownRules.restLeft(at, DateTime(2026, 11, 8, 16)),
+          const Duration(hours: 2));
+    });
+  });
 
-      final noRest = of([_day(2), _day(3, sleep: 430)]);
-      expect(noRest.dailyExp.last.innRest, 0);
+  group('HP · MP 계산', () {
+    test('걸음 1,000보마다 최대 HP의 10%', () {
+      expect(
+          VitalRules.regenHpFromSteps(
+              hp: 0, maxHp: 1000, stepsToday: 2500, stepsCounted: 0),
+          (200, 2000));
+      expect(
+          VitalRules.regenHpFromSteps(
+              hp: 950, maxHp: 1000, stepsToday: 3100, stepsCounted: 2000),
+          (1000, 3000));
+    });
 
-      // 하루를 건너뛰면 보너스 없음
-      final gap = of([_day(2, rested: true), _day(4, sleep: 430)]);
-      expect(gap.dailyExp.last.innRest, 0);
+    test('MP는 6분에 1씩, 가득 차면 멈춘다', () {
+      final t = DateTime(2026, 11, 8, 9);
+      expect(VitalRules.regenMp(20, t, t.add(const Duration(hours: 1))).$1, 30);
+      expect(VitalRules.regenMp(55, t, t.add(const Duration(hours: 2))).$1,
+          RuleConstants.mpMax);
+    });
+
+    test('원정: 100m마다 MP 2, 1km마다 10분 (최소 3분)', () {
+      expect(VitalRules.expeditionCost(1000), 20);
+      expect(VitalRules.expeditionCost(250), 6);
+      expect(VitalRules.expeditionOneWay(1000), const Duration(minutes: 10));
+      expect(VitalRules.expeditionOneWay(100), const Duration(minutes: 3));
+    });
+
+    test('회복 물약은 레벨·하루 개수·가득 여부를 본다', () {
+      final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
+      expect(TownRules.canBuy([rich], ShopItem.heal, level: 2),
+          PurchaseCheck.levelTooLow);
+      expect(TownRules.canBuy([rich], ShopItem.healSmall, hpFull: true),
+          PurchaseCheck.alreadyFull);
+      expect(
+          TownRules.canBuy([
+            _day(2,
+                runs: List.filled(10, const DungeonRun(cleared: true)),
+                bought: ['healSmall', 'healSmall', 'healSmall'])
+          ], ShopItem.healSmall),
+          PurchaseCheck.limitReached);
+      expect(TownRules.canBuy([rich], ShopItem.manaSmall),
+          PurchaseCheck.ok);
     });
   });
 
@@ -186,14 +236,125 @@ void main() {
       expect(c.revealedCells.length, greaterThan(before + 4));
     });
 
-    test('여관 체크인은 저녁에만, 하루 한 번', () async {
-      final day = await start(DateTime(2026, 11, 8, 14));
-      expect(await day.restAtInn(), isFalse);
+    test('여관: 언제든 체크인, 4시간 뒤 HP·MP 가득과 휴식 보너스', () async {
+      var now = DateTime(2026, 11, 8, 14);
+      final c = AppController(
+        store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+        ),
+        health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
+        clock: () => now,
+      );
+      await c.init();
+      expect(await c.restAtInn(), isTrue);
+      expect(c.resting, isTrue);
+      expect(await c.restAtInn(), isFalse); // 이미 쉬는 중
 
-      final night = await start(DateTime(2026, 11, 8, 21));
-      expect(await night.restAtInn(), isTrue);
-      expect(night.history.last.restedAtInn, isTrue);
-      expect(await night.restAtInn(), isFalse);
+      now = DateTime(2026, 11, 8, 17);
+      await c.refreshVitals();
+      expect(c.resting, isTrue);
+      expect(c.restLeft, const Duration(hours: 1));
+
+      now = DateTime(2026, 11, 8, 18, 1);
+      await c.refreshVitals();
+      expect(c.resting, isFalse);
+      expect(c.justRested, isTrue);
+      expect(c.history.last.restsCompleted, 1);
+      expect(c.player.dailyExp.last.rest, RuleConstants.restBonusExp);
+
+      // 같은 날 또 쉬어도 된다 (보너스는 하루 한 번)
+      expect(await c.restAtInn(), isTrue);
+      now = DateTime(2026, 11, 8, 22, 30);
+      await c.refreshVitals();
+      expect(c.history.last.restsCompleted, 2);
+      expect(c.player.dailyExp.last.rest, RuleConstants.restBonusExp);
+    });
+
+    test('HP는 전투 사이에 이어지고, 0이면 싸울 수 없고, 걸으면 찬다', () async {
+      final health = FakeHealthSource(stepsByDay: {'2026-11-08': 2600});
+      final c = AppController(
+        store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+          history: [rich],
+        ),
+        health: health,
+        clock: () => DateTime(2026, 11, 8, 14),
+      );
+      await c.init();
+      expect(c.hp, c.maxHp);
+
+      final spawn = c.todaySpawns.first;
+      final battle = c.startFieldBattle(spawn)!;
+      battle.playerHp = 0;
+      await c.finishFieldBattle(spawn, battle);
+      expect(c.hp, 0);
+      expect(c.startFieldBattle(spawn), isNull);
+      expect(c.startDungeon(), isNull);
+
+      health.stepsByDay['2026-11-08'] = 4700; // 2,000보 더
+      await c.sync();
+      expect(c.hp, (c.maxHp * 0.1).round() * 2);
+      expect(c.startDungeon(), isNotNull);
+    });
+
+    test('회복 물약을 사면 바로 HP가 찬다', () async {
+      final c = await start(DateTime(2026, 11, 8, 14), history: [rich]);
+      expect(await c.buy(ShopItem.healSmall), PurchaseCheck.alreadyFull);
+      final spawn = c.todaySpawns.first;
+      final battle = c.startFieldBattle(spawn)!;
+      battle.playerHp = 0;
+      await c.finishFieldBattle(spawn, battle);
+      expect(await c.buy(ShopItem.healSmall), PurchaseCheck.ok);
+      expect(c.hp, (c.maxHp * 0.2).round());
+    });
+
+    test('정령 원정: 안개를 걷은 곳만, MP를 쓰고, 돌아오면 정화', () async {
+      var now = DateTime(2026, 11, 8, 14);
+      final loc = _Location();
+      final c = AppController(
+        store: InMemoryRecordStore(
+          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
+          history: [rich],
+        ),
+        health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
+        location: loc,
+        clock: () => now,
+      );
+      await c.init();
+      final spawn = c.todaySpawns.first;
+
+      // 몬스터 자리에서 400m쯤 떨어진 곳 (아직 몬스터 자리 안개는 그대로)
+      final dir = c.area.bounds.center.lat > spawn.point.lat ? 1 : -1;
+      final away = GeoPoint(spawn.point.lat + 0.0036 * dir, spawn.point.lng);
+      loc.emit(LocationFix(point: away, speedMps: 1.2));
+      await Future<void>.delayed(Duration.zero);
+      expect(c.planExpedition(spawn).check, ExpeditionCheck.inFog);
+
+      // 몬스터 자리를 걸어서 밝히고 돌아온다
+      loc.emit(LocationFix(point: spawn.point, speedMps: 1.2));
+      await Future<void>.delayed(Duration.zero);
+      loc.emit(LocationFix(point: away, speedMps: 1.2));
+      await Future<void>.delayed(Duration.zero);
+      final plan = c.planExpedition(spawn);
+      expect(plan.check, ExpeditionCheck.ok);
+      expect(plan.mpCost, VitalRules.expeditionCost(plan.distanceM));
+
+      final purifiedBefore = c.history.last.fieldMonstersPurified;
+      expect(await c.sendSpirit(spawn), ExpeditionCheck.ok);
+      expect(c.mp, RuleConstants.mpMax - plan.mpCost);
+      expect(c.todaySpawns.any((s) => s.id == spawn.id), isFalse);
+      expect(await c.sendSpirit(c.todaySpawns.first), ExpeditionCheck.busy);
+      // 원정 중에는 정령의 일격을 쓸 수 없다
+      expect(c.startDungeon()!.skillDisabled, isTrue);
+
+      now = now.add(plan.oneWay * 2 + const Duration(minutes: 1));
+      await c.refreshVitals();
+      final ex = c.expedition!;
+      expect(ex.finished, isTrue);
+      expect(ex.cleared, isTrue);
+      expect(c.history.last.fieldMonstersPurified, purifiedBefore + 1);
+      await c.acknowledgeExpedition();
+      expect(c.expedition, isNull);
     });
 
     test('대표 칭호는 얻은 칭호만 고를 수 있고 저장된다', () async {

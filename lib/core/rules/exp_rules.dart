@@ -8,33 +8,24 @@ class DailyExpBreakdown {
     required this.dungeon,
     required this.fieldMonster,
     required this.exploration,
-    required this.sleep,
-    required this.study,
     required this.quest,
-    required this.streakBonus,
-    this.innRest = 0,
+    this.rest = 0,
+    this.restStreak = 0,
   });
 
   final int dungeon;
   final int fieldMonster;
   final int exploration;
-  final int sleep;
-  final int study;
   final int quest;
-  final int streakBonus;
 
-  /// 어젯밤 여관에서 쉬고 푹 잔 보너스
-  final int innRest;
+  /// 여관 휴식을 마친 날의 보너스 (하루 한 번)
+  final int rest;
+
+  /// 연속 휴식 보너스 (3일·7일·14일째, 그 뒤 7일마다)
+  final int restStreak;
 
   int get total =>
-      dungeon +
-      fieldMonster +
-      exploration +
-      sleep +
-      study +
-      quest +
-      streakBonus +
-      innRest;
+      dungeon + fieldMonster + exploration + quest + rest + restStreak;
 }
 
 class ExpRules {
@@ -49,38 +40,13 @@ class ExpRules {
     return (base * RuleConstants.gateBonusMultiplier).round();
   }
 
-  static int sleepExp(int? sleepMinutes) {
-    final m = sleepMinutes ?? 0;
-    if (m >= RuleConstants.sleepGoodMinutes) return RuleConstants.sleepGoodExp;
-    if (m >= RuleConstants.sleepOkMinutes) return RuleConstants.sleepOkExp;
-    return 0;
-  }
-
-  static int studyExp(int studyMinutes) {
-    final raw = (studyMinutes ~/ 10) * RuleConstants.studyExpPerTenMinutes;
-    return raw > RuleConstants.maxStudyExpPerDay
-        ? RuleConstants.maxStudyExpPerDay
-        : raw;
-  }
-
-  /// [consecutiveDays] 는 오늘을 포함한 연속 접속 일수
-  static int streakBonus(int consecutiveDays) {
-    if (consecutiveDays > 0 &&
-        consecutiveDays % RuleConstants.streakBonusEveryDays == 0) {
-      return RuleConstants.streakBonusExp;
-    }
-    return 0;
-  }
-
   /// 하루 기록으로 경험치 내역을 계산한다.
   ///
   /// 걸음은 경험치를 직접 주지 않는다. 걸음은 던전 열쇠가 되고,
-  /// 던전에서 경험치를 얻는다.
-  static DailyExpBreakdown forDay(
-    DailyRecord record, {
-    int consecutiveDays = 0,
-    bool restedLastNight = false,
-  }) {
+  /// 던전에서 경험치를 얻는다. 공부·수면은 2026-11-10에 뺐다.
+  ///
+  /// [restStreak] 는 오늘을 포함한 연속 휴식 일수 (오늘 쉬지 않았으면 0)
+  static DailyExpBreakdown forDay(DailyRecord record, {int restStreak = 0}) {
     final runs = record.dungeonRuns
         .take(RuleConstants.maxDungeonRunsPerDay)
         .toList(); // 하루 최대 4회까지 경험치 인정
@@ -105,12 +71,9 @@ class ExpRules {
       fieldMonster: monsters * RuleConstants.fieldMonsterExp,
       exploration: newPlaces * RuleConstants.newPlaceExp +
           record.placesRevisited * RuleConstants.revisitPlaceExp,
-      sleep: sleepExp(record.sleepMinutes),
-      study: studyExp(record.studyMinutes),
       quest: quests * RuleConstants.questExp,
-      streakBonus: streakBonus(consecutiveDays),
-      innRest: TownRules.innRestExp(
-          restedLastNight: restedLastNight, sleepMinutes: record.sleepMinutes),
+      rest: record.rested ? RuleConstants.restBonusExp : 0,
+      restStreak: record.rested ? TownRules.restStreakReward(restStreak).$1 : 0,
     );
   }
 }

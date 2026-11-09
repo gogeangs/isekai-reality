@@ -13,13 +13,16 @@ import '../bulssi/bulssi_lines.dart';
 
 /// 메인 상태창 (목업 확정본 구도).
 ///
-/// 위: 각성자 그림 + 월계관 레벨 배지 / 가운데: 경험치·던전 게이지·MP·스탯 /
+/// 위: 각성자 그림 + 월계관 레벨 배지 / 가운데: 경험치·던전 게이지·HP·정령 MP·스탯 /
 /// 아래: 일일 퀘스트와 불씨.
 class StatusScreen extends StatelessWidget {
   const StatusScreen({
     super.key,
     required this.player,
-    required this.onLogStudy,
+    this.hp,
+    this.mp,
+    this.restLeft,
+    this.spiritAway,
     this.onOpenDungeon,
     this.onOpenInn,
     this.onOpenShop,
@@ -30,7 +33,18 @@ class StatusScreen extends StatelessWidget {
   });
 
   final PlayerState player;
-  final ValueChanged<int> onLogStudy;
+
+  /// 지금 HP (없으면 가득)
+  final int? hp;
+
+  /// 정령 MP (없으면 가득)
+  final int? mp;
+
+  /// 여관에서 쉬는 중이면 남은 시간
+  final Duration? restLeft;
+
+  /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
+  final String? spiritAway;
 
   /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
   final VoidCallback? onOpenDungeon;
@@ -46,18 +60,6 @@ class StatusScreen extends StatelessWidget {
   /// 위쪽 날씨 표시 (예: '맑음 12°')
   final String weatherLabel;
   final IconData weatherIcon;
-
-  Future<void> _openStudySheet(BuildContext context) async {
-    final minutes = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: AppColors.night,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => const _StudySheet(),
-    );
-    if (minutes != null) onLogStudy(minutes);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,15 +117,21 @@ class StatusScreen extends StatelessWidget {
                       today: today,
                       gauge: player.gauge,
                       now: DateTime.now(),
+                      hpRatio: (hp ?? player.maxHp) / player.maxHp,
+                      resting: restLeft != null,
+                      spiritAway: spiritAway != null,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _StatusPanel(player: player, onOpenDungeon: onOpenDungeon),
-                  const SizedBox(height: 14),
-                  _QuestPanel(
-                    quests: QuestRules.forDay(today),
-                    onLogStudy: () => _openStudySheet(context),
+                  _StatusPanel(
+                    player: player,
+                    hp: hp ?? player.maxHp,
+                    mp: mp ?? RuleConstants.mpMax,
+                    spiritAway: spiritAway,
+                    onOpenDungeon: onOpenDungeon,
                   ),
+                  const SizedBox(height: 14),
+                  _QuestPanel(quests: QuestRules.forDay(today)),
                   if (onOpenInn != null || onOpenShop != null) ...[
                     const SizedBox(height: 14),
                     Row(children: [
@@ -131,7 +139,9 @@ class StatusScreen extends StatelessWidget {
                         child: _TownTile(
                           asset: 'map_inn',
                           title: '여관',
-                          subtitle: today.restedAtInn ? '체크인 완료' : '하루 마무리',
+                          subtitle: restLeft != null
+                              ? '쉬는 중 · ${_left(restLeft!)}'
+                              : '하루 마무리',
                           onTap: onOpenInn,
                         ),
                       ),
@@ -270,17 +280,33 @@ class _HeroArt extends StatelessWidget {
 
 // ───────────────────────────────────────────────────────────── 상태 패널
 
+/// '2시간 10분' / '12분'
+String _left(Duration d) {
+  final h = d.inHours;
+  final m = d.inMinutes.remainder(60);
+  if (h > 0) return m > 0 ? '$h시간 $m분' : '$h시간';
+  return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
+}
+
 class _StatusPanel extends StatelessWidget {
-  const _StatusPanel({required this.player, this.onOpenDungeon});
+  const _StatusPanel({
+    required this.player,
+    required this.hp,
+    required this.mp,
+    this.spiritAway,
+    this.onOpenDungeon,
+  });
 
   final PlayerState player;
+  final int hp;
+  final int mp;
+  final String? spiritAway;
   final VoidCallback? onOpenDungeon;
 
   @override
   Widget build(BuildContext context) {
-    final today = player.today!;
     final gauge = player.gauge;
-    final sleep = today.sleepMinutes ?? 0;
+    final maxHp = player.maxHp;
 
     return OrnatePanel(
       ornament: true,
@@ -319,18 +345,22 @@ class _StatusPanel extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: _Gauge(
-                  icon: 'moon',
-                  label: 'MP · 수면',
-                  ratio: (sleep / RuleConstants.sleepGoodMinutes)
-                      .clamp(0, 1)
-                      .toDouble(),
-                  colors: BarColors.mana,
-                  value: today.sleepMinutes == null
-                      ? '기록 없음'
-                      : '${hoursMinutes(sleep)} / 7시간',
+                  icon: 'vitality',
+                  label: hp <= 0 ? 'HP · 쉬어야 해요' : 'HP',
+                  ratio: maxHp == 0 ? 0 : hp / maxHp,
+                  colors: BarColors.hp,
+                  value: '${comma(hp)} / ${comma(maxHp)}',
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          _Gauge(
+            icon: 'mp',
+            label: spiritAway ?? '정령 MP',
+            ratio: mp / RuleConstants.mpMax,
+            colors: BarColors.mana,
+            value: '$mp / ${RuleConstants.mpMax}',
           ),
           if (onOpenDungeon != null) ...[
             const SizedBox(height: 12),
@@ -447,10 +477,9 @@ class _StatTile extends StatelessWidget {
 // ───────────────────────────────────────────────────────────── 일일 퀘스트
 
 class _QuestPanel extends StatelessWidget {
-  const _QuestPanel({required this.quests, required this.onLogStudy});
+  const _QuestPanel({required this.quests});
 
   final List<QuestProgress> quests;
-  final VoidCallback onLogStudy;
 
   @override
   Widget build(BuildContext context) {
@@ -467,31 +496,6 @@ class _QuestPanel extends StatelessWidget {
               child: Container(
                 height: 1,
                 color: AppColors.gold.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onLogStudy,
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    gradient: kGoldGradient,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    GameIcon('study', size: 18),
-                    SizedBox(width: 4),
-                    Text('공부 기록',
-                        style: TextStyle(
-                            color: Color(0xFF3A2208),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13)),
-                  ]),
-                ),
               ),
             ),
           ]),
@@ -561,43 +565,6 @@ class _QuestRow extends StatelessWidget {
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ]),
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────── 공부 기록 시트
-
-class _StudySheet extends StatelessWidget {
-  const _StudySheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('얼마나 공부·독서했나요?', style: AppText.title(19)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                for (final m in const [10, 30, 60])
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FrameButton(
-                        onPressed: () => Navigator.pop(context, m),
-                        label: '+$m분',
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

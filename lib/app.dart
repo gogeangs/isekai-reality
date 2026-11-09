@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app_controller.dart';
+import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'data/weather/weather_source.dart';
 import 'features/battle/dungeon_screen.dart';
@@ -34,6 +37,17 @@ class IsekaiRealityApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+      ),
+      // 정령 종류·이름·빛 색은 모든 화면(밀어 올린 화면 포함)에서 같아야 해서
+      // 내비게이터 바깥에서 한 번 감싼다
+      builder: (context, child) => ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) => BulssiScope(
+          mood: controller.bulssiMood,
+          spiritName: controller.profile.spiritName,
+          kind: controller.profile.spiritKind,
+          child: child ?? const SizedBox(),
+        ),
       ),
       home: HomeShell(controller: controller),
     );
@@ -71,19 +85,77 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
+  Timer? _tick;
+  bool _noticeShowing = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 여관 휴식·정령 원정은 시간이 지나면 끝난다. 30초마다 확인한다.
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      final c = widget.controller;
+      if (c.ready && !c.needsAwakening) c.refreshVitals();
+    });
   }
 
   @override
   void dispose() {
+    _tick?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// 앱으로 돌아올 때마다 걸음·수면을 다시 읽는다
+  /// 휴식이 끝났거나 정령이 돌아왔으면 한 번 알려 준다
+  void _maybeShowNotices() {
+    final c = widget.controller;
+    if (_noticeShowing || _levelUpShowing) return;
+    final ex = c.expedition;
+    final String? title;
+    final String? body;
+    if (c.justRested) {
+      title = '푹 쉬었어요';
+      body = 'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
+          '+${RuleConstants.restBonusExp}!';
+    } else if (ex != null && ex.finished) {
+      final id = Monsters.byName(ex.monster);
+      final name = id == null ? '몬스터' : Monsters.info(id).name;
+      title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
+      body = ex.cleared!
+          ? '${c.profile.spiritName}이(가) $name을(를) 정화했어요.'
+              '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
+          : '$name이(가) 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
+    } else {
+      return;
+    }
+    _noticeShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.night,
+          title: Text(title!, style: AppText.title(20)),
+          content: Text(body!,
+              style: const TextStyle(color: AppColors.text, height: 1.4)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('좋아요'),
+            ),
+          ],
+        ),
+      );
+      if (c.justRested) {
+        c.clearJustRested();
+      } else {
+        await c.acknowledgeExpedition();
+      }
+      _noticeShowing = false;
+    });
+  }
+
+  /// 앱으로 돌아올 때마다 걸음을 다시 읽는다
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && widget.controller.ready) {
@@ -115,15 +187,24 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (controller.needsAwakening) {
           _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(
-            onAwaken: (name, look, weather) => controller.awaken(
-                name: name, look: look, weatherEnabled: weather),
+            onAwaken: (name, look, weather, spirit, spiritName) =>
+                controller.awaken(
+                    name: name,
+                    look: look,
+                    weatherEnabled: weather,
+                    spirit: spirit,
+                    spiritName: spiritName),
           );
         }
         _maybeShowLevelUp();
+        _maybeShowNotices();
         final pages = <Widget>[
           StatusScreen(
             player: controller.player,
-            onLogStudy: controller.logStudy,
+            hp: controller.hp,
+            mp: controller.mp,
+            restLeft: controller.resting ? controller.restLeft : null,
+            spiritAway: _spiritAway(controller),
             onOpenDungeon: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => DungeonScreen(controller: controller),
@@ -159,11 +240,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         ];
 
         return Scaffold(
-          body: BulssiScope(
-            mood: controller.bulssiMood,
-            spiritName: controller.profile.spiritName,
-            child: IndexedStack(index: _tab, children: pages),
-          ),
+          body: IndexedStack(index: _tab, children: pages),
           backgroundColor: const Color(0xFF0F1233),
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
@@ -173,6 +250,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       },
     );
   }
+}
+
+/// 상태창에 보여 줄 원정 한 줄 (원정 중이 아니면 null)
+String? _spiritAway(AppController c) {
+  final ex = c.expedition;
+  if (ex == null || ex.finished) return null;
+  final left = ex.returnAt.difference(c.now);
+  final m = left.inMinutes < 1 ? 1 : left.inMinutes;
+  return '정령 원정 중 · $m분 뒤 돌아와요';
 }
 
 /// 하단 메뉴: 금테 막대, 고른 메뉴는 금색 상자 (목업 구도)

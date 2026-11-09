@@ -1,43 +1,98 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/bulssi_mood.dart';
+import '../bulssi/spirit_art.dart';
 import '../legal/legal_screen.dart';
 
-/// 첫 실행 화면: 불씨의 짧은 소개 → 동의 → 외형(남·여)과 이름 정하기 → 깨어나기.
-///
-/// 종족 선택은 페이즈 2에서 '진짜 모습의 각성'으로 연다.
+/// 첫 실행 화면 (2026-11-10 개편):
+/// 세계관 도입(일러스트 + 대사창) → 정령 고르기 → 정령 이름 → 동의 →
+/// 외형(남·여)과 이름 → 각성 장면 → 깨어나기.
 class AwakeningScreen extends StatefulWidget {
   const AwakeningScreen({super.key, required this.onAwaken});
 
   /// [weather] 날씨 조회(선택 동의)를 켰는지
-  final Future<void> Function(String name, HeroLook look, bool weather)
-      onAwaken;
+  final Future<void> Function(String name, HeroLook look, bool weather,
+      SpiritKind spirit, String spiritName) onAwaken;
 
   @override
   State<AwakeningScreen> createState() => _AwakeningScreenState();
 }
 
+/// 도입 장면 하나: 일러스트 + 대사 몇 줄
+class IntroScene {
+  const IntroScene(this.image, this.lines,
+      {this.speaker, this.dialogTop = false});
+
+  final String image;
+  final List<String> lines;
+
+  /// 말하는 이 (없으면 주인공의 혼잣말)
+  final String? speaker;
+
+  /// 대사창을 위에 띄울지 (그림의 중요한 것이 아래에 있을 때)
+  final bool dialogTop;
+}
+
+enum _Stage { intro, spirit, spiritName, consent, form, finale }
+
 class _AwakeningScreenState extends State<AwakeningScreen> {
-  /// 불씨 대사 1~4 (기획 문서 '불씨 대사 50마디')
-  static const _introLines = [
-    '드디어 찾았다! 너구나, 탑이 고른 각성자.',
-    '나는 불씨야. 여명의 탑 아르카에서 흩어진 작은 불꽃이지.',
-    '이세계가 조금씩 바래 가고 있어. 네 하루가 그곳을 다시 밝혀 줄 거야.',
-    '걷고, 자고, 배우는 것. 그게 전부야. 어렵지 않지?',
+  static const scenes = [
+    IntroScene('assets/images/intro_01_alley.jpg', ['오늘도 별일 없는 하루였어.'],
+        dialogTop: true),
+    IntroScene('assets/images/intro_02_glitch.jpg',
+        ['…어? 화면이 왜 이래?', '바닥에서… 보랏빛 안개가 올라와.'],
+        dialogTop: true),
+    IntroScene('assets/images/intro_03_tower.jpg',
+        ['저긴 분명히 아파트밖에 없던 곳인데…', '저 탑은 대체 뭐야?']),
+    IntroScene('assets/images/intro_04_onlyme.jpg',
+        ['다들 안 보여? 설마… 나만 보이는 거야?'],
+        dialogTop: true),
+    IntroScene('assets/images/intro_05_lights.jpg',
+        ['안개를 헤치고 작은 빛 셋이 날아온다!', '찾았다! 탑이 고른 각성자!'],
+        dialogTop: true),
+    IntroScene(
+      'assets/images/intro_06_spirits.jpg',
+      [
+        '여명의 탑 아르카의 불꽃이 깨져 버렸어.',
+        '그래서 우리 세계가 네 세계 위에 겹쳐 버렸지.',
+        '안개를 걷어 줘. 방법은 간단해, 걷는 거야!',
+        '그리고… 우리 중 누구와 함께 갈래?',
+      ],
+      speaker: '정령들',
+    ),
   ];
 
+  static String spiritIntro(SpiritKind k) => switch (k) {
+        SpiritKind.fire => '나는 불의 정령! 씩씩하게 앞장설게. 같이 가자!',
+        SpiritKind.water => '나는 물의 정령이야… 네가 지치지 않게 곁에서 지켜 줄게.',
+        SpiritKind.plant => '식물의 정령이야~ 천천히, 새로운 길을 같이 찾아보자.',
+      };
+
+  static String spiritTrait(SpiritKind k) => switch (k) {
+        SpiritKind.fire => '씩씩하고 다정해요',
+        SpiritKind.water => '차분하고 걱정이 많아요',
+        SpiritKind.plant => '느긋하고 호기심이 많아요',
+      };
+
   static const int maxNameLength = 10;
+  static const int maxSpiritNameLength = 8;
 
   final _nameController = TextEditingController();
-  int _introStep = 0;
+  final _spiritNameController = TextEditingController();
+  _Stage _stage = _Stage.intro;
+  int _scene = 0;
+  int _line = 0;
+  SpiritKind _spirit = SpiritKind.fire;
   HeroLook _look = HeroLook.male;
   bool _submitting = false;
 
   // 동의 (필수 3개 + 선택 1개)
-  bool _consentDone = false;
   bool _agreeHealth = false;
   bool _agreeLocation = false;
   bool _agreeAge = false;
@@ -45,56 +100,266 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   bool get _requiredAgreed => _agreeHealth && _agreeLocation && _agreeAge;
 
-  bool get _inIntro => _introStep < _introLines.length;
   bool get _canAwaken =>
       _nameController.text.trim().isNotEmpty && !_submitting;
+
+  String get _spiritName {
+    final n = _spiritNameController.text.trim();
+    return n.isEmpty ? _spirit.defaultName : n;
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _spiritNameController.dispose();
     super.dispose();
+  }
+
+  void _nextLine() {
+    setState(() {
+      if (_line < scenes[_scene].lines.length - 1) {
+        _line++;
+      } else if (_scene < scenes.length - 1) {
+        _scene++;
+        _line = 0;
+      } else {
+        _stage = _Stage.spirit;
+      }
+    });
   }
 
   Future<void> _awaken() async {
     if (!_canAwaken) return;
     setState(() => _submitting = true);
-    await widget.onAwaken(_nameController.text.trim(), _look, _agreeWeather);
+    await widget.onAwaken(_nameController.text.trim(), _look, _agreeWeather,
+        _spirit, _spiritName);
     if (mounted) setState(() => _submitting = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
-      body: NightBackground(
-        child: _inIntro
-            ? _buildIntro()
-            : !_consentDone
-                ? _buildConsent()
-                : _buildForm(),
+    // 고른 정령이 말풍선에 나오도록 이 화면 안에서는 따로 감싼다
+    return BulssiScope(
+      mood: BulssiMood.gold,
+      spiritName: _spiritName,
+      kind: _spirit,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F1233),
+        body: switch (_stage) {
+          _Stage.intro => _buildIntro(),
+          _Stage.spirit => _buildSpiritPick(),
+          _Stage.spiritName => NightBackground(child: _buildSpiritName()),
+          _Stage.consent => NightBackground(child: _buildConsent()),
+          _Stage.form => NightBackground(child: _buildForm()),
+          _Stage.finale => _buildFinale(),
+        },
       ),
     );
   }
 
+  // ───────────────────────────────────────────── 도입
+
+  Widget _buildIntro() {
+    final scene = scenes[_scene];
+    return IllustratedScene(
+      key: ValueKey('scene$_scene'),
+      image: scene.image,
+      speaker: scene.speaker,
+      line: scene.lines[_line],
+      lineKey: '$_scene-$_line',
+      dialogTop: scene.dialogTop,
+      onNext: _nextLine,
+      onSkip: () => setState(() => _stage = _Stage.spirit),
+    );
+  }
+
+  // ───────────────────────────────────────────── 정령 고르기
+
+  Widget _buildSpiritPick() {
+    final top = MediaQuery.paddingOf(context).top;
+    return Stack(fit: StackFit.expand, children: [
+      ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Image.asset('assets/images/intro_06_spirits.jpg',
+            fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox()),
+      ),
+      const ColoredBox(color: Color(0x990B0D26)),
+      ListView(
+        padding: EdgeInsets.fromLTRB(18, top + 14, 18, 28),
+        children: [
+          const RibbonHeading('함께할 정령', size: 24),
+          const SizedBox(height: 14),
+          Row(children: [
+            for (final k in SpiritKind.values)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _spirit = k),
+                  child: Semantics(
+                    button: true,
+                    selected: _spirit == k,
+                    label: k.elementName,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _spirit == k ? 1 : 0.5,
+                      child: Column(children: [
+                        SpiritArt(kind: k, size: 72),
+                        const SizedBox(height: 2),
+                        Text(k.elementName,
+                            style: AppText.title(14,
+                                color: _spirit == k
+                                    ? AppColors.goldBright
+                                    : AppColors.text)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          OrnatePanel(
+            highlight: true,
+            child: Column(children: [
+              Container(
+                height: 210,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(colors: [
+                    spiritColor(_spirit).withValues(alpha: 0.45),
+                    spiritColor(_spirit).withValues(alpha: 0),
+                  ]),
+                ),
+                child: SpiritArt(kind: _spirit, size: 170),
+              ),
+              Text(_spirit.elementName, style: AppText.title(22)),
+              const SizedBox(height: 2),
+              Text(spiritTrait(_spirit),
+                  style: const TextStyle(color: AppColors.textMuted)),
+              const SizedBox(height: 10),
+              Text(spiritIntro(_spirit),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppColors.text, fontSize: 15, height: 1.45)),
+              const SizedBox(height: 6),
+              const Text('세 정령은 생김새와 말투만 달라요. 마음에 드는 정령을 골라 주세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          GoldButton(
+            label: '이 정령과 함께하기',
+            onPressed: () => setState(() {
+              _spiritNameController.text = _spirit.defaultName;
+              _stage = _Stage.spiritName;
+            }),
+          ),
+        ],
+      ),
+    ]);
+  }
+
+  // ───────────────────────────────────────────── 정령 이름
+
+  Widget _buildSpiritName() {
+    final top = MediaQuery.paddingOf(context).top;
+    return ListView(
+      padding: EdgeInsets.fromLTRB(18, top + 14, 18, 28),
+      children: [
+        const RibbonHeading('정령의 이름', size: 24),
+        const SizedBox(height: 20),
+        Center(child: SpiritArt(kind: _spirit, size: 150)),
+        const SizedBox(height: 16),
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const BulssiBubble(line: '나를 뭐라고 불러 줄래?', size: 64),
+              const SizedBox(height: 12),
+              _field(_spiritNameController,
+                  label: '정령 이름', max: maxSpiritNameLength),
+              const SizedBox(height: 4),
+              const Text('나중에 설정에서 바꿀 수 있어요.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const SizedBox(height: 14),
+              GoldButton(
+                label: '이 이름으로',
+                onPressed: () => setState(() => _stage = _Stage.consent),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _field(TextEditingController controller,
+      {required String label, required int max, String? hint}) {
+    return TextField(
+      controller: controller,
+      maxLength: max,
+      onChanged: (_) => setState(() {}),
+      style: const TextStyle(color: AppColors.text, fontSize: 18),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textMuted),
+        hintText: hint,
+        filled: true,
+        fillColor: const Color(0xFF14173E),
+        suffixIcon: const Icon(Icons.edit_rounded, color: AppColors.goldBright),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: AppColors.panelBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: const BorderSide(color: AppColors.goldBright, width: 2),
+        ),
+      ),
+    );
+  }
+
+  // ───────────────────────────────────────────── 각성 장면
+
+  Widget _buildFinale() {
+    return Stack(fit: StackFit.expand, children: [
+      IllustratedScene(
+        image: _look == HeroLook.female
+            ? 'assets/images/intro_08_awaken_female.jpg'
+            : 'assets/images/intro_08_awaken_male.jpg',
+        speaker: _spiritName,
+        line: '준비됐어, ${_nameController.text.trim()}? 아르카의 안개를 걷으러 가자!',
+        lineKey: 'finale',
+        onNext: _awaken,
+        // 어깨 옆 빈자리에 고른 정령
+        decoration: LayoutBuilder(builder: (context, box) {
+          return Stack(children: [
+            Positioned(
+              left: box.maxWidth * 0.46,
+              top: box.maxHeight * 0.24,
+              child: _FloatingSpirit(kind: _spirit, size: box.maxWidth * 0.2),
+            ),
+          ]);
+        }),
+        nextLabel: _submitting ? null : '깨어나기',
+      ),
+    ]);
+  }
+
   /// 위쪽 그림 (노을 속 각성자)
-  Widget _art(double height, {Widget? overlay, bool intro = false}) {
+  Widget _art(double height, {Widget? overlay}) {
     return SizedBox(
       height: height,
       child: Stack(fit: StackFit.expand, children: [
-        // 이름 짓기 화면은 제목 자리를 비우려고 그림을 조금 내린다
+        // 제목 자리를 비우려고 그림을 조금 내린다
         Positioned.fill(
           top: overlay != null ? MediaQuery.paddingOf(context).top + 46 : 0,
           child: Image.asset(
-            intro
-                ? 'assets/images/splash.jpg'
-                : _look == HeroLook.female
-                    ? 'assets/images/bg_status_female.jpg'
-                    : 'assets/images/bg_status_male.jpg',
-            fit: BoxFit.cover,
-            alignment: intro
-                ? const Alignment(0, -0.5)
-                : const Alignment(-0.42, -0.6),
-            errorBuilder: (_, __, ___) => const SizedBox()),
+              _look == HeroLook.female
+                  ? 'assets/images/bg_status_female.jpg'
+                  : 'assets/images/bg_status_male.jpg',
+              fit: BoxFit.cover,
+              alignment: const Alignment(-0.42, -0.6),
+              errorBuilder: (_, __, ___) => const SizedBox()),
         ),
         const Align(
             alignment: Alignment.bottomCenter,
@@ -121,29 +386,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     );
   }
 
-  Widget _buildIntro() {
-    final top = MediaQuery.paddingOf(context).top;
-    return Column(
-      children: [
-        _art(460 + top, intro: true),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Column(
-              children: [
-                BulssiBubble(line: _introLines[_introStep], size: 120),
-                const Spacer(),
-                GoldButton(
-                  label: _introStep == _introLines.length - 1 ? '좋아!' : '다음',
-                  onPressed: () => setState(() => _introStep++),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // ───────────────────────────────────────────── 동의
 
   Widget _buildConsent() {
     final top = MediaQuery.paddingOf(context).top;
@@ -229,7 +472,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                 value: _agreeHealth,
                 onChanged: (v) => setState(() => _agreeHealth = v),
                 label: '필수',
-                text: '걸음 수와 수면 시간을 건강 앱에서 읽어 레벨과 던전 열쇠를 계산합니다. '
+                text: '걸음 수를 건강 앱에서 읽어 레벨과 던전 열쇠를 계산합니다. '
                     '휴대폰 밖으로 보내지 않습니다.',
                 doc: LegalDoc.privacy,
               ),
@@ -245,7 +488,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                 value: _agreeWeather,
                 onChanged: (v) => setState(() => _agreeWeather = v),
                 label: '선택',
-                text: '약 1km 단위의 대략 위치로 날씨를 조회해 불씨 색을 바꿉니다 '
+                text: '약 1km 단위의 대략 위치로 날씨를 조회해 정령의 빛 색을 바꿉니다 '
                     '(해외 날씨 서비스 Open-Meteo).',
               ),
               item(
@@ -261,7 +504,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         GoldButton(
           label: '동의하고 다음',
           onPressed: _requiredAgreed
-              ? () => setState(() => _consentDone = true)
+              ? () => setState(() => _stage = _Stage.form)
               : null,
         ),
       ],
@@ -326,45 +569,19 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                         ),
                       ]),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _nameController,
-                        maxLength: maxNameLength,
-                        onChanged: (_) => setState(() {}),
-                        onSubmitted: (_) => _awaken(),
-                        style: const TextStyle(
-                            color: AppColors.text, fontSize: 18),
-                        decoration: InputDecoration(
-                          labelText: '이름',
-                          labelStyle:
-                              const TextStyle(color: AppColors.textMuted),
-                          hintText: '불씨가 부를 이름',
-                          filled: true,
-                          fillColor: const Color(0xFF14173E),
-                          suffixIcon: const Icon(Icons.edit_rounded,
-                              color: AppColors.goldBright),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide:
-                                const BorderSide(color: AppColors.panelBorder),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: const BorderSide(
-                                color: AppColors.goldBright, width: 2),
-                          ),
-                        ),
-                      ),
+                      _field(_nameController,
+                          label: '이름',
+                          max: maxNameLength,
+                          hint: '정령이 부를 이름'),
                       const SizedBox(height: 4),
-                      const BulssiBubble(line: '뭐라고 불러 줄까?', size: 80),
+                      const BulssiBubble(line: '너는 뭐라고 부를까?', size: 80),
                       const SizedBox(height: 16),
-                      _submitting
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.gold))
-                          : GoldButton(
-                              label: '깨어나기',
-                              onPressed: _canAwaken ? _awaken : null,
-                            ),
+                      GoldButton(
+                        label: '다음',
+                        onPressed: _canAwaken
+                            ? () => setState(() => _stage = _Stage.finale)
+                            : null,
+                      ),
                     ],
                   ),
                 ),
@@ -433,6 +650,205 @@ class _LookCard extends StatelessWidget {
             ]),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 일러스트 한 장 + 대사창. 화면 어디를 눌러도 다음 대사로 넘어간다.
+/// 글자는 한 글자씩 찍히고, 그림은 아주 천천히 다가온다.
+class IllustratedScene extends StatelessWidget {
+  const IllustratedScene({
+    super.key,
+    required this.image,
+    required this.line,
+    required this.lineKey,
+    required this.onNext,
+    this.speaker,
+    this.dialogTop = false,
+    this.onSkip,
+    this.decoration,
+    this.nextLabel,
+  });
+
+  final String image;
+  final String line;
+
+  /// 대사가 바뀔 때마다 달라지는 키 (한 글자씩 찍기를 다시 시작)
+  final String lineKey;
+  final String? speaker;
+  final bool dialogTop;
+  final VoidCallback onNext;
+  final VoidCallback? onSkip;
+
+  /// 그림 위에 더 올릴 것 (예: 각성 장면의 정령)
+  final Widget? decoration;
+
+  /// 있으면 대사창 아래에 버튼으로 보여 준다 (없으면 화면을 눌러 넘김)
+  final String? nextLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = MediaQuery.paddingOf(context);
+    final dialog = _DialogBox(
+      speaker: speaker,
+      line: line,
+      lineKey: lineKey,
+      showTapHint: nextLabel == null,
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: nextLabel == null ? onNext : null,
+      child: Stack(fit: StackFit.expand, children: [
+        ClipRect(
+          child: TweenAnimationBuilder<double>(
+            key: ValueKey(image),
+            tween: Tween(begin: 1.0, end: 1.06),
+            duration: const Duration(seconds: 8),
+            curve: Curves.easeOut,
+            builder: (context, scale, child) =>
+                Transform.scale(scale: scale, child: child),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              child: Image.asset(image,
+                  key: ValueKey(image),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (_, __, ___) =>
+                      const ColoredBox(color: Color(0xFF1B1840))),
+            ),
+          ),
+        ),
+        if (decoration != null) Positioned.fill(child: decoration!),
+        Positioned(
+          left: 14,
+          right: 14,
+          top: dialogTop ? pad.top + 56 : null,
+          bottom: dialogTop ? null : pad.bottom + 18,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              dialog,
+              if (nextLabel != null) ...[
+                const SizedBox(height: 12),
+                GoldButton(label: nextLabel!, onPressed: onNext),
+              ],
+            ],
+          ),
+        ),
+        if (onSkip != null)
+          Positioned(
+            top: pad.top + 8,
+            right: 12,
+            child: TextButton(
+              onPressed: onSkip,
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0x990B0D26),
+                shape: const StadiumBorder(),
+              ),
+              child: const Text('건너뛰기 ›',
+                  style: TextStyle(
+                      color: AppColors.text, fontWeight: FontWeight.w700)),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _DialogBox extends StatelessWidget {
+  const _DialogBox({
+    required this.speaker,
+    required this.line,
+    required this.lineKey,
+    required this.showTapHint,
+  });
+
+  final String? speaker;
+  final String line;
+  final String lineKey;
+  final bool showTapHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final monologue = speaker == null;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xE6121541),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.goldBright, width: 1.6),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), blurRadius: 14),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!monologue) ...[
+            Text(speaker!,
+                style: AppText.title(15, color: AppColors.goldBright)),
+            const SizedBox(height: 4),
+          ],
+          // 한 글자씩
+          TweenAnimationBuilder<int>(
+            key: ValueKey(lineKey),
+            tween: IntTween(begin: 0, end: line.characters.length),
+            duration: Duration(milliseconds: 35 * line.characters.length),
+            builder: (context, n, _) => Text(
+              line.characters.take(n).toString(),
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: monologue ? 16 : 17,
+                fontStyle: monologue ? FontStyle.italic : FontStyle.normal,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (showTapHint)
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Icon(Icons.arrow_drop_down_rounded,
+                  color: AppColors.goldBright, size: 22),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 각성 장면에서 어깨 옆에 둥실 떠 있는 정령
+class _FloatingSpirit extends StatelessWidget {
+  const _FloatingSpirit({required this.kind, required this.size});
+
+  final SpiritKind kind;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutBack,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0.0, 1.0),
+        child: Transform.translate(offset: Offset(0, (1 - t) * 30), child: child),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+                color: spiritColor(kind).withValues(alpha: 0.6),
+                blurRadius: 30,
+                spreadRadius: 4),
+          ],
+        ),
+        child: SpiritArt(kind: kind, size: size),
       ),
     );
   }

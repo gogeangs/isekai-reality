@@ -65,7 +65,10 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
             ),
             const SizedBox(height: 10),
             if (battle == null)
-              const BulssiBubble(line: '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.')
+              BulssiBubble(
+                  line: widget.controller.hp <= 0
+                      ? '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.'
+                      : '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.')
             else if (!_done)
               BattleView(
                 battle: battle,

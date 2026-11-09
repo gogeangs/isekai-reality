@@ -1,11 +1,12 @@
 import '../models/daily_record.dart';
 import 'rule_constants.dart';
+import 'town_rules.dart';
 
 enum TitleId {
   firstSteps,
   persistentTraveler,
   morningSpiritFriend,
-  bookwormSage,
+  bookwormSage, // 이름은 '도감의 현자' (저장된 칭호와 맞추려고 id는 그대로)
   forcedMarchKnight,
   nightWalker,
   awakened,
@@ -32,8 +33,8 @@ class TitleRules {
   static const List<TitleInfo> all = [
     TitleInfo(TitleId.firstSteps, '첫 걸음', '처음으로 걸어 보기'),
     TitleInfo(TitleId.persistentTraveler, '끈기의 여행자', '일주일 내내 목표 달성'),
-    TitleInfo(TitleId.morningSpiritFriend, '아침 정령의 친구', '일주일 동안 푹 자기'),
-    TitleInfo(TitleId.bookwormSage, '책벌레 현자', '10시간 동안 읽기'),
+    TitleInfo(TitleId.morningSpiritFriend, '아침 정령의 친구', '여관에서 일주일 내내 쉬기'),
+    TitleInfo(TitleId.bookwormSage, '도감의 현자', '도감의 몬스터를 모두 정화하기'),
     TitleInfo(TitleId.forcedMarchKnight, '강행군의 기사', '하루에 아주 많이 걷기'),
     TitleInfo(TitleId.nightWalker, '밤길의 산책자', '저녁 8시 이후에 걷기'),
     TitleInfo(TitleId.awakened, '각성자', 'Lv.5 달성'),
@@ -79,7 +80,7 @@ class TitleRules {
     final result = <TitleId>{};
 
     final totalSteps = history.fold<int>(0, (s, d) => s + d.steps);
-    final totalStudy = history.fold<int>(0, (s, d) => s + d.studyMinutes);
+    final species = <String>{for (final d in history) ...d.purifiedMonsterIds};
 
     if (totalSteps >= RuleConstants.firstStepsThreshold) {
       result.add(TitleId.firstSteps);
@@ -88,11 +89,13 @@ class TitleRules {
         RuleConstants.persistentTravelerDays) {
       result.add(TitleId.persistentTraveler);
     }
-    if (_longestStreak(history, (d) => d.sleptWell) >=
-        RuleConstants.morningSpiritDays) {
+    final restStreaks = TownRules.restStreaks(history);
+    if (restStreaks.isNotEmpty &&
+        restStreaks.reduce((a, b) => a > b ? a : b) >=
+            RuleConstants.morningSpiritDays) {
       result.add(TitleId.morningSpiritFriend);
     }
-    if (totalStudy >= RuleConstants.bookwormStudyMinutes) {
+    if (species.length >= RuleConstants.codexSageSpecies) {
       result.add(TitleId.bookwormSage);
     }
     if (history.any((d) => d.steps >= RuleConstants.forcedMarchSteps)) {

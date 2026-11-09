@@ -8,9 +8,11 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../bulssi/bulssi_mood.dart';
+import '../bulssi/spirit_art.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
-/// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '불씨의 일격'.
+/// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
 ///
 /// [tickInterval] 마다 [Battle.tick] 을 부르고, 끝나면 [onFinished] 를 한 번 부른다.
 class BattleView extends StatefulWidget {
@@ -162,6 +164,7 @@ class _BattleViewState extends State<BattleView> {
             _SkillOrb(
               ratio: _b.skillRatio,
               ready: _b.skillReady,
+              away: _b.skillDisabled,
               onPressed: _skill,
             ),
             const SizedBox(width: 6),
@@ -396,9 +399,17 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           opacity: 1 - _seg(t, 0.4, 0.7),
                           child: Transform.rotate(
                             angle: -0.3 + hit * 0.5,
-                            child: Image.asset('assets/images/fx_slash.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const SizedBox()),
+                            child: ColorFiltered(
+                              colorFilter: ColorFilter.mode(
+                                  _kind(context) == SpiritKind.fire
+                                      ? Colors.white
+                                      : spiritColor(_kind(context)),
+                                  BlendMode.modulate),
+                              child: Image.asset('assets/images/fx_slash.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox()),
+                            ),
                           ),
                         ),
                       )
@@ -511,18 +522,14 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    // 불씨의 응원
+                    // 정령의 응원
                     Positioned(
                       left: 8,
                       bottom: 6,
                       child: Row(children: [
                         Transform.translate(
                           offset: Offset(0, -math.sin(t * math.pi) * 6),
-                          child: Image.asset('assets/images/bulssi.png',
-                              width: 54,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.local_fire_department_rounded,
-                                  color: AppColors.gold)),
+                          child: SpiritArt(kind: _kind(context), size: 54),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -535,7 +542,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                               cleared
                                   ? '정화했어!'
                                   : widget.skill && hitting
-                                      ? '불씨의 일격!'
+                                      ? '정령의 일격!'
                                       : '할 수 있어!',
                               style: const TextStyle(
                                   color: AppColors.night,
@@ -732,11 +739,15 @@ class _SkillOrb extends StatelessWidget {
     required this.ratio,
     required this.ready,
     required this.onPressed,
+    this.away = false,
   });
 
   final double ratio;
   final bool ready;
   final VoidCallback onPressed;
+
+  /// 정령이 원정 중이라 쓸 수 없다
+  final bool away;
 
   @override
   Widget build(BuildContext context) {
@@ -797,7 +808,12 @@ class _SkillOrb extends StatelessWidget {
         const SizedBox(height: 4),
         InkWell(
           onTap: ready ? onPressed : null,
-          child: Text(ready ? '불씨의 일격!' : '충전 중',
+          child: Text(
+              away
+                  ? '정령 원정 중'
+                  : ready
+                      ? '정령의 일격!'
+                      : '충전 중',
               style: AppText.title(15,
                   color: ready ? AppColors.goldBright : AppColors.textMuted)),
         ),
@@ -877,3 +893,6 @@ class MonsterPicture extends StatelessWidget {
     );
   }
 }
+
+SpiritKind _kind(BuildContext context) =>
+    BulssiScope.maybeOf(context)?.kind ?? SpiritKind.fire;

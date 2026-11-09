@@ -2,7 +2,7 @@ import '../../core/models/daily_record.dart';
 import '../../core/rules/rules.dart';
 
 /// 건강 앱 연동 전까지 화면을 확인하기 위한 2주치 예시 기록.
-/// 마지막 날이 '오늘'이며, 목업과 같은 6,400보 · 7시간 10분 수면 · 공부 10분이다.
+/// 마지막 날이 '오늘'이며, 목업과 같은 6,400보다.
 class DemoData {
   DemoData._();
 
@@ -12,13 +12,14 @@ class DemoData {
       6200, 5400, 9100, 4800, 7300, 5600, 10400,
       9200, 6100, 11400, 8300, 7500, 10200, 6400,
     ];
-    const sleep = [
-      430, 400, 445, 380, 440, 470, 425,
-      432, 390, 468, 414, 444, 486, 430,
+    const cells = [
+      34, 18, 41, 12, 25, 30, 44,
+      28, 9, 51, 22, 31, 40, 14,
     ];
-    const study = [
-      20, 0, 45, 30, 10, 60, 0,
-      30, 0, 45, 20, 60, 15, 10,
+    // 여관 휴식 (오늘은 아직)
+    const rests = [
+      1, 1, 0, 1, 1, 1, 1,
+      1, 0, 1, 1, 1, 1, 0,
     ];
 
     final records = <DailyRecord>[];
@@ -30,8 +31,8 @@ class DemoData {
             .subtract(Duration(days: 13 - i)),
         steps: steps[i],
         stepsAfter8pm: i.isEven ? 3200 : 800,
-        sleepMinutes: sleep[i],
-        studyMinutes: study[i],
+        newCellsRevealed: cells[i],
+        restsCompleted: rests[i],
         stepGoal: 8000,
         // 오늘은 아직 던전을 열지 않은 상태 (열쇠 2개 보유)
         dungeonRuns: isToday

@@ -8,8 +8,9 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
-import '../battle/field_battle_screen.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
+import 'expedition_sheet.dart';
 import 'map_config.dart';
 
 /// 안산시 지도: 장소 아이콘 · 잿빛 안개 · 걷은 칸 수 · 내 위치
@@ -23,6 +24,8 @@ class MapScreen extends StatelessWidget {
     final area = controller.area;
     final gauge = controller.player.gauge;
     final spawn = controller.nearbySpawn;
+    final ex = controller.expedition;
+    final away = ex != null && !ex.finished;
     return Stack(
       children: [
         Positioned.fill(
@@ -40,6 +43,13 @@ class MapScreen extends StatelessWidget {
             keys: gauge.keysAvailable,
           ),
         ),
+        if (away)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: controller.lastDiscovery != null || spawn != null ? 150 : 24,
+            child: ExpeditionCard(controller: controller, ex: ex),
+          ),
         if (controller.lastDiscovery != null)
           Positioned(
             left: 16,
@@ -57,12 +67,7 @@ class MapScreen extends StatelessWidget {
             bottom: 24,
             child: _MonsterCard(
               spawn: spawn,
-              onPurify: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      FieldBattleScreen(controller: controller, spawn: spawn),
-                ),
-              ),
+              onPurify: () => showSpawnSheet(context, controller, spawn),
             ),
           ),
       ],
@@ -266,6 +271,8 @@ class _ExploreSummary extends StatelessWidget {
             style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
+          _ExpeditionList(controller: controller),
+          const SizedBox(height: 12),
           for (final place in controller.area.places)
             ListTile(
               leading: Image.asset(
@@ -307,6 +314,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   int _drawnCells = -1;
   int _drawnSpawns = -1;
   String? _drawnFix;
+  String? _drawnSpirit;
 
   static NLatLng _ll(GeoPoint p) => NLatLng(p.lat, p.lng);
 
@@ -326,14 +334,22 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         ? null
         : '${fix.point.lat.toStringAsFixed(5)},${fix.point.lng.toStringAsFixed(5)}';
     final spawns = c.todaySpawns;
+    final ex = c.expedition;
+    final away = ex != null && !ex.finished;
+    final spiritPos = away ? ex.positionAt(c.now) : null;
+    final spiritKey = spiritPos == null
+        ? null
+        : '${spiritPos.$1.toStringAsFixed(4)},${spiritPos.$2.toStringAsFixed(4)}';
     if (_drawnCells == c.revealedCells.length &&
         _drawnSpawns == spawns.length &&
-        _drawnFix == fixKey) {
+        _drawnFix == fixKey &&
+        _drawnSpirit == spiritKey) {
       return;
     }
     _drawnCells = c.revealedCells.length;
     _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
+    _drawnSpirit = spiritKey;
 
     final area = c.area;
     final b = area.bounds;
@@ -373,14 +389,24 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             text: visited.contains(place.id) ? place.name : '???',
           ),
         ),
+      // 시내 전체에 몬스터가 많아 이름은 빼고 그림만. 누르면 직접 정화·정령 보내기
       for (final spawn in spawns)
         NMarker(
           id: 'monster_${spawn.id}',
           position: _ll(spawn.point),
-          // 시내 전체에 몬스터가 많아 이름은 빼고 그림만 (만나면 카드에 이름이 나온다)
           icon: const NOverlayImage.fromAssetImage(
               'assets/images/map_monster.png'),
           size: const Size(40, 40),
+        )..setOnTapListener((_) {
+            if (mounted) showSpawnSheet(context, c, spawn);
+          }),
+      if (spiritPos != null)
+        NMarker(
+          id: 'spirit',
+          position: NLatLng(spiritPos.$1, spiritPos.$2),
+          icon: NOverlayImage.fromAssetImage(spiritAsset(c.profile.spiritKind)),
+          size: const Size(42, 46),
+          caption: NOverlayCaption(text: c.profile.spiritName),
         ),
       if (fix != null)
         NMarker(
@@ -411,6 +437,55 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         _drawnCells = -1;
         _redraw();
       },
+    );
+  }
+}
+
+/// 지도 없이 볼 때: 정령을 보낼 수 있는 몬스터 목록
+class _ExpeditionList extends StatelessWidget {
+  const _ExpeditionList({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final ex = c.expedition;
+    if (ex != null && !ex.finished) {
+      return ExpeditionCard(controller: c, ex: ex);
+    }
+    final reachable = [
+      for (final s in c.todaySpawns)
+        if (c.planExpedition(s).check != ExpeditionCheck.inFog) s,
+    ];
+    return OrnatePanel(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('정령 원정 · MP ${c.mp} / ${RuleConstants.mpMax}',
+                style: AppText.title(17)),
+            const SizedBox(height: 4),
+            Text(
+              reachable.isEmpty
+                  ? '안개를 걷은 곳에 몬스터가 없어요. 걸어서 길을 넓혀 주세요.'
+                  : '안개를 걷은 곳의 몬스터 ${reachable.length}마리에게 정령을 보낼 수 있어요.',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            for (final s in reachable.take(5))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: MonsterPicture(monster: s.monster, size: 40),
+                title: Text(s.info.name,
+                    style: const TextStyle(color: AppColors.text)),
+                trailing: const Icon(Icons.chevron_right_rounded,
+                    color: AppColors.gold),
+                onTap: () => showSpawnSheet(context, c, s),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

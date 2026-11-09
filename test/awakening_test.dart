@@ -67,7 +67,7 @@ void main() {
     expect(controller.profile.lastSeenLevel, controller.player.level.level);
   });
 
-  testWidgets('각성 화면: 소개를 넘기고 이름을 넣어 깨어나면 상태창이 열린다',
+  testWidgets('각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창',
       (tester) async {
     // 실제 휴대폰 크기 (430 × 932)
     tester.view.physicalSize = const Size(1290, 2796);
@@ -83,13 +83,31 @@ void main() {
     await controller.init();
     await tester.pump();
 
-    expect(find.text('드디어 찾았다! 너구나, 탑이 고른 각성자.'), findsOneWidget);
-    for (var i = 0; i < 3; i++) {
-      await tester.tap(find.text('다음'));
-      await tester.pump();
-    }
-    await tester.tap(find.text('좋아!'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.text('오늘도 별일 없는 하루였어.'), findsOneWidget);
+    // 화면을 누르면 다음 대사, 건너뛰기로 정령 고르기까지
+    await tester.tapAt(const Offset(200, 600));
+    await tester.pumpAndSettle();
+    expect(find.text('…어? 화면이 왜 이래?'), findsOneWidget);
+    await tester.tap(find.text('건너뛰기 ›'));
+    await tester.pumpAndSettle();
+
+    // 정령 고르기: 물의 정령
+    expect(find.text('함께할 정령'), findsOneWidget);
+    await tester.tap(find.text('물의 정령'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('이 정령과 함께하기'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('이 정령과 함께하기'));
+    await tester.pumpAndSettle();
+
+    // 정령 이름: 기본값 '이슬'
+    expect(find.text('정령의 이름'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '이슬'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('이 이름으로'));
+    await tester.pumpAndSettle();
 
     // 동의: 필수 3개를 체크해야 다음으로
     expect(find.text('시작하기 전에'), findsOneWidget);
@@ -108,15 +126,22 @@ void main() {
     await tester.enterText(find.byType(TextField), '하루');
     await tester.pump();
     await tester.scrollUntilVisible(
-      find.text('깨어나기'),
+      find.text('다음'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.text('다음'));
+    await tester.pumpAndSettle();
+
+    // 각성 장면: 고른 정령이 함께 있다
+    expect(find.textContaining('아르카의 안개를 걷으러 가자'), findsOneWidget);
     await tester.tap(find.text('깨어나기'));
     await tester.pump();
     await tester.pump();
 
     expect(controller.needsAwakening, isFalse);
+    expect(controller.profile.spiritKind, SpiritKind.water);
+    expect(controller.profile.spiritName, '이슬');
     expect(find.textContaining('Lv.'), findsOneWidget);
   });
 }

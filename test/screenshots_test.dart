@@ -103,6 +103,16 @@ void main() {
     await tester.tap(find.text('지도'));
     await tester.pumpAndSettle();
     await _shot(tester, '02_지도_키없음');
+    final monsterTile = find.byType(ListTile).first;
+    await tester.scrollUntilVisible(monsterTile, 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '02a_지도_원정목록');
+    await tester.tap(monsterTile);
+    await tester.pumpAndSettle();
+    await _shot(tester, '02b_정령_원정');
+    await tester.tapAt(const Offset(200, 80));
+    await tester.pumpAndSettle();
 
     // 던전
     await tester.tap(find.text('상태'));
@@ -129,11 +139,11 @@ void main() {
     // 연출 중간 모습: 타격 순간, 불씨의 일격
     await tester.pump(const Duration(milliseconds: 250));
     await _shot(tester, '05b_던전_타격');
-    if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
+    if (find.text('정령의 일격!').evaluate().isNotEmpty) {
       await tester.pump(const Duration(milliseconds: 550));
       await _shot(tester, '05a_던전_대기');
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('불씨의 일격!').last);
+      await tester.tap(find.text('정령의 일격!').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
       await _shot(tester, '05c_던전_일격');
@@ -150,8 +160,8 @@ void main() {
         await tester.pump(const Duration(milliseconds: 900));
         await _shot(tester, '06_던전_보스');
       }
-      if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
-        await tester.tap(find.text('불씨의 일격!'));
+      if (find.text('정령의 일격!').evaluate().isNotEmpty) {
+        await tester.tap(find.text('정령의 일격!'));
       }
       await tester.pump(const Duration(milliseconds: 900));
     }
@@ -291,15 +301,37 @@ void main() {
         RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
     await c.init();
     await tester.pump();
-    await _shot(tester, '15_각성_소개');
-
-    for (var i = 0; i < 4; i++) {
-      final next = find.text('다음').evaluate().isNotEmpty
-          ? find.text('다음')
-          : find.text('좋아!');
-      await tester.tap(next);
+    await tester.pumpAndSettle();
+    await _shot(tester, '15_각성_도입1');
+    // 장면 2(위쪽 대사창), 3(탑), 6(정령들)까지 눌러서 넘긴다
+    await tester.tapAt(const Offset(200, 600));
+    await tester.pumpAndSettle();
+    await _shot(tester, '15a_각성_도입2');
+    for (var i = 0; i < 2; i++) {
+      await tester.tapAt(const Offset(200, 600));
       await tester.pumpAndSettle();
     }
+    await _shot(tester, '15c_각성_도입3_탑');
+    for (var i = 0; i < 4; i++) {
+      await tester.tapAt(const Offset(200, 600));
+      await tester.pumpAndSettle();
+    }
+    await _shot(tester, '15d_각성_도입6_정령들');
+    await tester.tap(find.text('건너뛰기 ›'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '15e_정령_고르기');
+    await tester.tap(find.text('식물의 정령'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '15f_정령_고르기_식물');
+    await tester.scrollUntilVisible(find.text('이 정령과 함께하기'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('이 정령과 함께하기'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '15g_정령_이름');
+    await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('이 이름으로'));
+    await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
     final checks = find.byType(Checkbox);
     for (final i in [0, 1, 3]) {
@@ -311,5 +343,17 @@ void main() {
     await tester.tap(find.text('동의하고 다음'));
     await tester.pumpAndSettle();
     await _shot(tester, '16_각성_이름');
+    await tester.enterText(find.byType(TextField), '하루');
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('다음'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('다음'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '16b_각성_장면');
+    await tester.tap(find.text('깨어나기'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '16c_식물_정령_상태창');
   });
 }

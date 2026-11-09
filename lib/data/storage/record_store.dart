@@ -3,9 +3,34 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/models/daily_record.dart';
+import '../../core/models/vitals.dart';
 import '../../core/rules/rule_constants.dart';
 
 enum HeroLook { male, female }
+
+/// 함께하는 정령의 종류 (각성할 때 고르고 바꿀 수 없다. 이름은 바꿀 수 있다)
+enum SpiritKind { fire, water, plant }
+
+extension SpiritKindInfo on SpiritKind {
+  /// 이름 칸에 미리 넣어 두는 이름
+  String get defaultName => switch (this) {
+        SpiritKind.fire => '불씨',
+        SpiritKind.water => '이슬',
+        SpiritKind.plant => '잎새',
+      };
+
+  String get elementName => switch (this) {
+        SpiritKind.fire => '불의 정령',
+        SpiritKind.water => '물의 정령',
+        SpiritKind.plant => '식물의 정령',
+      };
+
+  static SpiritKind parse(String? name) => switch (name) {
+        'water' => SpiritKind.water,
+        'plant' => SpiritKind.plant,
+        _ => SpiritKind.fire,
+      };
+}
 
 /// 각성할 때 정한 정보와 설정
 class PlayerProfile {
@@ -14,6 +39,7 @@ class PlayerProfile {
     this.look = HeroLook.male,
     this.stepGoal = RuleConstants.defaultStepGoal,
     this.spiritName = '불씨',
+    this.spiritKind = SpiritKind.fire,
     this.lastSeenLevel,
     this.weatherEnabled = true,
     this.equippedTitle,
@@ -25,6 +51,9 @@ class PlayerProfile {
 
   /// 정령 동료 이름 (플레이어가 바꿀 수 있음)
   final String spiritName;
+
+  /// 정령 종류 (예전 저장본은 불의 정령)
+  final SpiritKind spiritKind;
 
   /// 플레이어가 마지막으로 확인한 레벨. 이보다 오르면 레벨업 연출을 보여 준다.
   final int? lastSeenLevel;
@@ -40,6 +69,7 @@ class PlayerProfile {
     HeroLook? look,
     int? stepGoal,
     String? spiritName,
+    SpiritKind? spiritKind,
     int? lastSeenLevel,
     bool? weatherEnabled,
     String? equippedTitle,
@@ -49,6 +79,7 @@ class PlayerProfile {
         look: look ?? this.look,
         stepGoal: stepGoal ?? this.stepGoal,
         spiritName: spiritName ?? this.spiritName,
+        spiritKind: spiritKind ?? this.spiritKind,
         lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
         weatherEnabled: weatherEnabled ?? this.weatherEnabled,
         equippedTitle: equippedTitle ?? this.equippedTitle,
@@ -59,6 +90,7 @@ class PlayerProfile {
         'look': look.name,
         'stepGoal': stepGoal,
         'spiritName': spiritName,
+        'spiritKind': spiritKind.name,
         'lastSeenLevel': lastSeenLevel,
         'weatherEnabled': weatherEnabled,
         'equippedTitle': equippedTitle,
@@ -71,6 +103,7 @@ class PlayerProfile {
             : HeroLook.male,
         stepGoal: json['stepGoal'] as int? ?? RuleConstants.defaultStepGoal,
         spiritName: json['spiritName'] as String? ?? '불씨',
+        spiritKind: SpiritKindInfo.parse(json['spiritKind'] as String?),
         lastSeenLevel: json['lastSeenLevel'] as int?,
         weatherEnabled: json['weatherEnabled'] as bool? ?? true,
         equippedTitle: json['equippedTitle'] as String?,
@@ -91,6 +124,10 @@ abstract class RecordStore {
   /// 지역별로 안개를 걷어 낸 칸 id
   Future<Set<String>> loadRevealedCells(String areaId);
   Future<void> saveRevealedCells(String areaId, Set<String> cells);
+
+  /// HP · 정령 MP · 휴식 · 원정 (없으면 처음 상태)
+  Future<Vitals> loadVitals();
+  Future<void> saveVitals(Vitals vitals);
 
   /// 모든 기록·프로필·탐험 기록을 지운다 (데이터 동의 철회)
   Future<void> clearAll();
@@ -129,11 +166,20 @@ class InMemoryRecordStore implements RecordStore {
   Future<void> saveRevealedCells(String areaId, Set<String> cells) async =>
       _cells[areaId] = {...cells};
 
+  Vitals _vitals = const Vitals();
+
+  @override
+  Future<Vitals> loadVitals() async => _vitals;
+
+  @override
+  Future<void> saveVitals(Vitals vitals) async => _vitals = vitals;
+
   @override
   Future<void> clearAll() async {
     _profile = null;
     _records.clear();
     _cells.clear();
+    _vitals = const Vitals();
   }
 }
 
@@ -141,6 +187,19 @@ class InMemoryRecordStore implements RecordStore {
 class SharedPrefsRecordStore implements RecordStore {
   static const _profileKey = 'profile.v1';
   static const _historyKey = 'history.v1';
+  static const _vitalsKey = 'vitals.v1';
+
+  @override
+  Future<Vitals> loadVitals() async {
+    final raw = (await _prefs).getString(_vitalsKey);
+    if (raw == null) return const Vitals();
+    return Vitals.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> saveVitals(Vitals vitals) async {
+    await (await _prefs).setString(_vitalsKey, jsonEncode(vitals.toJson()));
+  }
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -202,6 +261,7 @@ class SharedPrefsRecordStore implements RecordStore {
     for (final key in prefs.getKeys().toList()) {
       if (key == _profileKey ||
           key == _historyKey ||
+          key == _vitalsKey ||
           key.startsWith('cells.')) {
         await prefs.remove(key);
       }

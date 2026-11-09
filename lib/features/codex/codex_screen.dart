@@ -26,13 +26,6 @@ class CodexScreen extends StatelessWidget {
   /// 얻은 칭호 카드를 눌러 대표 칭호로 걸 때
   final Future<bool> Function(TitleId id)? onEquip;
 
-  static String jobDescription(Job job) => switch (job) {
-        Job.explorer => '목표보다 꾸준히 더 걸은 각성자. 새 장소를 찾는 눈이 밝다.',
-        Job.knight => '목표의 두 배를 걸은 날이 많은 각성자. 던전에서 든든하다.',
-        Job.sage => '매일 공부·독서를 쌓은 각성자. 지혜로 길을 연다.',
-        Job.cleric => '푹 잔 날이 많은 각성자. 맑은 정신으로 동료를 돕는다.',
-      };
-
   static IconData titleIcon(TitleId id) => switch (id) {
         TitleId.firstSteps => Icons.hiking_rounded,
         TitleId.persistentTraveler => Icons.flag_rounded,
@@ -102,11 +95,6 @@ class CodexScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final days = player.history.length;
-    final daysLeft = RuleConstants.jobAwakeningDay - days;
-    final job = player.job;
-    final scores = JobRules.scores(
-        player.history.take(RuleConstants.jobAwakeningDay).toList());
     final top = MediaQuery.paddingOf(context).top;
 
     return ColoredBox(
@@ -147,48 +135,6 @@ class CodexScreen extends StatelessWidget {
           const SizedBox(height: 12),
           const BulssiBubble(line: '숨은 칭호를 같이 찾아보자!'),
           const SizedBox(height: 16),
-
-          // ─────────────── 직업
-          OrnatePanel(
-            ornament: true,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('직업', style: AppText.title(18)),
-                const SizedBox(height: 6),
-                if (job != null) ...[
-                  Text(job.koreanName,
-                      style: AppText.title(26, color: AppColors.text)),
-                  const SizedBox(height: 4),
-                  Text(jobDescription(job),
-                      style: const TextStyle(color: AppColors.text)),
-                ] else ...[
-                  Text('$daysLeft일 뒤 직업 각성 · 첫 7일의 생활로 정해져요',
-                      style: const TextStyle(color: AppColors.text)),
-                  const SizedBox(height: 8),
-                  for (final j in Job.values)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(children: [
-                        SizedBox(
-                          width: 64,
-                          child: Text(j.koreanName,
-                              style:
-                                  const TextStyle(color: AppColors.textMuted)),
-                        ),
-                        Expanded(
-                          child: GlowBar(
-                              ratio: scores[j] ?? 0,
-                              colors: BarColors.exp,
-                              height: 8),
-                        ),
-                      ]),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
 
           // ─────────────── 몬스터
           OrnatePanel(

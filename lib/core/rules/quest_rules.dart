@@ -21,19 +21,11 @@ class QuestProgress {
   double get ratio => target == 0 ? 1 : (current / target).clamp(0, 1).toDouble();
 }
 
-/// 페이즈 1의 일일 퀘스트 3개: 수면 · 걸음 · 공부
+/// 일일 퀘스트 3개: 걸음 · 새 안개 · 필드 몬스터 (2026-11-10, 수면·공부 대신)
 class QuestRules {
   QuestRules._();
 
-  static const int studyQuestMinutes = 30;
-
   static List<QuestProgress> forDay(DailyRecord record) => [
-        QuestProgress(
-          title: '7시간 자기',
-          current: record.sleepMinutes ?? 0,
-          target: RuleConstants.sleepGoodMinutes,
-          unit: '분',
-        ),
         QuestProgress(
           title: '${_comma(record.stepGoal)}보 걷기',
           current: record.steps,
@@ -41,10 +33,16 @@ class QuestRules {
           unit: '보',
         ),
         QuestProgress(
-          title: '공부·독서 $studyQuestMinutes분',
-          current: record.studyMinutes,
-          target: studyQuestMinutes,
-          unit: '분',
+          title: '새 안개 ${RuleConstants.questNewCells}칸 걷기',
+          current: record.newCellsRevealed,
+          target: RuleConstants.questNewCells,
+          unit: '칸',
+        ),
+        QuestProgress(
+          title: '필드 몬스터 1마리 정화',
+          current: record.fieldMonstersPurified,
+          target: 1,
+          unit: '마리',
         ),
       ];
 

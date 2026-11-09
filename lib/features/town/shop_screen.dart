@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
+import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../data/storage/record_store.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터를 정화하고 모은 정화 결정으로 편의 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -21,12 +24,17 @@ class ShopScreen extends StatelessWidget {
         PurchaseCheck.notEnoughCrystals =>
           '결정 ${info.price - crystals}개 부족',
         PurchaseCheck.needsLocation => '위치를 켜 주세요',
+        PurchaseCheck.levelTooLow => 'Lv.${info.minLevel}부터',
+        PurchaseCheck.alreadyFull =>
+          info.hpRatio > 0 ? 'HP가 가득해요' : 'MP가 가득해요',
       };
 
   static String boughtLine(ShopItem item) => switch (item) {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
-        ShopItem.bulssiPotion => '불씨가 물약을 마셨어요. 오늘 던전에서 일격이 빨리 차요!',
+        ShopItem.bulssiPotion => '정령이 물약을 마셨어요. 오늘 던전에서 일격이 빨리 차요!',
         ShopItem.magicLens => '마법 돋보기로 주변 안개를 걷었어요. 지도를 확인해 보세요!',
+        ShopItem.healSmall || ShopItem.heal => '물약을 마셨어요. HP가 찼어요!',
+        ShopItem.manaSmall || ShopItem.mana => '정령이 물약을 마셨어요. MP가 찼어요!',
       };
 
   @override
@@ -42,6 +50,9 @@ class ShopScreen extends StatelessWidget {
             final history = controller.history;
             final crystals = controller.player.crystals;
             final hasLocation = controller.lastFix != null;
+            final level = controller.player.level.level;
+            final hpFull = controller.hp >= controller.maxHp;
+            final mpFull = controller.mp >= RuleConstants.mpMax;
 
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -70,6 +81,14 @@ class ShopScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
+                    Text(
+                      'HP ${comma(controller.hp)} / ${comma(controller.maxHp)} · '
+                      '정령 MP ${controller.mp} / ${RuleConstants.mpMax}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: AppColors.text, fontSize: 13),
+                    ),
+                    const SizedBox(height: 2),
                     const Text(
                       '던전 정화 3개 · 던전 실패 1개 · 필드 몬스터 1개',
                       textAlign: TextAlign.center,
@@ -83,8 +102,12 @@ class ShopScreen extends StatelessWidget {
                   _ItemCard(
                     info: info,
                     check: TownRules.canBuy(history, info.item,
-                        hasLocation: hasLocation),
+                        hasLocation: hasLocation,
+                        level: level,
+                        hpFull: hpFull,
+                        mpFull: mpFull),
                     crystals: crystals,
+                    spiritKind: controller.profile.spiritKind,
                     onBuy: () async {
                       final result = await controller.buy(info.item);
                       if (!context.mounted) return;
@@ -115,12 +138,14 @@ class _ItemCard extends StatelessWidget {
     required this.check,
     required this.crystals,
     required this.onBuy,
+    this.spiritKind = SpiritKind.fire,
   });
 
   final ShopItemInfo info;
   final PurchaseCheck check;
   final int crystals;
   final VoidCallback onBuy;
+  final SpiritKind spiritKind;
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +154,13 @@ class _ItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GameIcon(info.icon, size: 48),
+          Image.asset(
+              info.item == ShopItem.bulssiPotion
+                  ? spiritPotionAsset(spiritKind)
+                  : 'assets/images/${info.icon}.png',
+              width: 48,
+              height: 48,
+              errorBuilder: (_, __, ___) => const GameIcon('crystal', size: 48)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

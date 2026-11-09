@@ -131,7 +131,7 @@ void main() {
       final lines = csv.trim().split('\n');
       expect(lines.first, startsWith('날짜,걸음,목표'));
       expect(lines.length, 1 + 14 + 1);
-      expect(lines[14], startsWith('2026-11-08,6400,8000,430,10,0,0'));
+      expect(lines[14], startsWith('2026-11-08,6400,8000,0,0,0,0,'));
       expect(lines[14], endsWith(',${c.player.level.level}'));
       expect(csv, isNot(contains('하루')));
       expect(csv, isNot(contains('37.')));
@@ -174,14 +174,11 @@ void main() {
       expect(find.textContaining('오늘 ·'), findsOneWidget);
     });
 
-    testWidgets('도감 탭: 직업, 칭호, 몬스터', (tester) async {
+    testWidgets('도감 탭: 칭호, 몬스터', (tester) async {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
       expect(find.textContaining('/ 11'), findsWidgets);
-      await tester.scrollUntilVisible(find.text('직업'), 300,
-          scrollable: find.byType(Scrollable).first);
-      expect(find.text('직업'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('몬스터 도감 0 / 6'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.text('몬스터 도감 0 / 6'), findsOneWidget);
@@ -205,7 +202,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(c.needsAwakening, isTrue);
-      expect(find.text('드디어 찾았다! 너구나, 탑이 고른 각성자.'), findsOneWidget);
+      expect(find.text('오늘도 별일 없는 하루였어.'), findsOneWidget);
     });
   });
 }

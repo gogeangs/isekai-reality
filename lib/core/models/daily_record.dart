@@ -18,8 +18,8 @@ class DungeonRun {
 
 /// 하루 동안의 활동 기록. 규칙 엔진의 입력값이다.
 ///
-/// 걸음·수면은 건강 앱(HealthKit / Health Connect)에서 읽고,
-/// 공부는 직접 기록, 나머지는 게임 안에서 쌓인다.
+/// 걸음은 건강 앱(HealthKit / Health Connect)에서 읽고, 나머지는 게임 안에서 쌓인다.
+/// (수면·공부는 2026-11-10에 뺐다. 예전 저장본을 읽을 수 있게 칸만 남겨 둔다.)
 class DailyRecord {
   const DailyRecord({
     required this.date,
@@ -39,15 +39,18 @@ class DailyRecord {
     this.purifiedSpawnIds = const [],
     this.shopPurchases = const [],
     this.restedAtInn = false,
+    this.newCellsRevealed = 0,
+    this.restsCompleted = 0,
   });
 
   final DateTime date;
   final int steps;
   final int stepsAfter8pm;
 
-  /// 지난밤 수면(분). 기록이 없으면 null.
+  /// (예전 기록) 지난밤 수면(분). 더 이상 읽지도 쓰지도 않는다.
   final int? sleepMinutes;
 
+  /// (예전 기록) 공부 시간. 더 이상 쓰지 않는다.
   final int studyMinutes;
 
   /// 그날 적용된 걸음 목표
@@ -75,8 +78,17 @@ class DailyRecord {
   /// 오늘 잡화상에서 산 물건 ([ShopItem] 이름, 산 순서대로)
   final List<String> shopPurchases;
 
-  /// 오늘 밤 여관에 체크인했는지 (다음 날 수면 보상 +10)
+  /// (예전 기록) 저녁 체크인. 지금은 [restsCompleted] 를 쓴다.
   final bool restedAtInn;
+
+  /// 오늘 처음 걷어 낸 안개 칸 수 (일일 퀘스트)
+  final int newCellsRevealed;
+
+  /// 오늘 여관 휴식(체크인하고 4시간)을 마친 횟수
+  final int restsCompleted;
+
+  /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
+  bool get rested => restsCompleted > 0;
 
   /// 날짜만 남긴 키 (예: '2026-11-08')
   String get dayKey => dayKeyOf(date);
@@ -104,6 +116,8 @@ class DailyRecord {
         'purifiedSpawnIds': purifiedSpawnIds,
         'shopPurchases': shopPurchases,
         'restedAtInn': restedAtInn,
+        'newCellsRevealed': newCellsRevealed,
+        'restsCompleted': restsCompleted,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -136,12 +150,12 @@ class DailyRecord {
           .map((e) => e as String)
           .toList(),
       restedAtInn: json['restedAtInn'] as bool? ?? false,
+      newCellsRevealed: json['newCellsRevealed'] as int? ?? 0,
+      restsCompleted: json['restsCompleted'] as int? ?? 0,
     );
   }
 
   bool get stepGoalAchieved => steps >= stepGoal;
-
-  bool get sleptWell => (sleepMinutes ?? 0) >= 7 * 60;
 
   DailyRecord copyWith({
     int? steps,
@@ -160,6 +174,8 @@ class DailyRecord {
     List<String>? purifiedSpawnIds,
     List<String>? shopPurchases,
     bool? restedAtInn,
+    int? newCellsRevealed,
+    int? restsCompleted,
   }) {
     return DailyRecord(
       date: date,
@@ -180,6 +196,8 @@ class DailyRecord {
       purifiedSpawnIds: purifiedSpawnIds ?? this.purifiedSpawnIds,
       shopPurchases: shopPurchases ?? this.shopPurchases,
       restedAtInn: restedAtInn ?? this.restedAtInn,
+      newCellsRevealed: newCellsRevealed ?? this.newCellsRevealed,
+      restsCompleted: restsCompleted ?? this.restsCompleted,
     );
   }
 }

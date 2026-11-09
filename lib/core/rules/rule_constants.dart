@@ -46,25 +46,19 @@ class RuleConstants {
   static const int maxNewPlacesPerDay = 3;
   static const int revisitPlaceExp = 5; // 같은 장소는 하루 한 번만
 
-  static const int sleepGoodMinutes = 7 * 60;
-  static const int sleepOkMinutes = 6 * 60;
-  static const int sleepGoodExp = 30;
-  static const int sleepOkExp = 15;
-
-  static const int studyExpPerTenMinutes = 5;
-  static const int maxStudyExpPerDay = 60; // 2시간
-
   static const int questExp = 20;
   static const int questsPerDay = 3;
 
-  static const int streakBonusEveryDays = 7;
-  static const int streakBonusExp = 100;
+  /// 일일 퀘스트 '새 안개 N칸 걷기'
+  static const int questNewCells = 20;
 
   // ---------------------------------------------------------------- 스탯
   static const int statStartValue = 10;
   static const int vitalityStepsPerPoint = 30000; // 체력: 누적 걸음
-  static const int wisdomStudyMinutesPerPoint = 180; // 지력: 누적 공부 3시간
-  // 민첩: 걸음 목표 달성한 날 +1, 정신: 7시간 이상 잔 날 +1
+  // 민첩: 걸음 목표 달성한 날 +1
+  // 지력: 도감에 새 몬스터 +1, 새 장소(미궁 입구·물가)를 처음 발견 +1 (2026-11-10)
+  // 정신: 7일 연속 접속할 때마다 +1, 여관 휴식을 마친 날 +1 (2026-11-10)
+  static const int spiritLoginStreakDays = 7;
 
   // ---------------------------------------------------------------- 전투
   // 자동 전투: 1틱(약 1초)마다 서로 한 번씩 공격한다.
@@ -99,8 +93,8 @@ class RuleConstants {
   // ---------------------------------------------------------------- 칭호
   static const int firstStepsThreshold = 1000;
   static const int persistentTravelerDays = 7;
-  static const int morningSpiritDays = 7;
-  static const int bookwormStudyMinutes = 600; // 10시간
+  static const int morningSpiritDays = 7; // 여관 휴식 7일 연속
+  static const int codexSageSpecies = 6; // 도감의 현자: 몬스터 6종 모두
   static const int forcedMarchSteps = 15000;
   static const int nightWalkSteps = 3000; // 저녁 8시 이후
   static const int nightWalkDays = 5;
@@ -122,14 +116,43 @@ class RuleConstants {
   static const int crystalsPerDungeonFail = 1;
   static const int crystalsPerFieldMonster = 1;
 
-  /// 여관 체크인 가능 시간 (18시 ~ 22시 59분)
-  static const int innOpenHour = 18;
-  static const int innCloseHour = 23;
+  // ───────────────────────── 여관 (2026-11-10 개편)
 
-  /// 여관에 체크인하고 다음 날 푹 자면(7시간 이상) 받는 경험치
-  static const int innRestExp = 10;
+  /// 체크인하고 이만큼 지나면 휴식이 끝난다 (언제든, 하루 여러 번)
+  static const int restHours = 4;
 
-  /// 불씨 물약을 마신 날 던전 스킬 충전 틱 (평소 5)
+  /// 휴식을 마친 날 경험치 (하루 한 번)
+  static const int restBonusExp = 20;
+
+  /// 연속 휴식 보너스: (연속 일수, 경험치, 정화 결정).
+  /// 14일 뒤로는 7일마다 14일째와 같은 보상.
+  static const List<(int, int, int)> restStreakRewards = [
+    (3, 30, 0),
+    (7, 70, 5),
+    (14, 100, 10),
+  ];
+  static const int restStreakRepeatEvery = 7;
+
+  // ───────────────────────── HP · MP (2026-11-10)
+
+  /// 걸음 1,000보마다 최대 HP의 10% 회복
+  static const int hpRegenSteps = 1000;
+  static const double hpRegenRatio = 0.10;
+
+  /// 정령의 기력 (MP)
+  static const int mpMax = 60;
+  static const int mpRegenPerHour = 10;
+
+  // ───────────────────────── 정령 원정 (2026-11-10)
+
+  /// 거리 100m마다 MP 2 (갔다 오는 것까지)
+  static const int expeditionMpPer100m = 2;
+
+  /// 1km마다 10분 (한쪽 길), 아무리 가까워도 3분
+  static const int expeditionMinutesPerKm = 10;
+  static const int expeditionMinMinutes = 3;
+
+  /// 정령 물약을 마신 날 던전 스킬 충전 틱 (평소 5)
   static const int potionSkillChargeTicks = 3;
 
   /// 마법 돋보기로 안개를 걷는 반경 (m)

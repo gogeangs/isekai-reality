@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../data/storage/record_store.dart';
 import 'bulssi_mood.dart';
+import 'spirit_art.dart';
 
-/// 불씨 그림 + 말풍선. 모든 화면에서 같은 모양으로 쓴다.
-/// 빛 색(날씨·시간)과 이름은 [BulssiScope] 에서 받는다.
+/// 정령 그림 + 말풍선. 모든 화면에서 같은 모양으로 쓴다.
+/// 정령 종류·이름·빛 색(속성 + 날씨·시간)은 [BulssiScope] 에서 받는다.
 class BulssiBubble extends StatelessWidget {
   const BulssiBubble({super.key, required this.line, this.size = 96});
 
@@ -15,11 +17,12 @@ class BulssiBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = BulssiScope.maybeOf(context);
-    final glow = (scope?.mood ?? BulssiMood.gold).color;
-    final name = scope?.spiritName ?? '불씨';
+    final kind = scope?.kind ?? SpiritKind.fire;
+    final glow = scope?.glow ?? spiritColor(kind);
+    final name = scope?.spiritName ?? kind.defaultName;
 
-    // 목업처럼 불씨 몸 전체가 배경 위에 떠 있고, 둘레에 은은한 빛만 번진다.
-    // (이름 표시 없이 말풍선 꼬리가 불씨를 가리킨다)
+    // 정령 몸 전체가 배경 위에 떠 있고, 둘레에 은은한 빛이 번진다.
+    // 말풍선 첫 줄에 플레이어가 지어 준 이름을 작게 쓴다.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -50,27 +53,25 @@ class BulssiBubble extends StatelessWidget {
                   ),
                 ),
               ),
-              Image.asset(
-                'assets/images/bulssi.png',
-                width: size,
-                height: size * 1.1,
-                fit: BoxFit.contain,
-                semanticLabel: '정령 $name',
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.local_fire_department_rounded,
-                  color: glow,
-                  size: size * 0.78,
-                  semanticLabel: '정령 $name',
-                ),
-              ),
+              SpiritArt(kind: kind, size: size, name: name),
             ],
           ),
         ),
         const SizedBox(width: 2),
         Flexible(
           child: SpeechBubbleArt(
-            child: Text(
-              line,
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                  text: '$name\n',
+                  style: const TextStyle(
+                    color: Color(0xFF8A5A12),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                TextSpan(text: line),
+              ]),
               style: const TextStyle(
                 color: AppColors.night,
                 fontSize: 15,

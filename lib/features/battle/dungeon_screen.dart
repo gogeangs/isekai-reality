@@ -34,7 +34,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
   AppController get _c => widget.controller;
 
-  void _start() {
+  Future<void> _start() async {
+    if (_c.resting) {
+      final ok = await confirmStopResting(context);
+      if (!ok || !mounted) return;
+    }
     final atGate = _c.atGate;
     final battle = _c.startDungeon();
     if (battle == null) return;
@@ -112,8 +116,12 @@ class _DungeonScreenState extends State<DungeonScreen> {
             .round()
         : RuleConstants.dungeonClearExp;
 
+    final hp = _c.hp;
+    final maxHp = _c.maxHp;
     final String line;
-    if (!canFight) {
+    if (hp <= 0) {
+      line = '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.';
+    } else if (!canFight) {
       line = '움직이는 중엔 위험해! 멈춰 서서 던전을 열자.';
     } else if (keys == 0) {
       line = '열쇠가 없어. ${comma(RuleConstants.stepsPerKey)}보를 걸으면 하나 생겨!';
@@ -121,6 +129,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
       line = '미궁 입구야! 여기서 열면 보상이 1.5배야.';
     } else if (!_c.dungeonExpLeftToday) {
       line = '오늘 경험치는 다 받았어. 열쇠는 내일을 위해 아껴 둘까?';
+    } else if (hp < maxHp * 0.3) {
+      line = 'HP가 얼마 안 남았어. 들어가면 쓰러질 수도 있어!';
     } else {
       line = '문이 열려 있어. 준비됐어?';
     }
@@ -189,6 +199,20 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ]),
             const SizedBox(height: 6),
             GlowBar(ratio: gauge.ratio, colors: BarColors.exp, height: 8),
+            const SizedBox(height: 8),
+            Row(children: [
+              const GameIcon('vitality', size: 18),
+              const SizedBox(width: 6),
+              Text('HP ${comma(hp)} / ${comma(maxHp)}',
+                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GlowBar(
+                    ratio: maxHp == 0 ? 0 : hp / maxHp,
+                    colors: BarColors.hp,
+                    height: 8),
+              ),
+            ]),
             if (gauge.goalBonusKey || gauge.stepsToGoal != null) ...[
               const SizedBox(height: 8),
               Row(children: [
@@ -255,6 +279,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
   Widget _entryButton() {
     final keys = _c.player.gauge.keysAvailable;
     final canFight = _c.canFightNow;
+    final tired = _c.hp <= 0;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -268,8 +293,12 @@ class _DungeonScreenState extends State<DungeonScreen> {
       child: SafeArea(
         top: false,
         child: GoldButton(
-          label: keys > 0 ? '던전 열기 · 열쇠 1개' : '열쇠가 없어요',
-          onPressed: keys > 0 && canFight ? _start : null,
+          label: tired
+              ? 'HP가 없어요 · 쉬고 오세요'
+              : keys > 0
+                  ? '던전 열기 · 열쇠 1개'
+                  : '열쇠가 없어요',
+          onPressed: keys > 0 && canFight && !tired ? _start : null,
         ),
       ),
     );
@@ -287,7 +316,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
         ? (purified.any((m) => m.isBoss)
             ? Monsters.info(MonsterId.labyrinthWarden).purifiedLine
             : '던전을 정화했어!')
-        : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!';
+        : '쓰러졌지만 괜찮아. 여관에서 쉬거나 걸으면 HP가 다시 차!';
 
     return [
       // 배너
@@ -560,4 +589,31 @@ class _MonsterCard extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// 여관에서 쉬는 중에 싸우려 할 때 먼저 묻는다
+Future<bool> confirmStopResting(BuildContext context) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: AppColors.night,
+      title: Text('휴식을 멈출까요?', style: AppText.title(19)),
+      content: const Text(
+        '여관에서 쉬는 중이에요. 지금 싸우면 휴식이 끝나고, '
+        '휴식 보상(HP·MP 가득, 보너스)은 받지 못해요.',
+        style: TextStyle(color: AppColors.text, height: 1.4),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('계속 쉬기'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('싸우러 가기'),
+        ),
+      ],
+    ),
+  );
+  return ok ?? false;
 }

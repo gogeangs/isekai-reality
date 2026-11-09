@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/models/daily_record.dart';
 import '../../core/models/player_state.dart';
+import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 
-/// 기록 (목업 구도): 이번 주 / 지난 주, 걸음·수면·공부 그래프, 주간 요약 3칸.
+/// 기록 (목업 구도): 이번 주 / 지난 주, 걸음·필드 몬스터·여관 휴식 그래프, 주간 요약 3칸.
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key, required this.player});
 
@@ -120,27 +121,30 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
           const SizedBox(height: 12),
           _ChartPanel(
-            icon: 'moon',
-            title: '수면',
-            goalLabel: '목표 7시간',
+            icon: 'crystal',
+            title: '필드 몬스터',
+            goalLabel: '하루 ${RuleConstants.maxFieldMonstersPerDay}마리까지',
             days: days,
             values: [
-              for (final r in records) (r?.sleepMinutes ?? 0) / 60.0,
+              for (final r in records)
+                (r?.fieldMonstersPurified ?? 0).toDouble(),
             ],
-            goal: 7,
-            colors: const [Color(0xFF2559C9), Color(0xFF6CC4FF)],
-            format: (v) => v == 0 ? '' : '${v.toStringAsFixed(1)}h',
+            goal: RuleConstants.maxFieldMonstersPerDay.toDouble(),
+            colors: const [Color(0xFF7A3FC0), Color(0xFFC9A0FF)],
+            format: (v) => v == 0 ? '' : '${v.round()}',
           ),
           const SizedBox(height: 12),
           _ChartPanel(
-            icon: 'study',
-            title: '공부·독서',
-            goalLabel: '목표 30분',
+            icon: 'moon',
+            title: '여관 휴식',
+            goalLabel: '하루 한 번',
             days: days,
-            values: [for (final r in records) (r?.studyMinutes ?? 0).toDouble()],
-            goal: 30,
-            colors: const [Color(0xFFC98A1E), Color(0xFFFAD56A)],
-            format: (v) => '${v.round()}분',
+            values: [
+              for (final r in records) (r?.restsCompleted ?? 0).toDouble(),
+            ],
+            goal: 1,
+            colors: const [Color(0xFF2559C9), Color(0xFF6CC4FF)],
+            format: (v) => v == 0 ? '' : '${v.round()}번',
           ),
           const SizedBox(height: 12),
           Row(children: [
@@ -403,8 +407,7 @@ class _DayRow extends StatelessWidget {
     final r = record;
     final parts = [
       '${comma(r.steps)}보${r.stepGoalAchieved ? ' ✓' : ''}',
-      if (r.sleepMinutes != null) '수면 ${hoursMinutes(r.sleepMinutes!)}',
-      if (r.studyMinutes > 0) '공부 ${r.studyMinutes}분',
+      if (r.rested) '휴식',
       if (r.dungeonRuns.isNotEmpty) '던전 ${r.dungeonRuns.length}회',
       if (r.fieldMonstersPurified > 0) '정화 ${r.fieldMonstersPurified}',
       if (r.visitedPlaceIds.isNotEmpty) '장소 ${r.visitedPlaceIds.length}곳',

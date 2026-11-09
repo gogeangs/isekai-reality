@@ -13,7 +13,6 @@ class PlayerState {
     required this.level,
     required this.stats,
     required this.titles,
-    required this.job,
     required this.gauge,
     required this.dailyExp,
     required this.crystals,
@@ -26,27 +25,15 @@ class PlayerState {
     int revealedCells = 0,
   }) {
     var totalExp = 0;
-    var streak = 0;
-    DateTime? previous;
-    var restedLastNight = false;
+    final restStreaks = TownRules.restStreaks(history);
     final dailyExp = <DailyExpBreakdown>[];
-    for (final day in history) {
-      final continuous =
-          previous != null && day.date.difference(previous).inDays == 1;
-      streak = day.openedApp ? (continuous ? streak + 1 : 1) : 0;
-      final exp = ExpRules.forDay(day,
-          consecutiveDays: streak,
-          restedLastNight: continuous && restedLastNight);
-      restedLastNight = day.restedAtInn;
+    for (var i = 0; i < history.length; i++) {
+      final exp = ExpRules.forDay(history[i], restStreak: restStreaks[i]);
       dailyExp.add(exp);
       totalExp += exp.total;
-      previous = day.date;
     }
     final level = LevelRules.fromTotalExp(totalExp);
     final stats = StatRules.fromHistory(history);
-    final job = history.length >= RuleConstants.jobAwakeningDay
-        ? JobRules.awaken(history.take(RuleConstants.jobAwakeningDay).toList())
-        : null;
     final today = history.isEmpty ? null : history.last;
     final carried = DungeonGaugeRules.carriedIntoLastDay([
       for (final d in history)
@@ -67,7 +54,6 @@ class PlayerState {
       stats: stats,
       titles: TitleRules.earned(history, level.level,
           revealedCells: revealedCells),
-      job: job,
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,
         stepGoal: today?.stepGoal,
@@ -87,9 +73,6 @@ class PlayerState {
   final Stats stats;
   final Set<TitleId> titles;
 
-  /// 7일째 전에는 null
-  final Job? job;
-
   final DungeonGaugeState gauge;
 
   /// [history] 와 같은 순서의 하루 경험치 내역
@@ -99,4 +82,10 @@ class PlayerState {
   final int crystals;
 
   DailyRecord? get today => history.isEmpty ? null : history.last;
+
+  /// 오늘까지 이어진 연속 휴식 일수
+  int get restStreak => TownRules.currentRestStreak(history);
+
+  /// 전투용 최대 HP
+  int get maxHp => StatRules.battleMaxHp(level: level.level, stats: stats);
 }

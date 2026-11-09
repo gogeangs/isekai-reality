@@ -42,7 +42,7 @@ class MainActivity : FlutterFragmentActivity()
 
 ```xml
 <key>NSHealthShareUsageDescription</key>
-<string>걸음 수와 수면 기록으로 상태창의 레벨과 던전 열쇠를 계산해요. 건강 데이터는 휴대폰 밖으로 보내지 않아요.</string>
+<string>걸음 수로 상태창의 레벨과 던전 열쇠를 계산해요. 건강 데이터는 휴대폰 밖으로 보내지 않아요.</string>
 <key>NSHealthUpdateUsageDescription</key>
 <string>건강 앱에 기록을 쓰지 않아요. 읽기만 해요.</string>
 <key>NSLocationWhenInUseUsageDescription</key>

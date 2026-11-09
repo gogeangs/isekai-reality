@@ -18,8 +18,8 @@ class Persona {
     required this.description,
     required this.goal,
     required this.steps,
-    required this.sleep,
-    required this.study,
+    required this.newCells,
+    required this.restChance,
     required this.fieldMonsters,
     required this.newPlaceDays,
     required this.revisitEvery,
@@ -30,9 +30,9 @@ class Persona {
   final String description;
   final int goal;
   final (int, int) steps; // 하루 걸음 범위
-  final (int, int) sleep; // 수면(분) 범위
-  final (int, int) study; // 공부(분) 범위
-  final (int, int) fieldMonsters; // 하루 필드 몬스터 정화 수 범위
+  final (int, int) newCells; // 하루 새로 걷는 안개 칸 범위
+  final double restChance; // 여관 휴식을 마치는 날의 비율
+  final (int, int) fieldMonsters; // 하루 필드 몬스터 정화 수 범위 (정령 원정 포함)
   final Set<int> newPlaceDays; // 새 장소를 처음 간 날 (1부터)
   final int revisitEvery; // 며칠마다 다시 방문 (0 = 안 함)
 
@@ -43,35 +43,38 @@ class Persona {
 const personas = [
   Persona(
     name: '적게 걷는 사람',
-    description: '목표 3,000보(모두 같음), 하루 2,800~4,500보, 수면 5시간 반~7시간, 공부 거의 안 함',
+    description: '목표 3,000보(모두 같음), 하루 2,800~4,500보, 새 안개 5~20칸, '
+        '여관은 일주일에 5번쯤, 필드 몬스터는 주로 정령 원정으로 하루 1~3마리',
     goal: 3000,
     steps: (2800, 4500),
-    sleep: (330, 420),
-    study: (0, 10),
-    fieldMonsters: (0, 1),
+    newCells: (5, 20),
+    restChance: 0.7,
+    fieldMonsters: (1, 3),
     newPlaceDays: {2, 9},
     revisitEvery: 0,
     dungeonShare: 1,
   ),
   Persona(
     name: '보통',
-    description: '목표 3,000보(모두 같음), 하루 4,500~7,500보, 수면 6시간 반~7시간 반, 공부 10~30분',
+    description: '목표 3,000보(모두 같음), 하루 4,500~7,500보, 새 안개 15~40칸, '
+        '여관은 거의 매일, 필드 몬스터 하루 2~4마리',
     goal: 3000,
     steps: (4500, 7500),
-    sleep: (390, 460),
-    study: (10, 30),
-    fieldMonsters: (1, 3),
+    newCells: (15, 40),
+    restChance: 0.85,
+    fieldMonsters: (2, 4),
     newPlaceDays: {1, 3, 6},
     revisitEvery: 2,
     dungeonShare: 1,
   ),
   Persona(
     name: '많이 걷는 사람',
-    description: '목표 3,000보(모두 같음), 하루 8,000~13,000보, 수면 7~8시간, 공부 20~60분',
+    description: '목표 3,000보(모두 같음), 하루 8,000~13,000보, 새 안개 30~80칸, '
+        '여관은 매일, 필드 몬스터 하루 3~5마리',
     goal: 3000,
     steps: (8000, 13000),
-    sleep: (420, 480),
-    study: (20, 60),
+    newCells: (30, 80),
+    restChance: 1,
     fieldMonsters: (3, 5),
     newPlaceDays: {1, 2, 4},
     revisitEvery: 1,
@@ -114,6 +117,7 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
   final start = DateTime(2026, 11, 1);
   final history = <DailyRecord>[];
   final rows = <DayRow>[];
+  var hp = 0;
 
   for (var d = 1; d <= days; d++) {
     final isNew = p.newPlaceDays.contains(d);
@@ -124,13 +128,22 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
     var today = DailyRecord(
       date: start.add(Duration(days: d - 1)),
       steps: _between(rng, p.steps),
-      sleepMinutes: _between(rng, p.sleep),
-      studyMinutes: _between(rng, p.study),
+      newCellsRevealed: _between(rng, p.newCells),
+      restsCompleted: rng.nextDouble() < p.restChance ? 1 : 0,
       stepGoal: p.goal,
       fieldMonstersPurified: _between(rng, p.fieldMonsters),
       newPlacesVisited: isNew ? 1 : 0,
       placesRevisited: revisit ? 1 : 0,
     );
+
+    // HP는 전투 사이에 이어진다: 어젯밤 여관에서 쉬었으면 가득,
+    // 아니면 오늘 걸음 1,000보마다 10%씩 찬다
+    final maxHp = PlayerState.fromHistory(name: p.name, history: [...history, today])
+        .maxHp;
+    final restedYesterday = history.isNotEmpty && history.last.rested;
+    hp = restedYesterday || d == 1
+        ? maxHp
+        : min(maxHp, hp + (today.steps ~/ 1000) * (maxHp * 0.1).round());
 
     // 열쇠가 있는 만큼(하루 경험치 인정 4회까지) 던전을 연다
     var wins = 0;
@@ -141,6 +154,7 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
           PlayerState.fromHistory(name: p.name, history: [...history, today]);
       final keys = state.gauge.keysAvailable;
       if (keys <= 0 ||
+          hp <= 0 ||
           today.dungeonRuns.length >= RuleConstants.maxDungeonRunsPerDay ||
           runs >= (state.gauge.keysEarnedToday * p.dungeonShare).ceil() + 3) {
         break;
@@ -153,10 +167,12 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
             floors: BattleRules.dungeonFloors(
                 level: level, atGate: false, rng: Random(seedForRun)),
             rng: Random(seedForRun + 1),
+            startHp: hp,
           );
       final withSkill = make().runToEnd(useSkills: true);
       final noSkill = make().runToEnd();
       final cleared = withSkill.phase == BattlePhase.cleared;
+      hp = withSkill.playerHp;
       if (cleared) wins++;
       if (noSkill.phase == BattlePhase.cleared) winsNoSkill++;
       runs++;
@@ -179,16 +195,16 @@ String report(List<Result> results) {
     ..writeln('# 밸런스 점검 (자동 계산)')
     ..writeln()
     ..writeln('실제 게임 규칙 코드로 2주를 계산했습니다. 던전은 생긴 열쇠를 그날 모두 쓰고, '
-        '충전될 때마다 스킬을 쓴다고 가정했습니다. 매일 앱을 연다고 봅니다.')
+        '충전될 때마다 스킬을 쓴다고 가정했습니다. 매일 앱을 연다고 봅니다. '
+        'HP는 전투 사이에 이어지고(2026-11-10), 쓰러지면 그날 던전은 그만둡니다.')
     ..writeln()
     ..writeln('## 요약')
     ..writeln()
-    ..writeln('| 유형 | 7일째 | 14일째 | 하루 평균 경험치 | 던전 | 클리어 (스킬 씀) | 클리어 (스킬 안 씀) | 직업 |')
-    ..writeln('| --- | --- | --- | --- | --- | --- | --- | --- |');
+    ..writeln('| 유형 | 7일째 | 14일째 | 하루 평균 경험치 | 던전 | 클리어 (스킬 씀) | 클리어 (스킬 안 씀) |')
+    ..writeln('| --- | --- | --- | --- | --- | --- | --- |');
   for (final r in results) {
     b.writeln('| ${r.persona.name} | Lv.${r.levelOn(7)} | Lv.${r.levelOn(14)} | '
-        '${r.avgExp.round()} | ${r.runs}회 | ${r.wins}회 | ${r.winsNoSkill}회 | '
-        '${r.finalState.job?.koreanName ?? '-'} |');
+        '${r.avgExp.round()} | ${r.runs}회 | ${r.wins}회 | ${r.winsNoSkill}회 |');
   }
   b
     ..writeln()
@@ -202,11 +218,9 @@ String report(List<Result> results) {
           ifAbsent: () => e.fieldMonster);
       totals.update('탐험', (v) => v + e.exploration,
           ifAbsent: () => e.exploration);
-      totals.update('수면', (v) => v + e.sleep, ifAbsent: () => e.sleep);
-      totals.update('공부', (v) => v + e.study, ifAbsent: () => e.study);
       totals.update('퀘스트', (v) => v + e.quest, ifAbsent: () => e.quest);
-      totals.update('연속 접속', (v) => v + e.streakBonus,
-          ifAbsent: () => e.streakBonus);
+      totals.update('여관 휴식', (v) => v + e.rest + e.restStreak,
+          ifAbsent: () => e.rest + e.restStreak);
     }
     final sum = totals.values.fold(0, (a, b) => a + b);
     final s = r.finalState.stats;

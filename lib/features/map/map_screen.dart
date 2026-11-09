@@ -150,7 +150,7 @@ class _DiscoveryCard extends StatelessWidget {
             Text('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
                 style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
-            BulssiBubble(line: _discoveryLine(place.kind), size: 56),
+            BulssiBubble(line: _discoveryLine(place.kind), size: 72),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(

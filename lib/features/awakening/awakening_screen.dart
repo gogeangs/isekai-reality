@@ -115,7 +115,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               children: [
-                BulssiBubble(line: _introLines[_introStep], size: 96),
+                BulssiBubble(line: _introLines[_introStep], size: 120),
                 const Spacer(),
                 GoldButton(
                   label: _introStep == _introLines.length - 1 ? '좋아!' : '다음',
@@ -216,7 +216,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const BulssiBubble(line: '뭐라고 불러 줄까?', size: 64),
+                      const BulssiBubble(line: '뭐라고 불러 줄까?', size: 80),
                       const SizedBox(height: 16),
                       _submitting
                           ? const Center(

@@ -225,6 +225,9 @@ class _HeroArt extends StatelessWidget {
     final asset = look == HeroLook.female
         ? 'assets/images/bg_status_female.jpg'
         : 'assets/images/bg_status_male.jpg';
+    final cutout = look == HeroLook.female
+        ? 'assets/images/hero_status_female.png'
+        : 'assets/images/hero_status_male.png';
     final alignment = look == HeroLook.female
         ? const Alignment(-0.45, 0)
         : const Alignment(-0.42, 0);
@@ -257,11 +260,39 @@ class _HeroArt extends StatelessWidget {
             stops: [0, 0.04, 0.9, 1],
           ).createShader(r),
           blendMode: BlendMode.dstIn,
-          child: Image.asset(asset,
-              fit: BoxFit.cover,
-              alignment: alignment,
-              semanticLabel: '기본 각성자',
-              errorBuilder: (_, __, ___) => const SizedBox()),
+          child: Stack(fit: StackFit.expand, children: [
+            // 배경: 살짝 흐리고 어둡게 눌러서 뒤로 물린다
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
+              child: ColorFiltered(
+                colorFilter: const ColorFilter.mode(
+                    Color(0x990B0D26), BlendMode.srcATop),
+                child: Image.asset(asset,
+                    fit: BoxFit.cover,
+                    alignment: alignment,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              ),
+            ),
+            // 각성자 둘레의 금빛 후광
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                    AppColors.goldBright.withValues(alpha: 0.75),
+                    BlendMode.srcIn),
+                child: Image.asset(cutout,
+                    fit: BoxFit.cover,
+                    alignment: alignment,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              ),
+            ),
+            // 각성자 (배경과 분리된 그림, 원래 자리 그대로)
+            Image.asset(cutout,
+                fit: BoxFit.cover,
+                alignment: alignment,
+                semanticLabel: '기본 각성자',
+                errorBuilder: (_, __, ___) => const SizedBox()),
+          ]),
         ),
       ),
     ]);

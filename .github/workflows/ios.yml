@@ -5,7 +5,7 @@
 #   ASC_ISSUER_ID            App Store Connect API 발급자(Issuer) ID
 #   ASC_KEY_P8               내려받은 AuthKey_XXXX.p8 파일 내용 전체
 #   NAVER_MAP_CLIENT_ID      네이버 지도 Client ID (Android 와 같음)
-# 비밀값이 없으면 빌드를 건너뛴다.
+# 비밀값이 없으면 빌드를 건너뛴다. (2026-11-09 비밀값 등록)
 name: iPhone 테스트 빌드
 
 on:

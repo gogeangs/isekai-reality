@@ -109,6 +109,15 @@ class StatusScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // 불씨: 각성자 그림 바로 아래에서 오늘의 한마디
+                  BulssiBubble(
+                    line: BulssiLines.forStatus(
+                      today: today,
+                      gauge: player.gauge,
+                      now: DateTime.now(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   _StatusPanel(player: player, onOpenDungeon: onOpenDungeon),
                   const SizedBox(height: 14),
                   _QuestPanel(
@@ -137,14 +146,6 @@ class StatusScreen extends StatelessWidget {
                       ),
                     ]),
                   ],
-                  const SizedBox(height: 14),
-                  BulssiBubble(
-                    line: BulssiLines.forStatus(
-                      today: today,
-                      gauge: player.gauge,
-                      now: DateTime.now(),
-                    ),
-                  ),
                 ],
               ),
             ),

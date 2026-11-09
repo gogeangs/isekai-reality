@@ -81,9 +81,6 @@ class StatusScreen extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 _HeroArt(look: look, top: top),
-                const Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FadeToNight(height: 120)),
                 Positioned(
                   top: top + 8,
                   left: 14,
@@ -259,10 +256,15 @@ class _HeroArt extends StatelessWidget {
         child: ImageFiltered(
           imageFilter: ImageFilter.blur(
               sigmaX: 10, sigmaY: 10, tileMode: TileMode.decal),
-          child: Image.asset(asset,
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              errorBuilder: (_, __, ___) => const SizedBox()),
+          child: ColorFiltered(
+            // 살짝 어둡게 눌러 각성자가 앞으로 나오게
+            colorFilter:
+                const ColorFilter.mode(Color(0x660B0D26), BlendMode.srcATop),
+            child: Image.asset(asset,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                errorBuilder: (_, __, ___) => const SizedBox()),
+          ),
         ),
       ),
       // 각성자 전신
@@ -282,22 +284,10 @@ class _HeroArt extends StatelessWidget {
               Color(0xFFFFFFFF),
               Color(0x00FFFFFF),
             ],
-            stops: [0, 0.04, 0.9, 1],
+            stops: [0, 0.02, 0.92, 1],
           ).createShader(r),
           blendMode: BlendMode.dstIn,
           child: Stack(fit: StackFit.expand, children: [
-            // 배경: 살짝 흐리고 어둡게 눌러서 뒤로 물린다
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
-              child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
-                    Color(0x990B0D26), BlendMode.srcATop),
-                child: Image.asset(asset,
-                    fit: BoxFit.cover,
-                    alignment: alignment,
-                    errorBuilder: (_, __, ___) => const SizedBox()),
-              ),
-            ),
             // 각성자 둘레의 금빛 후광
             ImageFiltered(
               imageFilter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),

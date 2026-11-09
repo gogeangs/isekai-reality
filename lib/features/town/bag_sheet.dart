@@ -113,7 +113,7 @@ class _BagRow extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 92,
+          width: 118,
           child: GoldButton(
             label: '마시기',
             height: 40,

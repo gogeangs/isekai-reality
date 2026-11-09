@@ -514,7 +514,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   Widget _buildForm() {
     final top = MediaQuery.paddingOf(context).top;
     return ListView(
-      padding: EdgeInsets.zero,
+      padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 8),
       children: [
         _art(330 + top,
             overlay: Positioned(

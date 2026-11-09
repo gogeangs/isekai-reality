@@ -404,6 +404,9 @@ void main() {
     expect(find.textContaining('정화 결정'), findsWidgets);
 
     final crystals = c.player.crystals;
+    await tester.scrollUntilVisible(find.text('5개'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('5개'));
     await tester.pumpAndSettle();
     expect(c.player.crystals, crystals - 5);

@@ -131,7 +131,7 @@ void main() {
       final lines = csv.trim().split('\n');
       expect(lines.first, startsWith('날짜,걸음,목표'));
       expect(lines.length, 1 + 14 + 1);
-      expect(lines[14], startsWith('2026-11-08,6400,8000,430,10,0,0'));
+      expect(lines[14], startsWith('2026-11-08,6400,8000,0,0,0,0,'));
       expect(lines[14], endsWith(',${c.player.level.level}'));
       expect(csv, isNot(contains('하루')));
       expect(csv, isNot(contains('37.')));

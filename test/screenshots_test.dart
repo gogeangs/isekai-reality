@@ -117,7 +117,7 @@ void main() {
     // 던전
     await tester.tap(find.text('상태'));
     await tester.pumpAndSettle();
-    final open = find.textContaining('던전 열기 (열쇠');
+    final open = find.text('던전 열기');
     await tester.scrollUntilVisible(open, 300,
         scrollable: find.byType(Scrollable).first);
     await _shot(tester, '03_상태창_아래');

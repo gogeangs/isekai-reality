@@ -421,9 +421,8 @@ class _StatusPanel extends StatelessWidget {
                   onPressed: onOpenDungeon,
                   icon: Icons.door_front_door_rounded,
                   height: 46,
-                  label: gauge.keysAvailable > 0
-                      ? '던전 열기 (열쇠 ${gauge.keysAvailable})'
-                      : '던전 (열쇠 없음)',
+                  // 열쇠 개수는 바로 위 게이지에 있어 짧게
+                  label: gauge.keysAvailable > 0 ? '던전 열기' : '열쇠 없음',
                 ),
               ),
               if (onOpenBag != null) ...[

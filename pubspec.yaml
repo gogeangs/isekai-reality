@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  health: ">=10.2.0 <11.0.0"
+  health: ">=11.0.0 <14.0.0"
   shared_preferences: ^2.2.0
   flutter_naver_map: ^1.4.4
   geolocator: ">=12.0.0 <15.0.0"

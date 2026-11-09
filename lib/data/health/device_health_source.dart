@@ -15,7 +15,7 @@ class DeviceHealthSource implements HealthSource {
 
   Future<void> _configure() async {
     if (_configured) return;
-    await _health.configure(useHealthConnectIfAvailable: true);
+    await _health.configure(); // 안드로이드는 헬스 커넥트만 지원 (health 11 이상)
     _configured = true;
   }
 

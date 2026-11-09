@@ -202,7 +202,7 @@ void main() {
           contains(TitleId.lakeFriend));
     });
 
-    test('안개를 50% 걷으면 고잔동의 빛', () {
+    test('안개를 50% 걷으면 동네의 빛', () {
       expect(TitleRules.earned([], 1, revealedRatio: 0.49),
           isNot(contains(TitleId.townLight)));
       expect(TitleRules.earned([], 1, revealedRatio: 0.5),

@@ -6,7 +6,7 @@
 
 지도 화면 코드는 완성되어 자동 테스트를 통과했습니다. 아래는 **실제 휴대폰에서 지도를 띄우기 전에** 해야 할 일입니다.
 
-- [ ] **네이버 지도 Client ID 발급** — 네이버 클라우드 플랫폼 대표 계정(사업자)에서 Maps 앱 등록, 패키지 이름 `kr.itso.isekai_reality` 입력. 절차는 [platform_setup.md](platform_setup.md#네이버-지도)
+- [x] 네이버 지도 Client ID 발급 — 2026년 11월 9일, 콘솔 Maps 앱 'isekai-reality' (Dynamic Map, Android `kr.itso.isekai_reality`, iOS `kr.itso.isekaiReality`). ID는 저장소에 올리지 않고 실행할 때 넣음
 - [ ] **장소 좌표 확인** — 휴대폰으로 지도를 띄워 실제 위치와 맞추기. 특히 고잔역은 추정값 ([gojan_places.md](gojan_places.md))
 - [x] ~~음유시인의 극장~~ — 넣지 않기로 결정 (2026년 11월 9일). 그림자 나비는 밤에 아무 곳에 나옴
 - [x] ~~여관(카페)·잡화상(편의점) 고르기~~ — 실제 가게를 쓰지 않고 앱 안 시설로 하기로 결정 (2026년 11월 9일)

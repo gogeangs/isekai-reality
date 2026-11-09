@@ -53,6 +53,7 @@ class MainActivity : FlutterFragmentActivity()
 
 1. [네이버 클라우드 플랫폼](https://www.ncloud.com) 콘솔 → Maps → Application 등록 → **Dynamic Map** 선택
 2. 안드로이드 패키지 이름 `kr.itso.isekai_reality`, iOS Bundle ID 를 입력 (`flutter create --org kr.itso` 로 만든 경우)
+   - 2026년 11월 9일 등록 완료: 앱 이름 `isekai-reality`, iOS Bundle ID `kr.itso.isekaiReality`. Client ID는 콘솔 → Maps → Application → isekai-reality → 인증 정보에서 확인 (Client Secret은 모바일 지도에 필요 없음)
 3. 발급받은 **Client ID** 를 실행할 때 넣습니다. 저장소에는 올리지 않아요.
 
 ```bash

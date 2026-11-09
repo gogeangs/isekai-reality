@@ -24,6 +24,7 @@ class FieldMonsterRules {
   ///
   /// - 장소마다 한 마리: 장소에서 80~150m 떨어진 곳, 장소에 맞는 몬스터
   /// - 나머지는 지역 안 아무 곳: 잿빛 슬라임 또는 길 잃은 돌정령
+  /// - 밤(오후 7시 ~ 새벽 5시)에는 아무 곳 몬스터 중 2마리가 그림자 나비로 바뀐다
   /// - 제외 구역과 지역 밖에는 두지 않는다
   static List<FieldSpawn> spawnsFor(ExploreArea area, DateTime day) {
     final key = '${day.year}-${day.month}-${day.day}';
@@ -68,8 +69,24 @@ class FieldMonsterRules {
         point: p,
       ));
     }
+    if (isNight(day)) {
+      var changed = 0;
+      for (var i = 0; i < spawns.length && changed < nightButterflies; i++) {
+        final s = spawns[i];
+        if (!commons.contains(s.monster)) continue;
+        spawns[i] = FieldSpawn(
+            id: s.id, monster: MonsterId.shadowButterfly, point: s.point);
+        changed++;
+      }
+    }
     return spawns;
   }
+
+  /// 밤에 그림자 나비로 바뀌는 몬스터 수
+  static const int nightButterflies = 2;
+
+  /// 그림자 나비가 나오는 시간 (오후 7시 ~ 새벽 5시)
+  static bool isNight(DateTime t) => t.hour >= 19 || t.hour < 5;
 
   /// 지금 위치에서 만날 수 있는 가장 가까운 몬스터.
   /// 차량 속도로 움직이는 중이거나 제외 구역 안이면 없음.
@@ -96,7 +113,6 @@ class FieldMonsterRules {
   static MonsterId _habitatMonster(PlaceKind kind) => switch (kind) {
         PlaceKind.labyrinthGate => MonsterId.labyrinthBat,
         PlaceKind.spiritLake => MonsterId.roughWaterSpirit,
-        PlaceKind.bardTheater => MonsterId.shadowButterfly,
       };
 
   /// [from] 에서 [meters] 만큼 [bearing] 방향으로 옮긴 점 (짧은 거리용 근사)

@@ -74,6 +74,27 @@ void main() {
       await c.refreshWeather();
       expect(weather.calls, 2);
     });
+
+    test('날씨 조회를 끄면 조회하지 않고 받은 날씨도 버린다', () async {
+      final weather = FakeWeatherSource(
+          const WeatherNow(kind: WeatherKind.rain, temperatureC: 7.6));
+      final c = AppController(
+        store: InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
+        health: FakeHealthSource(),
+        weatherSource: weather,
+        clock: () => DateTime(2026, 11, 8, 13),
+      );
+      await c.init();
+      await c.refreshWeather();
+      final calls = weather.calls;
+
+      await c.setWeatherEnabled(false);
+      expect(c.weatherLabel, '날씨 꺼짐');
+      expect(c.weather, isNull);
+      await c.refreshWeather(force: true);
+      expect(weather.calls, calls);
+      expect(c.profile.weatherEnabled, isFalse);
+    });
   });
 
   group('설정', () {

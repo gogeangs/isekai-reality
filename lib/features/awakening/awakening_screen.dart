@@ -4,14 +4,17 @@ import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../legal/legal_screen.dart';
 
-/// 첫 실행 화면: 불씨의 짧은 소개 → 외형(남·여)과 이름 정하기 → 깨어나기.
+/// 첫 실행 화면: 불씨의 짧은 소개 → 동의 → 외형(남·여)과 이름 정하기 → 깨어나기.
 ///
 /// 종족 선택은 페이즈 2에서 '진짜 모습의 각성'으로 연다.
 class AwakeningScreen extends StatefulWidget {
   const AwakeningScreen({super.key, required this.onAwaken});
 
-  final Future<void> Function(String name, HeroLook look) onAwaken;
+  /// [weather] 날씨 조회(선택 동의)를 켰는지
+  final Future<void> Function(String name, HeroLook look, bool weather)
+      onAwaken;
 
   @override
   State<AwakeningScreen> createState() => _AwakeningScreenState();
@@ -33,6 +36,15 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   HeroLook _look = HeroLook.male;
   bool _submitting = false;
 
+  // 동의 (필수 3개 + 선택 1개)
+  bool _consentDone = false;
+  bool _agreeHealth = false;
+  bool _agreeLocation = false;
+  bool _agreeAge = false;
+  bool _agreeWeather = true;
+
+  bool get _requiredAgreed => _agreeHealth && _agreeLocation && _agreeAge;
+
   bool get _inIntro => _introStep < _introLines.length;
   bool get _canAwaken =>
       _nameController.text.trim().isNotEmpty && !_submitting;
@@ -46,7 +58,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   Future<void> _awaken() async {
     if (!_canAwaken) return;
     setState(() => _submitting = true);
-    await widget.onAwaken(_nameController.text.trim(), _look);
+    await widget.onAwaken(_nameController.text.trim(), _look, _agreeWeather);
     if (mounted) setState(() => _submitting = false);
   }
 
@@ -55,7 +67,11 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1233),
       body: NightBackground(
-        child: _inIntro ? _buildIntro() : _buildForm(),
+        child: _inIntro
+            ? _buildIntro()
+            : !_consentDone
+                ? _buildConsent()
+                : _buildForm(),
       ),
     );
   }
@@ -124,6 +140,129 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConsent() {
+    final top = MediaQuery.paddingOf(context).top;
+    Widget item({
+      required bool value,
+      required ValueChanged<bool> onChanged,
+      required String label,
+      required String text,
+      LegalDoc? doc,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: value,
+              onChanged: (v) => onChanged(v ?? false),
+              activeColor: AppColors.gold,
+              checkColor: AppColors.night,
+              side: const BorderSide(color: AppColors.gold, width: 1.5),
+            ),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onChanged(!value),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(TextSpan(children: [
+                        TextSpan(
+                            text: '($label) ',
+                            style: const TextStyle(
+                                color: AppColors.goldBright,
+                                fontWeight: FontWeight.w700)),
+                        TextSpan(text: text),
+                      ]),
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 14,
+                              height: 1.45)),
+                      if (doc != null)
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => LegalScreen.open(context, doc),
+                          child: Text('${doc.title} 보기 ›',
+                              style: const TextStyle(
+                                  color: AppColors.gold,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: AppColors.gold)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16, top + 10, 16, 28),
+      children: [
+        const RibbonHeading('시작하기 전에', size: 22),
+        const SizedBox(height: 12),
+        const BulssiBubble(
+            line: '네 하루를 이세계에 비추려면 몇 가지가 필요해. 모두 네 휴대폰 안에만 있어!'),
+        const SizedBox(height: 12),
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              item(
+                value: _agreeHealth,
+                onChanged: (v) => setState(() => _agreeHealth = v),
+                label: '필수',
+                text: '걸음 수와 수면 시간을 건강 앱에서 읽어 레벨과 던전 열쇠를 계산합니다. '
+                    '휴대폰 밖으로 보내지 않습니다.',
+                doc: LegalDoc.privacy,
+              ),
+              item(
+                value: _agreeLocation,
+                onChanged: (v) => setState(() => _agreeLocation = v),
+                label: '필수',
+                text: '앱을 보고 있는 동안 위치를 써서 동네 안개를 걷고 장소·몬스터를 찾습니다. '
+                    '좌표는 저장하지 않습니다.',
+                doc: LegalDoc.locationTerms,
+              ),
+              item(
+                value: _agreeWeather,
+                onChanged: (v) => setState(() => _agreeWeather = v),
+                label: '선택',
+                text: '약 1km 단위의 대략 위치로 날씨를 조회해 불씨 색을 바꿉니다 '
+                    '(해외 날씨 서비스 Open-Meteo).',
+              ),
+              item(
+                value: _agreeAge,
+                onChanged: (v) => setState(() => _agreeAge = v),
+                label: '필수',
+                text: '만 14세 이상입니다.',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        GoldButton(
+          label: '동의하고 다음',
+          onPressed: _requiredAgreed
+              ? () => setState(() => _consentDone = true)
+              : null,
         ),
       ],
     );

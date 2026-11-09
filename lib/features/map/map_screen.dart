@@ -74,7 +74,6 @@ class MapScreen extends StatelessWidget {
 String placeIconAsset(PlaceKind kind) => switch (kind) {
       PlaceKind.labyrinthGate => 'assets/images/map_gate.png',
       PlaceKind.spiritLake => 'assets/images/map_lake.png',
-      PlaceKind.bardTheater => 'assets/images/map_theater.png',
     };
 
 // ───────────────────────────────────────────── 위쪽 패널
@@ -170,7 +169,6 @@ class _DiscoveryCard extends StatelessWidget {
   static String _discoveryLine(PlaceKind kind) => switch (kind) {
         PlaceKind.labyrinthGate => '여기가 미궁 입구야! 여기서 던전을 열면 보상이 1.5배야.',
         PlaceKind.spiritLake => '물의 정령들이 반짝이고 있어. 비 오는 날엔 더 많아진대!',
-        PlaceKind.bardTheater => '음유시인의 노래가 들려. 기분이 좋아지는걸?',
       };
 }
 

@@ -8,6 +8,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../legal/legal_screen.dart';
 
 /// 설정: 걸음 목표 · 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
 class SettingsScreen extends StatelessWidget {
@@ -190,6 +191,32 @@ class SettingsScreen extends StatelessWidget {
                       foregroundColor: AppColors.gold,
                       minimumSize: const Size(64, 44)),
                 ),
+              ),
+            ],
+          ),
+          _Section(
+            title: '약관과 날씨',
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: profile.weatherEnabled,
+                onChanged: controller.setWeatherEnabled,
+                activeTrackColor: AppColors.gold,
+                title: const Text('날씨로 불씨 색 바꾸기',
+                    style: TextStyle(color: AppColors.text)),
+                subtitle: const Text('약 1km 단위 위치로 날씨를 조회해요 (Open-Meteo)',
+                    style:
+                        TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              ),
+              _Row(
+                label: LegalDoc.privacy.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.privacy),
+              ),
+              _Row(
+                label: LegalDoc.locationTerms.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.locationTerms),
               ),
             ],
           ),

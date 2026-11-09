@@ -121,8 +121,17 @@ class AppController extends ChangeNotifier {
   }
 
   /// 각성 화면에서 '깨어나기'를 눌렀을 때
-  Future<void> awaken({required String name, required HeroLook look}) async {
-    _profile = PlayerProfile(name: name.trim(), look: look, lastSeenLevel: 1);
+  Future<void> awaken({
+    required String name,
+    required HeroLook look,
+    bool weatherEnabled = true,
+  }) async {
+    _profile = PlayerProfile(
+      name: name.trim(),
+      look: look,
+      lastSeenLevel: 1,
+      weatherEnabled: weatherEnabled,
+    );
     await store.saveProfile(_profile);
     _needsAwakening = false;
     await _startPlaying();
@@ -184,6 +193,7 @@ class AppController extends ChangeNotifier {
 
   /// 상태창 위쪽에 보이는 날씨 이름
   String get weatherLabel {
+    if (!_profile.weatherEnabled) return '날씨 꺼짐';
     final w = _weather;
     if (w == null) return '날씨 확인 중';
     final t = w.temperatureC;
@@ -193,7 +203,7 @@ class AppController extends ChangeNotifier {
   /// 30분에 한 번만 새로 읽는다. 실패해도 게임은 그대로.
   Future<void> refreshWeather({bool force = false}) async {
     final source = weatherSource;
-    if (source == null) return;
+    if (source == null || !_profile.weatherEnabled) return;
     final now = _clock();
     final last = _weatherAt;
     if (!force && last != null && now.difference(last).inMinutes < 30) return;
@@ -513,6 +523,18 @@ class AppController extends ChangeNotifier {
 
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
+
+  /// 날씨 조회를 켜고 끈다. 끄면 받아 둔 날씨도 버린다.
+  Future<void> setWeatherEnabled(bool on) async {
+    await updateProfile(_profile.copyWith(weatherEnabled: on));
+    if (on) {
+      await refreshWeather(force: true);
+    } else {
+      _weather = null;
+      _weatherAt = null;
+      notifyListeners();
+    }
+  }
 
   /// 여관 체크인이 지금 열려 있는지 (18시 ~ 23시)
   bool get innOpen => TownRules.innOpen(_clock());

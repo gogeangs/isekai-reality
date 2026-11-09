@@ -8,9 +8,6 @@ enum PlaceKind {
 
   /// 정령의 호수 (호수공원)
   spiritLake,
-
-  /// 음유시인의 극장 (공연장)
-  bardTheater,
 }
 
 /// 지도 위 이세계 장소

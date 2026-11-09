@@ -45,15 +45,7 @@ class GojanArea {
         point: GeoPoint(37.30062, 126.82355), // 출처: 관광 정보 좌표
         visitRadiusM: 250,
       ),
-      // 안산문화예술의전당(음유시인의 극장)은 화랑유원지와 붙어 있어 보류.
-      // 결정 후 아래 주석을 풀거나 지운다.
-      // GamePlace(
-      //   id: 'theater_arts',
-      //   name: '음유시인의 극장',
-      //   realName: '안산문화예술의전당',
-      //   kind: PlaceKind.bardTheater,
-      //   point: GeoPoint(37.32128, 126.82228),
-      // ),
+      // 음유시인의 극장(안산문화예술의전당)은 제외 구역 옆이라 넣지 않는다 (2026-11-09 결정).
     ],
     exclusionZones: [
       // 세월호 추모 공간: 화랑유원지와 4·16 생명안전공원 일대 (초지동).

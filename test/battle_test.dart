@@ -160,6 +160,21 @@ void main() {
       expect(kinds, contains(MonsterId.roughWaterSpirit));
     });
 
+    test('밤에는 아무 곳 몬스터 중 2마리가 그림자 나비가 된다', () {
+      int butterflies(DateTime t) => FieldMonsterRules.spawnsFor(area, t)
+          .where((s) => s.monster == MonsterId.shadowButterfly)
+          .length;
+      expect(butterflies(DateTime(2026, 11, 8, 14)), 0);
+      expect(butterflies(DateTime(2026, 11, 8, 21)), 2);
+      expect(butterflies(DateTime(2026, 11, 9, 3)), 2);
+      // 자리는 낮과 같다
+      expect(
+          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 8, 21))
+              .map((s) => s.id),
+          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 8, 14))
+              .map((s) => s.id));
+    });
+
     test('40m 안에서 걸어가면 만나고, 차로 지나가면 만나지 않는다', () {
       final spawn = FieldMonsterRules.spawnsFor(area, day).first;
       expect(

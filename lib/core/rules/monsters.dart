@@ -72,7 +72,7 @@ class Monsters {
       id: MonsterId.shadowButterfly,
       name: '그림자 나비',
       purifiedName: '노을 나비',
-      habitat: '음유시인의 극장 (밤)',
+      habitat: '밤 (오후 7시 ~ 새벽 5시) 어디서나',
       purifiedLine: '노을빛 날개다… 노래에 맞춰 춤추던 아이였나 봐.',
     ),
     MonsterInfo(

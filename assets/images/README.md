@@ -33,7 +33,7 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 테두리·버튼 | ui_panel(가운데를 비워 9조각으로 늘림), ui_panel_wide, ui_button_gold, ui_button_dark, ui_divider_left/right, ui_level_plaque, ui_ribbon, ui_bubble |
 | 아이콘 | icon_vitality, agility, wisdom, spirit, quest, steps, moon, key, key_empty, crystal, exp, levelup, medal, study, check, sun |
 | 하단 메뉴 | nav_status, nav_map, nav_records, nav_codex, nav_settings |
-| 지도 | map_gate, inn, store, lake, theater, monster, player, unknown |
+| 지도 | map_gate, lake, monster, player, unknown (map_inn·map_store는 상태창의 여관·잡화상 입구) |
 | 던전 | floor_1~3, floor_boss, banner_clear, badge_gate, bg_gate, bg_battle, bg_victory |
 | 레벨업 | banner_levelup |
 | 배경 | bg_header, bg_status_male, bg_status_female, splash |

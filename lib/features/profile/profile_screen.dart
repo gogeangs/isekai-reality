@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
+import '../../core/format.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
+import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 
 /// 지금은 직업이 없다 (각성 기능에서 정하기로 미룸)
@@ -24,7 +26,11 @@ class ProfileCard extends StatelessWidget {
     required this.spiritName,
     this.title,
     this.job = kNoJobLabel,
+    this.onEditName,
   });
+
+  /// 이름 옆 연필 (없으면 연필을 그리지 않는다. 다른 사람 카드에서는 null)
+  final VoidCallback? onEditName;
 
   final String name;
   final int level;
@@ -66,6 +72,17 @@ class ProfileCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: AppText.title(20, color: AppColors.text)),
                 ),
+                if (onEditName != null)
+                  IconButton(
+                    onPressed: onEditName,
+                    tooltip: '이름 바꾸기',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 30, minHeight: 30),
+                    icon: const Icon(Icons.edit_rounded,
+                        size: 18, color: AppColors.goldBright),
+                  ),
               ]),
               const SizedBox(height: 2),
               Text(title ?? '새내기 각성자',
@@ -80,9 +97,17 @@ class ProfileCard extends StatelessWidget {
               Row(children: [
                 SpiritArt(kind: spiritKind, size: 26),
                 const SizedBox(width: 4),
-                KText('함께하는 정령 · $spiritName',
-                    style: const TextStyle(
-                        color: AppColors.text, fontSize: 12)),
+                Flexible(
+                  child: KText('함께하는 정령 · $spiritName',
+                      style: const TextStyle(
+                          color: AppColors.text, fontSize: 12)),
+                ),
+                const SizedBox(width: 3),
+                const Tooltip(
+                  message: '정령 이름은 바꿀 수 없어요',
+                  child: Icon(Icons.lock_rounded,
+                      size: 13, color: AppColors.textMuted),
+                ),
               ]),
             ],
           ),
@@ -225,6 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,
+                    onEditName: () => _rename(context, c),
                   ),
                   const SizedBox(height: 10),
                   _Tabs(
@@ -259,61 +285,111 @@ class _InfoTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final earned = [
-      for (final t in TitleRules.all)
-        if (player.titles.contains(t.id)) t,
-    ];
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        _Section(title: '대표 칭호', children: [
-          if (earned.isEmpty)
-            const KText('아직 얻은 칭호가 없어요. 도감에서 얻는 방법을 볼 수 있어요.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13))
-          else
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final t in earned)
-                ChoiceChip(
-                  label: Text(t.name),
-                  selected: t.id == equipped,
-                  onSelected: (_) => c.setEquippedTitle(t.id),
-                  selectedColor: AppColors.gold,
-                  backgroundColor: const Color(0xFF1A1D4A),
-                  labelStyle: TextStyle(
-                      color: t.id == equipped
-                          ? const Color(0xFF3A2208)
-                          : AppColors.text,
-                      fontWeight: FontWeight.w700),
-                  side: BorderSide(
-                      color: AppColors.gold.withValues(alpha: 0.6)),
-                ),
-            ]),
-        ]),
-        _Section(title: '이름', children: [
-          _Row(
-            label: '내 이름',
-            value: c.profile.name,
-            onTap: () async {
-              final name = await askText(context,
-                  title: '이름 바꾸기', initial: c.profile.name, maxLength: 10);
-              if (name != null) await c.renameHero(name);
-            },
-          ),
-          _Row(
-            label: '정령 이름 (${c.profile.spiritKind.elementName})',
-            value: c.profile.spiritName,
-            onTap: () async {
-              final name = await askText(context,
-                  title: '정령 이름 바꾸기',
-                  initial: c.profile.spiritName,
-                  maxLength: 8);
-              if (name != null) await c.renameSpirit(name);
-            },
-          ),
+        _Section(title: '칭호', children: [
+          KText('얻은 칭호를 누르면 대표 칭호로 걸어요. '
+              '${player.titles.length} / ${TitleRules.all.length}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+          const SizedBox(height: 6),
+          for (final t in TitleRules.all)
+            _TitleRow(
+              info: t,
+              earned: player.titles.contains(t.id),
+              equipped: t.id == equipped,
+              onTap: player.titles.contains(t.id)
+                  ? () => c.setEquippedTitle(t.id)
+                  : null,
+            ),
         ]),
       ],
     );
   }
+}
+
+/// 칭호 한 줄: 얻은 칭호는 이름, 얻지 못한 칭호는 흐리게 + 얻는 방법
+class _TitleRow extends StatelessWidget {
+  const _TitleRow({
+    required this.info,
+    required this.earned,
+    required this.equipped,
+    this.onTap,
+  });
+
+  final TitleInfo info;
+  final bool earned;
+  final bool equipped;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Opacity(
+          opacity: earned ? 1 : 0.55,
+          child: Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
+            decoration: BoxDecoration(
+              color: equipped ? const Color(0x55E8B04A) : const Color(0x66101333),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: equipped
+                      ? AppColors.goldBright
+                      : AppColors.gold.withValues(alpha: 0.3)),
+            ),
+            child: Row(children: [
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: Image.asset('assets/images/title_${info.id.name}.png',
+                    errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
+                        color: earned
+                            ? AppColors.goldBright
+                            : AppColors.textMuted)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(earned ? info.name : '???',
+                        style: AppText.title(15,
+                            color: earned ? AppColors.text : AppColors.textMuted)),
+                    KText(earned ? info.hint : '얻는 방법: ${info.hint}',
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 11.5)),
+                  ],
+                ),
+              ),
+              if (equipped)
+                const Text('대표',
+                    style: TextStyle(
+                        color: AppColors.goldBright,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ),
+      );
+}
+
+/// 이름 바꾸기 (첫 1회 무료 / 금화)
+Future<void> _rename(BuildContext context, AppController c) async {
+  final cost = c.renameCost;
+  final name = await askText(context,
+      title: cost == 0 ? '이름 바꾸기 (처음 한 번은 무료)' : '이름 바꾸기 (금화 $cost)',
+      initial: c.profile.name,
+      maxLength: 10);
+  if (name == null || !context.mounted) return;
+  if (name.trim().isEmpty || name.trim() == c.profile.name) return;
+  final ok = await c.renameHero(name);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? '${josa(name.trim(), '으로/로')} 바꿨어요.'
+          : '금화가 모자라요. (금화 $cost)')));
 }
 
 /// 짧은 글 입력 창 (이름 바꾸기)
@@ -368,31 +444,6 @@ class _Section extends StatelessWidget {
               ...children,
             ],
           ),
-        ),
-      );
-}
-
-class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value, this.onTap});
-
-  final String label;
-  final String value;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 46),
-          child: Row(children: [
-            Expanded(
-                child: Text(label,
-                    style: const TextStyle(color: AppColors.text))),
-            Text(value, style: const TextStyle(color: AppColors.textMuted)),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted),
-          ]),
         ),
       );
 }

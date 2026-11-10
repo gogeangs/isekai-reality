@@ -134,6 +134,27 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  // 칭호 얻음 알림 (11-11 #41)
+  static const _titlesKey = 'titles';
+  Set<TitleId> _seenTitles = {};
+
+  /// 새로 얻었지만 아직 알려 주지 않은 칭호 (없으면 null)
+  TitleId? get newTitle {
+    for (final t in player.titles) {
+      if (!_seenTitles.contains(t)) return t;
+    }
+    return null;
+  }
+
+  Future<void> acknowledgeTitles() async {
+    _seenTitles = {..._seenTitles, ...player.titles};
+    await _saveSeenTitles();
+    notifyListeners();
+  }
+
+  Future<void> _saveSeenTitles() => store.saveJson(
+      _titlesKey, {'seen': [for (final t in _seenTitles) t.name]});
+
   /// 확인하지 않은 레벨업. 없으면 null.
   ({int from, int to})? get pendingLevelUp {
     final seen = _profile.lastSeenLevel;
@@ -193,6 +214,14 @@ class AppController extends ChangeNotifier {
     final board = await store.loadJson(_boardKey);
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
     await sync();
+    final titles = await store.loadJson(_titlesKey);
+    _seenTitles = titles == null
+        ? {...player.titles}
+        : {
+            for (final n in (titles['seen'] as List? ?? const []))
+              if (TitleRules.parse(n as String) case final t?) t,
+          };
+    if (titles == null) await _saveSeenTitles();
     if (_alloc.seenLife == null) {
       // 예전 저장본·처음 각성: 지금 생활 보너스까지는 이미 알려 준 것으로 친다
       _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
@@ -270,17 +299,27 @@ class AppController extends ChangeNotifier {
 
   // ───────────────────────────────────────────── 설정
 
-  Future<void> renameHero(String name) async {
+  /// 이름 바꾸기 가격 (11-11 #53): 처음 1번 무료, 그다음 금화 300
+  static const int renameGold = 300;
+  int get renameCost => _profile.renames == 0 ? 0 : renameGold;
+
+  /// 내 이름을 바꾼다. 빈 이름·같은 이름이면 그대로, 금화가 모자라면 false.
+  Future<bool> renameHero(String name) async {
     final n = name.trim();
-    if (n.isEmpty) return;
-    await updateProfile(_profile.copyWith(name: n));
+    if (n.isEmpty || n == _profile.name) return false;
+    final cost = renameCost;
+    if (player.gold < cost) return false;
+    if (cost > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    }
+    await updateProfile(
+        _profile.copyWith(name: n, renames: _profile.renames + 1));
+    return true;
   }
 
-  Future<void> renameSpirit(String name) async {
-    final n = name.trim();
-    if (n.isEmpty) return;
-    await updateProfile(_profile.copyWith(spiritName: n));
-  }
+  // 정령 이름·종류는 각성 때 정하면 바꿀 수 없다 (11-11 #53)
 
   /// 테스트 결과 모으기용 하루별 기록 (CSV). 위치 좌표·이름은 넣지 않는다.
   String exportRecordsCsv() {

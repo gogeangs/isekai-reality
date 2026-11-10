@@ -115,15 +115,18 @@ void main() {
       expect(c.history.last.stepGoalAchieved, isTrue); // 4,000보
     });
 
-    test('이름과 정령 이름을 바꾼다 (빈 이름은 무시)', () async {
+    test('이름은 처음 1번 무료, 그다음 금화 300 (빈 이름은 무시)', () async {
       final c = make(InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루')));
       await c.init();
-      await c.renameHero('  새벽 ');
-      await c.renameSpirit('반딧불');
-      await c.renameSpirit('   ');
+      expect(c.renameCost, 0);
+      expect(await c.renameHero('   '), isFalse);
+      expect(await c.renameHero('  새벽 '), isTrue);
       expect(c.profile.name, '새벽');
-      expect(c.profile.spiritName, '반딧불');
+      expect(c.renameCost, AppController.renameGold);
+      // 금화가 없으면 못 바꾼다
+      expect(await c.renameHero('노을'), isFalse);
+      expect(c.profile.name, '새벽');
     });
 
     test('기록 내보내기: 하루별 한 줄, 좌표·이름 없음', () async {
@@ -180,16 +183,15 @@ void main() {
       expect(find.textContaining('오늘 ·'), findsOneWidget);
     });
 
-    testWidgets('도감 탭: 칭호, 몬스터', (tester) async {
+    testWidgets('도감은 몬스터 한 화면, 칭호는 프로필에서', (tester) async {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
-      expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
-      expect(findK('몬스터 도감 0 / 13'), findsNothing);
-      // 탭을 누르면 몬스터 그룹만 보인다
-      await tester.tap(find.text('몬스터 0/13'));
-      await tester.pump();
       expect(findK('몬스터 도감 0 / 13'), findsOneWidget);
+      expect(find.textContaining('희귀·전설'), findsWidgets);
+      await tester.tap(find.bySemanticsLabel('프로필'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('/ ${TitleRules.all.length}'), findsWidgets);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {

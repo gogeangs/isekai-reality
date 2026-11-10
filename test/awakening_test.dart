@@ -100,6 +100,8 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 정령과 함께하기'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
+    await tester.pumpAndSettle();
 
     // 정령 이름: 기본값 '이슬'
     expect(find.text('정령의 이름'), findsOneWidget);
@@ -107,6 +109,8 @@ void main() {
     await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 이름으로'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
     await tester.pumpAndSettle();
 
     // 동의: 필수 3개를 체크해야 다음으로 (날씨 선택 항목은 11-10에 뺐다)

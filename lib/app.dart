@@ -164,6 +164,32 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
+  bool _titleShowing = false;
+
+  /// 칭호를 새로 얻으면 알림. 누르면 프로필 칭호 목록으로 (11-11 #41)
+  void _maybeShowTitle() {
+    final c = widget.controller;
+    final t = c.newTitle;
+    if (t == null || _titleShowing || _levelUpShowing) return;
+    _titleShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final name = TitleRules.info(t).name;
+      final eul = josa(name, '을/를').substring(name.length);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('새 칭호 「$name」$eul 얻었어요!'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '보기',
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => ProfileScreen(controller: c))),
+        ),
+      ));
+      await c.acknowledgeTitles();
+      _titleShowing = false;
+    });
+  }
+
   /// 앱으로 돌아올 때마다 걸음을 다시 읽는다
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -193,6 +219,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ]),
           );
         }
+        if (!controller.needsAwakening) _maybeShowTitle();
         if (controller.needsAwakening) {
           _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(
@@ -237,7 +264,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           NightBackground(
             header: true,
             child: CodexScreen(
-              player: controller.player,
               // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
@@ -245,8 +271,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               },
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
-              equipped: controller.equippedTitle,
-              onEquip: controller.setEquippedTitle,
             ),
           ),
         ];

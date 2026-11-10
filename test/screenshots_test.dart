@@ -191,11 +191,14 @@ void main() {
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
     await _shot(tester, '09_도감');
-    await tester.tap(find.textContaining('몬스터 ').first);
-    await tester.pumpAndSettle();
-    await _shot(tester, '10_도감_몬스터');
-    await tester.tap(find.textContaining('칭호 ').first);
-    await tester.pumpAndSettle();
+    final tile = find.textContaining('마리');
+    if (tile.evaluate().isNotEmpty) {
+      await tester.tap(tile.first);
+      await tester.pumpAndSettle();
+      await _shot(tester, '10_도감_몬스터_설명');
+      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+      await tester.pumpAndSettle();
+    }
 
     await tester.tap(find.byTooltip('설정'));
     await tester.pumpAndSettle();
@@ -359,10 +362,14 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 정령과 함께하기'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
+    await tester.pumpAndSettle();
     await _shot(tester, '15g_정령_이름');
     await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 이름으로'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
     await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
     final checks = find.byType(Checkbox);
@@ -457,10 +464,11 @@ void main() {
     nav.pop();
     await tester.pumpAndSettle();
 
-    // 도감 수식어 탭
+    // 도감 아래 희귀·전설 사냥 기록
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('수식어 ').first);
+    await tester.scrollUntilVisible(find.text('희귀·전설 사냥 기록'), 300,
+        scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     await _shot(tester, '29c_도감_수식어');
 

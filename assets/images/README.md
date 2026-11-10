@@ -64,3 +64,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | monster_giantRat | 큰쥐 (길 잃은 돌정령 대신) |
 | icon_mana_stone, icon_gold | 마석·금화 (화폐 바꾸는 묶음에서 씀) |
 | equip_dagger, equip_staff, equip_cap, equip_armor, equip_gloves, equip_boots, equip_fang_necklace, equip_stone_charm | 장비 (대장간 묶음에서 씀) |
+| mat_<재료 이름> (13종) | 재료: 가방, 대장간, 사냥 결과, 잡화상 (철 조각·나뭇가지) |

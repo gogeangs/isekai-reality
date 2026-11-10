@@ -7,6 +7,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
+import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import 'expedition_sheet.dart';
@@ -32,9 +33,10 @@ class MapScreen extends StatelessWidget {
               : _ExploreSummary(controller: controller),
         ),
         Positioned(
+          // 위쪽 프로필·설정 버튼 아래
           left: 16,
           right: 16,
-          top: MediaQuery.paddingOf(context).top + 8,
+          top: MediaQuery.paddingOf(context).top + 60,
           child: _TopPanel(
             purifiedToday: controller.player.today?.fieldMonstersPurified ?? 0,
             keys: gauge.keysAvailable,
@@ -103,7 +105,7 @@ class _TopPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  '오늘 정화 $purifiedToday / '
+                  '오늘 사냥 $purifiedToday / '
                   '${RuleConstants.maxFieldMonstersPerDay}마리',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
               const SizedBox(height: 4),
@@ -206,12 +208,14 @@ class _MonsterCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${info.name}이(가) 나타났어!',
-                    style: const TextStyle(
-                        color: AppColors.goldBright,
+                Text('${spawn.name}이(가) 나타났어!',
+                    style: TextStyle(
+                        color: spawn.modifiers.isEmpty
+                            ? AppColors.goldBright
+                            : modGradeColor(spawn.grade),
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
-                const Text('멈춰 선 다음 정화해 주세요',
+                const Text('멈춰 선 다음 사냥해 주세요',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
               ],
             ),
@@ -223,7 +227,7 @@ class _MonsterCard extends StatelessWidget {
               foregroundColor: AppColors.night,
               minimumSize: const Size(88, 48),
             ),
-            child: const Text('정화하기'),
+            child: const Text('사냥하기'),
           ),
         ]),
       ),
@@ -246,7 +250,7 @@ class _ExploreSummary extends StatelessWidget {
     return NightBackground(
       child: ListView(
         padding: EdgeInsets.fromLTRB(
-            16, MediaQuery.paddingOf(context).top + 90, 16, 24),
+            16, MediaQuery.paddingOf(context).top + 140, 16, 24),
         children: [
           const BulssiLine(
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),
@@ -356,17 +360,38 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             text: visited.contains(place.id) ? place.name : '???',
           ),
         ),
-      // 시내 전체에 몬스터가 많아 이름은 빼고 그림만. 누르면 직접 정화·정령 보내기
+      // 시내 전체에 몬스터가 많아 이름은 빼고 그림만. 수식어 몬스터만 수식어를
+      // 등급 색으로 보여 준다 (11-10 #21). 누르면 직접 사냥·정령 보내기
       for (final spawn in spawns)
-        NMarker(
-          id: 'monster_${spawn.id}',
-          position: _ll(spawn.point),
-          icon: const NOverlayImage.fromAssetImage(
-              'assets/images/map_monster.png'),
-          size: const Size(40, 40),
-        )..setOnTapListener((_) {
-            if (mounted) showSpawnSheet(context, c, spawn);
-          }),
+        if (spawn.modifiers.isEmpty)
+          NMarker(
+            id: 'monster_${spawn.id}',
+            position: _ll(spawn.point),
+            icon: const NOverlayImage.fromAssetImage(
+                'assets/images/map_monster.png'),
+            size: const Size(40, 40),
+          )..setOnTapListener((_) {
+              if (mounted) showSpawnSheet(context, c, spawn);
+            })
+        else
+          NMarker(
+            id: 'monster_${spawn.id}',
+            position: _ll(spawn.point),
+            icon: const NOverlayImage.fromAssetImage(
+                'assets/images/map_monster.png'),
+            size: spawn.grade.index >= ModGrade.rare.index
+                ? const Size(48, 48)
+                : const Size(42, 42),
+            caption: NOverlayCaption(
+              text: spawn.modifiers
+                  .map((m) => ModifierRules.info(m).name)
+                  .join(' '),
+              color: modGradeColor(spawn.grade),
+              haloColor: const Color(0xFF0B0D26),
+            ),
+          )..setOnTapListener((_) {
+              if (mounted) showSpawnSheet(context, c, spawn);
+            }),
       if (spiritPos != null)
         NMarker(
           id: 'spirit',
@@ -449,8 +474,8 @@ class _ExpeditionList extends StatelessWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: MonsterPicture(monster: s.monster, size: 40),
-                title: Text(s.info.name,
-                    style: const TextStyle(color: AppColors.text)),
+                title: Text(s.name,
+                    style: TextStyle(color: modGradeColor(s.grade))),
                 trailing: const Icon(Icons.chevron_right_rounded,
                     color: AppColors.gold),
                 onTap: () => showSpawnSheet(context, c, s),

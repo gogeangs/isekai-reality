@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'core/geo/geo.dart';
+import 'core/models/armory.dart';
+import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
 import 'core/models/vitals.dart';
@@ -182,6 +184,10 @@ class AppController extends ChangeNotifier {
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     _vitals = await store.loadVitals();
+    final armory = await store.loadJson(_armoryKey);
+    _armory = armory == null ? const Armory() : Armory.fromJson(armory);
+    final board = await store.loadJson(_boardKey);
+    _board = board == null ? const BoardState() : BoardState.fromJson(board);
     await sync();
     await _startExploring();
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
@@ -306,6 +312,8 @@ class AppController extends ChangeNotifier {
     _lastFix = null;
     _lastDiscovery = null;
     _vitals = const Vitals();
+    _board = const BoardState();
+    _armory = const Armory();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
     notifyListeners();
@@ -405,6 +413,7 @@ class AppController extends ChangeNotifier {
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
+      gear: gear,
     );
   }
 
@@ -428,18 +437,35 @@ class AppController extends ChangeNotifier {
   Future<int> finishDungeon(Battle battle, {required bool atGate}) async {
     if (!battle.isOver) return 0;
     await keepBattleHp(battle);
+    await _wear(EquipmentRules.dungeonWear);
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
     final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
+    final mats = LootRules.dungeon(cleared: run.cleared, rng: _random);
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
+      huntCounts: _addCounts(today, battle.purified),
+      gains: DailyRecord.addCounts(
+          today.gains, HuntReward.ledger(materials: mats)),
     ));
+    _lastReward = HuntReward(
+      exp: exp,
+      manaStones: run.cleared
+          ? RuleConstants.crystalsPerDungeonClear
+          : RuleConstants.crystalsPerDungeonFail,
+      materials: mats,
+    );
     return exp;
   }
+
+  HuntReward _lastReward = const HuntReward();
+
+  /// 방금 끝난 사냥·던전의 보상 (결과 화면에 보여 준다)
+  HuntReward get lastReward => _lastReward;
 
   /// 오늘 아직 정화하지 않은 필드 몬스터.
   /// 하루 상한(5마리)을 채우면 더 나오지 않는다.
@@ -449,13 +475,16 @@ class AppController extends ChangeNotifier {
         today.fieldMonstersPurified >= RuleConstants.maxFieldMonstersPerDay) {
       return const [];
     }
-    final done = {...?today?.purifiedSpawnIds};
+    final done = {...?today?.purifiedSpawnIds, ...?today?.fledSpawnIds};
     final away = expedition;
     if (away != null && !away.finished) done.add(away.spawnId);
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     return FieldMonsterRules.spawnsFor(area, _clock(),
-            center: center, roads: roads, exclusions: exclusions)
+            center: center,
+            roads: roads,
+            exclusions: exclusions,
+            level: player.level.level)
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -475,39 +504,105 @@ class AppController extends ChangeNotifier {
     return Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
-      floors: [BattleRules.fieldFoe(level: p.level.level, monster: spawn.monster)],
+      floors: BattleRules.fieldFoes(
+          level: p.level.level,
+          monster: spawn.monster,
+          mods: spawn.modifiers,
+          spawnId: spawn.id),
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
+      gear: gear,
     );
   }
 
-  /// 필드 전투가 끝났을 때. 정화하면 그 자리의 안개도 걷힌다.
+  /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
   Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
     await keepBattleHp(battle);
+    if (battle.ticks > 0) await _wear(EquipmentRules.fieldWear);
+    _lastReward = const HuntReward();
+    if (battle.phase == BattlePhase.escaped) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          fledSpawnIds: [...today.fledSpawnIds, spawn.id]));
+      return 0;
+    }
     if (battle.phase != BattlePhase.cleared) return 0;
-    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point);
+    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point,
+        mods: spawn.modifiers, count: battle.floors.length);
   }
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
-  /// 하루 5마리까지만 경험치·결정을 준다.
+  /// 하루 5마리까지만 경험치·마석·재료를 준다.
+  ///
+  /// 수식어(11-10): 경험치 보너스, 마석·금화·재료 추가. 무리·분열·동료는 마리 수만큼
+  /// 받지만 하루 5마리 제한에는 1마리로 센다.
   Future<int> _recordFieldPurify(
-      String spawnId, MonsterId monster, GeoPoint point) async {
+    String spawnId,
+    MonsterId monster,
+    GeoPoint point, {
+    List<ModifierId> mods = const [],
+    int count = 1,
+  }) async {
     final today = await _todayRecord();
+    _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
-    final exp =
-        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
-            ? (RuleConstants.fieldMonsterExp *
-                    (TownRules.incenseActive(today)
-                        ? RuleConstants.incenseExpMultiplier
-                        : 1))
-                .round()
-            : 0;
+    final paid =
+        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay;
+    final exp = paid
+        ? (RuleConstants.fieldMonsterExp *
+                (TownRules.incenseActive(today)
+                    ? RuleConstants.incenseExpMultiplier
+                    : 1) *
+                ModifierRules.expMultiplier(mods) *
+                count)
+            .round()
+        : 0;
+    // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
+    final mats = <MaterialId, int>{};
+    var extraMana = 0, gold = 0;
+    if (paid) {
+      for (var i = 0; i < count; i++) {
+        LootRules.field(monster, _random)
+            .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+      }
+      final b = ModifierRules.bonus(monster, mods, _random);
+      b.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+      extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
+          b.manaStones;
+      gold = b.gold;
+    }
+    final modKey = ModifierRules.recordInCodex(mods)
+        ? ModifierRules.codexKey(monster, mods)
+        : null;
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
+      huntCounts: _addCounts(today, List.filled(count, monster)),
+      gains: DailyRecord.addCounts(
+          today.gains,
+          HuntReward.ledger(
+              extraManaStones: extraMana, gold: gold, materials: mats)),
+      modHunts: modKey == null
+          ? null
+          : DailyRecord.addCounts(today.modHunts, {modKey: 1}),
+      counters: mods.isEmpty
+          ? null
+          : DailyRecord.addCounts(today.counters, {
+              'modded': 1,
+              if (ModifierRules.gradeOf(mods).index >= ModGrade.rare.index)
+                'rarePlus': 1,
+              for (final m in mods) 'mod:${m.name}': 1,
+            }),
     ));
+    _lastReward = HuntReward(
+      exp: exp,
+      manaStones:
+          paid ? RuleConstants.crystalsPerFieldMonster + extraMana : 0,
+      gold: gold,
+      materials: mats,
+    );
     return exp;
   }
 
@@ -523,9 +618,21 @@ class AppController extends ChangeNotifier {
     if (check != PurchaseCheck.ok) return check;
 
     await _save(today.copyWith(
-      shopPurchases: [...today.shopPurchases, item.name],
+      goldPurchases: [...today.goldPurchases, item.name],
     ));
     return PurchaseCheck.ok;
+  }
+
+  /// 마석 [count] 개를 금화로 판다 (1개에 금화 10). 모자라면 false.
+  Future<bool> sellManaStones(int count) async {
+    final today = await _todayRecord();
+    if (!TownRules.canSell(_history, count)) return false;
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {Wallet.manaStone: count}),
+      gains: DailyRecord.addCounts(today.gains,
+          {Wallet.gold: count * RuleConstants.goldPerManaStone}),
+    ));
+    return true;
   }
 
   /// 가방에 든 개수
@@ -567,6 +674,282 @@ class AppController extends ChangeNotifier {
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
 
+  // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
+
+  static const _armoryKey = 'armory';
+  Armory _armory = const Armory();
+
+  /// 가진 장비와 입은 장비
+  Armory get armory => _armory;
+
+  /// 입은 장비의 힘
+  GearBonus get gear => EquipmentRules.bonusOf(_armory.worn);
+
+  Future<void> _saveArmory(Armory a) async {
+    _armory = a;
+    await store.saveJson(_armoryKey, a.toJson());
+    // 최대 HP가 바뀌었을 수 있다
+    await refreshVitals();
+    notifyListeners();
+  }
+
+  /// 만들 수 있는지 (재료·마석). [rare] 는 더 넣을 귀한 재료.
+  CraftCheck canCraft(EquipBase base, {MaterialId? rare}) {
+    final info = EquipmentRules.info(base);
+    final p = player;
+    for (final e in info.recipe.entries) {
+      if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
+    }
+    if (rare != null) {
+      final need = (info.recipe[rare] ?? 0) + 1;
+      if (p.materialCount(rare) < need) return CraftCheck.materials;
+    }
+    if (p.manaStones < info.manaStones) return CraftCheck.manaStones;
+    return CraftCheck.ok;
+  }
+
+  /// 대장간에서 장비를 만든다. 만든 장비를 돌려준다 (못 만들면 null).
+  Future<EquipItem?> craft(EquipBase base, {MaterialId? rare}) async {
+    if (canCraft(base, rare: rare) != CraftCheck.ok) return null;
+    final info = EquipmentRules.info(base);
+    final used = <String, int>{
+      for (final e in info.recipe.entries) e.key.name: e.value,
+      if (rare != null) rare.name: (info.recipe[rare] ?? 0) + 1,
+    };
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {
+        ...used,
+        if (info.manaStones > 0) Wallet.manaStone: info.manaStones,
+      }),
+    ));
+    final a = _armory;
+    final grade =
+        EquipmentRules.rollGrade(_random, rare: rare != null, crafts: a.crafts);
+    final item = EquipItem(
+      uid: 'eq${a.nextId}',
+      base: base,
+      grade: grade,
+      extras: EquipmentRules.rollExtras(grade, _random),
+      materialsUsed: used,
+    );
+    await _saveArmory(a.copyWith(
+      items: [...a.items, item],
+      crafts: a.crafts + 1,
+      nextId: a.nextId + 1,
+    ));
+    return item;
+  }
+
+  /// 강화할 수 있는지
+  CraftCheck canEnhance(EquipItem item) {
+    if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
+    final cost = EquipmentRules.enhanceCost(item.enhance + 1);
+    final p = player;
+    if (p.manaStones < cost.manaStones) return CraftCheck.manaStones;
+    if (p.gold < cost.gold) return CraftCheck.gold;
+    return CraftCheck.ok;
+  }
+
+  /// 강화한다. 성공하면 true. 실패해도 장비는 그대로 (비용만 쓴다).
+  Future<bool?> enhance(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || canEnhance(item) != CraftCheck.ok) return null;
+    final to = item.enhance + 1;
+    final cost = EquipmentRules.enhanceCost(to);
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends,
+          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+    ));
+    final ok = _random.nextDouble() < EquipmentRules.enhanceChance(to);
+    await _saveArmory(_armory.replace(item.copyWith(
+      enhance: ok ? to : item.enhance,
+      enhanceManaSpent: item.enhanceManaSpent + cost.manaStones,
+    )));
+    return ok;
+  }
+
+  /// 내구도를 다 고친다
+  Future<bool> repair(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return false;
+    final cost = EquipmentRules.repairCost(item);
+    if (cost <= 0 || player.gold < cost) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost}),
+    ));
+    await _saveArmory(_armory.replace(
+        item.copyWith(durability: EquipmentRules.maxDurability)));
+    return true;
+  }
+
+  /// 분해한다 (재료 절반과 마석 1, 강화 마석 절반을 돌려받는다)
+  Future<bool> disassemble(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return false;
+    final back = EquipmentRules.salvage(item);
+    await _grant(0, back.manaStones, back.materials);
+    final a = _armory;
+    await _saveArmory(a.copyWith(
+      items: [for (final i in a.items) if (i.uid != uid) i],
+      equipped: {
+        for (final e in a.equipped.entries)
+          if (e.value != uid) e.key: e.value,
+      },
+    ));
+    return true;
+  }
+
+  /// 입는다 (같은 부위의 장비는 벗는다)
+  Future<void> equip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return;
+    await _saveArmory(
+        _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
+  }
+
+  Future<void> unequip(EquipSlot slot) async {
+    await _saveArmory(_armory.copyWith(equipped: {
+      for (final e in _armory.equipped.entries)
+        if (e.key != slot) e.key: e.value,
+    }));
+  }
+
+  /// 싸울 때마다 입은 장비의 내구도가 준다
+  Future<void> _wear(int n) async {
+    final worn = _armory.worn;
+    if (worn.isEmpty) return;
+    var a = _armory;
+    for (final item in worn) {
+      a = a.replace(item.copyWith(
+          durability: math.max(0, item.durability - n)));
+    }
+    _armory = a;
+    await store.saveJson(_armoryKey, a.toJson());
+  }
+
+  // ───────────────────────────────────────────── 의뢰 게시판 (11-10 #26)
+
+  static const _boardKey = 'board';
+  BoardState _board = const BoardState();
+
+  /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
+  BoardState get board => BoardRules.refresh(_board, _clock());
+
+  Future<void> _saveBoard(BoardState b) async {
+    _board = b;
+    await store.saveJson(_boardKey, b.toJson());
+    notifyListeners();
+  }
+
+  /// 수시 의뢰 진행 (수락한 뒤로 센 수)
+  int errandProgress(int slot) {
+    final s = board.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    final today = player.today;
+    if (t == null || !s.accepted || today == null) return 0;
+    return BoardRules.progress(t, today, s.baseline);
+  }
+
+  Future<void> acceptErrand(int slot) async {
+    final b = board;
+    final s = b.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    if (t == null || s.accepted) return;
+    final today = await _todayRecord();
+    final slots = [...b.slots];
+    slots[slot] = ErrandSlot(
+      templateId: t.id,
+      accepted: true,
+      baseline: BoardRules.counterValue(today, t.counter),
+    );
+    await _saveBoard(b.copyWith(slots: slots));
+  }
+
+  /// 다 한 수시 의뢰의 보상을 받는다. 2시간 뒤 새 의뢰가 올라온다.
+  Future<bool> claimErrand(int slot) async {
+    final b = board;
+    final s = b.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    if (t == null || !s.accepted || errandProgress(slot) < t.target) {
+      return false;
+    }
+    await _grant(t.gold, t.manaStones, t.materials);
+    final slots = [...b.slots];
+    slots[slot] =
+        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
+    await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
+    return true;
+  }
+
+  /// 수시 의뢰를 포기한다 (보상 없이, 2시간 뒤 새 의뢰)
+  Future<void> abandonErrand(int slot) async {
+    final b = board;
+    final slots = [...b.slots];
+    slots[slot] =
+        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
+    await _saveBoard(b.copyWith(slots: slots));
+  }
+
+  /// 오늘 떠 있는 긴급 의뢰 (아직 안 떴거나 없는 날은 null)
+  ({
+    ErrandTemplate quest,
+    DateTime appearsAt,
+    UrgentPrize prize,
+    MaterialId rare,
+  })? get urgent {
+    final u = BoardRules.urgentFor(_clock());
+    if (u == null || _clock().isBefore(u.appearsAt)) return null;
+    return u;
+  }
+
+  int get urgentProgress {
+    final u = urgent;
+    final today = player.today;
+    if (u == null || !board.urgentAccepted || today == null) return 0;
+    return BoardRules.progress(u.quest, today, board.urgentBaseline);
+  }
+
+  Future<void> acceptUrgent() async {
+    final u = urgent;
+    if (u == null || board.urgentAccepted) return;
+    final today = await _todayRecord();
+    await _saveBoard(board.copyWith(
+      urgentAccepted: true,
+      urgentBaseline: BoardRules.counterValue(today, u.quest.counter),
+    ));
+  }
+
+  Future<bool> claimUrgent() async {
+    final u = urgent;
+    final b = board;
+    if (u == null || !b.urgentAccepted || b.urgentDone) return false;
+    if (urgentProgress < u.quest.target) return false;
+    if (u.prize == UrgentPrize.key) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          counters: DailyRecord.addCounts(today.counters, {'bonusKeys': 1})));
+      await _grant(u.quest.gold, 0, const {});
+    } else {
+      await _grant(u.quest.gold, 0, {u.rare: 1});
+    }
+    await _saveBoard(b.copyWith(urgentDone: true));
+    return true;
+  }
+
+  Future<void> _grant(
+      int gold, int manaStones, Map<MaterialId, int> materials) async {
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      gains: DailyRecord.addCounts(
+          today.gains,
+          HuntReward.ledger(
+              extraManaStones: manaStones, gold: gold, materials: materials)),
+    ));
+  }
+
   /// 날씨 조회를 켜고 끈다. 끄면 받아 둔 날씨도 버린다.
   Future<void> setWeatherEnabled(bool on) async {
     await updateProfile(_profile.copyWith(weatherEnabled: on));
@@ -583,8 +966,12 @@ class AppController extends ChangeNotifier {
 
   Vitals _vitals = const Vitals();
 
-  /// 전투용 최대 HP
-  int get maxHp => player.maxHp;
+  /// 전투용 최대 HP (장비 포함)
+  int get maxHp {
+    final p = player;
+    return Battle.playerMaxHpWith(
+        level: p.level.level, stats: p.stats, gear: gear);
+  }
 
   /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
   int get hp => math.min(maxHp, _vitals.hp ?? maxHp);
@@ -626,7 +1013,7 @@ class AppController extends ChangeNotifier {
   Future<void> _refreshVitals() async {
     final now = _clock();
     final p = player;
-    final max = p.maxHp;
+    final max = maxHp;
     var v = _vitals;
     var changed = false;
 
@@ -768,6 +1155,7 @@ class AppController extends ChangeNotifier {
       expedition: Expedition(
         spawnId: spawn.id,
         monster: spawn.monster.name,
+        mods: [for (final m in spawn.modifiers) m.name],
         lat: spawn.point.lat,
         lng: spawn.point.lng,
         fromLat: _lastFix?.point.lat,
@@ -781,6 +1169,9 @@ class AppController extends ChangeNotifier {
       compassReady: false, // 나침반은 한 번 쓰면 끝
     );
     await store.saveVitals(_vitals);
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        counters: DailyRecord.addCounts(today.counters, {'expedition': 1})));
     final ret = _vitals.expedition!.returnAt;
     unawaited(notifier?.schedule(
       NotifyId.expedition,
@@ -809,16 +1200,31 @@ class AppController extends ChangeNotifier {
   /// 각성자의 HP는 쓰지 않는다. 지면 MP만 잃고, 몬스터는 그대로 남는다.
   Future<void> _resolveExpedition(Expedition ex) async {
     final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
+    final mods = [
+      for (final n in ex.mods)
+        if (ModifierRules.byName(n) case final m?) m,
+    ];
     final p = player;
     final battle = Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
-      floors: [BattleRules.fieldFoe(level: p.level.level, monster: monster)],
+      floors: BattleRules.fieldFoes(
+          level: p.level.level,
+          monster: monster,
+          mods: mods,
+          spawnId: ex.spawnId),
       rng: math.Random(ex.spawnId.hashCode),
+      gear: gear,
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
+    if (battle.phase == BattlePhase.escaped) {
+      final today = await _todayRecord();
+      await _save(
+          today.copyWith(fledSpawnIds: [...today.fledSpawnIds, ex.spawnId]));
+    }
     _lastExpeditionExp = cleared
-        ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng))
+        ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
+            mods: mods, count: battle.floors.length)
         : 0;
     _vitals = _vitals.copyWith(expedition: ex.withResult(cleared));
     await store.saveVitals(_vitals);
@@ -830,6 +1236,42 @@ class AppController extends ChangeNotifier {
           for (final name in r.purifiedMonsterIds)
             if (Monsters.byName(name) case final id?) id,
       };
+
+  Map<String, int> _addCounts(DailyRecord today, List<MonsterId> ids) {
+    final m = {...today.huntCounts};
+    for (final id in ids) {
+      m[id.name] = (m[id.name] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  /// 몬스터 종류별 사냥 수 (도감). 11-10 이전 기록은 사냥한 날 하루에 1마리로 센다.
+  Map<MonsterId, int> get huntTotals {
+    final totals = <MonsterId, int>{};
+    for (final r in _history) {
+      if (r.huntCounts.isNotEmpty) {
+        r.huntCounts.forEach((name, n) {
+          final id = Monsters.byName(name);
+          if (id != null) totals[id] = (totals[id] ?? 0) + n;
+        });
+      } else {
+        for (final name in r.purifiedMonsterIds) {
+          final id = Monsters.byName(name);
+          if (id != null) totals[id] = (totals[id] ?? 0) + 1;
+        }
+      }
+    }
+    return totals;
+  }
+
+  /// 도감 '수식어' 칸: 희귀·전설 수식어 몬스터별 사냥 수
+  Map<String, int> get modHuntTotals {
+    final m = <String, int>{};
+    for (final r in _history) {
+      r.modHunts.forEach((k, v) => m[k] = (m[k] ?? 0) + v);
+    }
+    return m;
+  }
 
   List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => {
         ...today.purifiedMonsterIds,
@@ -880,6 +1322,9 @@ class AppController extends ChangeNotifier {
     return record.copyWith(steps: steps, stepsAfter8pm: after8);
   }
 }
+
+/// 대장간에서 만들거나 강화할 수 있는지
+enum CraftCheck { ok, materials, manaStones, gold, maxed }
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }

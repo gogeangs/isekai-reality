@@ -22,6 +22,19 @@ class AppText {
           Shadow(color: AppColors.gold.withValues(alpha: 0.45), blurRadius: 10),
         ],
       );
+
+  /// 레벨 숫자 ('Lv.3'): 다른 UI와 같은 기본 글꼴, 굵게 (11-10 #29.
+  /// 제목 글꼴은 영문이 세리프라 'Lv.' 만 튀었다)
+  static TextStyle level(double size, {Color color = AppColors.goldBright}) =>
+      TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: size,
+        color: color,
+        height: 1.15,
+        shadows: [
+          Shadow(color: AppColors.gold.withValues(alpha: 0.35), blurRadius: 8),
+        ],
+      );
 }
 
 /// 금색 그라데이션 (테두리·버튼)
@@ -99,14 +112,39 @@ class _NineSlice extends StatelessWidget {
 /// 그보다 작으면 코드로 그린 테두리를 쓴다.
 /// 불씨 말풍선 그림 (ui_bubble.png, 477×234, 왼쪽 아래 꼬리)
 class SpeechBubbleArt extends StatelessWidget {
-  const SpeechBubbleArt({super.key, required this.child});
+  const SpeechBubbleArt({super.key, required this.child, this.mirrored = false});
 
   final Widget child;
+
+  /// true 면 꼬리가 오른쪽 아래 (말하는 쪽이 오른쪽에 있을 때)
+  final bool mirrored;
 
   static const double _scale = 2.8;
 
   @override
   Widget build(BuildContext context) {
+    if (mirrored) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
+        child: Stack(children: [
+          Positioned.fill(
+            child: Transform.flip(
+              flipX: true,
+              child: const _NineSlice(
+                asset: 'assets/images/ui_bubble.png',
+                slice: Rect.fromLTRB(110, 55, 400, 175),
+                scale: _scale,
+                child: SizedBox.expand(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 13, 30, 19),
+            child: child,
+          ),
+        ]),
+      );
+    }
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
       child: _NineSlice(
@@ -579,7 +617,7 @@ class LaurelBadge extends StatelessWidget {
                     errorBuilder: (_, __, ___) => const SizedBox()),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 14),
-                  child: Text('Lv.$level', style: AppText.title(36)),
+                  child: Text('Lv.$level', style: AppText.level(34)),
                 ),
               ]),
             ),

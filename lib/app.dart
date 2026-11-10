@@ -5,18 +5,17 @@ import 'package:flutter/material.dart';
 import 'app_controller.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
-import 'data/weather/weather_source.dart';
 import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
-import 'features/records/records_screen.dart';
+import 'features/profile/profile_screen.dart';
+import 'features/village/village_screen.dart';
+import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
 import 'features/status/status_screen.dart';
-import 'features/town/bag_sheet.dart';
 import 'features/town/inn_screen.dart';
-import 'features/town/shop_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/ornaments.dart';
 
@@ -129,7 +128,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       final name = id == null ? '몬스터' : Monsters.info(id).name;
       title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
       body = ex.cleared!
-          ? '${c.profile.spiritName}이(가) $name을(를) 정화했어요.'
+          ? '${c.profile.spiritName}이(가) $name을(를) 사냥했어요.'
               '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
           : '$name이(가) 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
     } else {
@@ -205,50 +204,76 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         }
         _maybeShowLevelUp();
         _maybeShowNotices();
+        void push(Widget page) => Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: (_) => page));
+        // 11-10 #25: 하단 메뉴 상태 · 지도 · 마을 · 가방 · 도감
         final pages = <Widget>[
           StatusScreen(
             player: controller.player,
             hp: controller.hp,
             mp: controller.mp,
+            maxHp: controller.maxHp,
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
-            onOpenBag: () => showBagSheet(context, controller),
-            onOpenDungeon: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => DungeonScreen(controller: controller),
-              ),
-            ),
+            onOpenDungeon: () => push(DungeonScreen(controller: controller)),
             equippedTitle: controller.equippedTitle,
-            onOpenInn: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => InnScreen(controller: controller),
-              ),
-            ),
-            onOpenShop: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ShopScreen(controller: controller),
-              ),
-            ),
+            onOpenInn: () => push(InnScreen(controller: controller)),
             look: controller.profile.look,
-            weatherLabel: controller.weatherLabel,
-            weatherIcon: _weatherIcon(controller),
           ),
           MapScreen(controller: controller),
-          NightBackground(header: true, child: RecordsScreen(player: controller.player)),
+          NightBackground(
+              header: true, child: VillageScreen(controller: controller)),
+          NightBackground(header: true, child: BagTab(controller: controller)),
           NightBackground(
             header: true,
             child: CodexScreen(
               player: controller.player,
-              purifiedMonsters: controller.purifiedEver,
+              // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다
+              purifiedMonsters: {
+                for (final m in controller.purifiedEver)
+                  if (!Monsters.info(m).retired) m,
+              },
+              huntCounts: controller.huntTotals,
+              modHunts: controller.modHuntTotals,
               equipped: controller.equippedTitle,
               onEquip: controller.setEquippedTitle,
             ),
           ),
-          NightBackground(header: true, child: SettingsScreen(controller: controller)),
         ];
 
+        final topInset = MediaQuery.paddingOf(context).top;
         return Scaffold(
-          body: IndexedStack(index: _tab, children: pages),
+          body: Stack(children: [
+            Positioned.fill(child: IndexedStack(index: _tab, children: pages)),
+            // 위쪽 메뉴 (모든 탭 같은 자리): 왼쪽 프로필, 오른쪽 설정
+            Positioned(
+              top: topInset + 6,
+              left: 12,
+              child: ProfileButton(
+                look: controller.profile.look,
+                level: controller.player.level.level,
+                onTap: () => push(ProfileScreen(controller: controller)),
+              ),
+            ),
+            Positioned(
+              top: topInset + 8,
+              right: 12,
+              child: SettingsButton(
+                onTap: () => push(Scaffold(
+                  backgroundColor: const Color(0xFF0F1233),
+                  body: NightBackground(
+                    header: true,
+                    child: Builder(
+                      builder: (ctx) => SettingsScreen(
+                        controller: controller,
+                        onBack: () => Navigator.of(ctx).maybePop(),
+                      ),
+                    ),
+                  ),
+                )),
+              ),
+            ),
+          ]),
           backgroundColor: const Color(0xFF0F1233),
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
@@ -276,13 +301,20 @@ class OrnateNavBar extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
 
+  /// (그림, 이름). 마을·가방 전용 메뉴 그림(nav_village, nav_bag)이 오기 전에는
+  /// 여관·가방 아이콘으로 대신한다.
   static const items = [
-    ('status', '상태'),
-    ('map', '지도'),
-    ('records', '기록'),
-    ('codex', '도감'),
-    ('settings', '설정'),
+    ('nav_status', '상태'),
+    ('nav_map', '지도'),
+    ('nav_village', '마을'),
+    ('nav_bag', '가방'),
+    ('nav_codex', '도감'),
   ];
+
+  static const _fallback = {
+    'nav_village': 'map_inn',
+    'nav_bag': 'icon_bag',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -337,12 +369,16 @@ class OrnateNavBar extends StatelessWidget {
                               Opacity(
                                 opacity: i == index ? 1 : 0.7,
                                 child: Image.asset(
-                                    'assets/images/nav_${items[i].$1}.png',
+                                    'assets/images/${items[i].$1}.png',
                                     width: 30,
                                     height: 30,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.circle_outlined,
-                                        color: AppColors.text)),
+                                    errorBuilder: (_, __, ___) => Image.asset(
+                                        'assets/images/${_fallback[items[i].$1] ?? 'icon_quest'}.png',
+                                        width: 30,
+                                        height: 30,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.circle_outlined,
+                                                color: AppColors.text))),
                               ),
                               const SizedBox(height: 2),
                               Text(items[i].$2,
@@ -370,12 +406,3 @@ class OrnateNavBar extends StatelessWidget {
   }
 }
 
-IconData _weatherIcon(AppController controller) {
-  if (controller.bulssiMood == BulssiMood.night) return Icons.nightlight_round;
-  return switch (controller.weather?.kind) {
-    WeatherKind.rain => Icons.umbrella_rounded,
-    WeatherKind.snow => Icons.ac_unit_rounded,
-    WeatherKind.cloudy => Icons.cloud_rounded,
-    _ => Icons.wb_sunny_rounded,
-  };
-}

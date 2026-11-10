@@ -36,12 +36,19 @@ class DailyRecord {
     this.openedApp = true,
     this.visitedPlaceIds = const [],
     this.purifiedMonsterIds = const [],
+    this.huntCounts = const {},
     this.purifiedSpawnIds = const [],
     this.shopPurchases = const [],
     this.restedAtInn = false,
     this.newCellsRevealed = 0,
     this.restsCompleted = 0,
     this.itemsUsed = const [],
+    this.goldPurchases = const [],
+    this.gains = const {},
+    this.spends = const {},
+    this.modHunts = const {},
+    this.fledSpawnIds = const [],
+    this.counters = const {},
   });
 
   final DateTime date;
@@ -73,6 +80,9 @@ class DailyRecord {
   /// 오늘 정화한 몬스터 종류 (던전·필드 모두, 도감용. [MonsterId] 이름)
   final List<String> purifiedMonsterIds;
 
+  /// 그날 몬스터 종류별 사냥 수 (11-10부터 기록, 도감의 마릿수)
+  final Map<String, int> huntCounts;
+
   /// 오늘 정화한 필드 몬스터 자리 id (같은 자리는 다시 나오지 않음)
   final List<String> purifiedSpawnIds;
 
@@ -90,6 +100,28 @@ class DailyRecord {
 
   /// 오늘 가방에서 꺼내 쓴 물건 ([ShopItem] 이름, 쓴 순서대로)
   final List<String> itemsUsed;
+
+  /// 오늘 잡화상에서 금화로 산 물건 ([ShopItem] 이름, 11-10부터).
+  /// [shopPurchases] 는 예전에 정화 결정(지금 마석)으로 산 기록이다.
+  final List<String> goldPurchases;
+
+  /// 오늘 얻은 것 (키: 'manaStone'·'gold'·재료 이름). 마석은 규칙으로 계산하는 몫
+  /// (던전·필드 기본 보상, 연속 휴식) 말고 더 얻은 것만 적는다.
+  final Map<String, int> gains;
+
+  /// 오늘 쓴 것 (키는 [gains] 와 같다). 마석 팔기, 제작, 강화, 수리 등.
+  final Map<String, int> spends;
+
+  /// 오늘 사냥한 희귀·전설 수식어 몬스터 (도감 '수식어' 칸, 키는 [ModifierRules.codexKey])
+  final Map<String, int> modHunts;
+
+  /// 오늘 도망친 몬스터 자리 id (황금빛, 다시 나오지 않음)
+  final List<String> fledSpawnIds;
+
+  /// 의뢰 진행에 쓰는 오늘의 수 (11-10 #26):
+  /// 'modded' 수식어 몬스터, 'rarePlus' 희귀 이상, 'mod:<수식어>', 'expedition' 정령 원정,
+  /// 'bonusKeys' 긴급 의뢰로 받은 열쇠
+  final Map<String, int> counters;
 
   /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
   bool get rested => restsCompleted > 0;
@@ -117,12 +149,19 @@ class DailyRecord {
         'openedApp': openedApp,
         'visitedPlaceIds': visitedPlaceIds,
         'purifiedMonsterIds': purifiedMonsterIds,
+        'huntCounts': huntCounts,
         'purifiedSpawnIds': purifiedSpawnIds,
         'shopPurchases': shopPurchases,
         'restedAtInn': restedAtInn,
         'newCellsRevealed': newCellsRevealed,
         'restsCompleted': restsCompleted,
         'itemsUsed': itemsUsed,
+        'goldPurchases': goldPurchases,
+        'gains': gains,
+        'spends': spends,
+        'modHunts': modHunts,
+        'fledSpawnIds': fledSpawnIds,
+        'counters': counters,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -148,6 +187,10 @@ class DailyRecord {
       purifiedMonsterIds: ((json['purifiedMonsterIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      huntCounts: {
+        for (final e in ((json['huntCounts'] as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      },
       purifiedSpawnIds: ((json['purifiedSpawnIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
@@ -160,7 +203,29 @@ class DailyRecord {
       itemsUsed: ((json['itemsUsed'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      goldPurchases: ((json['goldPurchases'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      gains: _counts(json['gains']),
+      spends: _counts(json['spends']),
+      modHunts: _counts(json['modHunts']),
+      fledSpawnIds: ((json['fledSpawnIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      counters: _counts(json['counters']),
     );
+  }
+
+  static Map<String, int> _counts(Object? raw) => {
+        for (final e in ((raw as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      };
+
+  /// [a] 에 [b] 를 더한 새 맵
+  static Map<String, int> addCounts(Map<String, int> a, Map<String, int> b) {
+    final m = {...a};
+    b.forEach((k, v) => m[k] = (m[k] ?? 0) + v);
+    return m;
   }
 
   bool get stepGoalAchieved => steps >= stepGoal;
@@ -179,12 +244,19 @@ class DailyRecord {
     bool? openedApp,
     List<String>? visitedPlaceIds,
     List<String>? purifiedMonsterIds,
+    Map<String, int>? huntCounts,
     List<String>? purifiedSpawnIds,
     List<String>? shopPurchases,
     bool? restedAtInn,
     int? newCellsRevealed,
     int? restsCompleted,
     List<String>? itemsUsed,
+    List<String>? goldPurchases,
+    Map<String, int>? gains,
+    Map<String, int>? spends,
+    Map<String, int>? modHunts,
+    List<String>? fledSpawnIds,
+    Map<String, int>? counters,
   }) {
     return DailyRecord(
       date: date,
@@ -202,12 +274,19 @@ class DailyRecord {
       openedApp: openedApp ?? this.openedApp,
       visitedPlaceIds: visitedPlaceIds ?? this.visitedPlaceIds,
       purifiedMonsterIds: purifiedMonsterIds ?? this.purifiedMonsterIds,
+      huntCounts: huntCounts ?? this.huntCounts,
       purifiedSpawnIds: purifiedSpawnIds ?? this.purifiedSpawnIds,
       shopPurchases: shopPurchases ?? this.shopPurchases,
       restedAtInn: restedAtInn ?? this.restedAtInn,
       newCellsRevealed: newCellsRevealed ?? this.newCellsRevealed,
       restsCompleted: restsCompleted ?? this.restsCompleted,
       itemsUsed: itemsUsed ?? this.itemsUsed,
+      goldPurchases: goldPurchases ?? this.goldPurchases,
+      gains: gains ?? this.gains,
+      spends: spends ?? this.spends,
+      modHunts: modHunts ?? this.modHunts,
+      fledSpawnIds: fledSpawnIds ?? this.fledSpawnIds,
+      counters: counters ?? this.counters,
     );
   }
 }

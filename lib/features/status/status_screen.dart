@@ -22,6 +22,7 @@ class StatusScreen extends StatelessWidget {
     required this.player,
     this.hp,
     this.mp,
+    this.maxHp,
     this.restLeft,
     this.spiritAway,
     this.onOpenBag,
@@ -41,6 +42,9 @@ class StatusScreen extends StatelessWidget {
 
   /// 정령 MP (없으면 가득)
   final int? mp;
+
+  /// 장비를 입은 최대 HP (없으면 레벨·스탯으로)
+  final int? maxHp;
 
   /// 여관에서 쉬는 중이면 남은 시간
   final Duration? restLeft;
@@ -70,14 +74,15 @@ class StatusScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = player.today!;
     final top = MediaQuery.paddingOf(context).top;
-    final curHp = hp ?? player.maxHp;
+    final topHp = maxHp ?? player.maxHp;
+    final curHp = hp ?? topHp;
     final curMp = mp ?? RuleConstants.mpMax;
-    final full = curHp >= player.maxHp && curMp >= RuleConstants.mpMax;
+    final full = curHp >= topHp && curMp >= RuleConstants.mpMax;
     final line = BulssiLines.forStatus(
       today: today,
       gauge: player.gauge,
       now: DateTime.now(),
-      hpRatio: curHp / player.maxHp,
+      hpRatio: curHp / topHp,
       mpRatio: curMp / RuleConstants.mpMax,
       resting: restLeft != null,
       spiritAway: spiritAway != null,
@@ -85,7 +90,7 @@ class StatusScreen extends StatelessWidget {
     // 11-10 정령 표정: 쉬는 중 졸림, HP가 낮으면 걱정, 퀘스트를 다 하면 축하
     final mood = restLeft != null
         ? SpiritMood.sleepy
-        : curHp < player.maxHp * 0.3
+        : curHp < topHp * 0.3
             ? SpiritMood.worried
             : QuestRules.allDone(today)
                 ? SpiritMood.cheer
@@ -105,13 +110,14 @@ class StatusScreen extends StatelessWidget {
               children: [
                 // HP 0이면 지친 각성자 그림
                 _HeroArt(look: look, top: top, tired: curHp <= 0),
+                // 정령은 오른쪽 위 빈자리: 각성자 얼굴·손·지도를 가리지 않게
                 Positioned(
-                  top: top + 36,
-                  right: 12,
+                  top: top + 58, // 위쪽 설정 버튼 아래
+                  right: 8,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                         maxWidth: MediaQuery.sizeOf(context).width * 0.5),
-                    child: ArtSpirit(line: line, mood: mood),
+                    child: ArtSpirit(line: line, mood: mood, size: 44),
                   ),
                 ),
               ],
@@ -129,53 +135,25 @@ class StatusScreen extends StatelessWidget {
                       ? '새내기 각성자'
                       : TitleRules.info(equippedTitle!).name,
                 ),
-                const SizedBox(height: 12),
-                _QuestPanel(
-                  quests: QuestRules.forDay(today),
-                  allDone: QuestRules.allDone(today),
-                  streak: QuestRules.allDoneStreak(player.history),
-                ),
+                // 11-10 #25: 여관에서 쉬는 중일 때만 한 줄 (일일 퀘스트는 의뢰 게시판으로)
+                if (restLeft != null) ...[
+                  const SizedBox(height: 10),
+                  _RestLine(
+                    text: full
+                        ? '여관에서 쉬는 중 · 회복 완료, 보너스까지 ${_left(restLeft!)}'
+                        : '여관에서 쉬는 중 · ${_left(restLeft!)} 남음',
+                    onTap: onOpenInn,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 _StatusPanel(
                   player: player,
+                  maxHp: topHp,
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
-                  onOpenBag: onOpenBag,
                   onOpenDungeon: onOpenDungeon,
                 ),
-                if (onOpenInn != null || onOpenShop != null) ...[
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    Expanded(
-                      child: _TownTile(
-                        asset: 'map_inn',
-                        title: '여관',
-                        // C5: 상태와 남은 시간을 두 줄로 (말줄임 없이)
-                        subtitle: restLeft == null
-                            ? '하루 마무리'
-                            : full
-                                ? '회복 완료'
-                                : '쉬는 중',
-                        detail: restLeft == null
-                            ? null
-                            : full
-                                ? '보너스까지 ${_left(restLeft!)}'
-                                : '${_left(restLeft!)} 남음',
-                        onTap: onOpenInn,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _TownTile(
-                        asset: 'map_store',
-                        title: '잡화상',
-                        subtitle: '결정 ${player.crystals}개',
-                        onTap: onOpenShop,
-                      ),
-                    ),
-                  ]),
-                ],
                 const SizedBox(height: 12),
                 _StatsSection(player: player),
               ],
@@ -188,67 +166,6 @@ class StatusScreen extends StatelessWidget {
 }
 
 // ───────────────────────────────────────────────────────────── 각성자 그림
-
-/// 마을 시설 입구 (여관 · 잡화상)
-class _TownTile extends StatelessWidget {
-  const _TownTile({
-    required this.asset,
-    required this.title,
-    required this.subtitle,
-    this.detail,
-    this.onTap,
-  });
-
-  final String asset;
-  final String title;
-  final String subtitle;
-
-  /// 둘째 줄 (예: '3시간 10분 남음')
-  final String? detail;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: OrnatePanel(
-        padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-        child: Row(children: [
-          Image.asset('assets/images/$asset.png',
-              width: 46,
-              height: 46,
-              errorBuilder: (_, __, ___) => const SizedBox(width: 46)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppText.title(18, color: AppColors.text)),
-                Text(subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: AppColors.goldBright,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-                if (detail != null)
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(detail!,
-                        maxLines: 1,
-                        style: const TextStyle(
-                            color: AppColors.text, fontSize: 12)),
-                  ),
-              ],
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
 
 /// 각성자 그림. 머리가 휴대폰 상태 표시줄(시계·배터리)에, 발이 레벨 배지에
 /// 가리지 않도록 그림 전체를 상태 표시줄 아래 ~ 배지 위 사이에 넣는다.
@@ -353,6 +270,41 @@ class _HeroArt extends StatelessWidget {
 
 // ───────────────────────────────────────────────────────────── 상태 패널
 
+/// 여관에서 쉬는 중 한 줄 (누르면 여관)
+class _RestLine extends StatelessWidget {
+  const _RestLine({required this.text, this.onTap});
+
+  final String text;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: const Color(0xCC12153A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+        ),
+        child: Row(children: [
+          const GameIcon('moon', size: 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 /// '2시간 10분' / '12분'
 String _left(Duration d) {
   final h = d.inHours;
@@ -365,24 +317,23 @@ String _left(Duration d) {
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
+    required this.maxHp,
     required this.hp,
     required this.mp,
     this.spiritAway,
-    this.onOpenBag,
     this.onOpenDungeon,
   });
 
   final PlayerState player;
+  final int maxHp;
   final int hp;
   final int mp;
   final String? spiritAway;
-  final VoidCallback? onOpenBag;
   final VoidCallback? onOpenDungeon;
 
   @override
   Widget build(BuildContext context) {
     final gauge = player.gauge;
-    final maxHp = player.maxHp;
 
     return OrnatePanel(
       child: Column(
@@ -437,18 +388,6 @@ class _StatusPanel extends StatelessWidget {
                   label: gauge.keysAvailable > 0 ? '던전 열기' : '열쇠 없음',
                 ),
               ),
-              if (onOpenBag != null) ...[
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 128,
-                  child: FrameButton(
-                    onPressed: onOpenBag,
-                    gameIcon: 'bag',
-                    height: 46,
-                    label: '가방',
-                  ),
-                ),
-              ],
             ]),
           ],
         ],
@@ -475,7 +414,7 @@ class _LevelLine extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
       ),
       child: Row(children: [
-        Text('Lv.${level.level}', style: AppText.title(18)),
+        Text('Lv.${level.level}', style: AppText.level(17)),
         const SizedBox(width: 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 120),
@@ -638,199 +577,3 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-// ───────────────────────────────────────────────────────────── 일일 퀘스트
-
-class _QuestPanel extends StatelessWidget {
-  const _QuestPanel({
-    required this.quests,
-    required this.allDone,
-    required this.streak,
-  });
-
-  final List<QuestProgress> quests;
-  final bool allDone;
-
-  /// 3개를 모두 마친 날이 이어진 일수 (표시만)
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    return OrnatePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            const GameIcon('quest', size: 26),
-            const SizedBox(width: 8),
-            Text('일일 퀘스트', style: AppText.title(18)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: AppColors.gold.withValues(alpha: 0.4),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 2),
-          for (final q in quests) _QuestRow(quest: q),
-          const SizedBox(height: 8),
-          _AllDoneRow(done: allDone, streak: streak),
-        ],
-      ),
-    );
-  }
-}
-
-/// 보상 표시 (아이콘 + 수량)
-class _Reward extends StatelessWidget {
-  const _Reward({required this.text, this.done = false});
-
-  final String text;
-  final bool done;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(5, 3, 8, 3),
-      decoration: BoxDecoration(
-        color: done ? const Color(0x3346E0A0) : const Color(0x33E8B04A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: done
-                ? const Color(0xAA6FE3B0)
-                : AppColors.gold.withValues(alpha: 0.7)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        done
-            ? const Icon(Icons.check_rounded, size: 15, color: Color(0xFF8FF0C4))
-            : const GameIcon('exp', size: 16),
-        const SizedBox(width: 3),
-        Text(text,
-            style: TextStyle(
-                color: done ? const Color(0xFF8FF0C4) : AppColors.goldBright,
-                fontSize: 12,
-                fontWeight: FontWeight.w800)),
-      ]),
-    );
-  }
-}
-
-class _QuestRow extends StatelessWidget {
-  const _QuestRow({required this.quest});
-
-  final QuestProgress quest;
-
-  @override
-  Widget build(BuildContext context) {
-    final current =
-        quest.unit == '보' ? comma(quest.current) : '${quest.current}';
-    final target = quest.unit == '보' ? comma(quest.target) : '${quest.target}';
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: const Color(0x66101333),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
-      ),
-      child: Row(children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
-            gradient: quest.completed ? kGoldGradient : null,
-            border: Border.all(color: AppColors.gold, width: 1.4),
-          ),
-          child: quest.completed
-              ? const Icon(Icons.check_rounded,
-                  size: 18, color: Color(0xFF3A2208))
-              : null,
-        ),
-        const SizedBox(width: 10),
-        // 이름은 넓게, 진행 막대는 이름 아래 짧게 (C2)
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(keepAll(quest.title),
-                  style: const TextStyle(color: AppColors.text, fontSize: 15)),
-              const SizedBox(height: 4),
-              if (quest.completed)
-                Text('완료', style: AppText.title(13))
-              else
-                Row(children: [
-                  SizedBox(
-                    width: 70,
-                    child: GlowBar(
-                      ratio: quest.target == 0
-                          ? 0
-                          : quest.current / quest.target,
-                      colors: BarColors.exp,
-                      height: 6,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text('$current / $target${quest.unit}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
-                  ),
-                ]),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        _Reward(
-            text: 'EXP ${QuestRules.rewardExp}', done: quest.completed),
-      ]),
-    );
-  }
-}
-
-/// 3개 모두 완료 보너스 + 연속 달성 일수 (11-10 C2)
-class _AllDoneRow extends StatelessWidget {
-  const _AllDoneRow({required this.done, required this.streak});
-
-  final bool done;
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: LinearGradient(colors: [
-          AppColors.gold.withValues(alpha: done ? 0.28 : 0.14),
-          AppColors.gold.withValues(alpha: 0.04),
-        ]),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
-      ),
-      child: Row(children: [
-        const GameIcon('medal', size: 26),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(done ? '모두 완료!' : '3개 모두 완료하면 보너스',
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-              Text(
-                streak > 0 ? '연속 달성 $streak일째' : '연속 달성을 시작해 보세요',
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        _Reward(text: 'EXP +${QuestRules.allDoneBonusExp}', done: done),
-      ]),
-    );
-  }
-}

@@ -5,53 +5,30 @@ import '../../app_config.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../data/device/device_links.dart';
-import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../legal/legal_screen.dart';
 
 /// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.controller});
+  const SettingsScreen({super.key, required this.controller, this.onBack});
 
   final AppController controller;
 
+  /// 위쪽 톱니바퀴로 열었을 때 뒤로 가기
+  final VoidCallback? onBack;
+
   @override
   Widget build(BuildContext context) {
-    final profile = controller.profile;
 
     return SafeArea(
       bottom: false,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          const OrnateTopBar(title: '설정'),
+          OrnateTopBar(title: '설정', onBack: onBack),
           const SizedBox(height: 8),
-          _Section(
-            title: '각성자와 정령',
-            children: [
-              _Row(
-                label: '내 이름',
-                value: profile.name,
-                onTap: () async {
-                  final name = await _askText(context,
-                      title: '이름 바꾸기', initial: profile.name, maxLength: 10);
-                  if (name != null) await controller.renameHero(name);
-                },
-              ),
-              _Row(
-                label: '정령 이름 (${profile.spiritKind.elementName})',
-                value: profile.spiritName,
-                onTap: () async {
-                  final name = await _askText(context,
-                      title: '정령 이름 바꾸기',
-                      initial: profile.spiritName,
-                      maxLength: 8);
-                  if (name != null) await controller.renameSpirit(name);
-                },
-              ),
-            ],
-          ),
+          // 11-10 #24: 이름·정령 이름 바꾸기는 프로필로 옮겼다
           // 11-10 D1: 긴 설명 대신 한 줄 + 목록 항목
           _Section(
             title: '제외 구역 요청',
@@ -201,41 +178,14 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) await controller.resetAll();
+    if (ok != true) return;
+    // 설정은 위에 열린 화면이라, 지운 뒤 첫 화면(각성)이 보이게 먼저 닫는다
+    if (context.mounted) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    }
+    await controller.resetAll();
   }
 
-  static Future<String?> _askText(
-    BuildContext context, {
-    required String title,
-    required String initial,
-    required int maxLength,
-  }) {
-    final text = TextEditingController(text: initial);
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.night,
-        title: Text(title, style: const TextStyle(color: AppColors.goldBright)),
-        content: TextField(
-          controller: text,
-          autofocus: true,
-          maxLength: maxLength,
-          style: const TextStyle(color: AppColors.text),
-          onSubmitted: (v) => Navigator.of(context).pop(v),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('그만두기'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(text.text),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Section extends StatelessWidget {

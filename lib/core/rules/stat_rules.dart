@@ -23,6 +23,14 @@ class Stats {
   final int spirit;
 
   int get total => vitality + agility + wisdom + spirit;
+
+  /// 장비 추가 능력을 더할 때
+  Stats operator +(Stats o) => Stats(
+        vitality: vitality + o.vitality,
+        agility: agility + o.agility,
+        wisdom: wisdom + o.wisdom,
+        spirit: spirit + o.spirit,
+      );
 }
 
 class StatRules {

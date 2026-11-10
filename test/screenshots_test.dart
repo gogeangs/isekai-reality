@@ -20,6 +20,11 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
+import 'package:isekai_reality/features/village/board_screen.dart';
+import 'package:isekai_reality/features/town/shop_screen.dart';
+import 'package:isekai_reality/features/settings/settings_screen.dart';
+import 'package:isekai_reality/features/smithy/smithy_screen.dart';
+import 'package:isekai_reality/features/profile/profile_screen.dart';
 
 final _root = GlobalKey();
 
@@ -152,7 +157,7 @@ void main() {
     var bossShot = false;
     for (var i = 0;
         i < 200 &&
-            find.text('던전 정화 완료!').evaluate().isEmpty &&
+            find.text('던전 돌파!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       if (!bossShot && find.text('BOSS').evaluate().isNotEmpty) {
@@ -173,9 +178,15 @@ void main() {
     await tester.tap(find.text('돌아가기'));
     await tester.pumpAndSettle();
 
+    // 프로필 (왼쪽 위) · 기록
+    await tester.tap(find.byType(ProfileButton));
+    await tester.pumpAndSettle();
+    await _shot(tester, '08_프로필');
     await tester.tap(find.text('기록'));
     await tester.pumpAndSettle();
-    await _shot(tester, '08_기록');
+    await _shot(tester, '08b_프로필_기록');
+    Navigator.of(tester.element(find.byType(ProfileScreen))).pop();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
@@ -186,9 +197,11 @@ void main() {
     await tester.tap(find.textContaining('칭호 ').first);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('설정'));
+    await tester.tap(find.byTooltip('설정'));
     await tester.pumpAndSettle();
     await _shot(tester, '11_설정');
+    Navigator.of(tester.element(find.byType(SettingsScreen))).pop();
+    await tester.pumpAndSettle();
 
     // 레벨업 연출
     showDialog<void>(
@@ -215,7 +228,7 @@ void main() {
     await _shot(tester, '13_필드_전투');
     for (var i = 0;
         i < 60 &&
-            find.text('정화 완료!').evaluate().isEmpty &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       await tester.pump(const Duration(milliseconds: 700));
@@ -255,7 +268,7 @@ void main() {
     await _shot(tester, '19_여성_전투');
     for (var i = 0;
         i < 60 &&
-            find.text('정화 완료!').evaluate().isEmpty &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       await tester.pump(const Duration(milliseconds: 700));
@@ -271,19 +284,18 @@ void main() {
     await c.init();
     await tester.pumpAndSettle();
 
-    final inn = find.text('여관');
-    await tester.scrollUntilVisible(inn, 300,
-        scrollable: find.byType(Scrollable).first);
+    // 11-10: 여관·잡화상은 마을 탭에서
+    await tester.tap(find.text('마을'));
     await tester.pumpAndSettle();
-    await _shot(tester, '20_상태창_마을');
+    await _shot(tester, '20_마을');
 
-    await tester.tap(inn);
+    await tester.tap(find.text('여관').last);
     await tester.pumpAndSettle();
     await _shot(tester, '21_여관');
     Navigator.of(tester.element(find.byType(InnScreen))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('잡화상'));
+    await tester.tap(find.text('잡화상').last);
     await tester.pumpAndSettle();
     await c.buy(ShopItem.bulssiPotion);
     await c.buy(ShopItem.healSmall);
@@ -294,6 +306,20 @@ void main() {
     await tester.tap(find.text('가방 열기'));
     await tester.pumpAndSettle();
     await _shot(tester, '22b_가방');
+    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(ShopScreen))).pop();
+    await tester.pumpAndSettle();
+
+    // 의뢰 게시판 · 가방 탭
+    await tester.tap(find.text('의뢰 게시판').last);
+    await tester.pumpAndSettle();
+    await _shot(tester, '27_의뢰_게시판');
+    Navigator.of(tester.element(find.byType(BoardScreen))).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('가방'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '26_가방_탭');
   });
 
   testWidgets('화면 미리보기: 첫 실행 각성', (tester) async {
@@ -392,5 +418,76 @@ void main() {
     await c.restAtInn();
     await tester.pumpAndSettle();
     await _shot(tester, '25_쉬는_중');
+  });
+
+  testWidgets('화면 미리보기: 수식어·대장간·장비', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 20));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+
+    // 수식어 몬스터와 싸운다 (고대의 분노한 큰쥐)
+    final base = c.todaySpawns.first;
+    final spawn = FieldSpawn(
+      id: base.id,
+      monster: MonsterId.giantRat,
+      point: base.point,
+      modifiers: const [ModifierId.ancient, ModifierId.enraged],
+    );
+    final nav = Navigator.of(tester.element(find.byType(Scaffold).first));
+    nav.push(MaterialPageRoute<void>(
+        builder: (_) => FieldBattleScreen(
+            controller: c,
+            spawn: spawn,
+            tickInterval: const Duration(milliseconds: 100))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await _shot(tester, '29_수식어_전투');
+    for (var i = 0;
+        i < 300 &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
+            find.text('이번엔 물러났어요').evaluate().isEmpty;
+        i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+    await _shot(tester, '29b_수식어_결과');
+    nav.pop();
+    await tester.pumpAndSettle();
+
+    // 도감 수식어 탭
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('수식어 ').first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '29c_도감_수식어');
+
+    // 장비를 만들고 입는다
+    final armor = await c.craft(EquipBase.armor);
+    final cap = await c.craft(EquipBase.cap);
+    await c.equip(armor!.uid);
+    await c.equip(cap!.uid);
+    await c.enhance(armor.uid);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('마을'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('대장간').last);
+    await tester.pumpAndSettle();
+    await _shot(tester, '28_대장간');
+    await tester.tap(find.text('강화'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28b_대장간_강화');
+    await tester.tap(find.text('수리 · 분해'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28c_대장간_수리');
+    Navigator.of(tester.element(find.byType(SmithyScreen))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('가방'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '26b_가방_장비');
   });
 }

@@ -31,21 +31,21 @@ DailyRecord day(
 
 void main() {
   group('레벨', () {
-    test('Lv.12 → 13 에는 418이 필요하다 (11-10 약 10% 올림)', () {
-      expect(LevelRules.expRequiredFor(12), 418);
-      expect(LevelRules.expRequiredFor(13), 446);
+    test('Lv.12 → 13 에는 437이 필요하다 (11-10 주간 의뢰와 함께 5% 더 올림)', () {
+      expect(LevelRules.expRequiredFor(12), 437);
+      expect(LevelRules.expRequiredFor(13), 466);
     });
 
-    test('Lv.10 까지 누적 1,998, Lv.13 까지 누적 3,168', () {
-      expect(LevelRules.totalExpToReach(10), 1998);
-      expect(LevelRules.totalExpToReach(13), 3168);
+    test('Lv.10 까지 누적 2,106, Lv.13 까지 누적 3,330', () {
+      expect(LevelRules.totalExpToReach(10), 2106);
+      expect(LevelRules.totalExpToReach(13), 3330);
     });
 
     test('누적 경험치로 레벨과 진행도를 계산한다', () {
       final p = LevelRules.fromTotalExp(LevelRules.totalExpToReach(12) + 260);
       expect(p.level, 12);
       expect(p.expIntoLevel, 260);
-      expect(p.expToNext, 418);
+      expect(p.expToNext, 437);
     });
   });
 
@@ -199,11 +199,15 @@ void main() {
           contains(TitleId.morningSpiritFriend));
     });
 
-    test('몬스터 6종을 모두 정화하면 도감의 현자', () {
-      final ids = [for (final m in MonsterId.values) m.name];
-      expect(TitleRules.earned([day(0, monsterIds: ids.sublist(1))], 1),
+    test('도감의 몬스터를 모두 사냥하면 도감의 현자 (예전 6종도 인정)', () {
+      final now = [for (final m in Monsters.all) m.id.name];
+      expect(TitleRules.earned([day(0, monsterIds: now.sublist(1))], 1),
           isNot(contains(TitleId.bookwormSage)));
-      expect(TitleRules.earned([day(0, monsterIds: ids)], 1),
+      expect(TitleRules.earned([day(0, monsterIds: now)], 1),
+          contains(TitleId.bookwormSage));
+      const old = ['ashSlime', 'labyrinthBat', 'roughWaterSpirit',
+          'shadowButterfly', 'lostStoneSpirit', 'labyrinthWarden'];
+      expect(TitleRules.earned([day(0, monsterIds: old)], 1),
           contains(TitleId.bookwormSage));
       expect(TitleRules.info(TitleId.bookwormSage).name, '도감의 현자');
     });

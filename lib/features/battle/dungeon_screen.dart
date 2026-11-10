@@ -8,6 +8,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/bag_sheet.dart';
+import '../town/material_view.dart';
 import 'battle_view.dart';
 
 enum _Stage { entry, battle, result }
@@ -334,8 +335,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final keys = player.gauge.keysAvailable;
     final line = cleared
         ? (purified.any((m) => m.isBoss)
-            ? Monsters.info(MonsterId.labyrinthWarden).purifiedLine
-            : '던전을 정화했어!')
+            ? Monsters.info(MonsterId.labyrinthWarden).huntLine
+            : '던전을 돌파했어!')
         : '쓰러졌지만 괜찮아. 여관에서 쉬거나 걸으면 HP가 다시 차!';
 
     return [
@@ -380,7 +381,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   asset: 'assets/images/banner_clear.png',
                   width: 330,
                   aspect: 760 / 302,
-                  text: cleared ? '던전 정화 완료!' : '이번엔 물러났어요',
+                  text: cleared ? '던전 돌파!' : '이번엔 물러났어요',
                   textOffset: -0.12,
                   fontSize: 25,
                 ),
@@ -436,7 +437,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
             const SizedBox(height: 10),
             Row(children: [
               Text('Lv.${player.level.level}',
-                  style: AppText.title(16, color: AppColors.text)),
+                  style: AppText.level(15, color: AppColors.text)),
               const SizedBox(width: 8),
               Expanded(
                   child: GlowBar(
@@ -449,8 +450,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
                       const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ]),
             const SizedBox(height: 8),
-            Text('정화 ${battle.purified.length} / ${battle.floors.length}',
+            Text('사냥 ${battle.purified.length} / ${battle.floors.length}',
                 style: AppText.title(16, color: const Color(0xFFCDB8F5))),
+            const SizedBox(height: 8),
+            RewardItems(reward: _c.lastReward),
           ],
         ),
       ),
@@ -463,7 +466,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               Text(
                 purified.any((m) => !_knownBefore.contains(m.id))
                     ? '도감에 새로 등록'
-                    : '정화한 몬스터',
+                    : '사냥한 몬스터',
                 textAlign: TextAlign.center,
                 style: AppText.title(17),
               ),
@@ -601,8 +604,8 @@ class _MonsterCard extends StatelessWidget {
           )
         else
           const SizedBox(height: 15),
-        MonsterPicture(monster: info.id, size: 70, purified: true),
-        Text(info.purifiedName,
+        MonsterPicture(monster: info.id, size: 70),
+        Text(info.name,
             textAlign: TextAlign.center,
             maxLines: 2,
             style: const TextStyle(

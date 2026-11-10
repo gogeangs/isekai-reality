@@ -1,5 +1,6 @@
 import '../models/daily_record.dart';
 import 'rule_constants.dart';
+import 'board_rules.dart';
 import 'town_rules.dart';
 
 /// 하루 경험치의 내역
@@ -12,6 +13,7 @@ class DailyExpBreakdown {
     this.rest = 0,
     this.restStreak = 0,
     this.questAll = 0,
+    this.weekly = 0,
   });
 
   final int dungeon;
@@ -28,8 +30,18 @@ class DailyExpBreakdown {
   /// 일일 퀘스트 3개를 모두 마친 날의 추가 보상
   final int questAll;
 
+  /// 그날 마친 주간 의뢰 보상 (11-10 #26)
+  final int weekly;
+
   int get total =>
-      dungeon + fieldMonster + exploration + quest + rest + restStreak + questAll;
+      dungeon +
+      fieldMonster +
+      exploration +
+      quest +
+      rest +
+      restStreak +
+      questAll +
+      weekly;
 }
 
 class ExpRules {
@@ -50,7 +62,9 @@ class ExpRules {
   /// 던전에서 경험치를 얻는다. 공부·수면은 2026-11-10에 뺐다.
   ///
   /// [restStreak] 는 오늘을 포함한 연속 휴식 일수 (오늘 쉬지 않았으면 0)
-  static DailyExpBreakdown forDay(DailyRecord record, {int restStreak = 0}) {
+  /// [weeklyDone] 는 그날 새로 마친 주간 의뢰 수
+  static DailyExpBreakdown forDay(DailyRecord record,
+      {int restStreak = 0, int weeklyDone = 0}) {
     final runs = record.dungeonRuns
         .take(RuleConstants.maxDungeonRunsPerDay)
         .toList(); // 하루 최대 4회까지 경험치 인정
@@ -86,6 +100,7 @@ class ExpRules {
       questAll: quests >= RuleConstants.questsPerDay
           ? RuleConstants.questAllBonusExp
           : 0,
+      weekly: weeklyDone * BoardRules.weeklyExp,
     );
   }
 }

@@ -47,8 +47,20 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | hero_status_tired_male/female | HP 0일 때 상태창 각성자 (원래 그림과 발 위치를 맞춤) |
 | hero_tired_male/female | HP 0일 때 던전 입구·필드 전투 화면의 꼬마 각성자 |
 | spirit_<fire·water·plant>_worried | HP가 낮거나 쓰러졌을 때, 전투에서 졌을 때 |
-| spirit_<…>_cheer | 레벨업, 정화 성공, 일일 퀘스트 모두 완료 |
+| spirit_<…>_cheer | 레벨업, 사냥 성공, 일일 퀘스트 모두 완료 |
 | spirit_<…>_sleepy | 여관에서 쉬는 중 |
 | icon_streak | 여관 '연속 휴식' |
 | icon_expedition | 지도 몬스터 창의 '원정 보내기' |
 | icon_bag | 가방 버튼(상태창·던전 입구·잡화상)과 가방 창 |
+
+## 마을·장비·화폐 (2026년 11월 10일)
+
+| 파일 | 쓰는 곳 |
+| --- | --- |
+| village.jpg | 마을 탭 그림 (건물 자리는 village_screen.dart 의 areas) |
+| icon_smithy, icon_board | 마을 시설 아이콘 (대장간, 의뢰 게시판) |
+| nav_village, nav_bag | 하단 메뉴 '마을', '가방' |
+| item_incense | 성장의 향 |
+| monster_giantRat | 큰쥐 (길 잃은 돌정령 대신) |
+| icon_mana_stone, icon_gold | 마석·금화 (화폐 바꾸는 묶음에서 씀) |
+| equip_dagger, equip_staff, equip_cap, equip_armor, equip_gloves, equip_boots, equip_fang_necklace, equip_stone_charm | 장비 (대장간 묶음에서 씀) |

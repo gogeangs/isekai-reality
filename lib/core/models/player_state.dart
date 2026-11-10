@@ -15,7 +15,9 @@ class PlayerState {
     required this.titles,
     required this.gauge,
     required this.dailyExp,
-    required this.crystals,
+    required this.manaStones,
+    required this.gold,
+    required this.materials,
   });
 
   /// [history] 는 날짜순이며 마지막 기록이 오늘이다.
@@ -27,7 +29,9 @@ class PlayerState {
     final restStreaks = TownRules.restStreaks(history);
     final dailyExp = <DailyExpBreakdown>[];
     for (var i = 0; i < history.length; i++) {
-      final exp = ExpRules.forDay(history[i], restStreak: restStreaks[i]);
+      final exp = ExpRules.forDay(history[i],
+          restStreak: restStreaks[i],
+          weeklyDone: BoardRules.weeklyCompletedOn(history, i));
       dailyExp.add(exp);
       totalExp += exp.total;
     }
@@ -60,7 +64,9 @@ class PlayerState {
         keysUsedToday: today?.dungeonRuns.length ?? 0,
       ),
       dailyExp: dailyExp,
-      crystals: TownRules.crystals(history),
+      manaStones: TownRules.manaStones(history),
+      gold: TownRules.gold(history),
+      materials: TownRules.materials(history),
     );
   }
 
@@ -76,8 +82,16 @@ class PlayerState {
   /// [history] 와 같은 순서의 하루 경험치 내역
   final List<DailyExpBreakdown> dailyExp;
 
-  /// 가진 정화 결정 (잡화상 돈)
-  final int crystals;
+  /// 가진 마석 (몬스터가 떨어뜨림. 팔면 금화, 제작·강화에 씀)
+  final int manaStones;
+
+  /// 가진 금화 (잡화상 돈)
+  final int gold;
+
+  /// 가진 재료
+  final Map<MaterialId, int> materials;
+
+  int materialCount(MaterialId id) => materials[id] ?? 0;
 
   DailyRecord? get today => history.isEmpty ? null : history.last;
 

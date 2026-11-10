@@ -40,7 +40,7 @@ class QuestRules {
           unit: '번',
         ),
         QuestProgress(
-          title: '필드 몬스터 1마리 정화',
+          title: '필드 몬스터 1마리 사냥',
           current: record.fieldMonstersPurified,
           target: 1,
           unit: '마리',

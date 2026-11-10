@@ -1,0 +1,375 @@
+import 'dart:math' as math;
+
+import '../models/armory.dart';
+import 'materials.dart';
+import 'stat_rules.dart';
+
+/// 장비 부위 6칸
+enum EquipSlot { weapon, head, body, hands, feet, accessory }
+
+/// 장비 등급 (이름 색: 흰색 · 초록 · 파랑 · 보라 · 주황)
+enum EquipGrade { white, green, blue, purple, orange }
+
+/// 장비 종류 (만들 수 있는 것). 이름은 저장 기록의 키라 바꾸지 않는다.
+enum EquipBase {
+  dagger,
+  staff,
+  cap,
+  armor,
+  gloves,
+  boots,
+  fangNecklace,
+  wardenCharm,
+}
+
+/// 장비 하나의 기본 정보와 제작법
+class EquipBaseInfo {
+  const EquipBaseInfo({
+    required this.id,
+    required this.name,
+    required this.slot,
+    required this.recipe,
+    this.manaStones = 0,
+    this.attack = 0,
+    this.reduce = 0,
+    this.maxHp = 0,
+    this.skillFaster = 0,
+    this.job,
+    required this.asset,
+  });
+
+  final EquipBase id;
+  final String name;
+  final EquipSlot slot;
+
+  /// 재료 (마석 빼고)
+  final Map<MaterialId, int> recipe;
+  final int manaStones;
+
+  /// 기본 능력 (흰색 +0 기준, 비율): 공격 +, 받는 피해 -, 최대 HP +
+  final double attack;
+  final double reduce;
+  final double maxHp;
+
+  /// 정령의 일격 충전이 이만큼 빨라진다 (틱)
+  final int skillFaster;
+
+  /// 어울리는 직업 (직업이 생기면 능력 +20%, 지금은 데이터만)
+  final String? job;
+
+  /// assets/images/<asset>.png
+  final String asset;
+
+  String get statLabel => [
+        if (attack > 0) '공격 +${_pct(attack)}%',
+        if (reduce > 0) '받는 피해 -${_pct(reduce)}%',
+        if (maxHp > 0) '최대 HP +${_pct(maxHp)}%',
+        if (skillFaster > 0) '일격 충전 하나 빨리',
+      ].join(', ');
+}
+
+String _pct(double r) {
+  final v = r * 100;
+  return v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1);
+}
+
+/// 장비가 전투에 주는 힘 (입은 것 모두 더한 값)
+class GearBonus {
+  const GearBonus({
+    this.attack = 0,
+    this.reduce = 0,
+    this.maxHp = 0,
+    this.skillFaster = 0,
+    this.stats = const Stats(vitality: 0, agility: 0, wisdom: 0, spirit: 0),
+  });
+
+  final double attack;
+  final double reduce;
+  final double maxHp;
+  final int skillFaster;
+
+  /// 추가 능력 (체력·민첩·지력·정신)
+  final Stats stats;
+
+  static const none = GearBonus();
+}
+
+/// 대장간·장비 규칙 (제안서 5장, 11-10 확정)
+class EquipmentRules {
+  EquipmentRules._();
+
+  static const List<EquipBaseInfo> all = [
+    EquipBaseInfo(
+      id: EquipBase.dagger,
+      name: '철 단검',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.ironShard: 3, MaterialId.ratHide: 1},
+      manaStones: 3,
+      attack: 0.08,
+      job: '기사',
+      asset: 'equip_dagger',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.staff,
+      name: '나무 지팡이',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.twig: 2, MaterialId.butterflyDust: 2},
+      manaStones: 3,
+      attack: 0.06,
+      skillFaster: 1,
+      job: '현자',
+      asset: 'equip_staff',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.cap,
+      name: '가죽 모자',
+      slot: EquipSlot.head,
+      recipe: {MaterialId.ratHide: 2},
+      manaStones: 1,
+      reduce: 0.03,
+      asset: 'equip_cap',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.armor,
+      name: '가죽 갑옷',
+      slot: EquipSlot.body,
+      recipe: {MaterialId.ratHide: 4, MaterialId.batWing: 1},
+      manaStones: 3,
+      reduce: 0.06,
+      asset: 'equip_armor',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.gloves,
+      name: '가죽 장갑',
+      slot: EquipSlot.hands,
+      recipe: {MaterialId.ratHide: 2, MaterialId.slimeJelly: 1},
+      reduce: 0.02,
+      asset: 'equip_gloves',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.boots,
+      name: '가죽 장화',
+      slot: EquipSlot.feet,
+      recipe: {MaterialId.ratHide: 2, MaterialId.slimeJelly: 1},
+      reduce: 0.02,
+      asset: 'equip_boots',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.fangNecklace,
+      name: '박쥐 송곳니 목걸이',
+      slot: EquipSlot.accessory,
+      recipe: {MaterialId.batWing: 2},
+      manaStones: 2,
+      maxHp: 0.05,
+      asset: 'equip_fang_necklace',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.wardenCharm,
+      name: '문지기의 부적',
+      slot: EquipSlot.accessory,
+      recipe: {MaterialId.wardenShard: 2},
+      manaStones: 5,
+      maxHp: 0.08,
+      asset: 'equip_stone_charm',
+    ),
+  ];
+
+  static EquipBaseInfo info(EquipBase id) => all.firstWhere((e) => e.id == id);
+
+  static EquipBase? baseByName(String name) {
+    for (final b in EquipBase.values) {
+      if (b.name == name) return b;
+    }
+    return null;
+  }
+
+  static String slotLabel(EquipSlot s) => switch (s) {
+        EquipSlot.weapon => '무기',
+        EquipSlot.head => '머리',
+        EquipSlot.body => '몸',
+        EquipSlot.hands => '장갑',
+        EquipSlot.feet => '신발',
+        EquipSlot.accessory => '장신구',
+      };
+
+  static String gradeLabel(EquipGrade g) => switch (g) {
+        EquipGrade.white => '흰색',
+        EquipGrade.green => '초록',
+        EquipGrade.blue => '파랑',
+        EquipGrade.purple => '보라',
+        EquipGrade.orange => '주황',
+      };
+
+  // ───────────────────────── 등급
+
+  /// 기본 능력 배수
+  static double gradeMultiplier(EquipGrade g) => switch (g) {
+        EquipGrade.white => 1.0,
+        EquipGrade.green => 1.15,
+        EquipGrade.blue => 1.3,
+        EquipGrade.purple => 1.5,
+        EquipGrade.orange => 1.8,
+      };
+
+  /// 수리 비용 배수
+  static double repairMultiplier(EquipGrade g) => switch (g) {
+        EquipGrade.white => 1.0,
+        EquipGrade.green => 1.2,
+        EquipGrade.blue => 1.5,
+        EquipGrade.purple => 2.0,
+        EquipGrade.orange => 3.0,
+      };
+
+  /// 등급 확률 (흰·초록·파랑·보라·주황, %). 귀한 재료를 넣으면 좋아진다.
+  /// 제작 숙련도: 제작 10번마다 파랑 +1%p (최대 +10%p, 흰색에서 뺀다).
+  static List<double> gradeChances({required bool rare, int crafts = 0}) {
+    final c = rare
+        ? [30.0, 40.0, 22.0, 6.5, 1.5]
+        : [60.0, 28.0, 10.0, 1.8, 0.2];
+    final mastery = math.min(10, crafts ~/ 10).toDouble();
+    c[0] -= mastery;
+    c[2] += mastery;
+    return c;
+  }
+
+  static int masteryBonus(int crafts) => math.min(10, crafts ~/ 10);
+
+  static EquipGrade rollGrade(math.Random rng,
+      {required bool rare, int crafts = 0}) {
+    final c = gradeChances(rare: rare, crafts: crafts);
+    var u = rng.nextDouble() * 100;
+    for (var i = 0; i < c.length; i++) {
+      if (u < c[i]) return EquipGrade.values[i];
+      u -= c[i];
+    }
+    return EquipGrade.white;
+  }
+
+  /// 추가 능력: 초록 1개(+1~2), 파랑 1~2개(+1~3), 보라 2개(+2~3), 주황 3개(+2~4).
+  /// 체력·민첩·지력·정신 중에서 무작위.
+  static Map<String, int> rollExtras(EquipGrade g, math.Random rng) {
+    final (count, lo, hi) = switch (g) {
+      EquipGrade.white => (0, 0, 0),
+      EquipGrade.green => (1, 1, 2),
+      EquipGrade.blue => (1 + rng.nextInt(2), 1, 3),
+      EquipGrade.purple => (2, 2, 3),
+      EquipGrade.orange => (3, 2, 4),
+    };
+    final out = <String, int>{};
+    for (var i = 0; i < count; i++) {
+      final stat = statKeys[rng.nextInt(statKeys.length)];
+      out[stat] = (out[stat] ?? 0) + lo + rng.nextInt(hi - lo + 1);
+    }
+    return out;
+  }
+
+  static const statKeys = ['vitality', 'agility', 'wisdom', 'spirit'];
+
+  static String statName(String key) => switch (key) {
+        'vitality' => '체력',
+        'agility' => '민첩',
+        'wisdom' => '지력',
+        'spirit' => '정신',
+        _ => key,
+      };
+
+  // ───────────────────────── 강화
+
+  static const int maxEnhance = 10;
+
+  /// 강화 한 단계마다 기본 능력 +8%
+  static const double enhanceStep = 0.08;
+
+  /// +[to] 로 올릴 때 성공 확률
+  static double enhanceChance(int to) => switch (to) {
+        <= 3 => 1.0,
+        4 => 0.9,
+        5 => 0.8,
+        6 => 0.7,
+        7 => 0.6,
+        8 => 0.5,
+        9 => 0.4,
+        _ => 0.3,
+      };
+
+  /// +[to] 로 올리는 비용 (마석 n, 금화 20n)
+  static ({int manaStones, int gold}) enhanceCost(int to) =>
+      (manaStones: to, gold: 20 * to);
+
+  // ───────────────────────── 내구도
+
+  static const int maxDurability = 100;
+  static const int fieldWear = 1;
+  static const int dungeonWear = 2;
+
+  /// 깎인 내구도를 다 고치는 금화 (1에 0.5 × 등급 배수, 올림)
+  static int repairCost(EquipItem item) {
+    final lost = maxDurability - item.durability;
+    if (lost <= 0) return 0;
+    return (lost * 0.5 * repairMultiplier(item.grade)).ceil();
+  }
+
+  /// 분해하면 돌려받는 것: 넣은 재료의 절반(내림)과 마석 1, 강화에 쓴 마석의 절반
+  static ({int manaStones, Map<MaterialId, int> materials}) salvage(
+      EquipItem item) {
+    final mats = <MaterialId, int>{};
+    item.materialsUsed.forEach((k, v) {
+      final id = Materials.byName(k);
+      if (id != null && v ~/ 2 > 0) mats[id] = v ~/ 2;
+    });
+    return (manaStones: 1 + item.enhanceManaSpent ~/ 2, materials: mats);
+  }
+
+  // ───────────────────────── 능력
+
+  /// 장비 하나의 배율 (등급·강화·내구도 반영)
+  static double power(EquipItem item) {
+    final m = gradeMultiplier(item.grade) * (1 + enhanceStep * item.enhance);
+    return item.durability <= 0 ? m / 2 : m;
+  }
+
+  /// 입은 장비 모두의 힘
+  static GearBonus bonusOf(Iterable<EquipItem> worn) {
+    var atk = 0.0, red = 0.0, hp = 0.0;
+    var faster = 0;
+    var v = 0, a = 0, w = 0, s = 0;
+    for (final item in worn) {
+      final base = EquipmentRules.info(item.base);
+      final p = power(item);
+      atk += base.attack * p;
+      red += base.reduce * p;
+      hp += base.maxHp * p;
+      faster += base.skillFaster;
+      final half = item.durability <= 0;
+      int x(String k) {
+        final n = item.extras[k] ?? 0;
+        return half ? n ~/ 2 : n;
+      }
+
+      v += x('vitality');
+      a += x('agility');
+      w += x('wisdom');
+      s += x('spirit');
+    }
+    return GearBonus(
+      attack: atk,
+      reduce: math.min(0.6, red),
+      maxHp: hp,
+      skillFaster: faster,
+      stats: Stats(vitality: v, agility: a, wisdom: w, spirit: s),
+    );
+  }
+
+  /// 장비 하나의 능력 글 (예: '공격 +9.2%')
+  static String itemStatLabel(EquipItem item) {
+    final base = info(item.base);
+    final p = power(item);
+    return [
+      if (base.attack > 0) '공격 +${_pct(base.attack * p)}%',
+      if (base.reduce > 0) '받는 피해 -${_pct(base.reduce * p)}%',
+      if (base.maxHp > 0) '최대 HP +${_pct(base.maxHp * p)}%',
+      if (base.skillFaster > 0) '일격 충전 하나 빨리',
+      for (final e in item.extras.entries) '${statName(e.key)} +${e.value}',
+    ].join(' · ');
+  }
+}

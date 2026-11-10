@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isekai_reality/features/profile/profile_screen.dart';
 import 'package:isekai_reality/core/rules/title_rules.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
@@ -165,8 +166,12 @@ void main() {
       return c;
     }
 
-    testWidgets('기록 탭: 최근 7일과 오늘 카드', (tester) async {
+    testWidgets('프로필 기록: 최근 7일과 오늘 카드', (tester) async {
       await openDemo(tester);
+      // 11-10: 기록은 왼쪽 위 프로필 안으로 옮겼다
+      await tester.tap(find.byType(ProfileButton));
+      await tester.pumpAndSettle();
+      expect(find.text('대표 칭호'), findsOneWidget);
       await tester.tap(find.text('기록'));
       await tester.pump();
       expect(find.textContaining('최근 7일'), findsOneWidget);
@@ -180,17 +185,17 @@ void main() {
       await tester.tap(find.text('도감'));
       await tester.pump();
       expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
-      expect(find.text('몬스터 도감 0 / 6'), findsNothing);
+      expect(find.text('몬스터 도감 0 / 5'), findsNothing);
       // 탭을 누르면 몬스터 그룹만 보인다
-      await tester.tap(find.text('몬스터 0/6'));
+      await tester.tap(find.text('몬스터 0/5'));
       await tester.pump();
-      expect(find.text('몬스터 도감 0 / 6'), findsOneWidget);
+      expect(find.text('몬스터 도감 0 / 5'), findsOneWidget);
     });
 
-    testWidgets('설정 탭: 기록 지우기', (tester) async {
+    testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {
       final c = await openDemo(tester);
-      await tester.tap(find.text('설정'));
-      await tester.pump();
+      await tester.tap(find.byTooltip('설정'));
+      await tester.pumpAndSettle();
 
 
       final reset = find.text('모든 기록 지우고 처음부터');

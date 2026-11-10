@@ -8,6 +8,7 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 
@@ -85,6 +86,10 @@ class _BattleViewState extends State<BattleView> {
 
   String get _floorLabel {
     if (_b.floors.length == 1) return '필드 전투';
+    // 수식어 무리(필드): 몇 번째 마리인지
+    if (!_b.floors.last.isBoss) {
+      return '${_b.floor + 1} / ${_b.floors.length}마리';
+    }
     return _b.foe.isBoss
         ? 'BOSS'
         : '${_b.floor + 1}층 / ${_b.floors.length - 1}층';
@@ -127,10 +132,12 @@ class _BattleViewState extends State<BattleView> {
             const SizedBox(width: 12),
             Expanded(
               child: _HpColumn(
-                name: cleared ? foe.info.purifiedName : foe.info.name,
+                name: foe.name,
+                nameColor: modGradeColor(foe.grade),
                 hp: _b.foeHp,
                 maxHp: foe.maxHp,
                 colors: BarColors.foe,
+                note: _b.lastEvent,
                 alignEnd: true,
               ),
             ),
@@ -145,12 +152,12 @@ class _BattleViewState extends State<BattleView> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 child: Row(children: [
-                  const GameIcon('crystal', size: 40),
+                  const GameIcon('mana_stone', size: 40),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('정화',
+                      const Text('사냥',
                           style: TextStyle(
                               color: AppColors.textMuted, fontSize: 13)),
                       Text('${_b.purified.length} / ${_b.floors.length}',
@@ -335,7 +342,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                             child: MonsterPicture(
                               monster: foe.monster,
                               size: monSize,
-                              purified: cleared,
+                              defeated: cleared,
                             ),
                           ),
                         ),
@@ -461,7 +468,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                                               .transform(_seg(t, 0.22, 0.45)) *
                                           0.4,
                               child: _Outlined(
-                                cleared ? '정화!' : '-${comma(widget.dealt)}',
+                                cleared ? '사냥!' : '-${comma(widget.dealt)}',
                                 size: widget.skill ? 36 : 28,
                                 color: cleared
                                     ? AppColors.goldBright
@@ -540,7 +547,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           ),
                           child: Text(
                               cleared
-                                  ? '정화했어!'
+                                  ? '잡았어!'
                                   : widget.skill && hitting
                                       ? '정령의 일격!'
                                       : '할 수 있어!',
@@ -687,9 +694,11 @@ class _HpColumn extends StatelessWidget {
     required this.colors,
     this.note,
     this.alignEnd = false,
+    this.nameColor = AppColors.text,
   });
 
   final String name;
+  final Color nameColor;
   final int hp;
   final int maxHp;
   final List<Color> colors;
@@ -709,8 +718,8 @@ class _HpColumn extends StatelessWidget {
             Flexible(
               child: Text(name,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.text,
+                  style: TextStyle(
+                      color: nameColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w700)),
             ),
@@ -858,14 +867,14 @@ class MonsterPicture extends StatelessWidget {
     super.key,
     required this.monster,
     this.size = 64,
-    this.purified = false,
+    this.defeated = false,
   });
 
   final MonsterId monster;
   final double size;
 
-  /// true 면 정화된 모습
-  final bool purified;
+  /// true 면 쓰러진 모습 (기울어지며 흐려진다, 11-10 사냥)
+  final bool defeated;
 
   static IconData iconOf(MonsterId id) => switch (id) {
         MonsterId.ashSlime => Icons.water_drop_rounded,
@@ -874,22 +883,31 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
         MonsterId.lostStoneSpirit => Icons.landscape_rounded,
         MonsterId.labyrinthWarden => Icons.shield_moon_rounded,
+        MonsterId.giantRat => Icons.pest_control_rodent_rounded,
       };
 
   @override
   Widget build(BuildContext context) {
     final info = Monsters.info(monster);
-    final label = purified ? info.purifiedName : info.name;
-    return Image.asset(
-      purified ? info.purifiedAsset : info.asset,
+    final picture = Image.asset(
+      info.asset,
       width: size,
       height: size,
-      semanticLabel: label,
+      semanticLabel: info.name,
       errorBuilder: (_, __, ___) => Icon(
         iconOf(monster),
         size: size * 0.7,
-        color: purified ? AppColors.goldBright : const Color(0xFFB8B2C8),
-        semanticLabel: label,
+        color: const Color(0xFFB8B2C8),
+        semanticLabel: info.name,
+      ),
+    );
+    if (!defeated) return picture;
+    // 사냥한 몬스터는 쓰러지고 사라진다
+    return Opacity(
+      opacity: 0.18,
+      child: Transform.translate(
+        offset: Offset(0, size * 0.12),
+        child: Transform.rotate(angle: 0.5, child: picture),
       ),
     );
   }

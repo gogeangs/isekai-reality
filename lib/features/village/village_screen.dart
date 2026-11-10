@@ -1,0 +1,272 @@
+import 'package:flutter/material.dart';
+
+import '../../app_controller.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/ornaments.dart';
+import '../bulssi/bulssi_bubble.dart';
+import '../town/inn_screen.dart';
+import '../town/shop_screen.dart';
+import '../smithy/smithy_screen.dart';
+import 'board_screen.dart';
+
+/// 마을 시설
+enum Facility { inn, shop, board, smithy, alchemy, market }
+
+class FacilityInfo {
+  const FacilityInfo(this.facility, this.name, this.icon, this.subtitle,
+      {this.open = true});
+
+  final Facility facility;
+  final String name;
+
+  /// assets/images/<icon>.png
+  final String icon;
+  final String subtitle;
+
+  /// false 면 '곧 열려요'
+  final bool open;
+}
+
+/// 하단 메뉴 '마을' 탭 (11-10 #26): 어디서든 들어갈 수 있는 게임 속 마을 하나.
+/// 위에는 마을 그림(건물을 누르면 들어감), 아래에는 같은 시설 카드 목록.
+/// 마을 그림(village.jpg)이 없으면 하늘 그림 위에 건물 아이콘을 놓는다.
+class VillageScreen extends StatelessWidget {
+  const VillageScreen({super.key, required this.controller});
+
+  final AppController controller;
+
+  static const facilities = [
+    FacilityInfo(Facility.inn, '여관', 'map_inn', '쉬면 HP·MP가 가득'),
+    FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
+    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
+    FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
+    FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_lock', '나중에 열려요',
+        open: false),
+    FacilityInfo(Facility.market, '거래소', 'icon_lock', '나중에 열려요',
+        open: false),
+  ];
+
+  void _enter(BuildContext context, FacilityInfo f) {
+    if (!f.open) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${f.name}은(는) 곧 열려요')));
+      return;
+    }
+    final Widget page = switch (f.facility) {
+      Facility.inn => InnScreen(controller: controller),
+      Facility.shop => ShopScreen(controller: controller),
+      Facility.smithy => SmithyScreen(controller: controller),
+      _ => BoardScreen(controller: controller),
+    };
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    return ListView(
+      padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
+      children: [
+        const OrnateTopBar(title: '마을'),
+        const SizedBox(height: 6),
+        const BulssiLine(line: '어서 와! 마을에서 쉬고, 사고, 의뢰를 받을 수 있어.'),
+        const SizedBox(height: 10),
+        _VillageArt(onTap: (f) => _enter(context, f)),
+        const SizedBox(height: 12),
+        for (final f in facilities)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _FacilityCard(info: f, onTap: () => _enter(context, f)),
+          ),
+      ],
+    );
+  }
+}
+
+/// 마을 그림(village.jpg): 건물을 누르면 시설로. 그림이 없으면 하늘 띠 위에
+/// 건물 아이콘을 같은 자리에 놓는다.
+class _VillageArt extends StatelessWidget {
+  const _VillageArt({required this.onTap});
+
+  final ValueChanged<FacilityInfo> onTap;
+
+  // 건물이 차지하는 칸 (그림 안 비율: 왼쪽, 위, 너비, 높이). village.jpg 기준
+  static const areas = {
+    Facility.smithy: Rect.fromLTWH(0.10, 0.08, 0.30, 0.30),
+    Facility.inn: Rect.fromLTWH(0.00, 0.36, 0.30, 0.33),
+    Facility.shop: Rect.fromLTWH(0.35, 0.45, 0.36, 0.44),
+    Facility.board: Rect.fromLTWH(0.75, 0.47, 0.22, 0.24),
+    Facility.alchemy: Rect.fromLTWH(0.44, 0.22, 0.23, 0.18),
+    Facility.market: Rect.fromLTWH(0.72, 0.21, 0.26, 0.17),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: AspectRatio(
+        aspectRatio: 16 / 10,
+        child: LayoutBuilder(builder: (context, box) {
+          final w = box.maxWidth, h = box.maxHeight;
+          Rect at(Facility f) {
+            final r = areas[f]!;
+            return Rect.fromLTWH(r.left * w, r.top * h, r.width * w, r.height * h);
+          }
+
+          return Stack(fit: StackFit.expand, children: [
+            Image.asset('assets/images/village.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Stack(fit: StackFit.expand, children: [
+                      Image.asset('assets/images/bg_header.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const ColoredBox(color: Color(0xFF1A1D4A))),
+                      for (final f in VillageScreen.facilities)
+                        Positioned.fromRect(
+                          rect: at(f.facility),
+                          child: Center(
+                            child: Opacity(
+                              opacity: f.open ? 1 : 0.55,
+                              child: _BuildingIcon(
+                                  icon: f.icon, size: f.open ? 50 : 36),
+                            ),
+                          ),
+                        ),
+                    ])),
+            // 아래쪽 이름표가 잘 보이게 살짝 어둡게
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x000B0D26), Color(0x550B0D26)],
+                  ),
+                ),
+              ),
+            ),
+            for (final f in VillageScreen.facilities)
+              Positioned.fromRect(
+                rect: at(f.facility),
+                child: Semantics(
+                  button: true,
+                  label: f.name,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(f),
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _NameTag(name: f.name, open: f.open),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ]);
+        }),
+      ),
+    );
+  }
+}
+
+class _NameTag extends StatelessWidget {
+  const _NameTag({required this.name, required this.open});
+
+  final String name;
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xD90B0D26),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+              color: AppColors.gold.withValues(alpha: open ? 0.8 : 0.35)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (!open) ...[
+            const Icon(Icons.lock_outline_rounded,
+                size: 11, color: AppColors.textMuted),
+            const SizedBox(width: 2),
+          ],
+          Text(name,
+              style: TextStyle(
+                  color: open ? AppColors.text : AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      );
+}
+
+class _BuildingIcon extends StatelessWidget {
+  const _BuildingIcon({required this.icon, required this.size});
+
+  final String icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        'assets/images/$icon.png',
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => Icon(
+          switch (icon) {
+            'icon_smithy' => Icons.hardware_rounded,
+            'icon_board' => Icons.assignment_rounded,
+            _ => Icons.lock_outline_rounded,
+          },
+          size: size * 0.6,
+          color: AppColors.goldBright,
+        ),
+      );
+}
+
+class _FacilityCard extends StatelessWidget {
+  const _FacilityCard({required this.info, required this.onTap});
+
+  final FacilityInfo info;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Opacity(
+        opacity: info.open ? 1 : 0.6,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+          decoration: BoxDecoration(
+            color: const Color(0xCC12153A),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: AppColors.gold.withValues(alpha: info.open ? 0.7 : 0.3)),
+          ),
+          child: Row(children: [
+            _BuildingIcon(icon: info.icon, size: 42),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(info.name, style: AppText.title(17, color: AppColors.text)),
+                  Text(info.open ? info.subtitle : '곧 열려요',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+            Icon(
+                info.open
+                    ? Icons.chevron_right_rounded
+                    : Icons.lock_outline_rounded,
+                color: AppColors.gold),
+          ]),
+        ),
+      ),
+    );
+  }
+}

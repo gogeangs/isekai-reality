@@ -9,21 +9,21 @@ import '../../data/storage/record_store.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import 'bag_sheet.dart';
+import 'material_view.dart';
 
-/// 잡화상 (앱 안 시설): 몬스터를 정화하고 모은 정화 결정으로 편의 물건을 산다.
+/// 잡화상 (앱 안 시설): 몬스터가 떨어뜨린 마석을 금화로 팔고, 금화로 물건을 산다.
 class ShopScreen extends StatelessWidget {
   const ShopScreen({super.key, required this.controller});
 
   final AppController controller;
 
-  static String reason(PurchaseCheck check, ShopItemInfo info, int crystals) =>
+  static String reason(PurchaseCheck check, ShopItemInfo info, int gold) =>
       switch (check) {
         PurchaseCheck.ok => '',
         PurchaseCheck.limitReached => info.limit == ShopLimit.perDay
             ? '오늘 샀어요'
             : '이번 주 샀어요',
-        PurchaseCheck.notEnoughCrystals =>
-          '결정 ${info.price - crystals}개 부족',
+        PurchaseCheck.notEnoughCrystals => '금화 ${info.price - gold} 부족',
         PurchaseCheck.needsLocation => '위치를 켜 주세요',
         PurchaseCheck.levelTooLow => 'Lv.${info.minLevel}부터',
         PurchaseCheck.bagFull => '가방에 ${TownRules.bagMax}개 있어요',
@@ -36,7 +36,10 @@ class ShopScreen extends StatelessWidget {
         ShopItem.expeditionCompass =>
           '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
         ShopItem.purifyIncense =>
-          '정화의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
+          '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
+        ShopItem.ironShard ||
+        ShopItem.twig =>
+          '${TownRules.info(item).name}을(를) 재료 주머니에 넣었어요.',
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||
@@ -55,7 +58,8 @@ class ShopScreen extends StatelessWidget {
           listenable: controller,
           builder: (context, _) {
             final history = controller.history;
-            final crystals = controller.player.crystals;
+            final player = controller.player;
+            final gold = player.gold;
             final hasLocation = controller.lastFix != null;
             final level = controller.player.level.level;
 
@@ -68,7 +72,7 @@ class ShopScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 const BulssiLine(
-                    line: '몬스터를 정화하면 결정이 남아. 모아서 필요한 걸 사자!'),
+                    line: '몬스터를 잡으면 마석이 나와. 팔아서 금화로 필요한 걸 사자!'),
                 const SizedBox(height: 4),
                 Center(
                   child: Image.asset('assets/images/map_store.png',
@@ -78,16 +82,7 @@ class ShopScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 OrnatePanel(
                   child: Column(children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const GameIcon('crystal', size: 34),
-                        const SizedBox(width: 8),
-                        Text('정화 결정 $crystals개',
-                            style: AppText.title(22,
-                                color: AppColors.goldBright)),
-                      ],
-                    ),
+                    WalletRow(manaStones: player.manaStones, gold: gold),
                     const SizedBox(height: 4),
                     Text(
                       'HP ${comma(controller.hp)} / ${comma(controller.maxHp)} · '
@@ -96,15 +91,10 @@ class ShopScreen extends StatelessWidget {
                       style: const TextStyle(
                           color: AppColors.text, fontSize: 13),
                     ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '던전 정화 3개 · 던전 실패 1개 · 필드 몬스터 1개',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(color: AppColors.textMuted, fontSize: 12),
-                    ),
                   ]),
                 ),
+                const SizedBox(height: 10),
+                _SellPanel(controller: controller, manaStones: player.manaStones),
                 const SizedBox(height: 10),
                 FrameButton(
                   onPressed: () => showBagSheet(context, controller),
@@ -119,7 +109,7 @@ class ShopScreen extends StatelessWidget {
                     check: TownRules.canBuy(history, info.item,
                         hasLocation: hasLocation,
                         level: level),
-                    crystals: crystals,
+                    gold: gold,
                     spiritKind: controller.profile.spiritKind,
                     onBuy: () async {
                       final result = await controller.buy(info.item);
@@ -127,7 +117,7 @@ class ShopScreen extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(result == PurchaseCheck.ok
                             ? boughtLine(info.item)
-                            : reason(result, info, controller.player.crystals)),
+                            : reason(result, info, controller.player.gold)),
                       ));
                     },
                   ),
@@ -146,14 +136,14 @@ class _ItemCard extends StatelessWidget {
   const _ItemCard({
     required this.info,
     required this.check,
-    required this.crystals,
+    required this.gold,
     required this.onBuy,
     this.spiritKind = SpiritKind.fire,
   });
 
   final ShopItemInfo info;
   final PurchaseCheck check;
-  final int crystals;
+  final int gold;
   final VoidCallback onBuy;
   final SpiritKind spiritKind;
 
@@ -164,13 +154,16 @@ class _ItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset(
-              info.item == ShopItem.bulssiPotion
-                  ? spiritPotionAsset(spiritKind)
-                  : 'assets/images/${info.icon}.png',
-              width: 48,
-              height: 48,
-              errorBuilder: (_, __, ___) => const GameIcon('crystal', size: 48)),
+          if (info.material case final mat?)
+            MaterialIcon(mat, size: 48)
+          else
+            Image.asset(
+                info.item == ShopItem.bulssiPotion
+                    ? spiritPotionAsset(spiritKind)
+                    : 'assets/images/${info.icon}.png',
+                width: 48,
+                height: 48,
+                errorBuilder: (_, __, ___) => const GameIcon('gold', size: 48)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -201,7 +194,7 @@ class _ItemCard extends StatelessWidget {
                   if (!ok) ...[
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(ShopScreen.reason(check, info, crystals),
+                      child: Text(ShopScreen.reason(check, info, gold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -214,16 +207,93 @@ class _ItemCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 106,
-            child: GoldButton(
-              label: '${info.price}개',
-              height: 46,
-              fontSize: 16,
-              onPressed: ok ? onBuy : null,
+          const SizedBox(width: 6),
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+              width: 96,
+              child: GoldButton(
+                label: '${info.price}',
+                height: 44,
+                fontSize: 17,
+                onPressed: ok ? onBuy : null,
+              ),
             ),
-          ),
+            const SizedBox(height: 2),
+            const Row(mainAxisSize: MainAxisSize.min, children: [
+              GameIcon('gold', size: 14, fallback: Icons.monetization_on_rounded),
+              SizedBox(width: 2),
+              Text('금화',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            ]),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+/// 마석 팔기 (1개 = 금화 10)
+class _SellPanel extends StatelessWidget {
+  const _SellPanel({required this.controller, required this.manaStones});
+
+  final AppController controller;
+  final int manaStones;
+
+  Future<void> _sell(BuildContext context, int n) async {
+    final ok = await controller.sellManaStones(n);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok
+          ? '마석 $n개를 팔아 금화 ${n * RuleConstants.goldPerManaStone}을(를) 받았어요.'
+          : '마석이 모자라요.'),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OrnatePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const GameIcon('mana_stone',
+                size: 36, fallback: Icons.diamond_rounded),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('마석 팔기',
+                      style: AppText.title(17, color: AppColors.text)),
+                  const Text(
+                      '1개에 금화 ${RuleConstants.goldPerManaStone}. '
+                      '대장간에서도 쓰니 조금 남겨 두세요.',
+                      style:
+                          TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: GoldButton(
+                label: '1개 팔기',
+                height: 40,
+                fontSize: 14,
+                onPressed: manaStones >= 1 ? () => _sell(context, 1) : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GoldButton(
+                label: '5개 팔기',
+                height: 40,
+                fontSize: 14,
+                onPressed: manaStones >= 5 ? () => _sell(context, 5) : null,
+              ),
+            ),
+          ]),
         ],
       ),
     );

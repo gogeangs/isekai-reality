@@ -3,20 +3,34 @@ import 'dart:math' as math;
 import '../geo/geo.dart';
 import 'exclusion_index.dart';
 import 'exploration_rules.dart';
+import 'modifier_rules.dart';
 import 'monsters.dart';
 import 'road_mask.dart';
 import 'rule_constants.dart';
 
 /// 지도에 나타난 필드 몬스터 하나
 class FieldSpawn {
-  const FieldSpawn({required this.id, required this.monster, required this.point});
+  const FieldSpawn({
+    required this.id,
+    required this.monster,
+    required this.point,
+    this.modifiers = const [],
+  });
 
   /// 하루 안에서 겹치지 않는 id (예: '2026-11-08#3')
   final String id;
   final MonsterId monster;
   final GeoPoint point;
 
+  /// 수식어 (11-10 #21). 자리마다 정해지고, 보는 사람의 레벨로 등급을 나눈다.
+  final List<ModifierId> modifiers;
+
   MonsterInfo get info => Monsters.info(monster);
+
+  /// 수식어를 붙인 이름
+  String get name => ModifierRules.displayName(monster, modifiers);
+
+  ModGrade get grade => ModifierRules.gradeOf(modifiers);
 }
 
 class FieldMonsterRules {
@@ -25,7 +39,7 @@ class FieldMonsterRules {
   /// 그날의 필드 몬스터. 날짜로 정해지므로 같은 날에는 누구에게나 같은 자리.
   ///
   /// - 전국을 1km 블록으로 나눈 같은 격자를 쓴다 (11-10 전국 확대).
-  ///   블록마다 70% 확률로 한 마리: 잿빛 슬라임 또는 길 잃은 돌정령.
+  ///   블록마다 70% 확률로 한 마리: 슬라임 또는 큰쥐.
   ///   블록마다 따로 난수를 쓰므로 어디서 보든 같은 블록에는 같은 몬스터.
   /// - [center] 가 있으면 그 둘레 [radiusM] 안 블록만, 없으면 지역 전체
   /// - 장소가 있는 지역이면 장소마다 한 마리 (장소에서 80~150m, 장소에 맞는 몬스터)
@@ -39,6 +53,7 @@ class FieldMonsterRules {
     double radiusM = RuleConstants.fieldSpawnRadiusM,
     RoadMask? roads,
     ExclusionIndex? exclusions,
+    int level = 1,
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -68,14 +83,18 @@ class FieldMonsterRules {
             rng.nextDouble() * 2 * math.pi,
           ));
       if (p == null) continue;
+      final id = '$key#${place.id}';
+      final monster = _habitatMonster(place.kind);
       spawns.add(FieldSpawn(
-        id: '$key#${place.id}',
-        monster: _habitatMonster(place.kind),
+        id: id,
+        monster: monster,
         point: p,
+        modifiers: ModifierRules.roll(id, monster, level),
       ));
     }
 
-    const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
+    // 11-10: 돌정령(정령계) 대신 큰쥐
+    const commons = [MonsterId.ashSlime, MonsterId.giantRat];
     const blockLat = RuleConstants.fieldSpawnBlockM / 111320;
     final b = area.bounds;
     final double south, north;
@@ -124,12 +143,15 @@ class FieldMonsterRules {
               w0 + rng.nextDouble() * blockLng,
             ));
         if (p == null) continue;
+        final id = '$key#${r}_$c';
+        final monster = night && butterflyRoll < nightButterflyShare
+            ? MonsterId.shadowButterfly
+            : commons[kind];
         spawns.add(FieldSpawn(
-          id: '$key#${r}_$c',
-          monster: night && butterflyRoll < nightButterflyShare
-              ? MonsterId.shadowButterfly
-              : commons[kind],
+          id: id,
+          monster: monster,
           point: p,
+          modifiers: ModifierRules.roll(id, monster, level),
         ));
       }
     }
@@ -168,7 +190,8 @@ class FieldMonsterRules {
 
   static MonsterId _habitatMonster(PlaceKind kind) => switch (kind) {
         PlaceKind.labyrinthGate => MonsterId.labyrinthBat,
-        PlaceKind.spiritLake => MonsterId.roughWaterSpirit,
+        // 물방울 정령(정령계)을 뺐다 (11-10)
+        PlaceKind.spiritLake => MonsterId.ashSlime,
       };
 
   /// [from] 에서 [meters] 만큼 [bearing] 방향으로 옮긴 점 (짧은 거리용 근사)

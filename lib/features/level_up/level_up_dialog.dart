@@ -55,7 +55,7 @@ class LevelUpDialog extends StatelessWidget {
               children: [
                 // 큰 월계관 배지는 평소 상태창에서 빼고 레벨업 순간에만 (11-10 C1)
                 LaurelBadge(level: to, title: title ?? '새내기 각성자'),
-                Text('Lv.$from  →  Lv.$to', style: AppText.title(24)),
+                Text('Lv.$from  →  Lv.$to', style: AppText.level(22)),
                 const SizedBox(height: 14),
                 ChipBadge(
                     text: '다음 레벨까지 ${LevelRules.expRequiredFor(to)}',

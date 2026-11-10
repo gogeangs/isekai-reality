@@ -1,4 +1,5 @@
 import '../models/daily_record.dart';
+import 'monsters.dart';
 import 'rule_constants.dart';
 import 'town_rules.dart';
 
@@ -43,14 +44,14 @@ class TitleRules {
     TitleInfo(TitleId.firstSteps, '첫 걸음', '처음으로 걸어 보기'),
     TitleInfo(TitleId.persistentTraveler, '끈기의 여행자', '일주일 내내 목표 달성'),
     TitleInfo(TitleId.morningSpiritFriend, '아침 정령의 친구', '여관에서 일주일 내내 쉬기'),
-    TitleInfo(TitleId.bookwormSage, '도감의 현자', '도감의 몬스터를 모두 정화하기'),
+    TitleInfo(TitleId.bookwormSage, '도감의 현자', '도감의 몬스터를 모두 사냥하기'),
     TitleInfo(TitleId.forcedMarchKnight, '강행군의 기사', '하루에 아주 많이 걷기'),
     TitleInfo(TitleId.nightWalker, '밤길의 산책자', '저녁 8시 이후에 걷기'),
     TitleInfo(TitleId.awakened, '각성자', 'Lv.5 달성'),
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
     TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '미궁 입구 다섯 곳 가 보기'),
     TitleInfo(TitleId.lakeFriend, '호수의 친구', '정령의 물가에 다섯 번 놀러 가기'),
-    TitleInfo(TitleId.townLight, '동네의 빛', '필드 몬스터 30마리 정화하기'),
+    TitleInfo(TitleId.townLight, '동네의 빛', '필드 몬스터 30마리 사냥하기'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -99,7 +100,13 @@ class TitleRules {
             RuleConstants.morningSpiritDays) {
       result.add(TitleId.morningSpiritFriend);
     }
-    if (species.length >= RuleConstants.codexSageSpecies) {
+    // 11-10: 지금 도감의 몬스터를 모두 사냥했거나, 예전 6종을 모두 정화했으면
+    final active = {for (final m in Monsters.all) m.id.name};
+    const oldSix = {
+      'ashSlime', 'labyrinthBat', 'roughWaterSpirit',
+      'shadowButterfly', 'lostStoneSpirit', 'labyrinthWarden',
+    };
+    if (species.containsAll(active) || species.containsAll(oldSix)) {
       result.add(TitleId.bookwormSage);
     }
     if (history.any((d) => d.steps >= RuleConstants.forcedMarchSteps)) {

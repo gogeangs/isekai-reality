@@ -212,6 +212,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             player: controller.player,
             hp: controller.hp,
             mp: controller.mp,
+            maxHp: controller.maxHp,
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
             onOpenDungeon: () => push(DungeonScreen(controller: controller)),

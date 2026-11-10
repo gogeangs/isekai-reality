@@ -6,6 +6,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/inn_screen.dart';
 import '../town/shop_screen.dart';
+import '../smithy/smithy_screen.dart';
 import 'board_screen.dart';
 
 /// 마을 시설
@@ -38,8 +39,7 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.inn, '여관', 'map_inn', '쉬면 HP·MP가 가득'),
     FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
     FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
-    FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 제작·강화',
-        open: false),
+    FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_lock', '나중에 열려요',
         open: false),
     FacilityInfo(Facility.market, '거래소', 'icon_lock', '나중에 열려요',
@@ -55,6 +55,7 @@ class VillageScreen extends StatelessWidget {
     final Widget page = switch (f.facility) {
       Facility.inn => InnScreen(controller: controller),
       Facility.shop => ShopScreen(controller: controller),
+      Facility.smithy => SmithyScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));

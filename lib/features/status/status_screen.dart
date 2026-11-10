@@ -22,6 +22,7 @@ class StatusScreen extends StatelessWidget {
     required this.player,
     this.hp,
     this.mp,
+    this.maxHp,
     this.restLeft,
     this.spiritAway,
     this.onOpenBag,
@@ -41,6 +42,9 @@ class StatusScreen extends StatelessWidget {
 
   /// 정령 MP (없으면 가득)
   final int? mp;
+
+  /// 장비를 입은 최대 HP (없으면 레벨·스탯으로)
+  final int? maxHp;
 
   /// 여관에서 쉬는 중이면 남은 시간
   final Duration? restLeft;
@@ -70,14 +74,15 @@ class StatusScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = player.today!;
     final top = MediaQuery.paddingOf(context).top;
-    final curHp = hp ?? player.maxHp;
+    final topHp = maxHp ?? player.maxHp;
+    final curHp = hp ?? topHp;
     final curMp = mp ?? RuleConstants.mpMax;
-    final full = curHp >= player.maxHp && curMp >= RuleConstants.mpMax;
+    final full = curHp >= topHp && curMp >= RuleConstants.mpMax;
     final line = BulssiLines.forStatus(
       today: today,
       gauge: player.gauge,
       now: DateTime.now(),
-      hpRatio: curHp / player.maxHp,
+      hpRatio: curHp / topHp,
       mpRatio: curMp / RuleConstants.mpMax,
       resting: restLeft != null,
       spiritAway: spiritAway != null,
@@ -85,7 +90,7 @@ class StatusScreen extends StatelessWidget {
     // 11-10 정령 표정: 쉬는 중 졸림, HP가 낮으면 걱정, 퀘스트를 다 하면 축하
     final mood = restLeft != null
         ? SpiritMood.sleepy
-        : curHp < player.maxHp * 0.3
+        : curHp < topHp * 0.3
             ? SpiritMood.worried
             : QuestRules.allDone(today)
                 ? SpiritMood.cheer
@@ -143,6 +148,7 @@ class StatusScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _StatusPanel(
                   player: player,
+                  maxHp: topHp,
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
@@ -311,6 +317,7 @@ String _left(Duration d) {
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
+    required this.maxHp,
     required this.hp,
     required this.mp,
     this.spiritAway,
@@ -318,6 +325,7 @@ class _StatusPanel extends StatelessWidget {
   });
 
   final PlayerState player;
+  final int maxHp;
   final int hp;
   final int mp;
   final String? spiritAway;
@@ -326,7 +334,6 @@ class _StatusPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gauge = player.gauge;
-    final maxHp = player.maxHp;
 
     return OrnatePanel(
       child: Column(

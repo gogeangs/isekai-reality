@@ -8,9 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
 import '../records/records_screen.dart';
-
-/// 장비 칸 (11-10 #27, 장비는 다음 묶음)
-const equipSlots = ['무기', '머리', '몸', '장갑', '신발', '장신구'];
+import '../smithy/equipment_view.dart';
 
 /// 지금은 직업이 없다 (각성 기능에서 정하기로 미룸)
 const String kNoJobLabel = '견습 각성자';
@@ -293,36 +291,10 @@ class _InfoTab extends StatelessWidget {
             ]),
         ]),
         _Section(title: '장비', children: [
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.3,
-            children: [
-              for (final slot in equipSlots)
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0x66101333),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.gold.withValues(alpha: 0.3)),
-                  ),
-                  alignment: Alignment.center,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(slot,
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                    const Text('비어 있음',
-                        style: TextStyle(
-                            color: AppColors.textMuted, fontSize: 11)),
-                  ]),
-                ),
-            ],
-          ),
+          EquipGrid(armory: c.armory),
+          const SizedBox(height: 6),
+          Text(gearSummary(c.gear),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
         _Section(title: '이름', children: [
           _Row(

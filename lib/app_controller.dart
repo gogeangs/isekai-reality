@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'core/geo/geo.dart';
+import 'core/models/armory.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
@@ -183,6 +184,8 @@ class AppController extends ChangeNotifier {
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     _vitals = await store.loadVitals();
+    final armory = await store.loadJson(_armoryKey);
+    _armory = armory == null ? const Armory() : Armory.fromJson(armory);
     final board = await store.loadJson(_boardKey);
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
     await sync();
@@ -310,6 +313,7 @@ class AppController extends ChangeNotifier {
     _lastDiscovery = null;
     _vitals = const Vitals();
     _board = const BoardState();
+    _armory = const Armory();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
     notifyListeners();
@@ -409,6 +413,7 @@ class AppController extends ChangeNotifier {
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
+      gear: gear,
     );
   }
 
@@ -432,6 +437,7 @@ class AppController extends ChangeNotifier {
   Future<int> finishDungeon(Battle battle, {required bool atGate}) async {
     if (!battle.isOver) return 0;
     await keepBattleHp(battle);
+    await _wear(EquipmentRules.dungeonWear);
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
@@ -506,12 +512,14 @@ class AppController extends ChangeNotifier {
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
+      gear: gear,
     );
   }
 
   /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
   Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
     await keepBattleHp(battle);
+    if (battle.ticks > 0) await _wear(EquipmentRules.fieldWear);
     _lastReward = const HuntReward();
     if (battle.phase == BattlePhase.escaped) {
       final today = await _todayRecord();
@@ -666,6 +674,162 @@ class AppController extends ChangeNotifier {
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
 
+  // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
+
+  static const _armoryKey = 'armory';
+  Armory _armory = const Armory();
+
+  /// 가진 장비와 입은 장비
+  Armory get armory => _armory;
+
+  /// 입은 장비의 힘
+  GearBonus get gear => EquipmentRules.bonusOf(_armory.worn);
+
+  Future<void> _saveArmory(Armory a) async {
+    _armory = a;
+    await store.saveJson(_armoryKey, a.toJson());
+    // 최대 HP가 바뀌었을 수 있다
+    await refreshVitals();
+    notifyListeners();
+  }
+
+  /// 만들 수 있는지 (재료·마석). [rare] 는 더 넣을 귀한 재료.
+  CraftCheck canCraft(EquipBase base, {MaterialId? rare}) {
+    final info = EquipmentRules.info(base);
+    final p = player;
+    for (final e in info.recipe.entries) {
+      if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
+    }
+    if (rare != null) {
+      final need = (info.recipe[rare] ?? 0) + 1;
+      if (p.materialCount(rare) < need) return CraftCheck.materials;
+    }
+    if (p.manaStones < info.manaStones) return CraftCheck.manaStones;
+    return CraftCheck.ok;
+  }
+
+  /// 대장간에서 장비를 만든다. 만든 장비를 돌려준다 (못 만들면 null).
+  Future<EquipItem?> craft(EquipBase base, {MaterialId? rare}) async {
+    if (canCraft(base, rare: rare) != CraftCheck.ok) return null;
+    final info = EquipmentRules.info(base);
+    final used = <String, int>{
+      for (final e in info.recipe.entries) e.key.name: e.value,
+      if (rare != null) rare.name: (info.recipe[rare] ?? 0) + 1,
+    };
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {
+        ...used,
+        if (info.manaStones > 0) Wallet.manaStone: info.manaStones,
+      }),
+    ));
+    final a = _armory;
+    final grade =
+        EquipmentRules.rollGrade(_random, rare: rare != null, crafts: a.crafts);
+    final item = EquipItem(
+      uid: 'eq${a.nextId}',
+      base: base,
+      grade: grade,
+      extras: EquipmentRules.rollExtras(grade, _random),
+      materialsUsed: used,
+    );
+    await _saveArmory(a.copyWith(
+      items: [...a.items, item],
+      crafts: a.crafts + 1,
+      nextId: a.nextId + 1,
+    ));
+    return item;
+  }
+
+  /// 강화할 수 있는지
+  CraftCheck canEnhance(EquipItem item) {
+    if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
+    final cost = EquipmentRules.enhanceCost(item.enhance + 1);
+    final p = player;
+    if (p.manaStones < cost.manaStones) return CraftCheck.manaStones;
+    if (p.gold < cost.gold) return CraftCheck.gold;
+    return CraftCheck.ok;
+  }
+
+  /// 강화한다. 성공하면 true. 실패해도 장비는 그대로 (비용만 쓴다).
+  Future<bool?> enhance(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || canEnhance(item) != CraftCheck.ok) return null;
+    final to = item.enhance + 1;
+    final cost = EquipmentRules.enhanceCost(to);
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends,
+          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+    ));
+    final ok = _random.nextDouble() < EquipmentRules.enhanceChance(to);
+    await _saveArmory(_armory.replace(item.copyWith(
+      enhance: ok ? to : item.enhance,
+      enhanceManaSpent: item.enhanceManaSpent + cost.manaStones,
+    )));
+    return ok;
+  }
+
+  /// 내구도를 다 고친다
+  Future<bool> repair(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return false;
+    final cost = EquipmentRules.repairCost(item);
+    if (cost <= 0 || player.gold < cost) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost}),
+    ));
+    await _saveArmory(_armory.replace(
+        item.copyWith(durability: EquipmentRules.maxDurability)));
+    return true;
+  }
+
+  /// 분해한다 (재료 절반과 마석 1, 강화 마석 절반을 돌려받는다)
+  Future<bool> disassemble(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return false;
+    final back = EquipmentRules.salvage(item);
+    await _grant(0, back.manaStones, back.materials);
+    final a = _armory;
+    await _saveArmory(a.copyWith(
+      items: [for (final i in a.items) if (i.uid != uid) i],
+      equipped: {
+        for (final e in a.equipped.entries)
+          if (e.value != uid) e.key: e.value,
+      },
+    ));
+    return true;
+  }
+
+  /// 입는다 (같은 부위의 장비는 벗는다)
+  Future<void> equip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return;
+    await _saveArmory(
+        _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
+  }
+
+  Future<void> unequip(EquipSlot slot) async {
+    await _saveArmory(_armory.copyWith(equipped: {
+      for (final e in _armory.equipped.entries)
+        if (e.key != slot) e.key: e.value,
+    }));
+  }
+
+  /// 싸울 때마다 입은 장비의 내구도가 준다
+  Future<void> _wear(int n) async {
+    final worn = _armory.worn;
+    if (worn.isEmpty) return;
+    var a = _armory;
+    for (final item in worn) {
+      a = a.replace(item.copyWith(
+          durability: math.max(0, item.durability - n)));
+    }
+    _armory = a;
+    await store.saveJson(_armoryKey, a.toJson());
+  }
+
   // ───────────────────────────────────────────── 의뢰 게시판 (11-10 #26)
 
   static const _boardKey = 'board';
@@ -802,8 +966,12 @@ class AppController extends ChangeNotifier {
 
   Vitals _vitals = const Vitals();
 
-  /// 전투용 최대 HP
-  int get maxHp => player.maxHp;
+  /// 전투용 최대 HP (장비 포함)
+  int get maxHp {
+    final p = player;
+    return Battle.playerMaxHpWith(
+        level: p.level.level, stats: p.stats, gear: gear);
+  }
 
   /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
   int get hp => math.min(maxHp, _vitals.hp ?? maxHp);
@@ -845,7 +1013,7 @@ class AppController extends ChangeNotifier {
   Future<void> _refreshVitals() async {
     final now = _clock();
     final p = player;
-    final max = p.maxHp;
+    final max = maxHp;
     var v = _vitals;
     var changed = false;
 
@@ -1046,6 +1214,7 @@ class AppController extends ChangeNotifier {
           mods: mods,
           spawnId: ex.spawnId),
       rng: math.Random(ex.spawnId.hashCode),
+      gear: gear,
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
     if (battle.phase == BattlePhase.escaped) {
@@ -1153,6 +1322,9 @@ class AppController extends ChangeNotifier {
     return record.copyWith(steps: steps, stepsAfter8pm: after8);
   }
 }
+
+/// 대장간에서 만들거나 강화할 수 있는지
+enum CraftCheck { ok, materials, manaStones, gold, maxed }
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }

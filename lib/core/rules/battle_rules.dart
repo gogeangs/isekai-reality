@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'equipment_rules.dart';
 import 'modifier_rules.dart';
 import 'monsters.dart';
 import 'rule_constants.dart';
@@ -183,12 +184,13 @@ class Battle {
     math.Random? rng,
     this.skillChargeTicks = RuleConstants.skillChargeTicks,
     int? startHp,
+    this.damageTaken = 1,
   })  : floors = List.unmodifiable(floors),
         _rng = rng ?? math.Random(),
         playerHp = math.min(playerMaxHp, math.max(0, startHp ?? playerMaxHp)),
         foeHp = floors.first.maxHp;
 
-  /// 플레이어 상태로 전투를 만든다
+  /// 플레이어 상태로 전투를 만든다. [gear] 는 입은 장비의 힘 (11-10 #27).
   factory Battle.forPlayer({
     required int level,
     required Stats stats,
@@ -196,20 +198,39 @@ class Battle {
     math.Random? rng,
     int skillChargeTicks = RuleConstants.skillChargeTicks,
     int? startHp,
+    GearBonus gear = GearBonus.none,
   }) {
+    final all = stats + gear.stats;
+    final ticks = skillChargeTicks >= skillUnavailable
+        ? skillChargeTicks
+        : math.max(1, skillChargeTicks - gear.skillFaster);
     return Battle(
       startHp: startHp,
-      playerMaxHp: StatRules.battleMaxHp(level: level, stats: stats),
-      playerAttack:
-          BattleRules.attackOf(StatRules.combatPower(level: level, stats: stats)),
+      playerMaxHp: playerMaxHpWith(level: level, stats: stats, gear: gear),
+      playerAttack: math.max(
+          1,
+          (BattleRules.attackOf(StatRules.combatPower(level: level, stats: all)) *
+                  (1 + gear.attack))
+              .round()),
       floors: floors,
       rng: rng,
-      skillChargeTicks: skillChargeTicks,
+      skillChargeTicks: ticks,
+      damageTaken: 1 - gear.reduce,
     );
   }
 
+  /// 장비를 입은 최대 HP
+  static int playerMaxHpWith(
+          {required int level, required Stats stats, GearBonus gear = GearBonus.none}) =>
+      (StatRules.battleMaxHp(level: level, stats: stats + gear.stats) *
+              (1 + gear.maxHp))
+          .round();
+
   final int playerMaxHp;
   final int playerAttack;
+
+  /// 받는 피해 배수 (장비로 줄어든다)
+  final double damageTaken;
   final List<Foe> floors;
   final math.Random _rng;
 
@@ -349,7 +370,8 @@ class Battle {
       atk *= 2.5;
       lastEvent = '강타!';
     }
-    final taken = _vary(atk.round());
+    if (damageTaken != 1) atk *= damageTaken;
+    final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
     if ((f.has(ModifierId.venomous) || f.has(ModifierId.plagued)) &&

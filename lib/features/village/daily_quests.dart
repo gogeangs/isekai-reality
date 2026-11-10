@@ -85,9 +85,12 @@ class RewardChip extends StatelessWidget {
 }
 
 class QuestRowView extends StatelessWidget {
-  const QuestRowView({required this.quest});
+  const QuestRowView({required this.quest, this.rewardExp});
 
   final QuestProgress quest;
+
+  /// 보상 경험치 (없으면 일일 퀘스트 경험치)
+  final int? rewardExp;
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +156,8 @@ class QuestRowView extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         RewardChip(
-            text: 'EXP ${QuestRules.rewardExp}', done: quest.completed),
+            text: 'EXP ${rewardExp ?? QuestRules.rewardExp}',
+            done: quest.completed),
       ]),
     );
   }

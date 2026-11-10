@@ -1,4 +1,5 @@
 import '../models/daily_record.dart';
+import 'board_rules.dart';
 import 'materials.dart';
 import 'rule_constants.dart';
 
@@ -302,13 +303,15 @@ class TownRules {
   /// 예전 이름 (마석과 같다)
   static int crystals(List<DailyRecord> history) => manaStones(history);
 
-  /// 지금 가진 금화
+  /// 지금 가진 금화 (주간 의뢰 보상 포함)
   static int gold(List<DailyRecord> history) {
     var g = 0;
-    for (final r in history) {
+    for (var i = 0; i < history.length; i++) {
+      final r = history[i];
       g += (r.gains[Wallet.gold] ?? 0) -
           goldSpentOnShop(r) -
-          (r.spends[Wallet.gold] ?? 0);
+          (r.spends[Wallet.gold] ?? 0) +
+          BoardRules.weeklyCompletedOn(history, i) * BoardRules.weeklyGold;
     }
     return g < 0 ? 0 : g;
   }
@@ -436,7 +439,8 @@ class TownRules {
   }
 
   /// 그날 산 여분의 열쇠 수 (열쇠 계산에 더한다)
-  static int spareKeysOn(DailyRecord r) => boughtOn(r, ShopItem.spareKey);
+  static int spareKeysOn(DailyRecord r) =>
+      boughtOn(r, ShopItem.spareKey) + (r.counters['bonusKeys'] ?? 0);
 
   /// 그날 정령 물약을 마셨는지 (가방에서 꺼내 마신 날)
   static bool potionActive(DailyRecord? r) =>

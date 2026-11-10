@@ -1,4 +1,5 @@
 export 'battle_rules.dart';
+export 'board_rules.dart';
 export 'dungeon_gauge_rules.dart';
 export 'exp_rules.dart';
 export 'exploration_rules.dart';

@@ -114,7 +114,8 @@ int _between(Random r, (int, int) range) =>
 Result simulate(Persona p, {int days = 14, int seed = 7}) {
   final rng = Random(seed);
   final battleRng = Random(seed + 100);
-  final start = DateTime(2026, 11, 1);
+  // 주간 의뢰가 있는 월요일부터 2주 (11-10)
+  final start = DateTime(2026, 11, 9);
   final history = <DailyRecord>[];
   final rows = <DayRow>[];
   var hp = 0;

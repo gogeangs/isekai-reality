@@ -37,7 +37,7 @@ class VillageScreen extends StatelessWidget {
   static const facilities = [
     FacilityInfo(Facility.inn, '여관', 'map_inn', '쉬면 HP·MP가 가득'),
     FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
-    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일 의뢰'),
+    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 제작·강화',
         open: false),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_lock', '나중에 열려요',

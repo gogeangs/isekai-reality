@@ -29,7 +29,9 @@ class PlayerState {
     final restStreaks = TownRules.restStreaks(history);
     final dailyExp = <DailyExpBreakdown>[];
     for (var i = 0; i < history.length; i++) {
-      final exp = ExpRules.forDay(history[i], restStreak: restStreaks[i]);
+      final exp = ExpRules.forDay(history[i],
+          restStreak: restStreaks[i],
+          weeklyDone: BoardRules.weeklyCompletedOn(history, i));
       dailyExp.add(exp);
       totalExp += exp.total;
     }

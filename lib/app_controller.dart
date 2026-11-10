@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'core/geo/geo.dart';
+import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
 import 'core/models/vitals.dart';
@@ -182,6 +183,8 @@ class AppController extends ChangeNotifier {
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     _vitals = await store.loadVitals();
+    final board = await store.loadJson(_boardKey);
+    _board = board == null ? const BoardState() : BoardState.fromJson(board);
     await sync();
     await _startExploring();
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
@@ -306,6 +309,7 @@ class AppController extends ChangeNotifier {
     _lastFix = null;
     _lastDiscovery = null;
     _vitals = const Vitals();
+    _board = const BoardState();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
     notifyListeners();
@@ -575,6 +579,14 @@ class AppController extends ChangeNotifier {
       modHunts: modKey == null
           ? null
           : DailyRecord.addCounts(today.modHunts, {modKey: 1}),
+      counters: mods.isEmpty
+          ? null
+          : DailyRecord.addCounts(today.counters, {
+              'modded': 1,
+              if (ModifierRules.gradeOf(mods).index >= ModGrade.rare.index)
+                'rarePlus': 1,
+              for (final m in mods) 'mod:${m.name}': 1,
+            }),
     ));
     _lastReward = HuntReward(
       exp: exp,
@@ -653,6 +665,126 @@ class AppController extends ChangeNotifier {
 
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
+
+  // ───────────────────────────────────────────── 의뢰 게시판 (11-10 #26)
+
+  static const _boardKey = 'board';
+  BoardState _board = const BoardState();
+
+  /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
+  BoardState get board => BoardRules.refresh(_board, _clock());
+
+  Future<void> _saveBoard(BoardState b) async {
+    _board = b;
+    await store.saveJson(_boardKey, b.toJson());
+    notifyListeners();
+  }
+
+  /// 수시 의뢰 진행 (수락한 뒤로 센 수)
+  int errandProgress(int slot) {
+    final s = board.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    final today = player.today;
+    if (t == null || !s.accepted || today == null) return 0;
+    return BoardRules.progress(t, today, s.baseline);
+  }
+
+  Future<void> acceptErrand(int slot) async {
+    final b = board;
+    final s = b.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    if (t == null || s.accepted) return;
+    final today = await _todayRecord();
+    final slots = [...b.slots];
+    slots[slot] = ErrandSlot(
+      templateId: t.id,
+      accepted: true,
+      baseline: BoardRules.counterValue(today, t.counter),
+    );
+    await _saveBoard(b.copyWith(slots: slots));
+  }
+
+  /// 다 한 수시 의뢰의 보상을 받는다. 2시간 뒤 새 의뢰가 올라온다.
+  Future<bool> claimErrand(int slot) async {
+    final b = board;
+    final s = b.slots[slot];
+    final t = BoardRules.template(s.templateId);
+    if (t == null || !s.accepted || errandProgress(slot) < t.target) {
+      return false;
+    }
+    await _grant(t.gold, t.manaStones, t.materials);
+    final slots = [...b.slots];
+    slots[slot] =
+        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
+    await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
+    return true;
+  }
+
+  /// 수시 의뢰를 포기한다 (보상 없이, 2시간 뒤 새 의뢰)
+  Future<void> abandonErrand(int slot) async {
+    final b = board;
+    final slots = [...b.slots];
+    slots[slot] =
+        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
+    await _saveBoard(b.copyWith(slots: slots));
+  }
+
+  /// 오늘 떠 있는 긴급 의뢰 (아직 안 떴거나 없는 날은 null)
+  ({
+    ErrandTemplate quest,
+    DateTime appearsAt,
+    UrgentPrize prize,
+    MaterialId rare,
+  })? get urgent {
+    final u = BoardRules.urgentFor(_clock());
+    if (u == null || _clock().isBefore(u.appearsAt)) return null;
+    return u;
+  }
+
+  int get urgentProgress {
+    final u = urgent;
+    final today = player.today;
+    if (u == null || !board.urgentAccepted || today == null) return 0;
+    return BoardRules.progress(u.quest, today, board.urgentBaseline);
+  }
+
+  Future<void> acceptUrgent() async {
+    final u = urgent;
+    if (u == null || board.urgentAccepted) return;
+    final today = await _todayRecord();
+    await _saveBoard(board.copyWith(
+      urgentAccepted: true,
+      urgentBaseline: BoardRules.counterValue(today, u.quest.counter),
+    ));
+  }
+
+  Future<bool> claimUrgent() async {
+    final u = urgent;
+    final b = board;
+    if (u == null || !b.urgentAccepted || b.urgentDone) return false;
+    if (urgentProgress < u.quest.target) return false;
+    if (u.prize == UrgentPrize.key) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          counters: DailyRecord.addCounts(today.counters, {'bonusKeys': 1})));
+      await _grant(u.quest.gold, 0, const {});
+    } else {
+      await _grant(u.quest.gold, 0, {u.rare: 1});
+    }
+    await _saveBoard(b.copyWith(urgentDone: true));
+    return true;
+  }
+
+  Future<void> _grant(
+      int gold, int manaStones, Map<MaterialId, int> materials) async {
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      gains: DailyRecord.addCounts(
+          today.gains,
+          HuntReward.ledger(
+              extraManaStones: manaStones, gold: gold, materials: materials)),
+    ));
+  }
 
   /// 날씨 조회를 켜고 끈다. 끄면 받아 둔 날씨도 버린다.
   Future<void> setWeatherEnabled(bool on) async {
@@ -869,6 +1001,9 @@ class AppController extends ChangeNotifier {
       compassReady: false, // 나침반은 한 번 쓰면 끝
     );
     await store.saveVitals(_vitals);
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        counters: DailyRecord.addCounts(today.counters, {'expedition': 1})));
     final ret = _vitals.expedition!.returnAt;
     unawaited(notifier?.schedule(
       NotifyId.expedition,

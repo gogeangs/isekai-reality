@@ -48,6 +48,7 @@ class DailyRecord {
     this.spends = const {},
     this.modHunts = const {},
     this.fledSpawnIds = const [],
+    this.counters = const {},
   });
 
   final DateTime date;
@@ -117,6 +118,11 @@ class DailyRecord {
   /// 오늘 도망친 몬스터 자리 id (황금빛, 다시 나오지 않음)
   final List<String> fledSpawnIds;
 
+  /// 의뢰 진행에 쓰는 오늘의 수 (11-10 #26):
+  /// 'modded' 수식어 몬스터, 'rarePlus' 희귀 이상, 'mod:<수식어>', 'expedition' 정령 원정,
+  /// 'bonusKeys' 긴급 의뢰로 받은 열쇠
+  final Map<String, int> counters;
+
   /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
   bool get rested => restsCompleted > 0;
 
@@ -155,6 +161,7 @@ class DailyRecord {
         'spends': spends,
         'modHunts': modHunts,
         'fledSpawnIds': fledSpawnIds,
+        'counters': counters,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -205,6 +212,7 @@ class DailyRecord {
       fledSpawnIds: ((json['fledSpawnIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      counters: _counts(json['counters']),
     );
   }
 
@@ -248,6 +256,7 @@ class DailyRecord {
     Map<String, int>? spends,
     Map<String, int>? modHunts,
     List<String>? fledSpawnIds,
+    Map<String, int>? counters,
   }) {
     return DailyRecord(
       date: date,
@@ -277,6 +286,7 @@ class DailyRecord {
       spends: spends ?? this.spends,
       modHunts: modHunts ?? this.modHunts,
       fledSpawnIds: fledSpawnIds ?? this.fledSpawnIds,
+      counters: counters ?? this.counters,
     );
   }
 }

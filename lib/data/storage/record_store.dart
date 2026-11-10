@@ -129,6 +129,10 @@ abstract class RecordStore {
   Future<Vitals> loadVitals();
   Future<void> saveVitals(Vitals vitals);
 
+  /// 그 밖의 게임 상태 (의뢰 게시판, 장비 등). 없으면 null.
+  Future<Map<String, dynamic>?> loadJson(String key);
+  Future<void> saveJson(String key, Map<String, dynamic> value);
+
   /// 모든 기록·프로필·탐험 기록을 지운다 (데이터 동의 철회)
   Future<void> clearAll();
 }
@@ -174,11 +178,21 @@ class InMemoryRecordStore implements RecordStore {
   @override
   Future<void> saveVitals(Vitals vitals) async => _vitals = vitals;
 
+  final Map<String, Map<String, dynamic>> _json = {};
+
+  @override
+  Future<Map<String, dynamic>?> loadJson(String key) async => _json[key];
+
+  @override
+  Future<void> saveJson(String key, Map<String, dynamic> value) async =>
+      _json[key] = value;
+
   @override
   Future<void> clearAll() async {
     _profile = null;
     _records.clear();
     _cells.clear();
+    _json.clear();
     _vitals = const Vitals();
   }
 }
@@ -256,13 +270,26 @@ class SharedPrefsRecordStore implements RecordStore {
   }
 
   @override
+  Future<Map<String, dynamic>?> loadJson(String key) async {
+    final raw = (await _prefs).getString('json.$key');
+    if (raw == null) return null;
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  @override
+  Future<void> saveJson(String key, Map<String, dynamic> value) async {
+    await (await _prefs).setString('json.$key', jsonEncode(value));
+  }
+
+  @override
   Future<void> clearAll() async {
     final prefs = await _prefs;
     for (final key in prefs.getKeys().toList()) {
       if (key == _profileKey ||
           key == _historyKey ||
           key == _vitalsKey ||
-          key.startsWith('cells.')) {
+          key.startsWith('cells.') ||
+          key.startsWith('json.')) {
         await prefs.remove(key);
       }
     }

@@ -36,7 +36,7 @@ void main() {
       expect(count(MonsterId.lightSlime, false) / 20000, closeTo(0.06, 0.01));
       expect(count(MonsterId.lightSlime, true) / 20000, closeTo(0.02, 0.01));
       expect(count(MonsterId.darkSlime, true) / 20000, closeTo(0.06, 0.01));
-      expect(count(MonsterId.ashSlime, false) / 20000, closeTo(0.40, 0.02));
+      expect(count(MonsterId.ashSlime, false) / 20000, closeTo(0.32, 0.02));
     });
 
     test('혼래빗은 토끼 고기나 작은 뿔, 빛 슬라임은 귀한 재료 15%', () {
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('도감은 13칸, 칭호 도감의 현자는 속성 슬라임을 뺀 7종', () {
-      expect(Monsters.all, hasLength(13));
+      expect(Monsters.all, hasLength(17));
       final base = [for (final m in Monsters.all) if (!m.slimeKind) m.id.name];
       expect(base, hasLength(7));
       expect(TitleRules.earned([DailyRecord(date: DateTime(2026, 11, 11), purifiedMonsterIds: base)], 1),

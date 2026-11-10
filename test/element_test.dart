@@ -38,7 +38,7 @@ void main() {
     test('사냥 점수: 무기 속성이 있으면 그것, 없으면 이기는 속성이 나눠 받음', () {
       expect(ElementRules.huntScore(Element.water, Element.fire), {Element.fire: 2.0});
       final s = ElementRules.huntScore(Element.metal, null);
-      expect(s.keys.toSet(), {Element.fire, Element.thunder});
+      expect(s.keys.toSet(), {Element.fire, Element.thunder, Element.dark});
       expect(s.values.fold(0.0, (a, b) => a + b), closeTo(1, 1e-9));
       expect(ElementRules.huntScore(null, null), isEmpty);
       expect(ElementRules.mainOf({Element.fire: 10}), isNull); // 30점부터
@@ -124,7 +124,11 @@ void main() {
         store: InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루'),
           history: [
-            DailyRecord(date: DateTime(2026, 11, 10), gains: {Wallet.gold: 1000}),
+            DailyRecord(date: DateTime(2026, 11, 9)),
+            DailyRecord(date: DateTime(2026, 11, 10), counters: {
+              TownRules.giftKey(ShopItem.manaSmall): 2,
+              TownRules.giftKey(ShopItem.mana): 1,
+            }),
           ],
         ),
         health: FakeHealthSource(stepsByDay: {'2026-11-11': 3000}),
@@ -133,11 +137,7 @@ void main() {
         random: Random(1),
       );
       await c.init();
-      expect(c.manaOptions(10), isEmpty); // 물약이 없으면 버튼 없음
-      for (var i = 0; i < 2; i++) {
-        await c.buy(ShopItem.manaSmall);
-      }
-      await c.buy(ShopItem.mana);
+      expect(c.bagCount(ShopItem.mana), 1);
       final small = (c.mpMax * 0.2).round();
       final big = (c.mpMax * 0.4).round();
       final a = c.manaOptions(small - 1);

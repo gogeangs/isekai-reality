@@ -175,6 +175,10 @@ void main() {
     }
     await tester.pumpAndSettle();
     await _shot(tester, '07_던전_결과');
+    // 알을 주웠다는 알림이 버튼을 가리지 않게
+    ScaffoldMessenger.of(tester.element(find.byType(Scaffold).last))
+        .clearSnackBars();
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('돌아가기'), 300,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();

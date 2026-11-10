@@ -117,9 +117,9 @@ class InnScreen extends StatelessWidget {
                             value: '+${exp?.total ?? 0}',
                             strong: true),
                         _Row(
-                            icon: 'crystal',
-                            label: '오늘 정화 결정',
-                            value: '+${TownRules.crystalsEarnedOn(today)}개',
+                            icon: 'mana_stone',
+                            label: '오늘 마석',
+                            value: '+${TownRules.manaStonesEarnedOn(today)}개',
                             strong: true),
                         if ((exp?.rest ?? 0) > 0)
                           _Row(
@@ -151,7 +151,7 @@ class InnScreen extends StatelessWidget {
                         if (next.daysLeft > 0)
                           Text(
                             '${next.daysLeft}일 더 쉬면 경험치 +${next.exp}'
-                            '${next.crystals > 0 ? ', 정화 결정 +${next.crystals}' : ''}',
+                            '${next.crystals > 0 ? ', 마석 +${next.crystals}' : ''}',
                             style: const TextStyle(
                                 color: AppColors.text, fontSize: 13),
                           ),

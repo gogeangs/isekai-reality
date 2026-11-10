@@ -1,4 +1,5 @@
 import '../models/daily_record.dart';
+import 'materials.dart';
 import 'rule_constants.dart';
 
 /// 잡화상 물건 (이름은 저장된 기록과 맞아야 하므로 바꾸지 않는다)
@@ -27,8 +28,14 @@ enum ShopItem {
   /// 원정 나침반: 쓰면 다음 정령 원정의 이동 시간이 절반 (하루 1개, 11-10)
   expeditionCompass,
 
-  /// 정화의 향: 피운 날은 필드 몬스터 경험치 1.5배 (하루 1개, 11-10)
+  /// 성장의 향 (예전 이름 정화의 향): 피운 날은 필드 몬스터 경험치 1.5배 (하루 1개, 11-10)
   purifyIncense,
+
+  /// 철 조각: 무기 재료 (하루 5개, 11-10)
+  ironShard,
+
+  /// 나뭇가지: 지팡이 재료 (하루 5개, 11-10)
+  twig,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -45,14 +52,21 @@ class ShopItemInfo {
     this.minLevel = 1,
     this.hpRatio = 0,
     this.mpRatio = 0,
+    this.material,
   });
 
   final ShopItem item;
   final String name;
   final String description;
 
-  /// 정화 결정 가격
+  /// 금화 가격 (11-10부터. 예전에 결정으로 산 기록은 [legacyPrice] 마석)
   final int price;
+
+  /// 예전 정화 결정 가격 = 지금 마석으로 쓴 것으로 계산한다
+  int get legacyPrice => price ~/ RuleConstants.goldPriceMultiplier;
+
+  /// 사면 가방이 아니라 재료로 들어가는 물건
+  final MaterialId? material;
   final ShopLimit limit;
 
   /// 기간([limit]) 안에 살 수 있는 개수
@@ -75,6 +89,7 @@ class ShopItemInfo {
 /// 살 수 있는지 판정 결과
 enum PurchaseCheck {
   ok,
+  /// 금화가 모자란다
   notEnoughCrystals,
   limitReached,
   needsLocation,
@@ -94,14 +109,17 @@ enum UseCheck {
   /// HP·MP가 이미 가득
   alreadyFull,
 
-  /// 정령 물약·정화의 향을 오늘 이미 썼다, 원정 나침반을 써 두었다
+  /// 정령 물약·성장의 향을 오늘 이미 썼다, 원정 나침반을 써 두었다
   alreadyActive,
 }
 
-/// 앱 안 시설 규칙: 정화 결정(돈), 잡화상, 여관.
+/// 앱 안 시설 규칙: 마석·금화(돈), 재료, 잡화상, 여관.
 ///
-/// 산 물건과 휴식은 하루 기록([DailyRecord])에 남기고,
-/// 결정 잔액은 기록에서 매번 다시 계산한다.
+/// 산 물건, 얻고 쓴 것, 휴식은 하루 기록([DailyRecord])에 남기고,
+/// 잔액은 기록에서 매번 다시 계산한다.
+///
+/// 11-10 마석·금화: 예전 정화 결정은 같은 수의 마석이 되고(규칙 그대로 계산),
+/// 금화는 0에서 시작한다. 마석 1개는 잡화상에서 금화 10으로 판다.
 class TownRules {
   TownRules._();
 
@@ -117,7 +135,7 @@ class TownRules {
       item: ShopItem.healSmall,
       name: '작은 회복 물약',
       description: '가방에 넣어 두고, 마시면 HP가 20% 차요.',
-      price: 1,
+      price: 10,
       limit: ShopLimit.perDay,
       perLimit: 3,
       hpRatio: 0.2,
@@ -127,7 +145,7 @@ class TownRules {
       item: ShopItem.heal,
       name: '회복 물약',
       description: '가방에 넣어 두고, 마시면 HP가 40% 차요.',
-      price: 3,
+      price: 30,
       limit: ShopLimit.perDay,
       perLimit: 3,
       minLevel: 3,
@@ -138,7 +156,7 @@ class TownRules {
       item: ShopItem.manaSmall,
       name: '작은 마나 물약',
       description: '가방에 넣어 두고, 마시면 정령 MP가 20% 차요.',
-      price: 1,
+      price: 10,
       limit: ShopLimit.perDay,
       perLimit: 3,
       mpRatio: 0.2,
@@ -148,7 +166,7 @@ class TownRules {
       item: ShopItem.mana,
       name: '마나 물약',
       description: '가방에 넣어 두고, 마시면 정령 MP가 40% 차요.',
-      price: 3,
+      price: 30,
       limit: ShopLimit.perDay,
       perLimit: 3,
       minLevel: 3,
@@ -159,7 +177,7 @@ class TownRules {
       item: ShopItem.spareKey,
       name: '여분의 열쇠',
       description: '오늘 던전 열쇠가 하나 늘어나요.',
-      price: 15,
+      price: 150,
       limit: ShopLimit.perWeek,
       icon: 'icon_key',
     ),
@@ -167,7 +185,7 @@ class TownRules {
       item: ShopItem.bulssiPotion,
       name: '정령 물약',
       description: '가방에 넣어 두고, 마신 날은 던전에서 정령의 일격이 빨리 차요.',
-      price: 5,
+      price: 50,
       limit: ShopLimit.perDay,
       icon: 'potion_spirit_fire',
     ),
@@ -175,7 +193,7 @@ class TownRules {
       item: ShopItem.expeditionCompass,
       name: '원정 나침반',
       description: '가방에 넣어 두고, 쓰면 다음 정령 원정의 이동 시간이 절반이 돼요.',
-      price: 5,
+      price: 50,
       limit: ShopLimit.perDay,
       icon: 'icon_expedition', // 지도 원정 아이콘과 같은 나침반 그림
     ),
@@ -183,15 +201,35 @@ class TownRules {
       item: ShopItem.purifyIncense,
       name: '성장의 향',
       description: '가방에 넣어 두고, 피운 날은 필드 몬스터 경험치가 1.5배예요.',
-      price: 6,
+      price: 60,
       limit: ShopLimit.perDay,
       icon: 'item_incense',
+    ),
+    ShopItemInfo(
+      item: ShopItem.ironShard,
+      name: '철 조각',
+      description: '대장간에서 무기를 만들 때 써요.',
+      price: 20,
+      limit: ShopLimit.perDay,
+      perLimit: 5,
+      icon: 'mat_ironShard',
+      material: MaterialId.ironShard,
+    ),
+    ShopItemInfo(
+      item: ShopItem.twig,
+      name: '나뭇가지',
+      description: '대장간에서 지팡이를 만들 때 써요.',
+      price: 10,
+      limit: ShopLimit.perDay,
+      perLimit: 5,
+      icon: 'mat_twig',
+      material: MaterialId.twig,
     ),
     ShopItemInfo(
       item: ShopItem.magicLens,
       name: '마법 돋보기',
       description: '지금 있는 곳 주변 150m의 안개를 걷어요.',
-      price: 6,
+      price: 60,
       limit: ShopLimit.perDay,
       icon: 'icon_lens',
     ),
@@ -207,8 +245,9 @@ class TownRules {
     return null;
   }
 
-  // ───────────────────────── 정화 결정
+  // ───────────────────────── 마석 · 금화 · 재료
 
+  /// 그날 규칙으로 얻은 마석 (예전 정화 결정과 같은 계산)
   static int crystalsEarnedOn(DailyRecord r) {
     var c = 0;
     for (final run in r.dungeonRuns) {
@@ -222,31 +261,89 @@ class TownRules {
     return c + field * RuleConstants.crystalsPerFieldMonster;
   }
 
+  /// 그날 예전 결정 가격으로 산 것 (지금은 마석으로 쓴 것으로 센다)
   static int crystalsSpentOn(DailyRecord r) {
     var c = 0;
     for (final name in r.shopPurchases) {
+      final item = _parse(name);
+      if (item != null) c += info(item).legacyPrice;
+    }
+    return c;
+  }
+
+  /// 그날 금화로 산 것
+  static int goldSpentOnShop(DailyRecord r) {
+    var c = 0;
+    for (final name in r.goldPurchases) {
       final item = _parse(name);
       if (item != null) c += info(item).price;
     }
     return c;
   }
 
-  /// 지금 가진 정화 결정 (연속 휴식 보너스 결정 포함)
-  static int crystals(List<DailyRecord> history) {
+  /// 그날 얻은 마석 (규칙 몫 + 추가로 얻은 것)
+  static int manaStonesEarnedOn(DailyRecord r) =>
+      crystalsEarnedOn(r) + (r.gains[Wallet.manaStone] ?? 0);
+
+  /// 지금 가진 마석
+  static int manaStones(List<DailyRecord> history) {
     var c = 0;
     final streaks = restStreaks(history);
     for (var i = 0; i < history.length; i++) {
       final r = history[i];
-      c += crystalsEarnedOn(r) - crystalsSpentOn(r);
+      c += manaStonesEarnedOn(r) -
+          crystalsSpentOn(r) -
+          (r.spends[Wallet.manaStone] ?? 0);
       if (r.rested) c += restStreakReward(streaks[i]).$2;
     }
     return c < 0 ? 0 : c;
   }
 
+  /// 예전 이름 (마석과 같다)
+  static int crystals(List<DailyRecord> history) => manaStones(history);
+
+  /// 지금 가진 금화
+  static int gold(List<DailyRecord> history) {
+    var g = 0;
+    for (final r in history) {
+      g += (r.gains[Wallet.gold] ?? 0) -
+          goldSpentOnShop(r) -
+          (r.spends[Wallet.gold] ?? 0);
+    }
+    return g < 0 ? 0 : g;
+  }
+
+  /// 지금 가진 재료 (0개는 빼고)
+  static Map<MaterialId, int> materials(List<DailyRecord> history) {
+    final m = <MaterialId, int>{};
+    void add(String key, int n) {
+      final id = Materials.byName(key);
+      if (id != null) m[id] = (m[id] ?? 0) + n;
+    }
+
+    for (final r in history) {
+      r.gains.forEach(add);
+      r.spends.forEach((k, v) => add(k, -v));
+      for (final name in r.goldPurchases) {
+        final item = _parse(name);
+        final mat = item == null ? null : info(item).material;
+        if (mat != null) m[mat] = (m[mat] ?? 0) + 1;
+      }
+    }
+    m.removeWhere((_, n) => n <= 0);
+    return m;
+  }
+
+  /// 마석 [n] 개를 팔 수 있는지
+  static bool canSell(List<DailyRecord> history, int n) =>
+      n > 0 && manaStones(history) >= n;
+
   // ───────────────────────── 잡화상
 
+  /// 그날 산 개수 (예전 결정으로 산 것 + 금화로 산 것)
   static int boughtOn(DailyRecord r, ShopItem item) =>
-      r.shopPurchases.where((p) => p == item.name).length;
+      r.shopPurchases.where((p) => p == item.name).length +
+      r.goldPurchases.where((p) => p == item.name).length;
 
   /// 월요일에 시작하는 그 주의 첫날
   static DateTime weekStart(DateTime d) {
@@ -328,7 +425,7 @@ class TownRules {
     if (boughtInLimit(history, item) >= i.perLimit) {
       return PurchaseCheck.limitReached;
     }
-    if (crystals(history) < i.price) return PurchaseCheck.notEnoughCrystals;
+    if (gold(history) < i.price) return PurchaseCheck.notEnoughCrystals;
     if (item == ShopItem.magicLens && !hasLocation) {
       return PurchaseCheck.needsLocation;
     }
@@ -345,7 +442,7 @@ class TownRules {
   static bool potionActive(DailyRecord? r) =>
       r != null && usedOn(r, ShopItem.bulssiPotion) > 0;
 
-  /// 그날 정화의 향을 피웠는지 (필드 몬스터 경험치 1.5배)
+  /// 그날 성장의 향을 피웠는지 (필드 몬스터 경험치 1.5배)
   static bool incenseActive(DailyRecord? r) =>
       r != null && usedOn(r, ShopItem.purifyIncense) > 0;
 
@@ -395,7 +492,7 @@ class TownRules {
     return 0;
   }
 
-  /// 연속 [streak] 일째에 받는 (경험치, 정화 결정). 해당 없으면 (0, 0).
+  /// 연속 [streak] 일째에 받는 (경험치, 마석). 해당 없으면 (0, 0).
   static (int, int) restStreakReward(int streak) {
     for (final (days, exp, crystals) in RuleConstants.restStreakRewards) {
       if (streak == days) return (exp, crystals);

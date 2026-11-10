@@ -310,6 +310,10 @@ void main() {
       expect(c.player.totalExp - expBefore,
           RuleConstants.dungeonClearExp + RuleConstants.questExp);
       expect(c.purifiedEver, contains(MonsterId.labyrinthWarden));
+      // 마석 3개, 박쥐 날개 2 + 문지기의 돌조각 1 (11-10)
+      expect(c.lastReward.manaStones, 3);
+      expect(c.player.materialCount(MaterialId.batWing), 2);
+      expect(c.player.materialCount(MaterialId.wardenShard), 1);
     });
 
     test('미궁 입구에서는 보너스, 열쇠가 없으면 열 수 없다', () async {
@@ -336,8 +340,14 @@ void main() {
       expect(c.nearbySpawn?.id, spawn.id);
 
       final b = c.startFieldBattle(spawn)!..runToEnd();
+      final stones = c.player.manaStones;
       expect(await c.finishFieldBattle(spawn, b), RuleConstants.fieldMonsterExp);
       expect(c.history.last.fieldMonstersPurified, 1);
+      // 마석 1개와 그 몬스터 재료 1개 (11-10)
+      expect(c.player.manaStones, stones + 1);
+      final (common, _) = LootRules.dropsOf(spawn.monster);
+      expect(c.player.materialCount(common), 1);
+      expect(c.lastReward.materials[common], 1);
       expect(c.todaySpawns.map((s) => s.id), isNot(contains(spawn.id)));
       // 같은 자리를 두 번 기록하지 않는다
       expect(await c.finishFieldBattle(spawn, b), 0);

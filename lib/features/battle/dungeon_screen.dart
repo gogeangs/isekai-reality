@@ -8,6 +8,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/bag_sheet.dart';
+import '../town/material_view.dart';
 import 'battle_view.dart';
 
 enum _Stage { entry, battle, result }
@@ -451,6 +452,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
             const SizedBox(height: 8),
             Text('사냥 ${battle.purified.length} / ${battle.floors.length}',
                 style: AppText.title(16, color: const Color(0xFFCDB8F5))),
+            const SizedBox(height: 8),
+            RewardItems(reward: _c.lastReward),
           ],
         ),
       ),

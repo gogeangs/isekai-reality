@@ -145,7 +145,7 @@ class _BattleViewState extends State<BattleView> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 child: Row(children: [
-                  const GameIcon('crystal', size: 40),
+                  const GameIcon('mana_stone', size: 40),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

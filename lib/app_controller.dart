@@ -434,13 +434,28 @@ class AppController extends ChangeNotifier {
     final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
+    final mats = LootRules.dungeon(cleared: run.cleared, rng: _random);
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
       huntCounts: _addCounts(today, battle.purified),
+      gains: DailyRecord.addCounts(
+          today.gains, HuntReward.ledger(materials: mats)),
     ));
+    _lastReward = HuntReward(
+      exp: exp,
+      manaStones: run.cleared
+          ? RuleConstants.crystalsPerDungeonClear
+          : RuleConstants.crystalsPerDungeonFail,
+      materials: mats,
+    );
     return exp;
   }
+
+  HuntReward _lastReward = const HuntReward();
+
+  /// 방금 끝난 사냥·던전의 보상 (결과 화면에 보여 준다)
+  HuntReward get lastReward => _lastReward;
 
   /// 오늘 아직 정화하지 않은 필드 몬스터.
   /// 하루 상한(5마리)을 채우면 더 나오지 않는다.
@@ -491,25 +506,36 @@ class AppController extends ChangeNotifier {
   }
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
-  /// 하루 5마리까지만 경험치·결정을 준다.
+  /// 하루 5마리까지만 경험치·마석·재료를 준다.
   Future<int> _recordFieldPurify(
       String spawnId, MonsterId monster, GeoPoint point) async {
     final today = await _todayRecord();
+    _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
-    final exp =
-        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
-            ? (RuleConstants.fieldMonsterExp *
-                    (TownRules.incenseActive(today)
-                        ? RuleConstants.incenseExpMultiplier
-                        : 1))
-                .round()
-            : 0;
+    final paid =
+        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay;
+    final exp = paid
+        ? (RuleConstants.fieldMonsterExp *
+                (TownRules.incenseActive(today)
+                    ? RuleConstants.incenseExpMultiplier
+                    : 1))
+            .round()
+        : 0;
+    // 마석은 규칙(하루 5마리)으로 계산하고, 재료만 기록에 더한다
+    final mats = paid ? LootRules.field(monster, _random) : <MaterialId, int>{};
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
       huntCounts: _addCounts(today, [monster]),
+      gains: DailyRecord.addCounts(
+          today.gains, HuntReward.ledger(materials: mats)),
     ));
+    _lastReward = HuntReward(
+      exp: exp,
+      manaStones: paid ? RuleConstants.crystalsPerFieldMonster : 0,
+      materials: mats,
+    );
     return exp;
   }
 
@@ -525,9 +551,21 @@ class AppController extends ChangeNotifier {
     if (check != PurchaseCheck.ok) return check;
 
     await _save(today.copyWith(
-      shopPurchases: [...today.shopPurchases, item.name],
+      goldPurchases: [...today.goldPurchases, item.name],
     ));
     return PurchaseCheck.ok;
+  }
+
+  /// 마석 [count] 개를 금화로 판다 (1개에 금화 10). 모자라면 false.
+  Future<bool> sellManaStones(int count) async {
+    final today = await _todayRecord();
+    if (!TownRules.canSell(_history, count)) return false;
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {Wallet.manaStone: count}),
+      gains: DailyRecord.addCounts(today.gains,
+          {Wallet.gold: count * RuleConstants.goldPerManaStone}),
+    ));
+    return true;
   }
 
   /// 가방에 든 개수

@@ -44,6 +44,19 @@ class DemoData {
         fieldMonstersPurified: isToday ? 0 : 2,
         newPlacesVisited: i < 5 ? 2 : (i.isEven ? 1 : 0),
         placesRevisited: 1,
+        // 11-10 마석·금화: 사흘 전에 마석 20개를 팔았고, 재료를 모아 두었다
+        spends: i == 10 ? const {Wallet.manaStone: 20} : const {},
+        gains: i == 10
+            ? const {
+                Wallet.gold: 200,
+                'slimeJelly': 4,
+                'slimeCore': 1,
+                'ratHide': 6,
+                'batWing': 5,
+                'wardenShard': 2,
+                'butterflyDust': 2,
+              }
+            : const {},
       );
       records.add(base.copyWith(
         questsCompleted: QuestRules.completedCount(base),

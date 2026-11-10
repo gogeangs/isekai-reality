@@ -43,6 +43,9 @@ class DailyRecord {
     this.newCellsRevealed = 0,
     this.restsCompleted = 0,
     this.itemsUsed = const [],
+    this.goldPurchases = const [],
+    this.gains = const {},
+    this.spends = const {},
   });
 
   final DateTime date;
@@ -95,6 +98,17 @@ class DailyRecord {
   /// 오늘 가방에서 꺼내 쓴 물건 ([ShopItem] 이름, 쓴 순서대로)
   final List<String> itemsUsed;
 
+  /// 오늘 잡화상에서 금화로 산 물건 ([ShopItem] 이름, 11-10부터).
+  /// [shopPurchases] 는 예전에 정화 결정(지금 마석)으로 산 기록이다.
+  final List<String> goldPurchases;
+
+  /// 오늘 얻은 것 (키: 'manaStone'·'gold'·재료 이름). 마석은 규칙으로 계산하는 몫
+  /// (던전·필드 기본 보상, 연속 휴식) 말고 더 얻은 것만 적는다.
+  final Map<String, int> gains;
+
+  /// 오늘 쓴 것 (키는 [gains] 와 같다). 마석 팔기, 제작, 강화, 수리 등.
+  final Map<String, int> spends;
+
   /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
   bool get rested => restsCompleted > 0;
 
@@ -128,6 +142,9 @@ class DailyRecord {
         'newCellsRevealed': newCellsRevealed,
         'restsCompleted': restsCompleted,
         'itemsUsed': itemsUsed,
+        'goldPurchases': goldPurchases,
+        'gains': gains,
+        'spends': spends,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -169,7 +186,24 @@ class DailyRecord {
       itemsUsed: ((json['itemsUsed'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      goldPurchases: ((json['goldPurchases'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
+      gains: _counts(json['gains']),
+      spends: _counts(json['spends']),
     );
+  }
+
+  static Map<String, int> _counts(Object? raw) => {
+        for (final e in ((raw as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      };
+
+  /// [a] 에 [b] 를 더한 새 맵
+  static Map<String, int> addCounts(Map<String, int> a, Map<String, int> b) {
+    final m = {...a};
+    b.forEach((k, v) => m[k] = (m[k] ?? 0) + v);
+    return m;
   }
 
   bool get stepGoalAchieved => steps >= stepGoal;
@@ -195,6 +229,9 @@ class DailyRecord {
     int? newCellsRevealed,
     int? restsCompleted,
     List<String>? itemsUsed,
+    List<String>? goldPurchases,
+    Map<String, int>? gains,
+    Map<String, int>? spends,
   }) {
     return DailyRecord(
       date: date,
@@ -219,6 +256,9 @@ class DailyRecord {
       newCellsRevealed: newCellsRevealed ?? this.newCellsRevealed,
       restsCompleted: restsCompleted ?? this.restsCompleted,
       itemsUsed: itemsUsed ?? this.itemsUsed,
+      goldPurchases: goldPurchases ?? this.goldPurchases,
+      gains: gains ?? this.gains,
+      spends: spends ?? this.spends,
     );
   }
 }

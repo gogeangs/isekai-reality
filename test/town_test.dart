@@ -26,9 +26,13 @@ DailyRecord _day(int d,
         {List<DungeonRun> runs = const [],
         int field = 0,
         List<String> bought = const [],
+        List<String> goldBought = const [],
+        int gold = 0,
         int rests = 0,
         int steps = 0}) =>
     DailyRecord(
+      goldPurchases: goldBought,
+      gains: gold > 0 ? {Wallet.gold: gold} : const {},
       date: DateTime(2026, 11, d),
       dungeonRuns: runs,
       fieldMonstersPurified: field,
@@ -39,8 +43,8 @@ DailyRecord _day(int d,
     );
 
 void main() {
-  group('정화 결정', () {
-    test('던전 정화 3개, 실패 1개, 필드 몬스터 1개 (하루 5마리까지)', () {
+  group('마석·금화', () {
+    test('던전 클리어 3개, 실패 1개, 필드 몬스터 1개 (하루 5마리까지)', () {
       final r = _day(2,
           runs: const [
             DungeonRun(cleared: true),
@@ -50,17 +54,52 @@ void main() {
       expect(TownRules.crystalsEarnedOn(r), 3 + 1 + 5);
     });
 
-    test('산 물건 값만큼 빠진다', () {
+    test('예전에 결정으로 산 것은 마석으로 쓴 것으로 계산한다 (금화는 0)', () {
       final history = [
         _day(2, runs: List.filled(5, const DungeonRun(cleared: true))),
         _day(3, bought: ['bulssiPotion', 'magicLens']),
       ];
-      expect(TownRules.crystals(history), 15 - 5 - 6);
+      expect(TownRules.manaStones(history), 15 - 5 - 6);
+      expect(TownRules.gold(history), 0);
+    });
+
+    test('가격은 예전 결정 가격의 10배 금화', () {
+      expect(TownRules.info(ShopItem.healSmall).price, 10);
+      expect(TownRules.info(ShopItem.spareKey).price, 150);
+      expect(TownRules.info(ShopItem.purifyIncense).price, 60);
+      expect(TownRules.info(ShopItem.ironShard).price, 20);
+      expect(TownRules.info(ShopItem.twig).price, 10);
+    });
+
+    test('금화로 산 것은 금화에서 빠지고, 철 조각은 재료로 들어간다', () {
+      final history = [
+        _day(2, gold: 100),
+        _day(3, goldBought: ['healSmall', 'ironShard', 'ironShard']),
+      ];
+      expect(TownRules.gold(history), 100 - 10 - 40);
+      expect(TownRules.materials(history), {MaterialId.ironShard: 2});
+      expect(TownRules.bagCount(history, ShopItem.healSmall), 1);
+    });
+
+    test('마석 팔기: 쓴 마석만큼 줄고 금화가 는다', () {
+      final history = [
+        _day(2, runs: List.filled(2, const DungeonRun(cleared: true))),
+        DailyRecord(
+            date: DateTime(2026, 11, 3),
+            spends: const {Wallet.manaStone: 4},
+            gains: const {Wallet.gold: 40, 'ratHide': 2}),
+      ];
+      expect(TownRules.manaStones(history), 6 - 4);
+      expect(TownRules.gold(history), 40);
+      expect(TownRules.materials(history), {MaterialId.ratHide: 2});
+      expect(TownRules.canSell(history, 2), isTrue);
+      expect(TownRules.canSell(history, 3), isFalse);
     });
   });
 
   group('잡화상', () {
-    final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
+    final rich = _day(2,
+        runs: List.filled(10, const DungeonRun(cleared: true)), gold: 1000);
 
     test('하루 1개 물건은 다음 날 다시 살 수 있다', () {
       expect(
@@ -83,7 +122,7 @@ void main() {
           PurchaseCheck.ok);
     });
 
-    test('결정이 모자라면 살 수 없다, 돋보기는 위치가 있어야 한다', () {
+    test('금화가 모자라면 살 수 없다', () {
       expect(TownRules.canBuy([_day(2)], ShopItem.bulssiPotion),
           PurchaseCheck.notEnoughCrystals);
     });
@@ -119,7 +158,7 @@ void main() {
       expect(TownRules.currentRestStreak(h), 2);
     });
 
-    test('7일 연속 쉬면 경험치 +70과 정화 결정 +5', () {
+    test('7일 연속 쉬면 경험치 +70과 마석 +5', () {
       final h = List.generate(7, (i) => _day(2 + i, rests: 1));
       final p = PlayerState.fromHistory(name: '하루', history: h);
       expect(p.dailyExp.last.rest, RuleConstants.restBonusExp);
@@ -164,7 +203,8 @@ void main() {
     });
 
     test('회복 물약은 레벨·하루 개수를 본다', () {
-      final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
+      final rich = _day(2,
+        runs: List.filled(10, const DungeonRun(cleared: true)), gold: 1000);
       expect(TownRules.canBuy([rich], ShopItem.heal, level: 2),
           PurchaseCheck.levelTooLow);
       expect(TownRules.canBuy([rich], ShopItem.healSmall, level: 1),
@@ -204,7 +244,8 @@ void main() {
     });
 
     test('정령 물약은 마신 날 하루만 효과가 있다', () {
-      final rich = _day(2, runs: List.filled(10, const DungeonRun(cleared: true)));
+      final rich = _day(2,
+        runs: List.filled(10, const DungeonRun(cleared: true)), gold: 1000);
       final d3 = DailyRecord(
         date: DateTime(2026, 11, 3),
         stepGoal: 8000,
@@ -239,16 +280,17 @@ void main() {
     final rich = DailyRecord(
         date: DateTime(2026, 11, 7),
         stepGoal: 8000,
-        dungeonRuns: List.filled(10, const DungeonRun(cleared: true)));
+        dungeonRuns: List.filled(10, const DungeonRun(cleared: true)),
+        gains: const {Wallet.gold: 1000});
 
-    test('여분의 열쇠를 사면 열쇠가 늘고 결정이 줄어든다', () async {
+    test('여분의 열쇠를 사면 열쇠가 늘고 금화가 줄어든다', () async {
       final c = await start(DateTime(2026, 11, 8, 14), history: [rich]);
       expect(c.player.gauge.keysAvailable, 1);
-      final before = c.player.crystals;
+      final before = c.player.gold;
 
       expect(await c.buy(ShopItem.spareKey), PurchaseCheck.ok);
       expect(c.player.gauge.keysAvailable, 2);
-      expect(c.player.crystals, before - 15);
+      expect(c.player.gold, before - 150);
       expect(await c.buy(ShopItem.spareKey), PurchaseCheck.limitReached);
     });
 
@@ -495,17 +537,24 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('잡화상').last);
     await tester.pumpAndSettle();
-    expect(find.textContaining('정화 결정'), findsWidgets);
+    expect(find.textContaining('금화'), findsWidgets);
 
-    final crystals = c.player.crystals;
-    // 정령 물약 (원정 나침반도 5개라 첫 번째)
+    // 마석 1개를 팔면 금화 10
+    final gold = c.player.gold;
+    final stones = c.player.manaStones;
+    await tester.tap(find.text('1개'));
+    await tester.pumpAndSettle();
+    expect(c.player.manaStones, stones - 1);
+    expect(c.player.gold, gold + 10);
+
+    // 정령 물약 (원정 나침반도 금화 50이라 첫 번째)
     await tester.scrollUntilVisible(find.text('정령 물약'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('5개').first);
+    await tester.tap(find.text('금화 50').first);
     await tester.pumpAndSettle();
-    expect(c.player.crystals, crystals - 5);
+    expect(c.player.gold, gold + 10 - 50);
     expect(find.text('오늘 샀어요'), findsOneWidget);
   });
 }

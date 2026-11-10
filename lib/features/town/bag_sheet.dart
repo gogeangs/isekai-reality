@@ -120,7 +120,7 @@ class _BagRow extends StatelessWidget {
         Image.asset(bagIconAsset(c, item),
             width: 44,
             height: 44,
-            errorBuilder: (_, __, ___) => const GameIcon('crystal', size: 44)),
+            errorBuilder: (_, __, ___) => const GameIcon('bag', size: 44)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

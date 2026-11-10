@@ -125,10 +125,17 @@ class RuleConstants {
 
   // ───────────────────────── 앱 안 시설 (여관 · 잡화상)
 
-  /// 정화 결정: 던전 클리어 3개, 던전 실패 1개, 필드 몬스터 정화 1개
+  /// 마석 (예전 정화 결정과 같은 양): 던전 클리어 3개, 던전 실패 1개, 필드 몬스터 1개.
+  /// 이름은 예전 그대로 둔다 (11-10 마석·금화).
   static const int crystalsPerDungeonClear = 3;
   static const int crystalsPerDungeonFail = 1;
   static const int crystalsPerFieldMonster = 1;
+
+  /// 잡화상에서 마석 1개를 팔면 받는 금화 (11-10 확정)
+  static const int goldPerManaStone = 10;
+
+  /// 예전 결정 가격 → 금화 가격 배수 (지금 가격 = 예전 가격 × 10)
+  static const int goldPriceMultiplier = 10;
 
   // ───────────────────────── 여관 (2026-11-10 개편)
 
@@ -138,7 +145,7 @@ class RuleConstants {
   /// 휴식을 마친 날 경험치 (하루 한 번)
   static const int restBonusExp = 20;
 
-  /// 연속 휴식 보너스: (연속 일수, 경험치, 정화 결정).
+  /// 연속 휴식 보너스: (연속 일수, 경험치, 마석).
   /// 14일 뒤로는 7일마다 14일째와 같은 보상.
   static const List<(int, int, int)> restStreakRewards = [
     (3, 30, 0),

@@ -304,7 +304,9 @@ void main() {
 
       expect(exp, RuleConstants.dungeonClearExp);
       expect(c.player.gauge.keysAvailable, 1);
-      expect(c.player.totalExp - expBefore, RuleConstants.dungeonClearExp);
+      // 일일 퀘스트 '던전 1번 열기'도 끝난다 (11-10)
+      expect(c.player.totalExp - expBefore,
+          RuleConstants.dungeonClearExp + RuleConstants.questExp);
       expect(c.purifiedEver, contains(MonsterId.labyrinthWarden));
     });
 

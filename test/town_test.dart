@@ -345,9 +345,12 @@ void main() {
       expect(c.startFieldBattle(spawn), isNull);
       expect(c.startDungeon(), isNull);
 
+      final maxBefore = c.maxHp;
       health.stepsByDay['2026-11-08'] = 4700; // 2,000보 더
       await c.sync();
-      expect(c.hp, (c.maxHp * 0.1).round() * 2);
+      // 레벨이 올라 최대 HP가 늘면 그만큼 더 찬다
+      expect(c.hp,
+          (c.maxHp * 0.1).round() * 2 + (c.maxHp - maxBefore));
       expect(c.startDungeon(), isNotNull);
     });
 

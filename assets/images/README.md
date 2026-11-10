@@ -78,3 +78,13 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_rabbitMeat, mat_smallHorn, mat_goldenRabbitFur, mat_boarMeat, mat_toughHide, mat_smallTusk, mat_herb | 새 재료 아이콘 (256×256) |
 | mat_<fire·water·wind·mud·light·dark>Jelly | 속성 젤리 6종 (256×256) |
 | mat_<fire·water·wind·earth·light·shadow>Core | 속성 코어 6종 (256×256, 금빛 반짝임) |
+
+## 펫·알·장면 (2026년 11월 11일, 그림 프롬프트 4)
+
+| 파일 | 쓰는 곳 |
+| --- | --- |
+| pet_<crow·blackCat·toad·owl·lizard·homunculus>_<baby·adult> | 펫 6종 아기·성체 (512×512) |
+| pet_egg, item_pet_snack | 펫 알, 펫 간식 (256×256) |
+| letter_spirit | 정령의 편지 (512×512) |
+| scene_hatch | 부화 때 펫 뒤의 빛 (1024×1024) |
+| scene_farewell | 정령의 작별 장면 (1600×900) |

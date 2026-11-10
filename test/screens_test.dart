@@ -185,11 +185,11 @@ void main() {
       await tester.tap(find.text('도감'));
       await tester.pump();
       expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
-      expect(findK('몬스터 도감 0 / 5'), findsNothing);
+      expect(findK('몬스터 도감 0 / 13'), findsNothing);
       // 탭을 누르면 몬스터 그룹만 보인다
       await tester.tap(find.text('몬스터 0/5'));
       await tester.pump();
-      expect(findK('몬스터 도감 0 / 5'), findsOneWidget);
+      expect(findK('몬스터 도감 0 / 13'), findsOneWidget);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {

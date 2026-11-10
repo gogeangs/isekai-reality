@@ -12,6 +12,7 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/theme/ornaments.dart';
 
 class _Location implements LocationSource {
   final _c = StreamController<LocationFix>.broadcast();
@@ -553,7 +554,10 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('50').first);
+    await tester.tap(find.descendant(
+        of: find.ancestor(
+            of: find.text('정령 물약'), matching: find.byType(OrnatePanel)),
+        matching: find.text('50')));
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
     expect(find.text('오늘 샀어요'), findsOneWidget);

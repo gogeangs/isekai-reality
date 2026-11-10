@@ -62,7 +62,7 @@ void main() {
   group('몬스터 전투 특징', () {
     Battle fight(MonsterId m, {int seed = 1}) => Battle(
           playerMaxHp: 10000,
-          playerAttack: 10,
+          playerAttack: 100,
           floors: [
             Foe(
                 monster: m,
@@ -76,6 +76,7 @@ void main() {
 
     test('물 슬라임은 매 턴 5% 회복, 어둠 슬라임은 때린 만큼 흡수', () {
       final w = fight(MonsterId.waterSlime)..tick();
+      expect(w.lastDealt, greaterThan(50));
       expect(w.foeHp, 1000 - w.lastDealt + 50);
       final d = fight(MonsterId.darkSlime)..tick();
       expect(d.foeHp, greaterThan(1000 - d.lastDealt));

@@ -178,7 +178,12 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) await controller.resetAll();
+    if (ok != true) return;
+    // 설정은 위에 열린 화면이라, 지운 뒤 첫 화면(각성)이 보이게 먼저 닫는다
+    if (context.mounted) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    }
+    await controller.resetAll();
   }
 
 }

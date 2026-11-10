@@ -10,6 +10,20 @@ import '../../core/rules/exploration_rules.dart';
 class AnsanArea {
   AnsanArea._();
 
+  /// 이름을 아는 제외 구역 (전국 지역에서도 쓴다)
+  static const List<ExclusionZone> exclusions = [
+      // 세월호 추모 공간: 화랑유원지와 4·16 생명안전공원 일대 (초지동).
+      // 경계를 정확히 모르므로 넉넉하게 잡는다. 실제 경계 확인 후 조정.
+      ExclusionZone(
+        name: '화랑유원지 · 4·16 생명안전공원 일대',
+        center: GeoPoint(37.3240, 126.8150),
+        radiusM: 700,
+      ),
+  ];
+
+  /// 안산 시내 가운데 (예시·테스트에서 위치 대신 쓰는 자리)
+  static const GeoPoint center = GeoPoint(37.3165, 126.8275);
+
   static const ExploreArea area = ExploreArea(
     id: 'ansan',
     name: '안산시',
@@ -160,14 +174,6 @@ class AnsanArea {
         visitRadiusM: 180,
       ),
     ],
-    exclusionZones: [
-      // 세월호 추모 공간: 화랑유원지와 4·16 생명안전공원 일대 (초지동).
-      // 경계를 정확히 모르므로 넉넉하게 잡는다. 실제 경계 확인 후 조정.
-      ExclusionZone(
-        name: '화랑유원지 · 4·16 생명안전공원 일대',
-        center: GeoPoint(37.3240, 126.8150),
-        radiusM: 700,
-      ),
-    ],
+    exclusionZones: exclusions,
   );
 }

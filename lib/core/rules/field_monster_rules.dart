@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../geo/geo.dart';
+import 'exclusion_index.dart';
 import 'exploration_rules.dart';
 import 'monsters.dart';
 import 'road_mask.dart';
@@ -23,31 +24,44 @@ class FieldMonsterRules {
 
   /// 그날의 필드 몬스터. 날짜로 정해지므로 같은 날에는 누구에게나 같은 자리.
   ///
-  /// - 장소마다 한 마리: 장소에서 80~150m 떨어진 곳, 장소에 맞는 몬스터
-  /// - 지역을 1km 블록으로 나눠 블록마다 70% 확률로 한 마리:
-  ///   잿빛 슬라임 또는 길 잃은 돌정령
-  /// - 밤(오후 7시 ~ 새벽 5시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비가 된다
-  /// - 제외 구역과 지역 밖, 큰길·철로 둘레에는 두지 않는다
-  /// [roads] 가 있으면 큰길·철로 둘레에는 두지 않는다 (11-10).
-  static List<FieldSpawn> spawnsFor(ExploreArea area, DateTime day,
-      {RoadMask? roads}) {
+  /// - 전국을 1km 블록으로 나눈 같은 격자를 쓴다 (11-10 전국 확대).
+  ///   블록마다 70% 확률로 한 마리: 잿빛 슬라임 또는 길 잃은 돌정령.
+  ///   블록마다 따로 난수를 쓰므로 어디서 보든 같은 블록에는 같은 몬스터.
+  /// - [center] 가 있으면 그 둘레 [radiusM] 안 블록만, 없으면 지역 전체
+  /// - 장소가 있는 지역이면 장소마다 한 마리 (장소에서 80~150m, 장소에 맞는 몬스터)
+  /// - 밤(오후 7시 ~ 새벽 5시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비
+  /// - 제외 구역([exclusions] 포함)과 지역 밖에는 두지 않는다.
+  ///   [roads] 가 있으면 큰길·철로 둘레에도 두지 않는다.
+  static List<FieldSpawn> spawnsFor(
+    ExploreArea area,
+    DateTime day, {
+    GeoPoint? center,
+    double radiusM = RuleConstants.fieldSpawnRadiusM,
+    RoadMask? roads,
+    ExclusionIndex? exclusions,
+  }) {
     final key = '${day.year}-${day.month}-${day.day}';
-    final rng = math.Random(_stableHash('${area.id}|$key'));
     final spawns = <FieldSpawn>[];
+
+    bool allowed(GeoPoint p) =>
+        area.bounds.contains(p) &&
+        !area.isExcluded(p) &&
+        !(exclusions?.contains(p) ?? false) &&
+        !(roads?.isRoad(p) ?? false);
 
     GeoPoint? pick(GeoPoint Function() candidate) {
       for (var attempt = 0; attempt < 8; attempt++) {
         final p = candidate();
-        if (area.bounds.contains(p) &&
-            !area.isExcluded(p) &&
-            !(roads?.isRoad(p) ?? false)) {
-          return p;
-        }
+        if (allowed(p)) return p;
       }
       return null;
     }
 
     for (final place in area.places) {
+      if (center != null && place.point.distanceTo(center) > radiusM + 200) {
+        continue;
+      }
+      final rng = math.Random(_stableHash('$key|${place.id}'));
       final p = pick(() => _offset(
             place.point,
             80 + rng.nextDouble() * 70,
@@ -55,33 +69,63 @@ class FieldMonsterRules {
           ));
       if (p == null) continue;
       spawns.add(FieldSpawn(
-        id: '$key#${spawns.length}',
+        id: '$key#${place.id}',
         monster: _habitatMonster(place.kind),
         point: p,
       ));
     }
 
     const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
-    final b = area.bounds;
-    final midLat = (b.south + b.north) / 2;
     const blockLat = RuleConstants.fieldSpawnBlockM / 111320;
-    final blockLng = RuleConstants.fieldSpawnBlockM /
-        (111320 * math.cos(midLat * math.pi / 180));
+    final b = area.bounds;
+    final double south, north;
+    if (center == null) {
+      south = b.south;
+      north = b.north;
+    } else {
+      south = center.lat - radiusM / 111320;
+      north = center.lat + radiusM / 111320;
+    }
     final night = isNight(day);
-    for (var lat = b.south; lat < b.north; lat += blockLat) {
-      for (var lng = b.west; lng < b.east; lng += blockLng) {
-        // 블록마다 같은 순서로 난수를 쓴다 (밤낮에 따라 자리가 바뀌지 않게)
+    for (var r = (south / blockLat).floor();
+        r <= (north / blockLat).floor();
+        r++) {
+      final rowLat = (r + 0.5) * blockLat;
+      final blockLng = RuleConstants.fieldSpawnBlockM /
+          (111320 * math.cos(rowLat * math.pi / 180));
+      final double west, east;
+      if (center == null) {
+        west = b.west;
+        east = b.east;
+      } else {
+        final dLng =
+            radiusM / (111320 * math.cos(center.lat * math.pi / 180));
+        west = center.lng - dLng;
+        east = center.lng + dLng;
+      }
+      for (var c = (west / blockLng).floor();
+          c <= (east / blockLng).floor();
+          c++) {
+        final s0 = r * blockLat, w0 = c * blockLng;
+        if (center != null &&
+            GeoPoint(s0 + blockLat / 2, w0 + blockLng / 2)
+                    .distanceTo(center) >
+                radiusM) {
+          continue;
+        }
+        // 블록마다 같은 순서로 난수를 쓴다 (밤낮·보는 자리에 따라 바뀌지 않게)
+        final rng = math.Random(_stableHash('$key|$r|$c'));
         final roll = rng.nextDouble();
         final kind = rng.nextInt(commons.length);
         final butterflyRoll = rng.nextDouble();
-        final s0 = lat, w0 = lng;
+        if (roll >= RuleConstants.fieldSpawnChance) continue;
         final p = pick(() => GeoPoint(
               s0 + rng.nextDouble() * blockLat,
               w0 + rng.nextDouble() * blockLng,
             ));
-        if (roll >= RuleConstants.fieldSpawnChance || p == null) continue;
+        if (p == null) continue;
         spawns.add(FieldSpawn(
-          id: '$key#${spawns.length}',
+          id: '$key#${r}_$c',
           monster: night && butterflyRoll < nightButterflyShare
               ? MonsterId.shadowButterfly
               : commons[kind],
@@ -104,9 +148,11 @@ class FieldMonsterRules {
     required ExploreArea area,
     required List<FieldSpawn> spawns,
     required LocationFix fix,
+    ExclusionIndex? exclusions,
   }) {
     if (!ExplorationRules.countsAsExploring(fix)) return null;
     if (area.isExcluded(fix.point)) return null;
+    if (exclusions?.contains(fix.point) ?? false) return null;
     FieldSpawn? best;
     double? bestDistance;
     for (final s in spawns) {

@@ -86,8 +86,6 @@ void main() {
     test('결정이 모자라면 살 수 없다, 돋보기는 위치가 있어야 한다', () {
       expect(TownRules.canBuy([_day(2)], ShopItem.bulssiPotion),
           PurchaseCheck.notEnoughCrystals);
-      expect(TownRules.canBuy([rich], ShopItem.magicLens, hasLocation: false),
-          PurchaseCheck.needsLocation);
     });
 
     test('여분의 열쇠는 그날 열쇠에 더해지고 다음 날로 넘어간다', () {
@@ -267,18 +265,11 @@ void main() {
           RuleConstants.potionSkillChargeTicks);
     });
 
-    test('마법 돋보기는 지금 위치 주변 안개를 걷는다', () async {
-      final loc = _Location();
-      final c = await start(DateTime(2026, 11, 8, 14),
-          history: [rich], location: loc);
-      expect(await c.buy(ShopItem.magicLens), PurchaseCheck.needsLocation);
-
-      loc.emit(const LocationFix(
-          point: GeoPoint(37.3100, 126.8300), speedMps: 1.2));
-      await Future<void>.delayed(Duration.zero);
-      final before = c.revealedCells.length;
-      expect(await c.buy(ShopItem.magicLens), PurchaseCheck.ok);
-      expect(c.revealedCells.length, greaterThan(before + 4));
+    test('마법 돋보기는 잡화상에서 뺐다 (11-10, 안개 없앰)', () {
+      expect(TownRules.items.map((i) => i.item),
+          isNot(contains(ShopItem.magicLens)));
+      // 예전에 산 기록의 값은 그대로 계산한다
+      expect(TownRules.info(ShopItem.magicLens).price, greaterThan(0));
     });
 
     test('여관: 언제든 체크인, 4시간 뒤 HP·MP 가득과 휴식 보너스', () async {
@@ -354,9 +345,12 @@ void main() {
       expect(c.startFieldBattle(spawn), isNull);
       expect(c.startDungeon(), isNull);
 
+      final maxBefore = c.maxHp;
       health.stepsByDay['2026-11-08'] = 4700; // 2,000보 더
       await c.sync();
-      expect(c.hp, (c.maxHp * 0.1).round() * 2);
+      // 레벨이 올라 최대 HP가 늘면 그만큼 더 찬다
+      expect(c.hp,
+          (c.maxHp * 0.1).round() * 2 + (c.maxHp - maxBefore));
       expect(c.startDungeon(), isNotNull);
     });
 
@@ -376,7 +370,7 @@ void main() {
       expect(await c.useItem(ShopItem.healSmall), UseCheck.none);
     });
 
-    test('정령 원정: 안개를 걷은 곳만, MP를 쓰고, 돌아오면 정화', () async {
+    test('정령 원정: MP로만 거리를 막고, MP를 쓰고, 돌아오면 정화', () async {
       var now = DateTime(2026, 11, 8, 14);
       final loc = _Location();
       final notifier = FakeNotifier();
@@ -393,16 +387,10 @@ void main() {
       await c.init();
       final spawn = c.todaySpawns.first;
 
-      // 몬스터 자리에서 400m쯤 떨어진 곳 (아직 몬스터 자리 안개는 그대로)
-      final dir = c.area.bounds.center.lat > spawn.point.lat ? 1 : -1;
-      final away = GeoPoint(spawn.point.lat + 0.0036 * dir, spawn.point.lng);
-      loc.emit(LocationFix(point: away, speedMps: 1.2));
-      await Future<void>.delayed(Duration.zero);
-      expect(c.planExpedition(spawn).check, ExpeditionCheck.inFog);
+      expect(c.planExpedition(spawn).check, ExpeditionCheck.needsLocation);
 
-      // 몬스터 자리를 걸어서 밝히고 돌아온다
-      loc.emit(LocationFix(point: spawn.point, speedMps: 1.2));
-      await Future<void>.delayed(Duration.zero);
+      // 몬스터 자리에서 400m쯤 떨어진 곳
+      final away = GeoPoint(spawn.point.lat + 0.0036, spawn.point.lng);
       loc.emit(LocationFix(point: away, speedMps: 1.2));
       await Future<void>.delayed(Duration.zero);
       final plan = c.planExpedition(spawn);

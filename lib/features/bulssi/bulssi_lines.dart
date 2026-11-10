@@ -55,7 +55,7 @@ class BulssiLines {
 
     // 걸음과 열쇠
     if (gauge.keysAvailable > 0) {
-      return '던전 열쇠가 ${gauge.keysAvailable}개 있어. 미궁 입구에서 열면 보상이 1.5배야!';
+      return '던전 열쇠가 ${gauge.keysAvailable}개 있어. 던전을 열어 볼까?';
     }
     final toGoal = gauge.stepsToGoal;
     if (toGoal != null && toGoal <= 1500) {

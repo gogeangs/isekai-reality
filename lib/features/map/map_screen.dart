@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 import '../../app_controller.dart';
-import '../../core/format.dart';
 import '../../core/geo/geo.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
@@ -13,7 +12,7 @@ import '../bulssi/spirit_art.dart';
 import 'expedition_sheet.dart';
 import 'map_config.dart';
 
-/// 안산시 지도: 장소 아이콘 · 잿빛 안개 · 걷은 칸 수 · 내 위치
+/// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key, required this.controller});
 
@@ -21,7 +20,6 @@ class MapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final area = controller.area;
     final gauge = controller.player.gauge;
     final spawn = controller.nearbySpawn;
     final ex = controller.expedition;
@@ -38,8 +36,7 @@ class MapScreen extends StatelessWidget {
           right: 16,
           top: MediaQuery.paddingOf(context).top + 8,
           child: _TopPanel(
-            areaName: area.name,
-            cells: controller.revealedCells.length,
+            purifiedToday: controller.player.today?.fieldMonstersPurified ?? 0,
             keys: gauge.keysAvailable,
           ),
         ),
@@ -85,15 +82,12 @@ String placeIconAsset(PlaceKind kind) => switch (kind) {
 
 class _TopPanel extends StatelessWidget {
   const _TopPanel({
-    required this.areaName,
-    required this.cells,
+    required this.purifiedToday,
     required this.keys,
   });
 
-  final String areaName;
-
-  /// 걷은 안개 칸 수 (막대는 '동네의 빛' 칭호까지)
-  final int cells;
+  /// 오늘 정화한 필드 몬스터 (경험치는 하루 5마리까지)
+  final int purifiedToday;
   final int keys;
 
   @override
@@ -102,17 +96,19 @@ class _TopPanel extends StatelessWidget {
       radius: 22,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(children: [
-        Text(areaName, style: AppText.title(19)),
+        Text('내 주변', style: AppText.title(19)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('안개 ${comma(cells)}칸 걷음',
+              Text(
+                  '오늘 정화 $purifiedToday / '
+                  '${RuleConstants.maxFieldMonstersPerDay}마리',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
               const SizedBox(height: 4),
               GlowBar(
-                  ratio: (cells / RuleConstants.brightTownCells)
+                  ratio: (purifiedToday / RuleConstants.maxFieldMonstersPerDay)
                       .clamp(0, 1)
                       .toDouble(),
                   colors: BarColors.exp,
@@ -255,10 +251,6 @@ class _ExploreSummary extends StatelessWidget {
           const BulssiLine(
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),
           const SizedBox(height: 16),
-          Text(
-            '안개 ${comma(controller.revealedCells.length)}칸 걷음',
-            style: const TextStyle(color: AppColors.text, fontSize: 15),
-          ),
           if (fix != null)
             Text(
               '현재 위치 ${fix.point.lat.toStringAsFixed(4)}, '
@@ -311,7 +303,6 @@ class _NaverMapLayer extends StatefulWidget {
 
 class _NaverMapLayerState extends State<_NaverMapLayer> {
   NaverMapController? _map;
-  int _drawnCells = -1;
   int _drawnSpawns = -1;
   String? _drawnFix;
   String? _drawnSpirit;
@@ -324,7 +315,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     _redraw();
   }
 
-  /// 안개·장소·내 위치를 다시 그린다 (바뀐 게 있을 때만)
+  /// 장소·몬스터·내 위치를 다시 그린다 (바뀐 게 있을 때만)
   Future<void> _redraw() async {
     final map = _map;
     if (map == null) return;
@@ -340,43 +331,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final spiritKey = spiritPos == null
         ? null
         : '${spiritPos.$1.toStringAsFixed(4)},${spiritPos.$2.toStringAsFixed(4)}';
-    if (_drawnCells == c.revealedCells.length &&
-        _drawnSpawns == spawns.length &&
+    if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
         _drawnSpirit == spiritKey) {
       return;
     }
-    _drawnCells = c.revealedCells.length;
     _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
     _drawnSpirit = spiritKey;
 
     final area = c.area;
-    final b = area.bounds;
     final visited = c.everVisitedPlaceIds;
 
     final overlays = <NAddableOverlay>{
-      // 잿빛 안개: 지역 전체를 덮고, 밝힌 칸은 구멍으로 뚫는다
-      NPolygonOverlay(
-        id: 'fog',
-        coords: [
-          NLatLng(b.south, b.west),
-          NLatLng(b.south, b.east),
-          NLatLng(b.north, b.east),
-          NLatLng(b.north, b.west),
-          NLatLng(b.south, b.west),
-        ],
-        holes: [
-          for (final cell in c.revealedCells)
-            [
-              ...area.cellCorners(cell).map(_ll),
-              _ll(area.cellCorners(cell).first),
-            ],
-        ],
-        color: const Color(0xFFB8B2C8).withValues(alpha: 0.55),
-        outlineColor: const Color(0x00000000),
-        outlineWidth: 0,
-      ),
       for (final place in area.places)
         NMarker(
           id: 'place_${place.id}',
@@ -426,6 +393,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   @override
   Widget build(BuildContext context) {
     final center = widget.controller.lastFix?.point ??
+        widget.controller.fallbackCenter ??
         widget.controller.area.bounds.center;
     return NaverMap(
       options: NaverMapViewOptions(
@@ -434,7 +402,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       ),
       onMapReady: (map) {
         _map = map;
-        _drawnCells = -1;
+        _drawnSpawns = -1;
         _redraw();
       },
     );
@@ -454,10 +422,13 @@ class _ExpeditionList extends StatelessWidget {
     if (ex != null && !ex.finished) {
       return ExpeditionCard(controller: c, ex: ex);
     }
-    final reachable = [
-      for (final s in c.todaySpawns)
-        if (c.planExpedition(s).check != ExpeditionCheck.inFog) s,
-    ];
+    // 가까운 몬스터부터 (거리는 MP로만 막는다, 11-10)
+    final from = c.lastFix?.point;
+    final reachable = [...c.todaySpawns];
+    if (from != null) {
+      reachable.sort((a, b) =>
+          a.point.distanceTo(from).compareTo(b.point.distanceTo(from)));
+    }
     return OrnatePanel(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -469,8 +440,9 @@ class _ExpeditionList extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               reachable.isEmpty
-                  ? '안개를 걷은 곳에 몬스터가 없어요. 걸어서 길을 넓혀 주세요.'
-                  : '안개를 걷은 곳의 몬스터 ${reachable.length}마리에게 정령을 보낼 수 있어요.',
+                  ? '근처에 남은 몬스터가 없어요.'
+                  : '근처 몬스터 ${reachable.length}마리 · 가까운 곳부터 보여 드려요. '
+                      '100m마다 MP ${RuleConstants.expeditionMpPer100m}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
             for (final s in reachable.take(5))

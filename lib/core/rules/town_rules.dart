@@ -99,7 +99,14 @@ enum UseCheck {
 class TownRules {
   TownRules._();
 
-  static const List<ShopItemInfo> items = [
+  /// 잡화상에 보이는 물건. 마법 돋보기는 안개를 없애며 뺐다 (11-10, 그 자리에 넣을 물건은 따로 정함).
+  /// 예전에 산 기록의 값은 [info] 로 계속 계산한다.
+  static List<ShopItemInfo> get items =>
+      [for (final i in _allItems) if (!retired.contains(i.item)) i];
+
+  static const Set<ShopItem> retired = {ShopItem.magicLens};
+
+  static const List<ShopItemInfo> _allItems = [
     ShopItemInfo(
       item: ShopItem.healSmall,
       name: '작은 회복 물약',
@@ -169,7 +176,7 @@ class TownRules {
   ];
 
   static ShopItemInfo info(ShopItem item) =>
-      items.firstWhere((i) => i.item == item);
+      _allItems.firstWhere((i) => i.item == item);
 
   static ShopItem? _parse(String name) {
     for (final i in ShopItem.values) {

@@ -101,7 +101,17 @@ class PetState {
     this.nextId = 1,
     this.stepsDay,
     this.stepsCounted = 0,
+    this.seenSpecies = const [],
   });
+
+  /// 한 번이라도 함께한 펫 종류 (도감 펫 탭)
+  final List<String> seenSpecies;
+
+  Set<PetSpecies> get seen => {
+        for (final n in seenSpecies)
+          if (PetRules.byName(n) case final s?) s,
+        for (final p in pets) p.species,
+      };
 
   /// 동행 펫 걸음 경험치를 센 날과 그날 센 걸음
   final String? stepsDay;
@@ -167,6 +177,7 @@ class PetState {
     int? nextId,
     String? stepsDay,
     int? stepsCounted,
+    List<String>? seenSpecies,
   }) =>
       PetState(
         eggs: eggs ?? this.eggs,
@@ -183,6 +194,11 @@ class PetState {
         nextId: nextId ?? this.nextId,
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
+        seenSpecies: seenSpecies ??
+            {
+              ...this.seenSpecies,
+              for (final p in pets ?? this.pets) p.species.name,
+            }.toList(),
       );
 
   /// 펫 하나를 바꾼다
@@ -204,6 +220,7 @@ class PetState {
         'nextId': nextId,
         if (stepsDay != null) 'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
+        'seenSpecies': [for (final s in seen) s.name],
       };
 
   factory PetState.fromJson(Map<String, dynamic> j) {
@@ -233,6 +250,7 @@ class PetState {
       nextId: (j['nextId'] as num?)?.toInt() ?? 1,
       stepsDay: j['stepsDay'] as String?,
       stepsCounted: (j['stepsCounted'] as num?)?.toInt() ?? 0,
+      seenSpecies: strings(j['seenSpecies']),
     );
   }
 }

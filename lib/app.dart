@@ -17,6 +17,7 @@ import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
 import 'features/pets/farewell_screen.dart';
+import 'features/pets/pet_screen.dart';
 import 'features/smithy/equip_picker.dart';
 import 'features/status/stat_screen.dart';
 import 'features/status/status_screen.dart';
@@ -123,8 +124,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void _maybeShowNotices() {
     final c = widget.controller;
     if (_noticeShowing || _levelUpShowing) return;
-    final ex = c.expedition;
-    if (!c.justRested && (ex == null || !ex.finished)) return;
+    final done = c.finishedExpeditions;
+    if (!c.justRested && done.isEmpty) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -148,9 +149,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         );
         c.clearJustRested();
       } else {
-        // 원정 결과 금테 카드 (11-11 #51)
-        await showExpeditionResult(context, ex!, c.companionName);
-        await c.acknowledgeExpedition();
+        // 원정 결과 금테 카드 (11-11 #51). 여러 마리가 함께 돌아오면 차례로
+        for (final ex in done) {
+          if (!mounted) break;
+          await showExpeditionResult(
+              context, ex, ex.petName ?? c.firstSpiritName,
+              more: done.length > 1
+                  ? '${done.indexOf(ex) + 1} / ${done.length}'
+                  : null);
+          await c.acknowledgeExpedition(ex);
+        }
       }
       _noticeShowing = false;
     });
@@ -354,6 +362,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               },
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
+              petsSeen: controller.pets.seen,
+              onOpenPets: controller.farewellDone
+                  ? () => push(PetScreen(controller: controller))
+                  : null,
             ),
           ),
         ];
@@ -408,7 +420,7 @@ String? _spiritAway(AppController c) {
   if (ex == null || ex.finished) return null;
   final left = ex.returnAt.difference(c.now);
   final m = left.inMinutes < 1 ? 1 : left.inMinutes;
-  return '정령 원정 중 · $m분 뒤 돌아와요';
+  return '${c.companionName} 원정 중 · $m분 뒤 돌아와요';
 }
 
 /// 하단 메뉴: 금테 막대, 고른 메뉴는 금색 상자 (목업 구도)

@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
 import '../pets/pet_art.dart';
+import '../pets/pet_screen.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 
@@ -335,6 +336,16 @@ class _InfoTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        if (c.farewellDone) ...[
+          FrameButton(
+            label: '내 펫 ${c.pets.pets.length}마리',
+            icon: Icons.pets_rounded,
+            height: 44,
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => PetScreen(controller: c))),
+          ),
+          const SizedBox(height: 10),
+        ],
         _Section(title: '칭호', children: [
           KText('얻은 칭호를 누르면 대표 칭호로 걸어요. '
               '${player.titles.length} / ${TitleRules.all.length}',

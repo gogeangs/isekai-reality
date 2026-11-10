@@ -30,23 +30,27 @@ HuntReward rewardOf(Expedition ex) => HuntReward(
 
 /// 원정 결과 금테 카드 (11-11 #51)
 Future<void> showExpeditionResult(
-        BuildContext context, Expedition ex, String spiritName) =>
+        BuildContext context, Expedition ex, String spiritName,
+        {String? more}) =>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 22),
-        child: ExpeditionResultCard(ex: ex, spiritName: spiritName),
+        child: ExpeditionResultCard(ex: ex, spiritName: spiritName, more: more),
       ),
     );
 
 class ExpeditionResultCard extends StatelessWidget {
   const ExpeditionResultCard(
-      {super.key, required this.ex, required this.spiritName});
+      {super.key, required this.ex, required this.spiritName, this.more});
 
   final Expedition ex;
   final String spiritName;
+
+  /// 여러 원정이 한꺼번에 끝났을 때 '1 / 3'
+  final String? more;
 
   static String ribbonAsset(ExpeditionOutcome o) => switch (o) {
         ExpeditionOutcome.success => 'assets/images/ribbon_success.png',
@@ -163,8 +167,19 @@ class ExpeditionResultCard extends StatelessWidget {
             RewardItems(reward: reward, showExp: true),
           ],
           const SizedBox(height: 14),
+          if (more != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(more!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 12)),
+            ),
           GoldButton(
-            label: '좋아요',
+            label: more != null &&
+                    more!.split(' / ').first != more!.split(' / ').last
+                ? '다음'
+                : '좋아요',
             height: 46,
             onPressed: () => Navigator.of(context).pop(),
           ),

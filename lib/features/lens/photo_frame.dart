@@ -65,8 +65,9 @@ class PhotoFrame {
     }
 
     // 아래 띠: 감정 결과 · 종족 이름 · 로고
-    _text(canvas, '✦ 마법 돋보기 감정 결과 ✦', const Offset(width / 2, 1236), 30,
-        const Color(0xFFD9C38A), FontWeight.w600);
+    _text(canvas, '마법 돋보기 감정 결과', const Offset(width / 2, 1236), 30,
+        const Color(0xFFD9C38A), FontWeight.w700,
+        title: true);
     _text(canvas, raceLine(races), const Offset(width / 2, 1300), 64,
         const Color(0xFFFFE9A8), FontWeight.w700,
         title: true, maxWidth: 940);

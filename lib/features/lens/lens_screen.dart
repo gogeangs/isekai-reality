@@ -332,7 +332,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         return Row(children: [
           Expanded(
             child: FrameButton(
-              label: '다시 감정',
+              label: '새 감정',
               height: 48,
               onPressed: _lenses > 0
                   ? () => setState(() {

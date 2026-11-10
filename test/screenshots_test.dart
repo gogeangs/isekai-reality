@@ -34,6 +34,7 @@ import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
+import 'package:isekai_reality/features/alchemy/alchemy_screen.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/features/harvest/harvest_sheet.dart';
@@ -519,7 +520,27 @@ void main() {
     await tester.tap(find.text('수리 · 분해'));
     await tester.pumpAndSettle();
     await _shot(tester, '28c_대장간_수리');
+    // 장비 속성 (11-11 #74): 입히기 · 바꾸기 · 추출 · 강화
+    await tester.ensureVisible(find.byKey(Key('imbue_${armor.uid}')));
+    await tester.tap(find.byKey(Key('imbue_${armor.uid}')));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28d_대장간_속성');
+    Navigator.of(tester.element(find.text('속성 입히기'))).pop();
+    await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(SmithyScreen))).pop();
+    await tester.pumpAndSettle();
+
+    // 연금술 공방 변환 (11-11 #74)
+    Navigator.of(tester.element(find.byType(Scaffold).first)).push(
+        MaterialPageRoute<void>(builder: (_) => AlchemyScreen(controller: c)));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28e_공방_가마솥');
+    await tester.tap(find.text('변환'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('마석 정제'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28f_공방_변환');
+    Navigator.of(tester.element(find.byType(AlchemyScreen))).pop();
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('가방'));

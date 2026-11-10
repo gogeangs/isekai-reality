@@ -476,6 +476,9 @@ class TownRules {
   static int spareKeysOn(DailyRecord r) =>
       boughtOn(r, ShopItem.spareKey) + (r.counters['bonusKeys'] ?? 0);
 
+  /// 걸음 물약으로 더 찬 던전 게이지 걸음 (11-11 #74)
+  static int gaugeBonusOn(DailyRecord r) => r.counters['gaugeBonus'] ?? 0;
+
   /// 그날 정령 물약을 마셨는지 (가방에서 꺼내 마신 날)
   static bool potionActive(DailyRecord? r) =>
       r != null && usedOn(r, ShopItem.bulssiPotion) > 0;

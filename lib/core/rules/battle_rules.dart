@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'alchemy_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
+import 'job_rules.dart';
 import 'modifier_rules.dart';
 import 'pet_rules.dart';
 import 'monsters.dart';
@@ -199,6 +200,9 @@ class Battle {
     this.skillElement,
     this.guardElements = const {},
     this.mainElement,
+    this.attackLevel = 0,
+    this.guardLevels = const {},
+    this.weaponPotion,
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -230,6 +234,7 @@ class Battle {
     Map<Element, double> resist = const {},
     Element? skillElement,
     Element? mainElement,
+    Element? weaponPotion,
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
@@ -266,6 +271,9 @@ class Battle {
       skillElement: skillElement,
       guardElements: gear.guardElements,
       mainElement: mainElement,
+      attackLevel: gear.attackLevel,
+      guardLevels: gear.guardLevels,
+      weaponPotion: weaponPotion,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -335,6 +343,25 @@ class Battle {
   /// 주 속성 (숨은 점수 1위)
   final Element? mainElement;
 
+  /// 장비 속성 강화 단계 (11-11 #74, 숨김)
+  final int attackLevel;
+  final Map<Element, int> guardLevels;
+
+  /// 공격 속성 물약 (11-11 #74): 무기 속성보다 먼저
+  final Element? weaponPotion;
+
+  /// 빙결 (11-11 #74 얼음 슬라임): 다음 내 차례를 쉰다
+  bool frozen = false;
+
+  /// 녹이는 물약을 마신 뒤 다시 얼지 않는 턴
+  int freezeImmune = 0;
+
+  /// 얼음 공격 물약으로 몬스터가 얼었는지 (다음 몬스터 차례를 쉰다)
+  bool _foeFrozen = false;
+
+  /// 이번 전투에서 몬스터를 얼린 횟수
+  int foeFreezes = 0;
+
   /// 지금 걸린 것이 화상인지 (아니면 중독)
   bool burning = false;
 
@@ -363,6 +390,10 @@ class Battle {
       case CureKind.dazzle:
         if (clearEye) return false;
         clearEye = true;
+      case CureKind.freeze:
+        if (!frozen) return false;
+        frozen = false;
+        freezeImmune = 3;
       case null:
         if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
         playerHp = math.min(
@@ -381,6 +412,11 @@ class Battle {
       final kind = burning ? CureKind.burn : CureKind.poison;
       for (final p in potions.values) {
         if (p.cure == kind && drink(p.key)) break;
+      }
+    }
+    if (autoCure && frozen) {
+      for (final p in potions.values) {
+        if (p.cure == CureKind.freeze && drink(p.key)) break;
       }
     }
     if (autoCure &&
@@ -481,6 +517,7 @@ class Battle {
       floorTicks = 0;
       _charged = false;
       _foeBound = false;
+      _foeFrozen = false;
       foeBurnTurns = 0;
       lastDealt = 0;
       lastTaken = 0;
@@ -509,7 +546,10 @@ class Battle {
     }
 
     // 각성자 차례
-    if (f.has(ModifierId.bewitching) && _rng.nextDouble() < 0.25) {
+    if (frozen) {
+      frozen = false;
+      lastEvent = '얼어서 움직일 수 없어요!';
+    } else if (f.has(ModifierId.bewitching) && _rng.nextDouble() < 0.25) {
       lastEvent = '홀렸어요!';
     } else if (f.has(ModifierId.nimble) && _rng.nextDouble() < 0.20) {
       lastEvent = '피했어요!';
@@ -532,13 +572,15 @@ class Battle {
         lastEvent = '치명타!';
       }
       if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
-      dmg = _elemental(dmg, attackElement);
+      dmg = _elemental(dmg, weaponPotion ?? attackElement,
+          level: weaponPotion != null ? 0 : attackLevel);
       if (f.has(ModifierId.sturdy) && _rng.nextDouble() < 0.20) {
         dmg = math.max(1, dmg ~/ 2);
         lastEvent = '웅크렸어요!';
       }
       lastDealt = dmg;
       _hitFoe(dmg);
+      _inflict();
     }
     if (phase != BattlePhase.fighting) return;
 
@@ -582,6 +624,7 @@ class Battle {
       return;
     }
     if (immuneTurns > 0) immuneTurns--;
+    if (freezeImmune > 0) freezeImmune--;
     _autoDrink();
     if (skillCharge < skillChargeTicks) skillCharge++;
   }
@@ -591,6 +634,11 @@ class Battle {
     if (_foeBound) {
       _foeBound = false;
       lastEvent = '묶였어요!';
+      return;
+    }
+    if (_foeFrozen) {
+      _foeFrozen = false;
+      lastEvent = '얼어서 움직이지 못해요!';
       return;
     }
     if (playerEvade > 0 && _rng.nextDouble() < playerEvade) {
@@ -615,7 +663,9 @@ class Battle {
     }
     // 방어 속성 장비·주 속성 (11-11 #63, 숫자는 숨김)
     if (element != null) {
-      if (guardElements.contains(element)) atk *= ElementRules.guard;
+      if (guardElements.contains(element)) {
+        atk *= SmithRules.guardAt(guardLevels[element] ?? 0);
+      }
       if (element == mainElement) atk *= 1 - ElementRules.mainBonus;
     }
     if (shieldHits > 0) {
@@ -634,6 +684,14 @@ class Battle {
       poisonTurns = 3;
       burning = false;
       lastEvent = '중독!';
+    }
+    if (f.trait == MonsterTrait.freeze &&
+        freezeImmune <= 0 &&
+        !frozen &&
+        playerHp > 0 &&
+        _rng.nextDouble() < freezeChance) {
+      frozen = true;
+      lastEvent = '얼어붙었어요!';
     }
     if (f.trait == MonsterTrait.burn &&
         immuneTurns <= 0 &&
@@ -687,9 +745,34 @@ class Battle {
     return true;
   }
 
-  /// 속성 상성 (11-11 #63): 배율은 숨기고 문구로만 알린다
-  int _elemental(int dmg, Element? attack) {
-    final m = ElementRules.multiplier(attack, AlchemyRules.elementOf(foe.monster));
+  /// 얼음 슬라임이 얼릴 확률
+  static const double freezeChance = 0.20;
+
+  /// 공격 속성 물약의 상태 이상 (독·불: 3턴 동안 2%, 얼음: 다음 차례를 쉼)
+  void _inflict() {
+    final e = weaponPotion;
+    if (e == null || phase != BattlePhase.fighting) return;
+    if (e != Element.fire && e != Element.poison && e != Element.ice) return;
+    if (_rng.nextDouble() >= AlchemyRules.weaponInflict) return;
+    switch (e) {
+      case Element.ice:
+        _foeFrozen = true;
+        foeFreezes++;
+        lastEvent = '얼렸어요!';
+      case Element.fire:
+        foeBurnTurns = 3;
+        lastEvent = '불태웠어요!';
+      default:
+        foeBurnTurns = 3;
+        lastEvent = '중독시켰어요!';
+    }
+  }
+
+  /// 속성 상성 (11-11 #63): 배율은 숨기고 문구로만 알린다.
+  /// [level] 은 장비 속성 강화 단계 (11-11 #74): 강할 때 배율이 더 커진다.
+  int _elemental(int dmg, Element? attack, {int level = 0}) {
+    var m = ElementRules.multiplier(attack, AlchemyRules.elementOf(foe.monster));
+    if (m > 1 && level > 0) m = SmithRules.strongAt(level);
     var d = dmg * m;
     if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;
     if (m > 1) lastEvent = superEffective;
@@ -724,7 +807,7 @@ class Battle {
 }
 
 /// 물약이 푸는 상태
-enum CureKind { poison, burn, dazzle }
+enum CureKind { poison, burn, dazzle, freeze }
 
 /// 전투에 가져가는 물약 한 종류
 class BattlePotion {

@@ -36,9 +36,58 @@ enum PotionId {
   resistThunder,
   resistMetal,
   resistPoison,
+  // 11-11 #74 공격 속성 물약 10종 · 걸음 물약 · 녹이는 물약
+  weaponFire,
+  weaponWater,
+  weaponWind,
+  weaponEarth,
+  weaponLight,
+  weaponDark,
+  weaponIce,
+  weaponThunder,
+  weaponMetal,
+  weaponPoison,
+  steps,
+  thaw,
 }
 
-enum PotionKind { heal, mana, care, buff, resist, special }
+enum PotionKind { heal, mana, care, buff, resist, special, weapon }
+
+/// 동시에 걸리는 물약 종류 (11-11 #74): 종류마다 하나씩
+enum PotionSlot { battle, element, explore }
+
+extension PotionSlotLabel on PotionSlot {
+  String get label => switch (this) {
+        PotionSlot.battle => '전투',
+        PotionSlot.element => '속성',
+        PotionSlot.explore => '탐험',
+      };
+}
+
+/// 물약 품질 (11-11 #74). 판정 점수는 숨기고 등급만 보여 준다.
+enum PotionQuality { normal, good, best }
+
+extension PotionQualityInfo on PotionQuality {
+  String get label => switch (this) {
+        PotionQuality.normal => '보통',
+        PotionQuality.good => '좋음',
+        PotionQuality.best => '최상',
+      };
+
+  /// 가방 키 꼬리표 ('' · '*' · '**'). 예전 「완벽한 조제」('*')는 좋음.
+  String get suffix => switch (this) {
+        PotionQuality.normal => '',
+        PotionQuality.good => '*',
+        PotionQuality.best => '**',
+      };
+
+  /// 효과·지속 배율
+  double get mult => switch (this) {
+        PotionQuality.normal => 1,
+        PotionQuality.good => 1.25,
+        PotionQuality.best => 1.5,
+      };
+}
 
 class PotionInfo {
   const PotionInfo({
@@ -56,7 +105,26 @@ class PotionInfo {
     this.stat,
     this.element,
     this.duration = Duration.zero,
+    this.battles = 0,
+    this.steps = 0,
   });
+
+  /// 지속: 전투 N번 (전투·속성 물약, 11-11 #74)
+  final int battles;
+
+  /// 지속: N보 (걸음 물약)
+  final int steps;
+
+  /// 동시에 걸리는 종류 (바로 듣는 물약은 null)
+  PotionSlot? get slot => switch (kind) {
+        PotionKind.buff => PotionSlot.battle,
+        PotionKind.resist || PotionKind.weapon => PotionSlot.element,
+        _ => switch (id) {
+            PotionId.steps || PotionId.callMonsters || PotionId.plenty =>
+              PotionSlot.explore,
+            _ => null,
+          },
+      };
 
   final PotionId id;
   final String name;
@@ -110,8 +178,77 @@ class AlchemyRules {
   /// 가마솥에 넣는 재료 최대 수
   static const int maxIngredients = 5;
 
-  /// 완벽한 조제: 효과·지속 시간 +25%
+  /// 완벽한 조제: 효과·지속 시간 +25% (11-11 #74부터 「좋음」 품질)
   static const double perfectBonus = 0.25;
+
+  // ───────────── 11-11 #74 품질·지속 (숨은 규칙)
+
+  /// 전투·속성 물약 지속 (보통)
+  static const int battleCount = 5;
+
+  /// 탐험 물약 지속 (보통)
+  static const Duration exploreDuration = Duration(minutes: 30);
+
+  /// 걸음 물약: 3,000보 동안 던전 게이지 1.5배
+  static const int stepCap = 3000;
+  static const double stepBoost = 0.5;
+
+  /// 유인 물약: 채집 자리 1.5배
+  static const double lureHarvest = 1.5;
+
+  /// 독·불·얼음 공격 물약: 내 공격이 15%로 상태 이상
+  static const double weaponInflict = 0.15;
+
+  /// 품질 점수: 순서가 레시피와 같으면 +2, 귀한·가공 재료가 들어가면 +1,
+  /// 연금술사 숙련도 +0~2 (직업 각성 전에는 0). 0~1 보통, 2 좋음, 3 이상 최상.
+  static PotionQuality quality(
+      {required bool perfect, required List<MaterialId> put, int mastery = 0}) {
+    var score = mastery;
+    if (perfect) score += 2;
+    if (put.any((m) => Materials.info(m).rare || Materials.info(m).processed)) {
+      score += 1;
+    }
+    return score >= 3
+        ? PotionQuality.best
+        : score == 2
+            ? PotionQuality.good
+            : PotionQuality.normal;
+  }
+
+  /// 가방 키 → 물약·품질 ('healBig**' → healBig, 최상). 수상한 물약은 null.
+  static ({PotionId id, PotionQuality quality})? parseKey(String key) {
+    if (key.startsWith('?:')) return null;
+    var n = 0;
+    while (n < key.length && key[key.length - 1 - n] == '*') {
+      n++;
+    }
+    final id = byName(key.substring(0, key.length - n));
+    if (id == null) return null;
+    return (
+      id: id,
+      quality: n >= 2
+          ? PotionQuality.best
+          : n == 1
+              ? PotionQuality.good
+              : PotionQuality.normal
+    );
+  }
+
+  static String keyOf(PotionId id, PotionQuality q) => '${id.name}${q.suffix}';
+
+  /// 공격 속성 물약의 속성
+  static PotionId weaponOf(Element e) => switch (e) {
+        Element.fire => PotionId.weaponFire,
+        Element.water => PotionId.weaponWater,
+        Element.wind => PotionId.weaponWind,
+        Element.earth => PotionId.weaponEarth,
+        Element.light => PotionId.weaponLight,
+        Element.dark => PotionId.weaponDark,
+        Element.ice => PotionId.weaponIce,
+        Element.thunder => PotionId.weaponThunder,
+        Element.metal => PotionId.weaponMetal,
+        Element.poison => PotionId.weaponPoison,
+      };
 
   /// 수상한 물약: 10분, 1개
   static const int suspiciousMinutes = 10;
@@ -119,8 +256,8 @@ class AlchemyRules {
   /// 전투 한 번에 마실 수 있는 물약
   static const int perBattle = 3;
 
-  /// 동시에 걸리는 버프·저항
-  static const int maxBuffs = 2;
+  /// 동시에 걸리는 버프·저항 (11-11 #74부터는 종류마다 하나: [PotionSlot])
+  static const int maxBuffs = 1;
   static const int maxResists = 1;
 
   static const int buffStat = 5;
@@ -250,10 +387,7 @@ class AlchemyRules {
 
   // ───────────── 물약 목록
 
-  static const _thirty = Duration(minutes: 30);
-  static const _hour = Duration(hours: 1);
-
-  static const List<PotionInfo> all = [
+  static final List<PotionInfo> all = [
     PotionInfo(
       id: PotionId.healSmall,
       name: '작은 회복 물약',
@@ -365,7 +499,7 @@ class AlchemyRules {
       id: PotionId.strength,
       name: '힘의 물약',
       kind: PotionKind.buff,
-      description: '30분 동안 힘 +5.',
+      description: '전투 5번 동안 힘 +5.',
       recipe: [
         MaterialId.boarMeat,
         MaterialId.boarMeat,
@@ -374,23 +508,23 @@ class AlchemyRules {
       ],
       minutes: 30,
       stat: StatKind.strength,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.agility,
       name: '민첩의 물약',
       kind: PotionKind.buff,
-      description: '30분 동안 민첩 +5.',
+      description: '전투 5번 동안 민첩 +5.',
       recipe: [MaterialId.windJelly, MaterialId.windJelly, MaterialId.rabbitMeat],
       minutes: 30,
       stat: StatKind.agility,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.intellect,
       name: '지능의 물약',
       kind: PotionKind.buff,
-      description: '30분 동안 지능 +5.',
+      description: '전투 5번 동안 지능 +5.',
       recipe: [
         MaterialId.butterflyDust,
         MaterialId.butterflyDust,
@@ -398,13 +532,13 @@ class AlchemyRules {
       ],
       minutes: 30,
       stat: StatKind.intellect,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.vitality,
       name: '체력의 물약',
       kind: PotionKind.buff,
-      description: '30분 동안 체력 +5.',
+      description: '전투 5번 동안 체력 +5.',
       recipe: [
         MaterialId.toughHide,
         MaterialId.mudJelly,
@@ -413,23 +547,23 @@ class AlchemyRules {
       ],
       minutes: 30,
       stat: StatKind.vitality,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.luck,
       name: '행운의 물약',
       kind: PotionKind.buff,
-      description: '30분 동안 행운 +5.',
+      description: '전투 5번 동안 행운 +5.',
       recipe: [MaterialId.goldenRabbitFur, MaterialId.lightJelly, MaterialId.herb],
       minutes: 60,
       stat: StatKind.luck,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistFire,
       name: '불꽃 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 불꽃 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 불꽃 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.fireCore,
         MaterialId.fireJelly,
@@ -438,13 +572,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.fire,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistWater,
       name: '물 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 물 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 물 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.waterCore,
         MaterialId.waterJelly,
@@ -453,13 +587,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.water,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistWind,
       name: '바람 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 바람 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 바람 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.windCore,
         MaterialId.windJelly,
@@ -468,13 +602,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.wind,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistEarth,
       name: '대지 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 대지 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 대지 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.earthCore,
         MaterialId.mudJelly,
@@ -483,13 +617,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.earth,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistLight,
       name: '빛 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 빛 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 빛 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.lightCore,
         MaterialId.lightJelly,
@@ -498,13 +632,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.light,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistDark,
       name: '어둠 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 어둠 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 어둠 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.shadowCore,
         MaterialId.darkJelly,
@@ -513,13 +647,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.dark,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistIce,
       name: '얼음 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 얼음 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 얼음 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.iceCore,
         MaterialId.iceJelly,
@@ -528,13 +662,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.ice,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistThunder,
       name: '번개 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 번개 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 번개 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.thunderCore,
         MaterialId.thunderJelly,
@@ -543,13 +677,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.thunder,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistMetal,
       name: '금속 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 금속 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 금속 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.metalCore,
         MaterialId.metalJelly,
@@ -558,13 +692,13 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.metal,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.resistPoison,
       name: '독 저항 물약',
       kind: PotionKind.resist,
-      description: '30분 동안 독 몬스터에게 받는 피해 -30%.',
+      description: '전투 5번 동안 독 몬스터에게 받는 피해 -30%.',
       recipe: [
         MaterialId.poisonCore,
         MaterialId.poisonJelly,
@@ -573,13 +707,14 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.poison,
-      duration: _thirty,
+      battles: battleCount,
     ),
     PotionInfo(
       id: PotionId.callMonsters,
-      name: '부르는 물약',
+      name: '유인 물약',
       kind: PotionKind.special,
-      description: '내 둘레 500m에 몬스터 5마리가 더 나와요 (하루 1번).',
+      description: '내 둘레 500m에 몬스터 5마리가 더 나오고 (하루 1번), '
+          '30분 동안 주변 채집 자리가 1.5배로 늘어요.',
       recipe: [
         MaterialId.ratHide,
         MaterialId.darkJelly,
@@ -587,6 +722,7 @@ class AlchemyRules {
         MaterialId.sleepPowder,
       ],
       minutes: 60,
+      duration: exploreDuration,
     ),
     PotionInfo(
       id: PotionId.callModified,
@@ -600,10 +736,89 @@ class AlchemyRules {
       id: PotionId.plenty,
       name: '풍요의 물약',
       kind: PotionKind.special,
-      description: '1시간 동안 사냥할 때마다 재료 +1, 귀한 재료 확률 ×1.5.',
+      description: '30분 동안 사냥할 때마다 재료 +1, 귀한 재료 확률 ×1.5.',
       recipe: [MaterialId.smallTusk, MaterialId.goldenRabbitFur, MaterialId.essence],
       minutes: 60,
-      duration: _hour,
+      duration: exploreDuration,
     ),
+    // ───────────── 11-11 #74
+    for (final e in Element.values)
+      PotionInfo(
+        id: _weaponIds[e.index],
+        name: '${e.label} 공격 물약',
+        kind: PotionKind.weapon,
+        description: '전투 5번 동안 내 공격에 ${e.label} 속성이 붙어요 (무기 속성보다 먼저).'
+            '${e == Element.fire || e == Element.poison || e == Element.ice ? ' 가끔 몬스터를 ${e == Element.fire ? '불태워요' : e == Element.poison ? '중독시켜요' : '얼려요'}.' : ''}',
+        recipe: [
+          _stones[e.index],
+          _jellies[e.index],
+          _jellies[e.index],
+          MaterialId.essence,
+        ],
+        minutes: 60,
+        element: e,
+        battles: battleCount,
+      ),
+    PotionInfo(
+      id: PotionId.steps,
+      name: '걸음 물약',
+      kind: PotionKind.special,
+      description: '3,000보를 걷는 동안 던전 게이지가 1.5배로 빨리 차요.',
+      recipe: [
+        MaterialId.herbExtract,
+        MaterialId.windJelly,
+        MaterialId.windJelly,
+        MaterialId.rabbitMeat,
+      ],
+      minutes: 40,
+      steps: stepCap,
+    ),
+    PotionInfo(
+      id: PotionId.thaw,
+      name: '녹이는 물약',
+      kind: PotionKind.care,
+      description: '빙결을 풀고 3턴 동안 다시 얼지 않아요.',
+      recipe: [MaterialId.fireJelly, MaterialId.fireJelly, MaterialId.herb],
+      minutes: 20,
+      yields: 2,
+    ),
+  ];
+
+  // 위 목록을 const 로 두려고 Element 순서대로 적는다
+  static const _weaponIds = [
+    PotionId.weaponFire,
+    PotionId.weaponWater,
+    PotionId.weaponWind,
+    PotionId.weaponEarth,
+    PotionId.weaponLight,
+    PotionId.weaponDark,
+    PotionId.weaponIce,
+    PotionId.weaponThunder,
+    PotionId.weaponMetal,
+    PotionId.weaponPoison,
+  ];
+  static const _stones = [
+    MaterialId.stoneFire,
+    MaterialId.stoneWater,
+    MaterialId.stoneWind,
+    MaterialId.stoneEarth,
+    MaterialId.stoneLight,
+    MaterialId.stoneDark,
+    MaterialId.stoneIce,
+    MaterialId.stoneThunder,
+    MaterialId.stoneMetal,
+    MaterialId.stonePoison,
+  ];
+  static const _jellies = [
+    MaterialId.fireJelly,
+    MaterialId.waterJelly,
+    MaterialId.windJelly,
+    MaterialId.mudJelly,
+    MaterialId.lightJelly,
+    MaterialId.darkJelly,
+    MaterialId.iceJelly,
+    MaterialId.thunderJelly,
+    MaterialId.metalJelly,
+    MaterialId.poisonJelly,
   ];
 }

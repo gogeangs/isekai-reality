@@ -54,6 +54,9 @@ enum MonsterTrait {
 
   /// 맞히면 30% 확률로 중독 3턴 (11-11 #63 독 슬라임)
   poison,
+
+  /// 맞히면 20% 확률로 얼어 다음 차례를 쉼 (11-11 #74 얼음 슬라임)
+  freeze,
 }
 
 class MonsterInfo {
@@ -248,7 +251,8 @@ class Monsters {
       habitat: '어디서나',
       huntLine: '얼음 슬라임을 잡았어! 손이 꽁꽁 얼었어.',
       description: '몸이 차갑게 얼어붙은 슬라임. 단단해서 잘 버텨요.',
-      traitText: '방어가 높음',
+      trait: MonsterTrait.freeze,
+      traitText: '방어가 높고, 맞으면 20% 확률로 얼어 한 차례 쉼',
       hp: 1.1,
       defense: 1.3,
       expBonus: 0.10,

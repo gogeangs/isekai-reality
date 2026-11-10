@@ -10,6 +10,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
+import 'sell_sheet.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터가 떨어뜨린 마석을 금화로 팔고, 금화로 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -26,7 +27,7 @@ class ShopScreen extends StatelessWidget {
         PurchaseCheck.notEnoughCrystals => '금화 ${info.price - gold} 부족',
         PurchaseCheck.needsLocation => '위치를 켜 주세요',
         PurchaseCheck.levelTooLow => 'Lv.${info.minLevel}부터',
-        PurchaseCheck.bagFull => '가방에 ${TownRules.bagMax}개 있어요',
+        PurchaseCheck.bagFull => '가방이 가득 찼어요',
       };
 
   static String boughtLine(ShopItem item) => switch (item) {
@@ -58,11 +59,9 @@ class ShopScreen extends StatelessWidget {
         child: ListenableBuilder(
           listenable: controller,
           builder: (context, _) {
-            final history = controller.history;
             final player = controller.player;
             final gold = player.gold;
             final hasLocation = controller.lastFix != null;
-            final level = controller.player.level.level;
 
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -103,13 +102,19 @@ class ShopScreen extends StatelessWidget {
                   height: 44,
                   label: '가방 열기',
                 ),
+                const SizedBox(height: 8),
+                FrameButton(
+                  onPressed: () => showSellSheet(context, controller),
+                  gameIcon: 'gold',
+                  height: 44,
+                  label: '재료·물건·장비 팔기',
+                ),
                 const SizedBox(height: 12),
                 for (final info in TownRules.items) ...[
                   _ItemCard(
                     info: info,
-                    check: TownRules.canBuy(history, info.item,
-                        hasLocation: hasLocation,
-                        level: level),
+                    check: controller.canBuy(info.item,
+                        hasLocation: hasLocation),
                     gold: gold,
                     spiritKind: controller.profile.spiritKind,
                     onBuy: () async {

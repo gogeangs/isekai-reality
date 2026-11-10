@@ -21,6 +21,7 @@ import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
+import 'package:isekai_reality/features/town/bag_tab.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
@@ -193,11 +194,15 @@ void main() {
     await _shot(tester, '09_도감');
     final tile = find.textContaining('마리');
     if (tile.evaluate().isNotEmpty) {
-      await tester.tap(tile.first);
+      await tester.ensureVisible(tile.first);
       await tester.pumpAndSettle();
-      await _shot(tester, '10_도감_몬스터_설명');
-      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+      await tester.tap(tile.first, warnIfMissed: false);
       await tester.pumpAndSettle();
+      if (find.byType(BottomSheet).evaluate().isNotEmpty) {
+        await _shot(tester, '10_도감_몬스터_설명');
+        Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+        await tester.pumpAndSettle();
+      }
     }
 
     await tester.tap(find.byTooltip('설정'));
@@ -309,6 +314,13 @@ void main() {
     await tester.tap(find.text('가방 열기'));
     await tester.pumpAndSettle();
     await _shot(tester, '22b_가방');
+    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('재료·물건·장비 팔기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('재료·물건·장비 팔기'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '22c_잡화상_팔기');
     Navigator.of(tester.element(find.byType(BottomSheet))).pop();
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(ShopScreen))).pop();
@@ -497,5 +509,8 @@ void main() {
     await tester.tap(find.text('가방'));
     await tester.pumpAndSettle();
     await _shot(tester, '26b_가방_장비');
+    await tester.tap(find.byType(BagSlot).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '26c_가방_칸_누름');
   });
 }

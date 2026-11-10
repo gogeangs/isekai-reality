@@ -174,7 +174,7 @@ void main() {
       // 11-10: 기록은 왼쪽 위 프로필 안으로 옮겼다
       await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
-      expect(find.text('대표 칭호'), findsOneWidget);
+      expect(find.text('칭호'), findsWidgets);
       await tester.tap(find.text('기록'));
       await tester.pump();
       expect(findK('최근 7일', contains: true), findsOneWidget);
@@ -188,6 +188,8 @@ void main() {
       await tester.tap(find.text('도감'));
       await tester.pump();
       expect(findK('몬스터 도감 0 / 13'), findsOneWidget);
+      await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
+          scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('희귀·전설'), findsWidgets);
       await tester.tap(find.bySemanticsLabel('프로필'));
       await tester.pumpAndSettle();

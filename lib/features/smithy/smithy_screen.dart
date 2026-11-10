@@ -445,9 +445,15 @@ class _RecipeCard extends StatelessWidget {
                   info.manaStones),
           ]),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
+          Row(children: [
+            if (check == CraftCheck.bagFull)
+              const Expanded(
+                child: KText('가방이 가득 찼어요. 가방을 비우거나 늘려 주세요.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              )
+            else
+              const Spacer(),
+            SizedBox(
               width: 120,
               child: GoldButton(
                 label: '만들기',
@@ -456,7 +462,7 @@ class _RecipeCard extends StatelessWidget {
                 onPressed: check == CraftCheck.ok ? onCraft : null,
               ),
             ),
-          ),
+          ]),
         ],
       ),
     );

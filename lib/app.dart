@@ -190,6 +190,21 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
+  /// 가방이 가득 차 새 재료를 금화로 바꿨을 때 (11-11 #48)
+  void _maybeShowBagFull() {
+    final c = widget.controller;
+    if (c.pendingBagOverflow <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final g = c.takeBagOverflow();
+      if (g <= 0) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('가방이 가득 찼어요. 새로 얻은 재료는 금화 ${comma(g)}으로 바꿨어요.'),
+        duration: const Duration(seconds: 4),
+      ));
+    });
+  }
+
   /// 앱으로 돌아올 때마다 걸음을 다시 읽는다
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -220,6 +235,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           );
         }
         if (!controller.needsAwakening) _maybeShowTitle();
+        _maybeShowBagFull();
         if (controller.needsAwakening) {
           _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(

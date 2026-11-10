@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -81,12 +80,6 @@ class BagContents extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text('가방', style: AppText.title(20)),
                 ]),
-                const SizedBox(height: 4),
-                Text(
-                  'HP ${comma(c.hp)} / ${comma(c.maxHp)} · '
-                  '정령 MP ${c.mp} / ${c.mpMax}',
-                  style: const TextStyle(color: AppColors.text, fontSize: 13),
-                ),
                 const SizedBox(height: 10),
                 if (owned.isEmpty)
                   const Padding(

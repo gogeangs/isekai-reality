@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'core/format.dart';
 import 'core/geo/geo.dart';
 import 'core/models/armory.dart';
+import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
@@ -213,6 +214,8 @@ class AppController extends ChangeNotifier {
     _armory = armory == null ? const Armory() : Armory.fromJson(armory);
     final board = await store.loadJson(_boardKey);
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
+    final bag = await store.loadJson(_bagKey);
+    _bag = bag == null ? const BagState() : BagState.fromJson(bag);
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -493,13 +496,15 @@ class AppController extends ChangeNotifier {
     final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
-    final mats = LootRules.dungeon(cleared: run.cleared, rng: _random);
+    final fit =
+        _fitBag(LootRules.dungeon(cleared: run.cleared, rng: _random));
+    final mats = fit.kept;
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
       huntCounts: _addCounts(today, battle.purified),
-      gains: DailyRecord.addCounts(
-          today.gains, HuntReward.ledger(materials: mats)),
+      gains: DailyRecord.addCounts(today.gains,
+          HuntReward.ledger(materials: mats, gold: fit.gold)),
       counters: FieldMonsterRules.isNight(_clock())
           ? DailyRecord.addCounts(
               today.counters, {'nightHunts': battle.purified.length})
@@ -510,6 +515,7 @@ class AppController extends ChangeNotifier {
       manaStones: run.cleared
           ? RuleConstants.crystalsPerDungeonClear
           : RuleConstants.crystalsPerDungeonFail,
+      gold: fit.gold,
       materials: mats,
     );
     return exp;
@@ -640,6 +646,12 @@ class AppController extends ChangeNotifier {
       extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
           b.manaStones;
       gold = b.gold;
+      // 가방이 가득하면 남는 재료는 금화로 (11-11 #48)
+      final fit = _fitBag(mats);
+      mats
+        ..clear()
+        ..addAll(fit.kept);
+      gold += fit.gold;
     }
     final modKey = ModifierRules.recordInCodex(mods)
         ? ModifierRules.codexKey(monster, mods)
@@ -683,14 +695,155 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     final fix = _lastFix;
     await refreshVitals();
-    final check = TownRules.canBuy(_history, item,
-        hasLocation: fix != null, level: player.level.level);
+    final check = canBuy(item, hasLocation: fix != null);
     if (check != PurchaseCheck.ok) return check;
 
     await _save(today.copyWith(
       goldPurchases: [...today.goldPurchases, item.name],
     ));
     return PurchaseCheck.ok;
+  }
+
+  /// 살 수 있는지 (가방 칸까지 본다)
+  PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {
+    final mat = TownRules.info(item).material;
+    final have = mat != null
+        ? player.materialCount(mat)
+        : TownRules.bagItems.contains(item)
+            ? bagCount(item)
+            : -1;
+    return TownRules.canBuy(_history, item,
+        hasLocation: hasLocation ?? _lastFix != null,
+        level: player.level.level,
+        bagRoom: have < 0 || _roomFor(have));
+  }
+
+  /// [have] 개 있는 것에 하나 더 넣을 자리가 있는지
+  bool _roomFor(int have) =>
+      (have > 0 && have % BagRules.stackMax != 0) || bagFree > 0;
+
+  // ───────────────────────────────────────────── 가방 칸 (11-11 #48)
+
+  static const _bagKey = 'bag';
+  BagState _bag = const BagState();
+
+  /// 가방 칸 수
+  int get bagCapacity => BagRules.capacity(
+      goldExpansions: _bag.goldExpansions, extraSlots: _bag.extraSlots);
+
+  /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
+  int get bagUsed => BagRules.usedSlots(
+        materials: player.materials,
+        items: {
+          for (final i in TownRules.bagItems)
+            if (bagCount(i) > 0) i: bagCount(i),
+        },
+        armory: _armory,
+      );
+
+  /// 빈칸 (넘치면 0)
+  int get bagFree => math.max(0, bagCapacity - bagUsed);
+
+  /// 다음 확장 가격 (더 늘릴 수 없으면 null)
+  int? get bagExpandCost => bagCapacity >= BagRules.maxSlots
+      ? null
+      : BagRules.expansionCost(_bag.goldExpansions);
+
+  /// 금화로 가방을 5칸 늘린다
+  Future<bool> expandBag() async {
+    final cost = bagExpandCost;
+    if (cost == null || player.gold < cost) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    _bag = _bag.copyWith(goldExpansions: _bag.goldExpansions + 1);
+    await store.saveJson(_bagKey, _bag.toJson());
+    notifyListeners();
+    return true;
+  }
+
+  int _bagOverflow = 0;
+
+  /// 가방이 가득 차 금화로 바꾼 값 (알림을 띄우고 0으로)
+  int takeBagOverflow() {
+    final g = _bagOverflow;
+    _bagOverflow = 0;
+    return g;
+  }
+
+  int get pendingBagOverflow => _bagOverflow;
+
+  ({Map<MaterialId, int> kept, int gold}) _fitBag(
+      Map<MaterialId, int> incoming) {
+    if (incoming.isEmpty) return (kept: incoming, gold: 0);
+    final fit = BagRules.fit(
+        incoming: incoming, have: player.materials, freeSlots: bagFree);
+    _bagOverflow += fit.gold;
+    return fit;
+  }
+
+  /// 재료를 버린다
+  Future<bool> discardMaterial(MaterialId m, int n) async {
+    if (n <= 0 || player.materialCount(m) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {m.name: n})));
+    return true;
+  }
+
+  /// 가방 물건을 버린다
+  Future<bool> discardItem(ShopItem item, int n) async {
+    if (n <= 0 || bagCount(item) < n) return false;
+    await _count(TownRules.dropKey(item), n);
+    return true;
+  }
+
+  /// 입지 않은 장비를 버린다
+  Future<bool> discardEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || _armory.isWorn(item)) return false;
+    await _saveArmory(_armory.copyWith(
+        items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    return true;
+  }
+
+  /// 잡화상에서 재료를 판다
+  Future<bool> sellMaterial(MaterialId m, int n) async {
+    if (n <= 0 || player.materialCount(m) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {m.name: n}),
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: n * BagRules.materialPrice(m)}),
+    ));
+    return true;
+  }
+
+  /// 잡화상에서 가방 물건을 판다 (산 값의 절반)
+  Future<bool> sellItem(ShopItem item, int n) async {
+    if (n <= 0 || bagCount(item) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      counters: DailyRecord.addCounts(
+          today.counters, {TownRules.dropKey(item): n}),
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: n * BagRules.itemPrice(item)}),
+    ));
+    return true;
+  }
+
+  /// 잡화상에서 입지 않은 장비를 판다
+  Future<bool> sellEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || _armory.isWorn(item)) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: BagRules.equipPrice(item)}),
+    ));
+    await _saveArmory(_armory.copyWith(
+        items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    return true;
   }
 
   /// 마석 [count] 개를 금화로 판다 (1개에 금화 10). 모자라면 false.
@@ -866,6 +1019,7 @@ class AppController extends ChangeNotifier {
       if (p.materialCount(rare) < need) return CraftCheck.materials;
     }
     if (p.manaStones < info.manaStones) return CraftCheck.manaStones;
+    if (bagFree <= 0) return CraftCheck.bagFull;
     return CraftCheck.ok;
   }
 
@@ -1111,12 +1265,15 @@ class AppController extends ChangeNotifier {
 
   Future<void> _grant(
       int gold, int manaStones, Map<MaterialId, int> materials) async {
+    final fit = _fitBag(materials);
     final today = await _todayRecord();
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
           today.gains,
           HuntReward.ledger(
-              extraManaStones: manaStones, gold: gold, materials: materials)),
+              extraManaStones: manaStones,
+              gold: gold + fit.gold,
+              materials: fit.kept)),
     ));
   }
 
@@ -1519,7 +1676,7 @@ class AppController extends ChangeNotifier {
 }
 
 /// 대장간에서 만들거나 강화할 수 있는지
-enum CraftCheck { ok, materials, manaStones, gold, maxed }
+enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }

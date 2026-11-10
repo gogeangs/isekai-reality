@@ -145,7 +145,7 @@ void main() {
       final b = Battle(
         playerMaxHp: 1000,
         playerAttack: 5,
-        floors: [foe(MonsterId.windSlime)],
+        floors: [foe(MonsterId.ashSlime)],
         rng: _Fixed(0.01),
         attackElement: Element.wind,
         weaponPotion: Element.ice,

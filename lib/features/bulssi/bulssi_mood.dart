@@ -105,3 +105,13 @@ class CompanionArt extends StatelessWidget {
         mood: mood);
   }
 }
+
+/// MP 이름: 정령이 떠난 뒤에는 펫들이 나눠 쓰는 「펫 MP」
+String mpLabel(BuildContext context) =>
+    BulssiScope.maybeOf(context)?.petSpecies != null ? '펫 MP' : '정령 MP';
+
+/// 던전 스킬 이름: 정령의 일격, 또는 동행 펫의 스킬
+String skillLabel(BuildContext context) {
+  final pet = BulssiScope.maybeOf(context)?.petSpecies;
+  return pet == null ? '정령의 일격!' : '${PetRules.info(pet).skillName}!';
+}

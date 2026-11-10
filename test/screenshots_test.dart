@@ -151,11 +151,11 @@ void main() {
     // 연출 중간 모습: 타격 순간, 불씨의 일격
     await tester.pump(const Duration(milliseconds: 250));
     await _shot(tester, '05b_던전_타격');
-    if (find.text('정령의 일격!').evaluate().isNotEmpty) {
+    if (find.text('약점 간파!').evaluate().isNotEmpty) {
       await tester.pump(const Duration(milliseconds: 550));
       await _shot(tester, '05a_던전_대기');
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('정령의 일격!').last);
+      await tester.tap(find.text('약점 간파!').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
       await _shot(tester, '05c_던전_일격');
@@ -172,8 +172,8 @@ void main() {
         await tester.pump(const Duration(milliseconds: 900));
         await _shot(tester, '06_던전_보스');
       }
-      if (find.text('정령의 일격!').evaluate().isNotEmpty) {
-        await tester.tap(find.text('정령의 일격!'));
+      if (find.text('약점 간파!').evaluate().isNotEmpty) {
+        await tester.tap(find.text('약점 간파!'));
       }
       await tester.pump(const Duration(milliseconds: 900));
     }

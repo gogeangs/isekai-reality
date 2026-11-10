@@ -13,6 +13,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
 import '../smithy/equipment_view.dart';
+import '../bulssi/bulssi_mood.dart';
 
 /// 메인 상태창 (목업 확정본 구도).
 ///
@@ -487,7 +488,9 @@ class _StatusPanel extends StatelessWidget {
               Expanded(
                 child: _Gauge(
                   icon: 'mp',
-                  label: spiritAway == null ? '정령 MP' : '정령 MP · 원정 중',
+                  label: spiritAway == null
+                      ? mpLabel(context)
+                      : '${mpLabel(context)} · 원정 중',
                   ratio: mp / mpMax,
                   colors: BarColors.mana,
                   value: '$mp / $mpMax',

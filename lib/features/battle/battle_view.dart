@@ -549,7 +549,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                               cleared
                                   ? '잡았어!'
                                   : widget.skill && hitting
-                                      ? '정령의 일격!'
+                                      ? skillLabel(context)
                                       : '할 수 있어!',
                               style: const TextStyle(
                                   color: AppColors.night,
@@ -819,9 +819,9 @@ class _SkillOrb extends StatelessWidget {
           onTap: ready ? onPressed : null,
           child: Text(
               away
-                  ? '정령 원정 중'
+                  ? '원정 중'
                   : ready
-                      ? '정령의 일격!'
+                      ? skillLabel(context)
                       : '충전 중',
               style: AppText.title(15,
                   color: ready ? AppColors.goldBright : AppColors.textMuted)),

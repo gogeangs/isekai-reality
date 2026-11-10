@@ -11,6 +11,7 @@ import '../bulssi/spirit_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
 import 'sell_sheet.dart';
+import '../bulssi/bulssi_mood.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터가 떨어뜨린 마석을 금화로 팔고, 금화로 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -86,7 +87,7 @@ class ShopScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'HP ${comma(controller.hp)} / ${comma(controller.maxHp)} · '
-                      '정령 MP ${controller.mp} / ${controller.mpMax}',
+                      '${mpLabel(context)} ${controller.mp} / ${controller.mpMax}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                           color: AppColors.text, fontSize: 13),

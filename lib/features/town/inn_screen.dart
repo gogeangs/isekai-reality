@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
+import '../bulssi/bulssi_mood.dart';
 
 /// 여관 (앱 안 시설): 하루를 정리하고 쉰다.
 /// 언제든 체크인하고 4시간이 지나면 HP·정령 MP가 가득 차고,
@@ -107,7 +108,7 @@ class InnScreen extends StatelessWidget {
                                 '${comma(controller.maxHp)}'),
                         _Row(
                             icon: 'mp',
-                            label: '정령 MP',
+                            label: mpLabel(context),
                             value:
                                 '${controller.mp} / ${controller.mpMax}'),
                         const Divider(color: Color(0x33E9C46A), height: 18),

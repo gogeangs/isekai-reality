@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
+import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {
@@ -72,7 +73,11 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
               ...switch (_tab) {
                 0 => _cauldrons(context),
                 1 => _book(context),
-                _ => [ProcessPanel(controller: c)],
+                _ => [
+                    ProcessPanel(controller: c),
+                    const SizedBox(height: 10),
+                    ToolRepairPanel(controller: c, smithy: false),
+                  ],
               },
             ],
           ),

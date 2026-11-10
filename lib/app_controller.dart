@@ -2273,6 +2273,9 @@ class AppController extends ChangeNotifier {
     return _spotsCache;
   }
 
+  /// 마지막으로 받은 위치
+  GeoPoint? get lastPoint => _lastFix?.point;
+
   /// 가까이 있는 채집 자리 (40m 안)
   HarvestSpot? get nearbyHarvest {
     final fix = _lastFix;

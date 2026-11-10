@@ -11,6 +11,7 @@ import '../town/material_view.dart';
 import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import 'equipment_view.dart';
 import '../battle/element_view.dart';
+import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 
 /// 마을 대장간 (11-10 #27): 장비 만들기 · 강화 · 수리 · 분해.
 /// 장비는 대장간에서만 만든다.
@@ -86,7 +87,11 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   0 => _craftTab(),
                   1 => _enhanceTab(),
                   2 => _repairTab(),
-                  _ => [ProcessPanel(controller: c, smithy: true)],
+                  _ => [
+                      ProcessPanel(controller: c, smithy: true),
+                      const SizedBox(height: 10),
+                      ToolRepairPanel(controller: c, smithy: true),
+                    ],
                 },
               ],
             );

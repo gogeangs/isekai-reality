@@ -73,7 +73,9 @@ void main() {
       expect(ModifierRules.recordInCodex(const [ModifierId.hungry]), isFalse);
       expect(ModifierRules.recordInCodex(mods), isTrue);
       final key = ModifierRules.codexKey(MonsterId.ashSlime, mods);
-      expect(ModifierRules.parseCodexKey(key), (MonsterId.ashSlime, mods));
+      final parsed = ModifierRules.parseCodexKey(key)!;
+      expect(parsed.$1, MonsterId.ashSlime);
+      expect(parsed.$2, mods);
     });
   });
 

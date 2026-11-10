@@ -117,6 +117,7 @@ class Vitals {
     this.stepsCounted = 0,
     this.restStartedAt,
     this.expedition,
+    this.compassReady = false,
   });
 
   /// 지금 HP. null 이면 가득.
@@ -141,6 +142,9 @@ class Vitals {
   /// 진행 중이거나 결과를 아직 보지 않은 원정
   final Expedition? expedition;
 
+  /// 원정 나침반을 써 두었는지 (다음 원정의 이동 시간 절반, 11-10)
+  final bool compassReady;
+
   Vitals copyWith({
     int? hp,
     int? lastMaxHp,
@@ -152,6 +156,7 @@ class Vitals {
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
+    bool? compassReady,
   }) =>
       Vitals(
         hp: hp ?? this.hp,
@@ -162,6 +167,7 @@ class Vitals {
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
         expedition: clearExpedition ? null : (expedition ?? this.expedition),
+        compassReady: compassReady ?? this.compassReady,
       );
 
   Map<String, dynamic> toJson() => {
@@ -173,6 +179,7 @@ class Vitals {
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
         'expedition': expedition?.toJson(),
+        'compassReady': compassReady,
       };
 
   factory Vitals.fromJson(Map<String, dynamic> j) => Vitals(
@@ -189,5 +196,6 @@ class Vitals {
             ? null
             : Expedition.fromJson(
                 Map<String, dynamic>.from(j['expedition'] as Map)),
+        compassReady: j['compassReady'] as bool? ?? false,
       );
 }

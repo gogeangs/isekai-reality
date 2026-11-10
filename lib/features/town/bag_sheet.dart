@@ -17,7 +17,14 @@ String useReason(UseCheck c) => switch (c) {
       UseCheck.ok => '',
       UseCheck.none => '가방에 없어요',
       UseCheck.alreadyFull => '이미 가득해요',
-      UseCheck.alreadyActive => '오늘 이미 마셨어요',
+      UseCheck.alreadyActive => '이미 효과가 있어요',
+    };
+
+/// 가방 버튼 글자: 물약은 마시기, 나침반은 쓰기, 향은 피우기
+String useLabel(ShopItem item) => switch (item) {
+      ShopItem.expeditionCompass => '쓰기',
+      ShopItem.purifyIncense => '피우기',
+      _ => '마시기',
     };
 
 /// 가방 열기 (상태창·던전 입구·잡화상)
@@ -70,7 +77,7 @@ class BagSheet extends StatelessWidget {
                 if (owned.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Text('가방이 비어 있어요. 잡화상에서 물약을 살 수 있어요.',
+                    child: Text('가방이 비어 있어요. 잡화상에서 물약과 물건을 살 수 있어요.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textMuted)),
                   ),
@@ -119,7 +126,7 @@ class _BagRow extends StatelessWidget {
         SizedBox(
           width: 118,
           child: GoldButton(
-            label: '마시기',
+            label: useLabel(item),
             height: 40,
             fontSize: 15,
             onPressed: check == UseCheck.ok

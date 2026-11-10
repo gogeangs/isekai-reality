@@ -340,7 +340,7 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
     final checks = find.byType(Checkbox);
-    for (final i in [0, 1, 3]) {
+    for (final i in [0, 1, 2]) {
       await tester.tap(checks.at(i));
     }
     await tester.pumpAndSettle();

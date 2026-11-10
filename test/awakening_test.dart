@@ -109,13 +109,13 @@ void main() {
     await tester.tap(find.text('이 이름으로'));
     await tester.pumpAndSettle();
 
-    // 동의: 필수 3개를 체크해야 다음으로
+    // 동의: 필수 3개를 체크해야 다음으로 (날씨 선택 항목은 11-10에 뺐다)
     expect(find.text('시작하기 전에'), findsOneWidget);
     final checks = find.byType(Checkbox);
-    expect(checks, findsNWidgets(4));
+    expect(checks, findsNWidgets(3));
     await tester.tap(checks.at(0));
     await tester.tap(checks.at(1));
-    await tester.tap(checks.at(3));
+    await tester.tap(checks.at(2));
     await tester.pump();
     await tester.scrollUntilVisible(find.text('동의하고 다음'), 200,
         scrollable: find.byType(Scrollable).first);

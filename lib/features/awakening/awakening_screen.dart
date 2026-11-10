@@ -98,7 +98,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   bool _agreeHealth = false;
   bool _agreeLocation = false;
   bool _agreeAge = false;
-  bool _agreeWeather = true;
+  /// 날씨 기능은 11-10에 뺐다 (동의 항목 없음)
+  final bool _agreeWeather = false;
 
   bool get _requiredAgreed => _agreeHealth && _agreeLocation && _agreeAge;
 
@@ -499,13 +500,6 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                 text: '앱을 보고 있는 동안 위치를 써서 주변 몬스터를 찾습니다. '
                     '좌표는 저장하지 않습니다.',
                 doc: LegalDoc.locationTerms,
-              ),
-              item(
-                value: _agreeWeather,
-                onChanged: (v) => setState(() => _agreeWeather = v),
-                label: '선택',
-                text: '약 1km 단위의 대략 위치로 날씨를 조회해 정령의 빛 색을 바꿉니다 '
-                    '(해외 날씨 서비스 Open-Meteo).',
               ),
               item(
                 value: _agreeAge,

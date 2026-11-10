@@ -23,6 +23,12 @@ enum ShopItem {
 
   /// 마나 물약: MP 40% (2등급, Lv.3)
   mana,
+
+  /// 원정 나침반: 쓰면 다음 정령 원정의 이동 시간이 절반 (하루 1개, 11-10)
+  expeditionCompass,
+
+  /// 정화의 향: 피운 날은 필드 몬스터 경험치 1.5배 (하루 1개, 11-10)
+  purifyIncense,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -88,7 +94,7 @@ enum UseCheck {
   /// HP·MP가 이미 가득
   alreadyFull,
 
-  /// 정령 물약을 오늘 이미 마셨다
+  /// 정령 물약·정화의 향을 오늘 이미 썼다, 원정 나침반을 써 두었다
   alreadyActive,
 }
 
@@ -164,6 +170,22 @@ class TownRules {
       price: 5,
       limit: ShopLimit.perDay,
       icon: 'potion_spirit_fire',
+    ),
+    ShopItemInfo(
+      item: ShopItem.expeditionCompass,
+      name: '원정 나침반',
+      description: '가방에 넣어 두고, 쓰면 다음 정령 원정의 이동 시간이 절반이 돼요.',
+      price: 5,
+      limit: ShopLimit.perDay,
+      icon: 'icon_expedition', // 지도 원정 아이콘과 같은 나침반 그림
+    ),
+    ShopItemInfo(
+      item: ShopItem.purifyIncense,
+      name: '정화의 향',
+      description: '가방에 넣어 두고, 피운 날은 필드 몬스터 경험치가 1.5배예요.',
+      price: 6,
+      limit: ShopLimit.perDay,
+      icon: 'item_incense',
     ),
     ShopItemInfo(
       item: ShopItem.magicLens,
@@ -252,6 +274,8 @@ class TownRules {
     ShopItem.manaSmall,
     ShopItem.mana,
     ShopItem.bulssiPotion,
+    ShopItem.expeditionCompass,
+    ShopItem.purifyIncense,
   };
 
   /// 물건마다 가방에 들고 다닐 수 있는 개수
@@ -275,12 +299,19 @@ class TownRules {
     ShopItem item, {
     bool hpFull = false,
     bool mpFull = false,
+    bool compassReady = false,
   }) {
     if (bagCount(history, item) <= 0) return UseCheck.none;
     final i = info(item);
     if (i.hpRatio > 0 && hpFull) return UseCheck.alreadyFull;
     if (i.mpRatio > 0 && mpFull) return UseCheck.alreadyFull;
     if (item == ShopItem.bulssiPotion && potionActive(history.lastOrNull)) {
+      return UseCheck.alreadyActive;
+    }
+    if (item == ShopItem.purifyIncense && incenseActive(history.lastOrNull)) {
+      return UseCheck.alreadyActive;
+    }
+    if (item == ShopItem.expeditionCompass && compassReady) {
       return UseCheck.alreadyActive;
     }
     return UseCheck.ok;
@@ -313,6 +344,10 @@ class TownRules {
   /// 그날 정령 물약을 마셨는지 (가방에서 꺼내 마신 날)
   static bool potionActive(DailyRecord? r) =>
       r != null && usedOn(r, ShopItem.bulssiPotion) > 0;
+
+  /// 그날 정화의 향을 피웠는지 (필드 몬스터 경험치 1.5배)
+  static bool incenseActive(DailyRecord? r) =>
+      r != null && usedOn(r, ShopItem.purifyIncense) > 0;
 
   // ───────────────────────── 여관
 

@@ -131,7 +131,8 @@ class SpawnSheet extends StatelessWidget {
                       _InfoRow(
                           label: '시간',
                           value: '가는 데 ${_minutes(plan.oneWay)}, '
-                              '돌아오기까지 ${_minutes(plan.oneWay * 2)}'),
+                              '돌아오기까지 ${_minutes(plan.oneWay * 2)}'
+                              '${c.compassReady ? ' (나침반으로 절반)' : ''}'),
                     ],
                     const SizedBox(height: 6),
                     const Text(

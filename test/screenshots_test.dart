@@ -23,6 +23,7 @@ import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
+import 'package:isekai_reality/features/smithy/smithy_screen.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
 
 final _root = GlobalKey();
@@ -417,5 +418,76 @@ void main() {
     await c.restAtInn();
     await tester.pumpAndSettle();
     await _shot(tester, '25_쉬는_중');
+  });
+
+  testWidgets('화면 미리보기: 수식어·대장간·장비', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 20));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+
+    // 수식어 몬스터와 싸운다 (고대의 분노한 큰쥐)
+    final base = c.todaySpawns.first;
+    final spawn = FieldSpawn(
+      id: base.id,
+      monster: MonsterId.giantRat,
+      point: base.point,
+      modifiers: const [ModifierId.ancient, ModifierId.enraged],
+    );
+    final nav = Navigator.of(tester.element(find.byType(Scaffold).first));
+    nav.push(MaterialPageRoute<void>(
+        builder: (_) => FieldBattleScreen(
+            controller: c,
+            spawn: spawn,
+            tickInterval: const Duration(milliseconds: 100))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await _shot(tester, '29_수식어_전투');
+    for (var i = 0;
+        i < 300 &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
+            find.text('이번엔 물러났어요').evaluate().isEmpty;
+        i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+    await _shot(tester, '29b_수식어_결과');
+    nav.pop();
+    await tester.pumpAndSettle();
+
+    // 도감 수식어 탭
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('수식어 ').first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '29c_도감_수식어');
+
+    // 장비를 만들고 입는다
+    final armor = await c.craft(EquipBase.armor);
+    final cap = await c.craft(EquipBase.cap);
+    await c.equip(armor!.uid);
+    await c.equip(cap!.uid);
+    await c.enhance(armor.uid);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('마을'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('대장간').last);
+    await tester.pumpAndSettle();
+    await _shot(tester, '28_대장간');
+    await tester.tap(find.text('강화'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28b_대장간_강화');
+    await tester.tap(find.text('수리 · 분해'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28c_대장간_수리');
+    Navigator.of(tester.element(find.byType(SmithyScreen))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('가방'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '26b_가방_장비');
   });
 }

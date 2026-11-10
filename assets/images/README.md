@@ -88,3 +88,6 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | letter_spirit | 정령의 편지 (512×512) |
 | scene_hatch | 부화 때 펫 뒤의 빛 (1024×1024) |
 | scene_farewell | 정령의 작별 장면 (1600×900) |
+| icon_alchemy | 마을 연금술 공방 배지 (512×512) |
+| cauldron | 연금술 가마솥 (512×512) |
+| item_recipe_book, item_recipe_note, potion_suspicious | 레시피 책·쪽지, 수상한 물약 (256×256) |

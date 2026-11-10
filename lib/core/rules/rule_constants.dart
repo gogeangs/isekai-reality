@@ -7,9 +7,10 @@ class RuleConstants {
 
   // ---------------------------------------------------------------- 레벨
   /// Lv.n → n+1 에 필요한 경험치 = levelBaseExp + levelStepExp × (n − 1)
-  /// 11-10: 퀘스트 보상이 늘어 약 10% 올림 (100·25 → 110·28)
-  static const int levelBaseExp = 110;
-  static const int levelStepExp = 28;
+  /// 11-10: 퀘스트 보상이 늘어 약 10% 올림 (100·25 → 110·28),
+  /// 같은 날 주간 의뢰를 넣으며 5% 더 올림 (110·28 → 118·29)
+  static const int levelBaseExp = 118;
+  static const int levelStepExp = 29;
 
   // ---------------------------------------------------------------- 걸음 목표
   static const int defaultStepGoal = 3000; // 모두 같은 목표 (2026-11-09: 적게 걷는 사람도 충분히 즐기도록)

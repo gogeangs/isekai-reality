@@ -115,15 +115,18 @@ void main() {
       expect(c.history.last.stepGoalAchieved, isTrue); // 4,000보
     });
 
-    test('이름과 정령 이름을 바꾼다 (빈 이름은 무시)', () async {
+    test('이름은 처음 1번 무료, 그다음 금화 300 (빈 이름은 무시)', () async {
       final c = make(InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루')));
       await c.init();
-      await c.renameHero('  새벽 ');
-      await c.renameSpirit('반딧불');
-      await c.renameSpirit('   ');
+      expect(c.renameCost, 0);
+      expect(await c.renameHero('   '), isFalse);
+      expect(await c.renameHero('  새벽 '), isTrue);
       expect(c.profile.name, '새벽');
-      expect(c.profile.spiritName, '반딧불');
+      expect(c.renameCost, AppController.renameGold);
+      // 금화가 없으면 못 바꾼다
+      expect(await c.renameHero('노을'), isFalse);
+      expect(c.profile.name, '새벽');
     });
 
     test('기록 내보내기: 하루별 한 줄, 좌표·이름 없음', () async {
@@ -171,25 +174,26 @@ void main() {
       // 11-10: 기록은 왼쪽 위 프로필 안으로 옮겼다
       await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
-      expect(find.text('대표 칭호'), findsOneWidget);
+      expect(find.text('칭호'), findsWidgets);
       await tester.tap(find.text('기록'));
       await tester.pump();
-      expect(find.textContaining('최근 7일'), findsOneWidget);
+      expect(findK('최근 7일', contains: true), findsOneWidget);
       await tester.scrollUntilVisible(find.textContaining('오늘 ·'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('오늘 ·'), findsOneWidget);
     });
 
-    testWidgets('도감 탭: 칭호, 몬스터', (tester) async {
+    testWidgets('도감은 몬스터 한 화면, 칭호는 프로필에서', (tester) async {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
-      expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
-      expect(find.text('몬스터 도감 0 / 5'), findsNothing);
-      // 탭을 누르면 몬스터 그룹만 보인다
-      await tester.tap(find.text('몬스터 0/5'));
-      await tester.pump();
-      expect(find.text('몬스터 도감 0 / 5'), findsOneWidget);
+      expect(findK('몬스터 도감 0 / 13'), findsOneWidget);
+      await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
+          scrollable: find.byType(Scrollable).first);
+      expect(find.textContaining('희귀·전설'), findsWidgets);
+      await tester.tap(find.byType(ProfileButton));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('/ ${TitleRules.all.length}'), findsWidgets);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {
@@ -214,3 +218,10 @@ void main() {
     });
   });
 }
+
+/// 줄바꿈 금지 문자(keepAll)를 빼고 글자를 찾는다
+Finder findK(String text, {bool contains = false}) => find.byWidgetPredicate((w) {
+      if (w is! Text) return false;
+      final d = (w.data ?? w.textSpan?.toPlainText() ?? '').replaceAll('\u2060', '');
+      return contains ? d.contains(text) : d == text;
+    });

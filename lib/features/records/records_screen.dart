@@ -103,7 +103,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          KText(
             '${days.first.month}월 ${days.first.day}일 ~ '
             '${days.last.month}월 ${days.last.day}일 · 최근 7일',
             textAlign: TextAlign.center,

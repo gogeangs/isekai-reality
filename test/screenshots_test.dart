@@ -21,6 +21,9 @@ import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
+import 'package:isekai_reality/features/map/expedition_result.dart';
+import 'package:isekai_reality/features/town/bag_tab.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
@@ -191,11 +194,18 @@ void main() {
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
     await _shot(tester, '09_도감');
-    await tester.tap(find.textContaining('몬스터 ').first);
-    await tester.pumpAndSettle();
-    await _shot(tester, '10_도감_몬스터');
-    await tester.tap(find.textContaining('칭호 ').first);
-    await tester.pumpAndSettle();
+    final tile = find.textContaining('마리');
+    if (tile.evaluate().isNotEmpty) {
+      await tester.ensureVisible(tile.first);
+      await tester.pumpAndSettle();
+      await tester.tap(tile.first, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      if (find.byType(BottomSheet).evaluate().isNotEmpty) {
+        await _shot(tester, '10_도감_몬스터_설명');
+        Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+        await tester.pumpAndSettle();
+      }
+    }
 
     await tester.tap(find.byTooltip('설정'));
     await tester.pumpAndSettle();
@@ -308,6 +318,13 @@ void main() {
     await _shot(tester, '22b_가방');
     Navigator.of(tester.element(find.byType(BottomSheet))).pop();
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('재료·물건·장비 팔기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('재료·물건·장비 팔기'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '22c_잡화상_팔기');
+    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+    await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(ShopScreen))).pop();
     await tester.pumpAndSettle();
 
@@ -359,10 +376,14 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 정령과 함께하기'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
+    await tester.pumpAndSettle();
     await _shot(tester, '15g_정령_이름');
     await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
         scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('이 이름으로'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('확정'));
     await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
     final checks = find.byType(Checkbox);
@@ -457,10 +478,11 @@ void main() {
     nav.pop();
     await tester.pumpAndSettle();
 
-    // 도감 수식어 탭
+    // 도감 아래 희귀·전설 사냥 기록
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('수식어 ').first);
+    await tester.scrollUntilVisible(find.text('희귀·전설 사냥 기록'), 300,
+        scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     await _shot(tester, '29c_도감_수식어');
 
@@ -489,5 +511,50 @@ void main() {
     await tester.tap(find.text('가방'));
     await tester.pumpAndSettle();
     await _shot(tester, '26b_가방_장비');
+    await tester.tap(find.byType(BagSlot).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '26c_가방_칸_누름');
+  });
+
+  testWidgets('화면 미리보기: 원정 결과 카드', (tester) async {
+    _phone(tester);
+    final base = Expedition(
+      spawnId: 's1',
+      monster: 'hornRabbit',
+      lat: 37.3,
+      lng: 126.8,
+      distanceM: 800,
+      mpCost: 16,
+      startedAt: DateTime(2026, 11, 8, 14),
+      arriveAt: DateTime(2026, 11, 8, 14, 8),
+      returnAt: DateTime(2026, 11, 8, 14, 16),
+    );
+    final cases = {
+      '33a_원정_성공': base.withResult(true,
+          newSpecies: true,
+          reward: const {'exp': 18, 'manaStone': 1, 'smallHorn': 1, 'goldenRabbitFur': 1}),
+      '33b_원정_실패': base.withResult(false),
+      '33c_원정_놓침': base.withResult(false, escaped: true),
+    };
+    for (final e in cases.entries) {
+      await tester.pumpWidget(RepaintBoundary(
+        key: _root,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            backgroundColor: const Color(0xFF0F1233),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: ExpeditionResultCard(ex: e.value, spiritName: '불씨'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await _shot(tester, e.key);
+    }
   });
 }

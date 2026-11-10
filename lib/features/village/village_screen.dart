@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/format.dart';
 import '../../app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -49,7 +50,7 @@ class VillageScreen extends StatelessWidget {
   void _enter(BuildContext context, FacilityInfo f) {
     if (!f.open) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${f.name}은(는) 곧 열려요')));
+          SnackBar(content: Text('${josa(f.name, '은/는')} 곧 열려요')));
       return;
     }
     final Widget page = switch (f.facility) {

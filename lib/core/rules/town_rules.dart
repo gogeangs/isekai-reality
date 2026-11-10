@@ -37,6 +37,9 @@ enum ShopItem {
 
   /// 나뭇가지: 지팡이 재료 (하루 5개, 11-10)
   twig,
+
+  /// 약초: 회복 물약 재료 (하루 5개, 11-11)
+  herb,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -96,7 +99,7 @@ enum PurchaseCheck {
   needsLocation,
   levelTooLow,
 
-  /// 가방에 이미 [TownRules.bagMax] 개
+  /// 가방 칸이 가득 (11-11 #48)
   bagFull,
 }
 
@@ -225,6 +228,16 @@ class TownRules {
       perLimit: 5,
       icon: 'mat_twig',
       material: MaterialId.twig,
+    ),
+    ShopItemInfo(
+      item: ShopItem.herb,
+      name: '약초',
+      description: '회복 물약 재료예요. 물약 만들기는 곧 열려요.',
+      price: 15,
+      limit: ShopLimit.perDay,
+      perLimit: 5,
+      icon: 'mat_herb',
+      material: MaterialId.herb,
     ),
     ShopItemInfo(
       item: ShopItem.magicLens,
@@ -378,17 +391,17 @@ class TownRules {
     ShopItem.purifyIncense,
   };
 
-  /// 물건마다 가방에 들고 다닐 수 있는 개수
-  static const int bagMax = 3;
-
   static int usedOn(DailyRecord r, ShopItem item) =>
       r.itemsUsed.where((p) => p == item.name).length;
 
-  /// 가방에 남은 개수 (산 것 − 쓴 것)
+  /// 버리거나 판 개수를 적는 counters 키 (11-11 #48)
+  static String dropKey(ShopItem item) => 'drop:${item.name}';
+
+  /// 가방에 남은 개수 (산 것 − 쓴 것 − 버리거나 판 것)
   static int bagCount(List<DailyRecord> history, ShopItem item) {
     var n = 0;
     for (final r in history) {
-      n += boughtOn(r, item) - usedOn(r, item);
+      n += boughtOn(r, item) - usedOn(r, item) - (r.counters[dropKey(item)] ?? 0);
     }
     return n < 0 ? 0 : n;
   }
@@ -422,6 +435,7 @@ class TownRules {
     ShopItem item, {
     bool hasLocation = true,
     int level = 99,
+    bool bagRoom = true,
   }) {
     final i = info(item);
     if (level < i.minLevel) return PurchaseCheck.levelTooLow;
@@ -432,7 +446,7 @@ class TownRules {
     if (item == ShopItem.magicLens && !hasLocation) {
       return PurchaseCheck.needsLocation;
     }
-    if (bagItems.contains(item) && bagCount(history, item) >= bagMax) {
+    if ((bagItems.contains(item) || i.material != null) && !bagRoom) {
       return PurchaseCheck.bagFull;
     }
     return PurchaseCheck.ok;

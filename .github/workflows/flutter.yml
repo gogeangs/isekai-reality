@@ -31,6 +31,12 @@ jobs:
       - name: 패키지 설치
         run: flutter pub get
 
+      - name: 지도 플러그인 API 메모
+        shell: bash
+        run: |
+          d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'flutter_naver_map-*' | head -1)
+          { echo "$d"; grep -rn "Future<[^>]*> [a-zA-Z]*(\|onCamera[A-Za-z]*\|class NPathOverlay\|class NArrowheadPathOverlay\|factory NCameraUpdate\|static NCameraUpdate" "$d/lib" | sed "s#$d/##"; grep -n -A25 "NPathOverlay({" -r "$d/lib" | sed "s#$d/##"; } > api-notes.txt 2>&1 || true
+
       - name: 코드 분석
         run: flutter analyze --no-fatal-infos 2>&1 | tee analyze-output.txt; exit ${PIPESTATUS[0]}
         shell: bash
@@ -46,7 +52,7 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p /tmp/ci
-          cp analyze-output.txt test-output.txt /tmp/ci/ 2>/dev/null || true
+          cp analyze-output.txt test-output.txt api-notes.txt /tmp/ci/ 2>/dev/null || true
           cp -r build/screenshots /tmp/ci/screenshots 2>/dev/null || true
           cp -r build/reports /tmp/ci/reports 2>/dev/null || true
           echo "${GITHUB_SHA}" > /tmp/ci/commit.txt

@@ -12,6 +12,7 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/theme/ornaments.dart';
 
 class _Location implements LocationSource {
   final _c = StreamController<LocationFix>.broadcast();
@@ -220,7 +221,7 @@ void main() {
           PurchaseCheck.ok);
     });
 
-    test('가방: 산 것은 쌓이고, 마시면 줄고, 3개까지만 담는다', () {
+    test('가방: 산 것은 쌓이고, 마시고 버리면 준다. 칸이 없으면 못 산다', () {
       final rich = _day(2,
           runs: List.filled(20, const DungeonRun(cleared: true)), gold: 1000);
       final d3 = DailyRecord(
@@ -235,13 +236,20 @@ void main() {
           UseCheck.alreadyFull);
       expect(TownRules.canUse([rich, d3], ShopItem.manaSmall), UseCheck.none);
 
-      // 다음 날 2개 더 사면 3개 → 가방이 가득
+      // 다음 날 2개 더 사면 3개. 이제 3개 제한은 없다
       final d4 = _day(4, bought: ['healSmall', 'healSmall']);
       expect(TownRules.bagCount([rich, d3, d4], ShopItem.healSmall), 3);
       expect(TownRules.canBuy([rich, d3, d4], ShopItem.healSmall),
-          PurchaseCheck.bagFull);
-      expect(TownRules.canBuy([rich, d3, d4], ShopItem.manaSmall),
           PurchaseCheck.ok);
+      expect(TownRules.canBuy([rich, d3, d4], ShopItem.manaSmall, bagRoom: false),
+          PurchaseCheck.bagFull);
+
+      // 버린 것은 빠진다
+      final d5 = DailyRecord(
+          date: DateTime(2026, 11, 5),
+          stepGoal: 8000,
+          counters: {TownRules.dropKey(ShopItem.healSmall): 2});
+      expect(TownRules.bagCount([rich, d3, d4, d5], ShopItem.healSmall), 1);
     });
 
     test('정령 물약은 마신 날 하루만 효과가 있다', () {
@@ -479,7 +487,7 @@ void main() {
       expect(await c.sendSpirit(spawn), ExpeditionCheck.ok);
       expect(notifier.scheduled[NotifyId.expedition]?.$1,
           c.expedition!.returnAt);
-      expect(c.mp, RuleConstants.mpMax - plan.mpCost);
+      expect(c.mp, c.mpMax - plan.mpCost);
       expect(c.todaySpawns.any((s) => s.id == spawn.id), isFalse);
       expect(await c.sendSpirit(c.todaySpawns.first), ExpeditionCheck.busy);
       // 원정 중에는 정령의 일격을 쓸 수 없다
@@ -553,7 +561,15 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('50').first);
+    final buy = find
+        .descendant(
+            of: find.ancestor(
+                of: find.text('정령 물약'), matching: find.byType(OrnatePanel)),
+            matching: find.text('50'))
+        .first;
+    await tester.ensureVisible(buy);
+    await tester.pumpAndSettle();
+    await tester.tap(buy);
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
     expect(find.text('오늘 샀어요'), findsOneWidget);

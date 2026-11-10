@@ -47,7 +47,7 @@ void main() {
     test('던전 몬스터에는 붙지 않고, 전설은 둘까지 붙는다', () {
       var two = 0;
       for (var i = 0; i < 4000; i++) {
-        expect(ModifierRules.roll('d#$i', MonsterId.labyrinthBat, 30), isEmpty);
+        expect(ModifierRules.roll('d#$i', MonsterId.labyrinthWarden, 30), isEmpty);
         final mods = ModifierRules.roll('f#$i', MonsterId.giantRat, 30);
         expect(mods.length, lessThanOrEqualTo(2));
         if (mods.length == 2) {

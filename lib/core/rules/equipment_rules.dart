@@ -20,6 +20,11 @@ enum EquipBase {
   boots,
   fangNecklace,
   wardenCharm,
+  // 11-11 #31
+  hornDagger,
+  boarArmor,
+  rabbitBoots,
+  tuskNecklace,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -34,6 +39,8 @@ class EquipBaseInfo {
     this.reduce = 0,
     this.maxHp = 0,
     this.skillFaster = 0,
+    this.crit = 0,
+    this.evade = 0,
     this.job,
     required this.asset,
   });
@@ -54,6 +61,10 @@ class EquipBaseInfo {
   /// 정령의 일격 충전이 이만큼 빨라진다 (틱)
   final int skillFaster;
 
+  /// 치명타 확률·회피 확률 (+%p, 11-11)
+  final double crit;
+  final double evade;
+
   /// 어울리는 직업 (직업이 생기면 능력 +20%, 지금은 데이터만)
   final String? job;
 
@@ -65,6 +76,8 @@ class EquipBaseInfo {
         if (reduce > 0) '받는 피해 -${_pct(reduce)}%',
         if (maxHp > 0) '최대 HP +${_pct(maxHp)}%',
         if (skillFaster > 0) '일격 충전 하나 빨리',
+        if (crit > 0) '치명타 +${_pct(crit)}%p',
+        if (evade > 0) '회피 +${_pct(evade)}%p',
       ].join(', ');
 }
 
@@ -80,15 +93,19 @@ class GearBonus {
     this.reduce = 0,
     this.maxHp = 0,
     this.skillFaster = 0,
-    this.stats = const Stats(vitality: 0, agility: 0, wisdom: 0, spirit: 0),
+    this.crit = 0,
+    this.evade = 0,
+    this.stats = Stats.zero,
   });
 
   final double attack;
   final double reduce;
   final double maxHp;
   final int skillFaster;
+  final double crit;
+  final double evade;
 
-  /// 추가 능력 (체력·민첩·지력·정신)
+  /// 추가 능력 (힘·민첩·지능·체력·행운)
   final Stats stats;
 
   static const none = GearBonus();
@@ -162,6 +179,49 @@ class EquipmentRules {
       manaStones: 2,
       maxHp: 0.05,
       asset: 'equip_fang_necklace',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.hornDagger,
+      name: '뿔 단검',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.smallHorn: 3, MaterialId.ironShard: 1},
+      manaStones: 3,
+      attack: 0.07,
+      crit: 0.03,
+      job: '기사',
+      asset: 'equip_horn_dagger',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.boarArmor,
+      name: '멧돼지 가죽 갑옷',
+      slot: EquipSlot.body,
+      recipe: {MaterialId.toughHide: 3, MaterialId.ratHide: 2},
+      manaStones: 3,
+      reduce: 0.07,
+      asset: 'equip_boar_armor',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.rabbitBoots,
+      name: '토끼발 장화',
+      slot: EquipSlot.feet,
+      recipe: {
+        MaterialId.toughHide: 1,
+        MaterialId.smallHorn: 1,
+        MaterialId.slimeJelly: 1,
+      },
+      reduce: 0.02,
+      evade: 0.02,
+      asset: 'equip_rabbit_boots',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.tuskNecklace,
+      name: '엄니 목걸이',
+      slot: EquipSlot.accessory,
+      recipe: {MaterialId.smallTusk: 1, MaterialId.batWing: 1},
+      manaStones: 3,
+      maxHp: 0.06,
+      attack: 0.02,
+      asset: 'equip_tusk_necklace',
     ),
     EquipBaseInfo(
       id: EquipBase.wardenCharm,
@@ -246,7 +306,7 @@ class EquipmentRules {
   }
 
   /// 추가 능력: 초록 1개(+1~2), 파랑 1~2개(+1~3), 보라 2개(+2~3), 주황 3개(+2~4).
-  /// 체력·민첩·지력·정신 중에서 무작위.
+  /// 힘·민첩·지능·체력·행운 중에서 무작위 (11-11 #50).
   static Map<String, int> rollExtras(EquipGrade g, math.Random rng) {
     final (count, lo, hi) = switch (g) {
       EquipGrade.white => (0, 0, 0),
@@ -263,15 +323,10 @@ class EquipmentRules {
     return out;
   }
 
-  static const statKeys = ['vitality', 'agility', 'wisdom', 'spirit'];
+  static final statKeys = [for (final k in StatKind.values) k.name];
 
-  static String statName(String key) => switch (key) {
-        'vitality' => '체력',
-        'agility' => '민첩',
-        'wisdom' => '지력',
-        'spirit' => '정신',
-        _ => key,
-      };
+  /// 예전 키(지력 wisdom → 지능, 정신 spirit → 행운)도 읽는다
+  static String statName(String key) => StatKindInfo.parse(key)?.label ?? key;
 
   // ───────────────────────── 강화
 
@@ -330,9 +385,9 @@ class EquipmentRules {
 
   /// 입은 장비 모두의 힘
   static GearBonus bonusOf(Iterable<EquipItem> worn) {
-    var atk = 0.0, red = 0.0, hp = 0.0;
+    var atk = 0.0, red = 0.0, hp = 0.0, crit = 0.0, eva = 0.0;
     var faster = 0;
-    var v = 0, a = 0, w = 0, s = 0;
+    var extra = Stats.zero;
     for (final item in worn) {
       final base = EquipmentRules.info(item.base);
       final p = power(item);
@@ -340,23 +395,22 @@ class EquipmentRules {
       red += base.reduce * p;
       hp += base.maxHp * p;
       faster += base.skillFaster;
+      crit += base.crit * p;
+      eva += base.evade * p;
       final half = item.durability <= 0;
-      int x(String k) {
-        final n = item.extras[k] ?? 0;
-        return half ? n ~/ 2 : n;
-      }
-
-      v += x('vitality');
-      a += x('agility');
-      w += x('wisdom');
-      s += x('spirit');
+      item.extras.forEach((key, n) {
+        final k = StatKindInfo.parse(key);
+        if (k != null) extra = extra.withValue(k, extra.of(k) + (half ? n ~/ 2 : n));
+      });
     }
     return GearBonus(
       attack: atk,
       reduce: math.min(0.6, red),
       maxHp: hp,
       skillFaster: faster,
-      stats: Stats(vitality: v, agility: a, wisdom: w, spirit: s),
+      crit: crit,
+      evade: eva,
+      stats: extra,
     );
   }
 
@@ -369,6 +423,8 @@ class EquipmentRules {
       if (base.reduce > 0) '받는 피해 -${_pct(base.reduce * p)}%',
       if (base.maxHp > 0) '최대 HP +${_pct(base.maxHp * p)}%',
       if (base.skillFaster > 0) '일격 충전 하나 빨리',
+      if (base.crit > 0) '치명타 +${_pct(base.crit * p)}%p',
+      if (base.evade > 0) '회피 +${_pct(base.evade * p)}%p',
       for (final e in item.extras.entries) '${statName(e.key)} +${e.value}',
     ].join(' · ');
   }

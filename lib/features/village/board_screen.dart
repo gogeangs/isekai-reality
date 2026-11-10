@@ -6,6 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../town/material_view.dart';
 import 'daily_quests.dart';
 
 /// 마을 의뢰 게시판 (11-10 #26): 일일 · 주간 · 수시 · 긴급.
@@ -97,17 +98,32 @@ class _WeeklyPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final quests = BoardRules.thisWeek(controller.history);
     final left = BoardRules.daysLeftInWeek(controller.now);
-    return OrnatePanel(
+    final n = quests.length;
+    return FoldingQuestPanel(
+      done: quests.every((q) => q.completed),
+      foldedText: '주간 의뢰 모두 완료 · EXP +${n * BoardRules.weeklyExp} · '
+          '금화 +${n * BoardRules.weeklyGold}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _Header('주간 의뢰',
               icon: Icons.date_range_rounded, note: '$left일 남음'),
           const SizedBox(height: 2),
-          for (final q in quests)
-            QuestRowView(quest: q, rewardExp: BoardRules.weeklyExp),
+          for (final q in sortedQuests(quests))
+            QuestRowView(
+              quest: q,
+              rewardExp: BoardRules.weeklyExp,
+              extra: [
+                RewardChip(
+                  text: '금화 ${BoardRules.weeklyGold}',
+                  done: q.completed,
+                  icon: const GameIcon('gold',
+                      size: 16, fallback: Icons.monetization_on_rounded),
+                ),
+              ],
+            ),
           const SizedBox(height: 6),
-          Text(
+          KText(
               '하나 마칠 때마다 경험치 +${BoardRules.weeklyExp}, '
               '금화 +${BoardRules.weeklyGold}. 매주 월요일에 새로 시작해요.',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -126,7 +142,9 @@ class _ErrandPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = controller.board;
-    return OrnatePanel(
+    return FoldingQuestPanel(
+      done: b.doneToday >= BoardRules.errandsPerDay,
+      foldedText: '수시 의뢰 오늘 모두 완료 · ${b.doneToday}개',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -139,7 +157,7 @@ class _ErrandPanel extends StatelessWidget {
             if (i < b.slots.length - 1) const SizedBox(height: 8),
           ],
           const SizedBox(height: 6),
-          const Text('수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.',
+          const KText('수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ),
@@ -202,8 +220,8 @@ class _ErrandCard extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 2),
-          Text('보상: ${t.rewardLabel}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const SizedBox(height: 4),
+          ErrandRewards(t: t),
           if (s.accepted) ...[
             const SizedBox(height: 6),
             GlowBar(ratio: progress / t.target, colors: BarColors.exp),
@@ -234,7 +252,7 @@ class _ErrandCard extends StatelessWidget {
                             final ok = await c.claimErrand(slot);
                             if (!context.mounted || !ok) return;
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('의뢰 완료! ${t.rewardLabel}')));
+                                content: KText('의뢰 완료! ${t.rewardLabel}')));
                           }
                         : null,
               ),
@@ -262,6 +280,14 @@ class _UrgentPanel extends StatelessWidget {
     final prize = u.prize == UrgentPrize.key
         ? '던전 열쇠 1'
         : Materials.info(u.rare).name;
+    if (b.urgentDone) {
+      return FoldingQuestPanel(
+        done: true,
+        foldedText: '긴급 의뢰 완료 · $prize · 금화 +${u.quest.gold}',
+        child: KText(u.quest.title,
+            style: AppText.title(16, color: AppColors.text)),
+      );
+    }
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -286,8 +312,20 @@ class _UrgentPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Text(u.quest.title, style: AppText.title(17, color: AppColors.text)),
           const SizedBox(height: 2),
-          Text('보상: $prize + 금화 ${u.quest.gold}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const SizedBox(height: 4),
+          Wrap(spacing: 6, runSpacing: 4, children: [
+            RewardChip(
+              text: prize,
+              icon: u.prize == UrgentPrize.key
+                  ? const GameIcon('key', size: 16)
+                  : MaterialIcon(u.rare, size: 16),
+            ),
+            RewardChip(
+              text: '금화 ${u.quest.gold}',
+              icon: const GameIcon('gold',
+                  size: 16, fallback: Icons.monetization_on_rounded),
+            ),
+          ]),
           if (b.urgentAccepted && !b.urgentDone) ...[
             const SizedBox(height: 6),
             GlowBar(ratio: progress / u.quest.target, colors: BarColors.gauge),
@@ -346,4 +384,32 @@ class _CardBox extends StatelessWidget {
         ),
         child: child,
       );
+}
+
+/// 수시 의뢰 보상 칸: 금화·마석·재료를 아이콘과 함께 (11-11 #46)
+class ErrandRewards extends StatelessWidget {
+  const ErrandRewards({super.key, required this.t});
+
+  final ErrandTemplate t;
+
+  @override
+  Widget build(BuildContext context) => Wrap(spacing: 6, runSpacing: 4, children: [
+        if (t.gold > 0)
+          RewardChip(
+            text: '금화 ${t.gold}',
+            icon: const GameIcon('gold',
+                size: 16, fallback: Icons.monetization_on_rounded),
+          ),
+        if (t.manaStones > 0)
+          RewardChip(
+            text: '마석 ${t.manaStones}',
+            icon: const GameIcon('mana_stone',
+                size: 16, fallback: Icons.diamond_rounded),
+          ),
+        for (final e in t.materials.entries)
+          RewardChip(
+            text: '${Materials.info(e.key).name} ${e.value}',
+            icon: MaterialIcon(e.key, size: 16),
+          ),
+      ]);
 }

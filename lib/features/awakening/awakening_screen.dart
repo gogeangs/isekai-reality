@@ -265,14 +265,44 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           const SizedBox(height: 16),
           GoldButton(
             label: '이 정령과 함께하기',
-            onPressed: () => setState(() {
-              _spiritNameController.text = _spirit.defaultName;
-              _stage = _Stage.spiritName;
-            }),
+            onPressed: () async {
+              final ok = await _confirmFinal(
+                  '${josa(_spirit.elementName, '와/과')} 함께할까요?');
+              if (!ok || !mounted) return;
+              setState(() {
+                _spiritNameController.text = _spirit.defaultName;
+                _stage = _Stage.spiritName;
+              });
+            },
           ),
         ],
       ),
     ]);
+  }
+
+  /// '으로' / '로' (받침에 맞춰)
+  static String _ro(String name) => josa(name, '으로/로').substring(name.length);
+
+  /// 「한 번 정하면 바꿀 수 없어요」 확인 창 (11-11 #53)
+  Future<bool> _confirmFinal(String title) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        backgroundColor: AppColors.night,
+        title: Text(title, style: AppText.title(19, color: AppColors.text)),
+        content: const Text('한 번 정하면 바꿀 수 없어요.',
+            style: TextStyle(color: AppColors.text)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(false),
+              child: const Text('다시 고를래요')),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(true),
+              child: const Text('확정')),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   // ───────────────────────────────────────────── 정령 이름
@@ -295,12 +325,17 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
               _field(_spiritNameController,
                   label: '정령 이름', max: maxSpiritNameLength),
               const SizedBox(height: 4),
-              const Text('나중에 설정에서 바꿀 수 있어요.',
+              const Text('한 번 정하면 바꿀 수 없어요.',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 14),
               GoldButton(
                 label: '이 이름으로',
-                onPressed: () => setState(() => _stage = _Stage.consent),
+                onPressed: () async {
+                  final ok = await _confirmFinal(
+                      '「$_spiritName」${_ro(_spiritName)} 부를까요?');
+                  if (!ok || !mounted) return;
+                  setState(() => _stage = _Stage.consent);
+                },
               ),
             ],
           ),

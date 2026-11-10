@@ -28,3 +28,42 @@ String keepAll(String s) {
 }
 
 bool _isSpace(int c) => c == 0x20 || c == 0x0A || c == 0x09;
+
+/// 이름 끝 받침에 맞춰 조사를 붙인다 (11-11 #52).
+/// [pair] 는 '이/가', '을/를', '은/는', '와/과', '으로/로' 중 하나.
+/// josa('큰쥐', '을/를') → '큰쥐를', josa('슬라임', '이/가') → '슬라임이'
+/// 숫자·영어로 끝나면 읽는 소리로 정한다 (3 → 삼, L → 엘).
+String josa(String word, String pair) {
+  final parts = pair.split('/');
+  // '와/과'만 받침 없는 쪽이 앞에 온다
+  final swap = pair == '와/과';
+  final withBatchim = swap ? parts[1] : parts[0];
+  final without = swap ? parts[0] : parts[1];
+  final b = _batchim(word);
+  if (pair == '으로/로') {
+    // 받침이 없거나 ㄹ 받침이면 '로'
+    return '$word${b == 0 || b == 8 ? without : withBatchim}';
+  }
+  return '$word${b == 0 ? without : withBatchim}';
+}
+
+/// 마지막 글자의 받침 번호 (0 = 없음, 8 = ㄹ). 글자가 아닌 끝 문자는 건너뛴다.
+int _batchim(String word) {
+  final runes = word.runes.toList();
+  for (var i = runes.length - 1; i >= 0; i--) {
+    final c = runes[i];
+    if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28;
+    if (c >= 0x30 && c <= 0x39) {
+      // 영 일 이 삼 사 오 육 칠 팔 구
+      const d = [21, 8, 0, 16, 0, 0, 1, 8, 8, 0];
+      return d[c - 0x30];
+    }
+    final ch = String.fromCharCode(c).toLowerCase();
+    if (RegExp(r'[a-z]').hasMatch(ch)) {
+      if (ch == 'l' || ch == 'r') return 8; // 엘, 알
+      if (ch == 'm' || ch == 'n') return 4; // 엠, 엔
+      return 0;
+    }
+  }
+  return 0;
+}

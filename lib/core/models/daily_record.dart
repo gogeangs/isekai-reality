@@ -25,6 +25,7 @@ class DailyRecord {
     required this.date,
     this.steps = 0,
     this.stepsAfter8pm = 0,
+    this.stepsMorning = 0,
     this.sleepMinutes,
     this.studyMinutes = 0,
     this.stepGoal = 5000,
@@ -48,12 +49,16 @@ class DailyRecord {
     this.spends = const {},
     this.modHunts = const {},
     this.fledSpawnIds = const [],
+    this.lostSpawnIds = const [],
     this.counters = const {},
   });
 
   final DateTime date;
   final int steps;
   final int stepsAfter8pm;
+
+  /// 오전 5~8시 걸음 (11-11, 숨은 생활 보너스)
+  final int stepsMorning;
 
   /// (예전 기록) 지난밤 수면(분). 더 이상 읽지도 쓰지도 않는다.
   final int? sleepMinutes;
@@ -118,6 +123,9 @@ class DailyRecord {
   /// 오늘 도망친 몬스터 자리 id (황금빛, 다시 나오지 않음)
   final List<String> fledSpawnIds;
 
+  /// 오늘 져서 물러난 몬스터 자리 id (다시 도전해 이기면 숨은 생활 보너스)
+  final List<String> lostSpawnIds;
+
   /// 의뢰 진행에 쓰는 오늘의 수 (11-10 #26):
   /// 'modded' 수식어 몬스터, 'rarePlus' 희귀 이상, 'mod:<수식어>', 'expedition' 정령 원정,
   /// 'bonusKeys' 긴급 의뢰로 받은 열쇠
@@ -138,6 +146,7 @@ class DailyRecord {
         'date': dayKey,
         'steps': steps,
         'stepsAfter8pm': stepsAfter8pm,
+        'stepsMorning': stepsMorning,
         'sleepMinutes': sleepMinutes,
         'studyMinutes': studyMinutes,
         'stepGoal': stepGoal,
@@ -161,6 +170,7 @@ class DailyRecord {
         'spends': spends,
         'modHunts': modHunts,
         'fledSpawnIds': fledSpawnIds,
+        'lostSpawnIds': lostSpawnIds,
         'counters': counters,
       };
 
@@ -170,6 +180,7 @@ class DailyRecord {
       date: DateTime(parts[0], parts[1], parts[2]),
       steps: json['steps'] as int? ?? 0,
       stepsAfter8pm: json['stepsAfter8pm'] as int? ?? 0,
+      stepsMorning: json['stepsMorning'] as int? ?? 0,
       sleepMinutes: json['sleepMinutes'] as int?,
       studyMinutes: json['studyMinutes'] as int? ?? 0,
       stepGoal: json['stepGoal'] as int? ?? 5000,
@@ -212,6 +223,9 @@ class DailyRecord {
       fledSpawnIds: ((json['fledSpawnIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      lostSpawnIds: ((json['lostSpawnIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
       counters: _counts(json['counters']),
     );
   }
@@ -233,6 +247,7 @@ class DailyRecord {
   DailyRecord copyWith({
     int? steps,
     int? stepsAfter8pm,
+    int? stepsMorning,
     int? sleepMinutes,
     int? studyMinutes,
     int? stepGoal,
@@ -256,12 +271,14 @@ class DailyRecord {
     Map<String, int>? spends,
     Map<String, int>? modHunts,
     List<String>? fledSpawnIds,
+    List<String>? lostSpawnIds,
     Map<String, int>? counters,
   }) {
     return DailyRecord(
       date: date,
       steps: steps ?? this.steps,
       stepsAfter8pm: stepsAfter8pm ?? this.stepsAfter8pm,
+      stepsMorning: stepsMorning ?? this.stepsMorning,
       sleepMinutes: sleepMinutes ?? this.sleepMinutes,
       studyMinutes: studyMinutes ?? this.studyMinutes,
       stepGoal: stepGoal ?? this.stepGoal,
@@ -286,6 +303,7 @@ class DailyRecord {
       spends: spends ?? this.spends,
       modHunts: modHunts ?? this.modHunts,
       fledSpawnIds: fledSpawnIds ?? this.fledSpawnIds,
+      lostSpawnIds: lostSpawnIds ?? this.lostSpawnIds,
       counters: counters ?? this.counters,
     );
   }

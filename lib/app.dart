@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'core/format.dart';
 import 'app_controller.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
@@ -13,7 +14,10 @@ import 'features/village/village_screen.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
+import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
+import 'features/smithy/equip_picker.dart';
+import 'features/status/stat_screen.dart';
 import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
 import 'theme/app_colors.dart';
@@ -117,47 +121,76 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (_noticeShowing || _levelUpShowing) return;
     final ex = c.expedition;
-    final String? title;
-    final String? body;
-    if (c.justRested) {
-      title = '푹 쉬었어요';
-      body = 'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
-          '+${RuleConstants.restBonusExp}!';
-    } else if (ex != null && ex.finished) {
-      final id = Monsters.byName(ex.monster);
-      final name = id == null ? '몬스터' : Monsters.info(id).name;
-      title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
-      body = ex.cleared!
-          ? '${c.profile.spiritName}이(가) $name을(를) 사냥했어요.'
-              '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
-          : '$name이(가) 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
-    } else {
-      return;
-    }
+    if (!c.justRested && (ex == null || !ex.finished)) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.night,
-          title: Text(title!, style: AppText.title(20)),
-          content: Text(body!,
-              style: const TextStyle(color: AppColors.text, height: 1.4)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('좋아요'),
-            ),
-          ],
-        ),
-      );
       if (c.justRested) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppColors.night,
+            title: Text('푹 쉬었어요', style: AppText.title(20)),
+            content: Text(
+                'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
+                '+${RuleConstants.restBonusExp}!',
+                style: const TextStyle(color: AppColors.text, height: 1.4)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('좋아요'),
+              ),
+            ],
+          ),
+        );
         c.clearJustRested();
       } else {
+        // 원정 결과 금테 카드 (11-11 #51)
+        await showExpeditionResult(context, ex!, c.profile.spiritName);
         await c.acknowledgeExpedition();
       }
       _noticeShowing = false;
+    });
+  }
+
+  bool _titleShowing = false;
+
+  /// 칭호를 새로 얻으면 알림. 누르면 프로필 칭호 목록으로 (11-11 #41)
+  void _maybeShowTitle() {
+    final c = widget.controller;
+    final t = c.newTitle;
+    if (t == null || _titleShowing || _levelUpShowing) return;
+    _titleShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final name = TitleRules.info(t).name;
+      final eul = josa(name, '을/를').substring(name.length);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('새 칭호 「$name」$eul 얻었어요!'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '보기',
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => ProfileScreen(controller: c))),
+        ),
+      ));
+      await c.acknowledgeTitles();
+      _titleShowing = false;
+    });
+  }
+
+  /// 가방이 가득 차 새 재료를 금화로 바꿨을 때 (11-11 #48)
+  void _maybeShowBagFull() {
+    final c = widget.controller;
+    if (c.pendingBagOverflow <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final g = c.takeBagOverflow();
+      if (g <= 0) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}'),
+        duration: const Duration(seconds: 4),
+      ));
     });
   }
 
@@ -190,6 +223,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ]),
           );
         }
+        if (!controller.needsAwakening) _maybeShowTitle();
+        _maybeShowBagFull();
         if (controller.needsAwakening) {
           _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(
@@ -213,6 +248,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             hp: controller.hp,
             mp: controller.mp,
             maxHp: controller.maxHp,
+            mpMax: controller.mpMax,
+            stats: controller.shownStats,
+            unspentPoints: controller.unspentPoints,
+            onOpenStats: () => push(StatScreen(controller: controller)),
+            lifeLine: controller.statusLifeLine,
+            armory: controller.armory,
+            onSlot: (slot) => showEquipPicker(context, controller, slot),
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
             onOpenDungeon: () => push(DungeonScreen(controller: controller)),
@@ -227,7 +269,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           NightBackground(
             header: true,
             child: CodexScreen(
-              player: controller.player,
               // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
@@ -235,8 +276,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               },
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
-              equipped: controller.equippedTitle,
-              onEquip: controller.setEquippedTitle,
             ),
           ),
         ];

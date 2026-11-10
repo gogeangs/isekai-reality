@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
+import '../../core/models/armory.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
@@ -11,6 +12,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
+import '../smithy/equipment_view.dart';
 
 /// 메인 상태창 (목업 확정본 구도).
 ///
@@ -23,6 +25,13 @@ class StatusScreen extends StatelessWidget {
     this.hp,
     this.mp,
     this.maxHp,
+    this.mpMax = RuleConstants.mpMax,
+    this.stats,
+    this.unspentPoints = 0,
+    this.onOpenStats,
+    this.lifeLine,
+    this.armory,
+    this.onSlot,
     this.restLeft,
     this.spiritAway,
     this.onOpenBag,
@@ -45,6 +54,21 @@ class StatusScreen extends StatelessWidget {
 
   /// 장비를 입은 최대 HP (없으면 레벨·스탯으로)
   final int? maxHp;
+
+  /// 최대 MP (지능으로 늘어난다)
+  final int mpMax;
+
+  /// 보여 줄 스탯 합계 (없으면 생활 스탯), 나눌 포인트, 분배 화면 열기
+  final Stats? stats;
+  final int unspentPoints;
+  final VoidCallback? onOpenStats;
+
+  /// 생활 보너스가 올랐을 때 정령이 할 한 줄 (있으면 평소 대사 대신)
+  final String? lifeLine;
+
+  /// 장비 6칸 (없으면 칸을 그리지 않는다), 칸을 눌렀을 때
+  final Armory? armory;
+  final ValueChanged<EquipSlot>? onSlot;
 
   /// 여관에서 쉬는 중이면 남은 시간
   final Duration? restLeft;
@@ -76,14 +100,14 @@ class StatusScreen extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
     final topHp = maxHp ?? player.maxHp;
     final curHp = hp ?? topHp;
-    final curMp = mp ?? RuleConstants.mpMax;
-    final full = curHp >= topHp && curMp >= RuleConstants.mpMax;
-    final line = BulssiLines.forStatus(
+    final curMp = mp ?? mpMax;
+    final full = curHp >= topHp && curMp >= mpMax;
+    final line = lifeLine ?? BulssiLines.forStatus(
       today: today,
       gauge: player.gauge,
       now: DateTime.now(),
       hpRatio: curHp / topHp,
-      mpRatio: curMp / RuleConstants.mpMax,
+      mpRatio: curMp / mpMax,
       resting: restLeft != null,
       spiritAway: spiritAway != null,
     );
@@ -104,12 +128,42 @@ class StatusScreen extends StatelessWidget {
           // 날씨 칩은 게임에 영향이 없어 평소에는 숨긴다 (C6),
           // 눈 문장은 누를 기능이 없어 뺐다 (A4).
           SizedBox(
-            height: 340 + top,
+            height: 400 + top,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 // HP 0이면 지친 각성자 그림
                 _HeroArt(look: look, top: top, tired: curHp <= 0),
+                // 장비 칸 (11-11 #44): 왼쪽 무기·장갑·장신구, 오른쪽 머리·몸·신발.
+                // 말풍선(오른쪽 위) 아래에서 시작하고, 각성자·마법진은 가리지 않게 작게
+                if (armory != null) ...[
+                  Positioned(
+                    left: 10,
+                    top: top + 168,
+                    child: _SlotColumn(
+                      slots: const [
+                        EquipSlot.weapon,
+                        EquipSlot.hands,
+                        EquipSlot.accessory,
+                      ],
+                      armory: armory!,
+                      onTap: onSlot,
+                    ),
+                  ),
+                  Positioned(
+                    right: 10,
+                    top: top + 168,
+                    child: _SlotColumn(
+                      slots: const [
+                        EquipSlot.head,
+                        EquipSlot.body,
+                        EquipSlot.feet,
+                      ],
+                      armory: armory!,
+                      onTap: onSlot,
+                    ),
+                  ),
+                ],
                 // 정령은 오른쪽 위 빈자리: 각성자 얼굴·손·지도를 가리지 않게
                 Positioned(
                   top: top + 58, // 위쪽 설정 버튼 아래
@@ -149,13 +203,17 @@ class StatusScreen extends StatelessWidget {
                 _StatusPanel(
                   player: player,
                   maxHp: topHp,
+                  mpMax: mpMax,
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
                   onOpenDungeon: onOpenDungeon,
                 ),
                 const SizedBox(height: 12),
-                _StatsSection(player: player),
+                _StatsSection(
+                    stats: stats ?? player.stats,
+                    unspent: unspentPoints,
+                    onOpen: onOpenStats),
               ],
             ),
           ),
@@ -167,9 +225,8 @@ class StatusScreen extends StatelessWidget {
 
 // ───────────────────────────────────────────────────────────── 각성자 그림
 
-/// 각성자 그림. 머리가 휴대폰 상태 표시줄(시계·배터리)에, 발이 레벨 배지에
-/// 가리지 않도록 그림 전체를 상태 표시줄 아래 ~ 배지 위 사이에 넣는다.
-/// 그 바깥(상태 표시줄 뒤, 배지 뒤)은 같은 그림을 흐리게 깔아 이어 보이게 한다.
+/// 무대형 배경 (11-11 #39): 남·여 공통 무대 그림, 가운데 마법진 위에 각성자.
+/// 은은한 테두리 빛과 발밑 그림자로 배경과 나눈다. 오른쪽 위 하늘은 정령 말풍선 자리.
 class _HeroArt extends StatelessWidget {
   const _HeroArt({required this.look, required this.top, this.tired = false});
 
@@ -181,90 +238,163 @@ class _HeroArt extends StatelessWidget {
   /// 상태 표시줄 높이
   final double top;
 
-  /// 아래 레벨 배지가 겹치는 높이
-  static const double badgeOverlap = 12;
-
   @override
   Widget build(BuildContext context) {
-    final asset = look == HeroLook.female
-        ? 'assets/images/bg_status_female.jpg'
-        : 'assets/images/bg_status_male.jpg';
-    final cutout = 'assets/images/hero_status_${tired ? 'tired_' : ''}'
+    final hero = 'assets/images/hero_stand_${tired ? 'tired_' : ''}'
         '${look == HeroLook.female ? 'female' : 'male'}.png';
-    final alignment = look == HeroLook.female
-        ? const Alignment(-0.45, 0)
-        : const Alignment(-0.42, 0);
-    return Stack(fit: StackFit.expand, children: [
-      // 바탕: 같은 그림을 흐리게. 아래쪽은 밤하늘 배경에 경계 없이 녹인다.
-      // 흐림이 상자 밖으로 번지면 배지 뒤에 띠가 생겨서 잘라 둔다.
-      ClipRect(
-        child: ShaderMask(
-        shaderCallback: (r) => const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
-          stops: [0, 0.62, 1],
-        ).createShader(r),
-        blendMode: BlendMode.dstIn,
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(
-              sigmaX: 10, sigmaY: 10, tileMode: TileMode.decal),
-          child: ColorFiltered(
-            // 살짝 어둡게 눌러 각성자가 앞으로 나오게
-            colorFilter:
-                const ColorFilter.mode(Color(0x660B0D26), BlendMode.srcATop),
-            child: Image.asset(asset,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (_, __, ___) => const SizedBox()),
-          ),
-        ),
-      ),
-      ),
-      // 각성자 전신
-      Positioned(
-        top: top,
-        left: 0,
-        right: 0,
-        bottom: badgeOverlap,
-        child: ShaderMask(
-          // 위아래 가장자리를 바탕에 녹인다
+    return LayoutBuilder(builder: (context, box) {
+      final h = box.maxHeight;
+      // 마법진 가운데 (무대 그림의 아래쪽 1/4쯤)
+      final floorY = h * 0.86;
+      final heroH = (floorY - top - 8).clamp(120.0, 520.0);
+      return Stack(fit: StackFit.expand, children: [
+        // 무대: 아래쪽은 밤하늘 배경에 경계 없이 녹인다
+        ShaderMask(
           shaderCallback: (r) => const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0x00FFFFFF),
-              Color(0xFFFFFFFF),
-              Color(0xFFFFFFFF),
-              Color(0x00FFFFFF),
-            ],
-            stops: [0, 0.02, 0.92, 1],
+            colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+            stops: [0, 0.86, 1],
           ).createShader(r),
           blendMode: BlendMode.dstIn,
-          child: Stack(fit: StackFit.expand, children: [
-            // 각성자 둘레의 금빛 후광
+          child: Image.asset('assets/images/bg_status_stage.jpg',
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, 0.55),
+              errorBuilder: (_, __, ___) => Image.asset(
+                  look == HeroLook.female
+                      ? 'assets/images/bg_status_female.jpg'
+                      : 'assets/images/bg_status_male.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox())),
+        ),
+        // 발밑 그림자
+        Positioned(
+          left: box.maxWidth / 2 - heroH * 0.22,
+          width: heroH * 0.44,
+          top: floorY - heroH * 0.035,
+          height: heroH * 0.07,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.rectangle,
+              borderRadius: BorderRadius.all(Radius.elliptical(heroH, heroH * 0.1)),
+              gradient: const RadialGradient(colors: [
+                Color(0xAA05060F),
+                Color(0x0005060F),
+              ]),
+            ),
+          ),
+        ),
+        // 각성자 + 테두리 빛
+        Positioned(
+          left: 0,
+          right: 0,
+          top: floorY - heroH,
+          height: heroH,
+          child: Stack(alignment: Alignment.bottomCenter, children: [
             ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+              imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
               child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                    AppColors.goldBright.withValues(alpha: 0.75),
-                    BlendMode.srcIn),
-                child: Image.asset(cutout,
-                    fit: BoxFit.cover,
-                    alignment: alignment,
+                colorFilter: const ColorFilter.mode(
+                    Color(0xCCFFF1C9), BlendMode.srcIn),
+                child: Image.asset(hero,
+                    height: heroH,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const SizedBox()),
               ),
             ),
-            // 각성자 (배경과 분리된 그림, 원래 자리 그대로)
-            Image.asset(cutout,
-                fit: BoxFit.cover,
-                alignment: alignment,
+            Image.asset(hero,
+                height: heroH,
+                fit: BoxFit.contain,
                 semanticLabel: '기본 각성자',
                 errorBuilder: (_, __, ___) => const SizedBox()),
           ]),
         ),
+      ]);
+    });
+  }
+}
+
+/// 장비 칸 3개 세로 줄
+class _SlotColumn extends StatelessWidget {
+  const _SlotColumn(
+      {required this.slots, required this.armory, required this.onTap});
+
+  final List<EquipSlot> slots;
+  final Armory armory;
+  final ValueChanged<EquipSlot>? onTap;
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        for (final slot in slots)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _GearSlot(
+              slot: slot,
+              item: armory.wornIn(slot),
+              onTap: onTap == null ? null : () => onTap!(slot),
+            ),
+          ),
+      ]);
+}
+
+class _GearSlot extends StatelessWidget {
+  const _GearSlot({required this.slot, this.item, this.onTap});
+
+  final EquipSlot slot;
+  final EquipItem? item;
+  final VoidCallback? onTap;
+
+  static const double size = 50;
+
+  @override
+  Widget build(BuildContext context) {
+    final it = item;
+    final color = it == null ? AppColors.gold : equipGradeColor(it.grade);
+    return Semantics(
+      button: true,
+      label: '${EquipmentRules.slotLabel(slot)} 칸${it == null ? ', 비어 있음' : ', ${it.name}'}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: const Color(0xCC12153A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: color.withValues(alpha: it == null ? 0.45 : 0.95),
+                width: it == null ? 1 : 2),
+            boxShadow: it != null && it.grade.index >= EquipGrade.blue.index
+                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                : null,
+          ),
+          child: Stack(children: [
+            Center(
+              child: it == null
+                  ? Icon(slotIcon(slot),
+                      color: AppColors.textMuted.withValues(alpha: 0.7),
+                      size: 22)
+                  : Image.asset('assets/images/${it.info.asset}.png',
+                      width: size - 10,
+                      height: size - 10,
+                      errorBuilder: (_, __, ___) =>
+                          Icon(slotIcon(slot), color: color, size: 24)),
+            ),
+            if (it != null && it.enhance > 0)
+              Positioned(
+                right: 3,
+                bottom: 1,
+                child: Text('+${it.enhance}',
+                    style: const TextStyle(
+                        color: AppColors.goldBright,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 3)])),
+              ),
+          ]),
+        ),
       ),
-    ]);
+    );
   }
 }
 
@@ -318,6 +448,7 @@ class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
     required this.maxHp,
+    required this.mpMax,
     required this.hp,
     required this.mp,
     this.spiritAway,
@@ -328,6 +459,7 @@ class _StatusPanel extends StatelessWidget {
   final int maxHp;
   final int hp;
   final int mp;
+  final int mpMax;
   final String? spiritAway;
   final VoidCallback? onOpenDungeon;
 
@@ -356,9 +488,9 @@ class _StatusPanel extends StatelessWidget {
                 child: _Gauge(
                   icon: 'mp',
                   label: spiritAway == null ? '정령 MP' : '정령 MP · 원정 중',
-                  ratio: mp / RuleConstants.mpMax,
+                  ratio: mp / mpMax,
                   colors: BarColors.mana,
-                  value: '$mp / ${RuleConstants.mpMax}',
+                  value: '$mp / $mpMax',
                 ),
               ),
             ],
@@ -440,67 +572,83 @@ class _LevelLine extends StatelessWidget {
   }
 }
 
-/// 스탯 4종 (접어 두고 눌러서 펼친다, 11-10 C2)
-class _StatsSection extends StatefulWidget {
-  const _StatsSection({required this.player});
+/// 스탯 5종 한 줄 (11-11 #50). 누르면 포인트 분배 화면.
+/// 나눌 포인트가 있으면 알림 점. 숫자는 합계만 보여 준다.
+class _StatsSection extends StatelessWidget {
+  const _StatsSection({required this.stats, this.unspent = 0, this.onOpen});
 
-  final PlayerState player;
-
-  @override
-  State<_StatsSection> createState() => _StatsSectionState();
-}
-
-class _StatsSectionState extends State<_StatsSection> {
-  bool _open = false;
+  final Stats stats;
+  final int unspent;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final st = widget.player.stats;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => _open = !_open),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: Row(children: [
-              const GameIcon('spirit', size: 20),
-              const SizedBox(width: 6),
-              const Text('스탯',
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '체력 ${st.vitality} · 민첩 ${st.agility} · '
-                  '지력 ${st.wisdom} · 정신 ${st.spirit}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 12),
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            const GameIcon('spirit', size: 20),
+            if (unspent > 0)
+              const Positioned(
+                right: -3,
+                top: -3,
+                child: _Dot(),
               ),
-              Icon(
-                  _open
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.goldBright),
-            ]),
-          ),
-        ),
-        if (_open)
-          Row(children: [
-            _StatTile(icon: 'vitality', name: '체력', value: st.vitality),
-            _StatTile(icon: 'agility', name: '민첩', value: st.agility),
-            _StatTile(icon: 'wisdom', name: '지력', value: st.wisdom),
-            _StatTile(icon: 'spirit', name: '정신', value: st.spirit),
           ]),
-      ],
+          const SizedBox(width: 6),
+          const Text('스탯',
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                for (final k in StatKind.values) '${k.label} ${stats.of(k)}',
+              ].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+          ),
+          if (unspent > 0)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5484D),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('+$unspent',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800)),
+            ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.goldBright),
+        ]),
+      ),
     );
   }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5484D),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.2),
+        ),
+      );
 }
 
 class _Gauge extends StatelessWidget {
@@ -539,40 +687,6 @@ class _Gauge extends StatelessWidget {
             textAlign: TextAlign.right,
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
       ],
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.name, required this.value});
-
-  final String icon;
-  final String name;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2B2F6B), Color(0xFF1B1E4C)],
-          ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.gold.withValues(alpha: 0.75)),
-        ),
-        child: Column(children: [
-          GameIcon(icon, size: 26),
-          const SizedBox(height: 2),
-          Text(name,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          Text('$value', style: AppText.title(20, color: AppColors.text)),
-        ]),
-      ),
     );
   }
 }

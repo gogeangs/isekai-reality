@@ -3,16 +3,21 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import 'core/format.dart';
 import 'core/geo/geo.dart';
+import 'core/geo/route_grid.dart';
 import 'core/models/armory.dart';
+import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/player_state.dart';
+import 'core/models/stat_alloc.dart';
 import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/notify/notifier.dart';
+import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
@@ -75,6 +80,9 @@ class AppController extends ChangeNotifier {
   /// 전국 제외 구역 (학교·병원·묘지 둘레). 그 안에는 몬스터를 두지 않는다.
   ExclusionIndex? exclusions;
 
+  /// 원정 길 조각 (11-11 #42). 없으면 원정은 직선으로 날아간다.
+  RouteTileSource routeTiles = const NoRouteTiles();
+
   /// 위치를 아직 모를 때 몬스터를 둘 자리 (예시·테스트용, 실제 앱은 null)
   final GeoPoint? fallbackCenter;
 
@@ -132,6 +140,27 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
+  // 칭호 얻음 알림 (11-11 #41)
+  static const _titlesKey = 'titles';
+  Set<TitleId> _seenTitles = {};
+
+  /// 새로 얻었지만 아직 알려 주지 않은 칭호 (없으면 null)
+  TitleId? get newTitle {
+    for (final t in player.titles) {
+      if (!_seenTitles.contains(t)) return t;
+    }
+    return null;
+  }
+
+  Future<void> acknowledgeTitles() async {
+    _seenTitles = {..._seenTitles, ...player.titles};
+    await _saveSeenTitles();
+    notifyListeners();
+  }
+
+  Future<void> _saveSeenTitles() => store.saveJson(
+      _titlesKey, {'seen': [for (final t in _seenTitles) t.name]});
+
   /// 확인하지 않은 레벨업. 없으면 null.
   ({int from, int to})? get pendingLevelUp {
     final seen = _profile.lastSeenLevel;
@@ -184,11 +213,28 @@ class AppController extends ChangeNotifier {
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
     _vitals = await store.loadVitals();
+    final alloc = await store.loadJson(_statsKey);
+    _alloc = alloc == null ? const StatAlloc() : StatAlloc.fromJson(alloc);
     final armory = await store.loadJson(_armoryKey);
     _armory = armory == null ? const Armory() : Armory.fromJson(armory);
     final board = await store.loadJson(_boardKey);
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
+    final bag = await store.loadJson(_bagKey);
+    _bag = bag == null ? const BagState() : BagState.fromJson(bag);
     await sync();
+    final titles = await store.loadJson(_titlesKey);
+    _seenTitles = titles == null
+        ? {...player.titles}
+        : {
+            for (final n in (titles['seen'] as List? ?? const []))
+              if (TitleRules.parse(n as String) case final t?) t,
+          };
+    if (titles == null) await _saveSeenTitles();
+    if (_alloc.seenLife == null) {
+      // 예전 저장본·처음 각성: 지금 생활 보너스까지는 이미 알려 준 것으로 친다
+      _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
+      await store.saveJson(_statsKey, _alloc.toJson());
+    }
     await _startExploring();
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
     if (_profile.lastSeenLevel == null) {
@@ -261,17 +307,27 @@ class AppController extends ChangeNotifier {
 
   // ───────────────────────────────────────────── 설정
 
-  Future<void> renameHero(String name) async {
+  /// 이름 바꾸기 가격 (11-11 #53): 처음 1번 무료, 그다음 금화 300
+  static const int renameGold = 300;
+  int get renameCost => _profile.renames == 0 ? 0 : renameGold;
+
+  /// 내 이름을 바꾼다. 빈 이름·같은 이름이면 그대로, 금화가 모자라면 false.
+  Future<bool> renameHero(String name) async {
     final n = name.trim();
-    if (n.isEmpty) return;
-    await updateProfile(_profile.copyWith(name: n));
+    if (n.isEmpty || n == _profile.name) return false;
+    final cost = renameCost;
+    if (player.gold < cost) return false;
+    if (cost > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    }
+    await updateProfile(
+        _profile.copyWith(name: n, renames: _profile.renames + 1));
+    return true;
   }
 
-  Future<void> renameSpirit(String name) async {
-    final n = name.trim();
-    if (n.isEmpty) return;
-    await updateProfile(_profile.copyWith(spiritName: n));
-  }
+  // 정령 이름·종류는 각성 때 정하면 바꿀 수 없다 (11-11 #53)
 
   /// 테스트 결과 모으기용 하루별 기록 (CSV). 위치 좌표·이름은 넣지 않는다.
   String exportRecordsCsv() {
@@ -314,6 +370,7 @@ class AppController extends ChangeNotifier {
     _vitals = const Vitals();
     _board = const BoardState();
     _armory = const Armory();
+    _alloc = const StatAlloc();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
     notifyListeners();
@@ -407,7 +464,7 @@ class AppController extends ChangeNotifier {
     _stopResting();
     return Battle.forPlayer(
       level: p.level.level,
-      stats: p.stats,
+      stats: combatStats,
       floors: BattleRules.dungeonFloors(
           level: p.level.level, atGate: atGate, rng: _random),
       rng: _random,
@@ -444,19 +501,26 @@ class AppController extends ChangeNotifier {
     final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
-    final mats = LootRules.dungeon(cleared: run.cleared, rng: _random);
+    final fit =
+        _fitBag(LootRules.dungeon(cleared: run.cleared, rng: _random));
+    final mats = fit.kept;
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
       huntCounts: _addCounts(today, battle.purified),
-      gains: DailyRecord.addCounts(
-          today.gains, HuntReward.ledger(materials: mats)),
+      gains: DailyRecord.addCounts(today.gains,
+          HuntReward.ledger(materials: mats, gold: fit.gold)),
+      counters: FieldMonsterRules.isNight(_clock())
+          ? DailyRecord.addCounts(
+              today.counters, {'nightHunts': battle.purified.length})
+          : null,
     ));
     _lastReward = HuntReward(
       exp: exp,
       manaStones: run.cleared
           ? RuleConstants.crystalsPerDungeonClear
           : RuleConstants.crystalsPerDungeonFail,
+      gold: fit.gold,
       materials: mats,
     );
     return exp;
@@ -484,7 +548,8 @@ class AppController extends ChangeNotifier {
             center: center,
             roads: roads,
             exclusions: exclusions,
-            level: player.level.level)
+            level: player.level.level,
+            luckBonus: StatRules.modifierBonus(combatStats))
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -503,7 +568,7 @@ class AppController extends ChangeNotifier {
     final p = player;
     return Battle.forPlayer(
       level: p.level.level,
-      stats: p.stats,
+      stats: combatStats,
       floors: BattleRules.fieldFoes(
           level: p.level.level,
           monster: spawn.monster,
@@ -525,6 +590,14 @@ class AppController extends ChangeNotifier {
       final today = await _todayRecord();
       await _save(today.copyWith(
           fledSpawnIds: [...today.fledSpawnIds, spawn.id]));
+      return 0;
+    }
+    if (battle.phase == BattlePhase.failed) {
+      final today = await _todayRecord();
+      if (!today.lostSpawnIds.contains(spawn.id)) {
+        await _save(
+            today.copyWith(lostSpawnIds: [...today.lostSpawnIds, spawn.id]));
+      }
       return 0;
     }
     if (battle.phase != BattlePhase.cleared) return 0;
@@ -549,12 +622,18 @@ class AppController extends ChangeNotifier {
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
     final paid =
         today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay;
-    final exp = paid
+    final baseExp = paid
         ? (RuleConstants.fieldMonsterExp *
                 (TownRules.incenseActive(today)
                     ? RuleConstants.incenseExpMultiplier
-                    : 1) *
-                ModifierRules.expMultiplier(mods) *
+                    : 1))
+            .round()
+        : 0;
+    // 수식어·속성 보너스와 마리 수 (11-11: 기록에 남겨 경험치에 더한다)
+    final exp = paid
+        ? (baseExp *
+                (ModifierRules.expMultiplier(mods) +
+                    Monsters.info(monster).expBonus) *
                 count)
             .round()
         : 0;
@@ -563,7 +642,8 @@ class AppController extends ChangeNotifier {
     var extraMana = 0, gold = 0;
     if (paid) {
       for (var i = 0; i < count; i++) {
-        LootRules.field(monster, _random)
+        LootRules.field(monster, _random,
+                rareBonus: StatRules.rareDropBonus(combatStats))
             .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
       }
       final b = ModifierRules.bonus(monster, mods, _random);
@@ -571,6 +651,12 @@ class AppController extends ChangeNotifier {
       extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
           b.manaStones;
       gold = b.gold;
+      // 가방이 가득하면 남는 재료는 금화로 (11-11 #48)
+      final fit = _fitBag(mats);
+      mats
+        ..clear()
+        ..addAll(fit.kept);
+      gold += fit.gold;
     }
     final modKey = ModifierRules.recordInCodex(mods)
         ? ModifierRules.codexKey(monster, mods)
@@ -580,21 +666,22 @@ class AppController extends ChangeNotifier {
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
       huntCounts: _addCounts(today, List.filled(count, monster)),
-      gains: DailyRecord.addCounts(
-          today.gains,
-          HuntReward.ledger(
-              extraManaStones: extraMana, gold: gold, materials: mats)),
+      gains: DailyRecord.addCounts(today.gains, {
+        ...HuntReward.ledger(
+            extraManaStones: extraMana, gold: gold, materials: mats),
+        if (exp > baseExp) Wallet.exp: exp - baseExp,
+      }),
       modHunts: modKey == null
           ? null
           : DailyRecord.addCounts(today.modHunts, {modKey: 1}),
-      counters: mods.isEmpty
-          ? null
-          : DailyRecord.addCounts(today.counters, {
-              'modded': 1,
-              if (ModifierRules.gradeOf(mods).index >= ModGrade.rare.index)
-                'rarePlus': 1,
-              for (final m in mods) 'mod:${m.name}': 1,
-            }),
+      counters: DailyRecord.addCounts(today.counters, {
+        if (mods.isNotEmpty) 'modded': 1,
+        if (ModifierRules.gradeOf(mods).index >= ModGrade.rare.index)
+          'rarePlus': 1,
+        for (final m in mods) 'mod:${m.name}': 1,
+        if (FieldMonsterRules.isNight(_clock())) 'nightHunts': count,
+        if (today.lostSpawnIds.contains(spawnId)) 'revenge': 1,
+      }),
     ));
     _lastReward = HuntReward(
       exp: exp,
@@ -613,14 +700,155 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     final fix = _lastFix;
     await refreshVitals();
-    final check = TownRules.canBuy(_history, item,
-        hasLocation: fix != null, level: player.level.level);
+    final check = canBuy(item, hasLocation: fix != null);
     if (check != PurchaseCheck.ok) return check;
 
     await _save(today.copyWith(
       goldPurchases: [...today.goldPurchases, item.name],
     ));
     return PurchaseCheck.ok;
+  }
+
+  /// 살 수 있는지 (가방 칸까지 본다)
+  PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {
+    final mat = TownRules.info(item).material;
+    final have = mat != null
+        ? player.materialCount(mat)
+        : TownRules.bagItems.contains(item)
+            ? bagCount(item)
+            : -1;
+    return TownRules.canBuy(_history, item,
+        hasLocation: hasLocation ?? _lastFix != null,
+        level: player.level.level,
+        bagRoom: have < 0 || _roomFor(have));
+  }
+
+  /// [have] 개 있는 것에 하나 더 넣을 자리가 있는지
+  bool _roomFor(int have) =>
+      (have > 0 && have % BagRules.stackMax != 0) || bagFree > 0;
+
+  // ───────────────────────────────────────────── 가방 칸 (11-11 #48)
+
+  static const _bagKey = 'bag';
+  BagState _bag = const BagState();
+
+  /// 가방 칸 수
+  int get bagCapacity => BagRules.capacity(
+      goldExpansions: _bag.goldExpansions, extraSlots: _bag.extraSlots);
+
+  /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
+  int get bagUsed => BagRules.usedSlots(
+        materials: player.materials,
+        items: {
+          for (final i in TownRules.bagItems)
+            if (bagCount(i) > 0) i: bagCount(i),
+        },
+        armory: _armory,
+      );
+
+  /// 빈칸 (넘치면 0)
+  int get bagFree => math.max(0, bagCapacity - bagUsed);
+
+  /// 다음 확장 가격 (더 늘릴 수 없으면 null)
+  int? get bagExpandCost => bagCapacity >= BagRules.maxSlots
+      ? null
+      : BagRules.expansionCost(_bag.goldExpansions);
+
+  /// 금화로 가방을 5칸 늘린다
+  Future<bool> expandBag() async {
+    final cost = bagExpandCost;
+    if (cost == null || player.gold < cost) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    _bag = _bag.copyWith(goldExpansions: _bag.goldExpansions + 1);
+    await store.saveJson(_bagKey, _bag.toJson());
+    notifyListeners();
+    return true;
+  }
+
+  int _bagOverflow = 0;
+
+  /// 가방이 가득 차 금화로 바꾼 값 (알림을 띄우고 0으로)
+  int takeBagOverflow() {
+    final g = _bagOverflow;
+    _bagOverflow = 0;
+    return g;
+  }
+
+  int get pendingBagOverflow => _bagOverflow;
+
+  ({Map<MaterialId, int> kept, int gold}) _fitBag(
+      Map<MaterialId, int> incoming) {
+    if (incoming.isEmpty) return (kept: incoming, gold: 0);
+    final fit = BagRules.fit(
+        incoming: incoming, have: player.materials, freeSlots: bagFree);
+    _bagOverflow += fit.gold;
+    return fit;
+  }
+
+  /// 재료를 버린다
+  Future<bool> discardMaterial(MaterialId m, int n) async {
+    if (n <= 0 || player.materialCount(m) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {m.name: n})));
+    return true;
+  }
+
+  /// 가방 물건을 버린다
+  Future<bool> discardItem(ShopItem item, int n) async {
+    if (n <= 0 || bagCount(item) < n) return false;
+    await _count(TownRules.dropKey(item), n);
+    return true;
+  }
+
+  /// 입지 않은 장비를 버린다
+  Future<bool> discardEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || _armory.isWorn(item)) return false;
+    await _saveArmory(_armory.copyWith(
+        items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    return true;
+  }
+
+  /// 잡화상에서 재료를 판다
+  Future<bool> sellMaterial(MaterialId m, int n) async {
+    if (n <= 0 || player.materialCount(m) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {m.name: n}),
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: n * BagRules.materialPrice(m)}),
+    ));
+    return true;
+  }
+
+  /// 잡화상에서 가방 물건을 판다 (산 값의 절반)
+  Future<bool> sellItem(ShopItem item, int n) async {
+    if (n <= 0 || bagCount(item) < n) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      counters: DailyRecord.addCounts(
+          today.counters, {TownRules.dropKey(item): n}),
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: n * BagRules.itemPrice(item)}),
+    ));
+    return true;
+  }
+
+  /// 잡화상에서 입지 않은 장비를 판다
+  Future<bool> sellEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null || _armory.isWorn(item)) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      gains: DailyRecord.addCounts(
+          today.gains, {Wallet.gold: BagRules.equipPrice(item)}),
+    ));
+    await _saveArmory(_armory.copyWith(
+        items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    return true;
   }
 
   /// 마석 [count] 개를 금화로 판다 (1개에 금화 10). 모자라면 false.
@@ -640,7 +868,7 @@ class AppController extends ChangeNotifier {
 
   UseCheck canUse(ShopItem item) => TownRules.canUse(_history, item,
       hpFull: hp >= maxHp,
-      mpFull: mp >= RuleConstants.mpMax,
+      mpFull: mp >= mpMax,
       compassReady: _vitals.compassReady);
 
   /// 원정 나침반을 써 두었는지 (다음 원정 이동 시간 절반)
@@ -659,8 +887,7 @@ class AppController extends ChangeNotifier {
     }
     if (info.mpRatio > 0) {
       _vitals = _vitals.copyWith(
-          mp: math.min(RuleConstants.mpMax,
-              mp + (RuleConstants.mpMax * info.mpRatio).round()));
+          mp: math.min(mpMax, mp + (mpMax * info.mpRatio).round()));
     }
     if (item == ShopItem.expeditionCompass) {
       _vitals = _vitals.copyWith(compassReady: true);
@@ -673,6 +900,98 @@ class AppController extends ChangeNotifier {
 
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
+
+  // ───────────────────────────────────────────── 스탯 5종 (11-11 #50)
+
+  static const _statsKey = 'stats';
+  StatAlloc _alloc = const StatAlloc();
+
+  /// 포인트로 올린 값
+  Stats get allocatedStats => _alloc.allocated;
+
+  /// 지금까지 받은 포인트 중 아직 나누지 않은 것
+  int get unspentPoints =>
+      math.max(0, StatRules.pointsFor(player.level.level) - _alloc.allocated.total);
+
+  /// 화면에 보이는 스탯 (시작 값 + 생활 보너스 + 포인트). 합계만 보여 준다.
+  Stats get shownStats => player.stats + _alloc.allocated;
+
+  /// 전투에 쓰는 스탯: 아직 나누지 않은 포인트는 고르게 나눈 것처럼 친다
+  Stats get combatStats =>
+      shownStats + StatRules.evenShare(unspentPoints);
+
+  /// 초기화 비용 (처음 1번 무료)
+  int get statResetCost => StatRules.resetCost(_alloc.resets);
+  int get statResets => _alloc.resets;
+
+  /// 포인트를 나눈다. [add] 의 합이 남은 포인트보다 많으면 false.
+  Future<bool> allocateStats(Stats add) async {
+    if (add.total <= 0 || add.total > unspentPoints) return false;
+    for (final k in StatKind.values) {
+      if (add.of(k) < 0) return false;
+    }
+    _alloc = _alloc.copyWith(allocated: _alloc.allocated + add);
+    await store.saveJson(_statsKey, _alloc.toJson());
+    await refreshVitals();
+    notifyListeners();
+    return true;
+  }
+
+  /// 포인트로 올린 값만 되돌린다 (생활 보너스는 그대로). 금화가 모자라면 false.
+  Future<bool> resetStats() async {
+    if (_alloc.allocated.total == 0) return false;
+    final cost = statResetCost;
+    if (player.gold < cost) return false;
+    if (cost > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    }
+    _alloc = _alloc.copyWith(allocated: Stats.zero, resets: _alloc.resets + 1);
+    await store.saveJson(_statsKey, _alloc.toJson());
+    await refreshVitals();
+    notifyListeners();
+    return true;
+  }
+
+  /// 생활 보너스가 올라서 정령이 할 한 줄 (이유는 말하지 않는다). 없으면 null.
+  String? get lifeBonusLine {
+    final seen = _alloc.seenLife;
+    if (seen == null) return null;
+    final now = StatRules.lifeBonus(_history);
+    for (final k in StatKind.values) {
+      if (now.of(k) > seen.of(k)) return _lifeLines[k];
+    }
+    return null;
+  }
+
+  static const _lifeLines = {
+    StatKind.strength: '요즘 힘이 불끈불끈 솟는 것 같지 않아?',
+    StatKind.agility: '어? 왠지 몸이 가벼워진 것 같아!',
+    StatKind.intellect: '머리가 맑아진 느낌이야. 뭔가 더 잘 보여!',
+    StatKind.vitality: '숨이 덜 차는 것 같아. 튼튼해졌나 봐!',
+    StatKind.luck: '오늘따라 운이 좋은 것 같아!',
+  };
+
+  String? _shownLifeLine;
+
+  /// 상태 화면에 보여 줄 생활 보너스 한 줄. 한 번 보여 주면 알려 준 것으로 기록하고
+  /// 이번에 앱을 켜 둔 동안만 남긴다.
+  String? get statusLifeLine {
+    final line = lifeBonusLine;
+    if (line != null && line != _shownLifeLine) {
+      _shownLifeLine = line;
+      Future.microtask(acknowledgeLifeBonus);
+    }
+    return _shownLifeLine;
+  }
+
+  /// 정령 한 줄을 보여 줬을 때
+  Future<void> acknowledgeLifeBonus() async {
+    _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
+    await store.saveJson(_statsKey, _alloc.toJson());
+    notifyListeners();
+  }
 
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
 
@@ -705,6 +1024,7 @@ class AppController extends ChangeNotifier {
       if (p.materialCount(rare) < need) return CraftCheck.materials;
     }
     if (p.manaStones < info.manaStones) return CraftCheck.manaStones;
+    if (bagFree <= 0) return CraftCheck.bagFull;
     return CraftCheck.ok;
   }
 
@@ -877,6 +1197,7 @@ class AppController extends ChangeNotifier {
       return false;
     }
     await _grant(t.gold, t.manaStones, t.materials);
+    await _count('errandDone');
     final slots = [...b.slots];
     slots[slot] =
         ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
@@ -935,18 +1256,29 @@ class AppController extends ChangeNotifier {
     } else {
       await _grant(u.quest.gold, 0, {u.rare: 1});
     }
+    await _count('urgentDone');
     await _saveBoard(b.copyWith(urgentDone: true));
     return true;
   }
 
+  /// 오늘 기록의 수 하나를 늘린다 (생활 보너스·의뢰용)
+  Future<void> _count(String key, [int n = 1]) async {
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        counters: DailyRecord.addCounts(today.counters, {key: n})));
+  }
+
   Future<void> _grant(
       int gold, int manaStones, Map<MaterialId, int> materials) async {
+    final fit = _fitBag(materials);
     final today = await _todayRecord();
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
           today.gains,
           HuntReward.ledger(
-              extraManaStones: manaStones, gold: gold, materials: materials)),
+              extraManaStones: manaStones,
+              gold: gold + fit.gold,
+              materials: fit.kept)),
     ));
   }
 
@@ -970,14 +1302,17 @@ class AppController extends ChangeNotifier {
   int get maxHp {
     final p = player;
     return Battle.playerMaxHpWith(
-        level: p.level.level, stats: p.stats, gear: gear);
+        level: p.level.level, stats: combatStats, gear: gear);
   }
 
   /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
   int get hp => math.min(maxHp, _vitals.hp ?? maxHp);
 
   /// 정령 MP (원정에 쓴다)
-  int get mp => math.min(RuleConstants.mpMax, _vitals.mp ?? RuleConstants.mpMax);
+  int get mp => math.min(mpMax, _vitals.mp ?? mpMax);
+
+  /// 최대 MP (지능, 11-11 #50)
+  int get mpMax => StatRules.maxMp(combatStats + gear.stats);
 
   /// 여관에서 쉬는 중이면 체크인 시각
   DateTime? get restStartedAt => _vitals.restStartedAt;
@@ -1046,7 +1381,7 @@ class AppController extends ChangeNotifier {
 
     // MP 자연 회복
     final (newMp, newAt) =
-        VitalRules.regenMp(v.mp ?? RuleConstants.mpMax, v.mpAt ?? now, now);
+        VitalRules.regenMp(v.mp ?? mpMax, v.mpAt ?? now, now, max: mpMax);
     if (newMp != v.mp || newAt != v.mpAt) {
       v = v.copyWith(mp: newMp, mpAt: newAt);
       changed = true;
@@ -1056,7 +1391,7 @@ class AppController extends ChangeNotifier {
     final restAt = v.restStartedAt;
     if (restAt != null && TownRules.restDone(restAt, now)) {
       v = v.copyWith(
-          hp: max, mp: RuleConstants.mpMax, mpAt: now, clearRest: true);
+          hp: max, mp: mpMax, mpAt: now, clearRest: true);
       _vitals = v;
       await store.saveVitals(v);
       _justRested = true;
@@ -1121,11 +1456,67 @@ class AppController extends ChangeNotifier {
 
   // ───────────── 정령 원정
 
-  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함)
+  final _routes = <String, ExpeditionRoute>{};
+  final _routeJobs = <String, Future<ExpeditionRoute>>{};
+
+  String? _routeKey(FieldSpawn spawn) {
+    final from = _lastFix?.point;
+    if (from == null) return null;
+    // 50m 안에서 움직인 것은 같은 출발점으로 본다
+    return '${spawn.id}@${(from.lat / 0.0005).round()},${(from.lng / 0.0005).round()}';
+  }
+
+  /// 찾아 둔 원정 길 (아직 찾는 중이거나 위치를 모르면 null)
+  ExpeditionRoute? routeFor(FieldSpawn spawn) {
+    final k = _routeKey(spawn);
+    return k == null ? null : _routes[k];
+  }
+
+  /// 원정 길을 찾는다. 길 조각을 받지 못했거나, 길이 이어지지 않거나,
+  /// 직선의 3배를 넘으면 직선.
+  Future<ExpeditionRoute> prepareRoute(FieldSpawn spawn) {
+    final k = _routeKey(spawn);
+    final from = _lastFix?.point;
+    if (k == null || from == null) {
+      return Future.value(ExpeditionRoute.straight(
+          from ?? spawn.point, spawn.point));
+    }
+    if (_routes[k] case final r?) return Future.value(r);
+    return _routeJobs[k] ??= () async {
+      final to = spawn.point;
+      final straight = from.distanceTo(to);
+      ExpeditionRoute route;
+      try {
+        final keys = RouteGrid.tilesAround(from, to,
+            marginM: math.min(1500.0, math.max(300.0, straight)));
+        final loaded = await Future.wait([
+          for (final key in keys)
+            routeTiles.load(key).then((v) => MapEntry(key, v)),
+        ]).timeout(const Duration(seconds: 15));
+        final grid = RouteGrid({
+          for (final e in loaded)
+            if (e.value case final v?) e.key: v,
+        });
+        route = grid.tiles.isEmpty
+            ? ExpeditionRoute.straight(from, to)
+            : RouteFinder.find(grid, from, to);
+      } catch (_) {
+        route = ExpeditionRoute.straight(from, to);
+      }
+      _routes[k] = route;
+      _routeJobs.remove(k);
+      notifyListeners();
+      return route;
+    }();
+  }
+
+  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함).
+  /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
   ExpeditionPlan planExpedition(FieldSpawn spawn) {
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
-    final dist = from.distanceTo(spawn.point);
+    final route = routeFor(spawn);
+    final dist = route?.lengthM ?? from.distanceTo(spawn.point);
     final cost = VitalRules.expeditionCost(dist);
     final base = VitalRules.expeditionOneWay(dist);
     // 원정 나침반을 써 두었으면 이동 시간 절반
@@ -1139,19 +1530,25 @@ class AppController extends ChangeNotifier {
     } else {
       check = ExpeditionCheck.ok;
     }
-    return ExpeditionPlan(check, distanceM: dist, mpCost: cost, oneWay: oneWay);
+    return ExpeditionPlan(check,
+        distanceM: dist,
+        mpCost: cost,
+        oneWay: oneWay,
+        followsRoads: route?.followsRoads ?? false,
+        routeReady: route != null);
   }
 
   /// 정령을 보낸다. MP는 보내는 순간 쓴다.
   Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn) async {
     await refreshVitals();
+    final route = await prepareRoute(spawn);
     final plan = planExpedition(spawn);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final now = _clock();
     final arrive = now.add(plan.oneWay);
     _vitals = _vitals.copyWith(
       mp: mp - plan.mpCost,
-      mpAt: mp >= RuleConstants.mpMax ? now : _vitals.mpAt,
+      mpAt: mp >= mpMax ? now : _vitals.mpAt,
       expedition: Expedition(
         spawnId: spawn.id,
         monster: spawn.monster.name,
@@ -1165,6 +1562,9 @@ class AppController extends ChangeNotifier {
         startedAt: now,
         arriveAt: arrive,
         returnAt: arrive.add(plan.oneWay),
+        route: route.followsRoads
+            ? [for (final p in route.points) (p.lat, p.lng)]
+            : const [],
       ),
       compassReady: false, // 나침반은 한 번 쓰면 끝
     );
@@ -1176,7 +1576,7 @@ class AppController extends ChangeNotifier {
     unawaited(notifier?.schedule(
       NotifyId.expedition,
       ret,
-      '${_profile.spiritName}이(가) 돌아왔어요',
+      '${josa(_profile.spiritName, '이/가')} 돌아왔어요',
       '${spawn.info.name} 원정 결과를 확인해 보세요!',
     ));
     notifyListeners();
@@ -1207,7 +1607,7 @@ class AppController extends ChangeNotifier {
     final p = player;
     final battle = Battle.forPlayer(
       level: p.level.level,
-      stats: p.stats,
+      stats: combatStats,
       floors: BattleRules.fieldFoes(
           level: p.level.level,
           monster: monster,
@@ -1217,16 +1617,31 @@ class AppController extends ChangeNotifier {
       gear: gear,
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
-    if (battle.phase == BattlePhase.escaped) {
+    final escaped = battle.phase == BattlePhase.escaped;
+    if (escaped) {
       final today = await _todayRecord();
       await _save(
           today.copyWith(fledSpawnIds: [...today.fledSpawnIds, ex.spawnId]));
     }
+    final isNew = !purifiedEver.contains(monster);
+    if (cleared) await _count('expeditionWin');
     _lastExpeditionExp = cleared
         ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
             mods: mods, count: battle.floors.length)
         : 0;
-    _vitals = _vitals.copyWith(expedition: ex.withResult(cleared));
+    final r = _lastReward;
+    _vitals = _vitals.copyWith(
+        expedition: ex.withResult(cleared,
+            escaped: escaped,
+            newSpecies: cleared && isNew,
+            reward: cleared
+                ? {
+                    if (r.exp > 0) 'exp': r.exp,
+                    if (r.manaStones > 0) Wallet.manaStone: r.manaStones,
+                    if (r.gold > 0) Wallet.gold: r.gold,
+                    for (final e in r.materials.entries) e.key.name: e.value,
+                  }
+                : const {}));
     await store.saveVitals(_vitals);
   }
 
@@ -1319,12 +1734,19 @@ class AppController extends ChangeNotifier {
         DateTime(dayStart.year, dayStart.month, dayStart.day, 20);
     final after8 =
         end.isAfter(eightPm) ? await health.stepsBetween(eightPm, end) : 0;
-    return record.copyWith(steps: steps, stepsAfter8pm: after8);
+    // 오전 5~8시 걸음 (숨은 생활 보너스)
+    final five = DateTime(dayStart.year, dayStart.month, dayStart.day, 5);
+    final eight = DateTime(dayStart.year, dayStart.month, dayStart.day, 8);
+    final morning = end.isAfter(five)
+        ? await health.stepsBetween(five, end.isBefore(eight) ? end : eight)
+        : 0;
+    return record.copyWith(
+        steps: steps, stepsAfter8pm: after8, stepsMorning: morning);
   }
 }
 
 /// 대장간에서 만들거나 강화할 수 있는지
-enum CraftCheck { ok, materials, manaStones, gold, maxed }
+enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
@@ -1335,9 +1757,17 @@ class ExpeditionPlan {
     this.distanceM = 0,
     this.mpCost = 0,
     this.oneWay = Duration.zero,
+    this.followsRoads = false,
+    this.routeReady = true,
   });
 
   final ExpeditionCheck check;
+
+  /// 길을 따라가는지 (아니면 직선으로 날아간다)
+  final bool followsRoads;
+
+  /// 길찾기가 끝났는지 (끝나기 전에는 직선 거리로 미리 보여 준다)
+  final bool routeReady;
   final double distanceM;
   final int mpCost;
 

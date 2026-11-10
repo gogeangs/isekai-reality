@@ -43,6 +43,7 @@ class PlayerProfile {
     this.lastSeenLevel,
     this.weatherEnabled = true,
     this.equippedTitle,
+    this.renames = 0,
   });
 
   final String name;
@@ -64,6 +65,9 @@ class PlayerProfile {
   /// 플레이어가 고른 대표 칭호 ([TitleId] 이름). 없으면 자동.
   final String? equippedTitle;
 
+  /// 내 이름을 바꾼 횟수 (11-11 #53: 처음 1번 무료, 그다음 금화)
+  final int renames;
+
   PlayerProfile copyWith({
     String? name,
     HeroLook? look,
@@ -73,6 +77,7 @@ class PlayerProfile {
     int? lastSeenLevel,
     bool? weatherEnabled,
     String? equippedTitle,
+    int? renames,
   }) =>
       PlayerProfile(
         name: name ?? this.name,
@@ -83,6 +88,7 @@ class PlayerProfile {
         lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
         weatherEnabled: weatherEnabled ?? this.weatherEnabled,
         equippedTitle: equippedTitle ?? this.equippedTitle,
+        renames: renames ?? this.renames,
       );
 
   Map<String, dynamic> toJson() => {
@@ -94,6 +100,7 @@ class PlayerProfile {
         'lastSeenLevel': lastSeenLevel,
         'weatherEnabled': weatherEnabled,
         'equippedTitle': equippedTitle,
+        'renames': renames,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) => PlayerProfile(
@@ -107,6 +114,7 @@ class PlayerProfile {
         lastSeenLevel: json['lastSeenLevel'] as int?,
         weatherEnabled: json['weatherEnabled'] as bool? ?? true,
         equippedTitle: json['equippedTitle'] as String?,
+        renames: json['renames'] as int? ?? 0,
       );
 }
 

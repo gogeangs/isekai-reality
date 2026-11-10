@@ -141,40 +141,47 @@ void main() {
     });
   });
 
-  group('스탯', () {
-    test('모든 스탯은 10에서 시작한다', () {
-      final s = StatRules.fromHistory([]);
-      expect([s.vitality, s.agility, s.wisdom, s.spirit], [10, 10, 10, 10]);
+  group('스탯 5종 (11-11)', () {
+    test('모든 스탯은 10에서 시작하고 레벨마다 포인트 5', () {
+      expect(StatRules.fromHistory([]), Stats.all(10));
+      expect(StatRules.pointsFor(1), 0);
+      expect(StatRules.pointsFor(13), 60);
     });
 
-    test('기록에 따라 오른다', () {
-      final history = [
-        // 목표 달성, 새 몬스터 2종, 새 장소 1곳, 휴식
-        day(0,
-            steps: 16000,
-            monsterIds: ['ashSlime', 'labyrinthBat'],
-            newPlaces: 1,
-            rests: 1),
-        // 목표 달성, 이미 본 몬스터
-        day(1, steps: 15000, monsterIds: ['ashSlime']),
-        day(2, steps: 2000, rests: 2), // 휴식
-      ];
-      final s = StatRules.fromHistory(history);
-      expect(s.vitality, 11); // 33,000보
-      expect(s.agility, 12);
-      expect(s.wisdom, 13); // 새 몬스터 2 + 새 장소 1
-      expect(s.spirit, 12); // 휴식한 날 2
+    test('생활 보너스는 아주 작다: 30만 보, 목표 달성 30일, 접속 30일마다 +1', () {
+      final month = List.generate(30, (i) => day(i, steps: 10500));
+      final s = StatRules.lifeBonus(month);
+      expect(s.vitality, 1); // 315,000보
+      expect(s.agility, 1); // 목표 달성 30일
+      expect(s.luck, 1); // 30일 연속 접속
+      expect(s.strength, 0);
+      expect(StatRules.lifeBonus(month.sublist(0, 20)), Stats.zero);
     });
 
-    test('7일 연속 접속할 때마다 정신 +1', () {
-      expect(StatRules.fromHistory(List.generate(6, (i) => day(i))).spirit, 10);
-      expect(StatRules.fromHistory(List.generate(7, (i) => day(i))).spirit, 11);
-      expect(StatRules.fromHistory(List.generate(14, (i) => day(i))).spirit, 12);
+    test('숨은 활동: 여관 7일 연속 휴식마다 체력 +1', () {
+      final week = List.generate(7, (i) => day(i, rests: 1));
+      expect(StatRules.lifeBonus(week).vitality, 1);
     });
 
-    test('전투 체력: Lv.12, 체력 12 → 1,500', () {
-      const stats = Stats(vitality: 12, agility: 19, wisdom: 14, spirit: 18);
-      expect(StatRules.battleMaxHp(level: 12, stats: stats), 1500);
+    test('남은 포인트는 고르게 나눈 것처럼 친다, 초기화는 처음 무료', () {
+      expect(StatRules.evenShare(7),
+          const Stats(strength: 2, agility: 2, intellect: 1, vitality: 1, luck: 1));
+      expect(StatRules.resetCost(0), 0);
+      expect(StatRules.resetCost(1), 100);
+      expect(StatRules.resetCost(30), 1000);
+    });
+
+    test('스탯마다 전투 역할', () {
+      final base = Stats.all(10);
+      final strong = base.withValue(StatKind.strength, 20);
+      expect(StatRules.attack(level: 5, stats: strong),
+          StatRules.attack(level: 5, stats: base) + 50);
+      expect(StatRules.skillDamage(level: 5, stats: base.withValue(StatKind.intellect, 20)),
+          greaterThan(StatRules.skillDamage(level: 5, stats: base)));
+      expect(StatRules.battleMaxHp(level: 12, stats: base.withValue(StatKind.vitality, 12)), 1500);
+      expect(StatRules.evade(base.withValue(StatKind.agility, 20)), closeTo(0.04, 1e-9));
+      expect(StatRules.crit(base.withValue(StatKind.luck, 30)), closeTo(0.15, 1e-9));
+      expect(StatRules.maxMp(base.withValue(StatKind.intellect, 25)), 75);
     });
   });
 
@@ -200,7 +207,11 @@ void main() {
     });
 
     test('도감의 몬스터를 모두 사냥하면 도감의 현자 (예전 6종도 인정)', () {
-      final now = [for (final m in Monsters.all) m.id.name];
+      final now = [
+        for (final m in Monsters.all)
+          if (!m.slimeKind) m.id.name,
+      ];
+      expect(now, hasLength(7));
       expect(TitleRules.earned([day(0, monsterIds: now.sublist(1))], 1),
           isNot(contains(TitleId.bookwormSage)));
       expect(TitleRules.earned([day(0, monsterIds: now)], 1),

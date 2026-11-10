@@ -75,3 +75,6 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | monster_hornRabbit, monster_babyBoar | 필드 몬스터 혼래빗·아기 와일드 보어 (512×512) |
 | monster_<fire·water·wind·earth·light·dark>Slime | 속성 슬라임 6종 (512×512, 이제 색 입힌 재 슬라임 대신 이 그림이 나옴) |
 | ribbon_success, ribbon_fail, ribbon_missed | 원정 결과 카드 리본 (1024×341, 글자는 앱이 얹음) |
+| mat_rabbitMeat, mat_smallHorn, mat_goldenRabbitFur, mat_boarMeat, mat_toughHide, mat_smallTusk, mat_herb | 새 재료 아이콘 (256×256) |
+| mat_<fire·water·wind·mud·light·dark>Jelly | 속성 젤리 6종 (256×256) |
+| mat_<fire·water·wind·earth·light·shadow>Core | 속성 코어 6종 (256×256, 금빛 반짝임) |

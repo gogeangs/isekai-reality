@@ -500,8 +500,9 @@ void main() {
 
     final crystals = c.player.crystals;
     // 정령 물약 (원정 나침반도 5개라 첫 번째)
-    await tester.scrollUntilVisible(find.text('5개').first, 200,
+    await tester.scrollUntilVisible(find.text('정령 물약'), 200,
         scrollable: find.byType(Scrollable).first);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     await tester.tap(find.text('5개').first);
     await tester.pumpAndSettle();

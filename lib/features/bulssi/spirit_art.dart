@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../data/storage/record_store.dart';
 
-/// 정령 종류별 그림
+/// 정령 표정 (11-10): 걱정(HP 낮음·쓰러짐), 축하(레벨업·정화), 졸림(여관 휴식)
+enum SpiritMood { normal, worried, cheer, sleepy }
+
+/// 정령 종류·표정별 그림
+String spiritMoodAsset(SpiritKind kind, SpiritMood mood) =>
+    mood == SpiritMood.normal
+        ? spiritAsset(kind)
+        : 'assets/images/spirit_${kind.name}_${mood.name}.png';
+
+/// 정령 종류별 그림 (기본 표정)
 String spiritAsset(SpiritKind kind) => switch (kind) {
       SpiritKind.fire => 'assets/images/bulssi.png',
       SpiritKind.water => 'assets/images/spirit_water.png',
@@ -22,14 +31,33 @@ Color spiritColor(SpiritKind kind) => switch (kind) {
 
 /// 정령 그림 한 장
 class SpiritArt extends StatelessWidget {
-  const SpiritArt({super.key, required this.kind, this.size = 64, this.name});
+  const SpiritArt({
+    super.key,
+    required this.kind,
+    this.size = 64,
+    this.name,
+    this.mood = SpiritMood.normal,
+  });
 
   final SpiritKind kind;
   final double size;
   final String? name;
+  final SpiritMood mood;
 
   @override
   Widget build(BuildContext context) {
+    if (mood != SpiritMood.normal) {
+      // 표정 그림이 없으면 기본 그림
+      return Image.asset(
+        spiritMoodAsset(kind, mood),
+        width: size,
+        height: size * 1.1,
+        fit: BoxFit.contain,
+        semanticLabel: '정령 ${name ?? kind.defaultName}',
+        errorBuilder: (_, __, ___) =>
+            SpiritArt(kind: kind, size: size, name: name),
+      );
+    }
     return Image.asset(
       spiritAsset(kind),
       width: size,

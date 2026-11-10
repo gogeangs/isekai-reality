@@ -6,6 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
 
 /// 여관 (앱 안 시설): 하루를 정리하고 쉰다.
 /// 언제든 체크인하고 4시간이 지나면 HP·정령 MP가 가득 차고,
@@ -62,6 +63,7 @@ class InnScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 BulssiLine(
+                  mood: resting ? SpiritMood.sleepy : SpiritMood.normal,
                   line: bulssiLine(
                       resting: resting,
                       restedToday: today.rested,

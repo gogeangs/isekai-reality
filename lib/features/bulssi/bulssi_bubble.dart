@@ -11,10 +11,15 @@ import 'spirit_art.dart';
 /// 화면에서는 [BulssiLine](제목 아래 한 줄) 이나 [ArtSpirit](그림 안) 을 쓴다.
 /// 정령 종류·이름·빛 색(속성 + 날씨·시간)은 [BulssiScope] 에서 받는다.
 class BulssiBubble extends StatelessWidget {
-  const BulssiBubble({super.key, required this.line, this.size = 64});
+  const BulssiBubble(
+      {super.key,
+      required this.line,
+      this.size = 64,
+      this.mood = SpiritMood.normal});
 
   final String line;
   final double size;
+  final SpiritMood mood;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +60,7 @@ class BulssiBubble extends StatelessWidget {
                   ),
                 ),
               ),
-              SpiritArt(kind: kind, size: size, name: name),
+              SpiritArt(kind: kind, size: size, name: name, mood: mood),
             ],
           ),
         ),
@@ -123,9 +128,11 @@ class _Glow extends StatelessWidget {
 
 /// 그림이 없는 화면: 제목 바로 아래 고정 자리의 정령 아이콘 + 한 줄 대사 (11-10 A3)
 class BulssiLine extends StatelessWidget {
-  const BulssiLine({super.key, required this.line});
+  const BulssiLine(
+      {super.key, required this.line, this.mood = SpiritMood.normal});
 
   final String line;
+  final SpiritMood mood;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +148,9 @@ class BulssiLine extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.55)),
       ),
       child: Row(children: [
-        _Glow(color: glow, child: SpiritArt(kind: kind, size: 38, name: name)),
+        _Glow(
+            color: glow,
+            child: SpiritArt(kind: kind, size: 38, name: name, mood: mood)),
         const SizedBox(width: 8),
         Expanded(
           child: Text.rich(
@@ -172,10 +181,15 @@ class BulssiLine extends StatelessWidget {
 /// 위쪽 그림이 있는 화면: 그림 속 각성자 오른쪽 빈자리에 떠 있는 작은 정령과
 /// 각성자 쪽(왼쪽 아래)을 향한 말풍선 (11-10 A3)
 class ArtSpirit extends StatelessWidget {
-  const ArtSpirit({super.key, required this.line, this.size = 50});
+  const ArtSpirit(
+      {super.key,
+      required this.line,
+      this.size = 50,
+      this.mood = SpiritMood.normal});
 
   final String line;
   final double size;
+  final SpiritMood mood;
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +225,7 @@ class ArtSpirit extends StatelessWidget {
           child: _Glow(
               color: glow,
               spread: 0.4,
-              child: SpiritArt(kind: kind, size: size, name: name)),
+              child: SpiritArt(kind: kind, size: size, name: name, mood: mood)),
         ),
       ],
     );

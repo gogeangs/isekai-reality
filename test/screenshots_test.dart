@@ -362,4 +362,35 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '16c_식물_정령_상태창');
   });
+
+  testWidgets('화면 미리보기: 지친 각성자와 정령 표정', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+
+    // 필드 전투에서 HP 0
+    final spawn = c.todaySpawns.first;
+    final battle = c.startFieldBattle(spawn)!;
+    battle.playerHp = 0;
+    await c.finishFieldBattle(spawn, battle);
+    await tester.pumpAndSettle();
+    await _shot(tester, '23_지친_상태창');
+
+    final nav = Navigator.of(tester.element(find.byType(Scaffold).first));
+    nav.push(MaterialPageRoute<void>(
+        builder: (_) =>
+            FieldBattleScreen(controller: c, spawn: c.todaySpawns.first)));
+    await tester.pumpAndSettle();
+    await _shot(tester, '24_지친_필드');
+    nav.pop();
+    await tester.pumpAndSettle();
+
+    // 여관에서 쉬는 중: 졸린 정령
+    await c.restAtInn();
+    await tester.pumpAndSettle();
+    await _shot(tester, '25_쉬는_중');
+  });
 }

@@ -5,6 +5,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
 import 'battle_view.dart';
 
 /// 지도에서 만난 필드 몬스터를 정화하는 짧은 전투 (한 마리)
@@ -65,13 +66,25 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
             ),
             const SizedBox(height: 10),
             // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
-            if (battle == null)
+            if (battle == null) ...[
               BulssiLine(
+                  mood: widget.controller.hp <= 0
+                      ? SpiritMood.worried
+                      : SpiritMood.normal,
                   line: widget.controller.hp <= 0
                       ? '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.'
-                      : '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.')
-            else if (_done) ...[
+                      : '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.'),
+              // HP 0: 지쳐 주저앉은 각성자
+              if (widget.controller.hp <= 0)
+                SizedBox(
+                  height: 240,
+                  child: HeroSprite(
+                      look: widget.controller.profile.look,
+                      pose: HeroPose.tired),
+                ),
+            ] else if (_done) ...[
               BulssiLine(
+                mood: cleared ? SpiritMood.cheer : SpiritMood.worried,
                 line: cleared
                     ? info.purifiedLine
                     : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',

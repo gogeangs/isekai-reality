@@ -822,7 +822,8 @@ class _SkillOrb extends StatelessWidget {
   }
 }
 
-enum HeroPose { idle, attack, victory }
+/// tired: HP 0으로 싸울 수 없을 때 (11-10)
+enum HeroPose { idle, attack, victory, tired }
 
 /// 각성자 SD 그림 (공격·승리 자세). 그림이 없으면 서 있는 그림이나 초상화로 대신한다.
 /// 파일 이름: hero_attack_male.png, hero_victory_female.png ...

@@ -5,7 +5,6 @@ import '../../app_config.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../data/device/device_links.dart';
-import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../legal/legal_screen.dart';

@@ -15,6 +15,7 @@ import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
+import 'features/smithy/equip_picker.dart';
 import 'features/status/stat_screen.dart';
 import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
@@ -220,6 +221,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             unspentPoints: controller.unspentPoints,
             onOpenStats: () => push(StatScreen(controller: controller)),
             lifeLine: controller.statusLifeLine,
+            armory: controller.armory,
+            onSlot: (slot) => showEquipPicker(context, controller, slot),
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
             onOpenDungeon: () => push(DungeonScreen(controller: controller)),

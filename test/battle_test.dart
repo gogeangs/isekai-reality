@@ -26,7 +26,7 @@ Battle dungeonFor(int level, Stats stats, {int seed = 1, bool atGate = false}) {
   );
 }
 
-const weak = Stats(vitality: 10, agility: 10, wisdom: 10, spirit: 10);
+final weak = Stats.all(10);
 
 void main() {
   group('던전 구성', () {

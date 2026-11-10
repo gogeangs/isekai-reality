@@ -15,6 +15,7 @@ import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/map_screen.dart';
+import 'features/status/stat_screen.dart';
 import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
 import 'theme/app_colors.dart';
@@ -214,6 +215,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             hp: controller.hp,
             mp: controller.mp,
             maxHp: controller.maxHp,
+            mpMax: controller.mpMax,
+            stats: controller.shownStats,
+            unspentPoints: controller.unspentPoints,
+            onOpenStats: () => push(StatScreen(controller: controller)),
+            lifeLine: controller.statusLifeLine,
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
             onOpenDungeon: () => push(DungeonScreen(controller: controller)),

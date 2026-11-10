@@ -107,7 +107,7 @@ void main() {
               [_item(EquipBase.dagger), _item(EquipBase.armor), _item(EquipBase.fangNecklace)]));
       expect(geared.playerAttack, (plain.playerAttack * 1.08).round());
       expect(geared.playerMaxHp, (plain.playerMaxHp * 1.05).round());
-      expect(geared.damageTaken, closeTo(0.94, 1e-9));
+      expect(geared.damageTaken, closeTo(plain.damageTaken * 0.94, 1e-9));
       // 지팡이는 일격 충전 하나 빨리
       final staff = Battle.forPlayer(
           level: 5,

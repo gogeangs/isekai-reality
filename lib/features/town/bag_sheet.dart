@@ -84,7 +84,7 @@ class BagContents extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'HP ${comma(c.hp)} / ${comma(c.maxHp)} · '
-                  '정령 MP ${c.mp} / ${RuleConstants.mpMax}',
+                  '정령 MP ${c.mp} / ${c.mpMax}',
                   style: const TextStyle(color: AppColors.text, fontSize: 13),
                 ),
                 const SizedBox(height: 10),

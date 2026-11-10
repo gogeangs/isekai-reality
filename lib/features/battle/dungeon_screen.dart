@@ -113,7 +113,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final atGate = _c.atGate;
     final canFight = _c.canFightNow;
     final power =
-        StatRules.combatPower(level: player.level.level, stats: player.stats);
+        StatRules.combatPower(level: player.level.level, stats: _c.combatStats);
     final reward = atGate
         ? (RuleConstants.dungeonClearExp * RuleConstants.gateBonusMultiplier)
             .round()

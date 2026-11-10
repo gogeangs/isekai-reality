@@ -54,6 +54,7 @@ class FieldMonsterRules {
     RoadMask? roads,
     ExclusionIndex? exclusions,
     int level = 1,
+    double luckBonus = 0,
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -89,7 +90,7 @@ class FieldMonsterRules {
         id: id,
         monster: monster,
         point: p,
-        modifiers: ModifierRules.roll(id, monster, level),
+        modifiers: ModifierRules.roll(id, monster, level, bonus: luckBonus),
       ));
     }
 
@@ -151,7 +152,7 @@ class FieldMonsterRules {
           id: id,
           monster: monster,
           point: p,
-          modifiers: ModifierRules.roll(id, monster, level),
+          modifiers: ModifierRules.roll(id, monster, level, bonus: luckBonus),
         ));
       }
     }

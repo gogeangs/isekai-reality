@@ -23,6 +23,11 @@ class StatusScreen extends StatelessWidget {
     this.hp,
     this.mp,
     this.maxHp,
+    this.mpMax = RuleConstants.mpMax,
+    this.stats,
+    this.unspentPoints = 0,
+    this.onOpenStats,
+    this.lifeLine,
     this.restLeft,
     this.spiritAway,
     this.onOpenBag,
@@ -45,6 +50,17 @@ class StatusScreen extends StatelessWidget {
 
   /// 장비를 입은 최대 HP (없으면 레벨·스탯으로)
   final int? maxHp;
+
+  /// 최대 MP (지능으로 늘어난다)
+  final int mpMax;
+
+  /// 보여 줄 스탯 합계 (없으면 생활 스탯), 나눌 포인트, 분배 화면 열기
+  final Stats? stats;
+  final int unspentPoints;
+  final VoidCallback? onOpenStats;
+
+  /// 생활 보너스가 올랐을 때 정령이 할 한 줄 (있으면 평소 대사 대신)
+  final String? lifeLine;
 
   /// 여관에서 쉬는 중이면 남은 시간
   final Duration? restLeft;
@@ -76,14 +92,14 @@ class StatusScreen extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
     final topHp = maxHp ?? player.maxHp;
     final curHp = hp ?? topHp;
-    final curMp = mp ?? RuleConstants.mpMax;
-    final full = curHp >= topHp && curMp >= RuleConstants.mpMax;
-    final line = BulssiLines.forStatus(
+    final curMp = mp ?? mpMax;
+    final full = curHp >= topHp && curMp >= mpMax;
+    final line = lifeLine ?? BulssiLines.forStatus(
       today: today,
       gauge: player.gauge,
       now: DateTime.now(),
       hpRatio: curHp / topHp,
-      mpRatio: curMp / RuleConstants.mpMax,
+      mpRatio: curMp / mpMax,
       resting: restLeft != null,
       spiritAway: spiritAway != null,
     );
@@ -149,13 +165,17 @@ class StatusScreen extends StatelessWidget {
                 _StatusPanel(
                   player: player,
                   maxHp: topHp,
+                  mpMax: mpMax,
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
                   onOpenDungeon: onOpenDungeon,
                 ),
                 const SizedBox(height: 12),
-                _StatsSection(player: player),
+                _StatsSection(
+                    stats: stats ?? player.stats,
+                    unspent: unspentPoints,
+                    onOpen: onOpenStats),
               ],
             ),
           ),
@@ -318,6 +338,7 @@ class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
     required this.maxHp,
+    required this.mpMax,
     required this.hp,
     required this.mp,
     this.spiritAway,
@@ -328,6 +349,7 @@ class _StatusPanel extends StatelessWidget {
   final int maxHp;
   final int hp;
   final int mp;
+  final int mpMax;
   final String? spiritAway;
   final VoidCallback? onOpenDungeon;
 
@@ -356,9 +378,9 @@ class _StatusPanel extends StatelessWidget {
                 child: _Gauge(
                   icon: 'mp',
                   label: spiritAway == null ? '정령 MP' : '정령 MP · 원정 중',
-                  ratio: mp / RuleConstants.mpMax,
+                  ratio: mp / mpMax,
                   colors: BarColors.mana,
-                  value: '$mp / ${RuleConstants.mpMax}',
+                  value: '$mp / $mpMax',
                 ),
               ),
             ],
@@ -440,67 +462,83 @@ class _LevelLine extends StatelessWidget {
   }
 }
 
-/// 스탯 4종 (접어 두고 눌러서 펼친다, 11-10 C2)
-class _StatsSection extends StatefulWidget {
-  const _StatsSection({required this.player});
+/// 스탯 5종 한 줄 (11-11 #50). 누르면 포인트 분배 화면.
+/// 나눌 포인트가 있으면 알림 점. 숫자는 합계만 보여 준다.
+class _StatsSection extends StatelessWidget {
+  const _StatsSection({required this.stats, this.unspent = 0, this.onOpen});
 
-  final PlayerState player;
-
-  @override
-  State<_StatsSection> createState() => _StatsSectionState();
-}
-
-class _StatsSectionState extends State<_StatsSection> {
-  bool _open = false;
+  final Stats stats;
+  final int unspent;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final st = widget.player.stats;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => setState(() => _open = !_open),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: Row(children: [
-              const GameIcon('spirit', size: 20),
-              const SizedBox(width: 6),
-              const Text('스탯',
-                  style: TextStyle(
-                      color: AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '체력 ${st.vitality} · 민첩 ${st.agility} · '
-                  '지력 ${st.wisdom} · 정신 ${st.spirit}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 12),
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            const GameIcon('spirit', size: 20),
+            if (unspent > 0)
+              const Positioned(
+                right: -3,
+                top: -3,
+                child: _Dot(),
               ),
-              Icon(
-                  _open
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: AppColors.goldBright),
-            ]),
-          ),
-        ),
-        if (_open)
-          Row(children: [
-            _StatTile(icon: 'vitality', name: '체력', value: st.vitality),
-            _StatTile(icon: 'agility', name: '민첩', value: st.agility),
-            _StatTile(icon: 'wisdom', name: '지력', value: st.wisdom),
-            _StatTile(icon: 'spirit', name: '정신', value: st.spirit),
           ]),
-      ],
+          const SizedBox(width: 6),
+          const Text('스탯',
+              style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              [
+                for (final k in StatKind.values) '${k.label} ${stats.of(k)}',
+              ].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+          ),
+          if (unspent > 0)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5484D),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('+$unspent',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800)),
+            ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.goldBright),
+        ]),
+      ),
     );
   }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5484D),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.2),
+        ),
+      );
 }
 
 class _Gauge extends StatelessWidget {
@@ -539,40 +577,6 @@ class _Gauge extends StatelessWidget {
             textAlign: TextAlign.right,
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
       ],
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.name, required this.value});
-
-  final String icon;
-  final String name;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 3),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2B2F6B), Color(0xFF1B1E4C)],
-          ),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.gold.withValues(alpha: 0.75)),
-        ),
-        child: Column(children: [
-          GameIcon(icon, size: 26),
-          const SizedBox(height: 2),
-          Text(name,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          Text('$value', style: AppText.title(20, color: AppColors.text)),
-        ]),
-      ),
     );
   }
 }

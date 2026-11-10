@@ -87,7 +87,7 @@ class ShopScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'HP ${comma(controller.hp)} / ${comma(controller.maxHp)} · '
-                      '정령 MP ${controller.mp} / ${RuleConstants.mpMax}',
+                      '정령 MP ${controller.mp} / ${controller.mpMax}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                           color: AppColors.text, fontSize: 13),

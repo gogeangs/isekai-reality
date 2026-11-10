@@ -49,7 +49,7 @@ class InnScreen extends StatelessWidget {
             final exp = p.dailyExp.isEmpty ? null : p.dailyExp.last;
             final resting = controller.resting;
             final full = controller.hp >= controller.maxHp &&
-                controller.mp >= RuleConstants.mpMax;
+                controller.mp >= controller.mpMax;
             final streak = p.restStreak;
             final next = TownRules.nextRestReward(streak);
             final cleared = today.dungeonRuns.where((r) => r.cleared).length;
@@ -109,7 +109,7 @@ class InnScreen extends StatelessWidget {
                             icon: 'mp',
                             label: '정령 MP',
                             value:
-                                '${controller.mp} / ${RuleConstants.mpMax}'),
+                                '${controller.mp} / ${controller.mpMax}'),
                         const Divider(color: Color(0x33E9C46A), height: 18),
                         _Row(
                             icon: 'exp',

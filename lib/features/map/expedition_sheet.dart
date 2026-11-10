@@ -134,7 +134,7 @@ class SpawnSheet extends StatelessWidget {
                       _InfoRow(
                           label: 'MP',
                           value: '${plan.mpCost} 사용 (지금 ${c.mp} / '
-                              '${RuleConstants.mpMax})'),
+                              '${c.mpMax})'),
                       _InfoRow(
                           label: '시간',
                           value: '가는 데 ${_minutes(plan.oneWay)}, '

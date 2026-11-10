@@ -139,8 +139,10 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
 
     // HP는 전투 사이에 이어진다: 어젯밤 여관에서 쉬었으면 가득,
     // 아니면 오늘 걸음 1,000보마다 10%씩 찬다
-    final maxHp = PlayerState.fromHistory(name: p.name, history: [...history, today])
-        .maxHp;
+    final st0 = PlayerState.fromHistory(name: p.name, history: [...history, today]);
+    // 레벨업 포인트는 고르게 나눈다고 본다 (11-11 스탯 5종)
+    final maxHp = StatRules.battleMaxHp(
+        level: st0.level.level, stats: _evenStats(st0));
     final restedYesterday = history.isNotEmpty && history.last.rested;
     hp = restedYesterday || d == 1
         ? maxHp
@@ -164,7 +166,7 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
       final seedForRun = battleRng.nextInt(1 << 30);
       Battle make() => Battle.forPlayer(
             level: level,
-            stats: state.stats,
+            stats: _evenStats(state),
             floors: BattleRules.dungeonFloors(
                 level: level, atGate: false, rng: Random(seedForRun)),
             rng: Random(seedForRun + 1),
@@ -190,6 +192,10 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
   return Result(p, rows, history,
       PlayerState.fromHistory(name: p.name, history: history));
 }
+
+/// 생활 스탯 + 레벨업 포인트를 고르게 나눈 스탯
+Stats _evenStats(PlayerState s) =>
+    s.stats + StatRules.evenShare(StatRules.pointsFor(s.level.level));
 
 String report(List<Result> results) {
   final b = StringBuffer()
@@ -244,7 +250,7 @@ String report(List<Result> results) {
           ifAbsent: () => e.rest + e.restStreak);
     }
     final sum = totals.values.fold(0, (a, b) => a + b);
-    final s = r.finalState.stats;
+    final s = _evenStats(r.finalState);
     b
       ..writeln()
       ..writeln('## ${r.persona.name}')
@@ -253,7 +259,7 @@ String report(List<Result> results) {
       ..writeln()
       ..writeln('경험치 출처: ${totals.entries.map((e) => '${e.key} ${(e.value * 100 / sum).round()}%').join(' · ')}')
       ..writeln()
-      ..writeln('14일째 스탯: 체력 ${s.vitality} · 민첩 ${s.agility} · 지력 ${s.wisdom} · 정신 ${s.spirit} '
+      ..writeln('14일째 스탯 (포인트를 고르게 나눔): 힘 ${s.strength} · 민첩 ${s.agility} · 지능 ${s.intellect} · 체력 ${s.vitality} · 행운 ${s.luck} '
           '(같은 레벨 기준값 합계 ${BattleRules.expectedStats(r.levelOn(14)).total}, 실제 합계 ${s.total}) · '
           '칭호 ${r.finalState.titles.length}개')
       ..writeln()

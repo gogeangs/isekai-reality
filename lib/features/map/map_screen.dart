@@ -461,7 +461,7 @@ class _ExpeditionList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            KText('정령 원정 · MP ${c.mp} / ${RuleConstants.mpMax}',
+            KText('정령 원정 · MP ${c.mp} / ${c.mpMax}',
                 style: AppText.title(17)),
             const SizedBox(height: 4),
             Text(

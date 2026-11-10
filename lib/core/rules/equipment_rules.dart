@@ -95,7 +95,7 @@ class GearBonus {
     this.skillFaster = 0,
     this.crit = 0,
     this.evade = 0,
-    this.stats = const Stats(vitality: 0, agility: 0, wisdom: 0, spirit: 0),
+    this.stats = Stats.zero,
   });
 
   final double attack;
@@ -105,7 +105,7 @@ class GearBonus {
   final double crit;
   final double evade;
 
-  /// 추가 능력 (체력·민첩·지력·정신)
+  /// 추가 능력 (힘·민첩·지능·체력·행운)
   final Stats stats;
 
   static const none = GearBonus();
@@ -306,7 +306,7 @@ class EquipmentRules {
   }
 
   /// 추가 능력: 초록 1개(+1~2), 파랑 1~2개(+1~3), 보라 2개(+2~3), 주황 3개(+2~4).
-  /// 체력·민첩·지력·정신 중에서 무작위.
+  /// 힘·민첩·지능·체력·행운 중에서 무작위 (11-11 #50).
   static Map<String, int> rollExtras(EquipGrade g, math.Random rng) {
     final (count, lo, hi) = switch (g) {
       EquipGrade.white => (0, 0, 0),
@@ -323,15 +323,10 @@ class EquipmentRules {
     return out;
   }
 
-  static const statKeys = ['vitality', 'agility', 'wisdom', 'spirit'];
+  static final statKeys = [for (final k in StatKind.values) k.name];
 
-  static String statName(String key) => switch (key) {
-        'vitality' => '체력',
-        'agility' => '민첩',
-        'wisdom' => '지력',
-        'spirit' => '정신',
-        _ => key,
-      };
+  /// 예전 키(지력 wisdom → 지능, 정신 spirit → 행운)도 읽는다
+  static String statName(String key) => StatKindInfo.parse(key)?.label ?? key;
 
   // ───────────────────────── 강화
 
@@ -392,7 +387,7 @@ class EquipmentRules {
   static GearBonus bonusOf(Iterable<EquipItem> worn) {
     var atk = 0.0, red = 0.0, hp = 0.0, crit = 0.0, eva = 0.0;
     var faster = 0;
-    var v = 0, a = 0, w = 0, s = 0;
+    var extra = Stats.zero;
     for (final item in worn) {
       final base = EquipmentRules.info(item.base);
       final p = power(item);
@@ -403,15 +398,10 @@ class EquipmentRules {
       crit += base.crit * p;
       eva += base.evade * p;
       final half = item.durability <= 0;
-      int x(String k) {
-        final n = item.extras[k] ?? 0;
-        return half ? n ~/ 2 : n;
-      }
-
-      v += x('vitality');
-      a += x('agility');
-      w += x('wisdom');
-      s += x('spirit');
+      item.extras.forEach((key, n) {
+        final k = StatKindInfo.parse(key);
+        if (k != null) extra = extra.withValue(k, extra.of(k) + (half ? n ~/ 2 : n));
+      });
     }
     return GearBonus(
       attack: atk,
@@ -420,7 +410,7 @@ class EquipmentRules {
       skillFaster: faster,
       crit: crit,
       evade: eva,
-      stats: Stats(vitality: v, agility: a, wisdom: w, spirit: s),
+      stats: extra,
     );
   }
 

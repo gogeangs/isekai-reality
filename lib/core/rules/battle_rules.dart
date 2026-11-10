@@ -51,24 +51,14 @@ class Foe {
 class BattleRules {
   BattleRules._();
 
-  static int attackOf(int combatPower) =>
-      math.max(1, combatPower ~/ RuleConstants.attackDivisor);
+  /// 이 레벨에서 '포인트를 고르게 나눈 각성자'의 스탯 (11-11 #50).
+  /// 레벨마다 포인트 5를 다섯 스탯에 하나씩 나눈 것으로 본다. 몬스터는 이 기준으로 강해진다.
+  static Stats expectedStats(int level) =>
+      Stats.all(StatRules.start + math.max(0, level - 1));
 
-  /// 이 레벨에서 '보통으로 생활한 사람'의 스탯.
-  /// 레벨이 오를 즈음 하루가 지난다고 보고, 하루에 스탯 합계가 1.5쯤 오른다.
-  static Stats expectedStats(int level) {
-    final days = math.max(0, level - 1);
-    const s = RuleConstants.statStartValue;
-    return Stats(
-      vitality: s + days ~/ 6,
-      agility: s + days * 3 ~/ 4,
-      wisdom: s + days ~/ 8,
-      spirit: s + days ~/ 2,
-    );
-  }
-
-  static int expectedCombatPower(int level) =>
-      StatRules.combatPower(level: level, stats: expectedStats(level));
+  /// 기준 각성자의 공격
+  static int expectedAttack(int level) =>
+      StatRules.attack(level: level, stats: expectedStats(level));
 
   static int expectedMaxHp(int level) =>
       StatRules.battleMaxHp(level: level, stats: expectedStats(level));
@@ -80,7 +70,7 @@ class BattleRules {
     required bool atGate,
     required math.Random rng,
   }) {
-    final atk = attackOf(expectedCombatPower(level));
+    final atk = expectedAttack(level);
     final hp = expectedMaxHp(level);
     final floorAttack =
         math.max(1, (hp / RuleConstants.dungeonHpBudgetTicks).round());
@@ -108,7 +98,7 @@ class BattleRules {
   ///
   /// 몬스터마다 능력치 배수가 있다 (11-11: 혼래빗 빠름, 보어 단단함, 대지 슬라임 방어 등).
   static Foe fieldFoe({required int level, required MonsterId monster}) {
-    final atk = attackOf(expectedCombatPower(level));
+    final atk = expectedAttack(level);
     final hp = expectedMaxHp(level);
     final info = Monsters.info(monster);
     return Foe(
@@ -192,12 +182,22 @@ class Battle {
     this.skillChargeTicks = RuleConstants.skillChargeTicks,
     int? startHp,
     this.damageTaken = 1,
+    int? skillDamage,
+    this.playerCrit = 0,
+    this.playerEvade = 0,
+    double playerSpeed = 1,
   })  : floors = List.unmodifiable(floors),
+        skillDamage =
+            skillDamage ?? playerAttack * RuleConstants.skillDamageMultiplier,
+        baseSpeed = playerSpeed,
+        playerSpeed = playerSpeed,
         _rng = rng ?? math.Random(),
         playerHp = math.min(playerMaxHp, math.max(0, startHp ?? playerMaxHp)),
         foeHp = floors.first.maxHp;
 
   /// 플레이어 상태로 전투를 만든다. [gear] 는 입은 장비의 힘 (11-10 #27).
+  /// 스탯 5종(11-11 #50): 힘 → 공격, 지능 → 정령의 일격, 체력 → HP·받는 피해,
+  /// 민첩 → 속도·회피, 행운 → 치명타.
   factory Battle.forPlayer({
     required int level,
     required Stats stats,
@@ -211,18 +211,23 @@ class Battle {
     final ticks = skillChargeTicks >= skillUnavailable
         ? skillChargeTicks
         : math.max(1, skillChargeTicks - gear.skillFaster);
+    final boost = 1 + gear.attack;
     return Battle(
       startHp: startHp,
       playerMaxHp: playerMaxHpWith(level: level, stats: stats, gear: gear),
-      playerAttack: math.max(
-          1,
-          (BattleRules.attackOf(StatRules.combatPower(level: level, stats: all)) *
-                  (1 + gear.attack))
-              .round()),
+      playerAttack:
+          math.max(1, (StatRules.attack(level: level, stats: all) * boost).round()),
+      skillDamage: math.max(
+          1, (StatRules.skillDamage(level: level, stats: all) * boost).round()),
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
-      damageTaken: 1 - gear.reduce,
+      damageTaken: (1 - gear.reduce) * (1 - StatRules.vitalityReduce(all)),
+      playerCrit: math.min(0.6, StatRules.crit(all) + gear.crit),
+      playerEvade: math.min(0.4, StatRules.evade(all) + gear.evade),
+      // 같은 레벨 기준 각성자보다 빠르면 1보다 크다 (몬스터 속도와 비교)
+      playerSpeed: StatRules.speed(all) /
+          StatRules.speed(BattleRules.expectedStats(level)),
     );
   }
 
@@ -236,8 +241,18 @@ class Battle {
   final int playerMaxHp;
   final int playerAttack;
 
-  /// 받는 피해 배수 (장비로 줄어든다)
+  /// 받는 피해 배수 (장비·체력으로 줄어든다)
   final double damageTaken;
+
+  /// 정령의 일격 피해 (지능)
+  final int skillDamage;
+
+  /// 치명타·회피 확률 (행운·민첩·장비)
+  final double playerCrit;
+  final double playerEvade;
+
+  /// 각성자 속도 (민첩, 같은 레벨 기준 1). 끈적한 슬라임에게 맞으면 0.8배.
+  final double baseSpeed;
   final List<Foe> floors;
   final math.Random _rng;
 
@@ -273,8 +288,7 @@ class Battle {
   /// 남은 중독 턴
   int poisonTurns = 0;
 
-  /// 각성자 속도 (끈적한 슬라임에게 맞으면 0.8)
-  double playerSpeed = 1;
+  double playerSpeed;
 
   /// 마지막 턴에 일어난 일 ('피했다!' 등, 화면 연출용). 없으면 null.
   String? lastEvent;
@@ -346,6 +360,10 @@ class Battle {
       lastEvent = '눈부셔요!';
     } else {
       var dmg = _vary(playerAttack);
+      if (playerCrit > 0 && _rng.nextDouble() < playerCrit) {
+        dmg = (dmg * StatRules.critMultiplier).round();
+        lastEvent = '치명타!';
+      }
       if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
       if (f.has(ModifierId.sturdy) && _rng.nextDouble() < 0.20) {
         dmg = math.max(1, dmg ~/ 2);
@@ -393,6 +411,10 @@ class Battle {
 
   void _foeTurn() {
     final f = foe;
+    if (playerEvade > 0 && _rng.nextDouble() < playerEvade) {
+      lastEvent = '회피!';
+      return;
+    }
     var atk = f.attack.toDouble();
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
     if (f.has(ModifierId.charging) && !_charged) {
@@ -421,7 +443,7 @@ class Battle {
     if (f.trait == MonsterTrait.drain && foeHp < f.maxHp) {
       foeHp = math.min(f.maxHp, foeHp + math.max(1, (taken * 0.3).round()));
     }
-    if (f.has(ModifierId.sticky)) playerSpeed = 0.8;
+    if (f.has(ModifierId.sticky)) playerSpeed = baseSpeed * 0.8;
     if (playerHp == 0) phase = BattlePhase.failed;
   }
 
@@ -434,7 +456,7 @@ class Battle {
     skillCharge = 0;
     lastWasSkill = true;
     lastEvent = null;
-    var dmg = _vary(playerAttack * RuleConstants.skillDamageMultiplier);
+    var dmg = _vary(skillDamage);
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     lastDealt = dmg;
     lastTaken = 0;

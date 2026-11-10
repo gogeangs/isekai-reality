@@ -194,12 +194,16 @@ class ModifierRules {
 
   /// 그 자리 몬스터의 수식어. 자리마다 같은 난수를 쓰고, 보는 사람의 레벨로 등급을 나눈다.
   /// 던전 몬스터(미궁 박쥐·문지기)에는 붙이지 않는다.
-  static List<ModifierId> roll(String spawnId, MonsterId monster, int level) {
+  ///
+  /// [bonus] 는 행운으로 늘어나는 수식어 확률 (없음에서 빼서 희귀에 더한다, 11-11)
+  static List<ModifierId> roll(String spawnId, MonsterId monster, int level,
+      {double bonus = 0}) {
     // 던전 몬스터에는 붙이지 않는다 (던전은 이 함수를 부르지 않는다. 필드 박쥐는 붙음)
     if (monster == MonsterId.labyrinthWarden) return const [];
     final rng = math.Random(_stableHash('$spawnId|mod'));
     final u = rng.nextDouble();
-    final (_, common, rare, legend) = chances(level);
+    final (_, common, rare0, legend) = chances(level);
+    final rare = rare0 + bonus;
     final ModGrade grade;
     if (u < legend) {
       grade = ModGrade.legend;

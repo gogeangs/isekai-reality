@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'equipment_rules.dart';
 import 'modifier_rules.dart';
+import 'pet_rules.dart';
 import 'monsters.dart';
 import 'rule_constants.dart';
 import 'stat_rules.dart';
@@ -186,6 +187,8 @@ class Battle {
     this.playerCrit = 0,
     this.playerEvade = 0,
     double playerSpeed = 1,
+    this.petSkill,
+    this.petAdult = false,
   })  : floors = List.unmodifiable(floors),
         skillDamage =
             skillDamage ?? playerAttack * RuleConstants.skillDamageMultiplier,
@@ -206,19 +209,37 @@ class Battle {
     int skillChargeTicks = RuleConstants.skillChargeTicks,
     int? startHp,
     GearBonus gear = GearBonus.none,
+    PetSkill? petSkill,
+    bool petAdult = false,
+    double power = 1,
   }) {
     final all = stats + gear.stats;
-    final ticks = skillChargeTicks >= skillUnavailable
-        ? skillChargeTicks
-        : math.max(1, skillChargeTicks - gear.skillFaster);
-    final boost = 1 + gear.attack;
+    // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
+    final petTicks = petSkill == null ? null : PetRules.skillChargeTicks(petSkill);
+    final baseTicks = petTicks != null && skillChargeTicks < skillUnavailable
+        ? math.min(skillChargeTicks, petTicks)
+        : skillChargeTicks;
+    final ticks = baseTicks >= skillUnavailable
+        ? baseTicks
+        : math.max(1, baseTicks - gear.skillFaster);
+    // 정령의 일격은 ×4. 펫 스킬은 배율만큼
+    final petScale = petSkill == null
+        ? 1.0
+        : PetRules.skillMultiplier(petSkill, adult: petAdult) /
+            RuleConstants.skillDamageMultiplier;
+    // [power]: 원정 펫 특기(부엉이·검은 고양이)의 전투력 배율
+    final boost = (1 + gear.attack) * power;
     return Battle(
       startHp: startHp,
       playerMaxHp: playerMaxHpWith(level: level, stats: stats, gear: gear),
       playerAttack:
           math.max(1, (StatRules.attack(level: level, stats: all) * boost).round()),
       skillDamage: math.max(
-          1, (StatRules.skillDamage(level: level, stats: all) * boost).round()),
+          1,
+          (StatRules.skillDamage(level: level, stats: all) * boost * petScale)
+              .round()),
+      petSkill: petSkill,
+      petAdult: petAdult,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -240,6 +261,22 @@ class Battle {
 
   final int playerMaxHp;
   final int playerAttack;
+
+  /// 데리고 다니는 펫의 던전 스킬 (없으면 정령의 일격)
+  final PetSkill? petSkill;
+  final bool petAdult;
+
+  /// 혀로 묶기: 몬스터가 다음 차례를 쉰다
+  bool _foeBound = false;
+
+  /// 약점 간파: 남은 턴 동안 각성자 피해 증가
+  int insightTurns = 0;
+
+  /// 작은 불씨: 몬스터 화상 남은 턴
+  int foeBurnTurns = 0;
+
+  /// 작은 보호막: 남은 막는 횟수
+  int shieldHits = 0;
 
   /// 받는 피해 배수 (장비·체력으로 줄어든다)
   final double damageTaken;
@@ -321,6 +358,8 @@ class Battle {
       phase = BattlePhase.fighting;
       floorTicks = 0;
       _charged = false;
+      _foeBound = false;
+      foeBurnTurns = 0;
       lastDealt = 0;
       lastTaken = 0;
       lastWasSkill = false;
@@ -360,6 +399,10 @@ class Battle {
       lastEvent = '눈부셔요!';
     } else {
       var dmg = _vary(playerAttack);
+      if (insightTurns > 0) {
+        dmg = (dmg * (1 + PetRules.insightBonus(adult: petAdult))).round();
+        insightTurns--;
+      }
       if (playerCrit > 0 && _rng.nextDouble() < playerCrit) {
         dmg = (dmg * StatRules.critMultiplier).round();
         lastEvent = '치명타!';
@@ -381,6 +424,13 @@ class Battle {
         _foeTurn();
         if (isOver) return;
       }
+    }
+
+    // 작은 불씨: 몬스터 화상 (최대 체력 2%)
+    if (foeBurnTurns > 0) {
+      foeBurnTurns--;
+      _hitFoe(math.max(1, (f.maxHp * 0.02).round()));
+      if (phase != BattlePhase.fighting) return;
     }
 
     // 물 슬라임: 매 턴 끝에 5% 회복
@@ -411,6 +461,11 @@ class Battle {
 
   void _foeTurn() {
     final f = foe;
+    if (_foeBound) {
+      _foeBound = false;
+      lastEvent = '묶였어요!';
+      return;
+    }
     if (playerEvade > 0 && _rng.nextDouble() < playerEvade) {
       lastEvent = '회피!';
       return;
@@ -427,6 +482,11 @@ class Battle {
       lastEvent = '강타!';
     }
     if (damageTaken != 1) atk *= damageTaken;
+    if (shieldHits > 0) {
+      atk *= 0.5;
+      shieldHits--;
+      lastEvent ??= '보호막!';
+    }
     final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
@@ -457,6 +517,25 @@ class Battle {
     lastWasSkill = true;
     lastEvent = null;
     var dmg = _vary(skillDamage);
+    switch (petSkill) {
+      case PetSkill.scratch:
+        dmg = (dmg * StatRules.critMultiplier).round();
+        lastEvent = '치명타!';
+      case PetSkill.tongue:
+        _foeBound = true;
+        lastEvent = '묶었어요!';
+      case PetSkill.insight:
+        insightTurns = PetRules.insightTurns;
+        lastEvent = '약점 간파!';
+      case PetSkill.ember:
+        foeBurnTurns = 3;
+        lastEvent = '화상!';
+      case PetSkill.shield:
+        shieldHits = PetRules.shieldHits(adult: petAdult);
+        lastEvent = '보호막!';
+      case PetSkill.peck || null:
+        break;
+    }
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     lastDealt = dmg;
     lastTaken = 0;

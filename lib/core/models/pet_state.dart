@@ -99,7 +99,13 @@ class PetState {
     this.recipeNotes = 0,
     this.boardEggWeeks = const [],
     this.nextId = 1,
+    this.stepsDay,
+    this.stepsCounted = 0,
   });
+
+  /// 동행 펫 걸음 경험치를 센 날과 그날 센 걸음
+  final String? stepsDay;
+  final int stepsCounted;
 
   final List<PetEgg> eggs;
   final List<Pet> pets;
@@ -159,6 +165,8 @@ class PetState {
     int? recipeNotes,
     List<String>? boardEggWeeks,
     int? nextId,
+    String? stepsDay,
+    int? stepsCounted,
   }) =>
       PetState(
         eggs: eggs ?? this.eggs,
@@ -173,6 +181,8 @@ class PetState {
         recipeNotes: recipeNotes ?? this.recipeNotes,
         boardEggWeeks: boardEggWeeks ?? this.boardEggWeeks,
         nextId: nextId ?? this.nextId,
+        stepsDay: stepsDay ?? this.stepsDay,
+        stepsCounted: stepsCounted ?? this.stepsCounted,
       );
 
   /// 펫 하나를 바꾼다
@@ -192,6 +202,8 @@ class PetState {
         'recipeNotes': recipeNotes,
         'boardEggWeeks': boardEggWeeks,
         'nextId': nextId,
+        if (stepsDay != null) 'stepsDay': stepsDay,
+        'stepsCounted': stepsCounted,
       };
 
   factory PetState.fromJson(Map<String, dynamic> j) {
@@ -219,6 +231,8 @@ class PetState {
       recipeNotes: (j['recipeNotes'] as num?)?.toInt() ?? 0,
       boardEggWeeks: strings(j['boardEggWeeks']),
       nextId: (j['nextId'] as num?)?.toInt() ?? 1,
+      stepsDay: j['stepsDay'] as String?,
+      stepsCounted: (j['stepsCounted'] as num?)?.toInt() ?? 0,
     );
   }
 }

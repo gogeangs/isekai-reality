@@ -56,6 +56,8 @@ class AppController extends ChangeNotifier {
         profile: const PlayerProfile(name: '하루'),
         // 예시 모드는 처음부터 레벨업 연출이 뜨지 않도록 확인한 레벨을 비워 둔다
         history: DemoData.twoWeeks(today: now),
+        // 예시 모드는 Lv.14라 정령과 이미 헤어지고 부엉이와 함께한다 (11-11 #37)
+        json: {'pets': DemoData.pets(today: now).toJson()},
       ),
       health: FakeHealthSource(granted: false),
       stepGoal: 8000, // 예시 기록과 같은 목표
@@ -474,12 +476,15 @@ class AppController extends ChangeNotifier {
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
       gear: gear,
+      petSkill: companionPet?.info.skill,
+      petAdult: companionPet?.adult ?? false,
     );
   }
 
   int _skillTicks(PlayerState p) {
-    if (expedition != null && !expedition!.finished) {
-      return Battle.skillUnavailable; // 정령이 원정을 가 있다
+    final ex = expedition;
+    if (ex != null && !ex.finished) {
+      return Battle.skillUnavailable; // 동료가 원정을 가 있다
     }
     return TownRules.potionActive(p.today)
         ? RuleConstants.potionSkillChargeTicks
@@ -521,6 +526,10 @@ class AppController extends ChangeNotifier {
               today.counters, {'nightHunts': battle.purified.length})
           : null,
     ));
+    if (companionPet != null && battle.purified.isNotEmpty) {
+      await _givePetExp(
+          companionPet!.uid, PetRules.expPerHunt * battle.purified.length);
+    }
     _lastReward = HuntReward(
       exp: exp,
       manaStones: run.cleared
@@ -546,8 +555,9 @@ class AppController extends ChangeNotifier {
       return const [];
     }
     final done = {...?today?.purifiedSpawnIds, ...?today?.fledSpawnIds};
-    final away = expedition;
-    if (away != null && !away.finished) done.add(away.spawnId);
+    for (final away in activeExpeditions) {
+      done.add(away.spawnId);
+    }
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     return FieldMonsterRules.spawnsFor(area, _clock(),
@@ -584,6 +594,8 @@ class AppController extends ChangeNotifier {
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
       gear: gear,
+      petSkill: companionPet?.info.skill,
+      petAdult: companionPet?.adult ?? false,
     );
   }
 
@@ -697,8 +709,14 @@ class AppController extends ChangeNotifier {
       materials: mats,
     );
     await _rollFieldEgg(ModifierRules.gradeOf(mods));
+    if (!_resolving && companionPet != null) {
+      await _givePetExp(companionPet!.uid, PetRules.expPerHunt * count);
+    }
     return exp;
   }
+
+  /// 원정 결과를 정하는 중 (동행 펫 사냥 경험치를 주지 않는다)
+  bool _resolving = false;
 
   // ───────────────────────────────────────────── 여관 · 잡화상 (앱 안 시설)
 
@@ -1057,7 +1075,7 @@ class AppController extends ChangeNotifier {
   bool get farewellPending =>
       !_pets.farewellDone &&
       player.level.level >= PetRules.farewellLevel &&
-      _vitals.expedition == null;
+      _vitals.expeditions.isEmpty;
 
   /// 정령 짝 펫 (첫 펫 확률을 조금 올린다)
   PetSpecies get _favoredSpecies => switch (_profile.spiritKind) {
@@ -1093,6 +1111,9 @@ class AppController extends ChangeNotifier {
       firstSpiritName: _profile.spiritName,
       firstSpiritKind: _profile.spiritKind.name,
       nextId: p.nextId + 1,
+      // 태어난 뒤 걸음부터 센다
+      stepsDay: player.today?.dayKey,
+      stepsCounted: player.today?.steps ?? 0,
       // 이별 전에 이미 지나간 날의 편지는 보내지 않는다
       skippedLetters: [
         for (final l in PetRules.letters)
@@ -1210,6 +1231,122 @@ class AppController extends ChangeNotifier {
       nextId: p.nextId + 1,
     ));
     return pet;
+  }
+
+  /// 펫 경험치·친밀도를 더한다
+  Future<void> _givePetExp(String uid, int exp, {int bond = 0}) async {
+    final pet = _pets.byUid(uid);
+    if (pet == null) return;
+    await _savePets(_pets.replace(pet.copyWith(
+      exp: pet.exp + exp,
+      bond: math.min(PetRules.maxBond, pet.bond + bond),
+    )));
+  }
+
+  /// 동행 펫이 함께 걸은 걸음 (100보마다 경험치 1)
+  Future<void> _petSteps() async {
+    final pet = companionPet;
+    final today = player.today;
+    if (pet == null || today == null) return;
+    final day = today.dayKey;
+    final counted = _pets.stepsDay == day ? _pets.stepsCounted : 0;
+    final gained = (today.steps - counted) ~/ 100;
+    if (gained <= 0) {
+      if (_pets.stepsDay != day) {
+        await _savePets(_pets.copyWith(stepsDay: day, stepsCounted: 0));
+      }
+      return;
+    }
+    await _savePets(_pets
+        .replace(pet.copyWith(exp: pet.exp + gained * PetRules.expPer100Steps))
+        .copyWith(stepsDay: day, stepsCounted: counted + gained * 100));
+  }
+
+  /// 주간 의뢰를 모두 끝낸 주 2번마다 알 하나 (정령이 떠난 뒤)
+  Future<void> _checkBoardEggs() async {
+    final at = _pets.farewellAt;
+    if (at == null || _history.isEmpty) return;
+    final perWeek = BoardRules.weekly(const []).length;
+    final done = <String, int>{};
+    for (var i = 0; i < _history.length; i++) {
+      final r = _history[i];
+      if (r.date.isBefore(DateTime(at.year, at.month, at.day))) continue;
+      final n = BoardRules.weeklyCompletedOn(_history, i);
+      if (n <= 0) continue;
+      final w = TownRules.weekStart(r.date).toIso8601String().substring(0, 10);
+      done[w] = (done[w] ?? 0) + n;
+    }
+    final fullWeeks = [
+      for (final e in done.entries)
+        if (e.value >= perWeek) e.key,
+    ]..sort();
+    final due = fullWeeks.length ~/ PetRules.boardEggEveryWeeks;
+    final given = _pets.boardEggWeeks.length;
+    if (due <= given) return;
+    var p = _pets;
+    for (var k = given; k < due; k++) {
+      p = p.copyWith(
+        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board')],
+        nextId: p.nextId + 1,
+        boardEggWeeks: [...p.boardEggWeeks, fullWeeks[(k + 1) * 2 - 1]],
+      );
+    }
+    await _savePets(p);
+    _newEgg = true;
+  }
+
+  /// 데리고 다닐 펫을 고른다
+  Future<void> setCompanion(String uid) async {
+    if (_pets.byUid(uid) == null) return;
+    await _savePets(_pets.copyWith(companion: uid));
+  }
+
+  /// 펫 이름을 바꾼다 (무료)
+  Future<void> renamePet(String uid, String name) async {
+    final pet = _pets.byUid(uid);
+    if (pet == null || name.trim().isEmpty) return;
+    await _savePets(_pets.replace(pet.copyWith(name: name.trim())));
+  }
+
+  /// 재료를 먹이로 준다 (일반 +3, 귀한 +15, 친밀도 +1)
+  Future<bool> feedMaterial(String uid, MaterialId m) async {
+    final pet = _pets.byUid(uid);
+    if (pet == null || player.materialCount(m) <= 0) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {m.name: 1})));
+    await _givePetExp(
+        uid,
+        Materials.info(m).rare ? PetRules.expRareFood : PetRules.expCommonFood,
+        bond: PetRules.bondPerFood);
+    return true;
+  }
+
+  /// 펫 간식을 준다 (동행 펫이 아니어도)
+  Future<bool> feedSnack(String uid) async {
+    final pet = _pets.byUid(uid);
+    if (pet == null || bagCount(ShopItem.bulssiPotion) <= 0) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        itemsUsed: [...today.itemsUsed, ShopItem.bulssiPotion.name]));
+    await _givePetExp(uid, PetRules.expSnack, bond: PetRules.bondPerSnack);
+    return true;
+  }
+
+  /// 자연으로 돌려보낸다: 마석 (5 + 레벨 × 2) + 좋아하던 재료 3개.
+  /// 마지막 한 마리와 원정 중인 펫은 돌려보낼 수 없다.
+  Future<bool> releasePet(String uid) async {
+    final pet = _pets.byUid(uid);
+    if (pet == null || _pets.pets.length <= 1 || isAway(uid)) return false;
+    await _grant(0, PetRules.releaseMana(pet.level),
+        {pet.info.favorite: PetRules.releaseMaterials});
+    final rest = [for (final p in _pets.pets) if (p.uid != uid) p];
+    await _savePets(PetState.fromJson({
+      ..._pets.toJson(),
+      'pets': [for (final p in rest) p.toJson()],
+      'companion': _pets.companion == uid ? rest.first.uid : _pets.companion,
+    }));
+    return true;
   }
 
   // ───────────── 정령 편지
@@ -1601,7 +1738,13 @@ class AppController extends ChangeNotifier {
   int get mp => math.min(mpMax, _vitals.mp ?? mpMax);
 
   /// 최대 MP (지능, 11-11 #50)
-  int get mpMax => StatRules.maxMp(combatStats + gear.stats);
+  int get mpMax =>
+      StatRules.maxMp(combatStats + gear.stats) +
+      PetRules.mpMaxBonus(_pets.pets.length);
+
+  /// 시간당 MP 회복 (두 번째 펫부터 +2, 11-11 #38)
+  int get mpRegenPerHour =>
+      RuleConstants.mpRegenPerHour + PetRules.mpRegenBonus(_pets.pets.length);
 
   /// 여관에서 쉬는 중이면 체크인 시각
   DateTime? get restStartedAt => _vitals.restStartedAt;
@@ -1612,8 +1755,29 @@ class AppController extends ChangeNotifier {
       ? TownRules.restLeft(_vitals.restStartedAt!, _clock())
       : Duration.zero;
 
-  /// 진행 중이거나 결과를 아직 보지 않은 원정
-  Expedition? get expedition => _vitals.expedition;
+  /// 진행 중이거나 결과를 아직 보지 않은 원정 (펫마다 하나, 11-11 #38)
+  List<Expedition> get expeditions => _vitals.expeditions;
+
+  /// 데리고 다니는 동료(정령 또는 동행 펫)의 원정
+  Expedition? get expedition {
+    final uid = farewellDone ? companionPet?.uid : null;
+    for (final e in _vitals.expeditions) {
+      if (e.petUid == uid) return e;
+    }
+    return null;
+  }
+
+  /// 아직 돌아오지 않은 원정
+  List<Expedition> get activeExpeditions =>
+      [for (final e in _vitals.expeditions) if (!e.finished) e];
+
+  /// 돌아와서 결과를 기다리는 원정 (여러 개가 한꺼번에 끝날 수 있다)
+  List<Expedition> get finishedExpeditions =>
+      [for (final e in _vitals.expeditions) if (e.finished) e];
+
+  /// 원정 중인 펫 uid (정령은 null)
+  bool isAway(String? petUid) =>
+      _vitals.expeditions.any((e) => e.petUid == petUid);
 
   /// 다음 HP 회복까지 남은 걸음
   int get stepsToNextHeal => VitalRules.stepsToNextHeal(
@@ -1670,7 +1834,8 @@ class AppController extends ChangeNotifier {
 
     // MP 자연 회복
     final (newMp, newAt) =
-        VitalRules.regenMp(v.mp ?? mpMax, v.mpAt ?? now, now, max: mpMax);
+        VitalRules.regenMp(v.mp ?? mpMax, v.mpAt ?? now, now,
+            max: mpMax, perHour: mpRegenPerHour);
     if (newMp != v.mp || newAt != v.mpAt) {
       v = v.copyWith(mp: newMp, mpAt: newAt);
       changed = true;
@@ -1693,12 +1858,15 @@ class AppController extends ChangeNotifier {
     _vitals = v;
     if (changed) await store.saveVitals(v);
 
-    // 돌아온 원정 마무리
-    final ex = v.expedition;
-    if (ex != null && !ex.finished && !now.isBefore(ex.returnAt)) {
-      await _resolveExpedition(ex);
+    // 돌아온 원정 마무리 (여러 마리가 한꺼번에 돌아올 수 있다)
+    for (final ex in [...v.expeditions]) {
+      if (!ex.finished && !now.isBefore(ex.returnAt)) {
+        await _resolveExpedition(ex);
+      }
     }
     await _checkLetters();
+    await _petSteps();
+    await _checkBoardEggs();
     notifyListeners();
   }
 
@@ -1800,19 +1968,56 @@ class AppController extends ChangeNotifier {
     }();
   }
 
-  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함).
+  /// 원정을 보낼 수 있는 펫 (정령이 떠나기 전에는 비어 있다: 정령이 간다)
+  List<Pet> get idlePets => [
+        for (final p in _pets.pets)
+          if (!isAway(p.uid)) p,
+      ];
+
+  /// 길에서 멀리 떨어진 물가 몬스터인지 (두꺼비 특기)
+  bool _waterside(ExpeditionRoute? route) {
+    if (route == null || !route.followsRoads || route.points.length < 3) {
+      return false;
+    }
+    final pts = route.points;
+    return pts[pts.length - 2].distanceTo(pts.last) > PetRules.watersideM;
+  }
+
+  /// [spawn] 으로 원정을 보낼 수 있는지 (거리·MP·시간 포함).
   /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
-  ExpeditionPlan planExpedition(FieldSpawn spawn) {
+  /// [petUid] 는 보낼 펫 (정령이 떠난 뒤, 없으면 동행 펫).
+  ExpeditionPlan planExpedition(FieldSpawn spawn, {String? petUid}) {
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
+    final pet = farewellDone
+        ? (petUid == null ? companionPet : _pets.byUid(petUid))
+        : null;
     final route = routeFor(spawn);
     final dist = route?.lengthM ?? from.distanceTo(spawn.point);
-    final cost = VitalRules.expeditionCost(dist);
-    final base = VitalRules.expeditionOneWay(dist);
+    final water = _waterside(route);
+    var cost = VitalRules.expeditionCost(dist);
+    var base = VitalRules.expeditionOneWay(dist);
+    if (pet != null) {
+      cost = math.max(
+          1,
+          (cost *
+                  PetRules.mpFactor(pet.species,
+                      adult: pet.adult, bond: pet.bond, waterside: water))
+              .round());
+      final t = PetRules.travelTimeFactor(pet.species,
+              adult: pet.adult, bond: pet.bond) *
+          PetRules.waterTimeFactor(pet.species,
+              adult: pet.adult, bond: pet.bond, waterside: water);
+      base = Duration(seconds: (base.inSeconds * t).round());
+    }
     // 원정 나침반을 써 두었으면 이동 시간 절반
     final oneWay = _vitals.compassReady ? base ~/ 2 : base;
     ExpeditionCheck check;
-    if (expedition != null && !expedition!.finished) {
+    if (farewellDone && pet == null) {
+      check = ExpeditionCheck.busy;
+    } else if (isAway(pet?.uid)) {
+      check = ExpeditionCheck.busy;
+    } else if (activeExpeditions.any((e) => e.spawnId == spawn.id)) {
       check = ExpeditionCheck.busy;
     } else if (mp < cost) {
       // 안개 대신 MP로만 거리를 막는다 (11-10, 최대 MP 60 = 약 3km)
@@ -1825,59 +2030,77 @@ class AppController extends ChangeNotifier {
         mpCost: cost,
         oneWay: oneWay,
         followsRoads: route?.followsRoads ?? false,
-        routeReady: route != null);
+        routeReady: route != null,
+        petUid: pet?.uid);
   }
 
-  /// 정령을 보낸다. MP는 보내는 순간 쓴다.
-  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn) async {
+  /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
+  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
     await refreshVitals();
     final route = await prepareRoute(spawn);
-    final plan = planExpedition(spawn);
+    final plan = planExpedition(spawn, petUid: petUid);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
+    final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
     final now = _clock();
     final arrive = now.add(plan.oneWay);
+    final ex = Expedition(
+      spawnId: spawn.id,
+      monster: spawn.monster.name,
+      mods: [for (final m in spawn.modifiers) m.name],
+      lat: spawn.point.lat,
+      lng: spawn.point.lng,
+      fromLat: _lastFix?.point.lat,
+      fromLng: _lastFix?.point.lng,
+      distanceM: plan.distanceM,
+      mpCost: plan.mpCost,
+      startedAt: now,
+      arriveAt: arrive,
+      returnAt: arrive.add(plan.oneWay),
+      route: route.followsRoads
+          ? [for (final p in route.points) (p.lat, p.lng)]
+          : const [],
+      petUid: pet?.uid,
+      petName: pet?.name,
+    );
     _vitals = _vitals.copyWith(
       mp: mp - plan.mpCost,
       mpAt: mp >= mpMax ? now : _vitals.mpAt,
-      expedition: Expedition(
-        spawnId: spawn.id,
-        monster: spawn.monster.name,
-        mods: [for (final m in spawn.modifiers) m.name],
-        lat: spawn.point.lat,
-        lng: spawn.point.lng,
-        fromLat: _lastFix?.point.lat,
-        fromLng: _lastFix?.point.lng,
-        distanceM: plan.distanceM,
-        mpCost: plan.mpCost,
-        startedAt: now,
-        arriveAt: arrive,
-        returnAt: arrive.add(plan.oneWay),
-        route: route.followsRoads
-            ? [for (final p in route.points) (p.lat, p.lng)]
-            : const [],
-      ),
+      expeditions: [..._vitals.expeditions, ex],
       compassReady: false, // 나침반은 한 번 쓰면 끝
     );
     await store.saveVitals(_vitals);
     final today = await _todayRecord();
     await _save(today.copyWith(
         counters: DailyRecord.addCounts(today.counters, {'expedition': 1})));
-    final ret = _vitals.expedition!.returnAt;
+    final who = pet?.name ?? _profile.spiritName;
     unawaited(notifier?.schedule(
-      NotifyId.expedition,
-      ret,
-      '${josa(companionName, '이/가')} 돌아왔어요',
+      _notifyIdFor(pet?.uid),
+      ex.returnAt,
+      '${josa(who, '이/가')} 돌아왔어요',
       '${spawn.info.name} 원정 결과를 확인해 보세요!',
     ));
     notifyListeners();
     return ExpeditionCheck.ok;
   }
 
-  /// 원정 결과를 확인했을 때 (결과 카드를 닫으면)
-  Future<void> acknowledgeExpedition() async {
-    final ex = expedition;
-    if (ex == null || !ex.finished) return;
-    _vitals = _vitals.copyWith(clearExpedition: true);
+  /// 원정 알림 id: 정령은 원래 id, 펫은 펫마다
+  int _notifyIdFor(String? petUid) {
+    if (petUid == null) return NotifyId.expedition;
+    final i = _pets.pets.indexWhere((p) => p.uid == petUid);
+    return 100 + (i < 0 ? 0 : i);
+  }
+
+  /// 원정 결과를 확인했을 때 (결과 카드를 닫으면). [ex] 가 없으면 끝난 원정 모두.
+  Future<void> acknowledgeExpedition([Expedition? ex]) async {
+    bool drop(Expedition e) =>
+        e.finished &&
+        (ex == null || (e.spawnId == ex.spawnId && e.petUid == ex.petUid));
+    final keep = [
+      for (final e in _vitals.expeditions)
+        if (!drop(e)) e,
+    ];
+    if (keep.length == _vitals.expeditions.length) return;
+    _vitals = _vitals.copyWith(expeditions: keep);
     await store.saveVitals(_vitals);
     notifyListeners();
   }
@@ -1889,12 +2112,28 @@ class AppController extends ChangeNotifier {
   /// 돌아온 정령의 전투 결과를 정한다. 정령은 각성자의 전투력으로 싸우고
   /// 각성자의 HP는 쓰지 않는다. 지면 MP만 잃고, 몬스터는 그대로 남는다.
   Future<void> _resolveExpedition(Expedition ex) async {
+    _resolving = true;
+    try {
+      await _resolveExpeditionInner(ex);
+    } finally {
+      _resolving = false;
+    }
+  }
+
+  Future<void> _resolveExpeditionInner(Expedition ex) async {
     final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
     final mods = [
       for (final n in ex.mods)
         if (ModifierRules.byName(n) case final m?) m,
     ];
     final p = player;
+    final pet = ex.petUid == null ? null : _pets.byUid(ex.petUid!);
+    final power = pet == null
+        ? 1.0
+        : PetRules.powerFactor(pet.species,
+            adult: pet.adult,
+            bond: pet.bond,
+            night: FieldMonsterRules.isNight(ex.arriveAt));
     final battle = Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
@@ -1905,6 +2144,9 @@ class AppController extends ChangeNotifier {
           spawnId: ex.spawnId),
       rng: math.Random(ex.spawnId.hashCode),
       gear: gear,
+      power: power,
+      petSkill: pet?.info.skill,
+      petAdult: pet?.adult ?? false,
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
     final escaped = battle.phase == BattlePhase.escaped;
@@ -1919,9 +2161,26 @@ class AppController extends ChangeNotifier {
         ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
             mods: mods, count: battle.floors.length)
         : 0;
-    final r = _lastReward;
-    _vitals = _vitals.copyWith(
-        expedition: ex.withResult(cleared,
+    var r = _lastReward;
+    if (cleared && pet != null) {
+      // 호문쿨루스: 재료를 더 가져온다
+      final extra = PetRules.extraMaterials(pet.species, _random,
+          adult: pet.adult, bond: pet.bond);
+      if (extra > 0 && r.exp > 0) {
+        final more = <MaterialId, int>{};
+        for (var i = 0; i < extra; i++) {
+          LootRules.field(monster, _random)
+              .forEach((k, v) => more[k] = (more[k] ?? 0) + v);
+        }
+        await _grant(0, 0, more);
+        final mats = {...r.materials};
+        more.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+        r = HuntReward(
+            exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
+      }
+      await _givePetExp(pet.uid, PetRules.expPerExpedition);
+    }
+    final done = ex.withResult(cleared,
             escaped: escaped,
             newSpecies: cleared && isNew,
             reward: cleared
@@ -1931,7 +2190,11 @@ class AppController extends ChangeNotifier {
                     if (r.gold > 0) Wallet.gold: r.gold,
                     for (final e in r.materials.entries) e.key.name: e.value,
                   }
-                : const {}));
+                : const {});
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid ? done : e,
+    ]);
     await store.saveVitals(_vitals);
   }
 
@@ -2049,7 +2312,11 @@ class ExpeditionPlan {
     this.oneWay = Duration.zero,
     this.followsRoads = false,
     this.routeReady = true,
+    this.petUid,
   });
+
+  /// 보낼 펫 (정령이면 null)
+  final String? petUid;
 
   final ExpeditionCheck check;
 

@@ -491,6 +491,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: companionPet?.element,
+      mainElement: mainElement,
     );
   }
 
@@ -539,10 +541,11 @@ class AppController extends ChangeNotifier {
       huntCounts: _addCounts(today, battle.purified),
       gains: DailyRecord.addCounts(today.gains,
           HuntReward.ledger(materials: mats, gold: fit.gold)),
-      counters: FieldMonsterRules.isNight(_clock())
-          ? DailyRecord.addCounts(
-              today.counters, {'nightHunts': battle.purified.length})
-          : null,
+      counters: DailyRecord.addCounts(today.counters, {
+        if (FieldMonsterRules.isNight(_clock()))
+          'nightHunts': battle.purified.length,
+        ..._elementCounters(battle.purified),
+      }),
     ));
     if (companionPet != null && battle.purified.isNotEmpty) {
       await _givePetExp(
@@ -583,7 +586,8 @@ class AppController extends ChangeNotifier {
             roads: roads,
             exclusions: exclusions,
             level: player.level.level,
-            luckBonus: StatRules.modifierBonus(combatStats))
+            luckBonus: StatRules.modifierBonus(combatStats),
+            favored: ElementRules.challengers(mainElement))
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .where((s) => !done.contains(s.id))
         .toList();
@@ -619,6 +623,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: companionPet?.element,
+      mainElement: mainElement,
     );
   }
 
@@ -729,6 +735,7 @@ class AppController extends ChangeNotifier {
         for (final m in mods) 'mod:${m.name}': 1,
         if (FieldMonsterRules.isNight(_clock())) 'nightHunts': count,
         if (today.lostSpawnIds.contains(spawnId)) 'revenge': 1,
+        ..._elementCounters(List.filled(count, monster)),
       }),
     ));
     _lastReward = HuntReward(
@@ -1124,8 +1131,8 @@ class AppController extends ChangeNotifier {
       };
 
   /// 이별 때 깨어날 펫 (연출에서 한 번 뽑아 이름을 짓게 한다)
-  PetSpecies rollFirstPet() =>
-      PetRules.rollSpecies(_random, favored: _favoredSpecies);
+  PetSpecies rollFirstPet() => PetRules.rollSpecies(_random,
+      favored: _favoredSpecies, element: mainElement);
 
   /// 이별 때 가방에 알이 있었는지 (없으면 정령이 선물 알을 남긴다)
   bool get hasEggForFarewell => _pets.eggs.isNotEmpty;
@@ -1167,7 +1174,7 @@ class AppController extends ChangeNotifier {
     if (_random.nextDouble() >= chance) return false;
     final p = _pets;
     await _savePets(p.copyWith(
-      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source)],
+      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source, element: mainElement?.name)],
       firstEggFound: true,
       nextId: p.nextId + 1,
     ));
@@ -1257,7 +1264,8 @@ class AppController extends ChangeNotifier {
       if (e.id == eggId) egg = e;
     }
     if (egg == null || !eggReady(egg)) return null;
-    final s = species ?? PetRules.rollSpecies(_random);
+    final s = species ??
+        PetRules.rollSpecies(_random, element: ElementRules.parse(egg.element));
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: s,
@@ -1325,7 +1333,7 @@ class AppController extends ChangeNotifier {
     var p = _pets;
     for (var k = given; k < due; k++) {
       p = p.copyWith(
-        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board')],
+        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board', element: mainElement?.name)],
         nextId: p.nextId + 1,
         boardEggWeeks: [...p.boardEggWeeks, fullWeeks[(k + 1) * 2 - 1]],
       );
@@ -1354,9 +1362,12 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {m.name: 1})));
+    final base =
+        Materials.info(m).rare ? PetRules.expRareFood : PetRules.expCommonFood;
+    // 같은 속성 재료는 경험치 1.5배 (11-11 #63)
+    final same = pet.element != null && Materials.elementOf(m) == pet.element;
     await _givePetExp(
-        uid,
-        Materials.info(m).rare ? PetRules.expRareFood : PetRules.expCommonFood,
+        uid, same ? (base * PetRules.sameElementFood).round() : base,
         bond: PetRules.bondPerFood);
     return true;
   }
@@ -1445,7 +1456,8 @@ class AppController extends ChangeNotifier {
       final eggs = [
         ...p.eggs,
         for (var i = 0; i < l.eggs; i++)
-          PetEgg(id: 'egg${p.nextId + i}', source: 'letter'),
+          PetEgg(
+              id: 'egg${p.nextId + i}', source: 'letter', element: mainElement?.name),
       ];
       p = p.copyWith(
         eggs: eggs,
@@ -1646,6 +1658,41 @@ class AppController extends ChangeNotifier {
         for (final n in key.substring(2).split('+'))
           if (Materials.byName(n) case final m?) m,
       ];
+
+  /// 원정 MP가 [need] 만큼 모자랄 때 마실 수 있는 마나 물약 (11-11 #64).
+  /// 한 병으로 채우는 가장 작은 물약이 먼저, 한 병으로 안 되면 적은 병 수부터.
+  List<ManaOption> manaOptions(int need) {
+    if (need <= 0) return const [];
+    final out = <ManaOption>[];
+    for (final item in const [ShopItem.manaSmall, ShopItem.mana]) {
+      final n = bagCount(item);
+      if (n <= 0) continue;
+      final per = math.max(1, (mpMax * TownRules.info(item).mpRatio).round());
+      out.add(ManaOption(
+          name: itemName(item), count: n, perBottle: per,
+          bottles: (need / per).ceil(), item: item));
+    }
+    for (final e in _alc.potions.entries) {
+      final info = _infoOf(e.key);
+      if (info == null || info.kind != PotionKind.mana || e.value <= 0) continue;
+      final m = e.key.endsWith('*') ? 1 + AlchemyRules.perfectBonus : 1.0;
+      final per = math.max(1, (mpMax * info.mpRatio * m).round());
+      out.add(ManaOption(
+          name: potionName(e.key), count: e.value, perBottle: per,
+          bottles: (need / per).ceil(), key: e.key));
+    }
+    out.sort((a, b) {
+      final c = a.bottles.compareTo(b.bottles);
+      return c != 0 ? c : a.perBottle.compareTo(b.perBottle);
+    });
+    return out;
+  }
+
+  /// [o] 를 한 병 마신다
+  Future<bool> drinkMana(ManaOption o) async {
+    if (o.item != null) return await useItem(o.item!) == UseCheck.ok;
+    return await drinkPotion(o.key!) == null;
+  }
 
   PotionInfo? _infoOf(String key) {
     final perfect = key.endsWith('*');
@@ -2070,6 +2117,26 @@ class AppController extends ChangeNotifier {
   /// 걸을 때 알림 켜고 끄기 (설정)
   Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));
 
+  // ───────────────────────────────────────────── 속성 점수 (11-11 #63, 숨김)
+
+  /// 사냥한 몬스터로 오르는 속성 점수 (기록 counters 'el:fire' 에 10배로 적는다)
+  Map<String, int> _elementCounters(List<MonsterId> monsters) {
+    final out = <String, int>{};
+    final weapon = gear.attackElement;
+    for (final m in monsters) {
+      ElementRules.huntScore(Monsters.info(m).element, weapon).forEach((e, v) {
+        out['el:${e.name}'] = (out['el:${e.name}'] ?? 0) + (v * 10).round();
+      });
+    }
+    return out;
+  }
+
+  /// 속성 점수 (화면에 숫자로 보여 주지 않는다)
+  Map<Element, double> get elementScores => ElementRules.scoresFrom(_history);
+
+  /// 주 속성 (점수 1위, 30점부터)
+  Element? get mainElement => ElementRules.mainOf(elementScores);
+
   // ───────────────────────────────────────────── 마법 돋보기 「감정」 (11-11 #60)
 
   static const _lensKey = 'lens';
@@ -2245,6 +2312,25 @@ class AppController extends ChangeNotifier {
     ));
     await _saveArmory(_armory.replace(
         item.copyWith(durability: EquipmentRules.maxDurability)));
+    return true;
+  }
+
+  /// 속성 부여 (11-11 #63): 빛나는 속성 코어 1개 + 금화 100.
+  /// 무기는 공격 속성, 나머지는 방어 속성이 된다. 이미 있으면 바뀐다.
+  Future<bool> imbue(String uid, Element e) async {
+    final item = _armory.byUid(uid);
+    final core = EquipmentRules.imbueCore(e);
+    if (item == null ||
+        player.materialCount(core) <= 0 ||
+        player.gold < EquipmentRules.imbueGold) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends,
+          {Wallet.gold: EquipmentRules.imbueGold, core.name: 1}),
+    ));
+    await _saveArmory(_armory.replace(item.copyWith(element: e)));
     return true;
   }
 
@@ -2871,6 +2957,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: pet?.element,
+      mainElement: mainElement,
     ).runToEnd(useSkills: true);
     await _consumeBattlePotions(battle);
     final cleared = battle.phase == BattlePhase.cleared;
@@ -3094,4 +3182,31 @@ class AppraiseResult {
   final int exp;
   final MaterialId? material;
   final bool note;
+}
+
+/// 원정 MP를 채울 마나 물약 하나 (11-11 #64)
+class ManaOption {
+  const ManaOption({
+    required this.name,
+    required this.count,
+    required this.perBottle,
+    required this.bottles,
+    this.item,
+    this.key,
+  });
+
+  final String name;
+
+  /// 가방에 있는 수
+  final int count;
+
+  /// 한 병에 차는 MP
+  final int perBottle;
+
+  /// 모자란 MP를 채우려면 마셔야 하는 병 수
+  final int bottles;
+
+  /// 잡화상 물약 (또는 공방 물약 [key])
+  final ShopItem? item;
+  final String? key;
 }

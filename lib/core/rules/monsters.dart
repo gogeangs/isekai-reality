@@ -1,3 +1,5 @@
+import 'element_rules.dart';
+
 /// 몬스터 (11-10 '정화' → '사냥'으로 바꿈).
 ///
 /// 몬스터는 사냥하면 쓰러지고 사라진다. 정화된 모습·이름은 쓰지 않는다.
@@ -21,6 +23,11 @@ enum MonsterId {
   earthSlime,
   lightSlime,
   darkSlime,
+  // 11-11 #63 새 속성 슬라임
+  iceSlime,
+  thunderSlime,
+  metalSlime,
+  poisonSlime,
 }
 
 /// 전투 성향 (도감 설명)
@@ -44,6 +51,9 @@ enum MonsterTrait {
 
   /// 때린 피해의 30%만큼 체력 회복
   drain,
+
+  /// 맞히면 30% 확률로 중독 3턴 (11-11 #63 독 슬라임)
+  poison,
 }
 
 class MonsterInfo {
@@ -65,7 +75,11 @@ class MonsterInfo {
     this.retired = false,
     this.slimeKind = false,
     this.tint,
+    this.element,
   });
+
+  /// 속성 (무속성은 null, 11-11 #63)
+  final Element? element;
 
   final MonsterId id;
   final String name;
@@ -127,6 +141,10 @@ class Monsters {
     MonsterId.earthSlime,
     MonsterId.lightSlime,
     MonsterId.darkSlime,
+    MonsterId.iceSlime,
+    MonsterId.thunderSlime,
+    MonsterId.metalSlime,
+    MonsterId.poisonSlime,
   ];
 
   static const List<MonsterInfo> _all = [
@@ -140,6 +158,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.fireSlime,
+      element: Element.fire,
       name: '불꽃 슬라임',
       habitat: '어디서나',
       huntLine: '불꽃 슬라임을 잡았어! 아직 따끈한 젤리야.',
@@ -153,6 +172,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.waterSlime,
+      element: Element.water,
       name: '물 슬라임',
       habitat: '어디서나',
       huntLine: '물 슬라임을 잡았어! 촉촉한 젤리가 남았어.',
@@ -165,6 +185,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.windSlime,
+      element: Element.wind,
       name: '바람 슬라임',
       habitat: '어디서나',
       huntLine: '바람 슬라임을 잡았어! 휘익, 빨랐다!',
@@ -179,6 +200,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.earthSlime,
+      element: Element.earth,
       name: '대지 슬라임',
       habitat: '어디서나',
       huntLine: '대지 슬라임을 잡았어! 진흙이 잔뜩 묻었네.',
@@ -193,6 +215,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.lightSlime,
+      element: Element.light,
       name: '빛 슬라임',
       habitat: '어디서나 (낮에 조금 더 자주)',
       huntLine: '빛 슬라임을 잡았어! 눈이 부셨어.',
@@ -206,6 +229,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.darkSlime,
+      element: Element.dark,
       name: '어둠 슬라임',
       habitat: '어디서나 (밤에 조금 더 자주)',
       huntLine: '어둠 슬라임을 잡았어! 그림자가 스르륵 흩어졌어.',
@@ -218,7 +242,66 @@ class Monsters {
       tint: 0xFF8A5CD6,
     ),
     MonsterInfo(
+      id: MonsterId.iceSlime,
+      element: Element.ice,
+      name: '얼음 슬라임',
+      habitat: '어디서나',
+      huntLine: '얼음 슬라임을 잡았어! 손이 꽁꽁 얼었어.',
+      description: '몸이 차갑게 얼어붙은 슬라임. 단단해서 잘 버텨요.',
+      traitText: '방어가 높음',
+      hp: 1.1,
+      defense: 1.3,
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFFA8E6FF,
+    ),
+    MonsterInfo(
+      id: MonsterId.thunderSlime,
+      element: Element.thunder,
+      name: '번개 슬라임',
+      habitat: '어디서나',
+      huntLine: '번개 슬라임을 잡았어! 머리카락이 쭈뼛 섰어.',
+      description: '찌릿찌릿 번개를 품은 슬라임. 아주 빨라요.',
+      tendency: Tendency.nimble,
+      traitText: '빨라서 먼저 공격하고 세게 때림',
+      attack: 1.15,
+      speed: 1.35,
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFFFFD84A,
+    ),
+    MonsterInfo(
+      id: MonsterId.metalSlime,
+      element: Element.metal,
+      name: '금속 슬라임',
+      habitat: '어디서나',
+      huntLine: '금속 슬라임을 잡았어! 깡, 하고 울렸어.',
+      description: '은빛으로 번쩍이는 묵직한 슬라임. 아주 단단해요.',
+      traitText: '방어가 아주 높고 느림',
+      hp: 0.9,
+      defense: 1.6,
+      speed: 0.75,
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFFB8C0CC,
+    ),
+    MonsterInfo(
+      id: MonsterId.poisonSlime,
+      element: Element.poison,
+      name: '독 슬라임',
+      habitat: '어디서나',
+      huntLine: '독 슬라임을 잡았어! 해독제를 챙겨 두자.',
+      description: '보랏빛 독이 흐르는 슬라임. 맞으면 중독될 수 있어요.',
+      tendency: Tendency.arcane,
+      trait: MonsterTrait.poison,
+      traitText: '맞으면 30% 확률로 중독 (3턴 동안 매 턴 최대 HP 2%)',
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFF9BD45A,
+    ),
+    MonsterInfo(
       id: MonsterId.giantRat,
+      element: Element.poison,
       name: '큰쥐',
       habitat: '어디서나',
       huntLine: '큰쥐를 잡았어! 가죽은 장비 만들 때 쓸 수 있어.',
@@ -228,6 +311,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.hornRabbit,
+      element: Element.wind,
       name: '혼래빗',
       habitat: '어디서나',
       huntLine: '혼래빗을 잡았어! 작은 뿔이 떨어졌어.',
@@ -239,6 +323,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.babyBoar,
+      element: Element.earth,
       name: '아기 와일드 보어',
       habitat: '어디서나',
       huntLine: '아기 와일드 보어를 잡았어! 작아도 힘이 셌어.',
@@ -250,6 +335,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.labyrinthBat,
+      element: Element.dark,
       name: '미궁 박쥐',
       habitat: '던전, 필드',
       huntLine: '박쥐를 쫓아냈어! 날개를 하나 주웠어.',
@@ -259,6 +345,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.shadowButterfly,
+      element: Element.dark,
       name: '그림자 나비',
       habitat: '밤 (오후 7시 ~ 새벽 5시) 어디서나',
       huntLine: '그림자 나비를 잡았어! 반짝이는 가루가 떨어졌어.',
@@ -268,6 +355,7 @@ class Monsters {
     ),
     MonsterInfo(
       id: MonsterId.labyrinthWarden,
+      element: Element.metal,
       name: '미궁 문지기',
       habitat: '던전 마지막 층',
       huntLine: '문지기를 쓰러뜨렸어! 던전을 끝까지 돌파했어!',

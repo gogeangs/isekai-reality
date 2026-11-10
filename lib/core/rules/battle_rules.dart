@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'alchemy_rules.dart';
+import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'modifier_rules.dart';
 import 'pet_rules.dart';
@@ -194,6 +195,10 @@ class Battle {
     this.autoHp = 0,
     this.autoCure = false,
     this.resist = const {},
+    this.attackElement,
+    this.skillElement,
+    this.guardElements = const {},
+    this.mainElement,
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -223,6 +228,8 @@ class Battle {
     int autoHp = 0,
     bool autoCure = false,
     Map<Element, double> resist = const {},
+    Element? skillElement,
+    Element? mainElement,
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
@@ -255,6 +262,10 @@ class Battle {
       autoHp: autoHp,
       autoCure: autoCure,
       resist: resist,
+      attackElement: gear.attackElement,
+      skillElement: skillElement,
+      guardElements: gear.guardElements,
+      mainElement: mainElement,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -311,6 +322,18 @@ class Battle {
 
   /// 속성 저항 (그 속성 몬스터에게 받는 피해 감소)
   final Map<Element, double> resist;
+
+  /// 각성자 공격 속성 (무기, 없으면 무속성)
+  final Element? attackElement;
+
+  /// 스킬 속성 (펫 속성. 정령의 일격은 무속성)
+  final Element? skillElement;
+
+  /// 방어 속성 (장비)
+  final Set<Element> guardElements;
+
+  /// 주 속성 (숨은 점수 1위)
+  final Element? mainElement;
 
   /// 지금 걸린 것이 화상인지 (아니면 중독)
   bool burning = false;
@@ -509,6 +532,7 @@ class Battle {
         lastEvent = '치명타!';
       }
       if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
+      dmg = _elemental(dmg, attackElement);
       if (f.has(ModifierId.sturdy) && _rng.nextDouble() < 0.20) {
         dmg = math.max(1, dmg ~/ 2);
         lastEvent = '웅크렸어요!';
@@ -589,6 +613,11 @@ class Battle {
     if (element != null && (resist[element] ?? 0) > 0) {
       atk *= 1 - resist[element]!;
     }
+    // 방어 속성 장비·주 속성 (11-11 #63, 숫자는 숨김)
+    if (element != null) {
+      if (guardElements.contains(element)) atk *= ElementRules.guard;
+      if (element == mainElement) atk *= 1 - ElementRules.mainBonus;
+    }
     if (shieldHits > 0) {
       atk *= 0.5;
       shieldHits--;
@@ -597,7 +626,9 @@ class Battle {
     final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
-    if ((f.has(ModifierId.venomous) || f.has(ModifierId.plagued)) &&
+    if ((f.has(ModifierId.venomous) ||
+            f.has(ModifierId.plagued) ||
+            f.trait == MonsterTrait.poison) &&
         immuneTurns <= 0 &&
         _rng.nextDouble() < 0.30) {
       poisonTurns = 3;
@@ -649,11 +680,25 @@ class Battle {
         break;
     }
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
+    dmg = _elemental(dmg, skillElement);
     lastDealt = dmg;
     lastTaken = 0;
     _hitFoe(lastDealt);
     return true;
   }
+
+  /// 속성 상성 (11-11 #63): 배율은 숨기고 문구로만 알린다
+  int _elemental(int dmg, Element? attack) {
+    final m = ElementRules.multiplier(attack, AlchemyRules.elementOf(foe.monster));
+    var d = dmg * m;
+    if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;
+    if (m > 1) lastEvent = superEffective;
+    if (m < 1) lastEvent = notEffective;
+    return math.max(1, d.round());
+  }
+
+  static const superEffective = '효과가 굉장했다!';
+  static const notEffective = '효과가 별로인 것 같다…';
 
   void _hitFoe(int damage) {
     foeHp = math.max(0, foeHp - damage);

@@ -348,10 +348,10 @@ class _InfoTab extends StatelessWidget {
         ],
         _Section(title: '칭호', children: [
           KText('얻은 칭호를 누르면 대표 칭호로 걸어요. '
-              '${player.titles.length} / ${TitleRules.all.length}',
+              '${player.titles.length} / ${TitleRules.visible(player.titles).length}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
           const SizedBox(height: 6),
-          for (final t in TitleRules.all)
+          for (final t in TitleRules.visible(player.titles))
             _TitleRow(
               info: t,
               earned: player.titles.contains(t.id),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 
 import '../../core/format.dart';
 import '../../app_controller.dart';
@@ -10,6 +10,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import 'equipment_view.dart';
+import '../battle/element_view.dart';
 
 /// 마을 대장간 (11-10 #27): 장비 만들기 · 강화 · 수리 · 분해.
 /// 장비는 대장간에서만 만든다.
@@ -275,6 +276,18 @@ class _SmithyScreenState extends State<SmithyScreen> {
               child: const Text('분해',
                   style: TextStyle(color: AppColors.textMuted)),
             ),
+            TextButton(
+              key: Key('imbue_${item.uid}'),
+              onPressed: () => _imbueSheet(item),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (item.element != null) ...[
+                  ElementIcon(item.element, size: 16),
+                  const SizedBox(width: 3),
+                ],
+                const Text('속성 부여',
+                    style: TextStyle(color: AppColors.goldBright)),
+              ]),
+            ),
             const Spacer(),
             SizedBox(
               width: 150,
@@ -297,6 +310,61 @@ class _SmithyScreenState extends State<SmithyScreen> {
         const SizedBox(height: 10),
       ],
     ];
+  }
+
+  /// 속성 부여 (11-11 #63): 빛나는 속성 코어 1개 + 금화 100
+  Future<void> _imbueSheet(EquipItem item) async {
+    final weapon = item.slot == EquipSlot.weapon;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.night,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          children: [
+            Text('${item.name} 속성 부여', style: AppText.title(19)),
+            const SizedBox(height: 4),
+            KText(
+                weapon
+                    ? '무기에 속성을 붙이면 그 속성으로 공격해요. 상성이 맞으면 더 세요.'
+                    : '방어구·장신구에 속성을 붙이면 그 속성 몬스터에게 덜 다쳐요.',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text('빛나는 속성 코어 1개 + 금화 ${EquipmentRules.imbueGold} (재료 가공에서 만들어요)',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            const SizedBox(height: 8),
+            for (final e in Element.values)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: ElementIcon(e, size: 28),
+                title: Text('${e.label} 속성',
+                    style: const TextStyle(color: AppColors.text)),
+                subtitle: Text(
+                    '${Materials.info(EquipmentRules.imbueCore(e)).name} '
+                    '${c.player.materialCount(EquipmentRules.imbueCore(e))}개',
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 11.5)),
+                trailing: TextButton(
+                  onPressed: c.player.materialCount(EquipmentRules.imbueCore(e)) > 0 &&
+                          c.player.gold >= EquipmentRules.imbueGold &&
+                          item.element != e
+                      ? () async {
+                          final ok = await c.imbue(item.uid, e);
+                          if (!sheet.mounted) return;
+                          Navigator.of(sheet).pop();
+                          if (ok) _snack('${e.label} 속성을 붙였어요!');
+                        }
+                      : null,
+                  child: Text(item.element == e ? '지금 속성' : '붙이기'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmSalvage(EquipItem item) async {

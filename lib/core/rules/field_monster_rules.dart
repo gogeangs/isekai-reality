@@ -1,3 +1,4 @@
+import 'element_rules.dart';
 import 'dart:math' as math;
 
 import '../geo/geo.dart';
@@ -55,6 +56,7 @@ class FieldMonsterRules {
     ExclusionIndex? exclusions,
     int level = 1,
     double luckBonus = 0,
+    Set<Element> favored = const {},
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -147,7 +149,8 @@ class FieldMonsterRules {
         final id = '$key#${r}_$c';
         final monster = night && butterflyRoll < nightButterflyShare
             ? MonsterId.shadowButterfly
-            : pickCommon(kindRoll, elementRoll, night: night);
+            : pickCommon(kindRoll, elementRoll,
+                night: night, favored: favored);
         spawns.add(FieldSpawn(
           id: id,
           monster: monster,
@@ -169,32 +172,48 @@ class FieldMonsterRules {
   ];
 
   /// 슬라임 속성 비율 (낮, 밤). 빛은 낮에, 어둠은 밤에 조금 더 자주.
+  /// 11-11 #63: 속성 슬라임 11종 (무속성 + 10속성)
   static const List<(MonsterId, double, double)> slimeWeights = [
-    (MonsterId.ashSlime, 0.40, 0.40),
-    (MonsterId.fireSlime, 0.13, 0.13),
-    (MonsterId.waterSlime, 0.13, 0.13),
-    (MonsterId.windSlime, 0.13, 0.13),
-    (MonsterId.earthSlime, 0.13, 0.13),
+    (MonsterId.ashSlime, 0.32, 0.32),
+    (MonsterId.fireSlime, 0.075, 0.075),
+    (MonsterId.waterSlime, 0.075, 0.075),
+    (MonsterId.windSlime, 0.075, 0.075),
+    (MonsterId.earthSlime, 0.075, 0.075),
+    (MonsterId.iceSlime, 0.075, 0.075),
+    (MonsterId.thunderSlime, 0.075, 0.075),
+    (MonsterId.metalSlime, 0.075, 0.075),
+    (MonsterId.poisonSlime, 0.075, 0.075),
     (MonsterId.lightSlime, 0.06, 0.02),
     (MonsterId.darkSlime, 0.02, 0.06),
   ];
 
   /// [kindRoll]·[elementRoll] 은 0~1 난수
+  /// [favored]: 내 주 속성에 강한 속성 (11-11 #63). 그 속성 몬스터가 1.5배 자주.
   static MonsterId pickCommon(double kindRoll, double elementRoll,
-      {bool night = false}) {
+      {bool night = false, Set<Element> favored = const {}}) {
+    double w(MonsterId m, double base) =>
+        favored.contains(Monsters.info(m).element)
+            ? base * ElementRules.challengeWeight
+            : base;
+    final kinds = [for (final (m, b) in commonWeights) (m, w(m, b))];
+    final kindTotal = kinds.fold(0.0, (a, e) => a + e.$2);
     var acc = 0.0;
     var kind = commonWeights.last.$1;
-    for (final (m, w) in commonWeights) {
-      acc += w;
+    for (final (m, x) in kinds) {
+      acc += x / kindTotal;
       if (kindRoll < acc) {
         kind = m;
         break;
       }
     }
     if (kind != MonsterId.ashSlime) return kind;
+    final slimes = [
+      for (final (m, day, nightW) in slimeWeights) (m, w(m, night ? nightW : day)),
+    ];
+    final total = slimes.fold(0.0, (a, e) => a + e.$2);
     acc = 0;
-    for (final (m, day, nightW) in slimeWeights) {
-      acc += night ? nightW : day;
+    for (final (m, x) in slimes) {
+      acc += x / total;
       if (elementRoll < acc) return m;
     }
     return MonsterId.ashSlime;

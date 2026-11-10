@@ -1,3 +1,4 @@
+import 'element_rules.dart';
 import 'dart:math' as math;
 
 import 'monsters.dart';
@@ -52,6 +53,19 @@ enum MaterialId {
   glowEarthCore,
   glowLightCore,
   glowShadowCore,
+  // 11-11 #63 새 속성 슬라임
+  iceJelly,
+  iceCore,
+  thunderJelly,
+  thunderCore,
+  metalJelly,
+  metalCore,
+  poisonJelly,
+  poisonCore,
+  glowIceCore,
+  glowThunderCore,
+  glowMetalCore,
+  glowPoisonCore,
 }
 
 class MaterialInfo {
@@ -149,9 +163,40 @@ class Materials {
         rare: true, price: 80, processed: true),
     MaterialInfo(MaterialId.glowShadowCore, '빛나는 그림자 코어', '그림자 코어 3개를 합친 것. 속성 장비 재료예요.',
         rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.iceJelly, '얼음 젤리', '차가운 젤리. 모아 두는 재료예요.'),
+    MaterialInfo(MaterialId.iceCore, '얼음 코어', '얼음 슬라임의 코어.', rare: true),
+    MaterialInfo(MaterialId.thunderJelly, '번개 젤리', '찌릿한 젤리. 모아 두는 재료예요.'),
+    MaterialInfo(MaterialId.thunderCore, '번개 코어', '번개 슬라임의 코어.', rare: true),
+    MaterialInfo(MaterialId.metalJelly, '금속 젤리', '묵직한 은빛 젤리. 모아 두는 재료예요.'),
+    MaterialInfo(MaterialId.metalCore, '금속 코어', '금속 슬라임의 코어.', rare: true),
+    MaterialInfo(MaterialId.poisonJelly, '독 젤리', '보랏빛이 도는 젤리. 모아 두는 재료예요.'),
+    MaterialInfo(MaterialId.poisonCore, '독 코어', '독 슬라임의 코어.', rare: true),
+    MaterialInfo(MaterialId.glowIceCore, '빛나는 얼음 코어', '얼음 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowThunderCore, '빛나는 번개 코어', '번개 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowMetalCore, '빛나는 금속 코어', '금속 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowPoisonCore, '빛나는 독 코어', '독 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);
+
+  /// 재료의 속성 (속성 젤리·코어, 11-11 #63). 없으면 null.
+  static Element? elementOf(MaterialId m) => switch (m) {
+        MaterialId.fireJelly || MaterialId.fireCore || MaterialId.glowFireCore => Element.fire,
+        MaterialId.waterJelly || MaterialId.waterCore || MaterialId.glowWaterCore => Element.water,
+        MaterialId.windJelly || MaterialId.windCore || MaterialId.glowWindCore => Element.wind,
+        MaterialId.mudJelly || MaterialId.earthCore || MaterialId.glowEarthCore => Element.earth,
+        MaterialId.lightJelly || MaterialId.lightCore || MaterialId.glowLightCore => Element.light,
+        MaterialId.darkJelly || MaterialId.shadowCore || MaterialId.glowShadowCore => Element.dark,
+        MaterialId.iceJelly || MaterialId.iceCore || MaterialId.glowIceCore => Element.ice,
+        MaterialId.thunderJelly || MaterialId.thunderCore || MaterialId.glowThunderCore => Element.thunder,
+        MaterialId.metalJelly || MaterialId.metalCore || MaterialId.glowMetalCore => Element.metal,
+        MaterialId.poisonJelly || MaterialId.poisonCore || MaterialId.glowPoisonCore => Element.poison,
+        _ => null,
+      };
 
   static MaterialId? byName(String name) {
     for (final m in MaterialId.values) {
@@ -229,6 +274,14 @@ class LootRules {
           (common: [MaterialId.lightJelly], rare: MaterialId.lightCore, chance: 0.15),
         MonsterId.darkSlime =>
           (common: [MaterialId.darkJelly], rare: MaterialId.shadowCore, chance: 0.15),
+        MonsterId.iceSlime =>
+          (common: [MaterialId.iceJelly], rare: MaterialId.iceCore, chance: rareChance),
+        MonsterId.thunderSlime =>
+          (common: [MaterialId.thunderJelly], rare: MaterialId.thunderCore, chance: rareChance),
+        MonsterId.metalSlime =>
+          (common: [MaterialId.metalJelly], rare: MaterialId.metalCore, chance: rareChance),
+        MonsterId.poisonSlime =>
+          (common: [MaterialId.poisonJelly], rare: MaterialId.poisonCore, chance: rareChance),
         MonsterId.giantRat =>
           (common: [MaterialId.ratHide], rare: MaterialId.glossyFur, chance: rareChance),
         MonsterId.hornRabbit => (

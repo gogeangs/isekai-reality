@@ -41,6 +41,10 @@ class ProcessRules {
     MaterialId.mudJelly,
     MaterialId.lightJelly,
     MaterialId.darkJelly,
+    MaterialId.iceJelly,
+    MaterialId.thunderJelly,
+    MaterialId.metalJelly,
+    MaterialId.poisonJelly,
   ];
 
   static const List<ProcessRecipe> all = [
@@ -122,6 +126,30 @@ class ProcessRules {
         inputs: {MaterialId.shadowCore: 3},
         gold: 50,
         label: '그림자 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowIce',
+        output: MaterialId.glowIceCore,
+        inputs: {MaterialId.iceCore: 3},
+        gold: 50,
+        label: '얼음 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowThunder',
+        output: MaterialId.glowThunderCore,
+        inputs: {MaterialId.thunderCore: 3},
+        gold: 50,
+        label: '번개 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowMetal',
+        output: MaterialId.glowMetalCore,
+        inputs: {MaterialId.metalCore: 3},
+        gold: 50,
+        label: '금속 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowPoison',
+        output: MaterialId.glowPoisonCore,
+        inputs: {MaterialId.poisonCore: 3},
+        gold: 50,
+        label: '독 코어 3 + 금화 50'),
   ];
 
   /// 가진 재료로 쓸 것 (아무거나 재료는 많은 것부터). 모자라면 null.

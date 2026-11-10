@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
@@ -11,6 +11,7 @@ import '../../theme/ornaments.dart';
 import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
+import 'element_view.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -183,6 +184,8 @@ class _BattleViewState extends State<BattleView> {
               child: _HpColumn(
                 name: foe.name,
                 nameColor: modGradeColor(foe.grade),
+                element: Monsters.info(foe.monster).element,
+                showElement: true,
                 hp: _b.foeHp,
                 maxHp: foe.maxHp,
                 colors: BarColors.foe,
@@ -744,7 +747,13 @@ class _HpColumn extends StatelessWidget {
     this.note,
     this.alignEnd = false,
     this.nameColor = AppColors.text,
+    this.element,
+    this.showElement = false,
   });
+
+  /// 몬스터 속성 아이콘 (11-11 #63)
+  final Element? element;
+  final bool showElement;
 
   final String name;
   final Color nameColor;
@@ -764,6 +773,10 @@ class _HpColumn extends StatelessWidget {
           mainAxisAlignment:
               alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
+            if (showElement) ...[
+              ElementIcon(element, size: 16),
+              const SizedBox(width: 4),
+            ],
             Flexible(
               child: Text(name,
                   overflow: TextOverflow.ellipsis,
@@ -954,7 +967,11 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.windSlime ||
         MonsterId.earthSlime ||
         MonsterId.lightSlime ||
-        MonsterId.darkSlime =>
+        MonsterId.darkSlime ||
+        MonsterId.iceSlime ||
+        MonsterId.thunderSlime ||
+        MonsterId.metalSlime ||
+        MonsterId.poisonSlime =>
           Icons.water_drop_rounded,
       };
 

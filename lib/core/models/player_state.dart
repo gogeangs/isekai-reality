@@ -22,7 +22,6 @@ class PlayerState {
   factory PlayerState.fromHistory({
     required String name,
     required List<DailyRecord> history,
-    int revealedCells = 0,
   }) {
     var totalExp = 0;
     final restStreaks = TownRules.restStreaks(history);
@@ -52,8 +51,7 @@ class PlayerState {
       totalExp: totalExp,
       level: level,
       stats: stats,
-      titles: TitleRules.earned(history, level.level,
-          revealedCells: revealedCells),
+      titles: TitleRules.earned(history, level.level),
       gauge: DungeonGaugeRules.today(
         steps: today?.steps ?? 0,
         stepGoal: today?.stepGoal,

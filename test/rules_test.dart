@@ -233,11 +233,20 @@ void main() {
           contains(TitleId.lakeFriend));
     });
 
-    test('안개를 300칸 걷으면 동네의 빛', () {
-      expect(TitleRules.earned([], 1, revealedCells: 299),
+    test('필드 몬스터를 30마리 정화하면 동네의 빛 (11-10, 안개 대신)', () {
+      DailyRecord d(int day, int n) => DailyRecord(
+          date: DateTime(2026, 11, day), stepGoal: 3000, fieldMonstersPurified: n);
+      expect(TitleRules.earned([d(1, 5), d(2, 24)], 1),
           isNot(contains(TitleId.townLight)));
-      expect(TitleRules.earned([], 1, revealedCells: 300),
+      expect(TitleRules.earned([d(1, 5), d(2, 25)], 1),
           contains(TitleId.townLight));
+    });
+
+    test('장소 칭호는 도감에서 숨긴다', () {
+      final ids = TitleRules.all.map((t) => t.id);
+      expect(ids, isNot(contains(TitleId.gateKeeper)));
+      expect(ids, isNot(contains(TitleId.lakeFriend)));
+      expect(TitleRules.info(TitleId.gateKeeper).name, '미궁의 문지기');
     });
 
     test('대표 칭호: 고른 것이 우선, 얻지 못했으면 자동', () {

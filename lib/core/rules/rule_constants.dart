@@ -93,6 +93,10 @@ class RuleConstants {
   static const double fieldSpawnChance = 0.7;
   static const double fieldEncounterRadiusM = 40;
 
+  /// 내 둘레 이 거리(미터) 안의 블록에만 몬스터를 둔다 (11-10 전국 확대).
+  /// 정령 원정의 최대 거리(MP 60 = 3km)와 같게.
+  static const double fieldSpawnRadiusM = 3000;
+
   // ---------------------------------------------------------------- 칭호
   static const int firstStepsThreshold = 1000;
   static const int persistentTravelerDays = 7;
@@ -108,6 +112,9 @@ class RuleConstants {
   static const int gateKeeperGates = 5; // 서로 다른 미궁 입구 5곳
   static const int lakeFriendVisits = 5; // 정령의 호수 서로 다른 날 5번
   static const int brightTownCells = 300; // 안개 300칸 (100m 칸, 약 3km²)
+
+  /// 칭호 '동네의 빛': 필드 몬스터 누적 정화 수 (11-10, 안개를 없애며 바꿈)
+  static const int townLightMonsters = 30;
 
   // ---------------------------------------------------------------- 직업 각성
   static const int jobAwakeningDay = 7;

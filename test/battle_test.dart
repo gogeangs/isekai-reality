@@ -11,6 +11,7 @@ import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/dungeon_screen.dart';
 import 'package:isekai_reality/features/map/ansan_area.dart';
+import 'package:isekai_reality/features/map/korea_area.dart';
 
 const area = AnsanArea.area;
 const jungang = GeoPoint(37.31596, 126.83864);
@@ -186,6 +187,47 @@ void main() {
       }
     });
 
+    test('전국: 내 둘레 3km 블록에만, 어디서 봐도 같은 블록엔 같은 몬스터', () {
+      const busan = GeoPoint(35.1580, 129.1600);
+      final a = FieldMonsterRules.spawnsFor(KoreaArea.area, day, center: busan);
+      expect(a.length, greaterThan(10));
+      expect(a.length, lessThan(40));
+      for (final s in a) {
+        expect(s.point.distanceTo(busan), lessThan(3000 + 1500));
+      }
+      // 1km 옆에서 봐도 겹치는 블록의 몬스터는 같다
+      const near = GeoPoint(35.1580, 129.1710);
+      final b = FieldMonsterRules.spawnsFor(KoreaArea.area, day, center: near);
+      final shared = a.map((s) => s.id).toSet().intersection(
+          b.map((s) => s.id).toSet());
+      expect(shared, isNotEmpty);
+      for (final id in shared) {
+        expect(a.firstWhere((s) => s.id == id).point.lat,
+            b.firstWhere((s) => s.id == id).point.lat);
+      }
+    });
+
+    test('전국 제외 구역(학교·병원 둘레)에는 두지 않고 만나지 않는다', () {
+      const center = GeoPoint(35.1580, 129.1600);
+      final all = FieldMonsterRules.spawnsFor(KoreaArea.area, day, center: center);
+      final target = all.first.point;
+      final idx = ExclusionIndex([(target.lat, target.lng, 150)]);
+      expect(idx.contains(target), isTrue);
+      expect(idx.contains(GeoPoint(target.lat + 0.01, target.lng)), isFalse);
+      final safe = FieldMonsterRules.spawnsFor(KoreaArea.area, day,
+          center: center, exclusions: idx);
+      for (final s in safe) {
+        expect(idx.contains(s.point), isFalse);
+      }
+      expect(
+          FieldMonsterRules.encounter(
+              area: KoreaArea.area,
+              spawns: all,
+              fix: LocationFix(point: target, speedMps: 1),
+              exclusions: idx),
+          isNull);
+    });
+
     test('장소 근처에는 그 장소의 몬스터가 나온다', () {
       final spawns = FieldMonsterRules.spawnsFor(area, day);
       final kinds = spawns.map((s) => s.monster).toSet();
@@ -234,8 +276,10 @@ void main() {
   group('기록', () {
     final now = DateTime(2026, 11, 8, 14);
 
-    Future<AppController> start({int steps = 6000, InMemoryRecordStore? store}) async {
+    Future<AppController> start(
+        {int steps = 6000, InMemoryRecordStore? store, ExploreArea? area}) async {
       final c = AppController(
+        area: area ?? KoreaArea.area,
         // 목표 8,000보: 보너스 열쇠 없이 걸음 열쇠만 센다
         store: store ??
             InMemoryRecordStore(
@@ -265,7 +309,8 @@ void main() {
     });
 
     test('미궁 입구에서는 보너스, 열쇠가 없으면 열 수 없다', () async {
-      final c = await start(steps: 2600);
+      // 장소는 11-10 전국 확대 때 뺐지만, 장소가 있는 지역에서는 그대로 동작한다
+      final c = await start(steps: 2600, area: AnsanArea.area);
       await c.handleFix(const LocationFix(point: jungang, speedMps: 0.5));
       expect(c.atGate, isTrue);
       final b = c.startDungeon()!..runToEnd(useSkills: true);
@@ -280,7 +325,7 @@ void main() {
       expect(c.startDungeon(), isNull);
     });
 
-    test('필드 몬스터를 정화하면 경험치, 그 자리 안개, 다시 나오지 않음', () async {
+    test('필드 몬스터를 정화하면 경험치, 다시 나오지 않음', () async {
       final c = await start();
       final spawn = c.todaySpawns.first;
       await c.handleFix(LocationFix(point: spawn.point, speedMps: 1));
@@ -290,7 +335,6 @@ void main() {
       expect(await c.finishFieldBattle(spawn, b), RuleConstants.fieldMonsterExp);
       expect(c.history.last.fieldMonstersPurified, 1);
       expect(c.todaySpawns.map((s) => s.id), isNot(contains(spawn.id)));
-      expect(c.revealedCells, contains(area.cellIdOf(spawn.point)));
       // 같은 자리를 두 번 기록하지 않는다
       expect(await c.finishFieldBattle(spawn, b), 0);
     });

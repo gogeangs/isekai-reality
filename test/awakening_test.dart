@@ -134,7 +134,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 각성 장면: 고른 정령이 함께 있다
-    expect(find.textContaining('아르카의 안개를 걷으러 가자'), findsOneWidget);
+    expect(find.textContaining('아르카의 빛을 되찾으러 가자'), findsOneWidget);
     await tester.tap(find.text('깨어나기'));
     await tester.pump();
     await tester.pump();

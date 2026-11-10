@@ -127,7 +127,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   child: Column(children: [
                     Text(info.purifiedName, style: AppText.title(20)),
                     const SizedBox(height: 6),
-                    Text('경험치 +$_exp · 주변 안개가 걷혔어요',
+                    Text('경험치 +$_exp',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             color: AppColors.text, fontSize: 14)),

@@ -68,7 +68,9 @@ void main() {
 
     Future<AppController> start(FakeLocationSource location,
         {RecordStore? store}) async {
+      // 장소 기록은 장소가 있는 지역(안산)에서 확인한다 (전국 지역에는 장소가 없다)
       final controller = AppController(
+        area: area,
         store: store ?? InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
         health: FakeHealthSource(granted: false),
         location: location,
@@ -77,17 +79,6 @@ void main() {
       await controller.init();
       return controller;
     }
-
-    test('걸으면 안개가 걷히고 저장된다', () async {
-      final store = InMemoryRecordStore(profile: const PlayerProfile(name: '하루'));
-      final controller = await start(FakeLocationSource(), store: store);
-      await controller.handleFix(walk(jungang));
-      await controller.handleFix(walk(const GeoPoint(37.3175, 126.8386)));
-
-      expect(controller.revealedCells.length, 2);
-      expect(controller.revealedRatio, greaterThan(0));
-      expect(await store.loadRevealedCells(area.id), hasLength(2));
-    });
 
     test('처음 간 장소는 새 장소, 같은 날 다시 가도 한 번만 센다', () async {
       final controller = await start(FakeLocationSource());
@@ -101,11 +92,10 @@ void main() {
       expect(controller.lastDiscovery?.id, 'gate_jungang');
     });
 
-    test('차로 지나가면 안개도 장소도 기록하지 않는다', () async {
+    test('차로 지나가면 장소를 기록하지 않는다', () async {
       final controller = await start(FakeLocationSource());
       await controller.handleFix(
           const LocationFix(point: jungang, speedMps: 15));
-      expect(controller.revealedCells, isEmpty);
       expect(controller.history.last.visitedPlaceIds, isEmpty);
     });
 
@@ -115,7 +105,7 @@ void main() {
       location.emit(walk(jungang));
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
-      expect(controller.revealedCells, isNotEmpty);
+      expect(controller.lastFix?.point, jungang);
       controller.dispose();
     });
   });

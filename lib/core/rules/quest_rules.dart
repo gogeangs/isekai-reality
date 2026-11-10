@@ -21,7 +21,8 @@ class QuestProgress {
   double get ratio => target == 0 ? 1 : (current / target).clamp(0, 1).toDouble();
 }
 
-/// 일일 퀘스트 3개: 걸음 · 새 안개 · 필드 몬스터 (2026-11-10, 수면·공부 대신)
+/// 일일 퀘스트 3개: 걸음 · 던전 · 필드 몬스터
+/// (11-10 수면·공부 대신, 같은 날 안개를 없애며 '새 안개 걷기'를 '던전 1번 열기'로)
 class QuestRules {
   QuestRules._();
 
@@ -33,10 +34,10 @@ class QuestRules {
           unit: '보',
         ),
         QuestProgress(
-          title: '새 안개 ${RuleConstants.questNewCells}칸 걷기',
-          current: record.newCellsRevealed,
-          target: RuleConstants.questNewCells,
-          unit: '칸',
+          title: '던전 1번 열기',
+          current: record.dungeonRuns.length,
+          target: 1,
+          unit: '번',
         ),
         QuestProgress(
           title: '필드 몬스터 1마리 정화',

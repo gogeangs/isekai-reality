@@ -15,6 +15,7 @@ import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/map/ansan_area.dart';
+import 'features/map/korea_area.dart';
 import 'features/status/demo_data.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
@@ -30,7 +31,9 @@ class AppController extends ChangeNotifier {
     this.weatherSource,
     this.notifier,
     this.roads,
-    this.area = AnsanArea.area,
+    this.exclusions,
+    this.area = KoreaArea.area,
+    this.fallbackCenter = AnsanArea.center,
     this.stepGoal = RuleConstants.defaultStepGoal,
     DateTime Function()? clock,
     math.Random? random,
@@ -66,21 +69,26 @@ class AppController extends ChangeNotifier {
   /// 휴대폰 알림 (없으면 앱 안에서만 알려 준다)
   final Notifier? notifier;
 
-  /// 큰길·철로 격자. 있으면 필드 몬스터가 차도·철로 위에 나오지 않는다.
+  /// 큰길·철로 격자. 있으면 필드 몬스터가 차도·철로 위에 나오지 않는다 (지금은 안산만).
   RoadMask? roads;
+
+  /// 전국 제외 구역 (학교·병원·묘지 둘레). 그 안에는 몬스터를 두지 않는다.
+  ExclusionIndex? exclusions;
+
+  /// 위치를 아직 모를 때 몬스터를 둘 자리 (예시·테스트용, 실제 앱은 null)
+  final GeoPoint? fallbackCenter;
 
   /// 하루 걸음 목표. 모든 각성자에게 같다 (2026-11-09 결정, 설정에서 바꾸지 않음).
   /// 일일 퀘스트 'N보 걷기', 목표 달성 보너스 열쇠, '끈기의 여행자' 칭호가 이 값을 쓴다.
   final int stepGoal;
 
-  /// 탐험 지역 (안산시 시내)
+  /// 탐험 지역 (11-10부터 전국, 장소는 없음)
   final ExploreArea area;
   final DateTime Function() _clock;
 
   /// 전투의 피해량 흔들림 (테스트에서는 고정 시드)
   final math.Random _random;
 
-  Set<String> _revealedCells = {};
   bool _locationGranted = false;
   LocationFix? _lastFix;
   GamePlace? _lastDiscovery;
@@ -88,9 +96,6 @@ class AppController extends ChangeNotifier {
 
   bool get locationGranted => _locationGranted;
   LocationFix? get lastFix => _lastFix;
-  Set<String> get revealedCells => Set.unmodifiable(_revealedCells);
-  double get revealedRatio =>
-      ExplorationRules.revealedRatio(area, _revealedCells);
 
   /// 처음 방문해서 새로 발견한 장소 (화면에서 알림을 띄우고 [clearDiscovery])
   GamePlace? get lastDiscovery => _lastDiscovery;
@@ -113,10 +118,8 @@ class AppController extends ChangeNotifier {
   PlayerProfile get profile => _profile;
   List<DailyRecord> get history => List.unmodifiable(_history);
 
-  PlayerState get player => PlayerState.fromHistory(
-      name: _profile.name,
-      history: _history,
-      revealedCells: _revealedCells.length);
+  PlayerState get player =>
+      PlayerState.fromHistory(name: _profile.name, history: _history);
 
   /// 대표 칭호 (고른 것이 없으면 자동)
   TitleId? get equippedTitle => TitleRules.equipped(player.titles,
@@ -180,7 +183,6 @@ class AppController extends ChangeNotifier {
 
   Future<void> _startPlaying() async {
     _healthGranted = await health.requestPermission();
-    _revealedCells = await store.loadRevealedCells(area.id);
     _vitals = await store.loadVitals();
     await sync();
     await _startExploring();
@@ -291,8 +293,7 @@ class AppController extends ChangeNotifier {
         LevelRules.fromTotalExp(total).level,
       ].join(','));
     }
-    b.writeln('# 걷은 안개 ${_revealedCells.length}칸, '
-        '칭호 ${p.titles.length}개, '
+    b.writeln('# 칭호 ${p.titles.length}개, '
         '도감 ${purifiedEver.length}종');
     return b.toString();
   }
@@ -304,7 +305,6 @@ class AppController extends ChangeNotifier {
     _locationSub = null;
     await store.clearAll();
     _history = [];
-    _revealedCells = {};
     _lastFix = null;
     _lastDiscovery = null;
     _vitals = const Vitals();
@@ -330,29 +330,15 @@ class AppController extends ChangeNotifier {
     _locationSub = source.fixes().listen(handleFix);
   }
 
-  /// 위치가 바뀔 때: 안개를 걷고, 가까운 장소를 방문으로 기록한다
+  /// 위치가 바뀔 때: 가까운 장소를 방문으로 기록한다 (안개는 11-10에 없앴다)
   Future<void> handleFix(LocationFix fix) async {
     _lastFix = fix;
     if (ExplorationRules.countsAsExploring(fix)) {
-      final cell = area.cellIdOf(fix.point);
-      if (cell != null && _revealedCells.add(cell)) {
-        await store.saveRevealedCells(area.id, _revealedCells);
-        await _countNewCells(1);
-      }
       for (final place in ExplorationRules.placesInReach(area, fix.point)) {
         await _visitPlace(place);
       }
     }
     notifyListeners();
-  }
-
-  /// 오늘 처음 걷은 안개 칸을 센다 (일일 퀘스트)
-  Future<void> _countNewCells(int n) async {
-    if (n <= 0) return;
-    final today = await _todayRecord();
-    await store.upsert(_withQuests(
-        today.copyWith(newCellsRevealed: today.newCellsRevealed + n)));
-    _history = await store.loadHistory();
   }
 
   void clearDiscovery() {
@@ -468,7 +454,10 @@ class AppController extends ChangeNotifier {
     final done = {...?today?.purifiedSpawnIds};
     final away = expedition;
     if (away != null && !away.finished) done.add(away.spawnId);
-    return FieldMonsterRules.spawnsFor(area, _clock(), roads: roads)
+    final center = _lastFix?.point ?? fallbackCenter;
+    if (center == null) return const [];
+    return FieldMonsterRules.spawnsFor(area, _clock(),
+            center: center, roads: roads, exclusions: exclusions)
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -478,7 +467,7 @@ class AppController extends ChangeNotifier {
     final fix = _lastFix;
     if (fix == null) return null;
     return FieldMonsterRules.encounter(
-        area: area, spawns: todaySpawns, fix: fix);
+        area: area, spawns: todaySpawns, fix: fix, exclusions: exclusions);
   }
 
   Battle? startFieldBattle(FieldSpawn spawn) {
@@ -503,7 +492,7 @@ class AppController extends ChangeNotifier {
   }
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
-  /// 하루 5마리까지만 경험치·결정을 준다. 정화한 자리의 안개도 걷힌다.
+  /// 하루 5마리까지만 경험치·결정을 준다.
   Future<int> _recordFieldPurify(
       String spawnId, MonsterId monster, GeoPoint point) async {
     final today = await _todayRecord();
@@ -512,17 +501,10 @@ class AppController extends ChangeNotifier {
         today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
             ? RuleConstants.fieldMonsterExp
             : 0;
-    var newCells = 0;
-    final cell = area.cellIdOf(point);
-    if (cell != null && _revealedCells.add(cell)) {
-      newCells = 1;
-      await store.saveRevealedCells(area.id, _revealedCells);
-    }
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
-      newCellsRevealed: today.newCellsRevealed + newCells,
     ));
     return exp;
   }
@@ -530,7 +512,6 @@ class AppController extends ChangeNotifier {
   // ───────────────────────────────────────────── 여관 · 잡화상 (앱 안 시설)
 
   /// 잡화상에서 물건을 산다. 사지 못하면 그 이유를 돌려준다.
-  /// 마법 돋보기는 사는 즉시 지금 위치 주변 안개를 걷는다.
   Future<PurchaseCheck> buy(ShopItem item) async {
     final today = await _todayRecord();
     final fix = _lastFix;
@@ -539,16 +520,8 @@ class AppController extends ChangeNotifier {
         hasLocation: fix != null, level: player.level.level);
     if (check != PurchaseCheck.ok) return check;
 
-    var newCells = 0;
-    if (item == ShopItem.magicLens && fix != null) {
-      for (final cell in _cellsAround(fix.point, RuleConstants.lensRadiusM)) {
-        if (_revealedCells.add(cell)) newCells++;
-      }
-      if (newCells > 0) await store.saveRevealedCells(area.id, _revealedCells);
-    }
     await _save(today.copyWith(
       shopPurchases: [...today.shopPurchases, item.name],
-      newCellsRevealed: today.newCellsRevealed + newCells,
     ));
     return PurchaseCheck.ok;
   }
@@ -579,23 +552,6 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     await _save(today.copyWith(itemsUsed: [...today.itemsUsed, item.name]));
     return UseCheck.ok;
-  }
-
-  /// [center] 에서 [radiusM] 안에 걸치는 지역 칸 id
-  Set<String> _cellsAround(GeoPoint center, double radiusM) {
-    const step = 25.0;
-    final cells = <String>{};
-    const latPerM = 1 / 111320.0;
-    final lngPerM = 1 / (111320.0 * math.cos(center.lat * math.pi / 180));
-    for (var dy = -radiusM; dy <= radiusM; dy += step) {
-      for (var dx = -radiusM; dx <= radiusM; dx += step) {
-        if (dx * dx + dy * dy > radiusM * radiusM) continue;
-        final cell = area.cellIdOf(GeoPoint(
-            center.lat + dy * latPerM, center.lng + dx * lngPerM));
-        if (cell != null) cells.add(cell);
-      }
-    }
-    return cells;
   }
 
   /// 게임 시계 (테스트에서는 고정 시각)
@@ -772,16 +728,14 @@ class AppController extends ChangeNotifier {
   ExpeditionPlan planExpedition(FieldSpawn spawn) {
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
-    final cell = area.cellIdOf(spawn.point);
     final dist = from.distanceTo(spawn.point);
     final cost = VitalRules.expeditionCost(dist);
     final oneWay = VitalRules.expeditionOneWay(dist);
     ExpeditionCheck check;
     if (expedition != null && !expedition!.finished) {
       check = ExpeditionCheck.busy;
-    } else if (cell == null || !_revealedCells.contains(cell)) {
-      check = ExpeditionCheck.inFog;
     } else if (mp < cost) {
+      // 안개 대신 MP로만 거리를 막는다 (11-10, 최대 MP 60 = 약 3km)
       check = ExpeditionCheck.notEnoughMp;
     } else {
       check = ExpeditionCheck.ok;
@@ -915,7 +869,7 @@ class AppController extends ChangeNotifier {
 }
 
 /// 정령 원정을 보낼 수 있는지
-enum ExpeditionCheck { ok, needsLocation, inFog, notEnoughMp, busy }
+enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
 
 class ExpeditionPlan {
   const ExpeditionPlan(

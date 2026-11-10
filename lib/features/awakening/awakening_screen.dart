@@ -63,7 +63,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       [
         '여명의 탑 아르카의 불꽃이 깨져 버렸어.',
         '그래서 우리 세계가 네 세계 위에 겹쳐 버렸지.',
-        '안개를 걷어 줘. 방법은 간단해, 걷는 거야!',
+        '잿빛 몬스터를 정화해 줘. 방법은 간단해, 걷는 거야!',
         '그리고… 우리 중 누구와 함께 갈래?',
       ],
       speaker: '정령들',
@@ -343,7 +343,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
             ? 'assets/images/intro_08_awaken_female.jpg'
             : 'assets/images/intro_08_awaken_male.jpg',
         speaker: _spiritName,
-        line: '준비됐어, ${_nameController.text.trim()}? 아르카의 안개를 걷으러 가자!',
+        line: '준비됐어, ${_nameController.text.trim()}? 아르카의 빛을 되찾으러 가자!',
         lineKey: 'finale',
         onNext: _awaken,
         // 어깨 옆 빈자리에 고른 정령
@@ -496,7 +496,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                 value: _agreeLocation,
                 onChanged: (v) => setState(() => _agreeLocation = v),
                 label: '필수',
-                text: '앱을 보고 있는 동안 위치를 써서 동네 안개를 걷고 장소·몬스터를 찾습니다. '
+                text: '앱을 보고 있는 동안 위치를 써서 주변 몬스터를 찾습니다. '
                     '좌표는 저장하지 않습니다.',
                 doc: LegalDoc.locationTerms,
               ),

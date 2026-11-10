@@ -30,7 +30,16 @@ class TitleInfo {
 class TitleRules {
   TitleRules._();
 
-  static const List<TitleInfo> all = [
+  /// 도감에 보이는 칭호. 장소 칭호(미궁의 문지기·호수의 친구)는
+  /// 전국 확대로 장소를 빼면서 숨겼다 (11-10, 장소를 다시 넣을 때 되살림).
+  static List<TitleInfo> get all => [
+        for (final t in _all)
+          if (!hidden.contains(t.id)) t,
+      ];
+
+  static const Set<TitleId> hidden = {TitleId.gateKeeper, TitleId.lakeFriend};
+
+  static const List<TitleInfo> _all = [
     TitleInfo(TitleId.firstSteps, '첫 걸음', '처음으로 걸어 보기'),
     TitleInfo(TitleId.persistentTraveler, '끈기의 여행자', '일주일 내내 목표 달성'),
     TitleInfo(TitleId.morningSpiritFriend, '아침 정령의 친구', '여관에서 일주일 내내 쉬기'),
@@ -41,7 +50,7 @@ class TitleRules {
     TitleInfo(TitleId.lanternKeeper, '등불지기', 'Lv.10 달성'),
     TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '미궁 입구 다섯 곳 가 보기'),
     TitleInfo(TitleId.lakeFriend, '호수의 친구', '정령의 물가에 다섯 번 놀러 가기'),
-    TitleInfo(TitleId.townLight, '동네의 빛', '안개 300칸 걷기'),
+    TitleInfo(TitleId.townLight, '동네의 빛', '필드 몬스터 30마리 정화하기'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -68,15 +77,10 @@ class TitleRules {
     return null;
   }
 
-  static TitleInfo info(TitleId id) => all.firstWhere((t) => t.id == id);
+  static TitleInfo info(TitleId id) => _all.firstWhere((t) => t.id == id);
 
   /// 날짜순으로 정렬된 [history] 와 현재 [level] 로 얻은 칭호를 계산한다
-  /// [revealedCells] 안개를 걷은 칸 수 (탐험 기록은 하루 기록 밖에 있다)
-  static Set<TitleId> earned(
-    List<DailyRecord> history,
-    int level, {
-    int revealedCells = 0,
-  }) {
+  static Set<TitleId> earned(List<DailyRecord> history, int level) {
     final result = <TitleId>{};
 
     final totalSteps = history.fold<int>(0, (s, d) => s + d.steps);
@@ -121,7 +125,9 @@ class TitleRules {
     if (lakeDays >= RuleConstants.lakeFriendVisits) {
       result.add(TitleId.lakeFriend);
     }
-    if (revealedCells >= RuleConstants.brightTownCells) {
+    final monsters =
+        history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);
+    if (monsters >= RuleConstants.townLightMonsters) {
       result.add(TitleId.townLight);
     }
     return result;

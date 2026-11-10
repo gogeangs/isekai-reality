@@ -15,7 +15,6 @@ import '../bulssi/spirit_art.dart';
 String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.ok => '',
       ExpeditionCheck.needsLocation => '위치를 켜야 보낼 수 있어요',
-      ExpeditionCheck.inFog => '안개 속이라 갈 수 없어요. 먼저 걸어서 길을 밝혀 주세요',
       ExpeditionCheck.notEnoughMp => 'MP가 모자라요',
       ExpeditionCheck.busy => '정령이 이미 원정 중이에요',
     };

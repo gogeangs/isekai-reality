@@ -9,6 +9,7 @@ import '../../theme/ornaments.dart';
 import '../smithy/equipment_view.dart';
 import '../../core/models/pet_state.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
+import '../lens/lens_screen.dart' show openLens;
 import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
 import 'bag_sheet.dart';
@@ -48,7 +49,10 @@ class ItemEntry extends BagEntry {
   /// 물약은 소비, 나침반·향은 기타
   @override
   BagFilter get kind => switch (item) {
-        ShopItem.expeditionCompass || ShopItem.purifyIncense => BagFilter.other,
+        ShopItem.expeditionCompass ||
+        ShopItem.purifyIncense ||
+        ShopItem.raceLens =>
+          BagFilter.other,
         _ => BagFilter.consumable,
       };
 }
@@ -486,6 +490,11 @@ class _EntrySheet extends StatelessWidget {
           height: 44,
           onPressed: check == UseCheck.ok
               ? () async {
+                  if (item == ShopItem.raceLens) {
+                    final nav = Navigator.of(context)..pop();
+                    await openLens(nav, c);
+                    return;
+                  }
                   await c.useItem(item);
                   if (context.mounted) Navigator.of(context).pop();
                 }

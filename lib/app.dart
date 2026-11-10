@@ -430,6 +430,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               onOpenPets: controller.farewellDone
                   ? () => push(PetScreen(controller: controller))
                   : null,
+              racesSeen: controller.racesSeen,
+              raceCounts: {
+                for (final e in controller.lens.counts.entries)
+                  if (LensRules.parse(e.key) case final r?) r: e.value,
+              },
             ),
           ),
         ];

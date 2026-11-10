@@ -18,6 +18,9 @@ import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/lens/demo_filter_engine.dart';
+import 'package:isekai_reality/features/lens/lens_output.dart';
+import 'package:isekai_reality/features/lens/lens_screen.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
@@ -648,5 +651,55 @@ void main() {
     await tester.tap(find.byType(BagSlot).first);
     await tester.pumpAndSettle();
     await _shot(tester, '46_가방_펫_알');
+  });
+
+  testWidgets('화면 미리보기: 마법 돋보기 감정', (tester) async {
+    _phone(tester);
+    LensScreen.engineFactory = DemoFilterEngine.new;
+    var saved = 0;
+    LensOutput.saver = (_) async {
+      saved++;
+      return null;
+    };
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+    expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => LensScreen(controller: c)));
+    await tester.pumpAndSettle();
+    await _shot(tester, '47_돋보기_조준');
+    await tester.tap(find.byKey(const Key('appraise')));
+    await tester.pump(const Duration(milliseconds: 1100));
+    await _shot(tester, '48_돋보기_감정중');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('감정 결과'), findsOneWidget);
+    await _shot(tester, '49_돋보기_감정결과');
+    expect(c.bagCount(ShopItem.raceLens), 0);
+    expect(c.racesSeen, isNotEmpty);
+    await tester.tap(find.byKey(const Key('lensToFilter')));
+    await tester.pumpAndSettle();
+    await _shot(tester, '50_돋보기_종족필터');
+    // 사진 만들기(그림 그리기·PNG)는 실제 시간이 필요하다
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('lensShutter')));
+      await Future<void>.delayed(const Duration(seconds: 2));
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('lensPhoto')), findsOneWidget);
+    await _shot(tester, '51_돋보기_사진틀');
+    await tester.tap(find.byKey(const Key('lensSave')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(saved, 1);
+    await tester.tap(find.byTooltip('돌아가기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('종족'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '52_도감_종족');
   });
 }

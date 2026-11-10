@@ -18,7 +18,15 @@ class CodexScreen extends StatefulWidget {
     this.modHunts = const {},
     this.petsSeen = const {},
     this.onOpenPets,
+    this.racesSeen = const {},
+    this.raceCounts = const {},
   });
+
+  /// 마법 돋보기로 감정한 종족 (11-11 #60 종족 탭)
+  final Set<Race> racesSeen;
+
+  /// 종족별 감정 횟수
+  final Map<Race, int> raceCounts;
 
   /// 한 번이라도 함께한 펫 종류 (11-11 #38 펫 탭)
   final Set<PetSpecies> petsSeen;
@@ -108,12 +116,14 @@ class _CodexScreenState extends State<CodexScreen> {
           const OrnateTopBar(title: '도감'),
           const SizedBox(height: 6),
           BulssiLine(
-              line: _tab == 0
-                  ? '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'
-                  : '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'),
+              line: switch (_tab) {
+                0 => '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!',
+                1 => '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!',
+                _ => '마법 돋보기로 감정한 종족이 여기 남아. 별의 아이는 아주 드물대!',
+              }),
           const SizedBox(height: 8),
           Row(children: [
-            for (final (i, label) in const [(0, '몬스터'), (1, '펫')]) ...[
+            for (final (i, label) in const [(0, '몬스터'), (1, '펫'), (2, '종족')]) ...[
               Expanded(
                 child: ChoiceChip(
                   label: SizedBox(
@@ -129,11 +139,15 @@ class _CodexScreenState extends State<CodexScreen> {
                   showCheckmark: false,
                 ),
               ),
-              if (i == 0) const SizedBox(width: 8),
+              if (i < 2) const SizedBox(width: 8),
             ],
           ]),
           const SizedBox(height: 8),
-          if (_tab == 1)
+          if (_tab == 2)
+            Expanded(
+                child: _RaceCodex(
+                    seen: widget.racesSeen, counts: widget.raceCounts))
+          else if (_tab == 1)
             Expanded(
                 child: _PetCodex(
                     seen: widget.petsSeen, onOpenPets: widget.onOpenPets))
@@ -434,6 +448,92 @@ class _PetCodex extends StatelessWidget {
           const SizedBox(height: 10),
           FrameButton(label: '내 펫 보기', onPressed: onOpenPets),
         ],
+      ],
+    );
+  }
+}
+
+/// 종족 도감 (11-11 #60): 마법 돋보기로 처음 감정한 종족이 남는다
+class _RaceCodex extends StatelessWidget {
+  const _RaceCodex({required this.seen, required this.counts});
+
+  final Set<Race> seen;
+  final Map<Race, int> counts;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('종족 도감 ${seen.length} / ${Race.values.length}',
+                  style: AppText.title(18)),
+              const SizedBox(height: 4),
+              const KText(
+                  '가방의 마법 돋보기로 친구나 가족을 비춰 감정해 봐요. '
+                  '처음 감정한 종족은 경험치 +${LensRules.firstExp}.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const SizedBox(height: 10),
+              for (final info in LensRules.all)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: seen.contains(info.id)
+                            ? Color(info.color).withValues(alpha: 0.25)
+                            : const Color(0xFF1B1E4C),
+                        border: Border.all(
+                            color: seen.contains(info.id)
+                                ? Color(info.color)
+                                : AppColors.gold.withValues(alpha: 0.3)),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(info.asset,
+                            fit: BoxFit.cover,
+                            color: seen.contains(info.id)
+                                ? null
+                                : const Color(0x33FFFFFF),
+                            colorBlendMode: BlendMode.modulate,
+                            errorBuilder: (_, __, ___) => Icon(
+                                seen.contains(info.id)
+                                    ? Icons.auto_awesome_rounded
+                                    : Icons.help_outline_rounded,
+                                color: seen.contains(info.id)
+                                    ? Color(info.color)
+                                    : AppColors.textMuted)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(seen.contains(info.id) ? info.name : '???',
+                              style: AppText.title(16,
+                                  color: seen.contains(info.id)
+                                      ? AppColors.text
+                                      : AppColors.textMuted)),
+                          Text(
+                              seen.contains(info.id)
+                                  ? '${info.line} · ${counts[info.id] ?? 0}번 감정'
+                                  : '아직 감정하지 못한 종족',
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 11.5)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

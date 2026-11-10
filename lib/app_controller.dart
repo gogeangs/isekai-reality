@@ -12,6 +12,7 @@ import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/gather_state.dart';
+import 'core/models/lens_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
@@ -232,6 +233,8 @@ class AppController extends ChangeNotifier {
     _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
     final gather = await store.loadJson(_gatherKey);
     _gather = gather == null ? const GatherState() : GatherState.fromJson(gather);
+    final lens = await store.loadJson(_lensKey);
+    _lens = lens == null ? const LensState() : LensState.fromJson(lens);
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -2067,6 +2070,70 @@ class AppController extends ChangeNotifier {
   /// 걸을 때 알림 켜고 끄기 (설정)
   Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));
 
+  // ───────────────────────────────────────────── 마법 돋보기 「감정」 (11-11 #60)
+
+  static const _lensKey = 'lens';
+  LensState _lens = const LensState();
+
+  LensState get lens => _lens;
+
+  /// 도감 「종족」에 남은 종족
+  Set<Race> get racesSeen => {
+        for (final n in _lens.seen)
+          if (LensRules.parse(n) case final r?) r,
+      };
+
+  /// 오늘 보상을 더 받을 수 있는 감정 횟수
+  int get lensRewardsLeft {
+    final day = DailyRecord.dayKeyOf(_clock());
+    final used = _lens.day == day ? _lens.rewardedToday : 0;
+    return math.max(0, LensRules.rewardedPerDay - used);
+  }
+
+  /// 감정을 끝낸다: 마법 돋보기 1개를 쓰고 보상을 준다. 돋보기가 없으면 null.
+  /// 처음 본 종족은 도감에 남고 경험치 +20, 하루 3번까지 30% 재료·5% 레시피 쪽지.
+  Future<AppraiseResult?> appraise(List<Race> races) async {
+    if (races.isEmpty || bagCount(ShopItem.raceLens) <= 0) return null;
+    final today = await _todayRecord();
+    final firsts = <Race>[
+      for (final r in {...races})
+        if (!_lens.seen.contains(r.name)) r,
+    ];
+    final exp = firsts.length * LensRules.firstExp;
+    final rewarded = lensRewardsLeft > 0;
+    MaterialId? mat;
+    var note = false;
+    if (rewarded) {
+      if (_random.nextDouble() < LensRules.materialChance) {
+        mat = LensRules.info(races[_random.nextInt(races.length)]).material;
+      }
+      note = _random.nextDouble() < LensRules.noteChance;
+    }
+    await _save(today.copyWith(
+      itemsUsed: [...today.itemsUsed, ShopItem.raceLens.name],
+      gains: exp > 0
+          ? DailyRecord.addCounts(today.gains, {Wallet.exp: exp})
+          : today.gains,
+    ));
+    final day = today.dayKey;
+    _lens = _lens.copyWith(
+      seen: [..._lens.seen, for (final r in firsts) r.name],
+      counts: {
+        ..._lens.counts,
+        for (final r in races) r.name: (_lens.counts[r.name] ?? 0) + 1,
+      },
+      day: day,
+      rewardedToday:
+          (_lens.day == day ? _lens.rewardedToday : 0) + (rewarded ? 1 : 0),
+    );
+    await store.saveJson(_lensKey, _lens.toJson());
+    if (mat != null) await _grant(0, 0, {mat: 1});
+    if (note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    notifyListeners();
+    return AppraiseResult(
+        races: races, firsts: firsts, exp: exp, material: mat, note: note);
+  }
+
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
 
   static const _armoryKey = 'armory';
@@ -3006,4 +3073,23 @@ class ExpeditionPlan {
 
   /// 한쪽 길 시간 (돌아오기까지는 두 배)
   final Duration oneWay;
+}
+
+/// 감정 결과
+class AppraiseResult {
+  const AppraiseResult({
+    required this.races,
+    this.firsts = const [],
+    this.exp = 0,
+    this.material,
+    this.note = false,
+  });
+
+  final List<Race> races;
+
+  /// 처음 감정한 종족 (도감에 새로 남음)
+  final List<Race> firsts;
+  final int exp;
+  final MaterialId? material;
+  final bool note;
 }

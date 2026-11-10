@@ -35,6 +35,8 @@ class ShopScreen extends StatelessWidget {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
         ShopItem.bulssiPotion => '가방에 넣었어요!',
         ShopItem.magicLens => '마법 돋보기는 더 이상 팔지 않아요.',
+        ShopItem.raceLens =>
+          '마법 돋보기를 가방에 넣었어요. 가방에서 「감정하기」로 친구의 종족을 감정해 봐요!',
         ShopItem.expeditionCompass =>
           '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
         ShopItem.purifyIncense =>

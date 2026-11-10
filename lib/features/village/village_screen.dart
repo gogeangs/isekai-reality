@@ -155,7 +155,10 @@ class _VillageArt extends StatelessWidget {
                     onTap: () => onTap(f),
                     child: Align(
                       alignment: Alignment.bottomCenter,
-                      child: _NameTag(name: f.name, open: f.open),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: _NameTag(name: f.name, open: f.open),
+                      ),
                     ),
                   ),
                 ),

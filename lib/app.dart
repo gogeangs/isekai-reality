@@ -16,6 +16,7 @@ import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
+import 'features/pets/farewell_screen.dart';
 import 'features/smithy/equip_picker.dart';
 import 'features/status/stat_screen.dart';
 import 'features/status/status_screen.dart';
@@ -48,8 +49,10 @@ class IsekaiRealityApp extends StatelessWidget {
         listenable: controller,
         builder: (context, _) => BulssiScope(
           mood: controller.bulssiMood,
-          spiritName: controller.profile.spiritName,
+          spiritName: controller.companionName,
           kind: controller.profile.spiritKind,
+          petSpecies: controller.companionPet?.species,
+          petAdult: controller.companionPet?.adult ?? false,
           child: child ?? const SizedBox(),
         ),
       ),
@@ -146,10 +149,83 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         c.clearJustRested();
       } else {
         // 원정 결과 금테 카드 (11-11 #51)
-        await showExpeditionResult(context, ex!, c.profile.spiritName);
+        await showExpeditionResult(context, ex!, c.companionName);
         await c.acknowledgeExpedition();
       }
       _noticeShowing = false;
+    });
+  }
+
+  bool _farewellShowing = false;
+
+  /// Lv.11: 정령의 이별과 첫 펫 (11-11 #37). 레벨업·알림이 끝난 뒤에.
+  void _maybeShowFarewell() {
+    final c = widget.controller;
+    if (!c.farewellPending ||
+        _farewellShowing ||
+        _levelUpShowing ||
+        _noticeShowing ||
+        c.pendingLevelUp != null) {
+      return;
+    }
+    _farewellShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => FarewellScreen(controller: c)));
+      _farewellShowing = false;
+    });
+  }
+
+  bool _petNewsShowing = false;
+
+  /// 이번에 앱을 켠 동안 부화 창을 이미 띄운 알 (닫으면 가방에서 다시 연다)
+  final _promptedEggs = <String>{};
+
+  /// 알을 주웠을 때 · 정령 편지가 왔을 때 · 품은 알이 다 됐을 때
+  void _maybeShowPetNews() {
+    final c = widget.controller;
+    if (_petNewsShowing || _levelUpShowing || _farewellShowing) return;
+    final letter = c.pendingLetter;
+    var ready = c.farewellDone ? c.readyEgg : null;
+    if (ready != null && _promptedEggs.contains(ready.id)) ready = null;
+    final egg = c.takeNewEgg();
+    if (egg) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(c.farewellDone
+              ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
+              : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.'),
+        ));
+      });
+    }
+    if (letter == null && ready == null) return;
+    _petNewsShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (letter != null) {
+        c.takeNewLetter();
+        await showDialog<void>(
+          context: context,
+          builder: (d) => AlertDialog(
+            backgroundColor: AppColors.night,
+            title: Text('${c.firstSpiritName}의 편지 · ${letter.title}',
+                style: AppText.title(18)),
+            content: KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}',
+                style: const TextStyle(color: AppColors.text, height: 1.45)),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(d), child: const Text('고마워')),
+            ],
+          ),
+        );
+      } else if (ready != null) {
+        _promptedEggs.add(ready.id);
+        await showHatchSheet(context, c, ready);
+      }
+      _petNewsShowing = false;
     });
   }
 
@@ -238,7 +314,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           );
         }
         _maybeShowLevelUp();
+        _maybeShowFarewell();
         _maybeShowNotices();
+        _maybeShowPetNews();
         void push(Widget page) => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => page));
         // 11-10 #25: 하단 메뉴 상태 · 지도 · 마을 · 가방 · 도감

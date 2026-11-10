@@ -25,6 +25,7 @@ int sellPrice(BagEntry e) => switch (e) {
       MaterialEntry(:final id) => BagRules.materialPrice(id),
       ItemEntry(:final item) => BagRules.itemPrice(item),
       EquipEntry(:final item) => BagRules.equipPrice(item),
+      EggEntry() => 0,
     };
 
 class SellSheet extends StatelessWidget {
@@ -38,6 +39,7 @@ class SellSheet extends StatelessWidget {
       MaterialEntry(:final id) => await c.sellMaterial(id, n),
       ItemEntry(:final item) => await c.sellItem(item, n),
       EquipEntry(:final item) => await c.sellEquip(item.uid),
+      EggEntry() => false,
     };
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -72,7 +74,10 @@ class SellSheet extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        final entries = bagEntries(controller);
+        final entries = [
+          for (final e in bagEntries(controller))
+            if (e is! EggEntry) e,
+        ];
         return SafeArea(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: h * 0.8),
@@ -115,7 +120,7 @@ class SellSheet extends StatelessWidget {
                                   children: [
                                     switch (e) {
                                       EquipEntry(:final item) => EquipName(item),
-                                      _ => Text(bagEntryName(e),
+                                      _ => Text(bagEntryName(e, controller),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: AppText.title(15,
@@ -168,6 +173,7 @@ class SellSheet extends StatelessWidget {
                                       ),
                                     ],
                                   ],
+                                EggEntry() => const <Widget>[],
                               },
                             ]),
                           ),

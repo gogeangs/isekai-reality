@@ -7,6 +7,9 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../smithy/equipment_view.dart';
+import '../../core/models/pet_state.dart';
+import '../pets/farewell_screen.dart';
+import '../pets/pet_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
 
@@ -49,6 +52,14 @@ class ItemEntry extends BagEntry {
       };
 }
 
+/// 펫 알 (정령이 떠나기 전에는 「신비한 알」)
+class EggEntry extends BagEntry {
+  const EggEntry(this.egg);
+  final PetEgg egg;
+  @override
+  BagFilter get kind => BagFilter.other;
+}
+
 class EquipEntry extends BagEntry {
   const EquipEntry(this.item);
   final EquipItem item;
@@ -65,6 +76,7 @@ List<BagEntry> bagEntries(AppController c) {
   return [
     for (final e in c.armory.items)
       if (!c.armory.isWorn(e)) EquipEntry(e),
+    for (final e in c.pets.eggs) EggEntry(e),
     for (final i in TownRules.bagItems)
       for (final n in split(c.bagCount(i))) ItemEntry(i, n),
     for (final m in MaterialId.values)
@@ -280,6 +292,9 @@ class BagSlot extends StatelessWidget {
                         const GameIcon('bag', size: 36)),
                 EquipEntry(:final item) =>
                   EquipIcon(base: item.base, grade: item.grade, size: 40),
+                EggEntry(:final egg) => EggArt(
+                    size: 40,
+                    glowing: controller != null && controller!.eggReady(egg)),
               },
             ),
           ),
@@ -293,6 +308,13 @@ class BagSlot extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       shadows: [Shadow(blurRadius: 3)])),
+            ),
+          if (e case EggEntry(:final egg) when egg.incubatedAt != null)
+            const Positioned(
+              right: 3,
+              bottom: 2,
+              child: Icon(Icons.hourglass_bottom_rounded,
+                  size: 14, color: AppColors.goldBright),
             ),
           if (e case EquipEntry(:final item) when item.enhance > 0)
             Positioned(
@@ -311,10 +333,12 @@ class BagSlot extends StatelessWidget {
   }
 }
 
-String bagEntryName(BagEntry e) => switch (e) {
+String bagEntryName(BagEntry e, [AppController? c]) => switch (e) {
       MaterialEntry(:final id) => Materials.info(id).name,
-      ItemEntry(:final item) => TownRules.info(item).name,
+      ItemEntry(:final item) =>
+        c == null ? TownRules.info(item).name : c.itemName(item),
       EquipEntry(:final item) => item.name,
+      EggEntry() => c != null && c.farewellDone ? '펫 알' : '신비한 알',
     };
 
 /// 칸을 누르면: 설명, 쓰기·입기, 버리기
@@ -326,7 +350,9 @@ Future<void> showBagEntry(BuildContext context, AppController c, BagEntry e) =>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheet) => _EntrySheet(controller: c, entry: e),
+      builder: (sheet) => e is EggEntry
+          ? EggSheet(controller: c, egg: e.egg)
+          : _EntrySheet(controller: c, entry: e),
     );
 
 class _EntrySheet extends StatelessWidget {
@@ -336,7 +362,7 @@ class _EntrySheet extends StatelessWidget {
   final BagEntry entry;
 
   Future<void> _discard(BuildContext context, int n) async {
-    final name = bagEntryName(entry);
+    final name = bagEntryName(entry, controller);
     final what = entry is EquipEntry ? name : '$name $n개';
     final ok = await showDialog<bool>(
       context: context,
@@ -362,6 +388,8 @@ class _EntrySheet extends StatelessWidget {
         await c.discardItem(item, n);
       case EquipEntry(:final item):
         await c.discardEquip(item.uid);
+      case EggEntry():
+        break;
     }
     if (context.mounted) Navigator.of(context).pop();
   }
@@ -372,15 +400,16 @@ class _EntrySheet extends StatelessWidget {
     final e = entry;
     final count = switch (e) {
       MaterialEntry(:final count) || ItemEntry(:final count) => count,
-      EquipEntry() => 1,
+      EquipEntry() || EggEntry() => 1,
     };
     final (String desc, String sell) = switch (e) {
       MaterialEntry(:final id) => (
           Materials.info(id).description,
           '잡화상에서 1개 금화 ${BagRules.materialPrice(id)}'
         ),
+      EggEntry() => ('', ''),
       ItemEntry(:final item) => (
-          TownRules.info(item).description,
+          c.itemDescription(item),
           '잡화상에서 1개 금화 ${BagRules.itemPrice(item)}'
         ),
       EquipEntry(:final item) => (
@@ -393,7 +422,9 @@ class _EntrySheet extends StatelessWidget {
       case ItemEntry(:final item):
         final check = c.canUse(item);
         action = GoldButton(
-          label: check == UseCheck.ok ? useLabel(item) : useReason(check),
+          label: check == UseCheck.ok
+              ? useLabel(item, petSnack: c.farewellDone)
+              : useReason(check),
           height: 44,
           onPressed: check == UseCheck.ok
               ? () async {
@@ -411,7 +442,7 @@ class _EntrySheet extends StatelessWidget {
             if (context.mounted) Navigator.of(context).pop();
           },
         );
-      case MaterialEntry():
+      case MaterialEntry() || EggEntry():
         action = null;
     }
     return SafeArea(
@@ -433,7 +464,7 @@ class _EntrySheet extends StatelessWidget {
                   children: [
                     switch (e) {
                       EquipEntry(:final item) => EquipName(item),
-                      _ => Text(bagEntryName(e),
+                      _ => Text(bagEntryName(e, c),
                           style: AppText.title(18, color: AppColors.text)),
                     },
                     if (e is! EquipEntry)
@@ -474,6 +505,121 @@ class _EntrySheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 알 칸을 누르면: 정령이 떠나기 전에는 설명만, 떠난 뒤에는 품기·바로 부화·깨우기
+class EggSheet extends StatelessWidget {
+  const EggSheet({super.key, required this.controller, required this.egg});
+
+  final AppController controller;
+  final PetEgg egg;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    return ListenableBuilder(
+      listenable: c,
+      builder: (context, _) {
+        // 최신 상태의 알 (품기·부화 뒤)
+        PetEgg? cur;
+        for (final e in c.pets.eggs) {
+          if (e.id == egg.id) cur = e;
+        }
+        final e = cur;
+        final children = <Widget>[];
+        if (e == null) {
+          children.add(const KText('알이 깨어났어요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.text)));
+        } else if (!c.farewellDone) {
+          children.add(const KText(
+              '따뜻한 기운이 느껴지는 알이에요. 정령이 무언가 알고 있는 것 같아요.',
+              style: TextStyle(color: AppColors.text, fontSize: 14)));
+        } else if (e.incubatedAt == null) {
+          final busy = c.pets.eggs.any((x) => x.incubatedAt != null);
+          children.addAll([
+            KText(
+                '품으면 ${PetRules.hatchTime.inHours}시간 뒤 깨어나요. 알은 한 번에 하나씩 품을 수 있어요.',
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
+            const SizedBox(height: 12),
+            GoldButton(
+              label: busy ? '다른 알을 품는 중이에요' : '품기',
+              height: 46,
+              onPressed: busy ? null : () => c.incubateEgg(e.id),
+            ),
+          ]);
+        } else if (c.eggReady(e)) {
+          children.addAll([
+            const KText('알이 깨어나려 해요!',
+                style: TextStyle(color: AppColors.text, fontSize: 14)),
+            const SizedBox(height: 12),
+            GoldButton(
+              label: '깨우기',
+              height: 46,
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await showHatchSheet(context, c, e);
+              },
+            ),
+          ]);
+        } else {
+          final left = e.incubatedAt!
+              .add(PetRules.hatchTime)
+              .difference(c.now);
+          final mana = c.hatchManaCost(e), gold = c.hatchGoldCost(e);
+          children.addAll([
+            KText(
+                '깨어나기까지 ${left.inHours}시간 ${left.inMinutes % 60}분 남았어요.',
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: FrameButton(
+                  label: '마석 $mana로 바로',
+                  gameIcon: 'mana_stone',
+                  height: 44,
+                  onPressed: c.player.manaStones >= mana
+                      ? () => c.hatchNow(e.id, useMana: true)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FrameButton(
+                  label: '금화 $gold로 바로',
+                  gameIcon: 'gold',
+                  height: 44,
+                  onPressed: c.player.gold >= gold
+                      ? () => c.hatchNow(e.id, useMana: false)
+                      : null,
+                ),
+              ),
+            ]),
+          ]);
+        }
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                    child: EggArt(
+                        size: 96, glowing: e != null && c.eggReady(e))),
+                const SizedBox(height: 6),
+                Text(c.farewellDone ? '펫 알' : '신비한 알',
+                    textAlign: TextAlign.center,
+                    style: AppText.title(20, color: AppColors.goldBright)),
+                const SizedBox(height: 10),
+                ...children,
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

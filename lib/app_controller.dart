@@ -10,6 +10,7 @@ import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
+import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
 import 'core/models/vitals.dart';
@@ -221,6 +222,8 @@ class AppController extends ChangeNotifier {
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
     final bag = await store.loadJson(_bagKey);
     _bag = bag == null ? const BagState() : BagState.fromJson(bag);
+    final pets = await store.loadJson(_petsKey);
+    _pets = pets == null ? const PetState() : PetState.fromJson(pets);
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -501,6 +504,9 @@ class AppController extends ChangeNotifier {
     final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
+    if (run.cleared && _pets.farewellDone) {
+      await _maybeEgg(PetRules.dungeonEggChance, 'dungeon');
+    }
     final fit =
         _fitBag(LootRules.dungeon(cleared: run.cleared, rng: _random));
     final mats = fit.kept;
@@ -690,6 +696,7 @@ class AppController extends ChangeNotifier {
       gold: gold,
       materials: mats,
     );
+    await _rollFieldEgg(ModifierRules.gradeOf(mods));
     return exp;
   }
 
@@ -744,6 +751,7 @@ class AppController extends ChangeNotifier {
             if (bagCount(i) > 0) i: bagCount(i),
         },
         armory: _armory,
+        eggs: _pets.eggs.length,
       );
 
   /// 빈칸 (넘치면 0)
@@ -866,10 +874,29 @@ class AppController extends ChangeNotifier {
   /// 가방에 든 개수
   int bagCount(ShopItem item) => TownRules.bagCount(_history, item);
 
-  UseCheck canUse(ShopItem item) => TownRules.canUse(_history, item,
-      hpFull: hp >= maxHp,
-      mpFull: mp >= mpMax,
-      compassReady: _vitals.compassReady);
+  UseCheck canUse(ShopItem item) {
+    // 정령이 떠난 뒤 정령 물약은 펫 간식: 여러 개 줘도 된다
+    if (item == ShopItem.bulssiPotion && farewellDone) {
+      if (bagCount(item) <= 0) return UseCheck.none;
+      return companionPet == null ? UseCheck.none : UseCheck.ok;
+    }
+    return TownRules.canUse(_history, item,
+        hpFull: hp >= maxHp,
+        mpFull: mp >= mpMax,
+        compassReady: _vitals.compassReady);
+  }
+
+  /// 물건 이름 (정령이 떠난 뒤 정령 물약은 「펫 간식」)
+  String itemName(ShopItem item) =>
+      item == ShopItem.bulssiPotion && farewellDone
+          ? '펫 간식'
+          : TownRules.info(item).name;
+
+  String itemDescription(ShopItem item) =>
+      item == ShopItem.bulssiPotion && farewellDone
+          ? '데리고 다니는 펫에게 주면 펫 경험치 +${PetRules.expSnack}, '
+              '친밀도 +${PetRules.bondPerSnack}. 준 날은 던전 스킬이 빨리 차요.'
+          : TownRules.info(item).description;
 
   /// 원정 나침반을 써 두었는지 (다음 원정 이동 시간 절반)
   bool get compassReady => _vitals.compassReady;
@@ -891,6 +918,13 @@ class AppController extends ChangeNotifier {
     }
     if (item == ShopItem.expeditionCompass) {
       _vitals = _vitals.copyWith(compassReady: true);
+    }
+    if (item == ShopItem.bulssiPotion && companionPet != null) {
+      final pet = companionPet!;
+      await _savePets(_pets.replace(pet.copyWith(
+        exp: pet.exp + PetRules.expSnack,
+        bond: math.min(PetRules.maxBond, pet.bond + PetRules.bondPerSnack),
+      )));
     }
     await store.saveVitals(_vitals);
     final today = await _todayRecord();
@@ -991,6 +1025,261 @@ class AppController extends ChangeNotifier {
     _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
     await store.saveJson(_statsKey, _alloc.toJson());
     notifyListeners();
+  }
+
+
+  // ───────────────────────────────────────────── 정령 이별 · 펫 (11-11 #37·#38)
+
+  static const _petsKey = 'pets';
+  PetState _pets = const PetState();
+
+  PetState get pets => _pets;
+
+  /// 정령이 떠났는지 (Lv.11)
+  bool get farewellDone => _pets.farewellDone;
+
+  /// 데리고 다니는 펫 (정령이 떠나기 전에는 null)
+  Pet? get companionPet => _pets.farewellDone ? _pets.companionPet : null;
+
+  /// 말풍선·원정에 나오는 동료 이름 (정령 또는 데리고 다니는 펫)
+  String get companionName => companionPet?.name ?? _profile.spiritName;
+
+  /// 처음 함께한 정령 이름 (떠난 뒤 프로필·기록에)
+  String get firstSpiritName => _pets.firstSpiritName ?? _profile.spiritName;
+
+  Future<void> _savePets(PetState p) async {
+    _pets = p;
+    await store.saveJson(_petsKey, p.toJson());
+    notifyListeners();
+  }
+
+  /// 이별 연출을 보여 줄 때인지: Lv.11 이상, 아직 함께, 정령 원정이 없음
+  bool get farewellPending =>
+      !_pets.farewellDone &&
+      player.level.level >= PetRules.farewellLevel &&
+      _vitals.expedition == null;
+
+  /// 정령 짝 펫 (첫 펫 확률을 조금 올린다)
+  PetSpecies get _favoredSpecies => switch (_profile.spiritKind) {
+        SpiritKind.fire => PetSpecies.lizard,
+        SpiritKind.water => PetSpecies.toad,
+        SpiritKind.plant => PetSpecies.owl,
+      };
+
+  /// 이별 때 깨어날 펫 (연출에서 한 번 뽑아 이름을 짓게 한다)
+  PetSpecies rollFirstPet() =>
+      PetRules.rollSpecies(_random, favored: _favoredSpecies);
+
+  /// 이별 때 가방에 알이 있었는지 (없으면 정령이 선물 알을 남긴다)
+  bool get hasEggForFarewell => _pets.eggs.isNotEmpty;
+
+  /// 정령이 떠나고 첫 펫이 태어난다. 가방의 알 하나를 쓰고, 없으면 선물 알.
+  Future<Pet> completeFarewell(PetSpecies species, String name) async {
+    final now = _clock();
+    final p = _pets;
+    final eggs = [...p.eggs];
+    if (eggs.isNotEmpty) eggs.removeAt(0);
+    final pet = Pet(
+      uid: 'pet${p.nextId}',
+      species: species,
+      name: name.trim().isEmpty ? PetRules.info(species).name : name.trim(),
+      bornAt: now,
+    );
+    await _savePets(p.copyWith(
+      eggs: eggs,
+      pets: [...p.pets, pet],
+      companion: pet.uid,
+      farewellAt: now,
+      firstSpiritName: _profile.spiritName,
+      firstSpiritKind: _profile.spiritKind.name,
+      nextId: p.nextId + 1,
+      // 이별 전에 이미 지나간 날의 편지는 보내지 않는다
+      skippedLetters: [
+        for (final l in PetRules.letters)
+          if (_letterDue(l)) l.id,
+      ],
+    ));
+    return pet;
+  }
+
+  /// 확률로 알 하나 (Lv.11 전에는 한 번만, 정령이 떠난 뒤에는 [chance])
+  Future<bool> _maybeEgg(double chance, String source) async {
+    if (_random.nextDouble() >= chance) return false;
+    final p = _pets;
+    await _savePets(p.copyWith(
+      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source)],
+      firstEggFound: true,
+      nextId: p.nextId + 1,
+    ));
+    _newEgg = true;
+    return true;
+  }
+
+  Future<void> _rollFieldEgg(ModGrade grade) async {
+    if (!_pets.farewellDone) {
+      if (_pets.firstEggFound || _pets.eggs.isNotEmpty) return;
+      await _maybeEgg(PetRules.firstEggChance, 'field');
+      return;
+    }
+    await _maybeEgg(PetRules.fieldEggChance(grade), 'field');
+  }
+
+  bool _newEgg = false;
+
+  /// 방금 알을 얻었는지 (한 번 알려 주고 false)
+  bool takeNewEgg() {
+    final v = _newEgg;
+    _newEgg = false;
+    return v;
+  }
+
+  /// 알을 품는다 (정령이 떠난 뒤에만, 한 번에 하나)
+  Future<bool> incubateEgg(String eggId) async {
+    if (!_pets.farewellDone) return false;
+    if (_pets.eggs.any((e) => e.incubatedAt != null)) return false;
+    final now = _clock();
+    await _savePets(_pets.copyWith(eggs: [
+      for (final e in _pets.eggs) e.id == eggId ? e.incubate(now) : e,
+    ]));
+    unawaited(notifier?.schedule(NotifyId.hatch, now.add(PetRules.hatchTime),
+        '알이 깨어나려 해요', '가방에서 알을 확인하고 이름을 지어 주세요!'));
+    return true;
+  }
+
+  /// 품은 알이 다 되었는지
+  bool eggReady(PetEgg e) =>
+      e.incubatedAt != null &&
+      !_clock().isBefore(e.incubatedAt!.add(PetRules.hatchTime));
+
+  PetEgg? get readyEgg {
+    for (final e in _pets.eggs) {
+      if (eggReady(e)) return e;
+    }
+    return null;
+  }
+
+  int hatchManaCost(PetEgg e) => e.incubatedAt == null
+      ? 0
+      : PetRules.hatchManaCost(e.incubatedAt!, _clock());
+  int hatchGoldCost(PetEgg e) => e.incubatedAt == null
+      ? 0
+      : PetRules.hatchGoldCost(e.incubatedAt!, _clock());
+
+  /// 마석이나 금화로 바로 깨운다
+  Future<bool> hatchNow(String eggId, {required bool useMana}) async {
+    PetEgg? egg;
+    for (final e in _pets.eggs) {
+      if (e.id == eggId) egg = e;
+    }
+    if (egg == null || egg.incubatedAt == null) return false;
+    final cost = useMana ? hatchManaCost(egg) : hatchGoldCost(egg);
+    if (useMana ? player.manaStones < cost : player.gold < cost) return false;
+    if (cost > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends,
+              {useMana ? Wallet.manaStone : Wallet.gold: cost})));
+    }
+    final done = _clock().subtract(PetRules.hatchTime);
+    await _savePets(_pets.copyWith(eggs: [
+      for (final e in _pets.eggs) e.id == eggId ? e.incubate(done) : e,
+    ]));
+    unawaited(notifier?.cancel(NotifyId.hatch));
+    return true;
+  }
+
+  /// 다 된 알에서 펫이 태어난다. 펫이 6마리면 null.
+  Future<Pet?> hatch(String eggId, String name, {PetSpecies? species}) async {
+    final p = _pets;
+    if (p.pets.length >= PetRules.maxPets) return null;
+    PetEgg? egg;
+    for (final e in p.eggs) {
+      if (e.id == eggId) egg = e;
+    }
+    if (egg == null || !eggReady(egg)) return null;
+    final s = species ?? PetRules.rollSpecies(_random);
+    final pet = Pet(
+      uid: 'pet${p.nextId}',
+      species: s,
+      name: name.trim().isEmpty ? PetRules.info(s).name : name.trim(),
+      bornAt: _clock(),
+    );
+    await _savePets(p.copyWith(
+      eggs: [for (final e in p.eggs) if (e.id != eggId) e],
+      pets: [...p.pets, pet],
+      nextId: p.nextId + 1,
+    ));
+    return pet;
+  }
+
+  // ───────────── 정령 편지
+
+  /// 각성한 날부터 며칠째인지 (첫날 = 1)
+  int get awakenedDays {
+    if (_history.isEmpty) return 0;
+    final first = _history.first.date;
+    final now = _clock();
+    return DateTime(now.year, now.month, now.day)
+            .difference(DateTime(first.year, first.month, first.day))
+            .inDays +
+        1;
+  }
+
+  bool _letterDue(LetterInfo l) =>
+      (l.level != null && player.level.level >= l.level!) ||
+      (l.days != null && awakenedDays >= l.days!);
+
+  LetterInfo? _newLetter;
+
+  /// 새로 온 편지 (한 번 알려 주고 null)
+  LetterInfo? takeNewLetter() {
+    final l = _newLetter;
+    _newLetter = null;
+    return l;
+  }
+
+  LetterInfo? get pendingLetter => _newLetter;
+
+  /// 받은 편지 (받은 순서)
+  List<LetterInfo> get receivedLetters => [
+        for (final id in _pets.letters)
+          for (final l in PetRules.letters)
+            if (l.id == id) l,
+      ];
+
+  Future<void> _checkLetters() async {
+    if (!_pets.farewellDone) return;
+    for (final l in PetRules.letters) {
+      if (_pets.letters.contains(l.id) || _pets.skippedLetters.contains(l.id)) {
+        continue;
+      }
+      if (!_letterDue(l)) continue;
+      // 선물
+      if (l.manaStones > 0 || l.gold > 0) await _grant(l.gold, l.manaStones, const {});
+      if (l.snacks > 0 || l.compasses > 0) {
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+            counters: DailyRecord.addCounts(today.counters, {
+          if (l.snacks > 0) TownRules.giftKey(ShopItem.bulssiPotion): l.snacks,
+          if (l.compasses > 0)
+            TownRules.giftKey(ShopItem.expeditionCompass): l.compasses,
+        })));
+      }
+      var p = _pets;
+      final eggs = [
+        ...p.eggs,
+        for (var i = 0; i < l.eggs; i++)
+          PetEgg(id: 'egg${p.nextId + i}', source: 'letter'),
+      ];
+      p = p.copyWith(
+        eggs: eggs,
+        nextId: p.nextId + l.eggs,
+        recipeNotes: p.recipeNotes + l.recipeNotes,
+        letters: [...p.letters, l.id],
+      );
+      await _savePets(p);
+      _newLetter = l;
+    }
   }
 
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
@@ -1409,6 +1698,7 @@ class AppController extends ChangeNotifier {
     if (ex != null && !ex.finished && !now.isBefore(ex.returnAt)) {
       await _resolveExpedition(ex);
     }
+    await _checkLetters();
     notifyListeners();
   }
 
@@ -1432,7 +1722,7 @@ class AppController extends ChangeNotifier {
       NotifyId.rest,
       now.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 ${_profile.spiritName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      'HP와 ${companionName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));
     notifyListeners();
     return true;
@@ -1576,7 +1866,7 @@ class AppController extends ChangeNotifier {
     unawaited(notifier?.schedule(
       NotifyId.expedition,
       ret,
-      '${josa(_profile.spiritName, '이/가')} 돌아왔어요',
+      '${josa(companionName, '이/가')} 돌아왔어요',
       '${spawn.info.name} 원정 결과를 확인해 보세요!',
     ));
     notifyListeners();

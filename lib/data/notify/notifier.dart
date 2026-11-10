@@ -16,6 +16,7 @@ class NotifyId {
   NotifyId._();
   static const int expedition = 1;
   static const int rest = 2;
+  static const int hatch = 3;
 }
 
 /// 테스트용: 예약한 알림을 기억만 한다

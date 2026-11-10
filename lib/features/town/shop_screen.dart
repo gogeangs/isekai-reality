@@ -32,7 +32,7 @@ class ShopScreen extends StatelessWidget {
 
   static String boughtLine(ShopItem item) => switch (item) {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
-        ShopItem.bulssiPotion => '정령 물약을 가방에 넣었어요. 던전 가기 전에 마셔요!',
+        ShopItem.bulssiPotion => '가방에 넣었어요!',
         ShopItem.magicLens => '마법 돋보기는 더 이상 팔지 않아요.',
         ShopItem.expeditionCompass =>
           '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
@@ -117,6 +117,11 @@ class ShopScreen extends StatelessWidget {
                         hasLocation: hasLocation),
                     gold: gold,
                     spiritKind: controller.profile.spiritKind,
+                    name: controller.itemName(info.item),
+                    description: controller.itemDescription(info.item),
+                    iconAsset: info.item == ShopItem.bulssiPotion
+                        ? bagIconAsset(controller, info.item)
+                        : null,
                     onBuy: () async {
                       final result = await controller.buy(info.item);
                       if (!context.mounted) return;
@@ -145,8 +150,14 @@ class _ItemCard extends StatelessWidget {
     required this.gold,
     required this.onBuy,
     this.spiritKind = SpiritKind.fire,
+    this.name,
+    this.description,
+    this.iconAsset,
   });
 
+  final String? name;
+  final String? description;
+  final String? iconAsset;
   final ShopItemInfo info;
   final PurchaseCheck check;
   final int gold;
@@ -164,9 +175,10 @@ class _ItemCard extends StatelessWidget {
             MaterialIcon(mat, size: 48)
           else
             Image.asset(
-                info.item == ShopItem.bulssiPotion
-                    ? spiritPotionAsset(spiritKind)
-                    : 'assets/images/${info.icon}.png',
+                iconAsset ??
+                    (info.item == ShopItem.bulssiPotion
+                        ? spiritPotionAsset(spiritKind)
+                        : 'assets/images/${info.icon}.png'),
                 width: 48,
                 height: 48,
                 errorBuilder: (_, __, ___) => const GameIcon('gold', size: 48)),
@@ -175,12 +187,12 @@ class _ItemCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(info.name,
+                Text(name ?? info.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppText.title(18, color: AppColors.text)),
                 const SizedBox(height: 3),
-                Text(info.description,
+                Text(description ?? info.description,
                     style: const TextStyle(
                         color: AppColors.text, fontSize: 13, height: 1.35)),
                 const SizedBox(height: 4),

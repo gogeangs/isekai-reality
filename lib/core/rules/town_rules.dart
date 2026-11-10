@@ -397,11 +397,17 @@ class TownRules {
   /// 버리거나 판 개수를 적는 counters 키 (11-11 #48)
   static String dropKey(ShopItem item) => 'drop:${item.name}';
 
+  /// 선물로 받은 개수를 적는 counters 키 (정령 편지 등)
+  static String giftKey(ShopItem item) => 'gift:${item.name}';
+
   /// 가방에 남은 개수 (산 것 − 쓴 것 − 버리거나 판 것)
   static int bagCount(List<DailyRecord> history, ShopItem item) {
     var n = 0;
     for (final r in history) {
-      n += boughtOn(r, item) - usedOn(r, item) - (r.counters[dropKey(item)] ?? 0);
+      n += boughtOn(r, item) +
+          (r.counters[giftKey(item)] ?? 0) -
+          usedOn(r, item) -
+          (r.counters[dropKey(item)] ?? 0);
     }
     return n < 0 ? 0 : n;
   }

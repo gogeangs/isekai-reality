@@ -10,7 +10,7 @@ import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
-import '../bulssi/spirit_art.dart';
+import '../bulssi/bulssi_mood.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
@@ -62,7 +62,7 @@ class SpawnSheet extends StatelessWidget {
     final info = spawn.info;
     final plan = c.planExpedition(spawn);
     final near = c.nearbySpawn?.id == spawn.id;
-    final spiritName = c.profile.spiritName;
+    final spiritName = c.companionName;
 
     return SafeArea(
       child: Padding(
@@ -124,7 +124,7 @@ class SpawnSheet extends StatelessWidget {
                     Row(children: [
                       const GameIcon('expedition', size: 40),
                       const SizedBox(width: 6),
-                      SpiritArt(kind: c.profile.spiritKind, size: 36),
+                      const CompanionArt(size: 36),
                       const SizedBox(width: 6),
                       Expanded(
                         child: KText('$spiritName 원정 보내기',
@@ -234,7 +234,7 @@ class ExpeditionCard extends StatelessWidget {
     final name = id == null ? '몬스터' : Monsters.info(id).name;
     return OrnatePanel(
       child: Row(children: [
-        SpiritArt(kind: controller.profile.spiritKind, size: 48),
+        const CompanionArt(size: 48),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

@@ -536,7 +536,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                       child: Row(children: [
                         Transform.translate(
                           offset: Offset(0, -math.sin(t * math.pi) * 6),
-                          child: SpiritArt(kind: _kind(context), size: 54),
+                          child: const CompanionArt(size: 54),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(

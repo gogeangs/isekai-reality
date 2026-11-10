@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
+import '../../core/models/pet_state.dart';
 import '../../core/models/player_state.dart';
 import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
+import '../pets/pet_art.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 
@@ -27,7 +29,11 @@ class ProfileCard extends StatelessWidget {
     this.title,
     this.job = kNoJobLabel,
     this.onEditName,
+    this.pet,
   });
+
+  /// 정령이 떠난 뒤 데리고 다니는 펫 (그때 [spiritName] 은 처음 함께한 정령)
+  final Pet? pet;
 
   /// 이름 옆 연필 (없으면 연필을 그리지 않는다. 다른 사람 카드에서는 null)
   final VoidCallback? onEditName;
@@ -94,6 +100,28 @@ class ProfileCard extends StatelessWidget {
                   style:
                       const TextStyle(color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 4),
+              if (pet != null) ...[
+                Row(children: [
+                  PetArt.of(pet!, size: 26),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: KText('함께하는 펫 · ${pet!.name}',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 12)),
+                  ),
+                ]),
+                Row(children: [
+                  Opacity(
+                      opacity: 0.7,
+                      child: SpiritArt(kind: spiritKind, size: 22)),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: KText('처음 함께한 정령 · $spiritName',
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 11.5)),
+                  ),
+                ]),
+              ] else
               Row(children: [
                 SpiritArt(kind: spiritKind, size: 26),
                 const SizedBox(width: 4),
@@ -246,7 +274,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     level: p.level.level,
                     look: c.profile.look,
                     spiritKind: c.profile.spiritKind,
-                    spiritName: c.profile.spiritName,
+                    spiritName: c.firstSpiritName,
+                    pet: c.companionPet,
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,
@@ -262,7 +291,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: _tab == 0
                         ? _InfoTab(controller: c, player: p, equipped: equipped)
-                        : RecordsScreen(player: p, embedded: true),
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (c.receivedLetters.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: FrameButton(
+                                    label:
+                                        '${c.firstSpiritName}의 편지 ${c.receivedLetters.length}통',
+                                    icon: Icons.mail_rounded,
+                                    height: 42,
+                                    onPressed: () => _showLetters(context, c),
+                                  ),
+                                ),
+                              Expanded(
+                                  child: RecordsScreen(
+                                      player: p, embedded: true)),
+                            ],
+                          ),
                   ),
                 ],
               ),
@@ -496,3 +543,47 @@ class _Tabs extends StatelessWidget {
         ]),
       );
 }
+
+/// 떠난 정령이 보낸 편지 모아 보기 (11-11 #37)
+Future<void> _showLetters(BuildContext context, AppController c) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            children: [
+              Text('${c.firstSpiritName}의 편지', style: AppText.title(20)),
+              const SizedBox(height: 10),
+              for (final l in c.receivedLetters.reversed) ...[
+                OrnatePanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(l.title,
+                          style: AppText.title(16, color: AppColors.goldBright)),
+                      const SizedBox(height: 6),
+                      KText(l.body,
+                          style: const TextStyle(
+                              color: AppColors.text, height: 1.45)),
+                      const SizedBox(height: 6),
+                      KText('선물: ${l.giftLabel}',
+                          style: const TextStyle(
+                              color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );

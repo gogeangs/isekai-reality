@@ -434,9 +434,12 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         NMarker(
           id: 'spirit',
           position: NLatLng(spiritPos.$1, spiritPos.$2),
-          icon: NOverlayImage.fromAssetImage(spiritAsset(c.profile.spiritKind)),
+          icon: NOverlayImage.fromAssetImage(c.companionPet == null
+              ? spiritAsset(c.profile.spiritKind)
+              // 펫 그림이 들어오면 pet_*.png 로 바꾼다 (지도는 없는 그림을 못 그린다)
+              : 'assets/images/icon_expedition.png'),
           size: const Size(42, 46),
-          caption: NOverlayCaption(text: c.profile.spiritName),
+          caption: NOverlayCaption(text: c.companionName),
         ),
       if (fix != null)
         NMarker(

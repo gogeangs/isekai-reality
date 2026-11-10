@@ -3,6 +3,8 @@
 /// 몬스터는 사냥하면 쓰러지고 사라진다. 정화된 모습·이름은 쓰지 않는다.
 /// 정령은 각성자의 동료 전용이라 정령계 몬스터(물방울 정령·돌정령)는 뺐다.
 /// 예전 기록을 읽으려고 id 는 남겨 두고 [MonsterInfo.retired] 로 숨긴다.
+///
+/// 11-11 #31·#40: 혼래빗·아기 와일드 보어, 슬라임 속성 6종(각각 다른 몬스터로 기록).
 enum MonsterId {
   ashSlime,
   labyrinthBat,
@@ -11,6 +13,37 @@ enum MonsterId {
   lostStoneSpirit,
   labyrinthWarden,
   giantRat,
+  hornRabbit,
+  babyBoar,
+  fireSlime,
+  waterSlime,
+  windSlime,
+  earthSlime,
+  lightSlime,
+  darkSlime,
+}
+
+/// 전투 성향 (도감 설명)
+enum Tendency { sturdy, nimble, arcane, charm }
+
+/// 몬스터만의 전투 특징 (11-11)
+enum MonsterTrait {
+  none,
+
+  /// 맞히면 30% 확률로 화상 3턴 (매 턴 최대 HP 2%)
+  burn,
+
+  /// 매 턴 끝에 자기 최대 체력의 5% 회복
+  regen,
+
+  /// 각성자 공격을 15% 피함
+  evade,
+
+  /// 눈부심: 각성자 공격이 25% 빗나감
+  dazzle,
+
+  /// 때린 피해의 30%만큼 체력 회복
+  drain,
 }
 
 class MonsterInfo {
@@ -19,8 +52,19 @@ class MonsterInfo {
     required this.name,
     required this.habitat,
     required this.huntLine,
+    this.description = '',
+    this.tendency = Tendency.sturdy,
+    this.trait = MonsterTrait.none,
+    this.traitText = '',
+    this.hp = 1,
+    this.attack = 1,
+    this.defense = 1,
+    this.speed = 1,
+    this.expBonus = 0,
     this.isBoss = false,
     this.retired = false,
+    this.slimeKind = false,
+    this.tint,
   });
 
   final MonsterId id;
@@ -31,13 +75,40 @@ class MonsterInfo {
 
   /// 사냥했을 때 정령 대사
   final String huntLine;
+
+  /// 도감 설명
+  final String description;
+  final Tendency tendency;
+  final MonsterTrait trait;
+
+  /// 전투 특징 (도감)
+  final String traitText;
+
+  /// 능력치 배수 (같은 레벨 기본 몬스터 대비)
+  final double hp, attack, defense, speed;
+
+  /// 경험치 보너스 (0.1 = +10%)
+  final double expBonus;
   final bool isBoss;
 
   /// 더 나오지 않는 몬스터 (예전 기록에만 남음, 도감에서 숨김)
   final bool retired;
 
+  /// 속성 슬라임 (칭호 '도감의 현자' 조건에서 뺀다)
+  final bool slimeKind;
+
+  /// 그림이 없을 때 기본 슬라임 그림에 입히는 색 (0xAARRGGBB)
+  final int? tint;
+
   /// 그림 파일. 없으면 화면에서 아이콘으로 대신 그린다.
   String get asset => 'assets/images/monster_${id.name}.png';
+
+  String get tendencyName => switch (tendency) {
+        Tendency.sturdy => '단단함',
+        Tendency.nimble => '날렵함',
+        Tendency.arcane => '마력',
+        Tendency.charm => '홀림',
+      };
 }
 
 class Monsters {
@@ -47,36 +118,161 @@ class Monsters {
   static List<MonsterInfo> get all =>
       [for (final m in _all) if (!m.retired) m];
 
+  /// 속성 슬라임 (무속성 슬라임 포함, 나오는 비율 순)
+  static const slimes = [
+    MonsterId.ashSlime,
+    MonsterId.fireSlime,
+    MonsterId.waterSlime,
+    MonsterId.windSlime,
+    MonsterId.earthSlime,
+    MonsterId.lightSlime,
+    MonsterId.darkSlime,
+  ];
+
   static const List<MonsterInfo> _all = [
     MonsterInfo(
       id: MonsterId.ashSlime,
       name: '슬라임',
       habitat: '어디서나',
       huntLine: '슬라임을 잡았어! 말랑한 젤리가 남았네.',
+      description: '어디서나 보이는 말랑한 몬스터. 느리지만 잘 버텨요.',
+      traitText: '기본형',
+    ),
+    MonsterInfo(
+      id: MonsterId.fireSlime,
+      name: '불꽃 슬라임',
+      habitat: '어디서나',
+      huntLine: '불꽃 슬라임을 잡았어! 아직 따끈한 젤리야.',
+      description: '몸이 이글이글 타오르는 슬라임.',
+      tendency: Tendency.arcane,
+      trait: MonsterTrait.burn,
+      traitText: '맞으면 30% 확률로 화상 (3턴 동안 매 턴 최대 HP 2%)',
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFFFF7A45,
+    ),
+    MonsterInfo(
+      id: MonsterId.waterSlime,
+      name: '물 슬라임',
+      habitat: '어디서나',
+      huntLine: '물 슬라임을 잡았어! 촉촉한 젤리가 남았어.',
+      description: '맑은 물로 된 슬라임. 조금씩 상처가 아물어요.',
+      trait: MonsterTrait.regen,
+      traitText: '매 턴 끝에 체력을 5%씩 회복',
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFF4FA8FF,
+    ),
+    MonsterInfo(
+      id: MonsterId.windSlime,
+      name: '바람 슬라임',
+      habitat: '어디서나',
+      huntLine: '바람 슬라임을 잡았어! 휘익, 빨랐다!',
+      description: '바람을 타고 다니는 가벼운 슬라임.',
+      tendency: Tendency.nimble,
+      trait: MonsterTrait.evade,
+      traitText: '먼저 공격하고, 공격을 15% 피함',
+      speed: 1.3,
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFF6FE3B0,
+    ),
+    MonsterInfo(
+      id: MonsterId.earthSlime,
+      name: '대지 슬라임',
+      habitat: '어디서나',
+      huntLine: '대지 슬라임을 잡았어! 진흙이 잔뜩 묻었네.',
+      description: '흙과 돌을 품은 단단한 슬라임.',
+      traitText: '방어가 높고 느림',
+      hp: 1.1,
+      defense: 1.4,
+      speed: 0.8,
+      expBonus: 0.10,
+      slimeKind: true,
+      tint: 0xFFB08850,
+    ),
+    MonsterInfo(
+      id: MonsterId.lightSlime,
+      name: '빛 슬라임',
+      habitat: '어디서나 (낮에 조금 더 자주)',
+      huntLine: '빛 슬라임을 잡았어! 눈이 부셨어.',
+      description: '반짝반짝 빛나는 드문 슬라임.',
+      tendency: Tendency.charm,
+      trait: MonsterTrait.dazzle,
+      traitText: '눈부심: 각성자 공격이 25% 빗나감',
+      expBonus: 0.30,
+      slimeKind: true,
+      tint: 0xFFFFE680,
+    ),
+    MonsterInfo(
+      id: MonsterId.darkSlime,
+      name: '어둠 슬라임',
+      habitat: '어디서나 (밤에 조금 더 자주)',
+      huntLine: '어둠 슬라임을 잡았어! 그림자가 스르륵 흩어졌어.',
+      description: '그림자처럼 어두운 드문 슬라임.',
+      tendency: Tendency.arcane,
+      trait: MonsterTrait.drain,
+      traitText: '때린 피해의 30%만큼 체력을 빨아들임',
+      expBonus: 0.30,
+      slimeKind: true,
+      tint: 0xFF8A5CD6,
     ),
     MonsterInfo(
       id: MonsterId.giantRat,
       name: '큰쥐',
       habitat: '어디서나',
       huntLine: '큰쥐를 잡았어! 가죽은 장비 만들 때 쓸 수 있어.',
+      description: '골목을 누비는 커다란 쥐. 재빠르게 덤벼요.',
+      tendency: Tendency.nimble,
+      traitText: '기본형',
+    ),
+    MonsterInfo(
+      id: MonsterId.hornRabbit,
+      name: '혼래빗',
+      habitat: '어디서나',
+      huntLine: '혼래빗을 잡았어! 작은 뿔이 떨어졌어.',
+      description: '이마에 작은 뿔이 난 토끼. 재빨라서 먼저 들이받아요.',
+      tendency: Tendency.nimble,
+      traitText: '빨라서 먼저 공격',
+      hp: 0.9,
+      speed: 1.2,
+    ),
+    MonsterInfo(
+      id: MonsterId.babyBoar,
+      name: '아기 와일드 보어',
+      habitat: '어디서나',
+      huntLine: '아기 와일드 보어를 잡았어! 작아도 힘이 셌어.',
+      description: '작지만 힘센 멧돼지. 몸이 단단하고 묵직해요.',
+      traitText: '체력과 힘이 세고 느림',
+      hp: 1.3,
+      attack: 1.1,
+      speed: 0.85,
     ),
     MonsterInfo(
       id: MonsterId.labyrinthBat,
       name: '미궁 박쥐',
-      habitat: '던전',
+      habitat: '던전, 필드',
       huntLine: '박쥐를 쫓아냈어! 날개를 하나 주웠어.',
+      description: '미궁에서 흘러나온 박쥐. 던전에 가장 많아요.',
+      tendency: Tendency.nimble,
+      traitText: '기본형',
     ),
     MonsterInfo(
       id: MonsterId.shadowButterfly,
       name: '그림자 나비',
       habitat: '밤 (오후 7시 ~ 새벽 5시) 어디서나',
       huntLine: '그림자 나비를 잡았어! 반짝이는 가루가 떨어졌어.',
+      description: '밤에만 날아다니는 나비. 날개 가루에 홀리기 쉬워요.',
+      tendency: Tendency.charm,
+      traitText: '기본형',
     ),
     MonsterInfo(
       id: MonsterId.labyrinthWarden,
       name: '미궁 문지기',
       habitat: '던전 마지막 층',
       huntLine: '문지기를 쓰러뜨렸어! 던전을 끝까지 돌파했어!',
+      description: '던전 마지막 층을 지키는 돌 거인.',
+      traitText: '보스: 체력이 많고 세게 때림',
       isBoss: true,
     ),
     MonsterInfo(

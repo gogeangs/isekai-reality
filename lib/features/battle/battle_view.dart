@@ -876,6 +876,19 @@ class MonsterPicture extends StatelessWidget {
   /// true 면 쓰러진 모습 (기울어지며 흐려진다, 11-10 사냥)
   final bool defeated;
 
+  /// 그림을 흑백으로 바꾼 뒤 [argb] 색을 입힌다 (투명한 곳은 그대로)
+  static ColorFilter tintFilter(int argb) {
+    final r = ((argb >> 16) & 0xFF) / 255 * 1.35;
+    final g = ((argb >> 8) & 0xFF) / 255 * 1.35;
+    final b = (argb & 0xFF) / 255 * 1.35;
+    return ColorFilter.matrix([
+      0.30 * r, 0.59 * r, 0.11 * r, 0, 0,
+      0.30 * g, 0.59 * g, 0.11 * g, 0, 0,
+      0.30 * b, 0.59 * b, 0.11 * b, 0, 0,
+      0, 0, 0, 1, 0,
+    ]);
+  }
+
   static IconData iconOf(MonsterId id) => switch (id) {
         MonsterId.ashSlime => Icons.water_drop_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
@@ -884,6 +897,15 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.lostStoneSpirit => Icons.landscape_rounded,
         MonsterId.labyrinthWarden => Icons.shield_moon_rounded,
         MonsterId.giantRat => Icons.pest_control_rodent_rounded,
+        MonsterId.hornRabbit => Icons.cruelty_free_rounded,
+        MonsterId.babyBoar => Icons.savings_rounded,
+        MonsterId.fireSlime ||
+        MonsterId.waterSlime ||
+        MonsterId.windSlime ||
+        MonsterId.earthSlime ||
+        MonsterId.lightSlime ||
+        MonsterId.darkSlime =>
+          Icons.water_drop_rounded,
       };
 
   @override
@@ -894,12 +916,23 @@ class MonsterPicture extends StatelessWidget {
       width: size,
       height: size,
       semanticLabel: info.name,
-      errorBuilder: (_, __, ___) => Icon(
-        iconOf(monster),
-        size: size * 0.7,
-        color: const Color(0xFFB8B2C8),
-        semanticLabel: info.name,
-      ),
+      errorBuilder: (_, __, ___) => info.tint != null
+          // 속성 슬라임 그림이 오기 전에는 기본 슬라임 그림에 색을 입힌다
+          ? ColorFiltered(
+              colorFilter: tintFilter(info.tint!),
+              child: Image.asset(
+                Monsters.info(MonsterId.ashSlime).asset,
+                width: size,
+                height: size,
+                semanticLabel: info.name,
+              ),
+            )
+          : Icon(
+              iconOf(monster),
+              size: size * 0.7,
+              color: const Color(0xFFB8B2C8),
+              semanticLabel: info.name,
+            ),
     );
     if (!defeated) return picture;
     // 사냥한 몬스터는 쓰러지고 사라진다

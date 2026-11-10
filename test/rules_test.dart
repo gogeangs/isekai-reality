@@ -200,7 +200,11 @@ void main() {
     });
 
     test('도감의 몬스터를 모두 사냥하면 도감의 현자 (예전 6종도 인정)', () {
-      final now = [for (final m in Monsters.all) m.id.name];
+      final now = [
+        for (final m in Monsters.all)
+          if (!m.slimeKind) m.id.name,
+      ];
+      expect(now, hasLength(7));
       expect(TitleRules.earned([day(0, monsterIds: now.sublist(1))], 1),
           isNot(contains(TitleId.bookwormSage)));
       expect(TitleRules.earned([day(0, monsterIds: now)], 1),

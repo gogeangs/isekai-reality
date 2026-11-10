@@ -550,12 +550,18 @@ class AppController extends ChangeNotifier {
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
     final paid =
         today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay;
-    final exp = paid
+    final baseExp = paid
         ? (RuleConstants.fieldMonsterExp *
                 (TownRules.incenseActive(today)
                     ? RuleConstants.incenseExpMultiplier
-                    : 1) *
-                ModifierRules.expMultiplier(mods) *
+                    : 1))
+            .round()
+        : 0;
+    // 수식어·속성 보너스와 마리 수 (11-11: 기록에 남겨 경험치에 더한다)
+    final exp = paid
+        ? (baseExp *
+                (ModifierRules.expMultiplier(mods) +
+                    Monsters.info(monster).expBonus) *
                 count)
             .round()
         : 0;
@@ -581,10 +587,11 @@ class AppController extends ChangeNotifier {
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
       huntCounts: _addCounts(today, List.filled(count, monster)),
-      gains: DailyRecord.addCounts(
-          today.gains,
-          HuntReward.ledger(
-              extraManaStones: extraMana, gold: gold, materials: mats)),
+      gains: DailyRecord.addCounts(today.gains, {
+        ...HuntReward.ledger(
+            extraManaStones: extraMana, gold: gold, materials: mats),
+        if (exp > baseExp) Wallet.exp: exp - baseExp,
+      }),
       modHunts: modKey == null
           ? null
           : DailyRecord.addCounts(today.modHunts, {modKey: 1}),

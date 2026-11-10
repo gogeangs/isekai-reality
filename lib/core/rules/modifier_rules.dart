@@ -27,6 +27,12 @@ enum ModifierId {
   // 그림자 나비
   bewitching,
   nightglow,
+  // 혼래빗 (11-11)
+  thickHorn,
+  lightning,
+  // 아기 와일드 보어 (11-11)
+  charging,
+  chieftain,
 }
 
 class ModifierInfo {
@@ -48,6 +54,7 @@ class ModifierInfo {
     this.special,
     this.specialChance = 0,
     this.extraFoes = 0,
+    this.bonusMaterial,
   });
 
   final ModifierId id;
@@ -76,6 +83,9 @@ class ModifierInfo {
 
   /// 함께 나오는 몬스터 수 (무리 지은 2~3마리는 [ModifierRules.foeCount] 가 정한다)
   final int extraFoes;
+
+  /// 확정으로 하나 더 주는 재료 (뿔이 굵은 → 작은 뿔 등)
+  final MaterialId? bonusMaterial;
 }
 
 /// 수식어 확률·능력치·보상 (제안서 2장, 11-10 확정)
@@ -132,6 +142,27 @@ class ModifierRules {
         specialChance: 0.5),
     ModifierInfo(ModifierId.nightglow, '밤빛', ModGrade.common, '밤에 더 빛나요',
         monster: MonsterId.shadowButterfly, expBonus: 0.20),
+    // 혼래빗
+    ModifierInfo(ModifierId.thickHorn, '뿔이 굵은', ModGrade.common, '뿔로 세게 들이받아요',
+        monster: MonsterId.hornRabbit,
+        attack: 1.3,
+        bonusMaterial: MaterialId.smallHorn),
+    ModifierInfo(ModifierId.lightning, '번개 같은', ModGrade.rare,
+        '첫 턴에 두 번 공격하고, 공격을 25% 피해요',
+        monster: MonsterId.hornRabbit,
+        expBonus: 0.50,
+        special: MaterialId.goldenRabbitFur,
+        specialChance: 0.5),
+    // 아기 와일드 보어
+    ModifierInfo(ModifierId.charging, '돌진하는', ModGrade.common, '첫 공격이 두 배로 아파요',
+        monster: MonsterId.babyBoar, bonusMaterial: MaterialId.toughHide),
+    ModifierInfo(ModifierId.chieftain, '우두머리', ModGrade.rare, '무리를 이끄는 덩치 큰 보어',
+        monster: MonsterId.babyBoar,
+        hp: 1.6,
+        attack: 1.3,
+        expBonus: 0.50,
+        special: MaterialId.smallTusk,
+        specialChance: 0.5),
   ];
 
   static ModifierInfo info(ModifierId id) => all.firstWhere((m) => m.id == id);
@@ -164,10 +195,8 @@ class ModifierRules {
   /// 그 자리 몬스터의 수식어. 자리마다 같은 난수를 쓰고, 보는 사람의 레벨로 등급을 나눈다.
   /// 던전 몬스터(미궁 박쥐·문지기)에는 붙이지 않는다.
   static List<ModifierId> roll(String spawnId, MonsterId monster, int level) {
-    if (monster == MonsterId.labyrinthBat ||
-        monster == MonsterId.labyrinthWarden) {
-      return const [];
-    }
+    // 던전 몬스터에는 붙이지 않는다 (던전은 이 함수를 부르지 않는다. 필드 박쥐는 붙음)
+    if (monster == MonsterId.labyrinthWarden) return const [];
     final rng = math.Random(_stableHash('$spawnId|mod'));
     final u = rng.nextDouble();
     final (_, common, rare, legend) = chances(level);
@@ -193,9 +222,11 @@ class ModifierRules {
   }
 
   static ModifierId _pick(ModGrade grade, MonsterId monster, math.Random rng) {
+    // 속성 슬라임도 슬라임 전용 수식어를 받는다
+    final asSlime = Monsters.info(monster).slimeKind ? MonsterId.ashSlime : monster;
     final specific = [
       for (final m in all)
-        if (m.grade == grade && m.monster == monster) m.id,
+        if (m.grade == grade && m.monster == asSlime) m.id,
     ];
     final common = [
       for (final m in all)
@@ -293,7 +324,9 @@ class ModifierRules {
   ) {
     var mana = 0, gold = 0;
     final mats = <MaterialId, int>{};
-    final (common, rare) = LootRules.dropsOf(monster);
+    final drops = LootRules.dropsOf(monster);
+    final common = drops.common.first;
+    final rare = drops.rare;
     for (final m in mods) {
       final i = info(m);
       mana += i.extraManaStones;
@@ -302,6 +335,8 @@ class ModifierRules {
         mats[common] = (mats[common] ?? 0) + i.extraMaterials;
       }
       if (i.rareGuaranteed) mats[rare] = 1;
+      final bonus = i.bonusMaterial;
+      if (bonus != null) mats[bonus] = (mats[bonus] ?? 0) + 1;
       final special = i.special;
       if (special != null && rng.nextDouble() < i.specialChance) {
         mats[special] = (mats[special] ?? 0) + 1;

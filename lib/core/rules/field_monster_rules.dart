@@ -93,8 +93,7 @@ class FieldMonsterRules {
       ));
     }
 
-    // 11-10: 돌정령(정령계) 대신 큰쥐
-    const commons = [MonsterId.ashSlime, MonsterId.giantRat];
+    // 11-11: 슬라임 30 · 큰쥐 25 · 혼래빗 20 · 아기 와일드 보어 15 · 미궁 박쥐 10
     const blockLat = RuleConstants.fieldSpawnBlockM / 111320;
     final b = area.bounds;
     final double south, north;
@@ -135,8 +134,9 @@ class FieldMonsterRules {
         // 블록마다 같은 순서로 난수를 쓴다 (밤낮·보는 자리에 따라 바뀌지 않게)
         final rng = math.Random(_stableHash('$key|$r|$c'));
         final roll = rng.nextDouble();
-        final kind = rng.nextInt(commons.length);
+        final kindRoll = rng.nextDouble();
         final butterflyRoll = rng.nextDouble();
+        final elementRoll = rng.nextDouble();
         if (roll >= RuleConstants.fieldSpawnChance) continue;
         final p = pick(() => GeoPoint(
               s0 + rng.nextDouble() * blockLat,
@@ -146,7 +146,7 @@ class FieldMonsterRules {
         final id = '$key#${r}_$c';
         final monster = night && butterflyRoll < nightButterflyShare
             ? MonsterId.shadowButterfly
-            : commons[kind];
+            : pickCommon(kindRoll, elementRoll, night: night);
         spawns.add(FieldSpawn(
           id: id,
           monster: monster,
@@ -156,6 +156,47 @@ class FieldMonsterRules {
       }
     }
     return spawns;
+  }
+
+  /// 블록 몬스터 비율 (11-11)
+  static const List<(MonsterId, double)> commonWeights = [
+    (MonsterId.ashSlime, 0.30),
+    (MonsterId.giantRat, 0.25),
+    (MonsterId.hornRabbit, 0.20),
+    (MonsterId.babyBoar, 0.15),
+    (MonsterId.labyrinthBat, 0.10),
+  ];
+
+  /// 슬라임 속성 비율 (낮, 밤). 빛은 낮에, 어둠은 밤에 조금 더 자주.
+  static const List<(MonsterId, double, double)> slimeWeights = [
+    (MonsterId.ashSlime, 0.40, 0.40),
+    (MonsterId.fireSlime, 0.13, 0.13),
+    (MonsterId.waterSlime, 0.13, 0.13),
+    (MonsterId.windSlime, 0.13, 0.13),
+    (MonsterId.earthSlime, 0.13, 0.13),
+    (MonsterId.lightSlime, 0.06, 0.02),
+    (MonsterId.darkSlime, 0.02, 0.06),
+  ];
+
+  /// [kindRoll]·[elementRoll] 은 0~1 난수
+  static MonsterId pickCommon(double kindRoll, double elementRoll,
+      {bool night = false}) {
+    var acc = 0.0;
+    var kind = commonWeights.last.$1;
+    for (final (m, w) in commonWeights) {
+      acc += w;
+      if (kindRoll < acc) {
+        kind = m;
+        break;
+      }
+    }
+    if (kind != MonsterId.ashSlime) return kind;
+    acc = 0;
+    for (final (m, day, nightW) in slimeWeights) {
+      acc += night ? nightW : day;
+      if (elementRoll < acc) return m;
+    }
+    return MonsterId.ashSlime;
   }
 
   /// 밤에 그림자 나비가 되는 블록 몬스터 비율

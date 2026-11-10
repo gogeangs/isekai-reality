@@ -87,11 +87,12 @@ class ExpRules {
     return DailyExpBreakdown(
       dungeon: dungeon,
       fieldMonster: (monsters *
-              RuleConstants.fieldMonsterExp *
-              (TownRules.incenseActive(record)
-                  ? RuleConstants.incenseExpMultiplier
-                  : 1))
-          .round(),
+                  RuleConstants.fieldMonsterExp *
+                  (TownRules.incenseActive(record)
+                      ? RuleConstants.incenseExpMultiplier
+                      : 1))
+              .round() +
+          (record.gains['exp'] ?? 0),
       exploration: newPlaces * RuleConstants.newPlaceExp +
           record.placesRevisited * RuleConstants.revisitPlaceExp,
       quest: quests * RuleConstants.questExp,

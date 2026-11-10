@@ -37,6 +37,9 @@ enum ShopItem {
 
   /// 나뭇가지: 지팡이 재료 (하루 5개, 11-10)
   twig,
+
+  /// 약초: 회복 물약 재료 (하루 5개, 11-11)
+  herb,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -225,6 +228,16 @@ class TownRules {
       perLimit: 5,
       icon: 'mat_twig',
       material: MaterialId.twig,
+    ),
+    ShopItemInfo(
+      item: ShopItem.herb,
+      name: '약초',
+      description: '회복 물약 재료예요. 물약 만들기는 곧 열려요.',
+      price: 15,
+      limit: ShopLimit.perDay,
+      perLimit: 5,
+      icon: 'mat_herb',
+      material: MaterialId.herb,
     ),
     ShopItemInfo(
       item: ShopItem.magicLens,

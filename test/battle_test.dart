@@ -345,9 +345,9 @@ void main() {
       expect(c.history.last.fieldMonstersPurified, 1);
       // 마석 1개와 그 몬스터 재료 1개 (11-10)
       expect(c.player.manaStones, stones + 1);
-      final (common, _) = LootRules.dropsOf(spawn.monster);
-      expect(c.player.materialCount(common), 1);
-      expect(c.lastReward.materials[common], 1);
+      final common = LootRules.dropsOf(spawn.monster).common;
+      expect(common.map(c.player.materialCount).fold<int>(0, (a, b) => a + b), 1);
+      expect(common.any((m) => c.lastReward.materials[m] == 1), isTrue);
       expect(c.todaySpawns.map((s) => s.id), isNot(contains(spawn.id)));
       // 같은 자리를 두 번 기록하지 않는다
       expect(await c.finishFieldBattle(spawn, b), 0);

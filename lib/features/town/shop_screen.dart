@@ -38,7 +38,8 @@ class ShopScreen extends StatelessWidget {
         ShopItem.purifyIncense =>
           '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.ironShard ||
-        ShopItem.twig =>
+        ShopItem.twig ||
+        ShopItem.herb =>
           '${josa(TownRules.info(item).name, '을/를')} 재료 주머니에 넣었어요.',
         ShopItem.healSmall ||
         ShopItem.heal ||

@@ -36,6 +36,7 @@ class Foe {
 
   MonsterInfo get info => Monsters.info(monster);
   bool get isBoss => info.isBoss;
+  MonsterTrait get trait => info.trait;
 
   /// 화면에 보이는 이름 (수식어 포함)
   String get name => small
@@ -104,13 +105,19 @@ class BattleRules {
   }
 
   /// 지도에서 만나는 필드 몬스터 한 마리 (가볍게 사냥)
+  ///
+  /// 몬스터마다 능력치 배수가 있다 (11-11: 혼래빗 빠름, 보어 단단함, 대지 슬라임 방어 등).
   static Foe fieldFoe({required int level, required MonsterId monster}) {
     final atk = attackOf(expectedCombatPower(level));
     final hp = expectedMaxHp(level);
+    final info = Monsters.info(monster);
     return Foe(
       monster: monster,
-      maxHp: atk * RuleConstants.fieldHitsToClear,
-      attack: math.max(1, (hp / RuleConstants.fieldHpBudgetTicks).round()),
+      maxHp: math.max(1, (atk * RuleConstants.fieldHitsToClear * info.hp).round()),
+      attack: math.max(
+          1, (hp / RuleConstants.fieldHpBudgetTicks * info.attack).round()),
+      defense: info.defense,
+      speed: info.speed,
     );
   }
 
@@ -131,8 +138,8 @@ class BattleRules {
       maxHp: math.max(1, (base.maxHp * h).round()),
       attack: math.max(1, (base.attack * a).round()),
       mods: mods,
-      defense: d,
-      speed: sp,
+      defense: base.defense * d,
+      speed: base.speed * sp,
     );
     final packSize = mods.contains(ModifierId.pack)
         ? ModifierRules.foeCount(spawnId, [ModifierId.pack])
@@ -299,6 +306,7 @@ class Battle {
       foeHp = foe.maxHp;
       phase = BattlePhase.fighting;
       floorTicks = 0;
+      _charged = false;
       lastDealt = 0;
       lastTaken = 0;
       lastWasSkill = false;
@@ -319,11 +327,23 @@ class Battle {
       if (isOver) return;
     }
 
+    // 번개 같은: 첫 턴에 한 번 더 공격
+    if (foeFirst && f.has(ModifierId.lightning) && floorTicks == 1) {
+      _foeTurn();
+      if (isOver) return;
+    }
+
     // 각성자 차례
     if (f.has(ModifierId.bewitching) && _rng.nextDouble() < 0.25) {
       lastEvent = '홀렸어요!';
     } else if (f.has(ModifierId.nimble) && _rng.nextDouble() < 0.20) {
       lastEvent = '피했어요!';
+    } else if (f.has(ModifierId.lightning) && _rng.nextDouble() < 0.25) {
+      lastEvent = '피했어요!';
+    } else if (f.trait == MonsterTrait.evade && _rng.nextDouble() < 0.15) {
+      lastEvent = '피했어요!';
+    } else if (f.trait == MonsterTrait.dazzle && _rng.nextDouble() < 0.25) {
+      lastEvent = '눈부셔요!';
     } else {
       var dmg = _vary(playerAttack);
       if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
@@ -339,9 +359,18 @@ class Battle {
     if (!foeFirst) {
       _foeTurn();
       if (isOver) return;
+      if (f.has(ModifierId.lightning) && floorTicks == 1) {
+        _foeTurn();
+        if (isOver) return;
+      }
     }
 
-    // 중독
+    // 물 슬라임: 매 턴 끝에 5% 회복
+    if (f.trait == MonsterTrait.regen && foeHp < f.maxHp) {
+      foeHp = math.min(f.maxHp, foeHp + math.max(1, (f.maxHp * 0.05).round()));
+    }
+
+    // 중독·화상
     if (poisonTurns > 0) {
       final p = math.max(1, (playerMaxHp * 0.02).round());
       poisonTurns--;
@@ -366,6 +395,11 @@ class Battle {
     final f = foe;
     var atk = f.attack.toDouble();
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
+    if (f.has(ModifierId.charging) && !_charged) {
+      atk *= 2;
+      _charged = true;
+      lastEvent = '돌진!';
+    }
     if (f.has(ModifierId.ancient) && floorTicks % 4 == 0) {
       atk *= 2.5;
       lastEvent = '강타!';
@@ -379,9 +413,20 @@ class Battle {
       poisonTurns = 3;
       lastEvent = '중독!';
     }
+    if (f.trait == MonsterTrait.burn && _rng.nextDouble() < 0.30) {
+      poisonTurns = 3;
+      lastEvent = '화상!';
+    }
+    // 어둠 슬라임: 때린 피해의 30% 회복
+    if (f.trait == MonsterTrait.drain && foeHp < f.maxHp) {
+      foeHp = math.min(f.maxHp, foeHp + math.max(1, (taken * 0.3).round()));
+    }
     if (f.has(ModifierId.sticky)) playerSpeed = 0.8;
     if (playerHp == 0) phase = BattlePhase.failed;
   }
+
+  /// 돌진하는: 이번 층에서 이미 돌진했는지
+  bool _charged = false;
 
   /// 스킬 '불씨의 일격'. 충전이 다 됐을 때만 쓸 수 있다.
   bool useSkill() {

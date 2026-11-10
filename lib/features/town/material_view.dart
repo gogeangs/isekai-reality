@@ -25,6 +25,18 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.ironShard => Icons.hardware_rounded,
         MaterialId.twig => Icons.park_rounded,
         MaterialId.poisonGland => Icons.science_rounded,
+        MaterialId.rabbitMeat || MaterialId.boarMeat => Icons.set_meal_rounded,
+        MaterialId.smallHorn => Icons.change_history_rounded,
+        MaterialId.goldenRabbitFur => Icons.auto_awesome_rounded,
+        MaterialId.toughHide => Icons.texture_rounded,
+        MaterialId.smallTusk => Icons.change_history_rounded,
+        MaterialId.fireJelly || MaterialId.fireCore => Icons.local_fire_department_rounded,
+        MaterialId.waterJelly || MaterialId.waterCore => Icons.water_drop_rounded,
+        MaterialId.windJelly || MaterialId.windCore => Icons.air_rounded,
+        MaterialId.mudJelly || MaterialId.earthCore => Icons.landscape_rounded,
+        MaterialId.lightJelly || MaterialId.lightCore => Icons.wb_sunny_rounded,
+        MaterialId.darkJelly || MaterialId.shadowCore => Icons.dark_mode_rounded,
+        MaterialId.herb => Icons.eco_rounded,
       };
 
   @override

@@ -221,7 +221,8 @@ void main() {
     });
 
     test('가방: 산 것은 쌓이고, 마시면 줄고, 3개까지만 담는다', () {
-      final rich = _day(2, runs: List.filled(20, const DungeonRun(cleared: true)));
+      final rich = _day(2,
+          runs: List.filled(20, const DungeonRun(cleared: true)), gold: 1000);
       final d3 = DailyRecord(
         date: DateTime(2026, 11, 3),
         stepGoal: 8000,

@@ -103,6 +103,7 @@ class CodexScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       GridView.count(
                         crossAxisCount: 3,
+                        padding: EdgeInsets.zero,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 8,

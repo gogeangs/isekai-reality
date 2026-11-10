@@ -540,6 +540,7 @@ void main() {
       await tester.pumpWidget(RepaintBoundary(
         key: _root,
         child: MaterialApp(
+          debugShowCheckedModeBanner: false,
           theme: ThemeData.dark(),
           home: Scaffold(
             backgroundColor: const Color(0xFF0F1233),

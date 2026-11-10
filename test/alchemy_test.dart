@@ -52,7 +52,7 @@ void main() {
   });
 
   group('전투 물약', () {
-    Foe foe() => const Foe(monster: MonsterId.ashSlime, maxHp: 100000, attack: 300);
+    Foe foe() => const Foe(monster: MonsterId.ashSlime, maxHp: 100000, attack: 100);
 
     test('HP 30% 아래면 자동으로 회복 물약, 전투 한 번에 3개까지', () {
       final b = Battle(
@@ -60,7 +60,7 @@ void main() {
         playerAttack: 1,
         floors: [foe()],
         rng: Random(1),
-        startHp: 250,
+        startHp: 290,
         autoHp: 30,
         potions: const [
           BattlePotion(key: 'shop:healSmall', name: '작은 회복 물약', count: 10, hpRatio: 0.2),
@@ -192,7 +192,7 @@ void main() {
       final r = await c.collectBrew(0);
       expect(r!.suspicious, isNotNull);
       final key = r.suspicious!;
-      expect(c.potionDescription(key), contains('모르'));
+      expect(c.potionDescription(key), contains('마시기 전'));
       final before = c.combatStats.strength;
       expect(await c.drinkPotion(key), isNull);
       expect(c.combatStats.strength, before + 2);

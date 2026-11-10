@@ -437,6 +437,7 @@ class AppController extends ChangeNotifier {
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
+      huntCounts: _addCounts(today, battle.purified),
     ));
     return exp;
   }
@@ -507,6 +508,7 @@ class AppController extends ChangeNotifier {
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
+      huntCounts: _addCounts(today, [monster]),
     ));
     return exp;
   }
@@ -830,6 +832,33 @@ class AppController extends ChangeNotifier {
           for (final name in r.purifiedMonsterIds)
             if (Monsters.byName(name) case final id?) id,
       };
+
+  Map<String, int> _addCounts(DailyRecord today, List<MonsterId> ids) {
+    final m = {...today.huntCounts};
+    for (final id in ids) {
+      m[id.name] = (m[id.name] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  /// 몬스터 종류별 사냥 수 (도감). 11-10 이전 기록은 사냥한 날 하루에 1마리로 센다.
+  Map<MonsterId, int> get huntTotals {
+    final totals = <MonsterId, int>{};
+    for (final r in _history) {
+      if (r.huntCounts.isNotEmpty) {
+        r.huntCounts.forEach((name, n) {
+          final id = Monsters.byName(name);
+          if (id != null) totals[id] = (totals[id] ?? 0) + n;
+        });
+      } else {
+        for (final name in r.purifiedMonsterIds) {
+          final id = Monsters.byName(name);
+          if (id != null) totals[id] = (totals[id] ?? 0) + 1;
+        }
+      }
+    }
+    return totals;
+  }
 
   List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => {
         ...today.purifiedMonsterIds,

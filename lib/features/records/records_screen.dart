@@ -407,7 +407,7 @@ class _DayRow extends StatelessWidget {
       '${comma(r.steps)}보${r.stepGoalAchieved ? ' ✓' : ''}',
       if (r.rested) '휴식',
       if (r.dungeonRuns.isNotEmpty) '던전 ${r.dungeonRuns.length}회',
-      if (r.fieldMonstersPurified > 0) '정화 ${r.fieldMonstersPurified}',
+      if (r.fieldMonstersPurified > 0) '사냥 ${r.fieldMonstersPurified}',
       if (r.visitedPlaceIds.isNotEmpty) '장소 ${r.visitedPlaceIds.length}곳',
     ];
     return Container(

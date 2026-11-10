@@ -181,7 +181,7 @@ class TownRules {
     ),
     ShopItemInfo(
       item: ShopItem.purifyIncense,
-      name: '정화의 향',
+      name: '성장의 향',
       description: '가방에 넣어 두고, 피운 날은 필드 몬스터 경험치가 1.5배예요.',
       price: 6,
       limit: ShopLimit.perDay,

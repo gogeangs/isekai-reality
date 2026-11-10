@@ -36,7 +36,7 @@ class ShopScreen extends StatelessWidget {
         ShopItem.expeditionCompass =>
           '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
         ShopItem.purifyIncense =>
-          '정화의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
+          '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||

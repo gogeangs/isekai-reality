@@ -232,7 +232,9 @@ void main() {
       final spawns = FieldMonsterRules.spawnsFor(area, day);
       final kinds = spawns.map((s) => s.monster).toSet();
       expect(kinds, contains(MonsterId.labyrinthBat));
-      expect(kinds, contains(MonsterId.roughWaterSpirit));
+      expect(kinds, contains(MonsterId.ashSlime));
+      expect(kinds, isNot(contains(MonsterId.roughWaterSpirit)));
+      expect(kinds, isNot(contains(MonsterId.lostStoneSpirit)));
     });
 
     test('밤에는 블록 몬스터 일부가 그림자 나비가 된다', () {
@@ -382,7 +384,7 @@ void main() {
     expect(find.text('1층 / 3층'), findsOneWidget);
 
     for (var i = 0;
-        i < 200 && find.text('던전 정화 완료!').evaluate().isEmpty;
+        i < 200 && find.text('던전 돌파!').evaluate().isEmpty;
         i++) {
       if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
         await tester.tap(find.text('불씨의 일격!'));
@@ -391,7 +393,7 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.text('던전 정화 완료!'), findsOneWidget);
+    expect(find.text('던전 돌파!'), findsOneWidget);
     expect(find.text('경험치 +50'), findsOneWidget);
     expect(c.history.last.dungeonRuns, hasLength(1));
   });

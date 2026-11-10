@@ -152,7 +152,7 @@ void main() {
     var bossShot = false;
     for (var i = 0;
         i < 200 &&
-            find.text('던전 정화 완료!').evaluate().isEmpty &&
+            find.text('던전 돌파!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       if (!bossShot && find.text('BOSS').evaluate().isNotEmpty) {
@@ -215,7 +215,7 @@ void main() {
     await _shot(tester, '13_필드_전투');
     for (var i = 0;
         i < 60 &&
-            find.text('정화 완료!').evaluate().isEmpty &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       await tester.pump(const Duration(milliseconds: 700));
@@ -255,7 +255,7 @@ void main() {
     await _shot(tester, '19_여성_전투');
     for (var i = 0;
         i < 60 &&
-            find.text('정화 완료!').evaluate().isEmpty &&
+            find.text('사냥 성공!').evaluate().isEmpty &&
             find.text('이번엔 물러났어요').evaluate().isEmpty;
         i++) {
       await tester.pump(const Duration(milliseconds: 700));

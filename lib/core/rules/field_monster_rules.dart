@@ -25,7 +25,7 @@ class FieldMonsterRules {
   /// 그날의 필드 몬스터. 날짜로 정해지므로 같은 날에는 누구에게나 같은 자리.
   ///
   /// - 전국을 1km 블록으로 나눈 같은 격자를 쓴다 (11-10 전국 확대).
-  ///   블록마다 70% 확률로 한 마리: 잿빛 슬라임 또는 길 잃은 돌정령.
+  ///   블록마다 70% 확률로 한 마리: 슬라임 또는 큰쥐.
   ///   블록마다 따로 난수를 쓰므로 어디서 보든 같은 블록에는 같은 몬스터.
   /// - [center] 가 있으면 그 둘레 [radiusM] 안 블록만, 없으면 지역 전체
   /// - 장소가 있는 지역이면 장소마다 한 마리 (장소에서 80~150m, 장소에 맞는 몬스터)
@@ -75,7 +75,8 @@ class FieldMonsterRules {
       ));
     }
 
-    const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
+    // 11-10: 돌정령(정령계) 대신 큰쥐
+    const commons = [MonsterId.ashSlime, MonsterId.giantRat];
     const blockLat = RuleConstants.fieldSpawnBlockM / 111320;
     final b = area.bounds;
     final double south, north;
@@ -168,7 +169,8 @@ class FieldMonsterRules {
 
   static MonsterId _habitatMonster(PlaceKind kind) => switch (kind) {
         PlaceKind.labyrinthGate => MonsterId.labyrinthBat,
-        PlaceKind.spiritLake => MonsterId.roughWaterSpirit,
+        // 물방울 정령(정령계)을 뺐다 (11-10)
+        PlaceKind.spiritLake => MonsterId.ashSlime,
       };
 
   /// [from] 에서 [meters] 만큼 [bearing] 방향으로 옮긴 점 (짧은 거리용 근사)

@@ -129,7 +129,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       final name = id == null ? '몬스터' : Monsters.info(id).name;
       title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
       body = ex.cleared!
-          ? '${c.profile.spiritName}이(가) $name을(를) 정화했어요.'
+          ? '${c.profile.spiritName}이(가) $name을(를) 사냥했어요.'
               '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
           : '$name이(가) 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
     } else {
@@ -239,7 +239,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             header: true,
             child: CodexScreen(
               player: controller.player,
-              purifiedMonsters: controller.purifiedEver,
+              // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다
+              purifiedMonsters: {
+                for (final m in controller.purifiedEver)
+                  if (!Monsters.info(m).retired) m,
+              },
+              huntCounts: controller.huntTotals,
               equipped: controller.equippedTitle,
               onEquip: controller.setEquippedTitle,
             ),

@@ -95,11 +95,11 @@ class InnScreen extends StatelessWidget {
                             label: '던전',
                             value: today.dungeonRuns.isEmpty
                                 ? '아직 안 열었어요'
-                                : '${today.dungeonRuns.length}번 · 정화 $cleared번'),
+                                : '${today.dungeonRuns.length}번 · 돌파 $cleared번'),
                         _Row(
                             icon: 'crystal',
                             label: '필드 몬스터',
-                            value: '${today.fieldMonstersPurified}마리 정화'),
+                            value: '${today.fieldMonstersPurified}마리 사냥'),
                         _Row(
                             icon: 'vitality',
                             label: 'HP',

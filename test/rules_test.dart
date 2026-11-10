@@ -199,11 +199,15 @@ void main() {
           contains(TitleId.morningSpiritFriend));
     });
 
-    test('몬스터 6종을 모두 정화하면 도감의 현자', () {
-      final ids = [for (final m in MonsterId.values) m.name];
-      expect(TitleRules.earned([day(0, monsterIds: ids.sublist(1))], 1),
+    test('도감의 몬스터를 모두 사냥하면 도감의 현자 (예전 6종도 인정)', () {
+      final now = [for (final m in Monsters.all) m.id.name];
+      expect(TitleRules.earned([day(0, monsterIds: now.sublist(1))], 1),
           isNot(contains(TitleId.bookwormSage)));
-      expect(TitleRules.earned([day(0, monsterIds: ids)], 1),
+      expect(TitleRules.earned([day(0, monsterIds: now)], 1),
+          contains(TitleId.bookwormSage));
+      const old = ['ashSlime', 'labyrinthBat', 'roughWaterSpirit',
+          'shadowButterfly', 'lostStoneSpirit', 'labyrinthWarden'];
+      expect(TitleRules.earned([day(0, monsterIds: old)], 1),
           contains(TitleId.bookwormSage));
       expect(TitleRules.info(TitleId.bookwormSage).name, '도감의 현자');
     });

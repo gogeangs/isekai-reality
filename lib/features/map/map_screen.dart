@@ -103,7 +103,7 @@ class _TopPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  '오늘 정화 $purifiedToday / '
+                  '오늘 사냥 $purifiedToday / '
                   '${RuleConstants.maxFieldMonstersPerDay}마리',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
               const SizedBox(height: 4),
@@ -211,7 +211,7 @@ class _MonsterCard extends StatelessWidget {
                         color: AppColors.goldBright,
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
-                const Text('멈춰 선 다음 정화해 주세요',
+                const Text('멈춰 선 다음 사냥해 주세요',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
               ],
             ),
@@ -223,7 +223,7 @@ class _MonsterCard extends StatelessWidget {
               foregroundColor: AppColors.night,
               minimumSize: const Size(88, 48),
             ),
-            child: const Text('정화하기'),
+            child: const Text('사냥하기'),
           ),
         ]),
       ),

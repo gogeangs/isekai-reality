@@ -14,12 +14,18 @@ class CodexScreen extends StatefulWidget {
     super.key,
     required this.player,
     required this.purifiedMonsters,
+    this.huntCounts = const {},
     this.equipped,
     this.onEquip,
   });
 
   final PlayerState player;
+
+  /// 한 번이라도 사냥한 몬스터
   final Set<MonsterId> purifiedMonsters;
+
+  /// 종류별 사냥한 마릿수
+  final Map<MonsterId, int> huntCounts;
 
   /// 지금 대표 칭호
   final TitleId? equipped;
@@ -121,7 +127,7 @@ class _CodexScreenState extends State<CodexScreen> {
             '몬스터',
             widget.purifiedMonsters.length,
             Monsters.all.length,
-            '정화한 몬스터는 여기 기록돼. 6종 모두 만나 보자!',
+            '사냥한 몬스터는 여기 기록돼. ${Monsters.all.length}종 모두 만나 보자!',
             _monsters),
       ];
 
@@ -165,7 +171,8 @@ class _CodexScreenState extends State<CodexScreen> {
                 for (final m in Monsters.all)
                   _MonsterTile(
                       info: m,
-                      purified: widget.purifiedMonsters.contains(m.id)),
+                      hunted: widget.purifiedMonsters.contains(m.id),
+                      count: widget.huntCounts[m.id] ?? 0),
               ],
             ),
           ],
@@ -412,38 +419,42 @@ class _TitleCard extends StatelessWidget {
 }
 
 class _MonsterTile extends StatelessWidget {
-  const _MonsterTile({required this.info, required this.purified});
+  const _MonsterTile(
+      {required this.info, required this.hunted, this.count = 0});
 
   final MonsterInfo info;
-  final bool purified;
+  final bool hunted;
+
+  /// 사냥한 마릿수
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: purified ? '${info.name} → ${info.purifiedName}' : info.habitat,
+      message: info.habitat,
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: purified
+            colors: hunted
                 ? const [Color(0xFF3A2E6E), Color(0xFF1B1E4C)]
                 : const [Color(0xFF1E2152), Color(0xFF14173E)],
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: purified
+              color: hunted
                   ? AppColors.goldBright
                   : AppColors.gold.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
             Expanded(
-              child: purified
-                  ? MonsterPicture(monster: info.id, size: 88, purified: true)
+              child: hunted
+                  ? MonsterPicture(monster: info.id, size: 88)
                   : ColorFiltered(
-                      // 아직 정화하지 않은 몬스터는 그림자로만 보인다
+                      // 아직 사냥하지 않은 몬스터는 그림자로만 보인다
                       colorFilter: const ColorFilter.mode(
                           Color(0xFF0B0D26), BlendMode.srcATop),
                       child: MonsterPicture(monster: info.id, size: 88),
@@ -451,11 +462,11 @@ class _MonsterTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              purified ? info.purifiedName : '???',
+              hunted ? '${info.name}\n${count}마리' : '???',
               textAlign: TextAlign.center,
               maxLines: 2,
               style: TextStyle(
-                color: purified ? AppColors.text : AppColors.textMuted,
+                color: hunted ? AppColors.text : AppColors.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),

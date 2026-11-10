@@ -52,7 +52,8 @@ class BattleRules {
     final hp = expectedMaxHp(level);
     final floorAttack =
         math.max(1, (hp / RuleConstants.dungeonHpBudgetTicks).round());
-    const commons = [MonsterId.ashSlime, MonsterId.lostStoneSpirit];
+    // 11-10: 던전의 일반 층은 미궁 박쥐 (돌정령은 정령계라 뺐다)
+    const commons = [MonsterId.labyrinthBat];
 
     return [
       for (var i = 0; i < 3; i++)
@@ -71,7 +72,7 @@ class BattleRules {
     ];
   }
 
-  /// 지도에서 만나는 필드 몬스터 한 마리 (가볍게 정화)
+  /// 지도에서 만나는 필드 몬스터 한 마리 (가볍게 사냥)
   static Foe fieldFoe({required int level, required MonsterId monster}) {
     final atk = attackOf(expectedCombatPower(level));
     final hp = expectedMaxHp(level);

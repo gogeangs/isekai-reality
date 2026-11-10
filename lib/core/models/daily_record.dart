@@ -36,6 +36,7 @@ class DailyRecord {
     this.openedApp = true,
     this.visitedPlaceIds = const [],
     this.purifiedMonsterIds = const [],
+    this.huntCounts = const {},
     this.purifiedSpawnIds = const [],
     this.shopPurchases = const [],
     this.restedAtInn = false,
@@ -72,6 +73,9 @@ class DailyRecord {
 
   /// 오늘 정화한 몬스터 종류 (던전·필드 모두, 도감용. [MonsterId] 이름)
   final List<String> purifiedMonsterIds;
+
+  /// 그날 몬스터 종류별 사냥 수 (11-10부터 기록, 도감의 마릿수)
+  final Map<String, int> huntCounts;
 
   /// 오늘 정화한 필드 몬스터 자리 id (같은 자리는 다시 나오지 않음)
   final List<String> purifiedSpawnIds;
@@ -117,6 +121,7 @@ class DailyRecord {
         'openedApp': openedApp,
         'visitedPlaceIds': visitedPlaceIds,
         'purifiedMonsterIds': purifiedMonsterIds,
+        'huntCounts': huntCounts,
         'purifiedSpawnIds': purifiedSpawnIds,
         'shopPurchases': shopPurchases,
         'restedAtInn': restedAtInn,
@@ -148,6 +153,10 @@ class DailyRecord {
       purifiedMonsterIds: ((json['purifiedMonsterIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
+      huntCounts: {
+        for (final e in ((json['huntCounts'] as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      },
       purifiedSpawnIds: ((json['purifiedSpawnIds'] as List?) ?? const [])
           .map((e) => e as String)
           .toList(),
@@ -179,6 +188,7 @@ class DailyRecord {
     bool? openedApp,
     List<String>? visitedPlaceIds,
     List<String>? purifiedMonsterIds,
+    Map<String, int>? huntCounts,
     List<String>? purifiedSpawnIds,
     List<String>? shopPurchases,
     bool? restedAtInn,
@@ -202,6 +212,7 @@ class DailyRecord {
       openedApp: openedApp ?? this.openedApp,
       visitedPlaceIds: visitedPlaceIds ?? this.visitedPlaceIds,
       purifiedMonsterIds: purifiedMonsterIds ?? this.purifiedMonsterIds,
+      huntCounts: huntCounts ?? this.huntCounts,
       purifiedSpawnIds: purifiedSpawnIds ?? this.purifiedSpawnIds,
       shopPurchases: shopPurchases ?? this.shopPurchases,
       restedAtInn: restedAtInn ?? this.restedAtInn,

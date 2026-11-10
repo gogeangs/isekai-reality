@@ -73,7 +73,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                       : SpiritMood.normal,
                   line: widget.controller.hp <= 0
                       ? '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.'
-                      : '움직이는 중엔 위험해! 멈춰 선 다음에 정화하자.'),
+                      : '움직이는 중엔 위험해! 멈춰 선 다음에 사냥하자.'),
               // HP 0: 지쳐 주저앉은 각성자
               if (widget.controller.hp <= 0)
                 SizedBox(
@@ -86,7 +86,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
               BulssiLine(
                 mood: cleared ? SpiritMood.cheer : SpiritMood.worried,
                 line: cleared
-                    ? info.purifiedLine
+                    ? info.huntLine
                     : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',
               ),
               const SizedBox(height: 4),
@@ -101,7 +101,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
               )
             else if (_done) ...[
               const SizedBox(height: 8),
-              Text(cleared ? '정화 완료!' : '이번엔 물러났어요',
+              Text(cleared ? '사냥 성공!' : '이번엔 물러났어요',
                   textAlign: TextAlign.center, style: AppText.title(30)),
               const SizedBox(height: 12),
               SizedBox(
@@ -118,14 +118,14 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                       ]),
                     ),
                   ),
-                  MonsterPicture(monster: info.id, size: 190, purified: cleared),
+                  MonsterPicture(monster: info.id, size: 190, defeated: cleared),
                 ]),
               ),
               if (cleared)
                 OrnatePanel(
                   ornament: true,
                   child: Column(children: [
-                    Text(info.purifiedName, style: AppText.title(20)),
+                    Text(info.name, style: AppText.title(20)),
                     const SizedBox(height: 6),
                     Text('경험치 +$_exp',
                         textAlign: TextAlign.center,

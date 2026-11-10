@@ -82,7 +82,7 @@ class SpawnSheet extends StatelessWidget {
             const SizedBox(height: 14),
             if (near) ...[
               GoldButton(
-                label: '직접 정화하기',
+                label: '직접 사냥하기',
                 onPressed: c.hp <= 0
                     ? null
                     : () async {

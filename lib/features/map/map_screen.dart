@@ -32,8 +32,9 @@ class MapScreen extends StatelessWidget {
               : _ExploreSummary(controller: controller),
         ),
         Positioned(
-          left: 16,
-          right: 16,
+          // 위쪽 프로필·설정 버튼 사이
+          left: 66,
+          right: 66,
           top: MediaQuery.paddingOf(context).top + 8,
           child: _TopPanel(
             purifiedToday: controller.player.today?.fieldMonstersPurified ?? 0,

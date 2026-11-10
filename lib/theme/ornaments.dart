@@ -112,14 +112,39 @@ class _NineSlice extends StatelessWidget {
 /// 그보다 작으면 코드로 그린 테두리를 쓴다.
 /// 불씨 말풍선 그림 (ui_bubble.png, 477×234, 왼쪽 아래 꼬리)
 class SpeechBubbleArt extends StatelessWidget {
-  const SpeechBubbleArt({super.key, required this.child});
+  const SpeechBubbleArt({super.key, required this.child, this.mirrored = false});
 
   final Widget child;
+
+  /// true 면 꼬리가 오른쪽 아래 (말하는 쪽이 오른쪽에 있을 때)
+  final bool mirrored;
 
   static const double _scale = 2.8;
 
   @override
   Widget build(BuildContext context) {
+    if (mirrored) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
+        child: Stack(children: [
+          Positioned.fill(
+            child: Transform.flip(
+              flipX: true,
+              child: const _NineSlice(
+                asset: 'assets/images/ui_bubble.png',
+                slice: Rect.fromLTRB(110, 55, 400, 175),
+                scale: _scale,
+                child: SizedBox.expand(),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 13, 30, 19),
+            child: child,
+          ),
+        ]),
+      );
+    }
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
       child: _NineSlice(

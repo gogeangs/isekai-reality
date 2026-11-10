@@ -10,7 +10,8 @@ void main() {
     await controller.init();
     await tester.pump();
 
-    expect(find.textContaining('Lv.'), findsOneWidget);
+    // 레벨 줄과 왼쪽 위 프로필 버튼
+    expect(find.textContaining('Lv.'), findsWidgets);
     expect(find.text('상태'), findsOneWidget);
     expect(find.text('지도'), findsOneWidget);
   });

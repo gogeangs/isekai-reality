@@ -197,42 +197,44 @@ class ArtSpirit extends StatelessWidget {
     final kind = scope?.kind ?? SpiritKind.fire;
     final glow = scope?.glow ?? spiritColor(kind);
     final name = scope?.spiritName ?? kind.defaultName;
-    // 11-10 #28: 말풍선은 정령 바로 위에 붙이고, 왼쪽 아래 꼬리가 정령을 향한다.
-    // 긴 대사는 글자를 줄이고 세 줄까지만.
+    // 11-10 #28: 말풍선은 정령 바로 옆(왼쪽)에 붙이고 꼬리(오른쪽 아래)가 정령을 향한다.
+    // 각성자 얼굴·손을 가리지 않게 화면 오른쪽 위에 작게. 긴 대사는 글자를 줄인다.
     final long = line.length > 30;
-    return Column(
+    return Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        SpeechBubbleArt(
-          child: Text.rich(
-            TextSpan(children: [
-              TextSpan(
-                text: '$name\n',
-                style: const TextStyle(
-                    color: Color(0xFF8A5A12),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800),
+        Flexible(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: size * 0.35),
+            child: SpeechBubbleArt(
+              mirrored: true,
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                    text: '$name\n',
+                    style: const TextStyle(
+                        color: Color(0xFF8A5A12),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800),
+                  ),
+                  TextSpan(text: keepAll(line)),
+                ]),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: AppColors.night,
+                    fontSize: long ? 11.5 : 13,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600),
               ),
-              TextSpan(text: keepAll(line)),
-            ]),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                color: AppColors.night,
-                fontSize: long ? 11.5 : 13,
-                height: 1.25,
-                fontWeight: FontWeight.w600),
+            ),
           ),
         ),
-        Padding(
-          // 꼬리 바로 아래
-          padding: const EdgeInsets.only(left: 2),
-          child: _Glow(
-              color: glow,
-              spread: 0.4,
-              child: SpiritArt(kind: kind, size: size, name: name, mood: mood)),
-        ),
+        _Glow(
+            color: glow,
+            spread: 0.4,
+            child: SpiritArt(kind: kind, size: size, name: name, mood: mood)),
       ],
     );
   }

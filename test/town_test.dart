@@ -490,11 +490,10 @@ void main() {
     await c.init();
     await tester.pump();
 
-    final shop = find.text('잡화상');
-    await tester.scrollUntilVisible(shop, 300,
-        scrollable: find.byType(Scrollable).first);
+    // 11-10: 잡화상은 마을 탭에서
+    await tester.tap(find.text('마을'));
     await tester.pumpAndSettle();
-    await tester.tap(shop);
+    await tester.tap(find.text('잡화상').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('정화 결정'), findsWidgets);
 

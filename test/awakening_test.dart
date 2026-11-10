@@ -142,6 +142,6 @@ void main() {
     expect(controller.needsAwakening, isFalse);
     expect(controller.profile.spiritKind, SpiritKind.water);
     expect(controller.profile.spiritName, '이슬');
-    expect(find.textContaining('Lv.'), findsOneWidget);
+    expect(find.textContaining('Lv.'), findsWidgets);
   });
 }

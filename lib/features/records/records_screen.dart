@@ -10,9 +10,13 @@ import '../bulssi/bulssi_bubble.dart';
 
 /// 기록 (목업 구도): 이번 주 / 지난 주, 걸음·필드 몬스터·여관 휴식 그래프, 주간 요약 3칸.
 class RecordsScreen extends StatefulWidget {
-  const RecordsScreen({super.key, required this.player});
+  const RecordsScreen(
+      {super.key, required this.player, this.embedded = false});
 
   final PlayerState player;
+
+  /// 프로필 안 '기록' 영역으로 쓸 때 (위쪽 제목·여백 없이, 11-10 #24)
+  final bool embedded;
 
   static const List<String> week = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -81,9 +85,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
     return ColoredBox(
       color: Colors.transparent,
       child: ListView(
-        padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
+        padding: widget.embedded
+            ? const EdgeInsets.fromLTRB(0, 4, 0, 24)
+            : EdgeInsets.fromLTRB(14, top + 6, 14, 24),
         children: [
-          const OrnateTopBar(title: '기록'),
+          if (!widget.embedded) const OrnateTopBar(title: '기록'),
           const SizedBox(height: 6),
           BulssiLine(line: best < 0
                 ? '이 주에는 기록이 없어. 이번 주에 같이 채워 보자!'

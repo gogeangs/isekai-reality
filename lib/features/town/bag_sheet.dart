@@ -47,6 +47,23 @@ class BagSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+        child: BagContents(controller: controller),
+      ),
+    );
+  }
+}
+
+/// 가방 안 물건 목록 (가방 창과 가방 탭이 같이 쓴다)
+class BagContents extends StatelessWidget {
+  const BagContents({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -55,10 +72,7 @@ class BagSheet extends StatelessWidget {
           for (final i in TownRules.bagItems)
             if (c.bagCount(i) > 0) i,
         ];
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
-            child: Column(
+        return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -83,9 +97,7 @@ class BagSheet extends StatelessWidget {
                   ),
                 for (final item in owned) _BagRow(controller: c, item: item),
               ],
-            ),
-          ),
-        );
+            );
       },
     );
   }

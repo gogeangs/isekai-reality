@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'alchemy_rules.dart';
 import 'equipment_rules.dart';
 import 'modifier_rules.dart';
 import 'pet_rules.dart';
@@ -189,7 +190,13 @@ class Battle {
     double playerSpeed = 1,
     this.petSkill,
     this.petAdult = false,
+    List<BattlePotion> potions = const [],
+    this.autoHp = 0,
+    this.autoCure = false,
+    this.resist = const {},
   })  : floors = List.unmodifiable(floors),
+        potions = {for (final p in potions) p.key: p},
+        _potionLeft = {for (final p in potions) p.key: p.count},
         skillDamage =
             skillDamage ?? playerAttack * RuleConstants.skillDamageMultiplier,
         baseSpeed = playerSpeed,
@@ -212,6 +219,10 @@ class Battle {
     PetSkill? petSkill,
     bool petAdult = false,
     double power = 1,
+    List<BattlePotion> potions = const [],
+    int autoHp = 0,
+    bool autoCure = false,
+    Map<Element, double> resist = const {},
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
@@ -240,6 +251,10 @@ class Battle {
               .round()),
       petSkill: petSkill,
       petAdult: petAdult,
+      potions: potions,
+      autoHp: autoHp,
+      autoCure: autoCure,
+      resist: resist,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -277,6 +292,90 @@ class Battle {
 
   /// 작은 보호막: 남은 막는 횟수
   int shieldHits = 0;
+
+  // ───────────── 물약 (11-11 #57)
+
+  /// 가방에서 가져온 물약 (키 → 정보)
+  final Map<String, BattlePotion> potions;
+  final Map<String, int> _potionLeft;
+
+  /// 이번 전투에서 마신 물약 (끝나면 가방에서 뺀다)
+  final Map<String, int> potionsUsed = {};
+  int get potionsDrunk => potionsUsed.values.fold(0, (a, b) => a + b);
+
+  /// 자동 마시기: HP 이 % 아래면 회복 물약 (0이면 끔)
+  final int autoHp;
+
+  /// 자동 마시기: 중독·화상·눈부심 풀기
+  final bool autoCure;
+
+  /// 속성 저항 (그 속성 몬스터에게 받는 피해 감소)
+  final Map<Element, double> resist;
+
+  /// 지금 걸린 것이 화상인지 (아니면 중독)
+  bool burning = false;
+
+  /// 해독제·연고를 마신 뒤 다시 안 걸리는 턴
+  int immuneTurns = 0;
+
+  /// 맑은 눈 물약: 이번 전투 동안 눈부심에 빗나가지 않는다
+  bool clearEye = false;
+
+  int potionLeft(String key) => _potionLeft[key] ?? 0;
+
+  /// 물약을 마신다 (전투 한 번에 3개까지)
+  bool drink(String key) {
+    final p = potions[key];
+    if (p == null || potionLeft(key) <= 0 || isOver) return false;
+    if (potionsDrunk >= AlchemyRules.perBattle) return false;
+    switch (p.cure) {
+      case CureKind.poison:
+        if (poisonTurns <= 0 || burning) return false;
+        poisonTurns = 0;
+        immuneTurns = 3;
+      case CureKind.burn:
+        if (poisonTurns <= 0 || !burning) return false;
+        poisonTurns = 0;
+        immuneTurns = 3;
+      case CureKind.dazzle:
+        if (clearEye) return false;
+        clearEye = true;
+      case null:
+        if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
+        playerHp = math.min(
+            playerMaxHp, playerHp + (playerMaxHp * p.hpRatio).round());
+    }
+    _potionLeft[key] = potionLeft(key) - 1;
+    potionsUsed[key] = (potionsUsed[key] ?? 0) + 1;
+    lastEvent = '${p.name}!';
+    return true;
+  }
+
+  /// 자동으로 마실 물약이 있으면 마신다
+  void _autoDrink() {
+    if (isOver) return;
+    if (autoCure && poisonTurns > 0) {
+      final kind = burning ? CureKind.burn : CureKind.poison;
+      for (final p in potions.values) {
+        if (p.cure == kind && drink(p.key)) break;
+      }
+    }
+    if (autoCure &&
+        !clearEye &&
+        floors[floor].trait == MonsterTrait.dazzle) {
+      for (final p in potions.values) {
+        if (p.cure == CureKind.dazzle && drink(p.key)) break;
+      }
+    }
+    if (autoHp > 0 && playerHp * 100 < playerMaxHp * autoHp) {
+      // 작은 것부터
+      final heals = [
+        for (final p in potions.values)
+          if (p.cure == null && p.hpRatio > 0 && potionLeft(p.key) > 0) p,
+      ]..sort((a, b) => a.hpRatio.compareTo(b.hpRatio));
+      if (heals.isNotEmpty) drink(heals.first.key);
+    }
+  }
 
   /// 받는 피해 배수 (장비·체력으로 줄어든다)
   final double damageTaken;
@@ -395,7 +494,9 @@ class Battle {
       lastEvent = '피했어요!';
     } else if (f.trait == MonsterTrait.evade && _rng.nextDouble() < 0.15) {
       lastEvent = '피했어요!';
-    } else if (f.trait == MonsterTrait.dazzle && _rng.nextDouble() < 0.25) {
+    } else if (f.trait == MonsterTrait.dazzle &&
+        !clearEye &&
+        _rng.nextDouble() < 0.25) {
       lastEvent = '눈부셔요!';
     } else {
       var dmg = _vary(playerAttack);
@@ -456,6 +557,8 @@ class Battle {
       lastEvent = '도망쳤어요!';
       return;
     }
+    if (immuneTurns > 0) immuneTurns--;
+    _autoDrink();
     if (skillCharge < skillChargeTicks) skillCharge++;
   }
 
@@ -482,6 +585,10 @@ class Battle {
       lastEvent = '강타!';
     }
     if (damageTaken != 1) atk *= damageTaken;
+    final element = AlchemyRules.elementOf(f.monster);
+    if (element != null && (resist[element] ?? 0) > 0) {
+      atk *= 1 - resist[element]!;
+    }
     if (shieldHits > 0) {
       atk *= 0.5;
       shieldHits--;
@@ -491,12 +598,17 @@ class Battle {
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
     if ((f.has(ModifierId.venomous) || f.has(ModifierId.plagued)) &&
+        immuneTurns <= 0 &&
         _rng.nextDouble() < 0.30) {
       poisonTurns = 3;
+      burning = false;
       lastEvent = '중독!';
     }
-    if (f.trait == MonsterTrait.burn && _rng.nextDouble() < 0.30) {
+    if (f.trait == MonsterTrait.burn &&
+        immuneTurns <= 0 &&
+        _rng.nextDouble() < 0.30) {
       poisonTurns = 3;
+      burning = true;
       lastEvent = '화상!';
     }
     // 어둠 슬라임: 때린 피해의 30% 회복
@@ -564,4 +676,25 @@ class Battle {
     }
     return this;
   }
+}
+
+/// 물약이 푸는 상태
+enum CureKind { poison, burn, dazzle }
+
+/// 전투에 가져가는 물약 한 종류
+class BattlePotion {
+  const BattlePotion({
+    required this.key,
+    required this.name,
+    required this.count,
+    this.hpRatio = 0,
+    this.cure,
+  });
+
+  /// 'shop:healSmall' · 'alc:healBig*' 처럼 가방에서 뺄 때 쓰는 키
+  final String key;
+  final String name;
+  final int count;
+  final double hpRatio;
+  final CureKind? cure;
 }

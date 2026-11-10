@@ -225,6 +225,10 @@ class ModifierRules {
     return [first, _pick(extraGrade, monster, rng)];
   }
 
+  /// [grade] 등급에서 [monster] 에게 붙을 수식어 하나 (부르는 물약)
+  static ModifierId pick(ModGrade grade, MonsterId monster, math.Random rng) =>
+      _pick(grade, monster, rng);
+
   static ModifierId _pick(ModGrade grade, MonsterId monster, math.Random rng) {
     // 속성 슬라임도 슬라임 전용 수식어를 받는다
     final asSlime = Monsters.info(monster).slimeKind ? MonsterId.ashSlime : monster;

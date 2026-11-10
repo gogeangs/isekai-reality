@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'core/format.dart';
 import 'core/geo/geo.dart';
 import 'core/geo/route_grid.dart';
+import 'core/models/alchemy_state.dart';
 import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
@@ -226,6 +227,8 @@ class AppController extends ChangeNotifier {
     _bag = bag == null ? const BagState() : BagState.fromJson(bag);
     final pets = await store.loadJson(_petsKey);
     _pets = pets == null ? const PetState() : PetState.fromJson(pets);
+    final alc = await store.loadJson(_alchemyKey);
+    _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -478,6 +481,10 @@ class AppController extends ChangeNotifier {
       gear: gear,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
+      potions: battlePotions,
+      autoHp: _alc.autoHp,
+      autoCure: _alc.autoCure,
+      resist: activeResists,
     );
   }
 
@@ -493,6 +500,7 @@ class AppController extends ChangeNotifier {
 
   /// 전투가 끝났거나 중간에 나왔을 때 남은 HP를 저장한다
   Future<void> keepBattleHp(Battle battle) async {
+    await _consumeBattlePotions(battle);
     _vitals = _vitals.copyWith(hp: battle.playerHp, lastMaxHp: maxHp);
     await store.saveVitals(_vitals);
     notifyListeners();
@@ -512,6 +520,7 @@ class AppController extends ChangeNotifier {
     if (run.cleared && _pets.farewellDone) {
       await _maybeEgg(PetRules.dungeonEggChance, 'dungeon');
     }
+    if (run.cleared) await _maybeNote(AlchemyRules.noteFromDungeon);
     final fit =
         _fitBag(LootRules.dungeon(cleared: run.cleared, rng: _random));
     final mats = fit.kept;
@@ -566,6 +575,7 @@ class AppController extends ChangeNotifier {
             exclusions: exclusions,
             level: player.level.level,
             luckBonus: StatRules.modifierBonus(combatStats))
+        .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -596,6 +606,10 @@ class AppController extends ChangeNotifier {
       gear: gear,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
+      potions: battlePotions,
+      autoHp: _alc.autoHp,
+      autoCure: _alc.autoCure,
+      resist: activeResists,
     );
   }
 
@@ -661,8 +675,15 @@ class AppController extends ChangeNotifier {
     if (paid) {
       for (var i = 0; i < count; i++) {
         LootRules.field(monster, _random,
-                rareBonus: StatRules.rareDropBonus(combatStats))
+                rareBonus: StatRules.rareDropBonus(combatStats) +
+                    (plentyActive ? LootRules.dropsOf(monster).chance * 0.5 : 0))
             .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+        // 풍요의 물약: 재료 +1
+        if (plentyActive) {
+          final d = LootRules.dropsOf(monster);
+          final extra = d.common[_random.nextInt(d.common.length)];
+          mats[extra] = (mats[extra] ?? 0) + 1;
+        }
       }
       final b = ModifierRules.bonus(monster, mods, _random);
       b.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
@@ -709,6 +730,14 @@ class AppController extends ChangeNotifier {
       materials: mats,
     );
     await _rollFieldEgg(ModifierRules.gradeOf(mods));
+    switch (ModifierRules.gradeOf(mods)) {
+      case ModGrade.rare:
+        await _maybeNote(AlchemyRules.noteFromRare);
+      case ModGrade.legend:
+        await _maybeNote(AlchemyRules.noteFromLegend);
+      default:
+        break;
+    }
     if (!_resolving && companionPet != null) {
       await _givePetExp(companionPet!.uid, PetRules.expPerHunt * count);
     }
@@ -770,6 +799,7 @@ class AppController extends ChangeNotifier {
         },
         armory: _armory,
         eggs: _pets.eggs.length,
+        extraStacks: [..._alc.potions.values, ..._extraBagCounts()],
       );
 
   /// 빈칸 (넘치면 0)
@@ -970,7 +1000,7 @@ class AppController extends ChangeNotifier {
 
   /// 전투에 쓰는 스탯: 아직 나누지 않은 포인트는 고르게 나눈 것처럼 친다
   Stats get combatStats =>
-      shownStats + StatRules.evenShare(unspentPoints);
+      shownStats + StatRules.evenShare(unspentPoints) + buffStats;
 
   /// 초기화 비용 (처음 1번 무료)
   int get statResetCost => StatRules.resetCost(_alloc.resets);
@@ -1419,6 +1449,447 @@ class AppController extends ChangeNotifier {
     }
   }
 
+
+  // ───────────────────────────────────────────── 연금술 공방 (11-11 #57·#58)
+
+  static const _alchemyKey = 'alchemy';
+  AlchemyState _alc = const AlchemyState();
+
+  AlchemyState get alchemy => _alc;
+
+  Future<void> _saveAlc(AlchemyState a) async {
+    _alc = a;
+    await store.saveJson(_alchemyKey, a.toJson());
+    notifyListeners();
+  }
+
+  /// 가방 칸을 쓰는 그 밖의 것 (나중에 더할 자리)
+  List<int> _extraBagCounts() => const [];
+
+  /// 읽지 않은 레시피 쪽지
+  int get recipeNotes => _pets.recipeNotes;
+
+  Future<void> _maybeNote(double chance) async {
+    if (_random.nextDouble() >= chance) return;
+    await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    _newNote = true;
+  }
+
+  bool _newNote = false;
+  bool takeNewNote() {
+    final v = _newNote;
+    _newNote = false;
+    return v;
+  }
+
+  /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
+  List<PotionId> get knownRecipes => [
+        for (final p in AlchemyRules.all)
+          if (p.public ||
+              _alc.discovered.contains(p.id.name) ||
+              _alc.noted.contains(p.id.name))
+            p.id,
+      ];
+
+  /// 재료·개수를 아는지 (쪽지로만 알면 아직 만들어 보지 않은 것)
+  bool recipeDiscovered(PotionId id) =>
+      AlchemyRules.info(id).public || _alc.discovered.contains(id.name);
+
+  /// 쪽지를 읽는다: 아직 모르는 물약 하나의 재료·개수 (순서는 빼고)
+  Future<PotionId?> readNote() async {
+    if (_pets.recipeNotes <= 0) return null;
+    final unknown = [
+      for (final p in AlchemyRules.all)
+        if (!p.public &&
+            !_alc.discovered.contains(p.id.name) &&
+            !_alc.noted.contains(p.id.name))
+          p.id,
+    ];
+    if (unknown.isEmpty) return null;
+    final id = unknown[_random.nextInt(unknown.length)];
+    await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes - 1));
+    await _saveAlc(_alc.copyWith(noted: [..._alc.noted, id.name]));
+    return id;
+  }
+
+  /// 다음 가마솥 값 (더 살 수 없으면 null)
+  int? get cauldronGold => AlchemyRules.cauldronGold(_alc.cauldrons);
+  int get cauldronStone => AlchemyRules.cauldronStone(_alc.cauldrons);
+
+  Future<bool> buyCauldron() async {
+    final gold = cauldronGold;
+    final stone = cauldronStone;
+    if (gold == null || player.gold < gold) return false;
+    if (player.materialCount(MaterialId.labyrinthStone) < stone) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {
+      Wallet.gold: gold,
+      if (stone > 0) MaterialId.labyrinthStone.name: stone,
+    })));
+    await _saveAlc(_alc.copyWith(cauldrons: _alc.cauldrons + 1));
+    return true;
+  }
+
+  /// 가마솥 [slot] 에 재료를 넣고 끓인다 (넣은 순서가 중요)
+  Future<bool> startBrew(int slot, List<MaterialId> put) async {
+    if (slot < 0 || slot >= _alc.cauldrons || _alc.brews.containsKey(slot)) {
+      return false;
+    }
+    if (put.isEmpty || put.length > AlchemyRules.maxIngredients) return false;
+    final need = <MaterialId, int>{};
+    for (final m in put) {
+      need[m] = (need[m] ?? 0) + 1;
+    }
+    for (final e in need.entries) {
+      if (player.materialCount(e.key) < e.value) return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(
+            today.spends, {for (final e in need.entries) e.key.name: e.value})));
+    final match = AlchemyRules.match(put);
+    final minutes = match == null
+        ? AlchemyRules.suspiciousMinutes
+        : AlchemyRules.info(match.id).minutes;
+    final now = _clock();
+    final ready = now.add(Duration(minutes: minutes));
+    await _saveAlc(_alc.copyWith(brews: {
+      ..._alc.brews,
+      slot: Brew(put: [for (final m in put) m.name], startedAt: now, readyAt: ready),
+    }));
+    unawaited(notifier?.schedule(
+        200 + slot, ready, '물약이 다 끓었어요', '연금술 공방에서 가마솥을 확인해 보세요!'));
+    return true;
+  }
+
+  bool brewReady(int slot) {
+    final b = _alc.brews[slot];
+    return b != null && !_clock().isBefore(b.readyAt);
+  }
+
+  /// 다 끓은 물약을 꺼낸다
+  Future<BrewResult?> collectBrew(int slot) async {
+    final b = _alc.brews[slot];
+    if (b == null || !brewReady(slot)) return null;
+    final put = [
+      for (final n in b.put)
+        if (Materials.byName(n) case final m?) m,
+    ];
+    final brews = {..._alc.brews}..remove(slot);
+    var a = _alc.copyWith(brews: brews);
+    final match = AlchemyRules.match(put);
+    BrewResult result;
+    if (match == null) {
+      final key = '?:${AlchemyRules.comboKey(put)}';
+      a = a.add(key, 1);
+      result = BrewResult(suspicious: key, count: 1);
+    } else {
+      final info = AlchemyRules.info(match.id);
+      final isNew = !recipeDiscovered(match.id);
+      if (info.shopItem != null && !match.perfect) {
+        // 잡화상과 같은 물약은 같은 물건으로 가방에
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+            counters: DailyRecord.addCounts(today.counters,
+                {TownRules.giftKey(info.shopItem!): info.yields})));
+      } else {
+        a = a.add('${match.id.name}${match.perfect ? '*' : ''}', info.yields);
+      }
+      if (isNew) a = a.copyWith(discovered: [...a.discovered, match.id.name]);
+      result = BrewResult(
+          potion: match.id,
+          perfect: match.perfect,
+          count: info.yields,
+          discovered: isNew);
+    }
+    await _saveAlc(a);
+    return result;
+  }
+
+  // ───────────── 물약 이름·효과
+
+  /// 공방 물약 키 → 이름
+  String potionName(String key) {
+    if (key.startsWith('?:')) return '수상한 물약';
+    final perfect = key.endsWith('*');
+    final id = AlchemyRules.byName(perfect ? key.substring(0, key.length - 1) : key);
+    if (id == null) return key;
+    return '${AlchemyRules.info(id).name}${perfect ? ' (완벽)' : ''}';
+  }
+
+  String potionDescription(String key) {
+    if (key.startsWith('?:')) {
+      if (!_alc.knownSuspicious.contains(key)) return '마시기 전에는 무슨 효과인지 몰라요.';
+      final e = AlchemyRules.suspiciousEffect(_putOf(key));
+      return e.stat == null
+          ? '마시면 HP가 ${e.amount}% 차요. (수상한 물약)'
+          : '10분 동안 ${e.stat!.label} +${e.amount}. (수상한 물약)';
+    }
+    final perfect = key.endsWith('*');
+    final id = AlchemyRules.byName(perfect ? key.substring(0, key.length - 1) : key);
+    if (id == null) return '';
+    return '${AlchemyRules.info(id).description}'
+        '${perfect ? ' 완벽한 조제라 효과와 시간이 25% 더해요.' : ''}';
+  }
+
+  List<MaterialId> _putOf(String key) => [
+        for (final n in key.substring(2).split('+'))
+          if (Materials.byName(n) case final m?) m,
+      ];
+
+  PotionInfo? _infoOf(String key) {
+    final perfect = key.endsWith('*');
+    final id = AlchemyRules.byName(perfect ? key.substring(0, key.length - 1) : key);
+    return id == null ? null : AlchemyRules.info(id);
+  }
+
+  /// 전투에 가져가는 회복·상태이상 물약 (잡화상 물약 + 공방 물약)
+  List<BattlePotion> get battlePotions {
+    final out = <BattlePotion>[];
+    for (final item in [ShopItem.healSmall, ShopItem.heal]) {
+      final n = bagCount(item);
+      if (n > 0) {
+        out.add(BattlePotion(
+            key: 'shop:${item.name}',
+            name: TownRules.info(item).name,
+            count: n,
+            hpRatio: TownRules.info(item).hpRatio));
+      }
+    }
+    for (final e in _alc.potions.entries) {
+      final info = _infoOf(e.key);
+      if (info == null) continue;
+      final m = e.key.endsWith('*') ? 1 + AlchemyRules.perfectBonus : 1.0;
+      final cure = switch (info.id) {
+        PotionId.antidote => CureKind.poison,
+        PotionId.burnSalve => CureKind.burn,
+        PotionId.clearEye => CureKind.dazzle,
+        _ => null,
+      };
+      if (cure == null && info.hpRatio <= 0) continue;
+      out.add(BattlePotion(
+          key: 'alc:${e.key}',
+          name: potionName(e.key),
+          count: e.value,
+          hpRatio: info.hpRatio * m,
+          cure: cure));
+    }
+    return out;
+  }
+
+  final _consumed = Expando<bool>();
+
+  /// 전투에서 마신 물약을 가방에서 뺀다 (한 번만)
+  Future<void> _consumeBattlePotions(Battle battle) async {
+    if (battle.potionsUsed.isEmpty || _consumed[battle] == true) return;
+    _consumed[battle] = true;
+    var a = _alc;
+    final used = <String>[];
+    battle.potionsUsed.forEach((key, n) {
+      if (key.startsWith('shop:')) {
+        for (var i = 0; i < n; i++) {
+          used.add(key.substring(5));
+        }
+      } else if (key.startsWith('alc:')) {
+        a = a.add(key.substring(4), -n);
+      }
+    });
+    if (used.isNotEmpty) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(itemsUsed: [...today.itemsUsed, ...used]));
+    }
+    await _saveAlc(a);
+  }
+
+  /// 공방 물약을 전투 밖에서 마신다. 못 마시면 이유.
+  Future<String?> drinkPotion(String key) async {
+    if (_alc.count(key) <= 0) return '가방에 없어요';
+    final now = _clock();
+    final buffs = [for (final b in _alc.buffs) if (b.until.isAfter(now)) b];
+    var a = _alc.copyWith(buffs: buffs);
+    if (key.startsWith('?:')) {
+      final e = AlchemyRules.suspiciousEffect(_putOf(key));
+      if (e.stat == null) {
+        await refreshVitals();
+        _vitals = _vitals.copyWith(
+            hp: math.min(maxHp, hp + (maxHp * e.amount / 100).round()),
+            lastMaxHp: maxHp);
+        await store.saveVitals(_vitals);
+      } else {
+        a = a.copyWith(buffs: [
+          for (final b in a.buffs)
+            if (!b.key.startsWith('?:')) b,
+          ActiveBuff(
+              key: '?:${e.stat!.name}',
+              until: now.add(AlchemyRules.suspiciousDuration),
+              amount: e.amount),
+        ]);
+      }
+      a = a.add(key, -1).copyWith(knownSuspicious: {
+        ...a.knownSuspicious,
+        key,
+      }.toList());
+      await _saveAlc(a);
+      return null;
+    }
+    final info = _infoOf(key);
+    if (info == null) return '알 수 없는 물약이에요';
+    final m = key.endsWith('*') ? 1 + AlchemyRules.perfectBonus : 1.0;
+    Duration dur(Duration d) => Duration(seconds: (d.inSeconds * m).round());
+    switch (info.kind) {
+      case PotionKind.heal:
+        await refreshVitals();
+        if (hp >= maxHp) return '이미 가득해요';
+        _vitals = _vitals.copyWith(
+            hp: math.min(maxHp, hp + (maxHp * info.hpRatio * m).round()),
+            lastMaxHp: maxHp);
+        await store.saveVitals(_vitals);
+      case PotionKind.mana:
+        await refreshVitals();
+        if (mp >= mpMax) return '이미 가득해요';
+        _vitals = _vitals.copyWith(
+            mp: math.min(mpMax, mp + (mpMax * info.mpRatio * m).round()));
+        await store.saveVitals(_vitals);
+      case PotionKind.care:
+        return '전투 중에만 마실 수 있어요';
+      case PotionKind.buff:
+        if (a.buffs.any((b) => b.key == info.id.name)) return '이미 효과가 있어요';
+        final n = a.buffs.where((b) => _buffKind(b) == PotionKind.buff).length;
+        if (n >= AlchemyRules.maxBuffs) return '버프는 2개까지예요';
+        a = a.copyWith(buffs: [
+          ...a.buffs,
+          ActiveBuff(
+              key: info.id.name,
+              until: now.add(dur(info.duration)),
+              amount: (AlchemyRules.buffStat * m).round()),
+        ]);
+      case PotionKind.resist:
+        if (a.buffs.any((b) => _buffKind(b) == PotionKind.resist)) {
+          return '저항 물약은 하나만 걸려요';
+        }
+        a = a.copyWith(buffs: [
+          ...a.buffs,
+          ActiveBuff(
+              key: info.id.name,
+              until: now.add(dur(info.duration)),
+              amount: (AlchemyRules.resistCut * 100 * m).round()),
+        ]);
+      case PotionKind.special:
+        switch (info.id) {
+          case PotionId.plenty:
+            if (a.buffs.any((b) => b.key == 'plenty')) return '이미 효과가 있어요';
+            a = a.copyWith(buffs: [
+              ...a.buffs,
+              ActiveBuff(key: 'plenty', until: now.add(dur(info.duration))),
+            ]);
+          case PotionId.callMonsters || PotionId.callModified:
+            final day = player.today?.dayKey ?? '';
+            if (a.calledDays[info.id.name] == day) return '오늘은 이미 불렀어요';
+            final center = _lastFix?.point;
+            if (center == null) return '위치를 켜 주세요';
+            a = a.copyWith(
+              calledDays: {...a.calledDays, info.id.name: day},
+              called: [
+                for (final c in a.called)
+                  if (c.id.startsWith(day)) c,
+                ..._callSpawns(center, day, info.id == PotionId.callModified,
+                    a.called.length),
+              ],
+            );
+          default:
+            return '지금은 마실 수 없어요';
+        }
+    }
+    await _saveAlc(a.add(key, -1));
+    return null;
+  }
+
+  PotionKind? _buffKind(ActiveBuff b) {
+    final id = AlchemyRules.byName(b.key);
+    return id == null ? null : AlchemyRules.info(id).kind;
+  }
+
+  List<CalledSpawn> _callSpawns(
+      GeoPoint center, String day, bool modified, int start) {
+    final n = modified ? AlchemyRules.callModCount : AlchemyRules.callCount;
+    final out = <CalledSpawn>[];
+    for (var i = 0; i < n; i++) {
+      final r = AlchemyRules.callRadiusM * math.sqrt(_random.nextDouble());
+      final t = _random.nextDouble() * 2 * math.pi;
+      final lat = center.lat + r * math.cos(t) / 111320.0;
+      final lng = center.lng +
+          r * math.sin(t) / (111320.0 * math.cos(center.lat * math.pi / 180));
+      final monster = FieldMonsterRules.pickCommon(
+          _random.nextDouble(), _random.nextDouble(),
+          night: FieldMonsterRules.isNight(_clock()));
+      final mods = <String>[];
+      if (modified) {
+        final grade = _random.nextDouble() < AlchemyRules.callModRareChance
+            ? ModGrade.rare
+            : ModGrade.common;
+        mods.add(ModifierRules.pick(grade, monster, _random).name);
+      }
+      out.add(CalledSpawn(
+          id: '$day#call${start + i}',
+          monster: monster.name,
+          lat: lat,
+          lng: lng,
+          mods: mods));
+    }
+    return out;
+  }
+
+  /// 부르는 물약으로 나온 오늘의 몬스터
+  List<FieldSpawn> get calledSpawns {
+    final day = player.today?.dayKey ?? '';
+    return [
+      for (final c in _alc.called)
+        if (c.id.startsWith(day))
+          if (Monsters.byName(c.monster) case final m?)
+            FieldSpawn(
+              id: c.id,
+              monster: m,
+              point: GeoPoint(c.lat, c.lng),
+              modifiers: [
+                for (final n in c.mods)
+                  if (ModifierRules.byName(n) case final x?) x,
+              ],
+            ),
+    ];
+  }
+
+  /// 지금 걸린 버프·저항
+  List<ActiveBuff> get activeBuffs =>
+      [for (final b in _alc.buffs) if (b.until.isAfter(_clock())) b];
+
+  /// 물약 버프로 더해지는 스탯
+  Stats get buffStats {
+    var st = Stats.zero;
+    for (final b in activeBuffs) {
+      final name = b.key.startsWith('?:') ? b.key.substring(2) : null;
+      final id = name == null ? AlchemyRules.byName(b.key) : null;
+      final kind = name != null
+          ? StatKindInfo.parse(name)
+          : (id == null ? null : AlchemyRules.info(id).stat);
+      if (kind == null) continue;
+      st = st + Stats.zero.withValue(kind, b.amount);
+    }
+    return st;
+  }
+
+  Map<Element, double> get activeResists => {
+        for (final b in activeBuffs)
+          if (AlchemyRules.byName(b.key) case final id?)
+            if (AlchemyRules.info(id).element case final el?) el: b.amount / 100,
+      };
+
+  bool get plentyActive => activeBuffs.any((b) => b.key == 'plenty');
+
+  /// 자동 마시기 설정
+  Future<void> setAutoUse({int? hpPercent, bool? cure}) async =>
+      _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure));
+
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
 
   static const _armoryKey = 'armory';
@@ -1624,6 +2095,7 @@ class AppController extends ChangeNotifier {
     }
     await _grant(t.gold, t.manaStones, t.materials);
     await _count('errandDone');
+    await _maybeNote(AlchemyRules.noteFromErrand);
     final slots = [...b.slots];
     slots[slot] =
         ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
@@ -1683,6 +2155,7 @@ class AppController extends ChangeNotifier {
       await _grant(u.quest.gold, 0, {u.rare: 1});
     }
     await _count('urgentDone');
+    await _maybeNote(AlchemyRules.noteFromErrand);
     await _saveBoard(b.copyWith(urgentDone: true));
     return true;
   }
@@ -2147,7 +2620,12 @@ class AppController extends ChangeNotifier {
       power: power,
       petSkill: pet?.info.skill,
       petAdult: pet?.adult ?? false,
+      potions: battlePotions,
+      autoHp: _alc.autoHp,
+      autoCure: _alc.autoCure,
+      resist: activeResists,
     ).runToEnd(useSkills: true);
+    await _consumeBattlePotions(battle);
     final cleared = battle.phase == BattlePhase.cleared;
     final escaped = battle.phase == BattlePhase.escaped;
     if (escaped) {
@@ -2300,6 +2778,26 @@ class AppController extends ChangeNotifier {
 
 /// 대장간에서 만들거나 강화할 수 있는지
 enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
+
+/// 가마솥에서 꺼낸 것
+class BrewResult {
+  const BrewResult(
+      {this.potion,
+      this.perfect = false,
+      this.suspicious,
+      this.count = 1,
+      this.discovered = false});
+
+  final PotionId? potion;
+  final bool perfect;
+
+  /// 수상한 물약 키 (맞지 않는 조합)
+  final String? suspicious;
+  final int count;
+
+  /// 이번에 처음 만든 물약 (레시피 책에 올랐다)
+  final bool discovered;
+}
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }

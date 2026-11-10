@@ -37,6 +37,19 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.lightJelly || MaterialId.lightCore => Icons.wb_sunny_rounded,
         MaterialId.darkJelly || MaterialId.shadowCore => Icons.dark_mode_rounded,
         MaterialId.herb => Icons.eco_rounded,
+        MaterialId.labyrinthStone => Icons.view_in_ar_rounded,
+        MaterialId.runeStone => Icons.auto_fix_high_rounded,
+        MaterialId.ironIngot => Icons.view_agenda_rounded,
+        MaterialId.hardWood => Icons.forest_rounded,
+        MaterialId.tannedLeather => Icons.layers_rounded,
+        MaterialId.herbExtract => Icons.local_drink_rounded,
+        MaterialId.essence => Icons.opacity_rounded,
+        MaterialId.glowFireCore => Icons.local_fire_department_rounded,
+        MaterialId.glowWaterCore => Icons.water_drop_rounded,
+        MaterialId.glowWindCore => Icons.air_rounded,
+        MaterialId.glowEarthCore => Icons.landscape_rounded,
+        MaterialId.glowLightCore => Icons.wb_sunny_rounded,
+        MaterialId.glowShadowCore => Icons.dark_mode_rounded,
       };
 
   @override

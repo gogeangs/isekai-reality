@@ -1,32 +1,20 @@
-import 'dart:convert';
-
-import 'package:flutter/services.dart';
-
 import '../../core/models/mail_state.dart';
 import '../../core/rules/mail_rules.dart';
 
 /// 운영 우편(공지·보상)을 가져오는 곳 (11-11 #65).
-/// 1차: 앱 업데이트에 담은 목록(assets/data/mail.json).
+/// 1차: 앱 업데이트에 담은 목록 ([bundledMail], 이 파일 아래).
 /// 2차: 서버 우편 (#49 서버 작업 때 [ServerMailSource] 를 채운다).
 abstract class MailSource {
   Future<List<MailItem>> fetch(DateTime now);
 }
 
 /// 앱에 담아 보낸 공지·보상. 기간 안의 것만.
+/// (파일을 읽지 않고 코드에 담는다: 앱 업데이트로 새 공지를 보낸다)
 class AssetMailSource implements MailSource {
-  const AssetMailSource({this.asset = 'assets/data/mail.json'});
-
-  final String asset;
+  const AssetMailSource();
 
   @override
-  Future<List<MailItem>> fetch(DateTime now) async {
-    try {
-      final raw = jsonDecode(await rootBundle.loadString(asset));
-      return parse(raw, now);
-    } catch (_) {
-      return const [];
-    }
-  }
+  Future<List<MailItem>> fetch(DateTime now) async => parse(bundledMail, now);
 
   static List<MailItem> parse(Object? raw, DateTime now) {
     final out = <MailItem>[];
@@ -63,3 +51,17 @@ class ServerMailSource implements MailSource {
   @override
   Future<List<MailItem>> fetch(DateTime now) async => const [];
 }
+
+/// 앱 업데이트에 담는 공지·운영 보상 (id 는 한 번 쓰면 바꾸지 않는다)
+const List<Map<String, Object>> bundledMail = [
+  {
+    'id': 'welcome_mailbox',
+    'kind': 'notice',
+    'from': '여명의 탑 운영실',
+    'title': '우편함이 열렸어요',
+    'body': '이제 정령과 마을 사람들의 편지, 못 받은 의뢰 보상, 공지가 우편함으로 와요. '
+        '선물은 「선물」 탭에서 받고, 편지는 「편지」 탭에 계속 남아요. '
+        '보상 우편은 30일 동안 보관돼요.',
+    'start': '2026-11-11T00:00:00',
+  },
+];

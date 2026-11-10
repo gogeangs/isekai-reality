@@ -559,7 +559,6 @@ void main() {
     // 정령 물약 = 예시 모드(Lv.14, 정령과 헤어짐)에서는 펫 간식
     await tester.scrollUntilVisible(find.text('펫 간식'), 200,
         scrollable: find.byType(Scrollable).first);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     final buy = find
         .descendant(

@@ -2120,7 +2120,9 @@ class AppController extends ChangeNotifier {
       seen: [..._lens.seen, for (final r in firsts) r.name],
       counts: {
         ..._lens.counts,
-        for (final r in races) r.name: (_lens.counts[r.name] ?? 0) + 1,
+        for (final r in {...races})
+          r.name: (_lens.counts[r.name] ?? 0) +
+              races.where((x) => x == r).length,
       },
       day: day,
       rewardedToday:

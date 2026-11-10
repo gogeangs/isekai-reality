@@ -111,7 +111,7 @@ class MaterialGrid extends StatelessWidget {
     if (materials.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12),
-        child: Text('아직 재료가 없어요. 몬스터를 사냥하면 떨어뜨려요.',
+        child: KText('아직 재료가 없어요. 몬스터를 사냥하면 떨어뜨려요.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
       );

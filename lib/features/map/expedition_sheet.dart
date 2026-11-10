@@ -120,7 +120,7 @@ class SpawnSheet extends StatelessWidget {
                       SpiritArt(kind: c.profile.spiritKind, size: 36),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text('$spiritName 원정 보내기',
+                        child: KText('$spiritName 원정 보내기',
                             style: AppText.title(17)),
                       ),
                     ]),
@@ -142,7 +142,7 @@ class SpawnSheet extends StatelessWidget {
                               '${c.compassReady ? ' (나침반으로 절반)' : ''}'),
                     ],
                     const SizedBox(height: 6),
-                    const Text(
+                    const KText(
                       '정령은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
                       '지면 MP만 쓰고 무사히 돌아와요.',
                       style: TextStyle(
@@ -170,7 +170,7 @@ class SpawnSheet extends StatelessWidget {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(result == ExpeditionCheck.ok
-                            ? '$spiritName이(가) 원정을 떠났어요. '
+                            ? '${josa(spiritName, '이/가')} 원정을 떠났어요. '
                                 '${_minutes(plan.oneWay * 2)} 뒤에 돌아와요!'
                             : expeditionReason(result)),
                       ));
@@ -242,7 +242,7 @@ class ExpeditionCard extends StatelessWidget {
                   colors: BarColors.mana,
                   height: 7),
               const SizedBox(height: 2),
-              Text(
+              KText(
                 '${_minutes(left.isNegative ? Duration.zero : left)} 뒤 도착 · '
                 'MP ${ex.mpCost} 사용 · ${comma(ex.distanceM.round())}m',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12),

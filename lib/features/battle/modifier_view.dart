@@ -33,7 +33,7 @@ class ModifierPanel extends StatelessWidget {
           if (foeCount > 1)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('$foeCount마리와 차례로 싸워요',
+              child: KText('$foeCount마리와 차례로 싸워요',
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
             ),

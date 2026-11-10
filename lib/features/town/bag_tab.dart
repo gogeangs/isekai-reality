@@ -97,7 +97,7 @@ class _GearPanel extends StatelessWidget {
             ),
           const SizedBox(height: 8),
           if (a.items.isEmpty)
-            const Text('마을 대장간에서 몬스터 재료로 장비를 만들 수 있어요.',
+            const KText('마을 대장간에서 몬스터 재료로 장비를 만들 수 있어요.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
           for (final item in spare) _SpareRow(controller: c, item: item),

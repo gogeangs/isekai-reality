@@ -39,7 +39,7 @@ class ShopScreen extends StatelessWidget {
           '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.ironShard ||
         ShopItem.twig =>
-          '${TownRules.info(item).name}을(를) 재료 주머니에 넣었어요.',
+          '${josa(TownRules.info(item).name, '을/를')} 재료 주머니에 넣었어요.',
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||
@@ -244,7 +244,7 @@ class _SellPanel extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
-          ? '마석 $n개를 팔아 금화 ${n * RuleConstants.goldPerManaStone}을(를) 받았어요.'
+          ? '마석 $n개를 팔아 금화 ${n * RuleConstants.goldPerManaStone}을 받았어요.'
           : '마석이 모자라요.'),
     ));
   }
@@ -265,7 +265,7 @@ class _SellPanel extends StatelessWidget {
                 children: [
                   Text('마석 팔기',
                       style: AppText.title(17, color: AppColors.text)),
-                  const Text(
+                  const KText(
                       '1개에 금화 ${RuleConstants.goldPerManaStone}. '
                       '대장간에서도 쓰니 조금 남겨 두세요.',
                       style:

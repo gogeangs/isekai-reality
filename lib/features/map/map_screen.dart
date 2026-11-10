@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
+import '../../core/format.dart';
 import '../../app_controller.dart';
 import '../../core/geo/geo.dart';
 import '../../core/rules/rules.dart';
@@ -104,7 +105,7 @@ class _TopPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              KText(
                   '오늘 사냥 $purifiedToday / '
                   '${RuleConstants.maxFieldMonstersPerDay}마리',
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
@@ -150,13 +151,13 @@ class _DiscoveryCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('새 장소 발견! · ${place.name}',
+            KText('새 장소 발견! · ${place.name}',
                 style: const TextStyle(
                     color: AppColors.goldBright,
                     fontSize: 17,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
-            Text('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
+            KText('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
                 style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
             BulssiLine(line: _discoveryLine(place.kind)),
@@ -208,14 +209,14 @@ class _MonsterCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${spawn.name}이(가) 나타났어!',
+                Text('${josa(spawn.name, '이/가')} 나타났어!',
                     style: TextStyle(
                         color: spawn.modifiers.isEmpty
                             ? AppColors.goldBright
                             : modGradeColor(spawn.grade),
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
-                const Text('멈춰 선 다음 사냥해 주세요',
+                const KText('멈춰 선 다음 사냥해 주세요',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
               ],
             ),
@@ -256,12 +257,12 @@ class _ExploreSummary extends StatelessWidget {
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),
           const SizedBox(height: 16),
           if (fix != null)
-            Text(
+            KText(
               '현재 위치 ${fix.point.lat.toStringAsFixed(4)}, '
               '${fix.point.lng.toStringAsFixed(4)}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
-          Text(
+          KText(
             '오늘 남은 몬스터 ${controller.todaySpawns.length}마리 · '
             '가까이(${RuleConstants.fieldEncounterRadiusM.round()}m) 가면 만날 수 있어요',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
@@ -460,7 +461,7 @@ class _ExpeditionList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('정령 원정 · MP ${c.mp} / ${RuleConstants.mpMax}',
+            KText('정령 원정 · MP ${c.mp} / ${RuleConstants.mpMax}',
                 style: AppText.title(17)),
             const SizedBox(height: 4),
             Text(

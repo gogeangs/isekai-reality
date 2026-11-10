@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'core/format.dart';
 import 'app_controller.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
@@ -128,9 +129,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       final name = id == null ? '몬스터' : Monsters.info(id).name;
       title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
       body = ex.cleared!
-          ? '${c.profile.spiritName}이(가) $name을(를) 사냥했어요.'
+          ? '${josa(c.profile.spiritName, '이/가')} ${josa(name, '을/를')} 사냥했어요.'
               '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
-          : '$name이(가) 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
+          : '${josa(name, '이/가')} 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
     } else {
       return;
     }

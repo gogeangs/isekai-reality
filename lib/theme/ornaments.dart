@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../core/format.dart';
 import 'app_colors.dart';
 
 /// 목업의 장식 요소: 금테 패널, 리본 제목, 금색 버튼, 빛나는 막대, 월계관 배지.
@@ -922,4 +923,28 @@ class FadeToNight extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// 한글 단어 단위로 줄을 바꾸는 글자 (11-11 #47). Text 와 같이 쓰되
+/// '시 / 작해요'처럼 단어 가운데서 끊기지 않는다.
+class KText extends StatelessWidget {
+  const KText(
+    this.data, {
+    super.key,
+    this.style,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+  });
+
+  final String data;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  @override
+  Widget build(BuildContext context) => Text(keepAll(data),
+      style: style, textAlign: textAlign, maxLines: maxLines, overflow: overflow);
 }

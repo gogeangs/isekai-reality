@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import 'core/format.dart';
 import 'core/geo/geo.dart';
 import 'core/models/armory.dart';
 import 'core/models/board_state.dart';
@@ -1176,7 +1177,7 @@ class AppController extends ChangeNotifier {
     unawaited(notifier?.schedule(
       NotifyId.expedition,
       ret,
-      '${_profile.spiritName}이(가) 돌아왔어요',
+      '${josa(_profile.spiritName, '이/가')} 돌아왔어요',
       '${spawn.info.name} 원정 결과를 확인해 보세요!',
     ));
     notifyListeners();

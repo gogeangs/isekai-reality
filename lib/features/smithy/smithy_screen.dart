@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/format.dart';
 import '../../app_controller.dart';
 import '../../core/models/armory.dart';
 import '../../core/rules/rules.dart';
@@ -113,7 +114,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
             Text('귀한 재료 넣기', style: AppText.title(16)),
             const SizedBox(height: 4),
             if (rares.isEmpty)
-              const Text('귀한 재료가 없어요. 몬스터가 가끔 떨어뜨려요.',
+              const KText('귀한 재료가 없어요. 몬스터가 가끔 떨어뜨려요.',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12))
             else
               Wrap(spacing: 6, runSpacing: 6, children: [
@@ -138,7 +139,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                         fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 2),
-            Text(
+            KText(
                 '만든 장비 ${c.armory.crafts}개 · 숙련도 파랑 +'
                 '${EquipmentRules.masteryBonus(c.armory.crafts)}%p '
                 '(10개마다 +1%p)',
@@ -168,7 +169,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
         context: context,
         builder: (d) => AlertDialog(
           backgroundColor: AppColors.night,
-          title: Text('${EquipmentRules.gradeLabel(item.grade)} 등급!',
+          title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
               textAlign: TextAlign.center,
               style: AppText.title(22, color: equipGradeColor(item.grade))),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -180,7 +181,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.text, fontSize: 13)),
             const SizedBox(height: 6),
-            const Text('가방에서 입을 수 있어요.',
+            const KText('가방에서 입을 수 있어요.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ]),
           actions: [
@@ -219,7 +220,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
   Widget _enhanceRow(EquipItem item) {
     final check = c.canEnhance(item);
     if (check == CraftCheck.maxed) {
-      return Text('+${EquipmentRules.maxEnhance} 최고 단계예요',
+      return KText('+${EquipmentRules.maxEnhance} 최고 단계예요',
           style: AppText.title(14, color: AppColors.goldBright));
     }
     final to = item.enhance + 1;
@@ -227,7 +228,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
     final chance = (EquipmentRules.enhanceChance(to) * 100).round();
     return Row(children: [
       Expanded(
-        child: Text(
+        child: KText(
             '+${item.enhance} → +$to · 성공 $chance%\n'
             '마석 ${cost.manaStones} · 금화 ${cost.gold}',
             style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
@@ -258,7 +259,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
     final items = c.armory.items;
     if (items.isEmpty) return [const _Empty('가진 장비가 없어요.')];
     return [
-      const Text('필드 전투 한 번에 입은 장비 내구도 -1, 던전 한 번에 -2. 0이 되면 능력이 절반이에요.',
+      const KText('필드 전투 한 번에 입은 장비 내구도 -1, 던전 한 번에 -2. 0이 되면 능력이 절반이에요.',
           style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
       const SizedBox(height: 8),
       for (final item in items) ...[
@@ -307,9 +308,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
       context: context,
       builder: (d) => AlertDialog(
         backgroundColor: AppColors.night,
-        title: Text('${item.name}을(를) 분해할까요?',
+        title: Text('${josa(item.name, '을/를')} 분해할까요?',
             style: AppText.title(18, color: AppColors.text)),
-        content: Text('돌려받는 것: $list\n분해한 장비는 되돌릴 수 없어요.',
+        content: KText('돌려받는 것: $list\n분해한 장비는 되돌릴 수 없어요.',
             style: const TextStyle(color: AppColors.text)),
         actions: [
           TextButton(

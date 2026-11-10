@@ -177,7 +177,7 @@ class _CodexScreenState extends State<CodexScreen> {
               if (entries.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Text('아직 없어요. 지도에서 파란 이름이나 주황 이름의 몬스터를 찾아보세요.',
+                  child: KText('아직 없어요. 지도에서 파란 이름이나 주황 이름의 몬스터를 찾아보세요.',
                       textAlign: TextAlign.center,
                       style:
                           TextStyle(color: AppColors.textMuted, fontSize: 13)),
@@ -209,7 +209,7 @@ class _CodexScreenState extends State<CodexScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('수식어 ${found.length} / ${_rareMods.length}',
+              KText('수식어 ${found.length} / ${_rareMods.length}',
                   style: AppText.title(18)),
               const SizedBox(height: 6),
               for (final m in _rareMods)
@@ -267,7 +267,7 @@ class _CodexScreenState extends State<CodexScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            KText(
                 '몬스터 도감 ${widget.purifiedMonsters.length} / '
                 '${Monsters.all.length}',
                 style: AppText.title(18)),

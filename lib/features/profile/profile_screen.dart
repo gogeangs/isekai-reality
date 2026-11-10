@@ -81,7 +81,7 @@ class ProfileCard extends StatelessWidget {
               Row(children: [
                 SpiritArt(kind: spiritKind, size: 26),
                 const SizedBox(width: 4),
-                Text('함께하는 정령 · $spiritName',
+                KText('함께하는 정령 · $spiritName',
                     style: const TextStyle(
                         color: AppColors.text, fontSize: 12)),
               ]),
@@ -269,7 +269,7 @@ class _InfoTab extends StatelessWidget {
       children: [
         _Section(title: '대표 칭호', children: [
           if (earned.isEmpty)
-            const Text('아직 얻은 칭호가 없어요. 도감에서 얻는 방법을 볼 수 있어요.',
+            const KText('아직 얻은 칭호가 없어요. 도감에서 얻는 방법을 볼 수 있어요.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13))
           else
             Wrap(spacing: 6, runSpacing: 6, children: [

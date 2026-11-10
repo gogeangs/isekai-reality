@@ -107,7 +107,7 @@ class _WeeklyPanel extends StatelessWidget {
           for (final q in quests)
             QuestRowView(quest: q, rewardExp: BoardRules.weeklyExp),
           const SizedBox(height: 6),
-          Text(
+          KText(
               '하나 마칠 때마다 경험치 +${BoardRules.weeklyExp}, '
               '금화 +${BoardRules.weeklyGold}. 매주 월요일에 새로 시작해요.',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -139,7 +139,7 @@ class _ErrandPanel extends StatelessWidget {
             if (i < b.slots.length - 1) const SizedBox(height: 8),
           ],
           const SizedBox(height: 6),
-          const Text('수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.',
+          const KText('수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ),
@@ -202,7 +202,7 @@ class _ErrandCard extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 2),
-          Text('보상: ${t.rewardLabel}',
+          KText('보상: ${t.rewardLabel}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           if (s.accepted) ...[
             const SizedBox(height: 6),
@@ -234,7 +234,7 @@ class _ErrandCard extends StatelessWidget {
                             final ok = await c.claimErrand(slot);
                             if (!context.mounted || !ok) return;
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('의뢰 완료! ${t.rewardLabel}')));
+                                content: KText('의뢰 완료! ${t.rewardLabel}')));
                           }
                         : null,
               ),
@@ -286,7 +286,7 @@ class _UrgentPanel extends StatelessWidget {
           const SizedBox(height: 6),
           Text(u.quest.title, style: AppText.title(17, color: AppColors.text)),
           const SizedBox(height: 2),
-          Text('보상: $prize + 금화 ${u.quest.gold}',
+          KText('보상: $prize + 금화 ${u.quest.gold}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           if (b.urgentAccepted && !b.urgentDone) ...[
             const SizedBox(height: 6),

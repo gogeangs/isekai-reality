@@ -91,7 +91,7 @@ class BagContents extends StatelessWidget {
                 if (owned.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Text('가방이 비어 있어요. 잡화상에서 물약과 물건을 살 수 있어요.',
+                    child: KText('가방이 비어 있어요. 잡화상에서 물약과 물건을 살 수 있어요.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.textMuted)),
                   ),

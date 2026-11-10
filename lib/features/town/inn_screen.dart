@@ -141,7 +141,7 @@ class InnScreen extends StatelessWidget {
                         Row(children: [
                           const GameIcon('streak', size: 32),
                           const SizedBox(width: 8),
-                          Text('연속 휴식 $streak일',
+                          KText('연속 휴식 $streak일',
                               style: AppText.title(18,
                                   color: AppColors.goldBright)),
                         ]),
@@ -149,7 +149,7 @@ class InnScreen extends StatelessWidget {
                         _StreakDots(streak: streak),
                         const SizedBox(height: 8),
                         if (next.daysLeft > 0)
-                          Text(
+                          KText(
                             '${next.daysLeft}일 더 쉬면 경험치 +${next.exp}'
                             '${next.crystals > 0 ? ', 마석 +${next.crystals}' : ''}',
                             style: const TextStyle(
@@ -167,7 +167,7 @@ class InnScreen extends StatelessWidget {
                       GameIcon('moon', size: 34),
                       SizedBox(width: 10),
                       Expanded(
-                        child: Text(
+                        child: KText(
                           '언제든 체크인하고 4시간 쉬면 HP와 정령 MP가 가득 차요.\n'
                           '하루 첫 휴식은 경험치 +${RuleConstants.restBonusExp}, '
                           '며칠 이어서 쉬면 보너스가 커져요.',
@@ -189,7 +189,7 @@ class InnScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => controller.stopResting(),
-                    child: const Text('그만 쉬기 (보상 없음)',
+                    child: const KText('그만 쉬기 (보상 없음)',
                         style: TextStyle(color: AppColors.textMuted)),
                   ),
                 ] else
@@ -200,7 +200,7 @@ class InnScreen extends StatelessWidget {
                       if (ok && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('체크인했어요. 4시간 뒤에 다 쉬어요!')),
+                              content: KText('체크인했어요. 4시간 뒤에 다 쉬어요!')),
                         );
                       }
                     },

@@ -28,7 +28,7 @@ class FacilityInfo {
 
 /// 하단 메뉴 '마을' 탭 (11-10 #26): 어디서든 들어갈 수 있는 게임 속 마을 하나.
 /// 위에는 마을 그림(건물을 누르면 들어감), 아래에는 같은 시설 카드 목록.
-/// 마을 그림(village.png)이 오기 전에는 하늘 그림 위에 건물 아이콘을 놓는다.
+/// 마을 그림(village.jpg)이 없으면 하늘 그림 위에 건물 아이콘을 놓는다.
 class VillageScreen extends StatelessWidget {
   const VillageScreen({super.key, required this.controller});
 
@@ -37,7 +37,7 @@ class VillageScreen extends StatelessWidget {
   static const facilities = [
     FacilityInfo(Facility.inn, '여관', 'map_inn', '쉬면 HP·MP가 가득'),
     FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
-    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_quest', '일일 의뢰'),
+    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일 의뢰'),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 제작·강화',
         open: false),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_lock', '나중에 열려요',
@@ -82,20 +82,21 @@ class VillageScreen extends StatelessWidget {
   }
 }
 
-/// 마을 그림: 건물을 누르면 시설로. 그림이 없으면 하늘 띠 + 건물 아이콘
+/// 마을 그림(village.jpg): 건물을 누르면 시설로. 그림이 없으면 하늘 띠 위에
+/// 건물 아이콘을 같은 자리에 놓는다.
 class _VillageArt extends StatelessWidget {
   const _VillageArt({required this.onTap});
 
   final ValueChanged<FacilityInfo> onTap;
 
-  // 건물 자리 (그림 안 비율 좌표, village.png 를 그릴 때 이 자리에 맞춘다)
-  static const spots = {
-    Facility.inn: Alignment(-0.62, 0.15),
-    Facility.shop: Alignment(0.0, 0.35),
-    Facility.board: Alignment(0.62, 0.15),
-    Facility.smithy: Alignment(-0.3, -0.45),
-    Facility.alchemy: Alignment(0.32, -0.5),
-    Facility.market: Alignment(0.85, -0.55),
+  // 건물이 차지하는 칸 (그림 안 비율: 왼쪽, 위, 너비, 높이). village.jpg 기준
+  static const areas = {
+    Facility.smithy: Rect.fromLTWH(0.10, 0.08, 0.30, 0.30),
+    Facility.inn: Rect.fromLTWH(0.00, 0.36, 0.30, 0.33),
+    Facility.shop: Rect.fromLTWH(0.35, 0.45, 0.36, 0.44),
+    Facility.board: Rect.fromLTWH(0.75, 0.47, 0.22, 0.24),
+    Facility.alchemy: Rect.fromLTWH(0.44, 0.22, 0.23, 0.18),
+    Facility.market: Rect.fromLTWH(0.72, 0.21, 0.26, 0.17),
   };
 
   @override
@@ -104,53 +105,96 @@ class _VillageArt extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: AspectRatio(
         aspectRatio: 16 / 10,
-        child: Stack(fit: StackFit.expand, children: [
-          Image.asset('assets/images/village.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Image.asset(
-                  'assets/images/bg_header.jpg',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const ColoredBox(color: Color(0xFF1A1D4A)))),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x000B0D26), Color(0x990B0D26)],
-              ),
-            ),
-          ),
-          for (final f in VillageScreen.facilities)
-            Align(
-              alignment: spots[f.facility]!,
-              child: GestureDetector(
-                onTap: () => onTap(f),
-                child: Opacity(
-                  opacity: f.open ? 1 : 0.55,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    _BuildingIcon(icon: f.icon, size: f.open ? 58 : 40),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xCC0B0D26),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(f.name,
-                          style: const TextStyle(
-                              color: AppColors.text,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                  ]),
+        child: LayoutBuilder(builder: (context, box) {
+          final w = box.maxWidth, h = box.maxHeight;
+          Rect at(Facility f) {
+            final r = areas[f]!;
+            return Rect.fromLTWH(r.left * w, r.top * h, r.width * w, r.height * h);
+          }
+
+          return Stack(fit: StackFit.expand, children: [
+            Image.asset('assets/images/village.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Stack(fit: StackFit.expand, children: [
+                      Image.asset('assets/images/bg_header.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const ColoredBox(color: Color(0xFF1A1D4A))),
+                      for (final f in VillageScreen.facilities)
+                        Positioned.fromRect(
+                          rect: at(f.facility),
+                          child: Center(
+                            child: Opacity(
+                              opacity: f.open ? 1 : 0.55,
+                              child: _BuildingIcon(
+                                  icon: f.icon, size: f.open ? 50 : 36),
+                            ),
+                          ),
+                        ),
+                    ])),
+            // 아래쪽 이름표가 잘 보이게 살짝 어둡게
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x000B0D26), Color(0x550B0D26)],
+                  ),
                 ),
               ),
             ),
-        ]),
+            for (final f in VillageScreen.facilities)
+              Positioned.fromRect(
+                rect: at(f.facility),
+                child: Semantics(
+                  button: true,
+                  label: f.name,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onTap(f),
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: _NameTag(name: f.name, open: f.open),
+                    ),
+                  ),
+                ),
+              ),
+          ]);
+        }),
       ),
     );
   }
+}
+
+class _NameTag extends StatelessWidget {
+  const _NameTag({required this.name, required this.open});
+
+  final String name;
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xD90B0D26),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+              color: AppColors.gold.withValues(alpha: open ? 0.8 : 0.35)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (!open) ...[
+            const Icon(Icons.lock_outline_rounded,
+                size: 11, color: AppColors.textMuted),
+            const SizedBox(width: 2),
+          ],
+          Text(name,
+              style: TextStyle(
+                  color: open ? AppColors.text : AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      );
 }
 
 class _BuildingIcon extends StatelessWidget {
@@ -165,9 +209,11 @@ class _BuildingIcon extends StatelessWidget {
         width: size,
         height: size,
         errorBuilder: (_, __, ___) => Icon(
-          icon == 'icon_smithy'
-              ? Icons.hardware_rounded
-              : Icons.lock_outline_rounded,
+          switch (icon) {
+            'icon_smithy' => Icons.hardware_rounded,
+            'icon_board' => Icons.assignment_rounded,
+            _ => Icons.lock_outline_rounded,
+          },
           size: size * 0.6,
           color: AppColors.goldBright,
         ),

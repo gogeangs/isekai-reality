@@ -134,7 +134,7 @@ class DungeonStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xE6141638),
+        color: const Color(0xFF141638),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
       ),
@@ -164,18 +164,20 @@ class DungeonStrip extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         // 열쇠가 있으면 금색으로 빛나고, 없으면 흐리게
-        SizedBox(
-          width: 104,
-          child: Opacity(
-            opacity: keys > 0 ? 1 : 0.45,
-            child: GoldButton(
-              key: const Key('openDungeon'),
-              label: '던전 열기',
-              height: 38,
-              fontSize: 15,
-              onPressed: keys > 0 ? onOpen : null,
-            ),
+        TextButton(
+          key: const Key('openDungeon'),
+          style: gameButtonStyle(gold: true).copyWith(
+            minimumSize: const WidgetStatePropertyAll(Size(92, 38)),
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 14)),
+            textStyle: const WidgetStatePropertyAll(TextStyle(
+                fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 15)),
+            shadowColor: WidgetStatePropertyAll(AppColors.gold),
+            elevation: WidgetStateProperty.resolveWith(
+                (s) => s.contains(WidgetState.disabled) ? 0 : 6),
           ),
+          onPressed: keys > 0 ? onOpen : null,
+          child: const Text('던전 열기', maxLines: 1),
         ),
       ]),
     );

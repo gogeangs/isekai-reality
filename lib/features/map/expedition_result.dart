@@ -97,25 +97,37 @@ class ExpeditionResultCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 리본 그림 위에 글자 (그림이 없으면 색 띠)
           SizedBox(
             height: 64,
-            child: Image.asset(
-              ribbonAsset(o),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: ribbonColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.goldBright, width: 1.5),
+            child: Stack(alignment: Alignment.center, children: [
+              Positioned.fill(
+                child: Image.asset(
+                  ribbonAsset(o),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Container(
+                      width: 190,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: ribbonColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border:
+                            Border.all(color: AppColors.goldBright, width: 1.5),
+                      ),
+                    ),
                   ),
-                  child: Text(ribbonText(o),
-                      style: AppText.title(22, color: AppColors.text)),
                 ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(ribbonText(o),
+                    style: AppText.title(22, color: AppColors.text).copyWith(
+                        shadows: const [
+                          Shadow(color: Color(0xCC000000), blurRadius: 4)
+                        ])),
+              ),
+            ]),
           ),
           const SizedBox(height: 6),
           Center(

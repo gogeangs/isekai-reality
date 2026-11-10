@@ -46,8 +46,8 @@ class BoardRules {
 
   // ───────────────────────── 주간 (월요일 시작, 자동 진행)
 
-  /// 주간 의뢰 하나당 경험치와 금화
-  static const int weeklyExp = 60;
+  /// 주간 의뢰 하나당 경험치와 금화 (11-10: 레벨 속도를 맞추려고 60 → 30)
+  static const int weeklyExp = 30;
   static const int weeklyGold = 80;
 
   /// 주간 의뢰를 시작한 주 (이보다 앞선 주에는 보상을 주지 않는다)

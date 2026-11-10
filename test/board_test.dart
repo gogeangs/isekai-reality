@@ -18,7 +18,7 @@ DailyRecord _day(int d, {int steps = 0, int clears = 0, int field = 0}) =>
 
 void main() {
   group('주간 의뢰', () {
-    test('월요일부터 쌓아서, 마친 날에 경험치 60 · 금화 80', () {
+    test('월요일부터 쌓아서, 마친 날에 경험치 30 · 금화 80', () {
       // 11-09 월 ~ 11-15 일
       final h = [
         _day(9, steps: 12000, clears: 2, field: 5),
@@ -29,8 +29,8 @@ void main() {
       expect(BoardRules.weeklyCompletedOn(h, 1), 2); // 2만 보, 던전 5번
       expect(BoardRules.weeklyCompletedOn(h, 2), 1); // 필드 15마리
       final p = PlayerState.fromHistory(name: '하루', history: h);
-      expect(p.dailyExp[1].weekly, 120);
-      expect(p.dailyExp[2].weekly, 60);
+      expect(p.dailyExp[1].weekly, 60);
+      expect(p.dailyExp[2].weekly, 30);
       expect(p.gold, 80 * 3);
     });
 

@@ -215,7 +215,7 @@ String report(List<Result> results) {
     ..writeln()
     ..writeln('### 주간 의뢰 경험치를 바꾸면 (14일째)')
     ..writeln()
-    ..writeln('| 유형 | 지금 (60) | 30 | 20 | 0 (금화만) |')
+    ..writeln('| 유형 | 60 | 지금 (30) | 20 | 0 (금화만) |')
     ..writeln('| --- | --- | --- | --- | --- |');
   for (final r in results) {
     final total = r.finalState.totalExp;

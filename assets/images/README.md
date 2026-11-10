@@ -65,3 +65,13 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | icon_mana_stone, icon_gold | 마석·금화 (화폐 바꾸는 묶음에서 씀) |
 | equip_dagger, equip_staff, equip_cap, equip_armor, equip_gloves, equip_boots, equip_fang_necklace, equip_stone_charm | 장비 (대장간 묶음에서 씀) |
 | mat_<재료 이름> (13종) | 재료: 가방, 대장간, 사냥 결과, 잡화상 (철 조각·나뭇가지) |
+
+## 새 몬스터·속성 슬라임·원정 리본 (2026년 11월 11일)
+
+'아르카 그림 프롬프트 3'으로 만든 그림입니다.
+
+| 파일 | 쓰는 곳 |
+| --- | --- |
+| monster_hornRabbit, monster_babyBoar | 필드 몬스터 혼래빗·아기 와일드 보어 (512×512) |
+| monster_<fire·water·wind·earth·light·dark>Slime | 속성 슬라임 6종 (512×512, 이제 색 입힌 재 슬라임 대신 이 그림이 나옴) |
+| ribbon_success, ribbon_fail, ribbon_missed | 원정 결과 카드 리본 (1024×341, 글자는 앱이 얹음) |

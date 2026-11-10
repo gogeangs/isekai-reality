@@ -287,8 +287,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   Future<bool> _confirmFinal(String title) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
-        backgroundColor: AppColors.night,
+      builder: (d) => GameAlert(
         title: Text(title, style: AppText.title(19, color: AppColors.text)),
         content: const Text('한 번 정하면 바꿀 수 없어요.',
             style: TextStyle(color: AppColors.text)),

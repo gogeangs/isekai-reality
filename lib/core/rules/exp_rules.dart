@@ -70,10 +70,8 @@ class ExpRules {
         .toList(); // 하루 최대 4회까지 경험치 인정
     final dungeon = runs.fold<int>(0, (sum, r) => sum + dungeonRunExp(r));
 
-    final monsters = record.fieldMonstersPurified >
-            RuleConstants.maxFieldMonstersPerDay
-        ? RuleConstants.maxFieldMonstersPerDay
-        : record.fieldMonstersPurified;
+    // 11-11 #69: 5마리 뒤로는 보상이 줄어든다 (숨은 규칙)
+    final monsters = RuleConstants.fieldUnits(record.fieldMonstersPurified);
 
     final newPlaces =
         record.newPlacesVisited > RuleConstants.maxNewPlacesPerDay

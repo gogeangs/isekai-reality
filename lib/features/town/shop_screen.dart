@@ -22,9 +22,10 @@ class ShopScreen extends StatelessWidget {
   static String reason(PurchaseCheck check, ShopItemInfo info, int gold) =>
       switch (check) {
         PurchaseCheck.ok => '',
+        // 11-11 #67: 다시 살 수 있는 때
         PurchaseCheck.limitReached => info.limit == ShopLimit.perDay
-            ? '오늘 샀어요'
-            : '이번 주 샀어요',
+            ? '내일 다시 살 수 있어요'
+            : '월요일에 다시 살 수 있어요',
         PurchaseCheck.notEnoughCrystals => '금화 ${info.price - gold} 부족',
         PurchaseCheck.needsLocation => '위치를 켜 주세요',
         PurchaseCheck.levelTooLow => 'Lv.${info.minLevel}부터',
@@ -113,7 +114,10 @@ class ShopScreen extends StatelessWidget {
                   label: '재료·물건·장비 팔기',
                 ),
                 const SizedBox(height: 12),
-                for (final info in TownRules.items) ...[
+                // 11-11 #67: 이번에 다 산 물건은 아래 「다시 살 수 있어요」로 (접어 둔다)
+                for (final info in TownRules.items)
+                  if (controller.canBuy(info.item, hasLocation: hasLocation) !=
+                      PurchaseCheck.limitReached) ...[
                   _ItemCard(
                     info: info,
                     check: controller.canBuy(info.item,
@@ -137,6 +141,52 @@ class ShopScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
+                if (TownRules.items.any((info) =>
+                    controller.canBuy(info.item, hasLocation: hasLocation) ==
+                    PurchaseCheck.limitReached))
+                  Theme(
+                    data: Theme.of(context)
+                        .copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      key: const Key('shopSoldOut'),
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 6),
+                      childrenPadding: EdgeInsets.zero,
+                      iconColor: AppColors.goldBright,
+                      collapsedIconColor: AppColors.goldBright,
+                      title: Text(
+                          '다시 살 수 있어요 · ${TownRules.items.where((info) => controller.canBuy(info.item, hasLocation: hasLocation) == PurchaseCheck.limitReached).length}',
+                          style: AppText.title(16)),
+                      children: [
+                        for (final info in TownRules.items)
+                          if (controller.canBuy(info.item,
+                                  hasLocation: hasLocation) ==
+                              PurchaseCheck.limitReached) ...[
+                  _ItemCard(
+                    info: info,
+                    check: controller.canBuy(info.item,
+                        hasLocation: hasLocation),
+                    gold: gold,
+                    spiritKind: controller.profile.spiritKind,
+                    name: controller.itemName(info.item),
+                    description: controller.itemDescription(info.item),
+                    iconAsset: info.item == ShopItem.bulssiPotion
+                        ? bagIconAsset(controller, info.item)
+                        : null,
+                    onBuy: () async {
+                      final result = await controller.buy(info.item);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(result == PurchaseCheck.ok
+                            ? boughtLine(info.item)
+                            : reason(result, info, controller.player.gold)),
+                      ));
+                    },
+                  ),
+                            const SizedBox(height: 10),
+                          ],
+                      ],
+                    ),
+                  ),
               ],
             );
           },

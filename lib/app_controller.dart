@@ -341,10 +341,25 @@ class AppController extends ChangeNotifier {
   static const int renameGold = 300;
   int get renameCost => _profile.renames == 0 ? 0 : renameGold;
 
+  /// 이미 쓰는 이름인지 (11-11 #72): 마을 사람·정령·펫 이름과 겹치면 안 된다.
+  /// (다른 모험가와의 중복 확인은 서버가 생기면 #49에서 더한다)
+  bool nameTaken(String name) {
+    final n = name.trim();
+    if (n.isEmpty) return false;
+    return {
+      MailRules.hart,
+      MailRules.mina,
+      MailRules.dorgun,
+      MailRules.eliel,
+      _profile.spiritName,
+      for (final p in _pets.pets) p.name,
+    }.contains(n);
+  }
+
   /// 내 이름을 바꾼다. 빈 이름·같은 이름이면 그대로, 금화가 모자라면 false.
   Future<bool> renameHero(String name) async {
     final n = name.trim();
-    if (n.isEmpty || n == _profile.name) return false;
+    if (n.isEmpty || n == _profile.name || nameTaken(n)) return false;
     final cost = renameCost;
     if (player.gold < cost) return false;
     if (cost > 0) {
@@ -584,14 +599,9 @@ class AppController extends ChangeNotifier {
   /// 방금 끝난 사냥·던전의 보상 (결과 화면에 보여 준다)
   HuntReward get lastReward => _lastReward;
 
-  /// 오늘 아직 정화하지 않은 필드 몬스터.
-  /// 하루 상한(5마리)을 채우면 더 나오지 않는다.
+  /// 오늘 아직 사냥하지 않은 필드 몬스터 (11-11 #69: 5마리 뒤에도 계속 나온다)
   List<FieldSpawn> get todaySpawns {
     final today = player.today;
-    if (today != null &&
-        today.fieldMonstersPurified >= RuleConstants.maxFieldMonstersPerDay) {
-      return const [];
-    }
     final done = {...?today?.purifiedSpawnIds, ...?today?.fledSpawnIds};
     for (final away in activeExpeditions) {
       done.add(away.spawnId);
@@ -684,23 +694,25 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
-    final paid =
-        today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay;
-    final baseExp = paid
-        ? (RuleConstants.fieldMonsterExp *
-                (TownRules.incenseActive(today)
-                    ? RuleConstants.incenseExpMultiplier
-                    : 1))
-            .round()
-        : 0;
+    // 11-11 #69: 하루 5마리 뒤에도 사냥은 되고 경험치·마석만 줄어든다 (숨은 규칙)
+    const paid = true;
+    final n = today.fieldMonstersPurified;
+    final factor = RuleConstants.fieldFactor(n + 1);
+    final incense = TownRules.incenseActive(today)
+        ? RuleConstants.incenseExpMultiplier
+        : 1;
+    // 규칙이 하루 기록에서 계산하는 몫 (이 마리 수만큼 늘어나는 것)
+    int ruleExp(int c) =>
+        (RuleConstants.fieldUnits(c) * RuleConstants.fieldMonsterExp * incense)
+            .round();
+    final baseExp = ruleExp(n + 1) - ruleExp(n);
     // 수식어·속성 보너스와 마리 수 (11-11: 기록에 남겨 경험치에 더한다)
-    var exp = paid
-        ? (baseExp *
-                (ModifierRules.expMultiplier(mods) +
-                    Monsters.info(monster).expBonus) *
-                count)
-            .round()
-        : 0;
+    var exp = (RuleConstants.fieldMonsterExp *
+            incense *
+            factor *
+            (ModifierRules.expMultiplier(mods) + Monsters.info(monster).expBonus) *
+            count)
+        .round();
     // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
     final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
     if (half) exp = exp ~/ 2;
@@ -722,8 +734,10 @@ class AppController extends ChangeNotifier {
       }
       final b = ModifierRules.bonus(monster, mods, _random);
       b.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
-      extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
-          b.manaStones;
+      extraMana = ((((count - 1) * RuleConstants.crystalsPerFieldMonster) +
+                  b.manaStones) *
+              factor)
+          .floor();
       gold = b.gold;
       if (half) {
         for (final k in [...mats.keys]) {
@@ -768,8 +782,11 @@ class AppController extends ChangeNotifier {
     ));
     _lastReward = HuntReward(
       exp: exp,
-      manaStones:
-          paid ? RuleConstants.crystalsPerFieldMonster + extraMana : 0,
+      manaStones: (RuleConstants.fieldUnits(n + 1) * RuleConstants.crystalsPerFieldMonster)
+                  .floor() -
+              (RuleConstants.fieldUnits(n) * RuleConstants.crystalsPerFieldMonster)
+                  .floor() +
+          extraMana,
       gold: gold,
       materials: mats,
     );
@@ -786,6 +803,13 @@ class AppController extends ChangeNotifier {
       await _givePetExp(companionPet!.uid, PetRules.expPerHunt * count);
     }
     return exp;
+  }
+
+  /// 많이 사냥한 날 가끔 정령(펫)이 넌지시 (6마리째부터 세 번에 한 번, 숫자는 말하지 않는다)
+  String? get tiredHuntLine {
+    final n = player.today?.fieldMonstersPurified ?? 0;
+    if (n <= RuleConstants.maxFieldMonstersPerDay || n % 3 != 0) return null;
+    return '오늘은 많이 싸웠어. 좀 쉬어도 돼.';
   }
 
   /// 원정 결과를 정하는 중 (동행 펫 사냥 경험치를 주지 않는다)

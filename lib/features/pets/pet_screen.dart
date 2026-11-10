@@ -70,7 +70,7 @@ class _PetCard extends StatelessWidget {
     final text = TextEditingController(text: pet.name);
     final name = await showDialog<String>(
       context: context,
-      builder: (d) => AlertDialog(
+      builder: (d) => GameAlert(
         title: const Text('이름 바꾸기'),
         content: TextField(controller: text, maxLength: 8, autofocus: true),
         actions: [
@@ -91,7 +91,7 @@ class _PetCard extends StatelessWidget {
     Future<bool> ask(String title, String body, String yes) async =>
         await showDialog<bool>(
           context: context,
-          builder: (d) => AlertDialog(
+          builder: (d) => GameAlert(
             title: Text(title),
             content: KText(body),
             actions: [

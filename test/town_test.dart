@@ -45,14 +45,14 @@ DailyRecord _day(int d,
 
 void main() {
   group('마석·금화', () {
-    test('던전 클리어 3개, 실패 1개, 필드 몬스터 1개 (하루 5마리까지)', () {
+    test('던전 클리어 3개, 실패 1개, 필드 몬스터 1개 (6마리째부터 절반)', () {
       final r = _day(2,
           runs: const [
             DungeonRun(cleared: true),
             DungeonRun(cleared: false),
           ],
           field: 7);
-      expect(TownRules.crystalsEarnedOn(r), 3 + 1 + 5);
+      expect(TownRules.crystalsEarnedOn(r), 3 + 1 + 6); // 5 + 2×0.5
     });
 
     test('예전에 결정으로 산 것은 마석으로 쓴 것으로 계산한다 (금화는 0)', () {
@@ -571,6 +571,9 @@ void main() {
     await tester.tap(buy);
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
-    expect(find.text('오늘 샀어요'), findsOneWidget);
+    await tester.scrollUntilVisible(
+        find.textContaining('다시 살 수 있어요 · '), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.textContaining('다시 살 수 있어요 · '), findsOneWidget);
   });
 }

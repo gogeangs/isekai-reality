@@ -621,8 +621,7 @@ class _MonsterCard extends StatelessWidget {
 Future<bool> confirmStopResting(BuildContext context) async {
   final ok = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: AppColors.night,
+    builder: (context) => GameAlert(
       title: Text('휴식을 멈출까요?', style: AppText.title(19)),
       content: const Text(
         '여관에서 쉬는 중이에요. 지금 싸우면 휴식이 끝나고, '

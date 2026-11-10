@@ -436,10 +436,14 @@ class _TitleRow extends StatelessWidget {
 /// 이름 바꾸기 (첫 1회 무료 / 금화)
 Future<void> _rename(BuildContext context, AppController c) async {
   final cost = c.renameCost;
-  final name = await askText(context,
-      title: cost == 0 ? '이름 바꾸기 (처음 한 번은 무료)' : '이름 바꾸기 (금화 $cost)',
+  final name = await showDialog<String>(
+    context: context,
+    builder: (_) => RenameDialog(
       initial: c.profile.name,
-      maxLength: 10);
+      cost: cost,
+      taken: c.nameTaken,
+    ),
+  );
   if (name == null || !context.mounted) return;
   if (name.trim().isEmpty || name.trim() == c.profile.name) return;
   final ok = await c.renameHero(name);
@@ -450,38 +454,125 @@ Future<void> _rename(BuildContext context, AppController c) async {
           : '금화가 모자라요. (금화 $cost)')));
 }
 
-/// 짧은 글 입력 창 (이름 바꾸기)
-Future<String?> askText(
-  BuildContext context, {
-  required String title,
-  required String initial,
-  required int maxLength,
-}) {
-  final text = TextEditingController(text: initial);
-  return showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: AppColors.night,
-      title: Text(title, style: const TextStyle(color: AppColors.goldBright)),
+/// 이름 바꾸기 창 (11-11 #72): 금테 팝업, 가격 뱃지, 칸 안 글자 수,
+/// 중복 알림, 바꾸지 않았거나 중복이면 [저장] 흐리게. 키보드 바로 위에 붙는다.
+class RenameDialog extends StatefulWidget {
+  const RenameDialog({
+    super.key,
+    required this.initial,
+    required this.cost,
+    required this.taken,
+    this.maxLength = 10,
+  });
+
+  final String initial;
+  final int cost;
+  final bool Function(String) taken;
+  final int maxLength;
+
+  @override
+  State<RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<RenameDialog> {
+  late final TextEditingController _text =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _close([String? v]) {
+    hideKeyboard();
+    Navigator.of(context).pop(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = _text.text.trim();
+    final dup = v != widget.initial && widget.taken(v);
+    final canSave = v.isNotEmpty && v != widget.initial && !dup;
+    return GameAlert(
+      alignment: Alignment.bottomCenter,
+      title: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('이름 바꾸기', maxLines: 1, style: AppText.title(20)),
+        const SizedBox(height: 8),
+        Container(
+          key: const Key('renameCost'),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            gradient: kGoldGradient,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            widget.cost == 0 ? '처음 한 번은 무료' : '금화 ${comma(widget.cost)}',
+            style: const TextStyle(
+                color: Color(0xFF3A2208),
+                fontSize: 13,
+                fontWeight: FontWeight.w800),
+          ),
+        ),
+      ]),
       content: TextField(
-        controller: text,
+        key: const Key('renameField'),
+        controller: _text,
         autofocus: true,
-        maxLength: maxLength,
-        style: const TextStyle(color: AppColors.text),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
+        maxLength: widget.maxLength,
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => canSave ? _close(_text.text) : null,
+        style: const TextStyle(color: AppColors.text, fontSize: 17),
+        cursorColor: AppColors.goldBright,
+        decoration: InputDecoration(
+          isDense: true,
+          filled: true,
+          fillColor: const Color(0xFF0F1433),
+          counterText: '',
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text('${_text.text.characters.length}/${widget.maxLength}',
+                style: const TextStyle(
+                    color: AppColors.textMuted, fontSize: 13)),
+          ),
+          suffixIconConstraints:
+              const BoxConstraints(minWidth: 0, minHeight: 0),
+          errorText: dup ? '이미 쓰는 이름이에요' : null,
+          errorStyle: const TextStyle(
+              color: Color(0xFFFF6B6B), fontWeight: FontWeight.w700),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+                color: AppColors.gold.withValues(alpha: 0.55)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                const BorderSide(color: AppColors.goldBright, width: 1.6),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                const BorderSide(color: Color(0xFFFF6B6B), width: 1.6),
+          ),
+        ),
       ),
       actions: [
+        TextButton(onPressed: _close, child: const Text('그만두기')),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('그만두기'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(text.text),
+          key: const Key('renameSave'),
+          onPressed: canSave ? () => _close(_text.text) : null,
           child: const Text('저장'),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 class _Section extends StatelessWidget {

@@ -91,7 +91,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
               BulssiLine(
                 mood: cleared ? SpiritMood.cheer : SpiritMood.worried,
                 line: cleared
-                    ? info.huntLine
+                    ? (widget.controller.tiredHuntLine ?? info.huntLine)
                     : escaped
                         ? '앗, 도망쳤어! 황금빛 몬스터는 빨라. 다음엔 꼭 잡자!'
                         : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',

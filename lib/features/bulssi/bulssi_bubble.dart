@@ -72,8 +72,9 @@ class BulssiBubble extends StatelessWidget {
                 TextSpan(
                   text: '$name\n',
                   style: const TextStyle(
-                    color: Color(0xFF8A5A12),
-                    fontSize: 12,
+                    color: Color(0xFFB27C1C),
+                    fontSize: 12.5,
+                    height: 1.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -214,8 +215,9 @@ class ArtSpirit extends StatelessWidget {
                   TextSpan(
                     text: '$name\n',
                     style: const TextStyle(
-                        color: Color(0xFF8A5A12),
+                        color: Color(0xFFB27C1C),
                         fontSize: 10.5,
+                        height: 1.45,
                         fontWeight: FontWeight.w800),
                   ),
                   TextSpan(text: keepAll(line)),

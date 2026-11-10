@@ -173,8 +173,7 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _confirmReset(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.night,
+      builder: (context) => GameAlert(
         title: const Text('모든 기록을 지울까요?',
             style: TextStyle(color: AppColors.goldBright)),
         content: const Text(

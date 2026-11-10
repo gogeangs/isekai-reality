@@ -52,7 +52,7 @@ class SellSheet extends StatelessWidget {
   Future<void> _confirmEquip(BuildContext context, EquipEntry e) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
+      builder: (d) => GameAlert(
         title: const Text('장비 팔기'),
         content: KText('${josa(e.item.name, '을/를')} 금화 '
             '${comma(BagRules.equipPrice(e.item))}에 팔까요?'),

@@ -355,7 +355,7 @@ void main() {
       expect(await c.finishFieldBattle(spawn, b), 0);
     });
 
-    test('하루 5마리를 정화하면 더 나오지 않는다', () async {
+    test('하루 5마리를 정화해도 몬스터는 계속 나온다 (11-11 #69)', () async {
       final store = InMemoryRecordStore(
         profile: const PlayerProfile(name: '하루'),
         history: [
@@ -363,7 +363,7 @@ void main() {
         ],
       );
       final c = await start(store: store);
-      expect(c.todaySpawns, isEmpty);
+      expect(c.todaySpawns, isNotEmpty);
     });
   });
 

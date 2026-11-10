@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/models/daily_record.dart';
 import '../../core/models/player_state.dart';
-import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -134,13 +133,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
           _ChartPanel(
             icon: 'crystal',
             title: '필드 몬스터',
-            goalLabel: '하루 ${RuleConstants.maxFieldMonstersPerDay}마리까지',
+            goalLabel: '사냥한 마릿수',
             days: days,
             values: [
               for (final r in records)
                 (r?.fieldMonstersPurified ?? 0).toDouble(),
             ],
-            goal: RuleConstants.maxFieldMonstersPerDay.toDouble(),
+            goal: 0, // 하루 한도가 드러나지 않게 목표선 없음 (11-11 #69)
             colors: const [Color(0xFF7A3FC0), Color(0xFFC9A0FF)],
             format: (v) => v == 0 ? '' : '${v.round()}',
           ),
@@ -258,7 +257,7 @@ class _ChartPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxV = [goal * 1.25, ...values].reduce((a, b) => a > b ? a : b);
+    final maxV = [goal * 1.25, 1.0, ...values].reduce((a, b) => a > b ? a : b);
     return OrnatePanel(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
@@ -285,8 +284,8 @@ class _ChartPanel extends StatelessWidget {
               final barArea = c.maxHeight - labelH - dayH;
               final goalY = labelH + barArea * (1 - goal / maxV);
               return Stack(children: [
-                // 목표선
-                Positioned(
+                // 목표선 (0이면 없음)
+                if (goal > 0) Positioned(
                   left: 0,
                   right: 0,
                   top: goalY,

@@ -499,10 +499,11 @@ void main() {
     expect(find.textContaining('정화 결정'), findsWidgets);
 
     final crystals = c.player.crystals;
-    await tester.scrollUntilVisible(find.text('5개'), 200,
+    // 정령 물약 (원정 나침반도 5개라 첫 번째)
+    await tester.scrollUntilVisible(find.text('5개').first, 200,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('5개'));
+    await tester.tap(find.text('5개').first);
     await tester.pumpAndSettle();
     expect(c.player.crystals, crystals - 5);
     expect(find.text('오늘 샀어요'), findsOneWidget);

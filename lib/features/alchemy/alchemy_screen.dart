@@ -23,7 +23,7 @@ class AlchemyScreen extends StatefulWidget {
 
 class _AlchemyScreenState extends State<AlchemyScreen> {
   int _tab = 0;
-  static const _tabs = ['가마솥', '레시피 책', '재료 가공', '변환'];
+  static const _tabs = ['가마솥', '레시피', '가공', '변환'];
 
   AppController get c => widget.controller;
 

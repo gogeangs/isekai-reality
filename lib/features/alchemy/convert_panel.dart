@@ -238,7 +238,7 @@ class _JobCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const GameIcon('cauldron', size: 36, fallback: Icons.science_rounded),
+            const GameIcon('convert_table', size: 36, fallback: Icons.science_rounded),
             const SizedBox(width: 8),
             Text('변환대', style: AppText.title(17)),
           ]),

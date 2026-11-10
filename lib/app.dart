@@ -237,6 +237,69 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
+  bool _walkShowing = false;
+  DateTime? _shownFind;
+  DateTime? _shownMerchant;
+
+  /// 걸음 주머니 · 길가의 발견 · 떠돌이 상인 (11-11 #59)
+  void _maybeShowWalkNews() {
+    final c = widget.controller;
+    if (_walkShowing || _levelUpShowing || _farewellShowing || _noticeShowing) {
+      return;
+    }
+    if (c.takeNewPouch()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('걷다가 주운 것들을 걸음 주머니에 담았어요. 가방에서 열어 보세요!')));
+      });
+    }
+    final find = c.findOpen ? c.gather.findUntil : null;
+    final merchant = c.merchantHere ? c.gather.merchantUntil : null;
+    if (find != null && find != _shownFind) {
+      _shownFind = find;
+      _walkShowing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final open = await showDialog<bool>(
+          context: context,
+          builder: (d) => AlertDialog(
+            backgroundColor: AppColors.night,
+            title: Text('길가에서 반짝이는 것을 발견했어!', style: AppText.title(18)),
+            content: const KText('30분 안에 열어 보면 받을 수 있어요.',
+                style: TextStyle(color: AppColors.text)),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(d, false),
+                  child: const Text('나중에')),
+              TextButton(
+                  onPressed: () => Navigator.pop(d, true),
+                  child: const Text('열어 보기')),
+            ],
+          ),
+        );
+        if (open == true) {
+          final r = await c.openFind();
+          if (mounted && r != null) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(gatherLine(r))));
+          }
+        }
+        _walkShowing = false;
+      });
+      return;
+    }
+    if (merchant != null && merchant != _shownMerchant) {
+      _shownMerchant = merchant;
+      _walkShowing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await showMerchantSheet(context, c);
+        _walkShowing = false;
+      });
+    }
+  }
+
   bool _titleShowing = false;
 
   /// 칭호를 새로 얻으면 알림. 누르면 프로필 칭호 목록으로 (11-11 #41)
@@ -325,6 +388,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowFarewell();
         _maybeShowNotices();
         _maybeShowPetNews();
+        _maybeShowWalkNews();
         void push(Widget page) => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => page));
         // 11-10 #25: 하단 메뉴 상태 · 지도 · 마을 · 가방 · 도감

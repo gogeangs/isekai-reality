@@ -11,6 +11,7 @@ import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
+import 'core/models/gather_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
@@ -229,6 +230,8 @@ class AppController extends ChangeNotifier {
     _pets = pets == null ? const PetState() : PetState.fromJson(pets);
     final alc = await store.loadJson(_alchemyKey);
     _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
+    final gather = await store.loadJson(_gatherKey);
+    _gather = gather == null ? const GatherState() : GatherState.fromJson(gather);
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -521,8 +524,11 @@ class AppController extends ChangeNotifier {
       await _maybeEgg(PetRules.dungeonEggChance, 'dungeon');
     }
     if (run.cleared) await _maybeNote(AlchemyRules.noteFromDungeon);
-    final fit =
-        _fitBag(LootRules.dungeon(cleared: run.cleared, rng: _random));
+    final loot = LootRules.dungeon(cleared: run.cleared, rng: _random);
+    // 던전 전용 재료 (11-11 #59)
+    GatherRules.dungeon(run.cleared, _random)
+        .forEach((k, v) => loot[k] = (loot[k] ?? 0) + v);
+    final fit = _fitBag(loot);
     final mats = fit.kept;
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
@@ -1464,7 +1470,7 @@ class AppController extends ChangeNotifier {
   }
 
   /// 가방 칸을 쓰는 그 밖의 것 (나중에 더할 자리)
-  List<int> _extraBagCounts() => const [];
+  List<int> _extraBagCounts() => [_gather.pouches];
 
   /// 읽지 않은 레시피 쪽지
   int get recipeNotes => _pets.recipeNotes;
@@ -1917,6 +1923,147 @@ class AppController extends ChangeNotifier {
   Future<void> setAutoUse({int? hpPercent, bool? cure}) async =>
       _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure));
 
+
+  // ───────────────────────────────────────────── 걸음 주머니 · 길가 · 상인 (11-11 #59)
+
+  static const _gatherKey = 'gather';
+  GatherState _gather = const GatherState();
+
+  GatherState get gather => _gather;
+
+  Future<void> _saveGather(GatherState g) async {
+    _gather = g;
+    await store.saveJson(_gatherKey, g.toJson());
+    notifyListeners();
+  }
+
+  /// 걸음 주머니·무작위 이벤트를 걸음에 맞춰 만든다 (앱을 열 때·화면을 볼 때)
+  Future<void> _checkWalkEvents() async {
+    final today = player.today;
+    if (today == null) return;
+    final now = _clock();
+    var g = _gather;
+    if (g.day != today.dayKey) {
+      g = g.copyWith(
+          day: today.dayKey,
+          pouchesGiven: 0,
+          stepsChecked: 0,
+          findsToday: 0,
+          merchantToday: 0);
+    }
+    // 걸음 주머니
+    final due = GatherRules.pouchesFor(today.steps);
+    var newPouch = false;
+    if (due > g.pouchesGiven) {
+      g = g.copyWith(
+          pouches: g.pouches + (due - g.pouchesGiven), pouchesGiven: due);
+      newPouch = true;
+    }
+    // 길가의 발견 · 떠돌이 상인
+    var notifyFind = false, notifyMerchant = false;
+    var checked = g.stepsChecked;
+    while (today.steps - checked >= GatherRules.findSteps) {
+      checked += GatherRules.findSteps;
+      final open = g.findUntil != null && g.findUntil!.isAfter(now);
+      if (!open &&
+          g.findsToday < GatherRules.findsPerDay &&
+          _random.nextDouble() < GatherRules.findChance) {
+        g = g.copyWith(
+            findUntil: now.add(GatherRules.findValid),
+            findsToday: g.findsToday + 1);
+        notifyFind = true;
+      }
+      if (checked % GatherRules.merchantSteps < GatherRules.findSteps &&
+          g.merchantToday < GatherRules.merchantPerDay &&
+          _random.nextDouble() < GatherRules.merchantChance) {
+        g = g.copyWith(
+          merchantUntil: now.add(GatherRules.merchantStay),
+          merchantToday: g.merchantToday + 1,
+          offers: {
+            for (final e in GatherRules.offers(_random).entries)
+              e.key.name: e.value,
+          },
+          noteOffer: _random.nextDouble() < GatherRules.noteOfferChance,
+        );
+        notifyMerchant = true;
+      }
+    }
+    g = g.copyWith(stepsChecked: checked);
+    if (g.toJson().toString() != _gather.toJson().toString()) await _saveGather(g);
+    if (newPouch) _newPouch = true;
+    final quiet = GatherRules.quietHour(now) || !g.notify;
+    if (notifyFind && !quiet) {
+      unawaited(notifier?.schedule(NotifyId.find, now.add(const Duration(seconds: 2)),
+          '길가에서 반짝이는 것을 발견했어!', '30분 안에 열어 보면 받을 수 있어요.'));
+    }
+    if (notifyMerchant && !quiet) {
+      unawaited(notifier?.schedule(
+          NotifyId.merchant,
+          now.add(const Duration(seconds: 2)),
+          '떠돌이 상인이 나타났어!',
+          '20분 동안만 귀한 재료를 팔아요.'));
+    }
+  }
+
+  bool _newPouch = false;
+  bool takeNewPouch() {
+    final v = _newPouch;
+    _newPouch = false;
+    return v;
+  }
+
+  /// 길가의 발견이 열려 있는지
+  bool get findOpen =>
+      _gather.findUntil != null && _gather.findUntil!.isAfter(_clock());
+
+  /// 떠돌이 상인이 있는지
+  bool get merchantHere =>
+      _gather.merchantUntil != null && _gather.merchantUntil!.isAfter(_clock());
+
+  /// 걸음 주머니를 연다
+  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openPouch() async {
+    if (_gather.pouches <= 0) return null;
+    final r = GatherRules.openPouch(_random);
+    await _saveGather(_gather.copyWith(pouches: _gather.pouches - 1));
+    await _grant(r.gold, 0, r.mats);
+    if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    return r;
+  }
+
+  /// 길가의 발견을 연다 (30분이 지나면 null)
+  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openFind() async {
+    if (!findOpen) return null;
+    final r = GatherRules.openFind(_random);
+    await _saveGather(_gather.copyWith(clearFind: true));
+    await _grant(r.gold, 0, r.mats);
+    if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    return r;
+  }
+
+  /// 떠돌이 상인에게서 산다 ([m] 이 null 이면 레시피 쪽지)
+  Future<bool> buyFromMerchant(MaterialId? m) async {
+    if (!merchantHere) return false;
+    final price = m == null
+        ? (_gather.noteOffer ? GatherRules.notePrice : null)
+        : _gather.offers[m.name];
+    if (price == null || player.gold < price) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {Wallet.gold: price})));
+    if (m == null) {
+      await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+      await _saveGather(_gather.copyWith(noteOffer: false));
+    } else {
+      await _grant(0, 0, {m: 1});
+      await _saveGather(_gather.copyWith(
+          offers: {..._gather.offers}..remove(m.name)));
+    }
+    return true;
+  }
+
+  /// 걸을 때 알림 켜고 끄기 (설정)
+  Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));
+
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
 
   static const _armoryKey = 'armory';
@@ -2367,6 +2514,7 @@ class AppController extends ChangeNotifier {
     await _checkLetters();
     await _petSteps();
     await _checkBoardEggs();
+    await _checkWalkEvents();
     notifyListeners();
   }
 

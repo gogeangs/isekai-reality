@@ -28,6 +28,23 @@ class SettingsScreen extends StatelessWidget {
         children: [
           OrnateTopBar(title: '설정', onBack: onBack),
           const SizedBox(height: 8),
+          _Section(
+            title: '알림',
+            children: [
+              ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: controller.gather.notify,
+                  onChanged: controller.setWalkNotify,
+                  title: const Text('걸을 때 알림 (길가의 발견·떠돌이 상인)',
+                      style: TextStyle(color: AppColors.text, fontSize: 14)),
+                  subtitle: const Text('밤 10시~아침 7시에는 보내지 않아요',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
           // 11-10 #24: 이름·정령 이름 바꾸기는 프로필로 옮겼다
           // 11-10 D1: 긴 설명 대신 한 줄 + 목록 항목
           _Section(

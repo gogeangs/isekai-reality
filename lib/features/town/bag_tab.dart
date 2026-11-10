@@ -63,6 +63,14 @@ class PotionEntry extends BagEntry {
       key.startsWith('?:') ? BagFilter.other : BagFilter.consumable;
 }
 
+/// 걸음 주머니 (열어 보기 전엔 내용물을 모른다)
+class PouchEntry extends BagEntry {
+  const PouchEntry(this.count);
+  final int count;
+  @override
+  BagFilter get kind => BagFilter.other;
+}
+
 /// 펫 알 (정령이 떠나기 전에는 「신비한 알」)
 class EggEntry extends BagEntry {
   const EggEntry(this.egg);
@@ -88,6 +96,7 @@ List<BagEntry> bagEntries(AppController c) {
     for (final e in c.armory.items)
       if (!c.armory.isWorn(e)) EquipEntry(e),
     for (final e in c.pets.eggs) EggEntry(e),
+    for (final n in split(c.gather.pouches)) PouchEntry(n),
     for (final e in c.alchemy.potions.entries)
       for (final n in split(e.value)) PotionEntry(e.key, n),
     for (final i in TownRules.bagItems)
@@ -289,7 +298,8 @@ class BagSlot extends StatelessWidget {
     final count = switch (e) {
       MaterialEntry(:final count) ||
       ItemEntry(:final count) ||
-      PotionEntry(:final count) =>
+      PotionEntry(:final count) ||
+      PouchEntry(:final count) =>
         count,
       _ => 0,
     };
@@ -319,6 +329,12 @@ class BagSlot extends StatelessWidget {
                     potion: AlchemyRules.byName(key.replaceAll('*', '')),
                     suspicious: key.startsWith('?:'),
                     size: 40),
+                PouchEntry() => Image.asset('assets/images/item_pouch.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.shopping_bag_rounded,
+                        size: 34,
+                        color: AppColors.goldBright)),
                 EggEntry(:final egg) => EggArt(
                     size: 40,
                     glowing: controller != null && controller!.eggReady(egg)),
@@ -367,6 +383,7 @@ String bagEntryName(BagEntry e, [AppController? c]) => switch (e) {
       EquipEntry(:final item) => item.name,
       EggEntry() => c != null && c.farewellDone ? '펫 알' : '신비한 알',
       PotionEntry(:final key) => c == null ? key : c.potionName(key),
+      PouchEntry() => '걸음 주머니',
     };
 
 /// 칸을 누르면: 설명, 쓰기·입기, 버리기
@@ -420,6 +437,8 @@ class _EntrySheet extends StatelessWidget {
         break;
       case PotionEntry(:final key):
         await c.discardPotion(key, n);
+      case PouchEntry():
+        break;
     }
     if (context.mounted) Navigator.of(context).pop();
   }
@@ -431,7 +450,8 @@ class _EntrySheet extends StatelessWidget {
     final count = switch (e) {
       MaterialEntry(:final count) ||
       ItemEntry(:final count) ||
-      PotionEntry(:final count) =>
+      PotionEntry(:final count) ||
+      PouchEntry(:final count) =>
         count,
       EquipEntry() || EggEntry() => 1,
     };
@@ -442,6 +462,10 @@ class _EntrySheet extends StatelessWidget {
         ),
       EggEntry() => ('', ''),
       PotionEntry(:final key) => (c.potionDescription(key), '잡화상에서는 팔지 않아요'),
+      PouchEntry() => (
+          '걷다가 길에서 주운 것들이 든 주머니. 열어 보기 전엔 무엇이 들었는지 몰라요.',
+          '${GatherRules.pouchSteps}보마다 하나, 하루 ${GatherRules.pouchesPerDay}개까지'
+        ),
       ItemEntry(:final item) => (
           c.itemDescription(item),
           '잡화상에서 1개 금화 ${BagRules.itemPrice(item)}'
@@ -478,6 +502,18 @@ class _EntrySheet extends StatelessWidget {
         );
       case MaterialEntry() || EggEntry():
         action = null;
+      case PouchEntry():
+        action = GoldButton(
+          label: '열어 보기',
+          height: 44,
+          onPressed: () async {
+            final r = await c.openPouch();
+            if (r == null || !context.mounted) return;
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(gatherLine(r))));
+          },
+        );
       case PotionEntry(:final key):
         action = GoldButton(
           label: '마시기',
@@ -715,5 +751,96 @@ Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
             ),
           ),
         ),
+      ),
+    );
+
+/// 주머니·길가에서 나온 것 한 줄
+String gatherLine(({Map<MaterialId, int> mats, int gold, bool note}) r) => [
+      for (final e in r.mats.entries) '${Materials.info(e.key).name} +${e.value}',
+      if (r.gold > 0) '금화 +${r.gold}',
+      if (r.note) '레시피 쪽지 +1',
+    ].join(' · ');
+
+/// 떠돌이 상인 (11-11 #59): 잠깐 동안 귀한 재료를 금화로
+Future<void> showMerchantSheet(BuildContext context, AppController c) =>
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.night,
+      isScrollControlled: true,
+      builder: (sheet) => ListenableBuilder(
+        listenable: c,
+        builder: (sheet, _) {
+          final g = c.gather;
+          final left = c.merchantHere
+              ? g.merchantUntil!.difference(c.now).inMinutes + 1
+              : 0;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    Image.asset('assets/images/merchant.png',
+                        width: 56,
+                        height: 56,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.storefront_rounded,
+                            size: 44,
+                            color: AppColors.goldBright)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('떠돌이 상인', style: AppText.title(19)),
+                          Text(
+                              c.merchantHere ? '$left분 뒤 떠나요 · 금화 ${c.player.gold}' : '상인이 떠났어요',
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 12.5)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 10),
+                  for (final e in g.offers.entries)
+                    if (Materials.byName(e.key) case final m?)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: MaterialIcon(m, size: 36),
+                        title: Text(Materials.info(m).name,
+                            style: const TextStyle(color: AppColors.text)),
+                        trailing: TextButton(
+                          onPressed: c.merchantHere && c.player.gold >= e.value
+                              ? () => c.buyFromMerchant(m)
+                              : null,
+                          child: Text('금화 ${e.value}'),
+                        ),
+                      ),
+                  if (g.noteOffer)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.description_rounded,
+                          color: AppColors.goldBright, size: 32),
+                      title: const Text('레시피 쪽지',
+                          style: TextStyle(color: AppColors.text)),
+                      trailing: TextButton(
+                        onPressed: c.merchantHere &&
+                                c.player.gold >= GatherRules.notePrice
+                            ? () => c.buyFromMerchant(null)
+                            : null,
+                        child: const Text('금화 ${GatherRules.notePrice}'),
+                      ),
+                    ),
+                  if (g.offers.isEmpty && !g.noteOffer)
+                    const KText('다 팔렸어요. 또 만나요!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );

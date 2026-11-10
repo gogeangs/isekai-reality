@@ -37,7 +37,6 @@ import 'package:isekai_reality/features/smithy/smithy_screen.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/features/harvest/harvest_sheet.dart';
-import 'package:isekai_reality/features/mail/mail_screen.dart';
 
 final _root = GlobalKey();
 

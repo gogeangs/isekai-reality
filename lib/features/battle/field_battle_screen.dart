@@ -8,6 +8,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/material_view.dart';
 import 'battle_view.dart';
+import 'modifier_view.dart';
 
 /// 지도에서 만난 필드 몬스터를 정화하는 짧은 전투 (한 마리)
 class FieldBattleScreen extends StatefulWidget {
@@ -52,6 +53,9 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
     final battle = _battle;
     final info = widget.spawn.info;
     final cleared = battle?.phase == BattlePhase.cleared;
+    final escaped = battle?.phase == BattlePhase.escaped;
+    final spawn = widget.spawn;
+    final nameColor = modGradeColor(spawn.grade);
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
       backgroundColor: const Color(0xFF0F1233),
@@ -88,9 +92,21 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 mood: cleared ? SpiritMood.cheer : SpiritMood.worried,
                 line: cleared
                     ? info.huntLine
-                    : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',
+                    : escaped
+                        ? '앗, 도망쳤어! 황금빛 몬스터는 빨라. 다음엔 꼭 잡자!'
+                        : '괜찮아, 잃은 건 없어. 조금 더 강해져서 다시 오자!',
               ),
               const SizedBox(height: 4),
+            ],
+            // 수식어 몬스터: 색 이름과 행동 설명 (11-10 #21)
+            if (battle != null && !_done && spawn.modifiers.isNotEmpty) ...[
+              Text(spawn.name,
+                  textAlign: TextAlign.center,
+                  style: AppText.title(20, color: nameColor)),
+              const SizedBox(height: 6),
+              ModifierPanel(
+                  mods: spawn.modifiers, foeCount: battle.floors.length),
+              const SizedBox(height: 10),
             ],
             if (battle != null && !_done)
               BattleView(
@@ -102,7 +118,12 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
               )
             else if (_done) ...[
               const SizedBox(height: 8),
-              Text(cleared ? '사냥 성공!' : '이번엔 물러났어요',
+              Text(
+                  cleared
+                      ? '사냥 성공!'
+                      : escaped
+                          ? '도망쳤어요'
+                          : '이번엔 물러났어요',
                   textAlign: TextAlign.center, style: AppText.title(30)),
               const SizedBox(height: 12),
               SizedBox(
@@ -126,7 +147,13 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 OrnatePanel(
                   ornament: true,
                   child: Column(children: [
-                    Text(info.name, style: AppText.title(20)),
+                    Text(spawn.name,
+                        textAlign: TextAlign.center,
+                        style: AppText.title(20, color: nameColor)),
+                    if (battle!.floors.length > 1)
+                      Text('${battle.floors.length}마리',
+                          style: const TextStyle(
+                              color: AppColors.textMuted, fontSize: 13)),
                     const SizedBox(height: 6),
                     Text(_exp > 0 ? '경험치 +$_exp' : '오늘 보상은 다 받았어요',
                         textAlign: TextAlign.center,

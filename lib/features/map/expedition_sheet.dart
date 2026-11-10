@@ -9,6 +9,7 @@ import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/field_battle_screen.dart';
+import '../battle/modifier_view.dart';
 import '../bulssi/spirit_art.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
@@ -70,7 +71,9 @@ class SpawnSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(info.name, style: AppText.title(20)),
+                    Text(spawn.name,
+                        style: AppText.title(20,
+                            color: modGradeColor(spawn.grade))),
                     const SizedBox(height: 4),
                     Text(info.habitat,
                         style: const TextStyle(
@@ -79,6 +82,10 @@ class SpawnSheet extends StatelessWidget {
                 ),
               ),
             ]),
+            if (spawn.modifiers.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ModifierPanel(mods: spawn.modifiers),
+            ],
             const SizedBox(height: 14),
             if (near) ...[
               GoldButton(

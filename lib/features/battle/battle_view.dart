@@ -8,6 +8,7 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 
@@ -85,6 +86,10 @@ class _BattleViewState extends State<BattleView> {
 
   String get _floorLabel {
     if (_b.floors.length == 1) return '필드 전투';
+    // 수식어 무리(필드): 몇 번째 마리인지
+    if (!_b.floors.last.isBoss) {
+      return '${_b.floor + 1} / ${_b.floors.length}마리';
+    }
     return _b.foe.isBoss
         ? 'BOSS'
         : '${_b.floor + 1}층 / ${_b.floors.length - 1}층';
@@ -127,10 +132,12 @@ class _BattleViewState extends State<BattleView> {
             const SizedBox(width: 12),
             Expanded(
               child: _HpColumn(
-                name: foe.info.name,
+                name: foe.name,
+                nameColor: modGradeColor(foe.grade),
                 hp: _b.foeHp,
                 maxHp: foe.maxHp,
                 colors: BarColors.foe,
+                note: _b.lastEvent,
                 alignEnd: true,
               ),
             ),
@@ -687,9 +694,11 @@ class _HpColumn extends StatelessWidget {
     required this.colors,
     this.note,
     this.alignEnd = false,
+    this.nameColor = AppColors.text,
   });
 
   final String name;
+  final Color nameColor;
   final int hp;
   final int maxHp;
   final List<Color> colors;
@@ -709,8 +718,8 @@ class _HpColumn extends StatelessWidget {
             Flexible(
               child: Text(name,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.text,
+                  style: TextStyle(
+                      color: nameColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w700)),
             ),

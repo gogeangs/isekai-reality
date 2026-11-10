@@ -5,6 +5,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
+import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 
 /// 도감: 위쪽 「칭호 | 몬스터」 탭으로 그룹을 바꿔 본다 (11-10 E1).
@@ -15,6 +16,7 @@ class CodexScreen extends StatefulWidget {
     required this.player,
     required this.purifiedMonsters,
     this.huntCounts = const {},
+    this.modHunts = const {},
     this.equipped,
     this.onEquip,
   });
@@ -26,6 +28,9 @@ class CodexScreen extends StatefulWidget {
 
   /// 종류별 사냥한 마릿수
   final Map<MonsterId, int> huntCounts;
+
+  /// 희귀·전설 수식어 몬스터 사냥 기록 ([ModifierRules.codexKey] → 마릿수)
+  final Map<String, int> modHunts;
 
   /// 지금 대표 칭호
   final TitleId? equipped;
@@ -129,7 +134,114 @@ class _CodexScreenState extends State<CodexScreen> {
             Monsters.all.length,
             '사냥한 몬스터는 여기 기록돼. ${Monsters.all.length}종 모두 만나 보자!',
             _monsters),
+        _CodexGroup(
+            '수식어',
+            _foundMods.length,
+            _rareMods.length,
+            '희귀·전설 수식어가 붙은 몬스터는 여기 따로 남아. 파란 이름, 주황 이름을 찾아보자!',
+            _modifiers),
       ];
+
+  /// 도감에 남는 수식어 (희귀·전설)
+  static List<ModifierInfo> get _rareMods => [
+        for (final m in ModifierRules.all)
+          if (m.grade.index >= ModGrade.rare.index) m,
+      ];
+
+  /// 사냥해서 찾은 희귀·전설 수식어
+  Set<ModifierId> get _foundMods => {
+        for (final k in widget.modHunts.keys)
+          if (ModifierRules.parseCodexKey(k) case (_, final mods))
+            for (final m in mods)
+              if (ModifierRules.info(m).grade.index >= ModGrade.rare.index) m,
+      };
+
+  Widget _modifiers(BuildContext context) {
+    final found = _foundMods;
+    final entries = [
+      for (final e in widget.modHunts.entries)
+        if (ModifierRules.parseCodexKey(e.key) case (final monster, final mods))
+          (monster, mods, e.value),
+    ]..sort((a, b) => ModifierRules.gradeOf(b.$2)
+        .index
+        .compareTo(ModifierRules.gradeOf(a.$2).index));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('잡은 수식어 몬스터', style: AppText.title(18)),
+              const SizedBox(height: 8),
+              if (entries.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Text('아직 없어요. 지도에서 파란 이름이나 주황 이름의 몬스터를 찾아보세요.',
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                ),
+              for (final (monster, mods, n) in entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(children: [
+                    MonsterPicture(monster: monster, size: 40),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(ModifierRules.displayName(monster, mods),
+                          style: TextStyle(
+                              color: modGradeColor(ModifierRules.gradeOf(mods)),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    Text('$n마리',
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('수식어 ${found.length} / ${_rareMods.length}',
+                  style: AppText.title(18)),
+              const SizedBox(height: 6),
+              for (final m in _rareMods)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SizedBox(
+                      width: 92,
+                      child: Text(found.contains(m.id) ? m.name : '???',
+                          style: TextStyle(
+                              color: found.contains(m.id)
+                                  ? modGradeColor(m.grade)
+                                  : AppColors.textMuted,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                    Expanded(
+                      child: Text(
+                          found.contains(m.id)
+                              ? m.behavior
+                              : '${ModifierRules.gradeLabel(m.grade)} 수식어'
+                                  '${m.monster == null ? '' : ' · ${Monsters.info(m.monster!).name} 전용'}',
+                          style: const TextStyle(
+                              color: AppColors.text, fontSize: 12.5)),
+                    ),
+                  ]),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _titles(BuildContext context) => GridView.count(
         crossAxisCount: 2,

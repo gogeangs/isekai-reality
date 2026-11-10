@@ -3,20 +3,34 @@ import 'dart:math' as math;
 import '../geo/geo.dart';
 import 'exclusion_index.dart';
 import 'exploration_rules.dart';
+import 'modifier_rules.dart';
 import 'monsters.dart';
 import 'road_mask.dart';
 import 'rule_constants.dart';
 
 /// 지도에 나타난 필드 몬스터 하나
 class FieldSpawn {
-  const FieldSpawn({required this.id, required this.monster, required this.point});
+  const FieldSpawn({
+    required this.id,
+    required this.monster,
+    required this.point,
+    this.modifiers = const [],
+  });
 
   /// 하루 안에서 겹치지 않는 id (예: '2026-11-08#3')
   final String id;
   final MonsterId monster;
   final GeoPoint point;
 
+  /// 수식어 (11-10 #21). 자리마다 정해지고, 보는 사람의 레벨로 등급을 나눈다.
+  final List<ModifierId> modifiers;
+
   MonsterInfo get info => Monsters.info(monster);
+
+  /// 수식어를 붙인 이름
+  String get name => ModifierRules.displayName(monster, modifiers);
+
+  ModGrade get grade => ModifierRules.gradeOf(modifiers);
 }
 
 class FieldMonsterRules {
@@ -39,6 +53,7 @@ class FieldMonsterRules {
     double radiusM = RuleConstants.fieldSpawnRadiusM,
     RoadMask? roads,
     ExclusionIndex? exclusions,
+    int level = 1,
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -68,10 +83,13 @@ class FieldMonsterRules {
             rng.nextDouble() * 2 * math.pi,
           ));
       if (p == null) continue;
+      final id = '$key#${place.id}';
+      final monster = _habitatMonster(place.kind);
       spawns.add(FieldSpawn(
-        id: '$key#${place.id}',
-        monster: _habitatMonster(place.kind),
+        id: id,
+        monster: monster,
         point: p,
+        modifiers: ModifierRules.roll(id, monster, level),
       ));
     }
 
@@ -125,12 +143,15 @@ class FieldMonsterRules {
               w0 + rng.nextDouble() * blockLng,
             ));
         if (p == null) continue;
+        final id = '$key#${r}_$c';
+        final monster = night && butterflyRoll < nightButterflyShare
+            ? MonsterId.shadowButterfly
+            : commons[kind];
         spawns.add(FieldSpawn(
-          id: '$key#${r}_$c',
-          monster: night && butterflyRoll < nightButterflyShare
-              ? MonsterId.shadowButterfly
-              : commons[kind],
+          id: id,
+          monster: monster,
           point: p,
+          modifiers: ModifierRules.roll(id, monster, level),
         ));
       }
     }

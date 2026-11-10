@@ -465,13 +465,16 @@ class AppController extends ChangeNotifier {
         today.fieldMonstersPurified >= RuleConstants.maxFieldMonstersPerDay) {
       return const [];
     }
-    final done = {...?today?.purifiedSpawnIds};
+    final done = {...?today?.purifiedSpawnIds, ...?today?.fledSpawnIds};
     final away = expedition;
     if (away != null && !away.finished) done.add(away.spawnId);
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     return FieldMonsterRules.spawnsFor(area, _clock(),
-            center: center, roads: roads, exclusions: exclusions)
+            center: center,
+            roads: roads,
+            exclusions: exclusions,
+            level: player.level.level)
         .where((s) => !done.contains(s.id))
         .toList();
   }
@@ -491,24 +494,44 @@ class AppController extends ChangeNotifier {
     return Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
-      floors: [BattleRules.fieldFoe(level: p.level.level, monster: spawn.monster)],
+      floors: BattleRules.fieldFoes(
+          level: p.level.level,
+          monster: spawn.monster,
+          mods: spawn.modifiers,
+          spawnId: spawn.id),
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
     );
   }
 
-  /// 필드 전투가 끝났을 때. 정화하면 그 자리의 안개도 걷힌다.
+  /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
   Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
     await keepBattleHp(battle);
+    _lastReward = const HuntReward();
+    if (battle.phase == BattlePhase.escaped) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          fledSpawnIds: [...today.fledSpawnIds, spawn.id]));
+      return 0;
+    }
     if (battle.phase != BattlePhase.cleared) return 0;
-    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point);
+    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point,
+        mods: spawn.modifiers, count: battle.floors.length);
   }
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
   /// 하루 5마리까지만 경험치·마석·재료를 준다.
+  ///
+  /// 수식어(11-10): 경험치 보너스, 마석·금화·재료 추가. 무리·분열·동료는 마리 수만큼
+  /// 받지만 하루 5마리 제한에는 1마리로 센다.
   Future<int> _recordFieldPurify(
-      String spawnId, MonsterId monster, GeoPoint point) async {
+    String spawnId,
+    MonsterId monster,
+    GeoPoint point, {
+    List<ModifierId> mods = const [],
+    int count = 1,
+  }) async {
     final today = await _todayRecord();
     _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
@@ -518,22 +541,46 @@ class AppController extends ChangeNotifier {
         ? (RuleConstants.fieldMonsterExp *
                 (TownRules.incenseActive(today)
                     ? RuleConstants.incenseExpMultiplier
-                    : 1))
+                    : 1) *
+                ModifierRules.expMultiplier(mods) *
+                count)
             .round()
         : 0;
-    // 마석은 규칙(하루 5마리)으로 계산하고, 재료만 기록에 더한다
-    final mats = paid ? LootRules.field(monster, _random) : <MaterialId, int>{};
+    // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
+    final mats = <MaterialId, int>{};
+    var extraMana = 0, gold = 0;
+    if (paid) {
+      for (var i = 0; i < count; i++) {
+        LootRules.field(monster, _random)
+            .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+      }
+      final b = ModifierRules.bonus(monster, mods, _random);
+      b.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+      extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
+          b.manaStones;
+      gold = b.gold;
+    }
+    final modKey = ModifierRules.recordInCodex(mods)
+        ? ModifierRules.codexKey(monster, mods)
+        : null;
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
       purifiedMonsterIds: _addMonsters(today, [monster]),
-      huntCounts: _addCounts(today, [monster]),
+      huntCounts: _addCounts(today, List.filled(count, monster)),
       gains: DailyRecord.addCounts(
-          today.gains, HuntReward.ledger(materials: mats)),
+          today.gains,
+          HuntReward.ledger(
+              extraManaStones: extraMana, gold: gold, materials: mats)),
+      modHunts: modKey == null
+          ? null
+          : DailyRecord.addCounts(today.modHunts, {modKey: 1}),
     ));
     _lastReward = HuntReward(
       exp: exp,
-      manaStones: paid ? RuleConstants.crystalsPerFieldMonster : 0,
+      manaStones:
+          paid ? RuleConstants.crystalsPerFieldMonster + extraMana : 0,
+      gold: gold,
       materials: mats,
     );
     return exp;
@@ -808,6 +855,7 @@ class AppController extends ChangeNotifier {
       expedition: Expedition(
         spawnId: spawn.id,
         monster: spawn.monster.name,
+        mods: [for (final m in spawn.modifiers) m.name],
         lat: spawn.point.lat,
         lng: spawn.point.lng,
         fromLat: _lastFix?.point.lat,
@@ -849,16 +897,30 @@ class AppController extends ChangeNotifier {
   /// 각성자의 HP는 쓰지 않는다. 지면 MP만 잃고, 몬스터는 그대로 남는다.
   Future<void> _resolveExpedition(Expedition ex) async {
     final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
+    final mods = [
+      for (final n in ex.mods)
+        if (ModifierRules.byName(n) case final m?) m,
+    ];
     final p = player;
     final battle = Battle.forPlayer(
       level: p.level.level,
       stats: p.stats,
-      floors: [BattleRules.fieldFoe(level: p.level.level, monster: monster)],
+      floors: BattleRules.fieldFoes(
+          level: p.level.level,
+          monster: monster,
+          mods: mods,
+          spawnId: ex.spawnId),
       rng: math.Random(ex.spawnId.hashCode),
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
+    if (battle.phase == BattlePhase.escaped) {
+      final today = await _todayRecord();
+      await _save(
+          today.copyWith(fledSpawnIds: [...today.fledSpawnIds, ex.spawnId]));
+    }
     _lastExpeditionExp = cleared
-        ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng))
+        ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
+            mods: mods, count: battle.floors.length)
         : 0;
     _vitals = _vitals.copyWith(expedition: ex.withResult(cleared));
     await store.saveVitals(_vitals);
@@ -896,6 +958,15 @@ class AppController extends ChangeNotifier {
       }
     }
     return totals;
+  }
+
+  /// 도감 '수식어' 칸: 희귀·전설 수식어 몬스터별 사냥 수
+  Map<String, int> get modHuntTotals {
+    final m = <String, int>{};
+    for (final r in _history) {
+      r.modHunts.forEach((k, v) => m[k] = (m[k] ?? 0) + v);
+    }
+    return m;
   }
 
   List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => {

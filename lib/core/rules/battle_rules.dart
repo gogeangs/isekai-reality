@@ -1,19 +1,49 @@
 import 'dart:math' as math;
 
+import 'modifier_rules.dart';
 import 'monsters.dart';
 import 'rule_constants.dart';
 import 'stat_rules.dart';
 
 /// 전투에 나오는 몬스터 한 마리 (층마다 하나)
 class Foe {
-  const Foe({required this.monster, required this.maxHp, required this.attack});
+  const Foe({
+    required this.monster,
+    required this.maxHp,
+    required this.attack,
+    this.mods = const [],
+    this.defense = 1,
+    this.speed = 1,
+    this.small = false,
+  });
 
   final MonsterId monster;
   final int maxHp;
   final int attack;
 
+  /// 수식어 (11-10 #21, 필드 몬스터만)
+  final List<ModifierId> mods;
+
+  /// 방어 배수: 각성자가 주는 피해를 이만큼 나눈다
+  final double defense;
+
+  /// 속도 배수: 각성자보다 빠르면 먼저 친다
+  final double speed;
+
+  /// 분열해서 나온 작은 몬스터
+  final bool small;
+
   MonsterInfo get info => Monsters.info(monster);
   bool get isBoss => info.isBoss;
+
+  /// 화면에 보이는 이름 (수식어 포함)
+  String get name => small
+      ? '작은 ${info.name}'
+      : ModifierRules.displayName(monster, mods);
+
+  ModGrade get grade => ModifierRules.gradeOf(mods);
+
+  bool has(ModifierId m) => mods.contains(m);
 }
 
 class BattleRules {
@@ -82,6 +112,42 @@ class BattleRules {
       attack: math.max(1, (hp / RuleConstants.fieldHpBudgetTicks).round()),
     );
   }
+
+  /// 수식어가 붙은 필드 몬스터 무리 (11-10 #21).
+  /// 무리 지은은 같은 몬스터 2~3마리, 분열하는은 작은 슬라임 하나 더,
+  /// 찍찍거리는은 보통 큰쥐 하나 더. 차례로 싸운다.
+  static List<Foe> fieldFoes({
+    required int level,
+    required MonsterId monster,
+    List<ModifierId> mods = const [],
+    String spawnId = '',
+  }) {
+    final base = fieldFoe(level: level, monster: monster);
+    if (mods.isEmpty) return [base];
+    final (h, a, d, sp) = ModifierRules.multipliers(mods);
+    final main = Foe(
+      monster: monster,
+      maxHp: math.max(1, (base.maxHp * h).round()),
+      attack: math.max(1, (base.attack * a).round()),
+      mods: mods,
+      defense: d,
+      speed: sp,
+    );
+    final packSize = mods.contains(ModifierId.pack)
+        ? ModifierRules.foeCount(spawnId, [ModifierId.pack])
+        : 1;
+    return [
+      for (var i = 0; i < packSize; i++) main,
+      if (mods.contains(ModifierId.splitting))
+        Foe(
+          monster: monster,
+          maxHp: math.max(1, base.maxHp ~/ 2),
+          attack: math.max(1, base.attack ~/ 2),
+          small: true,
+        ),
+      if (mods.contains(ModifierId.squeaky)) base,
+    ];
+  }
 }
 
 enum BattlePhase {
@@ -96,12 +162,19 @@ enum BattlePhase {
 
   /// 체력이 다 떨어졌다 (아무것도 잃지 않는다)
   failed,
+
+  /// 황금빛 몬스터가 도망쳤다 (11-10)
+  escaped,
 }
 
 /// 자동 전투. 화면은 일정 간격으로 [tick] 을 부르고, 스킬 버튼은 [useSkill].
 ///
 /// 1틱마다 각성자가 먼저 공격하고, 몬스터가 남아 있으면 반격한다.
 /// 피해량은 ±10% 흔들린다. 체력은 층이 바뀌어도 이어진다.
+///
+/// 수식어(11-10): 굶주린·빠른 몬스터는 먼저 치고, 날쌘은 피하고, 단단한은 웅크리고,
+/// 분노한은 체력 절반 아래에서 세지고, 독은 3턴 동안 HP를 깎고, 고대의는 4턴마다 강타,
+/// 황금빛은 3턴 안에 못 잡으면 도망친다. 홀리는은 각성자가 한 턴 쉬게 한다.
 class Battle {
   Battle({
     required this.playerMaxHp,
@@ -162,7 +235,21 @@ class Battle {
 
   Foe get foe => floors[floor];
   bool get isOver =>
-      phase == BattlePhase.cleared || phase == BattlePhase.failed;
+      phase == BattlePhase.cleared ||
+      phase == BattlePhase.failed ||
+      phase == BattlePhase.escaped;
+
+  /// 이번 층에서 지난 턴 수
+  int floorTicks = 0;
+
+  /// 남은 중독 턴
+  int poisonTurns = 0;
+
+  /// 각성자 속도 (끈적한 슬라임에게 맞으면 0.8)
+  double playerSpeed = 1;
+
+  /// 마지막 턴에 일어난 일 ('피했다!' 등, 화면 연출용). 없으면 null.
+  String? lastEvent;
   bool get skillReady =>
       phase == BattlePhase.fighting &&
       skillCharge >= skillChargeTicks;
@@ -190,25 +277,88 @@ class Battle {
       floor++;
       foeHp = foe.maxHp;
       phase = BattlePhase.fighting;
+      floorTicks = 0;
       lastDealt = 0;
       lastTaken = 0;
       lastWasSkill = false;
+      lastEvent = null;
       return;
     }
     ticks++;
+    floorTicks++;
     lastWasSkill = false;
-    lastDealt = _vary(playerAttack);
-    _hitFoe(lastDealt);
+    lastEvent = null;
+    lastDealt = 0;
     lastTaken = 0;
+    final f = foe;
+    final foeFirst = f.has(ModifierId.hungry) || f.speed > playerSpeed;
+
+    if (foeFirst) {
+      _foeTurn();
+      if (isOver) return;
+    }
+
+    // 각성자 차례
+    if (f.has(ModifierId.bewitching) && _rng.nextDouble() < 0.25) {
+      lastEvent = '홀렸어요!';
+    } else if (f.has(ModifierId.nimble) && _rng.nextDouble() < 0.20) {
+      lastEvent = '피했어요!';
+    } else {
+      var dmg = _vary(playerAttack);
+      if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
+      if (f.has(ModifierId.sturdy) && _rng.nextDouble() < 0.20) {
+        dmg = math.max(1, dmg ~/ 2);
+        lastEvent = '웅크렸어요!';
+      }
+      lastDealt = dmg;
+      _hitFoe(dmg);
+    }
     if (phase != BattlePhase.fighting) return;
 
-    lastTaken = _vary(foe.attack);
-    playerHp = math.max(0, playerHp - lastTaken);
-    if (playerHp == 0) {
-      phase = BattlePhase.failed;
+    if (!foeFirst) {
+      _foeTurn();
+      if (isOver) return;
+    }
+
+    // 중독
+    if (poisonTurns > 0) {
+      final p = math.max(1, (playerMaxHp * 0.02).round());
+      poisonTurns--;
+      lastTaken += p;
+      playerHp = math.max(0, playerHp - p);
+      if (playerHp == 0) {
+        phase = BattlePhase.failed;
+        return;
+      }
+    }
+
+    // 황금빛: 3턴 안에 못 잡으면 도망
+    if (f.has(ModifierId.golden) && floorTicks >= 3) {
+      phase = BattlePhase.escaped;
+      lastEvent = '도망쳤어요!';
       return;
     }
     if (skillCharge < skillChargeTicks) skillCharge++;
+  }
+
+  void _foeTurn() {
+    final f = foe;
+    var atk = f.attack.toDouble();
+    if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
+    if (f.has(ModifierId.ancient) && floorTicks % 4 == 0) {
+      atk *= 2.5;
+      lastEvent = '강타!';
+    }
+    final taken = _vary(atk.round());
+    lastTaken += taken;
+    playerHp = math.max(0, playerHp - taken);
+    if ((f.has(ModifierId.venomous) || f.has(ModifierId.plagued)) &&
+        _rng.nextDouble() < 0.30) {
+      poisonTurns = 3;
+      lastEvent = '중독!';
+    }
+    if (f.has(ModifierId.sticky)) playerSpeed = 0.8;
+    if (playerHp == 0) phase = BattlePhase.failed;
   }
 
   /// 스킬 '불씨의 일격'. 충전이 다 됐을 때만 쓸 수 있다.
@@ -216,7 +366,10 @@ class Battle {
     if (!skillReady) return false;
     skillCharge = 0;
     lastWasSkill = true;
-    lastDealt = _vary(playerAttack * RuleConstants.skillDamageMultiplier);
+    lastEvent = null;
+    var dmg = _vary(playerAttack * RuleConstants.skillDamageMultiplier);
+    if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
+    lastDealt = dmg;
     lastTaken = 0;
     _hitFoe(lastDealt);
     return true;

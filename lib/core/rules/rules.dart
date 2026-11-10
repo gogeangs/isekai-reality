@@ -5,6 +5,7 @@ export 'exploration_rules.dart';
 export 'field_monster_rules.dart';
 export 'level_rules.dart';
 export 'materials.dart';
+export 'modifier_rules.dart';
 export 'monsters.dart';
 export 'quest_rules.dart';
 export 'road_mask.dart';

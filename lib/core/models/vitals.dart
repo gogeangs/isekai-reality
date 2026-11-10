@@ -3,6 +3,7 @@ class Expedition {
   const Expedition({
     required this.spawnId,
     required this.monster,
+    this.mods = const [],
     required this.lat,
     required this.lng,
     this.fromLat,
@@ -20,6 +21,9 @@ class Expedition {
 
   /// 몬스터 종류 ([MonsterId] 이름)
   final String monster;
+
+  /// 몬스터 수식어 ([ModifierId] 이름, 11-10)
+  final List<String> mods;
   final double lat;
   final double lng;
 
@@ -61,6 +65,7 @@ class Expedition {
   Expedition withResult(bool cleared) => Expedition(
         spawnId: spawnId,
         monster: monster,
+        mods: mods,
         lat: lat,
         lng: lng,
         fromLat: fromLat,
@@ -76,6 +81,7 @@ class Expedition {
   Map<String, dynamic> toJson() => {
         'spawnId': spawnId,
         'monster': monster,
+        'mods': mods,
         'lat': lat,
         'lng': lng,
         'fromLat': fromLat,
@@ -91,6 +97,7 @@ class Expedition {
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
         spawnId: j['spawnId'] as String,
         monster: j['monster'] as String,
+        mods: ((j['mods'] as List?) ?? const []).map((e) => e as String).toList(),
         lat: (j['lat'] as num).toDouble(),
         lng: (j['lng'] as num).toDouble(),
         fromLat: (j['fromLat'] as num?)?.toDouble(),

@@ -233,6 +233,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                   if (!Monsters.info(m).retired) m,
               },
               huntCounts: controller.huntTotals,
+              modHunts: controller.modHuntTotals,
               equipped: controller.equippedTitle,
               onEquip: controller.setEquippedTitle,
             ),

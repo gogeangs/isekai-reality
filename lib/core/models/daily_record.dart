@@ -46,6 +46,8 @@ class DailyRecord {
     this.goldPurchases = const [],
     this.gains = const {},
     this.spends = const {},
+    this.modHunts = const {},
+    this.fledSpawnIds = const [],
   });
 
   final DateTime date;
@@ -109,6 +111,12 @@ class DailyRecord {
   /// 오늘 쓴 것 (키는 [gains] 와 같다). 마석 팔기, 제작, 강화, 수리 등.
   final Map<String, int> spends;
 
+  /// 오늘 사냥한 희귀·전설 수식어 몬스터 (도감 '수식어' 칸, 키는 [ModifierRules.codexKey])
+  final Map<String, int> modHunts;
+
+  /// 오늘 도망친 몬스터 자리 id (황금빛, 다시 나오지 않음)
+  final List<String> fledSpawnIds;
+
   /// 오늘 여관 휴식을 한 번이라도 마쳤는지 (휴식 보너스·연속 휴식)
   bool get rested => restsCompleted > 0;
 
@@ -145,6 +153,8 @@ class DailyRecord {
         'goldPurchases': goldPurchases,
         'gains': gains,
         'spends': spends,
+        'modHunts': modHunts,
+        'fledSpawnIds': fledSpawnIds,
       };
 
   factory DailyRecord.fromJson(Map<String, dynamic> json) {
@@ -191,6 +201,10 @@ class DailyRecord {
           .toList(),
       gains: _counts(json['gains']),
       spends: _counts(json['spends']),
+      modHunts: _counts(json['modHunts']),
+      fledSpawnIds: ((json['fledSpawnIds'] as List?) ?? const [])
+          .map((e) => e as String)
+          .toList(),
     );
   }
 
@@ -232,6 +246,8 @@ class DailyRecord {
     List<String>? goldPurchases,
     Map<String, int>? gains,
     Map<String, int>? spends,
+    Map<String, int>? modHunts,
+    List<String>? fledSpawnIds,
   }) {
     return DailyRecord(
       date: date,
@@ -259,6 +275,8 @@ class DailyRecord {
       goldPurchases: goldPurchases ?? this.goldPurchases,
       gains: gains ?? this.gains,
       spends: spends ?? this.spends,
+      modHunts: modHunts ?? this.modHunts,
+      fledSpawnIds: fledSpawnIds ?? this.fledSpawnIds,
     );
   }
 }

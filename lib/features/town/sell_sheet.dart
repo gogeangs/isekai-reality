@@ -42,7 +42,7 @@ class SellSheet extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
-          ? '${bagEntryName(e)} $n개를 팔아 금화 ${comma(n * sellPrice(e))}을 받았어요.'
+          ? '${bagEntryName(e)} $n개를 팔았어요. 금화 +${comma(n * sellPrice(e))}'
           : '팔지 못했어요.'),
     ));
   }
@@ -132,7 +132,7 @@ class SellSheet extends StatelessWidget {
                               ...switch (e) {
                                 EquipEntry() => [
                                     SizedBox(
-                                      width: 76,
+                                      width: 92,
                                       child: GoldButton(
                                         label: '팔기',
                                         height: 36,
@@ -146,7 +146,7 @@ class SellSheet extends StatelessWidget {
                                 ItemEntry(:final count) =>
                                   [
                                     SizedBox(
-                                      width: 64,
+                                      width: 84,
                                       child: GoldButton(
                                         label: '1개',
                                         height: 36,
@@ -157,7 +157,7 @@ class SellSheet extends StatelessWidget {
                                     if (count > 1) ...[
                                       const SizedBox(width: 6),
                                       SizedBox(
-                                        width: 76,
+                                        width: 92,
                                         child: GoldButton(
                                           label: '$count개',
                                           height: 36,

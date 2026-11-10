@@ -188,7 +188,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       final g = c.takeBagOverflow();
       if (g <= 0) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('가방이 가득 찼어요. 새로 얻은 재료는 금화 ${comma(g)}으로 바꿨어요.'),
+        content: Text('가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}'),
         duration: const Duration(seconds: 4),
       ));
     });

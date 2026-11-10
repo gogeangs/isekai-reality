@@ -250,7 +250,7 @@ class _SellPanel extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
-          ? '마석 $n개를 팔아 금화 ${n * RuleConstants.goldPerManaStone}을 받았어요.'
+          ? '마석 $n개를 팔았어요. 금화 +${n * RuleConstants.goldPerManaStone}'
           : '마석이 모자라요.'),
     ));
   }

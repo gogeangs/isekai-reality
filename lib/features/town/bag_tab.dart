@@ -160,18 +160,16 @@ class _BagTabState extends State<BagTab> {
                                 : AppColors.text,
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
-                    const Spacer(),
-                    if (cost != null)
-                      SizedBox(
-                        width: 128,
-                        child: FrameButton(
-                          label: '늘리기 ${comma(cost)}',
-                          gameIcon: 'gold',
-                          height: 36,
-                          onPressed: _expand,
-                        ),
-                      ),
                   ]),
+                  if (cost != null) ...[
+                    const SizedBox(height: 8),
+                    FrameButton(
+                      label: '가방 ${BagRules.slotsPerExpansion}칸 늘리기 · 금화 ${comma(cost)}',
+                      gameIcon: 'gold',
+                      height: 40,
+                      onPressed: _expand,
+                    ),
+                  ],
                   if (used > cap)
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
@@ -213,6 +211,7 @@ class _BagTabState extends State<BagTab> {
                   else
                     GridView.count(
                       crossAxisCount: 5,
+                      padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 6,

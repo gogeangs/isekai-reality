@@ -724,7 +724,9 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '53_채집_자리');
     await tester.tap(find.byKey(const Key('harvestGame')));
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 400));
     await _shot(tester, '54_채집_미니게임');
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.byKey(const Key('gameTap')));

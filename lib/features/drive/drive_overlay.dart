@@ -105,7 +105,9 @@ class PassengerBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
-        child: Container(
+        child: Material(
+          type: MaterialType.transparency,
+          child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
             color: const Color(0xE61E2250),
@@ -123,6 +125,7 @@ class PassengerBadge extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     decoration: TextDecoration.none)),
           ]),
+        ),
         ),
       );
 }

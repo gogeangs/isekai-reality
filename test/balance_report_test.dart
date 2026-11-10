@@ -209,7 +209,25 @@ String report(List<Result> results) {
   }
   b
     ..writeln()
-    ..writeln('기획 목표: 2주 뒤 Lv.10~13, 하루 보통 150~250 경험치.');
+    ..writeln('기획 목표: 2주 뒤 Lv.10~13, 하루 보통 150~250 경험치.')
+    ..writeln()
+    ..writeln('장비·수식어는 이 계산에 넣지 않았습니다 (장비를 입으면 던전 클리어가 늘어 레벨이 조금 더 오릅니다).')
+    ..writeln()
+    ..writeln('### 주간 의뢰 경험치를 바꾸면 (14일째)')
+    ..writeln()
+    ..writeln('| 유형 | 지금 (60) | 30 | 20 | 0 (금화만) |')
+    ..writeln('| --- | --- | --- | --- | --- |');
+  for (final r in results) {
+    final total = r.finalState.totalExp;
+    final weekly =
+        r.finalState.dailyExp.fold<int>(0, (a, e) => a + e.weekly);
+    String lv(int perQuest) {
+      final t = total - weekly + weekly * perQuest ~/ BoardRules.weeklyExp;
+      return 'Lv.${LevelRules.fromTotalExp(t).level}';
+    }
+
+    b.writeln('| ${r.persona.name} | ${lv(60)} | ${lv(30)} | ${lv(20)} | ${lv(0)} |');
+  }
 
   for (final r in results) {
     final totals = <String, int>{};
@@ -219,7 +237,9 @@ String report(List<Result> results) {
           ifAbsent: () => e.fieldMonster);
       totals.update('탐험', (v) => v + e.exploration,
           ifAbsent: () => e.exploration);
-      totals.update('퀘스트', (v) => v + e.quest, ifAbsent: () => e.quest);
+      totals.update('퀘스트', (v) => v + e.quest + e.questAll,
+          ifAbsent: () => e.quest + e.questAll);
+      totals.update('주간 의뢰', (v) => v + e.weekly, ifAbsent: () => e.weekly);
       totals.update('여관 휴식', (v) => v + e.rest + e.restStreak,
           ifAbsent: () => e.rest + e.restStreak);
     }

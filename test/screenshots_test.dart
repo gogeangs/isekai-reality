@@ -123,6 +123,8 @@ void main() {
     final monsterTile = find.byType(ListTile).first;
     await tester.scrollUntilVisible(monsterTile, 200,
         scrollable: find.byType(Scrollable).first);
+    // 위쪽 버튼(프로필·우편·설정)에 가리지 않게 조금 내린다
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 160));
     await tester.pumpAndSettle();
     await _shot(tester, '02a_지도_원정목록');
     await tester.tap(monsterTile);

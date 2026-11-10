@@ -32,7 +32,11 @@ class ShopScreen extends StatelessWidget {
   static String boughtLine(ShopItem item) => switch (item) {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
         ShopItem.bulssiPotion => '정령 물약을 가방에 넣었어요. 던전 가기 전에 마셔요!',
-        ShopItem.magicLens => '마법 돋보기로 주변 안개를 걷었어요. 지도를 확인해 보세요!',
+        ShopItem.magicLens => '마법 돋보기는 더 이상 팔지 않아요.',
+        ShopItem.expeditionCompass =>
+          '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
+        ShopItem.purifyIncense =>
+          '정화의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||

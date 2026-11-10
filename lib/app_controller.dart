@@ -50,8 +50,6 @@ class AppController extends ChangeNotifier {
         history: DemoData.twoWeeks(today: now),
       ),
       health: FakeHealthSource(granted: false),
-      weatherSource: FakeWeatherSource(
-          const WeatherNow(kind: WeatherKind.clear, temperatureC: 12)),
       stepGoal: 8000, // 예시 기록과 같은 목표
       clock: clock,
     );
@@ -499,7 +497,11 @@ class AppController extends ChangeNotifier {
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
     final exp =
         today.fieldMonstersPurified < RuleConstants.maxFieldMonstersPerDay
-            ? RuleConstants.fieldMonsterExp
+            ? (RuleConstants.fieldMonsterExp *
+                    (TownRules.incenseActive(today)
+                        ? RuleConstants.incenseExpMultiplier
+                        : 1))
+                .round()
             : 0;
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
@@ -530,7 +532,12 @@ class AppController extends ChangeNotifier {
   int bagCount(ShopItem item) => TownRules.bagCount(_history, item);
 
   UseCheck canUse(ShopItem item) => TownRules.canUse(_history, item,
-      hpFull: hp >= maxHp, mpFull: mp >= RuleConstants.mpMax);
+      hpFull: hp >= maxHp,
+      mpFull: mp >= RuleConstants.mpMax,
+      compassReady: _vitals.compassReady);
+
+  /// 원정 나침반을 써 두었는지 (다음 원정 이동 시간 절반)
+  bool get compassReady => _vitals.compassReady;
 
   /// 가방에서 물약을 꺼내 마신다
   Future<UseCheck> useItem(ShopItem item) async {
@@ -547,6 +554,9 @@ class AppController extends ChangeNotifier {
       _vitals = _vitals.copyWith(
           mp: math.min(RuleConstants.mpMax,
               mp + (RuleConstants.mpMax * info.mpRatio).round()));
+    }
+    if (item == ShopItem.expeditionCompass) {
+      _vitals = _vitals.copyWith(compassReady: true);
     }
     await store.saveVitals(_vitals);
     final today = await _todayRecord();
@@ -730,7 +740,9 @@ class AppController extends ChangeNotifier {
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
     final dist = from.distanceTo(spawn.point);
     final cost = VitalRules.expeditionCost(dist);
-    final oneWay = VitalRules.expeditionOneWay(dist);
+    final base = VitalRules.expeditionOneWay(dist);
+    // 원정 나침반을 써 두었으면 이동 시간 절반
+    final oneWay = _vitals.compassReady ? base ~/ 2 : base;
     ExpeditionCheck check;
     if (expedition != null && !expedition!.finished) {
       check = ExpeditionCheck.busy;
@@ -766,6 +778,7 @@ class AppController extends ChangeNotifier {
         arriveAt: arrive,
         returnAt: arrive.add(plan.oneWay),
       ),
+      compassReady: false, // 나침반은 한 번 쓰면 끝
     );
     await store.saveVitals(_vitals);
     final ret = _vitals.expedition!.returnAt;

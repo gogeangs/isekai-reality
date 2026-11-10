@@ -113,19 +113,8 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           _Section(
-            title: '약관과 날씨',
+            title: '약관',
             children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: profile.weatherEnabled,
-                onChanged: controller.setWeatherEnabled,
-                activeTrackColor: AppColors.gold,
-                title: const Text('날씨로 불씨 색 바꾸기',
-                    style: TextStyle(color: AppColors.text)),
-                subtitle: const Text('약 1km 단위 위치로 조회 (Open-Meteo)',
-                    style:
-                        TextStyle(color: AppColors.textMuted, fontSize: 12)),
-              ),
               _Row(
                 label: LegalDoc.privacy.title,
                 value: '',
@@ -327,7 +316,6 @@ class DataInfoScreen extends StatelessWidget {
   static const _paras = [
     '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요.',
     '위치는 앱을 보고 있을 때만 쓰고, 방문 기록과 밝힌 지도는 휴대폰에만 저장해요.',
-    '날씨를 켜면 약 1km 단위의 대략 위치로 날씨 서비스(Open-Meteo)에 날씨를 물어봐요.',
     '건강 앱·위치·알림 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
     '설정의 「모든 기록 지우고 처음부터」를 누르면 이 앱에 저장된 기록이 모두 지워져요. 건강 앱의 원래 기록은 그대로예요.',
   ];

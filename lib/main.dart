@@ -10,7 +10,6 @@ import 'data/health/device_health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/notify/notifier.dart';
 import 'data/storage/record_store.dart';
-import 'data/weather/weather_source.dart';
 import 'features/map/map_config.dart';
 
 /// 예시 데이터로 실행: flutter run --dart-define=DEMO=true
@@ -33,7 +32,6 @@ Future<void> main() async {
           store: SharedPrefsRecordStore(),
           health: DeviceHealthSource(),
           location: DeviceLocationSource(),
-          weatherSource: OpenMeteoWeatherSource(),
           notifier: DeviceNotifier(),
           // 실제 앱은 위치를 알기 전에는 몬스터를 두지 않는다
           fallbackCenter: null,

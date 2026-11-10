@@ -370,6 +370,41 @@ void main() {
       expect(await c.useItem(ShopItem.healSmall), UseCheck.none);
     });
 
+    test('정화의 향: 피운 날은 필드 몬스터 경험치 1.5배', () async {
+      final c = await start(DateTime(2026, 11, 8, 14), history: [rich]);
+      expect(await c.buy(ShopItem.purifyIncense), PurchaseCheck.ok);
+      expect(await c.useItem(ShopItem.purifyIncense), UseCheck.ok);
+      expect(c.canUse(ShopItem.purifyIncense), UseCheck.none);
+      final spawn = c.todaySpawns.first;
+      final b = c.startFieldBattle(spawn)!..runToEnd();
+      expect(await c.finishFieldBattle(spawn, b),
+          (RuleConstants.fieldMonsterExp * 1.5).round());
+      expect(c.player.dailyExp.last.fieldMonster,
+          (RuleConstants.fieldMonsterExp * 1.5).round());
+    });
+
+    test('원정 나침반: 쓰면 다음 원정 하나만 이동 시간 절반', () async {
+      final loc = _Location();
+      final c = await start(DateTime(2026, 11, 8, 14),
+          history: [rich], location: loc);
+      final spawn = c.todaySpawns.first;
+      loc.emit(LocationFix(
+          point: GeoPoint(spawn.point.lat + 0.009, spawn.point.lng),
+          speedMps: 1.2));
+      await Future<void>.delayed(Duration.zero);
+      final normal = c.planExpedition(spawn).oneWay;
+
+      expect(await c.buy(ShopItem.expeditionCompass), PurchaseCheck.ok);
+      expect(await c.useItem(ShopItem.expeditionCompass), UseCheck.ok);
+      expect(c.compassReady, isTrue);
+      expect(c.planExpedition(spawn).oneWay, normal ~/ 2);
+
+      expect(await c.sendSpirit(spawn), ExpeditionCheck.ok);
+      expect(c.compassReady, isFalse);
+      final ex = c.expedition!;
+      expect(ex.arriveAt.difference(ex.startedAt), normal ~/ 2);
+    });
+
     test('정령 원정: MP로만 거리를 막고, MP를 쓰고, 돌아오면 정화', () async {
       var now = DateTime(2026, 11, 8, 14);
       final loc = _Location();

@@ -31,21 +31,21 @@ DailyRecord day(
 
 void main() {
   group('레벨', () {
-    test('Lv.12 → 13 에는 375가 필요하다', () {
-      expect(LevelRules.expRequiredFor(12), 375);
-      expect(LevelRules.expRequiredFor(13), 400);
+    test('Lv.12 → 13 에는 418이 필요하다 (11-10 약 10% 올림)', () {
+      expect(LevelRules.expRequiredFor(12), 418);
+      expect(LevelRules.expRequiredFor(13), 446);
     });
 
-    test('Lv.10 까지 누적 1,800, Lv.13 까지 누적 2,850', () {
-      expect(LevelRules.totalExpToReach(10), 1800);
-      expect(LevelRules.totalExpToReach(13), 2850);
+    test('Lv.10 까지 누적 1,998, Lv.13 까지 누적 3,168', () {
+      expect(LevelRules.totalExpToReach(10), 1998);
+      expect(LevelRules.totalExpToReach(13), 3168);
     });
 
     test('누적 경험치로 레벨과 진행도를 계산한다', () {
       final p = LevelRules.fromTotalExp(LevelRules.totalExpToReach(12) + 260);
       expect(p.level, 12);
       expect(p.expIntoLevel, 260);
-      expect(p.expToNext, 375);
+      expect(p.expToNext, 418);
     });
   });
 

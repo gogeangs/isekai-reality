@@ -7,8 +7,9 @@ class RuleConstants {
 
   // ---------------------------------------------------------------- 레벨
   /// Lv.n → n+1 에 필요한 경험치 = levelBaseExp + levelStepExp × (n − 1)
-  static const int levelBaseExp = 100;
-  static const int levelStepExp = 25;
+  /// 11-10: 퀘스트 보상이 늘어 약 10% 올림 (100·25 → 110·28)
+  static const int levelBaseExp = 110;
+  static const int levelStepExp = 28;
 
   // ---------------------------------------------------------------- 걸음 목표
   static const int defaultStepGoal = 3000; // 모두 같은 목표 (2026-11-09: 적게 걷는 사람도 충분히 즐기도록)
@@ -92,6 +93,9 @@ class RuleConstants {
   static const double fieldSpawnBlockM = 1000;
   static const double fieldSpawnChance = 0.7;
   static const double fieldEncounterRadiusM = 40;
+
+  /// 정화의 향을 피운 날의 필드 몬스터 경험치 배수 (11-10)
+  static const double incenseExpMultiplier = 1.5;
 
   /// 내 둘레 이 거리(미터) 안의 블록에만 몬스터를 둔다 (11-10 전국 확대).
   /// 정령 원정의 최대 거리(MP 60 = 3km)와 같게.

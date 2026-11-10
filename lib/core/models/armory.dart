@@ -1,3 +1,4 @@
+import '../rules/element_rules.dart';
 import '../rules/equipment_rules.dart';
 
 /// 만든 장비 하나
@@ -12,7 +13,11 @@ class EquipItem {
     this.materialsUsed = const {},
     this.enhanceManaSpent = 0,
     this.appearance,
+    this.element,
   });
+
+  /// 속성 (11-11 #63). 무기는 공격 속성, 나머지는 방어(저항) 속성. 없으면 무속성.
+  final Element? element;
 
   /// 장비마다 다른 id
   final String uid;
@@ -47,6 +52,7 @@ class EquipItem {
     int? enhance,
     int? durability,
     int? enhanceManaSpent,
+    Element? element,
   }) =>
       EquipItem(
         uid: uid,
@@ -58,6 +64,7 @@ class EquipItem {
         materialsUsed: materialsUsed,
         enhanceManaSpent: enhanceManaSpent ?? this.enhanceManaSpent,
         appearance: appearance,
+        element: element ?? this.element,
       );
 
   Map<String, dynamic> toJson() => {
@@ -70,6 +77,7 @@ class EquipItem {
         'materialsUsed': materialsUsed,
         'enhanceManaSpent': enhanceManaSpent,
         'appearance': appearance,
+        if (element != null) 'element': element!.name,
       };
 
   static EquipItem? fromJson(Map<String, dynamic> j) {
@@ -91,6 +99,7 @@ class EquipItem {
       materialsUsed: counts(j['materialsUsed']),
       enhanceManaSpent: (j['enhanceManaSpent'] as num?)?.toInt() ?? 0,
       appearance: j['appearance'] as String?,
+      element: ElementRules.parse(j['element'] as String?),
     );
   }
 }

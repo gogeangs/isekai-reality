@@ -1,21 +1,8 @@
 import 'materials.dart';
 import 'monsters.dart';
 import 'stat_rules.dart';
+import 'element_rules.dart';
 import 'town_rules.dart';
-
-/// 속성 (저항 물약, 속성 슬라임의 공격)
-enum Element { fire, water, wind, earth, light, dark }
-
-extension ElementName on Element {
-  String get label => switch (this) {
-        Element.fire => '불꽃',
-        Element.water => '물',
-        Element.wind => '바람',
-        Element.earth => '대지',
-        Element.light => '빛',
-        Element.dark => '어둠',
-      };
-}
 
 /// 물약 종류 (11-11 #57). 이름은 저장 키라 바꾸지 않는다.
 enum PotionId {
@@ -44,6 +31,11 @@ enum PotionId {
   callMonsters,
   callModified,
   plenty,
+  // 11-11 #63 새 속성 저항
+  resistIce,
+  resistThunder,
+  resistMetal,
+  resistPoison,
 }
 
 enum PotionKind { heal, mana, care, buff, resist, special }
@@ -168,15 +160,8 @@ class AlchemyRules {
   }
 
   /// 속성 슬라임의 속성 (없으면 null)
-  static Element? elementOf(MonsterId m) => switch (m) {
-        MonsterId.fireSlime => Element.fire,
-        MonsterId.waterSlime => Element.water,
-        MonsterId.windSlime => Element.wind,
-        MonsterId.earthSlime => Element.earth,
-        MonsterId.lightSlime => Element.light,
-        MonsterId.darkSlime => Element.dark,
-        _ => null,
-      };
+  /// 몬스터의 속성 (무속성은 null). 11-11 #63부터 모든 몬스터에 속성이 있다.
+  static Element? elementOf(MonsterId m) => Monsters.info(m).element;
 
   /// 넣은 재료(순서대로)로 무엇이 되는지. 맞는 레시피가 없으면 null (수상한 물약).
   static ({PotionId id, bool perfect})? match(List<MaterialId> put) {
@@ -528,6 +513,66 @@ class AlchemyRules {
       ],
       minutes: 60,
       element: Element.dark,
+      duration: _thirty,
+    ),
+    PotionInfo(
+      id: PotionId.resistIce,
+      name: '얼음 저항 물약',
+      kind: PotionKind.resist,
+      description: '30분 동안 얼음 몬스터에게 받는 피해 -30%.',
+      recipe: [
+        MaterialId.iceCore,
+        MaterialId.iceJelly,
+        MaterialId.iceJelly,
+        MaterialId.herb,
+      ],
+      minutes: 60,
+      element: Element.ice,
+      duration: _thirty,
+    ),
+    PotionInfo(
+      id: PotionId.resistThunder,
+      name: '번개 저항 물약',
+      kind: PotionKind.resist,
+      description: '30분 동안 번개 몬스터에게 받는 피해 -30%.',
+      recipe: [
+        MaterialId.thunderCore,
+        MaterialId.thunderJelly,
+        MaterialId.thunderJelly,
+        MaterialId.herb,
+      ],
+      minutes: 60,
+      element: Element.thunder,
+      duration: _thirty,
+    ),
+    PotionInfo(
+      id: PotionId.resistMetal,
+      name: '금속 저항 물약',
+      kind: PotionKind.resist,
+      description: '30분 동안 금속 몬스터에게 받는 피해 -30%.',
+      recipe: [
+        MaterialId.metalCore,
+        MaterialId.metalJelly,
+        MaterialId.metalJelly,
+        MaterialId.herb,
+      ],
+      minutes: 60,
+      element: Element.metal,
+      duration: _thirty,
+    ),
+    PotionInfo(
+      id: PotionId.resistPoison,
+      name: '독 저항 물약',
+      kind: PotionKind.resist,
+      description: '30분 동안 독 몬스터에게 받는 피해 -30%.',
+      recipe: [
+        MaterialId.poisonCore,
+        MaterialId.poisonJelly,
+        MaterialId.poisonJelly,
+        MaterialId.herb,
+      ],
+      minutes: 60,
+      element: Element.poison,
       duration: _thirty,
     ),
     PotionInfo(

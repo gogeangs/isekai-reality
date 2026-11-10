@@ -1,3 +1,4 @@
+import 'element_rules.dart';
 import '../models/daily_record.dart';
 import 'monsters.dart';
 import 'rule_constants.dart';
@@ -16,6 +17,17 @@ enum TitleId {
   gateKeeper,
   lakeFriend,
   townLight,
+  // 속성 칭호 (11-11 #63): 그 속성 점수가 높으면. 얻기 전에는 보이지 않는다
+  elFire,
+  elWater,
+  elWind,
+  elEarth,
+  elLight,
+  elDark,
+  elIce,
+  elThunder,
+  elMetal,
+  elPoison,
 }
 
 class TitleInfo {
@@ -28,6 +40,17 @@ class TitleInfo {
   final String hint;
 }
 
+const _el0 = '불꽃을 닮은 자';
+const _el1 = '물결을 닮은 자';
+const _el2 = '바람을 닮은 자';
+const _el3 = '대지를 닮은 자';
+const _el4 = '빛을 닮은 자';
+const _el5 = '어둠을 닮은 자';
+const _el6 = '서리를 닮은 자';
+const _el7 = '번개를 닮은 자';
+const _el8 = '강철을 닮은 자';
+const _el9 = '독초를 닮은 자';
+
 class TitleRules {
   TitleRules._();
 
@@ -38,7 +61,32 @@ class TitleRules {
           if (!hidden.contains(t.id)) t,
       ];
 
-  static const Set<TitleId> hidden = {TitleId.gateKeeper, TitleId.lakeFriend};
+  static const Set<TitleId> hidden = {
+    TitleId.gateKeeper,
+    TitleId.lakeFriend,
+    ...elementTitles,
+  };
+
+  /// 속성 칭호 (Element 순서와 같다)
+  static const List<TitleId> elementTitles = [
+    TitleId.elFire,
+    TitleId.elWater,
+    TitleId.elWind,
+    TitleId.elEarth,
+    TitleId.elLight,
+    TitleId.elDark,
+    TitleId.elIce,
+    TitleId.elThunder,
+    TitleId.elMetal,
+    TitleId.elPoison,
+  ];
+
+  /// 프로필에 보이는 칭호: 보통 칭호 + 얻은 속성 칭호
+  static List<TitleInfo> visible(Set<TitleId> earned) => [
+        ...all,
+        for (final t in elementTitles)
+          if (earned.contains(t)) info(t),
+      ];
 
   static const List<TitleInfo> _all = [
     TitleInfo(TitleId.firstSteps, '첫 걸음', '처음으로 걸어 보기'),
@@ -52,6 +100,16 @@ class TitleRules {
     TitleInfo(TitleId.gateKeeper, '미궁의 문지기', '미궁 입구 다섯 곳 가 보기'),
     TitleInfo(TitleId.lakeFriend, '호수의 친구', '정령의 물가에 다섯 번 놀러 가기'),
     TitleInfo(TitleId.townLight, '동네의 빛', '필드 몬스터 30마리 사냥하기'),
+    TitleInfo(TitleId.elFire, _el0, '숨은 칭호'),
+    TitleInfo(TitleId.elWater, _el1, '숨은 칭호'),
+    TitleInfo(TitleId.elWind, _el2, '숨은 칭호'),
+    TitleInfo(TitleId.elEarth, _el3, '숨은 칭호'),
+    TitleInfo(TitleId.elLight, _el4, '숨은 칭호'),
+    TitleInfo(TitleId.elDark, _el5, '숨은 칭호'),
+    TitleInfo(TitleId.elIce, _el6, '숨은 칭호'),
+    TitleInfo(TitleId.elThunder, _el7, '숨은 칭호'),
+    TitleInfo(TitleId.elMetal, _el8, '숨은 칭호'),
+    TitleInfo(TitleId.elPoison, _el9, '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -136,6 +194,12 @@ class TitleRules {
     if (lakeDays >= RuleConstants.lakeFriendVisits) {
       result.add(TitleId.lakeFriend);
     }
+    // 속성 칭호 (11-11 #63)
+    ElementRules.scoresFrom(history).forEach((e, v) {
+      if (v >= ElementRules.titleScore) {
+        result.add(elementTitles[Element.values.indexOf(e)]);
+      }
+    });
     final monsters =
         history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);
     if (monsters >= RuleConstants.townLightMonsters) {

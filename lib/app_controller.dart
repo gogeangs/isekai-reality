@@ -12,7 +12,10 @@ import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/gather_state.dart';
+import 'core/models/drive_state.dart';
+import 'core/models/harvest_state.dart';
 import 'core/models/lens_state.dart';
+import 'core/models/mail_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
@@ -20,6 +23,7 @@ import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
+import 'data/mail/mail_source.dart';
 import 'data/notify/notifier.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
@@ -233,6 +237,18 @@ class AppController extends ChangeNotifier {
     _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
     final gather = await store.loadJson(_gatherKey);
     _gather = gather == null ? const GatherState() : GatherState.fromJson(gather);
+    final harvest = await store.loadJson(_harvestKey);
+    _harvest = harvest == null ? const HarvestState() : HarvestState.fromJson(harvest);
+    final drive = await store.loadJson(_driveKey);
+    _drive = drive == null ? const DriveState() : DriveState.fromJson(drive);
+    // 오래전에 막힌 화면은 풀어 둔다 (위치가 꺼져 있으면 끝을 알 수 없다)
+    if (_drive.mode != DriveMode.none &&
+        (_drive.askedAt == null ||
+            _clock().difference(_drive.askedAt!) > const Duration(minutes: 30))) {
+      _drive = _drive.copyWith(mode: DriveMode.none);
+    }
+    final mail = await store.loadJson(_mailKey);
+    _mail = mail == null ? const MailState() : MailState.fromJson(mail);
     final lens = await store.loadJson(_lensKey);
     _lens = lens == null ? const LensState() : LensState.fromJson(lens);
     await sync();
@@ -410,6 +426,7 @@ class AppController extends ChangeNotifier {
   /// 위치가 바뀔 때: 가까운 장소를 방문으로 기록한다 (안개는 11-10에 없앴다)
   Future<void> handleFix(LocationFix fix) async {
     _lastFix = fix;
+    await _watchSpeed(fix);
     if (ExplorationRules.countsAsExploring(fix)) {
       for (final place in ExplorationRules.placesInReach(area, fix.point)) {
         await _visitPlace(place);
@@ -491,6 +508,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: companionPet?.element,
+      mainElement: mainElement,
     );
   }
 
@@ -539,10 +558,11 @@ class AppController extends ChangeNotifier {
       huntCounts: _addCounts(today, battle.purified),
       gains: DailyRecord.addCounts(today.gains,
           HuntReward.ledger(materials: mats, gold: fit.gold)),
-      counters: FieldMonsterRules.isNight(_clock())
-          ? DailyRecord.addCounts(
-              today.counters, {'nightHunts': battle.purified.length})
-          : null,
+      counters: DailyRecord.addCounts(today.counters, {
+        if (FieldMonsterRules.isNight(_clock()))
+          'nightHunts': battle.purified.length,
+        ..._elementCounters(battle.purified),
+      }),
     ));
     if (companionPet != null && battle.purified.isNotEmpty) {
       await _givePetExp(
@@ -583,7 +603,8 @@ class AppController extends ChangeNotifier {
             roads: roads,
             exclusions: exclusions,
             level: player.level.level,
-            luckBonus: StatRules.modifierBonus(combatStats))
+            luckBonus: StatRules.modifierBonus(combatStats),
+            favored: ElementRules.challengers(mainElement))
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .where((s) => !done.contains(s.id))
         .toList();
@@ -619,6 +640,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: companionPet?.element,
+      mainElement: mainElement,
     );
   }
 
@@ -671,13 +694,16 @@ class AppController extends ChangeNotifier {
             .round()
         : 0;
     // 수식어·속성 보너스와 마리 수 (11-11: 기록에 남겨 경험치에 더한다)
-    final exp = paid
+    var exp = paid
         ? (baseExp *
                 (ModifierRules.expMultiplier(mods) +
                     Monsters.info(monster).expBonus) *
                 count)
             .round()
         : 0;
+    // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
+    final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
+    if (half) exp = exp ~/ 2;
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;
@@ -699,6 +725,14 @@ class AppController extends ChangeNotifier {
       extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
           b.manaStones;
       gold = b.gold;
+      if (half) {
+        for (final k in [...mats.keys]) {
+          final v = mats[k]! ~/ 2;
+          v > 0 ? mats[k] = v : mats.remove(k);
+        }
+        extraMana ~/= 2;
+        gold ~/= 2;
+      }
       // 가방이 가득하면 남는 재료는 금화로 (11-11 #48)
       final fit = _fitBag(mats);
       mats
@@ -717,7 +751,7 @@ class AppController extends ChangeNotifier {
       gains: DailyRecord.addCounts(today.gains, {
         ...HuntReward.ledger(
             extraManaStones: extraMana, gold: gold, materials: mats),
-        if (exp > baseExp) Wallet.exp: exp - baseExp,
+        if (exp != baseExp) Wallet.exp: exp - baseExp,
       }),
       modHunts: modKey == null
           ? null
@@ -729,6 +763,7 @@ class AppController extends ChangeNotifier {
         for (final m in mods) 'mod:${m.name}': 1,
         if (FieldMonsterRules.isNight(_clock())) 'nightHunts': count,
         if (today.lostSpawnIds.contains(spawnId)) 'revenge': 1,
+        ..._elementCounters(List.filled(count, monster)),
       }),
     ));
     _lastReward = HuntReward(
@@ -1124,8 +1159,8 @@ class AppController extends ChangeNotifier {
       };
 
   /// 이별 때 깨어날 펫 (연출에서 한 번 뽑아 이름을 짓게 한다)
-  PetSpecies rollFirstPet() =>
-      PetRules.rollSpecies(_random, favored: _favoredSpecies);
+  PetSpecies rollFirstPet() => PetRules.rollSpecies(_random,
+      favored: _favoredSpecies, element: mainElement);
 
   /// 이별 때 가방에 알이 있었는지 (없으면 정령이 선물 알을 남긴다)
   bool get hasEggForFarewell => _pets.eggs.isNotEmpty;
@@ -1167,7 +1202,7 @@ class AppController extends ChangeNotifier {
     if (_random.nextDouble() >= chance) return false;
     final p = _pets;
     await _savePets(p.copyWith(
-      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source)],
+      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source, element: mainElement?.name)],
       firstEggFound: true,
       nextId: p.nextId + 1,
     ));
@@ -1257,7 +1292,8 @@ class AppController extends ChangeNotifier {
       if (e.id == eggId) egg = e;
     }
     if (egg == null || !eggReady(egg)) return null;
-    final s = species ?? PetRules.rollSpecies(_random);
+    final s = species ??
+        PetRules.rollSpecies(_random, element: ElementRules.parse(egg.element));
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: s,
@@ -1289,6 +1325,12 @@ class AppController extends ChangeNotifier {
     if (pet == null || today == null) return;
     final day = today.dayKey;
     final counted = _pets.stepsDay == day ? _pets.stepsCounted : 0;
+    // 승객 모드 (11-11 #61): 차 안의 걸음은 펫 경험치에 세지 않는다
+    if (passengerMode) {
+      await _savePets(_pets.copyWith(
+          stepsDay: day, stepsCounted: math.max(counted, today.steps)));
+      return;
+    }
     final gained = (today.steps - counted) ~/ 100;
     if (gained <= 0) {
       if (_pets.stepsDay != day) {
@@ -1325,7 +1367,7 @@ class AppController extends ChangeNotifier {
     var p = _pets;
     for (var k = given; k < due; k++) {
       p = p.copyWith(
-        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board')],
+        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board', element: mainElement?.name)],
         nextId: p.nextId + 1,
         boardEggWeeks: [...p.boardEggWeeks, fullWeeks[(k + 1) * 2 - 1]],
       );
@@ -1354,9 +1396,12 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {m.name: 1})));
+    final base =
+        Materials.info(m).rare ? PetRules.expRareFood : PetRules.expCommonFood;
+    // 같은 속성 재료는 경험치 1.5배 (11-11 #63)
+    final same = pet.element != null && Materials.elementOf(m) == pet.element;
     await _givePetExp(
-        uid,
-        Materials.info(m).rare ? PetRules.expRareFood : PetRules.expCommonFood,
+        uid, same ? (base * PetRules.sameElementFood).round() : base,
         bond: PetRules.bondPerFood);
     return true;
   }
@@ -1430,30 +1475,24 @@ class AppController extends ChangeNotifier {
         continue;
       }
       if (!_letterDue(l)) continue;
-      // 선물
-      if (l.manaStones > 0 || l.gold > 0) await _grant(l.gold, l.manaStones, const {});
-      if (l.snacks > 0 || l.compasses > 0) {
-        final today = await _todayRecord();
-        await _save(today.copyWith(
-            counters: DailyRecord.addCounts(today.counters, {
-          if (l.snacks > 0) TownRules.giftKey(ShopItem.bulssiPotion): l.snacks,
-          if (l.compasses > 0)
-            TownRules.giftKey(ShopItem.expeditionCompass): l.compasses,
-        })));
-      }
-      var p = _pets;
-      final eggs = [
-        ...p.eggs,
-        for (var i = 0; i < l.eggs; i++)
-          PetEgg(id: 'egg${p.nextId + i}', source: 'letter'),
-      ];
-      p = p.copyWith(
-        eggs: eggs,
-        nextId: p.nextId + l.eggs,
-        recipeNotes: p.recipeNotes + l.recipeNotes,
-        letters: [...p.letters, l.id],
-      );
-      await _savePets(p);
+      // 11-11 #65: 편지와 선물은 우편함으로 (편지 탭에 계속 남는다)
+      await _sendMail(MailItem(
+        id: 'spirit_${l.id}',
+        kind: MailKind.letter,
+        from: firstSpiritName,
+        title: l.title,
+        body: l.body,
+        gifts: {
+          if (l.gold > 0) Wallet.gold: l.gold,
+          if (l.manaStones > 0) Wallet.manaStone: l.manaStones,
+          if (l.snacks > 0) 'item:${ShopItem.bulssiPotion.name}': l.snacks,
+          if (l.compasses > 0) 'item:${ShopItem.expeditionCompass.name}': l.compasses,
+          if (l.recipeNotes > 0) 'note': l.recipeNotes,
+          if (l.eggs > 0) 'egg': l.eggs,
+        },
+        sentAt: _clock(),
+      ));
+      await _savePets(_pets.copyWith(letters: [..._pets.letters, l.id]));
       _newLetter = l;
     }
   }
@@ -1646,6 +1685,41 @@ class AppController extends ChangeNotifier {
         for (final n in key.substring(2).split('+'))
           if (Materials.byName(n) case final m?) m,
       ];
+
+  /// 원정 MP가 [need] 만큼 모자랄 때 마실 수 있는 마나 물약 (11-11 #64).
+  /// 한 병으로 채우는 가장 작은 물약이 먼저, 한 병으로 안 되면 적은 병 수부터.
+  List<ManaOption> manaOptions(int need) {
+    if (need <= 0) return const [];
+    final out = <ManaOption>[];
+    for (final item in const [ShopItem.manaSmall, ShopItem.mana]) {
+      final n = bagCount(item);
+      if (n <= 0) continue;
+      final per = math.max(1, (mpMax * TownRules.info(item).mpRatio).round());
+      out.add(ManaOption(
+          name: itemName(item), count: n, perBottle: per,
+          bottles: (need / per).ceil(), item: item));
+    }
+    for (final e in _alc.potions.entries) {
+      final info = _infoOf(e.key);
+      if (info == null || info.kind != PotionKind.mana || e.value <= 0) continue;
+      final m = e.key.endsWith('*') ? 1 + AlchemyRules.perfectBonus : 1.0;
+      final per = math.max(1, (mpMax * info.mpRatio * m).round());
+      out.add(ManaOption(
+          name: potionName(e.key), count: e.value, perBottle: per,
+          bottles: (need / per).ceil(), key: e.key));
+    }
+    out.sort((a, b) {
+      final c = a.bottles.compareTo(b.bottles);
+      return c != 0 ? c : a.perBottle.compareTo(b.perBottle);
+    });
+    return out;
+  }
+
+  /// [o] 를 한 병 마신다
+  Future<bool> drinkMana(ManaOption o) async {
+    if (o.item != null) return await useItem(o.item!) == UseCheck.ok;
+    return await drinkPotion(o.key!) == null;
+  }
 
   PotionInfo? _infoOf(String key) {
     final perfect = key.endsWith('*');
@@ -1910,7 +1984,7 @@ class AppController extends ChangeNotifier {
         for (final e in use.entries) e.key.name: e.value,
         if (r.gold > 0) Wallet.gold: r.gold,
       }),
-      gains: DailyRecord.addCounts(today.gains, {r.output.name: 1}),
+      gains: DailyRecord.addCounts(today.gains, {r.output.name: r.count}),
     ));
     return true;
   }
@@ -1956,6 +2030,13 @@ class AppController extends ChangeNotifier {
           stepsChecked: 0,
           findsToday: 0,
           merchantToday: 0);
+    }
+    // 승객 모드 (11-11 #61): 차 안에서 늘어난 걸음은 주머니·발견에 세지 않는다
+    if (passengerMode) {
+      g = g.copyWith(
+          pouchesGiven: math.max(g.pouchesGiven, GatherRules.pouchesFor(today.steps)),
+          stepsChecked: today.steps -
+              (today.steps - g.stepsChecked) % GatherRules.findSteps);
     }
     // 걸음 주머니
     final due = GatherRules.pouchesFor(today.steps);
@@ -2069,6 +2150,478 @@ class AppController extends ChangeNotifier {
 
   /// 걸을 때 알림 켜고 끄기 (설정)
   Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));
+
+  // ───────────────────────────────────────────── 우편 (11-11 #65)
+
+  static const _mailKey = 'mail';
+  MailState _mail = const MailState();
+
+  /// 운영 우편을 가져오는 곳 (1차: 앱에 담은 목록, 2차: 서버)
+  List<MailSource> mailSources = const [AssetMailSource()];
+
+  MailState get mail => _mail;
+
+  Future<void> _saveMail(MailState m) async {
+    _mail = m;
+    await store.saveJson(_mailKey, m.toJson());
+    notifyListeners();
+  }
+
+  /// 새 우편이 있는지 (읽지 않았거나 받을 선물이 있으면 빨간 점)
+  bool get hasNewMail => _mail.mails.any((m) => !m.read || m.hasGifts);
+
+  /// 선물 탭: 받을 선물이 남은 우편 (사라질 날이 가까운 것부터)
+  List<MailItem> get giftMails => [
+        for (final m in _mail.mails)
+          if (m.hasGifts) m,
+      ]..sort((a, b) => (a.expiresAt ?? DateTime(9999))
+          .compareTo(b.expiresAt ?? DateTime(9999)));
+
+  /// 편지 탭: 편지·공지 (새것부터)
+  List<MailItem> get letterMails => [
+        for (final m in _mail.mails)
+          if (m.kind != MailKind.reward) m,
+      ]..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+
+  /// 우편을 보낸다 (같은 id는 한 번만)
+  Future<bool> _sendMail(MailItem m) async {
+    if (_mail.sent.contains(m.id)) return false;
+    await _saveMail(_mail.copyWith(
+      mails: [m, ..._mail.mails],
+      sent: [..._mail.sent, m.id],
+    ));
+    return true;
+  }
+
+  Future<void> readMail(String id) async {
+    if (!_mail.mails.any((m) => m.id == id && !m.read)) return;
+    await _saveMail(_mail.copyWith(mails: [
+      for (final m in _mail.mails) m.id == id ? m.copyWith(read: true) : m,
+    ]));
+  }
+
+  /// 우편 선물을 받는다. 받은 것 글을 돌려준다 (못 받으면 null).
+  /// 가방이 가득하면 넘치는 물건은 금화로, 금화·마석·경험치는 늘 받는다.
+  Future<String?> claimMail(String id) async {
+    final i = _mail.mails.indexWhere((m) => m.id == id);
+    if (i < 0 || !_mail.mails[i].hasGifts) return null;
+    final m = _mail.mails[i];
+    final got = <String>[];
+    var gold = 0, mana = 0, exp = 0, notes = 0, eggs = 0;
+    final mats = <MaterialId, int>{};
+    final items = <ShopItem, int>{};
+    m.gifts.forEach((k, v) {
+      if (k == Wallet.gold) {
+        gold += v;
+      } else if (k == Wallet.manaStone) {
+        mana += v;
+      } else if (k == Wallet.exp) {
+        exp += v;
+      } else if (k == 'note') {
+        notes += v;
+      } else if (k == 'egg') {
+        eggs += v;
+      } else if (k.startsWith('item:')) {
+        for (final it in ShopItem.values) {
+          if (it.name == k.substring(5)) items[it] = (items[it] ?? 0) + v;
+        }
+      } else if (Materials.byName(k) case final mat?) {
+        mats[mat] = (mats[mat] ?? 0) + v;
+      }
+    });
+    // 물건: 칸이 없으면 금화로
+    final today = await _todayRecord();
+    final counters = <String, int>{};
+    var itemGold = 0;
+    for (final e in items.entries) {
+      var have = bagCount(e.key);
+      for (var n = 0; n < e.value; n++) {
+        if (_roomFor(have)) {
+          counters[TownRules.giftKey(e.key)] = (counters[TownRules.giftKey(e.key)] ?? 0) + 1;
+          have++;
+        } else {
+          itemGold += BagRules.itemPrice(e.key);
+        }
+      }
+      got.add('${itemName(e.key)} ${e.value}');
+    }
+    if (counters.isNotEmpty || exp > 0) {
+      await _save(today.copyWith(
+        counters: DailyRecord.addCounts(today.counters, counters),
+        gains: exp > 0 ? DailyRecord.addCounts(today.gains, {Wallet.exp: exp}) : null,
+      ));
+    }
+    if (gold + itemGold > 0 || mana > 0 || mats.isNotEmpty) {
+      await _grant(gold + itemGold, mana, mats);
+    }
+    if (notes > 0 || eggs > 0) {
+      final p = _pets;
+      await _savePets(p.copyWith(
+        recipeNotes: p.recipeNotes + notes,
+        eggs: [
+          ...p.eggs,
+          for (var n = 0; n < eggs; n++)
+            PetEgg(id: 'egg${p.nextId + n}', source: 'mail', element: mainElement?.name),
+        ],
+        nextId: p.nextId + eggs,
+        firstEggFound: p.firstEggFound || eggs > 0,
+      ));
+    }
+    if (gold > 0) got.add('금화 $gold');
+    if (mana > 0) got.add('마석 $mana');
+    if (exp > 0) got.add('경험치 $exp');
+    for (final e in mats.entries) {
+      got.add('${Materials.info(e.key).name} ${e.value}');
+    }
+    if (notes > 0) got.add('레시피 쪽지 $notes');
+    if (eggs > 0) got.add('알 $eggs');
+    if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
+    // 보상 우편은 받으면 지운다. 편지·공지는 편지 탭에 남는다.
+    await _saveMail(_mail.copyWith(mails: [
+      for (final x in _mail.mails)
+        if (x.id != id)
+          x
+        else if (x.kind != MailKind.reward)
+          x.copyWith(claimed: true, read: true),
+    ]));
+    return got.join(', ');
+  }
+
+  /// 모두 받기
+  Future<int> claimAllMail() async {
+    var n = 0;
+    for (final m in giftMails) {
+      if (await claimMail(m.id) != null) n++;
+    }
+    return n;
+  }
+
+  /// 우편 보내기·정리 (앱을 열 때·화면을 볼 때)
+  Future<void> _checkMail() async {
+    final now = _clock();
+    // 30일 지난 보상 우편은 사라진다
+    if (_mail.mails.any((m) => m.expiresAt != null && now.isAfter(m.expiresAt!))) {
+      await _saveMail(_mail.copyWith(mails: [
+        for (final m in _mail.mails)
+          if (m.expiresAt == null || !now.isAfter(m.expiresAt!)) m,
+      ]));
+    }
+    // 운영 우편 (공지·보상)
+    for (final src in mailSources) {
+      for (final m in await src.fetch(now)) {
+        await _sendMail(m);
+      }
+    }
+    await _checkNpcLetters();
+  }
+
+  Future<void> _npc(NpcLetter l) => _sendMail(MailItem(
+        id: l.id,
+        kind: MailKind.letter,
+        from: l.from,
+        title: l.title,
+        body: l.body,
+        gifts: l.gifts,
+        sentAt: _clock(),
+      ));
+
+  Future<void> _checkNpcLetters() async {
+    var errands = 0, shopping = 0;
+    for (final r in _history) {
+      errands += (r.counters['errandDone'] ?? 0) + (r.counters['urgentDone'] ?? 0);
+      shopping += r.goldPurchases.length;
+    }
+    for (final e in NpcLetter.errandThanks.entries) {
+      if (errands >= e.key) await _npc(e.value);
+    }
+    if (shopping >= 10) await _npc(NpcLetter.minaThanks);
+    if (player.level.level >= 3) await _npc(NpcLetter.minaRumor);
+    if (_armory.crafts >= 1) await _npc(NpcLetter.dorgunFirst);
+    if (_alc.discovered.isNotEmpty) await _npc(NpcLetter.elielFirst);
+    if (urgent != null) await _npc(NpcLetter.hartUrgent);
+  }
+
+  /// 어제까지 다 하고 못 받은 수시·긴급 의뢰 보상을 우편으로 (날이 바뀔 때)
+  Future<void> _mailExpiredBoard() async {
+    final old = _board;
+    final todayKey = DailyRecord.dayKeyOf(_clock());
+    if (old.day.isEmpty || old.day == todayKey) return;
+    DailyRecord? rec;
+    for (final r in _history) {
+      if (r.dayKey == old.day) rec = r;
+    }
+    if (rec != null) {
+      for (var i = 0; i < old.slots.length; i++) {
+        final s = old.slots[i];
+        final t = BoardRules.template(s.templateId);
+        if (t == null || !s.accepted) continue;
+        if (BoardRules.progress(t, rec, s.baseline) < t.target) continue;
+        await _sendMail(MailItem(
+          id: 'board_${old.day}_$i',
+          kind: MailKind.reward,
+          from: MailRules.hart,
+          title: '받지 못한 의뢰 보상: ${t.title}',
+          body: '기한이 끝나 우편으로 보내네. 다음엔 게시판에서 바로 받아 가게.',
+          gifts: {
+            if (t.gold > 0) Wallet.gold: t.gold,
+            if (t.manaStones > 0) Wallet.manaStone: t.manaStones,
+            for (final e in t.materials.entries) e.key.name: e.value,
+          },
+          sentAt: _clock(),
+          expiresAt: _clock().add(MailRules.rewardKeep),
+        ));
+      }
+      final day = DateTime.tryParse(old.day);
+      final u = day == null ? null : BoardRules.urgentFor(day.add(const Duration(hours: 23)));
+      if (u != null &&
+          old.urgentAccepted &&
+          !old.urgentDone &&
+          BoardRules.progress(u.quest, rec, old.urgentBaseline) >= u.quest.target) {
+        await _sendMail(MailItem(
+          id: 'urgent_${old.day}',
+          kind: MailKind.reward,
+          from: MailRules.hart,
+          title: '받지 못한 긴급 의뢰 보상',
+          body: '긴급 의뢰를 끝내 놓고 보상을 잊었더군. 우편으로 보내네.',
+          gifts: {
+            if (u.quest.gold > 0) Wallet.gold: u.quest.gold,
+            if (u.prize == UrgentPrize.rareMaterial) u.rare.name: 1,
+          },
+          sentAt: _clock(),
+          expiresAt: _clock().add(MailRules.rewardKeep),
+        ));
+      }
+    }
+    await _saveBoard(board);
+  }
+
+  // ───────────────────────────────────────────── 승객 확인 (11-11 #61)
+
+  static const _driveKey = 'drive';
+  DriveState _drive = const DriveState();
+
+  /// 차량 속도 감지 상태
+  DriveMode get driveMode => _drive.mode;
+
+  /// 승객이라고 답하고 차로 이동하는 중 (보상 제한)
+  bool get passengerMode => _drive.mode == DriveMode.passenger;
+
+  /// 화면을 가리는 중 (묻기·안전 운전)
+  bool get driveBlocked =>
+      _drive.mode == DriveMode.asking || _drive.mode == DriveMode.driving;
+
+  Future<void> _saveDrive(DriveState d) async {
+    _drive = d;
+    await store.saveJson(_driveKey, d.toJson());
+    notifyListeners();
+  }
+
+  DateTime? _fastSince;
+  DateTime? _slowSince;
+
+  /// 마지막으로 움직인 때 (채집 미니게임은 멈춰 있어야 한다)
+  DateTime? _lastMovingAt;
+
+  /// 최근 10초 동안 멈춰 있는지
+  bool get standingStill {
+    if (_lastFix == null) return false;
+    final m = _lastMovingAt;
+    return m == null || _clock().difference(m) >= HarvestRules.stillFor;
+  }
+
+  Future<void> _watchSpeed(LocationFix fix) async {
+    final now = _clock();
+    if (fix.speedMps > HarvestRules.stillSpeedMps) _lastMovingAt = now;
+    if (fix.speedMps >= DriveRules.carSpeedMps) {
+      _slowSince = null;
+      _fastSince ??= now;
+      if (_drive.mode == DriveMode.none &&
+          now.difference(_fastSince!) >= DriveRules.carFor) {
+        // 차에 타기 전까지 걸은 걸음은 먼저 센다
+        await _petSteps();
+        await _checkWalkEvents();
+        await _saveDrive(_drive.copyWith(mode: DriveMode.asking, askedAt: now));
+      }
+    } else {
+      _fastSince = null;
+      if (fix.speedMps < DriveRules.endSpeedMps) {
+        _slowSince ??= now;
+        if (_drive.mode != DriveMode.none &&
+            now.difference(_slowSince!) >= DriveRules.endAfter) {
+          await _endTrip();
+        }
+      } else {
+        _slowSince = null;
+      }
+    }
+    // 묻는 화면에 답이 없으면 안전 운전 화면
+    if (_drive.mode == DriveMode.asking &&
+        _drive.askedAt != null &&
+        now.difference(_drive.askedAt!) >= DriveRules.askTimeout) {
+      await _saveDrive(_drive.copyWith(mode: DriveMode.driving));
+    }
+  }
+
+  Future<void> _endTrip() async {
+    if (passengerMode) {
+      // 차 안에서 늘어난 걸음은 주머니·펫 경험치에 넣지 않는다
+      await _petSteps();
+      await _checkWalkEvents();
+    }
+    await _saveDrive(_drive.copyWith(mode: DriveMode.none));
+  }
+
+  /// 「승객이에요」/「운전 중이에요」
+  Future<void> answerDrive({required bool passenger}) => _saveDrive(
+      _drive.copyWith(mode: passenger ? DriveMode.passenger : DriveMode.driving));
+
+  /// 오래 답이 없을 때 (화면에서 부른다)
+  Future<void> driveTimeout() async {
+    if (_drive.mode == DriveMode.asking) {
+      await _saveDrive(_drive.copyWith(mode: DriveMode.driving));
+    }
+  }
+
+  // ───────────────────────────────────────────── 채집 (11-11 #56)
+
+  static const _harvestKey = 'harvest';
+  HarvestState _harvest = const HarvestState();
+
+  HarvestState get harvest => _harvest;
+
+  Future<void> _saveHarvest(HarvestState h) async {
+    _harvest = h;
+    await store.saveJson(_harvestKey, h.toJson());
+    notifyListeners();
+  }
+
+  String? _spotsKey;
+  List<HarvestSpot> _spotsCache = const [];
+
+  /// 지도에 보이는 채집 자리 (지금 위치 둘레 3km)
+  List<HarvestSpot> get harvestSpots {
+    final center = _lastFix?.point ?? fallbackCenter;
+    if (center == null) return const [];
+    final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}';
+    if (key != _spotsKey) {
+      _spotsKey = key;
+      _spotsCache = HarvestRules.spotsAround(center,
+          roads: roads,
+          exclusions: exclusions,
+          places: area.places,
+          excluded: area.isExcluded);
+    }
+    return _spotsCache;
+  }
+
+  /// 마지막으로 받은 위치
+  GeoPoint? get lastPoint => _lastFix?.point;
+
+  /// 가까이 있는 채집 자리 (40m 안)
+  HarvestSpot? get nearbyHarvest {
+    final fix = _lastFix;
+    if (fix == null) return null;
+    HarvestSpot? best;
+    double? bd;
+    for (final s in harvestSpots) {
+      final d = s.point.distanceTo(fix.point);
+      if (d <= HarvestRules.reachM && (bd == null || d < bd)) {
+        best = s;
+        bd = d;
+      }
+    }
+    return best;
+  }
+
+  int harvestCharges(HarvestSpot s) => _harvest.chargesOf(s.id, _clock());
+
+  /// 다음 하나가 차기까지
+  Duration? harvestRefill(HarvestSpot s) =>
+      _harvest.spots[s.id]?.untilNext(_clock());
+
+  /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
+  int toolDurability(HarvestTool t) =>
+      _harvest.granted ? _harvest.durability(t) : HarvestRules.toolMax;
+
+  HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
+    final fix = _lastFix;
+    if (fix == null || s.point.distanceTo(fix.point) > HarvestRules.reachM) {
+      return HarvestCheck.far;
+    }
+    if (driveBlocked) return HarvestCheck.passenger;
+    if (harvestCharges(s) <= 0) return HarvestCheck.empty;
+    if (!minigame) return HarvestCheck.ok;
+    if (passengerMode) return HarvestCheck.passenger;
+    if (!standingStill) return HarvestCheck.moving;
+    if (toolDurability(s.info.tool) <= 0) return HarvestCheck.noTool;
+    return HarvestCheck.ok;
+  }
+
+  /// 채집한다. [grade] 가 quick 이면 빠른 채집, 아니면 미니게임 결과.
+  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) async {
+    final minigame = grade != HarvestGrade.quick;
+    if (canHarvest(s, minigame: minigame) != HarvestCheck.ok) return null;
+    final now = _clock();
+    var h = _harvest;
+    if (!h.granted) {
+      h = h.copyWith(granted: true, tools: {
+        for (final t in HarvestTool.values) t.name: HarvestRules.toolMax,
+      });
+    }
+    final charge = h.spots[s.id] ??
+        SpotCharge(charges: HarvestRules.maxCharges, at: now);
+    final tool = s.info.tool;
+    h = h.copyWith(
+      spots: {...h.spots, s.id: charge.use(now)},
+      tools: minigame
+          ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
+          : h.tools,
+      total: h.total + 1,
+    ).pruned(now);
+    await _saveHarvest(h);
+    final mats = HarvestRules.yieldOf(s.kind, grade, _random,
+        factor: passengerMode ? 0.5 : 1);
+    await _grant(0, 0, mats);
+    return mats;
+  }
+
+  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대는 공방)
+  Future<bool> repairTool(HarvestTool t) async {
+    if (!_harvest.granted || _harvest.durability(t) >= HarvestRules.toolMax) {
+      return false;
+    }
+    final m = HarvestRules.repairMaterial(t);
+    if (player.gold < HarvestRules.repairGold || player.materialCount(m) <= 0) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(
+            today.spends, {Wallet.gold: HarvestRules.repairGold, m.name: 1})));
+    await _saveHarvest(_harvest.copyWith(
+        tools: {..._harvest.tools, t.name: HarvestRules.toolMax}));
+    return true;
+  }
+
+  // ───────────────────────────────────────────── 속성 점수 (11-11 #63, 숨김)
+
+  /// 사냥한 몬스터로 오르는 속성 점수 (기록 counters 'el:fire' 에 10배로 적는다)
+  Map<String, int> _elementCounters(List<MonsterId> monsters) {
+    final out = <String, int>{};
+    final weapon = gear.attackElement;
+    for (final m in monsters) {
+      ElementRules.huntScore(Monsters.info(m).element, weapon).forEach((e, v) {
+        out['el:${e.name}'] = (out['el:${e.name}'] ?? 0) + (v * 10).round();
+      });
+    }
+    return out;
+  }
+
+  /// 속성 점수 (화면에 숫자로 보여 주지 않는다)
+  Map<Element, double> get elementScores => ElementRules.scoresFrom(_history);
+
+  /// 주 속성 (점수 1위, 30점부터)
+  Element? get mainElement => ElementRules.mainOf(elementScores);
 
   // ───────────────────────────────────────────── 마법 돋보기 「감정」 (11-11 #60)
 
@@ -2245,6 +2798,25 @@ class AppController extends ChangeNotifier {
     ));
     await _saveArmory(_armory.replace(
         item.copyWith(durability: EquipmentRules.maxDurability)));
+    return true;
+  }
+
+  /// 속성 부여 (11-11 #63): 빛나는 속성 코어 1개 + 금화 100.
+  /// 무기는 공격 속성, 나머지는 방어 속성이 된다. 이미 있으면 바뀐다.
+  Future<bool> imbue(String uid, Element e) async {
+    final item = _armory.byUid(uid);
+    final core = EquipmentRules.imbueCore(e);
+    if (item == null ||
+        player.materialCount(core) <= 0 ||
+        player.gold < EquipmentRules.imbueGold) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends,
+          {Wallet.gold: EquipmentRules.imbueGold, core.name: 1}),
+    ));
+    await _saveArmory(_armory.replace(item.copyWith(element: e)));
     return true;
   }
 
@@ -2583,7 +3155,9 @@ class AppController extends ChangeNotifier {
         await _resolveExpedition(ex);
       }
     }
+    await _mailExpiredBoard();
     await _checkLetters();
+    await _checkMail();
     await _petSteps();
     await _checkBoardEggs();
     await _checkWalkEvents();
@@ -2762,6 +3336,11 @@ class AppController extends ChangeNotifier {
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
     final now = _clock();
+    // 승객 모드에서 보낸 원정은 보상 절반 (11-11 #61)
+    if (passengerMode) {
+      await _saveDrive(_drive.copyWith(
+          passengerSpawns: [..._drive.passengerSpawns, spawn.id]));
+    }
     final arrive = now.add(plan.oneWay);
     final ex = Expedition(
       spawnId: spawn.id,
@@ -2871,6 +3450,8 @@ class AppController extends ChangeNotifier {
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,
       resist: activeResists,
+      skillElement: pet?.element,
+      mainElement: mainElement,
     ).runToEnd(useSkills: true);
     await _consumeBattlePotions(battle);
     final cleared = battle.phase == BattlePhase.cleared;
@@ -3095,3 +3676,33 @@ class AppraiseResult {
   final MaterialId? material;
   final bool note;
 }
+
+/// 원정 MP를 채울 마나 물약 하나 (11-11 #64)
+class ManaOption {
+  const ManaOption({
+    required this.name,
+    required this.count,
+    required this.perBottle,
+    required this.bottles,
+    this.item,
+    this.key,
+  });
+
+  final String name;
+
+  /// 가방에 있는 수
+  final int count;
+
+  /// 한 병에 차는 MP
+  final int perBottle;
+
+  /// 모자란 MP를 채우려면 마셔야 하는 병 수
+  final int bottles;
+
+  /// 잡화상 물약 (또는 공방 물약 [key])
+  final ShopItem? item;
+  final String? key;
+}
+
+/// 채집할 수 있는지 (11-11 #56)
+enum HarvestCheck { ok, far, empty, moving, noTool, passenger }

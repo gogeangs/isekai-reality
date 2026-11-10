@@ -11,7 +11,11 @@ class ProcessRecipe {
     this.smithy = false,
     this.anyOf = const [],
     this.anyCount = 0,
+    this.count = 1,
   });
+
+  /// 만들어지는 개수
+  final int count;
 
   final String id;
   final MaterialId output;
@@ -41,6 +45,10 @@ class ProcessRules {
     MaterialId.mudJelly,
     MaterialId.lightJelly,
     MaterialId.darkJelly,
+    MaterialId.iceJelly,
+    MaterialId.thunderJelly,
+    MaterialId.metalJelly,
+    MaterialId.poisonJelly,
   ];
 
   static const List<ProcessRecipe> all = [
@@ -122,6 +130,61 @@ class ProcessRules {
         inputs: {MaterialId.shadowCore: 3},
         gold: 50,
         label: '그림자 코어 3 + 금화 50'),
+    // 11-11 #56 채집 귀한 재료 → 가공 재료 2개
+    ProcessRecipe(
+        id: 'manaOre',
+        output: MaterialId.ironIngot,
+        inputs: {MaterialId.manaOre: 1},
+        gold: 10,
+        count: 2,
+        smithy: true,
+        label: '마력 광석 1 + 금화 10 → 철 주괴 2'),
+    ProcessRecipe(
+        id: 'sturdyKnot',
+        output: MaterialId.hardWood,
+        inputs: {MaterialId.sturdyKnot: 1},
+        gold: 10,
+        count: 2,
+        smithy: true,
+        label: '튼튼한 옹이 1 + 금화 10 → 단단한 목재 2'),
+    ProcessRecipe(
+        id: 'dewHerb',
+        output: MaterialId.herbExtract,
+        inputs: {MaterialId.dewHerb: 1},
+        gold: 10,
+        count: 2,
+        label: '이슬 맺힌 약초 1 + 금화 10 → 약초 진액 2'),
+    ProcessRecipe(
+        id: 'riverPearl',
+        output: MaterialId.essence,
+        inputs: {MaterialId.riverPearl: 1},
+        gold: 10,
+        count: 2,
+        label: '강의 진주 1 + 금화 10 → 정제 에센스 2'),
+    ProcessRecipe(
+        id: 'glowIce',
+        output: MaterialId.glowIceCore,
+        inputs: {MaterialId.iceCore: 3},
+        gold: 50,
+        label: '얼음 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowThunder',
+        output: MaterialId.glowThunderCore,
+        inputs: {MaterialId.thunderCore: 3},
+        gold: 50,
+        label: '번개 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowMetal',
+        output: MaterialId.glowMetalCore,
+        inputs: {MaterialId.metalCore: 3},
+        gold: 50,
+        label: '금속 코어 3 + 금화 50'),
+    ProcessRecipe(
+        id: 'glowPoison',
+        output: MaterialId.glowPoisonCore,
+        inputs: {MaterialId.poisonCore: 3},
+        gold: 50,
+        label: '독 코어 3 + 금화 50'),
   ];
 
   /// 가진 재료로 쓸 것 (아무거나 재료는 많은 것부터). 모자라면 null.

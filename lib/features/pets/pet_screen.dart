@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'pet_art.dart';
+import '../battle/element_view.dart';
 
 /// 펫 목록 (11-11 #38): 데리고 다니기, 먹이 주기, 이름 바꾸기, 자연으로 돌려보내기
 class PetScreen extends StatelessWidget {
@@ -148,6 +149,8 @@ class _PetCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
+                    ElementIcon(pet.element, size: 18),
+                    const SizedBox(width: 4),
                     Flexible(
                       child: Text(pet.name,
                           overflow: TextOverflow.ellipsis,

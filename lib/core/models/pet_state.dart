@@ -1,8 +1,13 @@
+import '../rules/element_rules.dart';
 import '../rules/pet_rules.dart';
 
 /// 펫 알 (가방 한 칸). 품으면 [incubatedAt] 부터 12시간 뒤 부화.
 class PetEgg {
-  const PetEgg({required this.id, this.source = '', this.incubatedAt});
+  const PetEgg(
+      {required this.id, this.source = '', this.incubatedAt, this.element});
+
+  /// 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 잘 태어난다
+  final String? element;
 
   final String id;
 
@@ -11,12 +16,13 @@ class PetEgg {
   final DateTime? incubatedAt;
 
   PetEgg incubate(DateTime at) =>
-      PetEgg(id: id, source: source, incubatedAt: at);
+      PetEgg(id: id, source: source, incubatedAt: at, element: element);
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'source': source,
         if (incubatedAt != null) 'incubatedAt': incubatedAt!.toIso8601String(),
+        if (element != null) 'element': element,
       };
 
   factory PetEgg.fromJson(Map<String, dynamic> j) => PetEgg(
@@ -25,6 +31,7 @@ class PetEgg {
         incubatedAt: j['incubatedAt'] == null
             ? null
             : DateTime.tryParse(j['incubatedAt'] as String),
+        element: j['element'] as String?,
       );
 }
 
@@ -37,7 +44,14 @@ class Pet {
     this.exp = 0,
     this.bond = 0,
     required this.bornAt,
+    this.evoElement,
   });
+
+  /// 진화 갈래 속성 (11-11 #63, 구조만. 진화 상세는 나중에 채운다)
+  final String? evoElement;
+
+  /// 펫 속성: 종류의 기본 속성
+  Element? get element => PetRules.info(species).element;
 
   final String uid;
   final PetSpecies species;
@@ -59,6 +73,7 @@ class Pet {
         exp: exp ?? this.exp,
         bond: bond ?? this.bond,
         bornAt: bornAt,
+        evoElement: evoElement,
       );
 
   Map<String, dynamic> toJson() => {
@@ -68,6 +83,7 @@ class Pet {
         'exp': exp,
         'bond': bond,
         'bornAt': bornAt.toIso8601String(),
+        if (evoElement != null) 'evoElement': evoElement,
       };
 
   static Pet? fromJson(Map<String, dynamic> j) {
@@ -80,6 +96,7 @@ class Pet {
       exp: (j['exp'] as num?)?.toInt() ?? 0,
       bond: (j['bond'] as num?)?.toInt() ?? 0,
       bornAt: DateTime.tryParse(j['bornAt'] as String? ?? '') ?? DateTime(2026),
+      evoElement: j['evoElement'] as String?,
     );
   }
 }

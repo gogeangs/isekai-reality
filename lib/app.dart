@@ -9,6 +9,8 @@ import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
+import 'features/drive/drive_overlay.dart';
+import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/town/bag_tab.dart';
@@ -54,7 +56,19 @@ class IsekaiRealityApp extends StatelessWidget {
           kind: controller.profile.spiritKind,
           petSpecies: controller.companionPet?.species,
           petAdult: controller.companionPet?.adult ?? false,
-          child: child ?? const SizedBox(),
+          // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
+          child: Stack(children: [
+            Positioned.fill(child: child ?? const SizedBox()),
+            if (controller.passengerMode)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 52,
+                left: 0,
+                right: 0,
+                child: const Center(child: PassengerBadge()),
+              ),
+            if (controller.driveBlocked)
+              Positioned.fill(child: DriveOverlay(controller: controller)),
+          ]),
         ),
       ),
       home: HomeShell(controller: controller),
@@ -226,12 +240,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               Image.asset('assets/images/letter_spirit.png',
                   height: 120,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-              KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}',
+              KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}\n'
+                  '선물은 우편함에서 받아요. 편지는 우편함 「편지」에 남아요.',
                   style: const TextStyle(color: AppColors.text, height: 1.45)),
             ]),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(d), child: const Text('고마워')),
+                  onPressed: () => Navigator.pop(d), child: const Text('나중에')),
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(d);
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => MailScreen(controller: c)));
+                  },
+                  child: const Text('우편함 열기')),
             ],
           ),
         );
@@ -457,6 +479,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 look: controller.profile.look,
                 level: controller.player.level.level,
                 onTap: () => push(ProfileScreen(controller: controller)),
+              ),
+            ),
+            // 우편 (11-11 #65): 새 우편이 있으면 빨간 점
+            Positioned(
+              top: topInset + 12,
+              right: 70,
+              child: MailButton(
+                hasNew: controller.hasNewMail,
+                onTap: () => push(MailScreen(controller: controller)),
               ),
             ),
             Positioned(

@@ -35,6 +35,8 @@ import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
+import 'package:isekai_reality/core/geo/geo.dart';
+import 'package:isekai_reality/features/harvest/harvest_sheet.dart';
 
 final _root = GlobalKey();
 
@@ -121,6 +123,8 @@ void main() {
     final monsterTile = find.byType(ListTile).first;
     await tester.scrollUntilVisible(monsterTile, 200,
         scrollable: find.byType(Scrollable).first);
+    // 위쪽 버튼(프로필·우편·설정)에 가리지 않게 조금 내린다
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 160));
     await tester.pumpAndSettle();
     await _shot(tester, '02a_지도_원정목록');
     await tester.tap(monsterTile);
@@ -701,5 +705,56 @@ void main() {
     await tester.tap(find.text('종족'));
     await tester.pumpAndSettle();
     await _shot(tester, '52_도감_종족');
+  });
+
+  testWidgets('화면 미리보기: 채집·승객·우편 (11-11)', (tester) async {
+    _phone(tester);
+    var now = DateTime(2026, 11, 8, 14);
+    final c = AppController.demo(clock: () => now);
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+    // 채집 자리 앞에 선다
+    final spot = c.harvestSpots.firstWhere((h) => h.kind == HarvestKind.herb);
+    await c.handleFix(LocationFix(point: spot.point));
+    await tester.pumpAndSettle();
+    final ctx = tester.element(find.byType(OrnateNavBar));
+    showHarvestSheet(ctx, c, spot);
+    await tester.pumpAndSettle();
+    await _shot(tester, '53_채집_자리');
+    await tester.tap(find.byKey(const Key('harvestGame')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 400));
+    await _shot(tester, '54_채집_미니게임');
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('gameTap')));
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    expect(c.harvest.total, 1);
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).popUntil((r) => r.isFirst);
+    await tester.pumpAndSettle();
+    ScaffoldMessenger.of(tester.element(find.byType(OrnateNavBar))).clearSnackBars();
+    await tester.pumpAndSettle();
+    // 차량 속도
+    await c.handleFix(LocationFix(point: spot.point, speedMps: 9));
+    now = now.add(const Duration(seconds: 11));
+    await c.handleFix(LocationFix(point: spot.point, speedMps: 9));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('driveTitle')), findsOneWidget);
+    await _shot(tester, '55_승객_확인');
+    await tester.tap(find.byKey(const Key('drivePassenger')));
+    await tester.pumpAndSettle();
+    await _shot(tester, '56_승객_모드');
+    // 우편함
+    await tester.tap(find.byKey(const Key('mailButton')));
+    await tester.pumpAndSettle();
+    await _shot(tester, '57_우편함_선물');
+    await tester.tap(find.textContaining('편지 '));
+    await tester.pumpAndSettle();
+    await _shot(tester, '58_우편함_편지');
   });
 }

@@ -181,6 +181,22 @@ class _BagTabState extends State<BagTab> {
             OrnatePanel(
               child: WalletRow(manaStones: p.manaStones, gold: p.gold),
             ),
+            // 채집 도구 (11-11 #56): 가방 칸을 쓰지 않는다
+            if (c.harvest.granted) ...[
+              const SizedBox(height: 8),
+              OrnatePanel(
+                child: Wrap(spacing: 12, runSpacing: 4, children: [
+                  for (final t in HarvestTool.values)
+                    Text(
+                        '${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${HarvestRules.toolMax}',
+                        style: TextStyle(
+                            color: c.toolDurability(t) > 0
+                                ? AppColors.text
+                                : const Color(0xFFE57373),
+                            fontSize: 12.5)),
+                ]),
+              ),
+            ],
             const SizedBox(height: 12),
             OrnatePanel(
               child: Column(

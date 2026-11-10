@@ -7,6 +7,7 @@ import '../battle/battle_view.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
+import '../battle/element_view.dart';
 
 /// 도감 (11-11 #41): 탭 없이 몬스터 한 목록. 속성 슬라임도 각각 한 칸.
 /// 목록 아래에 「희귀·전설 사냥 기록」. 칭호는 프로필로 옮겼다.
@@ -70,9 +71,12 @@ class _CodexScreenState extends State<CodexScreen> {
               children: [
                 Center(child: MonsterPicture(monster: m.id, size: 140)),
                 const SizedBox(height: 8),
-                Text(m.name,
-                    textAlign: TextAlign.center,
-                    style: AppText.title(22, color: AppColors.goldBright)),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  ElementIcon(m.element, size: 22),
+                  const SizedBox(width: 6),
+                  Text(m.name,
+                      style: AppText.title(22, color: AppColors.goldBright)),
+                ]),
                 const SizedBox(height: 4),
                 Text('${huntCounts[m.id] ?? 0}마리 사냥 · ${m.habitat}',
                     textAlign: TextAlign.center,
@@ -296,7 +300,12 @@ class _MonsterTile extends StatelessWidget {
           children: [
             Expanded(
               child: hunted
-                  ? MonsterPicture(monster: info.id, size: 88)
+                  ? Stack(children: [
+                      Positioned.fill(
+                          child: MonsterPicture(monster: info.id, size: 88)),
+                      Positioned(
+                          top: 0, left: 0, child: ElementIcon(info.element, size: 16)),
+                    ])
                   : ColorFiltered(
                       // 아직 사냥하지 않은 몬스터는 그림자로만 보인다
                       colorFilter: const ColorFilter.mode(
@@ -335,6 +344,8 @@ IconData titleIcon(TitleId id) => switch (id) {
       TitleId.gateKeeper => Icons.door_back_door_rounded,
       TitleId.lakeFriend => Icons.water_drop_rounded,
       TitleId.townLight => Icons.light_mode_rounded,
+      // 속성 칭호 (11-11 #63)
+      _ => Icons.auto_awesome_motion_rounded,
     };
 
 /// 도감 펫 탭: 일반 6종 (희귀·전설은 나중에 더한다)

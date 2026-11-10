@@ -10,13 +10,17 @@ import '../town/shop_screen.dart';
 import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
+import '../mail/mail_screen.dart';
 
 /// 마을 시설
-enum Facility { inn, shop, board, smithy, alchemy, market }
+enum Facility { inn, shop, board, smithy, alchemy, market, post }
 
 class FacilityInfo {
   const FacilityInfo(this.facility, this.name, this.icon, this.subtitle,
-      {this.open = true});
+      {this.open = true, this.inArt = true});
+
+  /// 마을 그림에 건물이 그려져 있는지 (없으면 그림 위에 아이콘을 놓는다)
+  final bool inArt;
 
   final Facility facility;
   final String name;
@@ -43,6 +47,8 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy', '물약 끓이기·레시피·재료 가공'),
+    FacilityInfo(Facility.post, '우체국', 'icon_post', '편지·선물·공지 (11-11 #65)',
+        inArt: false),
     FacilityInfo(Facility.market, '거래소', 'icon_lock', '나중에 열려요',
         open: false),
   ];
@@ -58,6 +64,7 @@ class VillageScreen extends StatelessWidget {
       Facility.shop => ShopScreen(controller: controller),
       Facility.smithy => SmithyScreen(controller: controller),
       Facility.alchemy => AlchemyScreen(controller: controller),
+      Facility.post => MailScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -100,6 +107,8 @@ class _VillageArt extends StatelessWidget {
     Facility.board: Rect.fromLTWH(0.75, 0.47, 0.22, 0.24),
     Facility.alchemy: Rect.fromLTWH(0.44, 0.22, 0.23, 0.18),
     Facility.market: Rect.fromLTWH(0.72, 0.21, 0.26, 0.17),
+    // 우체국은 그림에 없어서 왼쪽 아래 빈 자리에 아이콘으로 (그림을 다시 그리면 옮긴다)
+    Facility.post: Rect.fromLTWH(0.02, 0.70, 0.22, 0.28),
   };
 
   @override
@@ -147,6 +156,12 @@ class _VillageArt extends StatelessWidget {
                 ),
               ),
             ),
+            for (final f in VillageScreen.facilities)
+              if (!f.inArt)
+                Positioned.fromRect(
+                  rect: at(f.facility),
+                  child: Center(child: _BuildingIcon(icon: f.icon, size: 46)),
+                ),
             for (final f in VillageScreen.facilities)
               Positioned.fromRect(
                 rect: at(f.facility),
@@ -219,6 +234,7 @@ class _BuildingIcon extends StatelessWidget {
             'icon_smithy' => Icons.hardware_rounded,
             'icon_board' => Icons.assignment_rounded,
             'icon_alchemy' => Icons.science_rounded,
+            'icon_post' => Icons.markunread_mailbox_rounded,
             _ => Icons.lock_outline_rounded,
           },
           size: size * 0.6,

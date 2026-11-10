@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'element_rules.dart';
 import 'materials.dart';
 import 'modifier_rules.dart';
 
@@ -26,7 +27,11 @@ class PetSpeciesInfo {
     required this.skillText,
     required this.skillTextAdult,
     required this.favorite,
+    this.element,
   });
+
+  /// 기본 속성 (11-11 #63, 호문쿨루스는 무속성 null)
+  final Element? element;
 
   final PetSpecies id;
   final String name;
@@ -98,12 +103,21 @@ class PetRules {
       hoursLeft(startedAt, now) * hatchGoldPerHour;
 
   /// 부화할 펫: 6종 각 1몫, 정령 짝은 2몫
-  static PetSpecies rollSpecies(math.Random rng, {PetSpecies? favored}) {
+  static PetSpecies rollSpecies(math.Random rng,
+      {PetSpecies? favored, Element? element}) {
     final pool = [
-      for (final s in PetSpecies.values) ...[s, if (s == favored) s],
+      for (final s in PetSpecies.values) ...[
+        s,
+        if (s == favored) s,
+        // 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 3배
+        if (element != null && info(s).element == element) ...[s, s],
+      ],
     ];
     return pool[rng.nextInt(pool.length)];
   }
+
+  /// 같은 속성 재료를 먹이면 경험치 1.5배 (11-11 #63)
+  static const double sameElementFood = 1.5;
 
   // ───────────────────────── 공용 MP
 
@@ -237,6 +251,7 @@ class PetRules {
   static const Map<PetSpecies, PetSpeciesInfo> _info = {
     PetSpecies.crow: PetSpeciesInfo(
       id: PetSpecies.crow,
+      element: Element.wind,
       name: '까마귀',
       grade: PetGrade.common,
       special: '원정 이동 시간 -20%',
@@ -249,6 +264,7 @@ class PetRules {
     ),
     PetSpecies.blackCat: PetSpeciesInfo(
       id: PetSpecies.blackCat,
+      element: Element.dark,
       name: '검은 고양이',
       grade: PetGrade.common,
       special: '밤(오후 7시~새벽 5시) 원정 전투력 +15%',
@@ -261,6 +277,7 @@ class PetRules {
     ),
     PetSpecies.toad: PetSpeciesInfo(
       id: PetSpecies.toad,
+      element: Element.poison,
       name: '두꺼비',
       grade: PetGrade.common,
       special: '물가 몬스터 원정 MP -50%, 시간 -30%',
@@ -273,6 +290,7 @@ class PetRules {
     ),
     PetSpecies.owl: PetSpeciesInfo(
       id: PetSpecies.owl,
+      element: Element.light,
       name: '부엉이',
       grade: PetGrade.common,
       special: '원정 전투력 +8%',
@@ -285,6 +303,7 @@ class PetRules {
     ),
     PetSpecies.lizard: PetSpeciesInfo(
       id: PetSpecies.lizard,
+      element: Element.fire,
       name: '꼬마 도마뱀',
       grade: PetGrade.common,
       special: '원정 MP -25%',

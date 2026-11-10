@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/armory.dart';
+import 'element_rules.dart';
 import 'materials.dart';
 import 'stat_rules.dart';
 
@@ -96,7 +97,15 @@ class GearBonus {
     this.crit = 0,
     this.evade = 0,
     this.stats = Stats.zero,
+    this.attackElement,
+    this.guardElements = const {},
   });
+
+  /// 무기의 공격 속성 (11-11 #63)
+  final Element? attackElement;
+
+  /// 방어구·장신구의 방어 속성
+  final Set<Element> guardElements;
 
   final double attack;
   final double reduce;
@@ -377,6 +386,22 @@ class EquipmentRules {
 
   // ───────────────────────── 능력
 
+  /// 속성 부여 (11-11 #63): 빛나는 속성 코어 1개 + 금화 100
+  static const int imbueGold = 100;
+
+  static MaterialId imbueCore(Element e) => switch (e) {
+        Element.fire => MaterialId.glowFireCore,
+        Element.water => MaterialId.glowWaterCore,
+        Element.wind => MaterialId.glowWindCore,
+        Element.earth => MaterialId.glowEarthCore,
+        Element.light => MaterialId.glowLightCore,
+        Element.dark => MaterialId.glowShadowCore,
+        Element.ice => MaterialId.glowIceCore,
+        Element.thunder => MaterialId.glowThunderCore,
+        Element.metal => MaterialId.glowMetalCore,
+        Element.poison => MaterialId.glowPoisonCore,
+      };
+
   /// 장비 하나의 배율 (등급·강화·내구도 반영)
   static double power(EquipItem item) {
     final m = gradeMultiplier(item.grade) * (1 + enhanceStep * item.enhance);
@@ -388,7 +413,16 @@ class EquipmentRules {
     var atk = 0.0, red = 0.0, hp = 0.0, crit = 0.0, eva = 0.0;
     var faster = 0;
     var extra = Stats.zero;
+    Element? atkEl;
+    final guards = <Element>{};
     for (final item in worn) {
+      if (item.element != null) {
+        if (item.slot == EquipSlot.weapon) {
+          atkEl = item.element;
+        } else {
+          guards.add(item.element!);
+        }
+      }
       final base = EquipmentRules.info(item.base);
       final p = power(item);
       atk += base.attack * p;
@@ -411,6 +445,8 @@ class EquipmentRules {
       crit: crit,
       evade: eva,
       stats: extra,
+      attackElement: atkEl,
+      guardElements: guards,
     );
   }
 
@@ -426,6 +462,10 @@ class EquipmentRules {
       if (base.crit > 0) '치명타 +${_pct(base.crit * p)}%p',
       if (base.evade > 0) '회피 +${_pct(base.evade * p)}%p',
       for (final e in item.extras.entries) '${statName(e.key)} +${e.value}',
+      if (item.element != null)
+        item.slot == EquipSlot.weapon
+            ? '${item.element!.label} 속성 공격'
+            : '${item.element!.label} 속성 방어',
     ].join(' · ');
   }
 }

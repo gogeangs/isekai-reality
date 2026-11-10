@@ -12,6 +12,7 @@ import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../pets/pet_art.dart';
+import '../battle/element_view.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
@@ -102,9 +103,15 @@ class _SpawnSheetState extends State<SpawnSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(spawn.name,
-                        style: AppText.title(20,
-                            color: modGradeColor(spawn.grade))),
+                    Row(children: [
+                      ElementIcon(info.element, size: 18),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(spawn.name,
+                            style: AppText.title(20,
+                                color: modGradeColor(spawn.grade))),
+                      ),
+                    ]),
                     const SizedBox(height: 4),
                     Text(info.habitat,
                         style: const TextStyle(
@@ -223,12 +230,19 @@ class _SpawnSheetState extends State<SpawnSheet> {
                               fontSize: 13,
                               fontWeight: FontWeight.w700)),
                     ],
+                    // 11-11 #64: 가방에 마나 물약이 있으면 그 자리에서 마시기
+                    if (plan.check == ExpeditionCheck.notEnoughMp)
+                      ..._manaButtons(c, plan.mpCost - c.mp),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            GoldButton(
+            // 11-11 #64: 보낼 수 없으면 흐리게 (눌리지 않음)
+            Opacity(
+              opacity: plan.check == ExpeditionCheck.ok ? 1 : 0.4,
+              child: GoldButton(
+              key: const Key('sendSpirit'),
               label: '${c.farewellDone ? spiritName : '정령'} 보내기',
               onPressed: plan.check == ExpeditionCheck.ok
                   ? () async {
@@ -245,11 +259,38 @@ class _SpawnSheetState extends State<SpawnSheet> {
                     }
                   : null,
             ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// MP가 모자랄 때 마나 물약 버튼 (가장 알맞은 것 두 가지)
+List<Widget> _manaButtons(AppController c, int need) {
+  final opts = c.manaOptions(need);
+  if (opts.isEmpty) return const [];
+  final best = opts.first;
+  return [
+    const SizedBox(height: 8),
+    for (final o in opts.take(2))
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: FrameButton(
+          key: Key('mana_${o.item?.name ?? o.key}'),
+          label: '${o.name} 마시기 · ${o.count}개 있음',
+          height: 42,
+          onPressed: () => c.drinkMana(o),
+        ),
+      ),
+    if (best.bottles > 1)
+      Text(
+          best.bottles <= 3 && best.bottles <= best.count
+              ? '${best.name} ${best.bottles}병 마시면 원정 가능'
+              : '물약으로 채우기 어려워요',
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+  ];
 }
 
 class _InfoRow extends StatelessWidget {

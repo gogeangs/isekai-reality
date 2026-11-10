@@ -11,6 +11,8 @@ import '../battle/battle_view.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
+import '../harvest/harvest_sheet.dart';
+import '../town/material_view.dart';
 import 'expedition_sheet.dart';
 import 'map_config.dart';
 
@@ -427,6 +429,23 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           )..setOnTapListener((_) {
               if (mounted) showSpawnSheet(context, c, spawn);
             }),
+      // 채집 자리 (11-11 #56): 1.5km 안, 남은 횟수는 점으로
+      for (final h in c.harvestSpots)
+        if (fix == null || h.point.distanceTo(fix.point) <= 1500)
+          NMarker(
+            id: 'harvest_${h.id}',
+            position: _ll(h.point),
+            icon: NOverlayImage.fromAssetImage(h.info.mapAsset),
+            size: const Size(30, 30),
+            caption: NOverlayCaption(
+              text: '●' * c.harvestCharges(h),
+              textSize: 9,
+              color: AppColors.goldBright,
+              haloColor: const Color(0xFF0B0D26),
+            ),
+          )..setOnTapListener((_) {
+              if (mounted) showHarvestSheet(context, c, h);
+            }),
       // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
       for (var i = 0; i < actives.length; i++)
         if (actives[i].path.length >= 2)
@@ -644,6 +663,26 @@ class _ExpeditionList extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right_rounded,
                     color: AppColors.gold),
                 onTap: () => showSpawnSheet(context, c, s),
+              ),
+            // 채집 자리 (11-11 #56): 가까운 3곳
+            for (final h in (c.harvestSpots.toList()
+                  ..sort((a, b) => a.point
+                      .distanceTo(c.lastPoint ?? a.point)
+                      .compareTo(b.point.distanceTo(c.lastPoint ?? b.point))))
+                .take(3))
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: MaterialIcon(h.info.base, size: 36),
+                title: Text(h.info.name,
+                    style: const TextStyle(color: AppColors.text)),
+                subtitle: Text(
+                    '남은 횟수 ${c.harvestCharges(h)} · '
+                    '${c.lastPoint == null ? '' : '${h.point.distanceTo(c.lastPoint!).round()}m'}',
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right_rounded,
+                    color: AppColors.gold),
+                onTap: () => showHarvestSheet(context, c, h),
               ),
           ],
         ),

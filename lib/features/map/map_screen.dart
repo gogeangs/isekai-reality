@@ -26,12 +26,31 @@ class MapScreen extends StatelessWidget {
     final spawn = controller.nearbySpawn;
     final ex = controller.expedition;
     final away = ex != null && !ex.finished;
+    final top = MediaQuery.paddingOf(context).top;
+    // 아래 카드가 덮는 높이 (원정 카드 + 몬스터·발견 카드)
+    final cardBelow = controller.lastDiscovery != null || spawn != null;
+    final bottomInset = (cardBelow ? 150.0 : 24.0) + (away ? 130.0 : 0.0);
     return Stack(
       children: [
         Positioned.fill(
           child: naverMapEnabled
-              ? _NaverMapLayer(controller: controller)
+              ? _NaverMapLayer(
+                  controller: controller,
+                  // 위 패널 아래부터, 아래 카드 위까지가 몬스터가 보이는 곳 (11-11 #43)
+                  safeTop: top + 60 + 64,
+                  safeBottom: bottomInset,
+                )
               : _ExploreSummary(controller: controller),
+        ),
+        // 상태 표시줄 뒤로 몬스터 이름표가 비치지 않게 가린다 (11-11 #43)
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: top,
+          child: const IgnorePointer(
+            child: ColoredBox(color: Color(0xE60B0D26)),
+          ),
         ),
         Positioned(
           // 위쪽 프로필·설정 버튼 아래
@@ -298,9 +317,17 @@ class _ExploreSummary extends StatelessWidget {
 // ───────────────────────────────────────────── 네이버 지도
 
 class _NaverMapLayer extends StatefulWidget {
-  const _NaverMapLayer({required this.controller});
+  const _NaverMapLayer({
+    required this.controller,
+    this.safeTop = 0,
+    this.safeBottom = 0,
+  });
 
   final AppController controller;
+
+  /// 위 패널·아래 카드가 덮는 높이. 그 뒤에 숨은 몬스터는 가장자리 표시로 알린다.
+  final double safeTop;
+  final double safeBottom;
 
   @override
   State<_NaverMapLayer> createState() => _NaverMapLayerState();
@@ -393,6 +420,16 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           )..setOnTapListener((_) {
               if (mounted) showSpawnSheet(context, c, spawn);
             }),
+      // 정령이 따라가는 길 (11-11 #42)
+      if (away && ex.path.length >= 2)
+        NPathOverlay(
+          id: 'route',
+          coords: [for (final p in ex.path) NLatLng(p.$1, p.$2)],
+          width: 5,
+          color: const Color(0xCCF5DC94),
+          outlineWidth: 1.5,
+          outlineColor: const Color(0xFF0B0D26),
+        ),
       if (spiritPos != null)
         NMarker(
           id: 'spirit',
@@ -414,6 +451,50 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
 
     await map.clearOverlays();
     await map.addOverlayAll(overlays);
+    await _findHidden();
+  }
+
+  // ───────────── 가려진 몬스터 표시 (11-11 #43)
+
+  List<_EdgeMark> _edges = const [];
+  Size _size = Size.zero;
+
+  /// 화면 밖이나 위 패널·아래 카드 뒤에 있는 가까운 몬스터를 찾는다
+  Future<void> _findHidden() async {
+    final map = _map;
+    final c = widget.controller;
+    final from = c.lastFix?.point;
+    if (map == null || from == null || _size == Size.zero) return;
+    final near = [
+      for (final s in c.todaySpawns)
+        if (s.point.distanceTo(from) <= 1500) s,
+    ]..sort((a, b) =>
+        a.point.distanceTo(from).compareTo(b.point.distanceTo(from)));
+    final safe = Rect.fromLTRB(
+        24, widget.safeTop + 24, _size.width - 24, _size.height - widget.safeBottom - 24);
+    if (safe.height < 60) return;
+    final marks = <_EdgeMark>[];
+    try {
+      for (final s in near.take(20)) {
+        final pt = await map.latLngToScreenLocation(_ll(s.point));
+        final p = Offset(pt.x, pt.y);
+        if (safe.contains(p)) continue;
+        final at = Offset(p.dx.clamp(safe.left, safe.right),
+            p.dy.clamp(safe.top, safe.bottom));
+        final dir = p - at;
+        marks.add(_EdgeMark(s, at, dir.direction));
+        if (marks.length >= 5) break;
+      }
+    } catch (_) {
+      return;
+    }
+    if (mounted) setState(() => _edges = marks);
+  }
+
+  Future<void> _focus(FieldSpawn s) async {
+    final map = _map;
+    if (map == null) return;
+    await map.updateCamera(NCameraUpdate.scrollAndZoomTo(target: _ll(s.point)));
   }
 
   @override
@@ -421,16 +502,82 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final center = widget.controller.lastFix?.point ??
         widget.controller.fallbackCenter ??
         widget.controller.area.bounds.center;
-    return NaverMap(
-      options: NaverMapViewOptions(
-        initialCameraPosition: NCameraPosition(target: _ll(center), zoom: 15),
-        locationButtonEnable: true,
+    return LayoutBuilder(builder: (context, box) {
+      _size = box.biggest;
+      return Stack(children: [
+        Positioned.fill(
+          child: NaverMap(
+            options: NaverMapViewOptions(
+              initialCameraPosition:
+                  NCameraPosition(target: _ll(center), zoom: 15),
+              locationButtonEnable: true,
+            ),
+            onMapReady: (map) {
+              _map = map;
+              _drawnSpawns = -1;
+              _redraw();
+            },
+            onCameraIdle: _findHidden,
+          ),
+        ),
+        for (final e in _edges)
+          Positioned(
+            left: e.at.dx - 22,
+            top: e.at.dy - 22,
+            child: _EdgeChip(mark: e, onTap: () => _focus(e.spawn)),
+          ),
+      ]);
+    });
+  }
+}
+
+/// 가려진 몬스터 하나: 그 몬스터 쪽 가장자리에 둔다
+class _EdgeMark {
+  const _EdgeMark(this.spawn, this.at, this.angle);
+  final FieldSpawn spawn;
+  final Offset at;
+
+  /// 몬스터가 있는 쪽 (라디안)
+  final double angle;
+}
+
+class _EdgeChip extends StatelessWidget {
+  const _EdgeChip({required this.mark, required this.onTap});
+
+  final _EdgeMark mark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = mark.spawn.modifiers.isEmpty
+        ? AppColors.gold
+        : modGradeColor(mark.spawn.grade);
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Stack(alignment: Alignment.center, children: [
+          Transform.rotate(
+            angle: mark.angle,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Icon(Icons.play_arrow_rounded, size: 16, color: color),
+            ),
+          ),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xE60B0D26),
+              border: Border.all(color: color, width: 1.5),
+            ),
+            child: ClipOval(
+                child: MonsterPicture(monster: mark.spawn.monster, size: 30)),
+          ),
+        ]),
       ),
-      onMapReady: (map) {
-        _map = map;
-        _drawnSpawns = -1;
-        _redraw();
-      },
     );
   }
 }

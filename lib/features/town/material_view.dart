@@ -166,49 +166,93 @@ class MaterialGrid extends StatelessWidget {
   }
 }
 
-/// 사냥 보상 줄: 마석·금화·재료 아이콘과 개수
+/// 보상 칸 (11-11 #51): 전투·던전·원정 결과가 같이 쓴다.
+/// 네모 칸 안에 그림, 아래에 이름과 개수. [showExp] 이면 경험치 칸도.
 class RewardItems extends StatelessWidget {
-  const RewardItems({super.key, required this.reward});
+  const RewardItems({super.key, required this.reward, this.showExp = false});
 
   final HuntReward reward;
+  final bool showExp;
 
   @override
   Widget build(BuildContext context) {
-    Widget chip(Widget icon, String text) => Container(
-          padding: const EdgeInsets.fromLTRB(4, 3, 9, 3),
-          decoration: BoxDecoration(
-            color: const Color(0xCC12153A),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            icon,
-            const SizedBox(width: 4),
-            Text(text,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700)),
-          ]),
-        );
+    final slots = <(Widget, String, String, bool)>[
+      if (showExp && reward.exp > 0)
+        (
+          const Icon(Icons.auto_awesome_rounded,
+              color: AppColors.goldBright, size: 28),
+          '경험치',
+          '+${reward.exp}',
+          false
+        ),
+      if (reward.manaStones > 0)
+        (
+          const GameIcon('mana_stone', size: 30, fallback: Icons.diamond_rounded),
+          '마석',
+          '+${reward.manaStones}',
+          false
+        ),
+      if (reward.gold > 0)
+        (
+          const GameIcon('gold',
+              size: 30, fallback: Icons.monetization_on_rounded),
+          '금화',
+          '+${reward.gold}',
+          false
+        ),
+      for (final e in reward.materials.entries)
+        (
+          MaterialIcon(e.key, size: 32),
+          Materials.info(e.key).name,
+          '+${e.value}',
+          Materials.info(e.key).rare
+        ),
+    ];
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 6,
-      runSpacing: 6,
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        if (reward.manaStones > 0)
-          chip(
-              const GameIcon('mana_stone',
-                  size: 22, fallback: Icons.diamond_rounded),
-              '마석 +${reward.manaStones}'),
-        if (reward.gold > 0)
-          chip(
-              const GameIcon('gold',
-                  size: 22, fallback: Icons.monetization_on_rounded),
-              '금화 +${reward.gold}'),
-        for (final e in reward.materials.entries)
-          chip(MaterialIcon(e.key, size: 22),
-              '${Materials.info(e.key).name} +${e.value}'),
+        for (final (icon, name, count, rare) in slots)
+          SizedBox(
+            width: 64,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161A44),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: rare
+                          ? AppColors.goldBright
+                          : AppColors.gold.withValues(alpha: 0.55),
+                      width: rare ? 2 : 1),
+                ),
+                child: Stack(children: [
+                  Center(child: icon),
+                  Positioned(
+                    right: 3,
+                    bottom: 1,
+                    child: Text(count,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            shadows: [Shadow(blurRadius: 3)])),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 3),
+              Text(name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 11)),
+            ]),
+          ),
       ],
     );
   }

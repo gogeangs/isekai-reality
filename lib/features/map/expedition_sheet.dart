@@ -51,6 +51,13 @@ class SpawnSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 길을 찾으면 거리·MP·시간이 길 거리로 바뀐다 (11-11 #42)
+    controller.prepareRoute(spawn);
+    return ListenableBuilder(
+        listenable: controller, builder: (context, _) => _build(context));
+  }
+
+  Widget _build(BuildContext context) {
     final c = controller;
     final info = spawn.info;
     final plan = c.planExpedition(spawn);
@@ -130,7 +137,8 @@ class SpawnSheet extends StatelessWidget {
                           label: '거리',
                           value: plan.distanceM >= 1000
                               ? '${(plan.distanceM / 1000).toStringAsFixed(1)}km'
-                              : '${plan.distanceM.round()}m'),
+                              : '${plan.distanceM.round()}m'
+                                  '${!plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ' (날아서)'}'),
                       _InfoRow(
                           label: 'MP',
                           value: '${plan.mpCost} 사용 (지금 ${c.mp} / '
@@ -171,7 +179,7 @@ class SpawnSheet extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(result == ExpeditionCheck.ok
                             ? '${josa(spiritName, '이/가')} 원정을 떠났어요. '
-                                '${_minutes(plan.oneWay * 2)} 뒤에 돌아와요!'
+                                '${_minutes(c.expedition!.returnAt.difference(c.now))} 뒤에 돌아와요!'
                             : expeditionReason(result)),
                       ));
                     }

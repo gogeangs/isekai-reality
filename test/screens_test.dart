@@ -191,7 +191,7 @@ void main() {
       await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('희귀·전설'), findsWidgets);
-      await tester.tap(find.bySemanticsLabel('프로필'));
+      await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
       expect(find.textContaining('/ ${TitleRules.all.length}'), findsWidgets);
     });

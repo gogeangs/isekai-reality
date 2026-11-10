@@ -1,0 +1,52 @@
+name: 원정 길 조각 만들기
+
+# 전국 OpenStreetMap 길 자료를 5km 조각으로 나눠 route-tiles 가지에 올린다 (11-11 #42).
+# 앱은 https://raw.githubusercontent.com/<저장소>/route-tiles/t/<행>_<열>.bin 을 받는다.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 18 1 * *' # 매달 1일 (한국 시간 2일 새벽 3시 17분)
+  push:
+    branches: [main, 'wip/**']
+    paths:
+      - tool/build_route_tiles.py
+      - .github/workflows/route-tiles.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: route-tiles
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: 도구 설치
+        run: pip install osmium numpy
+      - name: 대한민국 OpenStreetMap 자료 받기 (Geofabrik)
+        run: curl -fsSL --retry 3 -o /tmp/kr.osm.pbf https://download.geofabrik.de/asia/south-korea-latest.osm.pbf
+      - name: 조각 만들기
+        run: python3 tool/build_route_tiles.py /tmp/kr.osm.pbf /tmp/tiles
+      - name: route-tiles 가지에 올리기
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd /tmp/tiles
+          cat > README.md <<'MD'
+          # 원정 길 조각
+
+          tool/build_route_tiles.py 가 만든 자료입니다. 손으로 고치지 마세요.
+          지도 자료 © OpenStreetMap 기여자, ODbL 1.0 (https://www.openstreetmap.org/copyright)
+          MD
+          ls t | wc -l
+          git init -q -b route-tiles
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "원정 길 조각 ($(date -u +%Y-%m-%d))"
+          git push --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" route-tiles

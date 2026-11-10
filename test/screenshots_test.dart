@@ -21,7 +21,9 @@ import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
+import 'package:isekai_reality/features/map/expedition_result.dart';
 import 'package:isekai_reality/features/town/bag_tab.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
@@ -512,5 +514,43 @@ void main() {
     await tester.tap(find.byType(BagSlot).first);
     await tester.pumpAndSettle();
     await _shot(tester, '26c_가방_칸_누름');
+  });
+
+  testWidgets('화면 미리보기: 원정 결과 카드', (tester) async {
+    _phone(tester);
+    final base = Expedition(
+      spawnId: 's1',
+      monster: 'hornRabbit',
+      lat: 37.3,
+      lng: 126.8,
+      distanceM: 800,
+      mpCost: 16,
+      startedAt: DateTime(2026, 11, 8, 14),
+      arriveAt: DateTime(2026, 11, 8, 14, 8),
+      returnAt: DateTime(2026, 11, 8, 14, 16),
+    );
+    final cases = {
+      '33a_원정_성공': base.withResult(true,
+          newSpecies: true,
+          reward: const {'exp': 18, 'manaStone': 1, 'smallHorn': 1, 'goldenRabbitFur': 1}),
+      '33b_원정_실패': base.withResult(false),
+      '33c_원정_놓침': base.withResult(false, escaped: true),
+    };
+    for (final e in cases.entries) {
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0F1233),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: ExpeditionResultCard(ex: e.value, spiritName: '불씨'),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await _shot(tester, e.key);
+    }
   });
 }

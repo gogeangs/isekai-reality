@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import 'core/format.dart';
 import 'core/geo/geo.dart';
+import 'core/geo/route_grid.dart';
 import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
@@ -16,6 +17,7 @@ import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/notify/notifier.dart';
+import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
 import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
@@ -77,6 +79,9 @@ class AppController extends ChangeNotifier {
 
   /// 전국 제외 구역 (학교·병원·묘지 둘레). 그 안에는 몬스터를 두지 않는다.
   ExclusionIndex? exclusions;
+
+  /// 원정 길 조각 (11-11 #42). 없으면 원정은 직선으로 날아간다.
+  RouteTileSource routeTiles = const NoRouteTiles();
 
   /// 위치를 아직 모를 때 몬스터를 둘 자리 (예시·테스트용, 실제 앱은 null)
   final GeoPoint? fallbackCenter;
@@ -1451,11 +1456,67 @@ class AppController extends ChangeNotifier {
 
   // ───────────── 정령 원정
 
-  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함)
+  final _routes = <String, ExpeditionRoute>{};
+  final _routeJobs = <String, Future<ExpeditionRoute>>{};
+
+  String? _routeKey(FieldSpawn spawn) {
+    final from = _lastFix?.point;
+    if (from == null) return null;
+    // 50m 안에서 움직인 것은 같은 출발점으로 본다
+    return '${spawn.id}@${(from.lat / 0.0005).round()},${(from.lng / 0.0005).round()}';
+  }
+
+  /// 찾아 둔 원정 길 (아직 찾는 중이거나 위치를 모르면 null)
+  ExpeditionRoute? routeFor(FieldSpawn spawn) {
+    final k = _routeKey(spawn);
+    return k == null ? null : _routes[k];
+  }
+
+  /// 원정 길을 찾는다. 길 조각을 받지 못했거나, 길이 이어지지 않거나,
+  /// 직선의 3배를 넘으면 직선.
+  Future<ExpeditionRoute> prepareRoute(FieldSpawn spawn) {
+    final k = _routeKey(spawn);
+    final from = _lastFix?.point;
+    if (k == null || from == null) {
+      return Future.value(ExpeditionRoute.straight(
+          from ?? spawn.point, spawn.point));
+    }
+    if (_routes[k] case final r?) return Future.value(r);
+    return _routeJobs[k] ??= () async {
+      final to = spawn.point;
+      final straight = from.distanceTo(to);
+      ExpeditionRoute route;
+      try {
+        final keys = RouteGrid.tilesAround(from, to,
+            marginM: math.min(1500.0, math.max(300.0, straight)));
+        final loaded = await Future.wait([
+          for (final key in keys)
+            routeTiles.load(key).then((v) => MapEntry(key, v)),
+        ]).timeout(const Duration(seconds: 15));
+        final grid = RouteGrid({
+          for (final e in loaded)
+            if (e.value case final v?) e.key: v,
+        });
+        route = grid.tiles.isEmpty
+            ? ExpeditionRoute.straight(from, to)
+            : RouteFinder.find(grid, from, to);
+      } catch (_) {
+        route = ExpeditionRoute.straight(from, to);
+      }
+      _routes[k] = route;
+      _routeJobs.remove(k);
+      notifyListeners();
+      return route;
+    }();
+  }
+
+  /// [spawn] 으로 정령을 보낼 수 있는지 (거리·MP·시간 포함).
+  /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
   ExpeditionPlan planExpedition(FieldSpawn spawn) {
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
-    final dist = from.distanceTo(spawn.point);
+    final route = routeFor(spawn);
+    final dist = route?.lengthM ?? from.distanceTo(spawn.point);
     final cost = VitalRules.expeditionCost(dist);
     final base = VitalRules.expeditionOneWay(dist);
     // 원정 나침반을 써 두었으면 이동 시간 절반
@@ -1469,12 +1530,18 @@ class AppController extends ChangeNotifier {
     } else {
       check = ExpeditionCheck.ok;
     }
-    return ExpeditionPlan(check, distanceM: dist, mpCost: cost, oneWay: oneWay);
+    return ExpeditionPlan(check,
+        distanceM: dist,
+        mpCost: cost,
+        oneWay: oneWay,
+        followsRoads: route?.followsRoads ?? false,
+        routeReady: route != null);
   }
 
   /// 정령을 보낸다. MP는 보내는 순간 쓴다.
   Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn) async {
     await refreshVitals();
+    final route = await prepareRoute(spawn);
     final plan = planExpedition(spawn);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final now = _clock();
@@ -1495,6 +1562,9 @@ class AppController extends ChangeNotifier {
         startedAt: now,
         arriveAt: arrive,
         returnAt: arrive.add(plan.oneWay),
+        route: route.followsRoads
+            ? [for (final p in route.points) (p.lat, p.lng)]
+            : const [],
       ),
       compassReady: false, // 나침반은 한 번 쓰면 끝
     );
@@ -1687,9 +1757,17 @@ class ExpeditionPlan {
     this.distanceM = 0,
     this.mpCost = 0,
     this.oneWay = Duration.zero,
+    this.followsRoads = false,
+    this.routeReady = true,
   });
 
   final ExpeditionCheck check;
+
+  /// 길을 따라가는지 (아니면 직선으로 날아간다)
+  final bool followsRoads;
+
+  /// 길찾기가 끝났는지 (끝나기 전에는 직선 거리로 미리 보여 준다)
+  final bool routeReady;
   final double distanceM;
   final int mpCost;
 

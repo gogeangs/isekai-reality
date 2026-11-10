@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// 정령 원정 하나 (한 번에 한 곳만)
 class Expedition {
   const Expedition({
@@ -17,7 +19,11 @@ class Expedition {
     this.escaped = false,
     this.reward = const {},
     this.newSpecies = false,
+    this.route = const [],
   });
+
+  /// 정령이 따라가는 길 (위도, 경도) 점들. 비어 있으면 직선 (11-11 #42)
+  final List<(double, double)> route;
 
   /// 몬스터가 도망쳤는지 (황금빛 등, 11-11 #51)
   final bool escaped;
@@ -53,10 +59,13 @@ class Expedition {
 
   bool get finished => cleared != null;
 
+  /// 가는 길 점들 (출발 → 몬스터)
+  List<(double, double)> get path => route.length >= 2
+      ? route
+      : [(fromLat ?? lat, fromLng ?? lng), (lat, lng)];
+
   /// 지금 정령이 있는 곳 (가는 길 → 몬스터 자리 → 돌아오는 길). (위도, 경도)
   (double, double) positionAt(DateTime now) {
-    final fLat = fromLat ?? lat;
-    final fLng = fromLng ?? lng;
     double t;
     if (now.isBefore(arriveAt)) {
       final total = arriveAt.difference(startedAt).inSeconds;
@@ -67,8 +76,32 @@ class Expedition {
     } else {
       t = 0;
     }
-    t = t.clamp(0.0, 1.0);
-    return (fLat + (lat - fLat) * t, fLng + (lng - fLng) * t);
+    return pointAlong(path, t.clamp(0.0, 1.0));
+  }
+
+  /// 점들을 이은 길에서 [t] (0~1) 만큼 간 곳
+  static (double, double) pointAlong(List<(double, double)> pts, double t) {
+    if (pts.length == 1) return pts.first;
+    final lens = <double>[];
+    var total = 0.0;
+    for (var i = 1; i < pts.length; i++) {
+      final dy = pts[i].$1 - pts[i - 1].$1;
+      final dx = (pts[i].$2 - pts[i - 1].$2) * 0.8; // 위도 37° 언저리 경도 보정
+      final d = math.sqrt(dx * dx + dy * dy);
+      lens.add(d);
+      total += d;
+    }
+    if (total == 0) return pts.first;
+    var left = t * total;
+    for (var i = 0; i < lens.length; i++) {
+      if (left <= lens[i] || i == lens.length - 1) {
+        final f = lens[i] == 0 ? 0.0 : (left / lens[i]).clamp(0.0, 1.0);
+        final a = pts[i], b = pts[i + 1];
+        return (a.$1 + (b.$1 - a.$1) * f, a.$2 + (b.$2 - a.$2) * f);
+      }
+      left -= lens[i];
+    }
+    return pts.last;
   }
 
   /// 몬스터에게 가는 중인지 (아니면 돌아오는 중)
@@ -95,6 +128,7 @@ class Expedition {
         escaped: escaped,
         reward: reward,
         newSpecies: newSpecies,
+        route: route,
       );
 
   Map<String, dynamic> toJson() => {
@@ -114,6 +148,7 @@ class Expedition {
         'escaped': escaped,
         'reward': reward,
         'newSpecies': newSpecies,
+        if (route.isNotEmpty) 'route': [for (final p in route) [p.$1, p.$2]],
       };
 
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
@@ -136,6 +171,10 @@ class Expedition {
             e.key as String: (e.value as num).toInt(),
         },
         newSpecies: j['newSpecies'] as bool? ?? false,
+        route: [
+          for (final p in (j['route'] as List?) ?? const [])
+            (((p as List)[0] as num).toDouble(), (p[1] as num).toDouble()),
+        ],
       );
 }
 

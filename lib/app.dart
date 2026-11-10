@@ -14,6 +14,7 @@ import 'features/village/village_screen.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
+import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
 import 'features/smithy/equip_picker.dart';
 import 'features/status/stat_screen.dart';
@@ -120,44 +121,32 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (_noticeShowing || _levelUpShowing) return;
     final ex = c.expedition;
-    final String? title;
-    final String? body;
-    if (c.justRested) {
-      title = '푹 쉬었어요';
-      body = 'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
-          '+${RuleConstants.restBonusExp}!';
-    } else if (ex != null && ex.finished) {
-      final id = Monsters.byName(ex.monster);
-      final name = id == null ? '몬스터' : Monsters.info(id).name;
-      title = ex.cleared! ? '원정 성공!' : '원정에서 돌아왔어요';
-      body = ex.cleared!
-          ? '${josa(c.profile.spiritName, '이/가')} ${josa(name, '을/를')} 사냥했어요.'
-              '${c.lastExpeditionExp > 0 ? ' 경험치 +${c.lastExpeditionExp}' : ''}'
-          : '${josa(name, '이/가')} 너무 강했어요. MP만 쓰고 무사히 돌아왔어요.';
-    } else {
-      return;
-    }
+    if (!c.justRested && (ex == null || !ex.finished)) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.night,
-          title: Text(title!, style: AppText.title(20)),
-          content: Text(body!,
-              style: const TextStyle(color: AppColors.text, height: 1.4)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('좋아요'),
-            ),
-          ],
-        ),
-      );
       if (c.justRested) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppColors.night,
+            title: Text('푹 쉬었어요', style: AppText.title(20)),
+            content: Text(
+                'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
+                '+${RuleConstants.restBonusExp}!',
+                style: const TextStyle(color: AppColors.text, height: 1.4)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('좋아요'),
+              ),
+            ],
+          ),
+        );
         c.clearJustRested();
       } else {
+        // 원정 결과 금테 카드 (11-11 #51)
+        await showExpeditionResult(context, ex!, c.profile.spiritName);
         await c.acknowledgeExpedition();
       }
       _noticeShowing = false;

@@ -9,6 +9,7 @@ import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
+import 'features/drive/drive_overlay.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/town/bag_tab.dart';
@@ -54,7 +55,19 @@ class IsekaiRealityApp extends StatelessWidget {
           kind: controller.profile.spiritKind,
           petSpecies: controller.companionPet?.species,
           petAdult: controller.companionPet?.adult ?? false,
-          child: child ?? const SizedBox(),
+          // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
+          child: Stack(children: [
+            Positioned.fill(child: child ?? const SizedBox()),
+            if (controller.passengerMode)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 52,
+                left: 0,
+                right: 0,
+                child: const Center(child: PassengerBadge()),
+              ),
+            if (controller.driveBlocked)
+              Positioned.fill(child: DriveOverlay(controller: controller)),
+          ]),
         ),
       ),
       home: HomeShell(controller: controller),

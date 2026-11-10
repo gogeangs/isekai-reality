@@ -83,8 +83,22 @@ class GatherRules {
           : roadside[rng.nextInt(roadside.length)];
       mats[m] = (mats[m] ?? 0) + 1;
     }
+    // 11-11 #56: 20%로 채집 귀한 재료 하나
+    if (rng.nextDouble() < harvestRareChance) {
+      final m = harvestRares[rng.nextInt(harvestRares.length)];
+      mats[m] = (mats[m] ?? 0) + 1;
+    }
     return (mats: mats, gold: 0, note: note);
   }
+
+  /// 길가의 발견에서 채집 귀한 재료가 나올 확률 (11-11 #56)
+  static const double harvestRareChance = 0.20;
+  static const harvestRares = [
+    MaterialId.dewHerb,
+    MaterialId.manaOre,
+    MaterialId.sturdyKnot,
+    MaterialId.riverPearl,
+  ];
 
   // ───────────── 떠돌이 상인
 

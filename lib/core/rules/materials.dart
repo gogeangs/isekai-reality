@@ -66,6 +66,11 @@ enum MaterialId {
   glowThunderCore,
   glowMetalCore,
   glowPoisonCore,
+  // 11-11 #56 채집 귀한 재료
+  dewHerb,
+  manaOre,
+  sturdyKnot,
+  riverPearl,
 }
 
 class MaterialInfo {
@@ -179,6 +184,15 @@ class Materials {
         rare: true, price: 80, processed: true),
     MaterialInfo(MaterialId.glowPoisonCore, '빛나는 독 코어', '독 코어 3개를 합친 것. 속성 장비 재료예요.',
         rare: true, price: 80, processed: true),
+    // 11-11 #56 채집 귀한 재료
+    MaterialInfo(MaterialId.dewHerb, '이슬 맺힌 약초',
+        '새벽 이슬을 머금은 약초. 공방에서 약초 진액 2개로 가공해요.', rare: true),
+    MaterialInfo(MaterialId.manaOre, '마력 광석',
+        '마력이 스민 광석. 대장간에서 철 주괴 2개로 가공해요.', rare: true),
+    MaterialInfo(MaterialId.sturdyKnot, '튼튼한 옹이',
+        '오래된 나무의 단단한 옹이. 대장간에서 단단한 목재 2개로 가공해요.', rare: true),
+    MaterialInfo(MaterialId.riverPearl, '강의 진주',
+        '물가에서 건진 작은 진주. 공방에서 정제 에센스 2개로 가공해요.', rare: true),
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);

@@ -12,6 +12,8 @@ import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/gather_state.dart';
+import 'core/models/drive_state.dart';
+import 'core/models/harvest_state.dart';
 import 'core/models/lens_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
@@ -233,6 +235,16 @@ class AppController extends ChangeNotifier {
     _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
     final gather = await store.loadJson(_gatherKey);
     _gather = gather == null ? const GatherState() : GatherState.fromJson(gather);
+    final harvest = await store.loadJson(_harvestKey);
+    _harvest = harvest == null ? const HarvestState() : HarvestState.fromJson(harvest);
+    final drive = await store.loadJson(_driveKey);
+    _drive = drive == null ? const DriveState() : DriveState.fromJson(drive);
+    // 오래전에 막힌 화면은 풀어 둔다 (위치가 꺼져 있으면 끝을 알 수 없다)
+    if (_drive.mode != DriveMode.none &&
+        (_drive.askedAt == null ||
+            _clock().difference(_drive.askedAt!) > const Duration(minutes: 30))) {
+      _drive = _drive.copyWith(mode: DriveMode.none);
+    }
     final lens = await store.loadJson(_lensKey);
     _lens = lens == null ? const LensState() : LensState.fromJson(lens);
     await sync();
@@ -410,6 +422,7 @@ class AppController extends ChangeNotifier {
   /// 위치가 바뀔 때: 가까운 장소를 방문으로 기록한다 (안개는 11-10에 없앴다)
   Future<void> handleFix(LocationFix fix) async {
     _lastFix = fix;
+    await _watchSpeed(fix);
     if (ExplorationRules.countsAsExploring(fix)) {
       for (final place in ExplorationRules.placesInReach(area, fix.point)) {
         await _visitPlace(place);
@@ -677,13 +690,16 @@ class AppController extends ChangeNotifier {
             .round()
         : 0;
     // 수식어·속성 보너스와 마리 수 (11-11: 기록에 남겨 경험치에 더한다)
-    final exp = paid
+    var exp = paid
         ? (baseExp *
                 (ModifierRules.expMultiplier(mods) +
                     Monsters.info(monster).expBonus) *
                 count)
             .round()
         : 0;
+    // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
+    final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
+    if (half) exp = exp ~/ 2;
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;
@@ -705,6 +721,14 @@ class AppController extends ChangeNotifier {
       extraMana = (count - 1) * RuleConstants.crystalsPerFieldMonster +
           b.manaStones;
       gold = b.gold;
+      if (half) {
+        for (final k in [...mats.keys]) {
+          final v = mats[k]! ~/ 2;
+          v > 0 ? mats[k] = v : mats.remove(k);
+        }
+        extraMana ~/= 2;
+        gold ~/= 2;
+      }
       // 가방이 가득하면 남는 재료는 금화로 (11-11 #48)
       final fit = _fitBag(mats);
       mats
@@ -723,7 +747,7 @@ class AppController extends ChangeNotifier {
       gains: DailyRecord.addCounts(today.gains, {
         ...HuntReward.ledger(
             extraManaStones: extraMana, gold: gold, materials: mats),
-        if (exp > baseExp) Wallet.exp: exp - baseExp,
+        if (exp != baseExp) Wallet.exp: exp - baseExp,
       }),
       modHunts: modKey == null
           ? null
@@ -1297,6 +1321,12 @@ class AppController extends ChangeNotifier {
     if (pet == null || today == null) return;
     final day = today.dayKey;
     final counted = _pets.stepsDay == day ? _pets.stepsCounted : 0;
+    // 승객 모드 (11-11 #61): 차 안의 걸음은 펫 경험치에 세지 않는다
+    if (passengerMode) {
+      await _savePets(_pets.copyWith(
+          stepsDay: day, stepsCounted: math.max(counted, today.steps)));
+      return;
+    }
     final gained = (today.steps - counted) ~/ 100;
     if (gained <= 0) {
       if (_pets.stepsDay != day) {
@@ -1957,7 +1987,7 @@ class AppController extends ChangeNotifier {
         for (final e in use.entries) e.key.name: e.value,
         if (r.gold > 0) Wallet.gold: r.gold,
       }),
-      gains: DailyRecord.addCounts(today.gains, {r.output.name: 1}),
+      gains: DailyRecord.addCounts(today.gains, {r.output.name: r.count}),
     ));
     return true;
   }
@@ -2003,6 +2033,13 @@ class AppController extends ChangeNotifier {
           stepsChecked: 0,
           findsToday: 0,
           merchantToday: 0);
+    }
+    // 승객 모드 (11-11 #61): 차 안에서 늘어난 걸음은 주머니·발견에 세지 않는다
+    if (passengerMode) {
+      g = g.copyWith(
+          pouchesGiven: math.max(g.pouchesGiven, GatherRules.pouchesFor(today.steps)),
+          stepsChecked: today.steps -
+              (today.steps - g.stepsChecked) % GatherRules.findSteps);
     }
     // 걸음 주머니
     final due = GatherRules.pouchesFor(today.steps);
@@ -2116,6 +2153,211 @@ class AppController extends ChangeNotifier {
 
   /// 걸을 때 알림 켜고 끄기 (설정)
   Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));
+
+  // ───────────────────────────────────────────── 승객 확인 (11-11 #61)
+
+  static const _driveKey = 'drive';
+  DriveState _drive = const DriveState();
+
+  /// 차량 속도 감지 상태
+  DriveMode get driveMode => _drive.mode;
+
+  /// 승객이라고 답하고 차로 이동하는 중 (보상 제한)
+  bool get passengerMode => _drive.mode == DriveMode.passenger;
+
+  /// 화면을 가리는 중 (묻기·안전 운전)
+  bool get driveBlocked =>
+      _drive.mode == DriveMode.asking || _drive.mode == DriveMode.driving;
+
+  Future<void> _saveDrive(DriveState d) async {
+    _drive = d;
+    await store.saveJson(_driveKey, d.toJson());
+    notifyListeners();
+  }
+
+  DateTime? _fastSince;
+  DateTime? _slowSince;
+
+  /// 마지막으로 움직인 때 (채집 미니게임은 멈춰 있어야 한다)
+  DateTime? _lastMovingAt;
+
+  /// 최근 10초 동안 멈춰 있는지
+  bool get standingStill {
+    if (_lastFix == null) return false;
+    final m = _lastMovingAt;
+    return m == null || _clock().difference(m) >= HarvestRules.stillFor;
+  }
+
+  Future<void> _watchSpeed(LocationFix fix) async {
+    final now = _clock();
+    if (fix.speedMps > HarvestRules.stillSpeedMps) _lastMovingAt = now;
+    if (fix.speedMps >= DriveRules.carSpeedMps) {
+      _slowSince = null;
+      _fastSince ??= now;
+      if (_drive.mode == DriveMode.none &&
+          now.difference(_fastSince!) >= DriveRules.carFor) {
+        // 차에 타기 전까지 걸은 걸음은 먼저 센다
+        await _petSteps();
+        await _checkWalkEvents();
+        await _saveDrive(_drive.copyWith(mode: DriveMode.asking, askedAt: now));
+      }
+    } else {
+      _fastSince = null;
+      if (fix.speedMps < DriveRules.endSpeedMps) {
+        _slowSince ??= now;
+        if (_drive.mode != DriveMode.none &&
+            now.difference(_slowSince!) >= DriveRules.endAfter) {
+          await _endTrip();
+        }
+      } else {
+        _slowSince = null;
+      }
+    }
+    // 묻는 화면에 답이 없으면 안전 운전 화면
+    if (_drive.mode == DriveMode.asking &&
+        _drive.askedAt != null &&
+        now.difference(_drive.askedAt!) >= DriveRules.askTimeout) {
+      await _saveDrive(_drive.copyWith(mode: DriveMode.driving));
+    }
+  }
+
+  Future<void> _endTrip() async {
+    if (passengerMode) {
+      // 차 안에서 늘어난 걸음은 주머니·펫 경험치에 넣지 않는다
+      await _petSteps();
+      await _checkWalkEvents();
+    }
+    await _saveDrive(_drive.copyWith(mode: DriveMode.none));
+  }
+
+  /// 「승객이에요」/「운전 중이에요」
+  Future<void> answerDrive({required bool passenger}) => _saveDrive(
+      _drive.copyWith(mode: passenger ? DriveMode.passenger : DriveMode.driving));
+
+  /// 오래 답이 없을 때 (화면에서 부른다)
+  Future<void> driveTimeout() async {
+    if (_drive.mode == DriveMode.asking) {
+      await _saveDrive(_drive.copyWith(mode: DriveMode.driving));
+    }
+  }
+
+  // ───────────────────────────────────────────── 채집 (11-11 #56)
+
+  static const _harvestKey = 'harvest';
+  HarvestState _harvest = const HarvestState();
+
+  HarvestState get harvest => _harvest;
+
+  Future<void> _saveHarvest(HarvestState h) async {
+    _harvest = h;
+    await store.saveJson(_harvestKey, h.toJson());
+    notifyListeners();
+  }
+
+  String? _spotsKey;
+  List<HarvestSpot> _spotsCache = const [];
+
+  /// 지도에 보이는 채집 자리 (지금 위치 둘레 3km)
+  List<HarvestSpot> get harvestSpots {
+    final center = _lastFix?.point ?? fallbackCenter;
+    if (center == null) return const [];
+    final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}';
+    if (key != _spotsKey) {
+      _spotsKey = key;
+      _spotsCache = HarvestRules.spotsAround(center,
+          roads: roads,
+          exclusions: exclusions,
+          places: area.places,
+          excluded: area.isExcluded);
+    }
+    return _spotsCache;
+  }
+
+  /// 가까이 있는 채집 자리 (40m 안)
+  HarvestSpot? get nearbyHarvest {
+    final fix = _lastFix;
+    if (fix == null) return null;
+    HarvestSpot? best;
+    double? bd;
+    for (final s in harvestSpots) {
+      final d = s.point.distanceTo(fix.point);
+      if (d <= HarvestRules.reachM && (bd == null || d < bd)) {
+        best = s;
+        bd = d;
+      }
+    }
+    return best;
+  }
+
+  int harvestCharges(HarvestSpot s) => _harvest.chargesOf(s.id, _clock());
+
+  /// 다음 하나가 차기까지
+  Duration? harvestRefill(HarvestSpot s) =>
+      _harvest.spots[s.id]?.untilNext(_clock());
+
+  /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
+  int toolDurability(HarvestTool t) =>
+      _harvest.granted ? _harvest.durability(t) : HarvestRules.toolMax;
+
+  HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
+    final fix = _lastFix;
+    if (fix == null || s.point.distanceTo(fix.point) > HarvestRules.reachM) {
+      return HarvestCheck.far;
+    }
+    if (driveBlocked) return HarvestCheck.passenger;
+    if (harvestCharges(s) <= 0) return HarvestCheck.empty;
+    if (!minigame) return HarvestCheck.ok;
+    if (passengerMode) return HarvestCheck.passenger;
+    if (!standingStill) return HarvestCheck.moving;
+    if (toolDurability(s.info.tool) <= 0) return HarvestCheck.noTool;
+    return HarvestCheck.ok;
+  }
+
+  /// 채집한다. [grade] 가 quick 이면 빠른 채집, 아니면 미니게임 결과.
+  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) async {
+    final minigame = grade != HarvestGrade.quick;
+    if (canHarvest(s, minigame: minigame) != HarvestCheck.ok) return null;
+    final now = _clock();
+    var h = _harvest;
+    if (!h.granted) {
+      h = h.copyWith(granted: true, tools: {
+        for (final t in HarvestTool.values) t.name: HarvestRules.toolMax,
+      });
+    }
+    final charge = h.spots[s.id] ??
+        SpotCharge(charges: HarvestRules.maxCharges, at: now);
+    final tool = s.info.tool;
+    h = h.copyWith(
+      spots: {...h.spots, s.id: charge.use(now)},
+      tools: minigame
+          ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
+          : h.tools,
+      total: h.total + 1,
+    ).pruned(now);
+    await _saveHarvest(h);
+    final mats = HarvestRules.yieldOf(s.kind, grade, _random,
+        factor: passengerMode ? 0.5 : 1);
+    await _grant(0, 0, mats);
+    return mats;
+  }
+
+  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대는 공방)
+  Future<bool> repairTool(HarvestTool t) async {
+    if (!_harvest.granted || _harvest.durability(t) >= HarvestRules.toolMax) {
+      return false;
+    }
+    final m = HarvestRules.repairMaterial(t);
+    if (player.gold < HarvestRules.repairGold || player.materialCount(m) <= 0) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(
+            today.spends, {Wallet.gold: HarvestRules.repairGold, m.name: 1})));
+    await _saveHarvest(_harvest.copyWith(
+        tools: {..._harvest.tools, t.name: HarvestRules.toolMax}));
+    return true;
+  }
 
   // ───────────────────────────────────────────── 속성 점수 (11-11 #63, 숨김)
 
@@ -2848,6 +3090,11 @@ class AppController extends ChangeNotifier {
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
     final now = _clock();
+    // 승객 모드에서 보낸 원정은 보상 절반 (11-11 #61)
+    if (passengerMode) {
+      await _saveDrive(_drive.copyWith(
+          passengerSpawns: [..._drive.passengerSpawns, spawn.id]));
+    }
     final arrive = now.add(plan.oneWay);
     final ex = Expedition(
       spawnId: spawn.id,
@@ -3210,3 +3457,6 @@ class ManaOption {
   final ShopItem? item;
   final String? key;
 }
+
+/// 채집할 수 있는지 (11-11 #56)
+enum HarvestCheck { ok, far, empty, moving, noTool, passenger }

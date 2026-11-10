@@ -536,7 +536,7 @@ class _AppraisePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size,
         Paint()..color = const Color(0xFF0B0D26).withValues(alpha: 0.25 * t));
-    final gold = AppColors.goldBright;
+    const gold = AppColors.goldBright;
     for (final f in faces) {
       final c = Offset(f.box.center.dx * size.width, f.box.center.dy * size.height);
       final rad = f.box.width * size.width * 0.78;

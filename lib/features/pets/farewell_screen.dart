@@ -28,8 +28,17 @@ class _FarewellScreenState extends State<FarewellScreen>
   final _name = TextEditingController();
   Pet? _pet;
   late final AnimationController _glow = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1400))
-    ..repeat(reverse: true);
+      vsync: this, duration: const Duration(milliseconds: 1400));
+
+  void _next() {
+    setState(() => _page++);
+    // 알이 빛나는 건 알을 깨우기 직전 장면에서만
+    if (_page == 2) {
+      _glow.repeat(reverse: true);
+    } else {
+      _glow.stop();
+    }
+  }
 
   AppController get c => widget.controller;
 
@@ -85,7 +94,7 @@ class _FarewellScreenState extends State<FarewellScreen>
         const SizedBox(height: 22),
         GoldButton(
           label: _page == 2 ? '알을 깨운다' : '다음',
-          onPressed: () => setState(() => _page++),
+          onPressed: _next,
         ),
       ]);
     } else if (_page == 3) {

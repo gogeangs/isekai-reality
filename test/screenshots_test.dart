@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
@@ -22,6 +23,9 @@ import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/map/expedition_result.dart';
+import 'package:isekai_reality/features/pets/farewell_screen.dart';
+import 'package:isekai_reality/features/pets/pet_screen.dart';
+import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/features/town/bag_tab.dart';
 import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
@@ -560,5 +564,88 @@ void main() {
       await tester.pumpAndSettle();
       await _shot(tester, e.key);
     }
+  });
+
+  testWidgets('화면 미리보기: 정령 이별과 펫', (tester) async {
+    _phone(tester);
+    final c = AppController(
+      store: InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루'),
+        history: [
+          DailyRecord(
+              date: DateTime(2026, 11, 8),
+              gains: {'exp': LevelRules.totalExpToReach(11)}),
+        ],
+        json: {
+          'pets': const PetState(
+                  eggs: [PetEgg(id: 'egg1', source: 'field')],
+                  firstEggFound: true,
+                  nextId: 2)
+              .toJson(),
+        },
+      ),
+      health: FakeHealthSource(granted: false),
+      clock: () => DateTime(2026, 11, 8, 14),
+    );
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    // 레벨업 연출이 먼저 뜨면 닫는다
+    if (find.text('계속').evaluate().isNotEmpty) {
+      await tester.tap(find.text('계속').first);
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    expect(find.byType(FarewellScreen), findsOneWidget);
+    await _shot(tester, '40_정령_이별1');
+    await tester.tap(find.text('다음'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('다음'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await _shot(tester, '40b_정령_이별_알');
+    await tester.tap(find.text('알을 깨운다'));
+    await tester.pump(const Duration(seconds: 1));
+    await _shot(tester, '41_첫_펫_부화');
+    await tester.enterText(find.byKey(const Key('petName')), '호호');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.text('이름 짓기'));
+    await tester.tap(find.text('이름 짓기'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, '42_정령_작별');
+    await tester.tap(find.textContaining('함께 가기'));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '43_펫과_상태창');
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => PetScreen(controller: c)));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '44_내_펫');
+  });
+
+  testWidgets('화면 미리보기: 펫 도감·알·원정', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('펫'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '45_도감_펫');
+    await tester.tap(find.text('가방'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BagSlot).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '46_가방_펫_알');
   });
 }

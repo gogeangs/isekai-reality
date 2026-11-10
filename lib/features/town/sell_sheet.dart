@@ -25,7 +25,7 @@ int sellPrice(BagEntry e) => switch (e) {
       MaterialEntry(:final id) => BagRules.materialPrice(id),
       ItemEntry(:final item) => BagRules.itemPrice(item),
       EquipEntry(:final item) => BagRules.equipPrice(item),
-      EggEntry() => 0,
+      EggEntry() || PotionEntry() => 0,
     };
 
 class SellSheet extends StatelessWidget {
@@ -39,7 +39,7 @@ class SellSheet extends StatelessWidget {
       MaterialEntry(:final id) => await c.sellMaterial(id, n),
       ItemEntry(:final item) => await c.sellItem(item, n),
       EquipEntry(:final item) => await c.sellEquip(item.uid),
-      EggEntry() => false,
+      EggEntry() || PotionEntry() => false,
     };
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -76,7 +76,7 @@ class SellSheet extends StatelessWidget {
       builder: (context, _) {
         final entries = [
           for (final e in bagEntries(controller))
-            if (e is! EggEntry) e,
+            if (e is! EggEntry && e is! PotionEntry) e,
         ];
         return SafeArea(
           child: ConstrainedBox(
@@ -173,7 +173,7 @@ class SellSheet extends StatelessWidget {
                                       ),
                                     ],
                                   ],
-                                EggEntry() => const <Widget>[],
+                                EggEntry() || PotionEntry() => const <Widget>[],
                               },
                             ]),
                           ),

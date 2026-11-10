@@ -12,6 +12,7 @@ export 'materials.dart';
 export 'modifier_rules.dart';
 export 'monsters.dart';
 export 'pet_rules.dart';
+export 'process_rules.dart';
 export 'quest_rules.dart';
 export 'road_mask.dart';
 export 'exclusion_index.dart';

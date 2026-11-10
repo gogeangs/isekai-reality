@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
+import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import 'equipment_view.dart';
 
 /// 마을 대장간 (11-10 #27): 장비 만들기 · 강화 · 수리 · 분해.
@@ -27,7 +28,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
 
   AppController get c => widget.controller;
 
-  static const _tabs = ['만들기', '강화', '수리 · 분해'];
+  static const _tabs = ['만들기', '강화', '수리 · 분해', '가공'];
 
   void _snack(String text) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(text)));
@@ -83,7 +84,8 @@ class _SmithyScreenState extends State<SmithyScreen> {
                 ...switch (_tab) {
                   0 => _craftTab(),
                   1 => _enhanceTab(),
-                  _ => _repairTab(),
+                  2 => _repairTab(),
+                  _ => [ProcessPanel(controller: c, smithy: true)],
                 },
               ],
             );

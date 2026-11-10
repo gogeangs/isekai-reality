@@ -67,6 +67,46 @@ class _BattleViewState extends State<BattleView> {
     _checkEnd();
   }
 
+  /// 전투 중 물약 (11-11 #57): 전투 한 번에 3개까지
+  Future<void> _potionSheet() => showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.night,
+        builder: (sheet) => StatefulBuilder(
+          builder: (sheet, setSheet) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('물약 (${_b.potionsDrunk} / ${AlchemyRules.perBattle})',
+                      style: AppText.title(18)),
+                  for (final p in _b.potions.values)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('${p.name} × ${_b.potionLeft(p.key)}',
+                          style: const TextStyle(color: AppColors.text)),
+                      trailing: TextButton(
+                        onPressed: _b.potionLeft(p.key) > 0
+                            ? () {
+                                if (_b.drink(p.key)) {
+                                  setState(() {});
+                                  Navigator.of(sheet).pop();
+                                } else {
+                                  setSheet(() {});
+                                }
+                              }
+                            : null,
+                        child: const Text('마시기'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
   void _skill() {
     setState(() {
       if (_b.useSkill()) _beat++;
@@ -129,6 +169,15 @@ class _BattleViewState extends State<BattleView> {
                 note: _b.lastTaken > 0 ? '-${comma(_b.lastTaken)}' : null,
               ),
             ),
+            if (_b.potions.isNotEmpty && !_b.isOver)
+              IconButton(
+                key: const Key('battlePotion'),
+                tooltip: '물약 마시기',
+                visualDensity: VisualDensity.compact,
+                onPressed: _potionSheet,
+                icon: const Icon(Icons.local_drink_rounded,
+                    color: AppColors.goldBright),
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: _HpColumn(

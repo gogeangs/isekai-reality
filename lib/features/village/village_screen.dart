@@ -8,6 +8,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../town/inn_screen.dart';
 import '../town/shop_screen.dart';
 import '../smithy/smithy_screen.dart';
+import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
 
 /// 마을 시설
@@ -41,8 +42,7 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
     FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
-    FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_lock', '나중에 열려요',
-        open: false),
+    FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy', '물약 끓이기·레시피·재료 가공'),
     FacilityInfo(Facility.market, '거래소', 'icon_lock', '나중에 열려요',
         open: false),
   ];
@@ -57,6 +57,7 @@ class VillageScreen extends StatelessWidget {
       Facility.inn => InnScreen(controller: controller),
       Facility.shop => ShopScreen(controller: controller),
       Facility.smithy => SmithyScreen(controller: controller),
+      Facility.alchemy => AlchemyScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -217,6 +218,7 @@ class _BuildingIcon extends StatelessWidget {
           switch (icon) {
             'icon_smithy' => Icons.hardware_rounded,
             'icon_board' => Icons.assignment_rounded,
+            'icon_alchemy' => Icons.science_rounded,
             _ => Icons.lock_outline_rounded,
           },
           size: size * 0.6,

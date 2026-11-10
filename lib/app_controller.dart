@@ -1886,6 +1886,33 @@ class AppController extends ChangeNotifier {
 
   bool get plentyActive => activeBuffs.any((b) => b.key == 'plenty');
 
+  // ───────────── 재료 가공 (11-11 #59)
+
+  bool canProcess(ProcessRecipe r) =>
+      player.gold >= r.gold && ProcessRules.use(r, player.materials) != null;
+
+  /// 하위 재료를 상위 재료로 바꾼다 (바로 끝남)
+  Future<bool> process(ProcessRecipe r) async {
+    final use = ProcessRules.use(r, player.materials);
+    if (use == null || player.gold < r.gold) return false;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {
+        for (final e in use.entries) e.key.name: e.value,
+        if (r.gold > 0) Wallet.gold: r.gold,
+      }),
+      gains: DailyRecord.addCounts(today.gains, {r.output.name: 1}),
+    ));
+    return true;
+  }
+
+  /// 공방 물약을 버린다
+  Future<bool> discardPotion(String key, int n) async {
+    if (_alc.count(key) < n || n <= 0) return false;
+    await _saveAlc(_alc.add(key, -n));
+    return true;
+  }
+
   /// 자동 마시기 설정
   Future<void> setAutoUse({int? hpPercent, bool? cure}) async =>
       _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure));

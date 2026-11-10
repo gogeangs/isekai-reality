@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../smithy/equipment_view.dart';
 import '../../core/models/pet_state.dart';
+import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
 import 'bag_sheet.dart';
@@ -52,6 +53,16 @@ class ItemEntry extends BagEntry {
       };
 }
 
+/// 공방 물약 ('healBig', 'healBig*', '?:…' 수상한 물약)
+class PotionEntry extends BagEntry {
+  const PotionEntry(this.key, this.count);
+  final String key;
+  final int count;
+  @override
+  BagFilter get kind =>
+      key.startsWith('?:') ? BagFilter.other : BagFilter.consumable;
+}
+
 /// 펫 알 (정령이 떠나기 전에는 「신비한 알」)
 class EggEntry extends BagEntry {
   const EggEntry(this.egg);
@@ -77,6 +88,8 @@ List<BagEntry> bagEntries(AppController c) {
     for (final e in c.armory.items)
       if (!c.armory.isWorn(e)) EquipEntry(e),
     for (final e in c.pets.eggs) EggEntry(e),
+    for (final e in c.alchemy.potions.entries)
+      for (final n in split(e.value)) PotionEntry(e.key, n),
     for (final i in TownRules.bagItems)
       for (final n in split(c.bagCount(i))) ItemEntry(i, n),
     for (final m in MaterialId.values)
@@ -182,6 +195,13 @@ class _BagTabState extends State<BagTab> {
                       onPressed: _expand,
                     ),
                   ],
+                  const SizedBox(height: 6),
+                  FrameButton(
+                    label: '전투에서 자동으로 마시기',
+                    icon: Icons.auto_mode_rounded,
+                    height: 38,
+                    onPressed: () => showAutoUseSheet(context, c),
+                  ),
                   if (used > cap)
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
@@ -267,7 +287,10 @@ class BagSlot extends StatelessWidget {
       _ => AppColors.gold.withValues(alpha: 0.5),
     };
     final count = switch (e) {
-      MaterialEntry(:final count) || ItemEntry(:final count) => count,
+      MaterialEntry(:final count) ||
+      ItemEntry(:final count) ||
+      PotionEntry(:final count) =>
+        count,
       _ => 0,
     };
     return GestureDetector(
@@ -292,6 +315,10 @@ class BagSlot extends StatelessWidget {
                         const GameIcon('bag', size: 36)),
                 EquipEntry(:final item) =>
                   EquipIcon(base: item.base, grade: item.grade, size: 40),
+                PotionEntry(:final key) => PotionIcon(
+                    potion: AlchemyRules.byName(key.replaceAll('*', '')),
+                    suspicious: key.startsWith('?:'),
+                    size: 40),
                 EggEntry(:final egg) => EggArt(
                     size: 40,
                     glowing: controller != null && controller!.eggReady(egg)),
@@ -339,6 +366,7 @@ String bagEntryName(BagEntry e, [AppController? c]) => switch (e) {
         c == null ? TownRules.info(item).name : c.itemName(item),
       EquipEntry(:final item) => item.name,
       EggEntry() => c != null && c.farewellDone ? '펫 알' : '신비한 알',
+      PotionEntry(:final key) => c == null ? key : c.potionName(key),
     };
 
 /// 칸을 누르면: 설명, 쓰기·입기, 버리기
@@ -390,6 +418,8 @@ class _EntrySheet extends StatelessWidget {
         await c.discardEquip(item.uid);
       case EggEntry():
         break;
+      case PotionEntry(:final key):
+        await c.discardPotion(key, n);
     }
     if (context.mounted) Navigator.of(context).pop();
   }
@@ -399,7 +429,10 @@ class _EntrySheet extends StatelessWidget {
     final c = controller;
     final e = entry;
     final count = switch (e) {
-      MaterialEntry(:final count) || ItemEntry(:final count) => count,
+      MaterialEntry(:final count) ||
+      ItemEntry(:final count) ||
+      PotionEntry(:final count) =>
+        count,
       EquipEntry() || EggEntry() => 1,
     };
     final (String desc, String sell) = switch (e) {
@@ -408,6 +441,7 @@ class _EntrySheet extends StatelessWidget {
           '잡화상에서 1개 금화 ${BagRules.materialPrice(id)}'
         ),
       EggEntry() => ('', ''),
+      PotionEntry(:final key) => (c.potionDescription(key), '잡화상에서는 팔지 않아요'),
       ItemEntry(:final item) => (
           c.itemDescription(item),
           '잡화상에서 1개 금화 ${BagRules.itemPrice(item)}'
@@ -444,6 +478,21 @@ class _EntrySheet extends StatelessWidget {
         );
       case MaterialEntry() || EggEntry():
         action = null;
+      case PotionEntry(:final key):
+        action = GoldButton(
+          label: '마시기',
+          height: 44,
+          onPressed: () async {
+            final why = await c.drinkPotion(key);
+            if (!context.mounted) return;
+            if (why != null) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(why)));
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
+        );
     }
     return SafeArea(
       child: Padding(
@@ -623,3 +672,48 @@ class EggSheet extends StatelessWidget {
     );
   }
 }
+
+/// 전투 자동 마시기 설정 (11-11 #57): 회복·상태이상. 원정에도 같이 쓴다.
+Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.night,
+      builder: (sheet) => ListenableBuilder(
+        listenable: c,
+        builder: (sheet, _) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('전투에서 자동으로 마시기', style: AppText.title(19)),
+                const SizedBox(height: 4),
+                const KText('던전·필드·펫 원정 모두에 써요. 전투 한 번에 3개까지.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 10),
+                const Text('HP가 이만큼 아래면 회복 물약',
+                    style: TextStyle(color: AppColors.text)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, children: [
+                  for (final v in const [0, 30, 50])
+                    ChoiceChip(
+                      label: Text(v == 0 ? '안 마심' : '$v%'),
+                      selected: c.alchemy.autoHp == v,
+                      onSelected: (_) => c.setAutoUse(hpPercent: v),
+                    ),
+                ]),
+                const SizedBox(height: 6),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: c.alchemy.autoCure,
+                  onChanged: (v) => c.setAutoUse(cure: v),
+                  title: const Text('중독·화상·눈부심이면 해독제·연고·맑은 눈 물약',
+                      style: TextStyle(color: AppColors.text, fontSize: 14)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );

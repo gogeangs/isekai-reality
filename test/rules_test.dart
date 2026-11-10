@@ -69,7 +69,7 @@ void main() {
         quests: 5,
       ));
       expect(b.dungeon, 200); // 4회
-      expect(b.fieldMonster, 75); // 5마리
+      expect(b.fieldMonster, 105); // 5마리 + 4마리 절반 (11-11 #69)
       expect(b.exploration, 90); // 3곳
       expect(b.quest, 60); // 3개
     });

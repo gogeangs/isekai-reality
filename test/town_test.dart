@@ -480,7 +480,7 @@ void main() {
       expect(await c.sendSpirit(spawn), ExpeditionCheck.ok);
       expect(notifier.scheduled[NotifyId.expedition]?.$1,
           c.expedition!.returnAt);
-      expect(c.mp, RuleConstants.mpMax - plan.mpCost);
+      expect(c.mp, c.mpMax - plan.mpCost);
       expect(c.todaySpawns.any((s) => s.id == spawn.id), isFalse);
       expect(await c.sendSpirit(c.todaySpawns.first), ExpeditionCheck.busy);
       // 원정 중에는 정령의 일격을 쓸 수 없다
@@ -554,10 +554,15 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-        of: find.ancestor(
-            of: find.text('정령 물약'), matching: find.byType(OrnatePanel)),
-        matching: find.text('50')));
+    final buy = find
+        .descendant(
+            of: find.ancestor(
+                of: find.text('정령 물약'), matching: find.byType(OrnatePanel)),
+            matching: find.text('50'))
+        .first;
+    await tester.ensureVisible(buy);
+    await tester.pumpAndSettle();
+    await tester.tap(buy);
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
     expect(find.text('오늘 샀어요'), findsOneWidget);

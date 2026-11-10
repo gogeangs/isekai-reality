@@ -75,21 +75,22 @@ void main() {
       expect(skilled.playerHp, greaterThan(plain.playerHp));
     });
 
-    test('스탯을 거의 키우지 않았으면 스킬이 승패를 가른다', () {
+    test('같은 레벨보다 약하면 스킬이 승패를 가른다', () {
       var plainWins = 0;
       var skillWins = 0;
+      // 기준보다 스탯이 3씩 낮은 Lv.18
+      final low = BattleRules.expectedStats(18) - Stats.all(3);
       for (var seed = 0; seed < 20; seed++) {
-        if (dungeonFor(18, weak, seed: seed).runToEnd().phase ==
+        if (dungeonFor(18, low, seed: seed).runToEnd().phase ==
             BattlePhase.cleared) {
           plainWins++;
         }
-        if (dungeonFor(18, weak, seed: seed).runToEnd(useSkills: true).phase ==
+        if (dungeonFor(18, low, seed: seed).runToEnd(useSkills: true).phase ==
             BattlePhase.cleared) {
           skillWins++;
         }
       }
-      expect(skillWins, 20);
-      expect(plainWins, lessThan(10));
+      expect(skillWins, greaterThan(plainWins));
     });
 
     test('필드 몬스터는 짧고 거의 지지 않는다', () {

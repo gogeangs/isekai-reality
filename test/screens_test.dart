@@ -187,7 +187,7 @@ void main() {
       expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
       expect(findK('몬스터 도감 0 / 13'), findsNothing);
       // 탭을 누르면 몬스터 그룹만 보인다
-      await tester.tap(find.text('몬스터 0/5'));
+      await tester.tap(find.text('몬스터 0/13'));
       await tester.pump();
       expect(findK('몬스터 도감 0 / 13'), findsOneWidget);
     });

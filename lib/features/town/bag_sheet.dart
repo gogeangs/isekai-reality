@@ -5,11 +5,14 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
+import '../lens/lens_screen.dart' show openLens;
 
 /// 가방 안 물건 그림
 String bagIconAsset(AppController c, ShopItem item) =>
     item == ShopItem.bulssiPotion
-        ? spiritPotionAsset(c.profile.spiritKind)
+        ? (c.farewellDone
+            ? 'assets/images/item_pet_snack.png'
+            : spiritPotionAsset(c.profile.spiritKind))
         : 'assets/images/${TownRules.info(item).icon}.png';
 
 String useReason(UseCheck c) => switch (c) {
@@ -20,9 +23,11 @@ String useReason(UseCheck c) => switch (c) {
     };
 
 /// 가방 버튼 글자: 물약은 마시기, 나침반은 쓰기, 향은 피우기
-String useLabel(ShopItem item) => switch (item) {
+String useLabel(ShopItem item, {bool petSnack = false}) =>
+    petSnack && item == ShopItem.bulssiPotion ? '주기' : switch (item) {
       ShopItem.expeditionCompass => '쓰기',
       ShopItem.purifyIncense => '피우기',
+      ShopItem.raceLens => '감정하기',
       _ => '마시기',
     };
 
@@ -105,7 +110,6 @@ class _BagRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final info = TownRules.info(item);
     final check = c.canUse(item);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -119,7 +123,7 @@ class _BagRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${info.name} × ${c.bagCount(item)}',
+              Text('${c.itemName(item)} × ${c.bagCount(item)}',
                   style: AppText.title(16, color: AppColors.text)),
               if (check != UseCheck.ok)
                 Text(useReason(check),
@@ -131,11 +135,16 @@ class _BagRow extends StatelessWidget {
         SizedBox(
           width: 118,
           child: GoldButton(
-            label: useLabel(item),
+            label: useLabel(item, petSnack: c.farewellDone),
             height: 40,
             fontSize: 15,
             onPressed: check == UseCheck.ok
                 ? () async {
+                    // 마법 돋보기는 감정 화면에서 쓴다 (감정을 마칠 때 하나 줄어든다)
+                    if (item == ShopItem.raceLens) {
+                      await openLens(Navigator.of(context), c);
+                      return;
+                    }
                     await c.useItem(item);
                   }
                 : null,

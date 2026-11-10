@@ -147,9 +147,13 @@ abstract class RecordStore {
 
 /// 테스트·예시용 메모리 저장소
 class InMemoryRecordStore implements RecordStore {
-  InMemoryRecordStore({PlayerProfile? profile, List<DailyRecord>? history})
+  InMemoryRecordStore(
+      {PlayerProfile? profile,
+      List<DailyRecord>? history,
+      Map<String, Map<String, dynamic>>? json})
       : _profile = profile,
-        _records = {for (final r in history ?? <DailyRecord>[]) r.dayKey: r};
+        _records = {for (final r in history ?? <DailyRecord>[]) r.dayKey: r},
+        _json = {...?json};
 
   PlayerProfile? _profile;
   final Map<String, DailyRecord> _records;
@@ -186,7 +190,7 @@ class InMemoryRecordStore implements RecordStore {
   @override
   Future<void> saveVitals(Vitals vitals) async => _vitals = vitals;
 
-  final Map<String, Map<String, dynamic>> _json = {};
+  final Map<String, Map<String, dynamic>> _json;
 
   @override
   Future<Map<String, dynamic>?> loadJson(String key) async => _json[key];

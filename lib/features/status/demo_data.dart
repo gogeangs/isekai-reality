@@ -1,9 +1,30 @@
 import '../../core/models/daily_record.dart';
+import '../../core/models/pet_state.dart';
 import '../../core/rules/rules.dart';
 
 /// 건강 앱 연동 전까지 화면을 확인하기 위한 2주치 예시 기록.
 /// 마지막 날이 '오늘'이며, 목업과 같은 6,400보다.
 class DemoData {
+  /// 예시 펫: 정령 「불씨」와 3일 전 헤어지고 부엉이·까마귀와 함께
+  static PetState pets({DateTime? today}) {
+    final t = today ?? DateTime.now();
+    final born = t.subtract(const Duration(days: 3));
+    return PetState(
+      farewellAt: born,
+      firstSpiritName: '불씨',
+      firstSpiritKind: 'fire',
+      firstEggFound: true,
+      pets: [
+        Pet(uid: 'pet1', species: PetSpecies.owl, name: '부엉', exp: 420, bond: 18, bornAt: born),
+        Pet(uid: 'pet2', species: PetSpecies.crow, name: '까망', exp: 60, bond: 4, bornAt: t),
+      ],
+      companion: 'pet1',
+      eggs: const [PetEgg(id: 'egg3', source: 'field')],
+      skippedLetters: const ['lv20', 'lv30', 'day100', 'day365'],
+      nextId: 4,
+    );
+  }
+
   DemoData._();
 
   static List<DailyRecord> twoWeeks({DateTime? today}) {

@@ -30,13 +30,18 @@ class BagRules {
 
   static int stacks(int n) => n <= 0 ? 0 : (n + stackMax - 1) ~/ stackMax;
 
-  /// 쓰는 칸 수: 재료·소비 아이템은 99개마다 한 칸, 입지 않은 장비는 하나씩
+  /// 쓰는 칸 수: 재료·소비 아이템은 99개마다 한 칸, 입지 않은 장비·펫 알은 하나씩
   static int usedSlots({
     required Map<MaterialId, int> materials,
     required Map<ShopItem, int> items,
     required Armory armory,
+    int eggs = 0,
+    List<int> extraStacks = const [],
   }) {
-    var n = 0;
+    var n = eggs;
+    for (final v in extraStacks) {
+      n += stacks(v);
+    }
     for (final v in materials.values) {
       n += stacks(v);
     }
@@ -51,7 +56,8 @@ class BagRules {
 
   // ───────────────────────── 판매 가격 (잡화상에서 팔 때, 가방이 가득 차 금화로 바뀔 때)
 
-  static int materialPrice(MaterialId m) => Materials.info(m).rare ? 25 : 5;
+  static int materialPrice(MaterialId m) =>
+      Materials.info(m).price ?? (Materials.info(m).rare ? 25 : 5);
 
   static int itemPrice(ShopItem i) => TownRules.info(i).price ~/ 2;
 

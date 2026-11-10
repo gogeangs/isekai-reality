@@ -24,8 +24,8 @@ class MapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final gauge = controller.player.gauge;
     final spawn = controller.nearbySpawn;
-    final ex = controller.expedition;
-    final away = ex != null && !ex.finished;
+    final actives = controller.activeExpeditions;
+    final away = actives.isNotEmpty;
     final top = MediaQuery.paddingOf(context).top;
     // 아래 카드가 덮는 높이 (원정 카드 + 몬스터·발견 카드)
     final cardBelow = controller.lastDiscovery != null || spawn != null;
@@ -67,7 +67,13 @@ class MapScreen extends StatelessWidget {
             left: 16,
             right: 16,
             bottom: controller.lastDiscovery != null || spawn != null ? 150 : 24,
-            child: ExpeditionCard(controller: controller, ex: ex),
+            // 여러 마리가 나가 있으면 가장 먼저 돌아오는 원정 + 나머지 수
+            child: ExpeditionCard(
+                controller: controller,
+                ex: (actives.toList()
+                      ..sort((a, b) => a.returnAt.compareTo(b.returnAt)))
+                    .first,
+                others: actives.length - 1),
           ),
         if (controller.lastDiscovery != null)
           Positioned(
@@ -357,12 +363,13 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         ? null
         : '${fix.point.lat.toStringAsFixed(5)},${fix.point.lng.toStringAsFixed(5)}';
     final spawns = c.todaySpawns;
-    final ex = c.expedition;
-    final away = ex != null && !ex.finished;
-    final spiritPos = away ? ex.positionAt(c.now) : null;
-    final spiritKey = spiritPos == null
+    final actives = c.activeExpeditions;
+    final positions = [for (final e in actives) e.positionAt(c.now)];
+    final spiritKey = positions.isEmpty
         ? null
-        : '${spiritPos.$1.toStringAsFixed(4)},${spiritPos.$2.toStringAsFixed(4)}';
+        : positions
+            .map((p) => '${p.$1.toStringAsFixed(4)},${p.$2.toStringAsFixed(4)}')
+            .join('|');
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
         _drawnSpirit == spiritKey) {
@@ -420,23 +427,28 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           )..setOnTapListener((_) {
               if (mounted) showSpawnSheet(context, c, spawn);
             }),
-      // 정령이 따라가는 길 (11-11 #42)
-      if (away && ex.path.length >= 2)
-        NPathOverlay(
-          id: 'route',
-          coords: [for (final p in ex.path) NLatLng(p.$1, p.$2)],
-          width: 5,
-          color: const Color(0xCCF5DC94),
-          outlineWidth: 1.5,
-          outlineColor: const Color(0xFF0B0D26),
-        ),
-      if (spiritPos != null)
+      // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
+      for (var i = 0; i < actives.length; i++)
+        if (actives[i].path.length >= 2)
+          NPathOverlay(
+            id: 'route_$i',
+            coords: [for (final p in actives[i].path) NLatLng(p.$1, p.$2)],
+            width: 5,
+            color: const Color(0xCCF5DC94),
+            outlineWidth: 1.5,
+            outlineColor: const Color(0xFF0B0D26),
+          ),
+      for (var i = 0; i < actives.length; i++)
         NMarker(
-          id: 'spirit',
-          position: NLatLng(spiritPos.$1, spiritPos.$2),
-          icon: NOverlayImage.fromAssetImage(spiritAsset(c.profile.spiritKind)),
+          id: 'spirit_$i',
+          position: NLatLng(positions[i].$1, positions[i].$2),
+          icon: NOverlayImage.fromAssetImage(actives[i].petUid == null
+              ? spiritAsset(c.profile.spiritKind)
+              // 펫 그림이 들어오면 pet_*.png 로 바꾼다 (지도는 없는 그림을 못 그린다)
+              : 'assets/images/icon_expedition.png'),
           size: const Size(42, 46),
-          caption: NOverlayCaption(text: c.profile.spiritName),
+          caption:
+              NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
         ),
       if (fix != null)
         NMarker(
@@ -591,9 +603,14 @@ class _ExpeditionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final ex = c.expedition;
-    if (ex != null && !ex.finished) {
-      return ExpeditionCard(controller: c, ex: ex);
+    final actives = c.activeExpeditions;
+    if (actives.isNotEmpty && (!c.farewellDone || c.idlePets.isEmpty)) {
+      return Column(children: [
+        for (final ex in actives) ...[
+          ExpeditionCard(controller: c, ex: ex),
+          const SizedBox(height: 6),
+        ],
+      ]);
     }
     // 가까운 몬스터부터 (거리는 MP로만 막는다, 11-10)
     final from = c.lastFix?.point;
@@ -608,7 +625,7 @@ class _ExpeditionList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            KText('정령 원정 · MP ${c.mp} / ${c.mpMax}',
+            KText('${c.farewellDone ? '펫' : '정령'} 원정 · MP ${c.mp} / ${c.mpMax}',
                 style: AppText.title(17)),
             const SizedBox(height: 4),
             Text(

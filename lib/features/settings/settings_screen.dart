@@ -28,6 +28,23 @@ class SettingsScreen extends StatelessWidget {
         children: [
           OrnateTopBar(title: '설정', onBack: onBack),
           const SizedBox(height: 8),
+          _Section(
+            title: '알림',
+            children: [
+              ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: controller.gather.notify,
+                  onChanged: controller.setWalkNotify,
+                  title: const Text('걸을 때 알림 (길가의 발견·떠돌이 상인)',
+                      style: TextStyle(color: AppColors.text, fontSize: 14)),
+                  subtitle: const Text('밤 10시~아침 7시에는 보내지 않아요',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
           // 11-10 #24: 이름·정령 이름 바꾸기는 프로필로 옮겼다
           // 11-10 D1: 긴 설명 대신 한 줄 + 목록 항목
           _Section(
@@ -45,6 +62,7 @@ class SettingsScreen extends StatelessWidget {
             title: '내 데이터',
             children: [
               const _Note('걸음과 위치 기록은 휴대폰에만 저장돼요'),
+              const _Note('마법 돋보기 사진은 휴대폰 안에서만 감정하고, 게임에 남기지 않아요'),
               _Row(
                 label: '자세히 보기',
                 value: '',
@@ -266,7 +284,9 @@ class DataInfoScreen extends StatelessWidget {
   static const _paras = [
     '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요.',
     '위치는 앱을 보고 있을 때만 쓰고, 방문 기록과 밝힌 지도는 휴대폰에만 저장해요.',
-    '건강 앱·위치·알림 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
+    '마법 돋보기는 카메라 화면에서 얼굴의 위치만 휴대폰 안에서 찾아 장식을 붙여요. 얼굴 사진이나 얼굴 정보를 밖으로 보내지 않고, 게임 안에 저장하지도 않아요.',
+    '감정한 사진은 「앨범에 저장」이나 「공유하기」를 눌렀을 때만 휴대폰 앨범이나 고른 앱으로 가요. 게임에는 어떤 종족을 감정했는지만 남아요.',
+    '건강 앱·위치·알림·카메라·사진 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
     '설정의 「모든 기록 지우고 처음부터」를 누르면 이 앱에 저장된 기록이 모두 지워져요. 건강 앱의 원래 기록은 그대로예요.',
   ];
 

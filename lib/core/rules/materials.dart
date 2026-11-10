@@ -38,10 +38,31 @@ enum MaterialId {
   darkJelly,
   shadowCore,
   herb,
+  // 11-11 #59 던전 재료 · 가공 재료
+  labyrinthStone,
+  runeStone,
+  ironIngot,
+  hardWood,
+  tannedLeather,
+  herbExtract,
+  essence,
+  glowFireCore,
+  glowWaterCore,
+  glowWindCore,
+  glowEarthCore,
+  glowLightCore,
+  glowShadowCore,
 }
 
 class MaterialInfo {
-  const MaterialInfo(this.id, this.name, this.description, {this.rare = false});
+  const MaterialInfo(this.id, this.name, this.description,
+      {this.rare = false, this.price, this.processed = false});
+
+  /// 판매 값을 따로 정한 재료 (가공 재료)
+  final int? price;
+
+  /// 가공해서 만든 재료 (대장간·공방)
+  final bool processed;
 
   final MaterialId id;
   final String name;
@@ -99,7 +120,35 @@ class Materials {
     MaterialInfo(MaterialId.lightCore, '빛의 코어', '빛 슬라임의 코어.', rare: true),
     MaterialInfo(MaterialId.darkJelly, '어둠 젤리', '그림자 같은 젤리. 모아 두는 재료예요.'),
     MaterialInfo(MaterialId.shadowCore, '그림자 코어', '어둠 슬라임의 코어.', rare: true),
-    MaterialInfo(MaterialId.herb, '약초', '회복 물약 재료. 잡화상에서 팔아요.'),
+    MaterialInfo(MaterialId.herb, '약초', '물약의 기본 재료. 잡화상에서 팔아요.'),
+    MaterialInfo(MaterialId.labyrinthStone, '미궁 석재',
+        '던전에서만 나오는 단단한 돌. 가마솥과 상급 장비에 써요.'),
+    MaterialInfo(MaterialId.runeStone, '빛바랜 룬석',
+        '던전 깊은 곳의 룬이 새겨진 돌. 상급 장비·물약 재료예요.',
+        rare: true),
+    MaterialInfo(MaterialId.ironIngot, '철 주괴', '철 조각 3개를 녹여 만든 주괴. 다음 장비 재료예요.',
+        price: 20, processed: true),
+    MaterialInfo(MaterialId.hardWood, '단단한 목재', '나뭇가지 4개를 다듬은 목재. 다음 장비 재료예요.',
+        price: 20, processed: true),
+    MaterialInfo(MaterialId.tannedLeather, '무두질한 가죽',
+        '가죽을 무두질해 부드럽게 만든 것. 다음 장비 재료예요.',
+        price: 20, processed: true),
+    MaterialInfo(MaterialId.herbExtract, '약초 진액', '약초 5개를 달인 진액. 상급 물약 재료예요.',
+        price: 30, processed: true),
+    MaterialInfo(MaterialId.essence, '정제 에센스', '젤리 5개에서 뽑은 맑은 에센스. 상급 물약 재료예요.',
+        price: 30, processed: true),
+    MaterialInfo(MaterialId.glowFireCore, '빛나는 불꽃 코어', '불꽃 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowWaterCore, '빛나는 물방울 코어', '물방울 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowWindCore, '빛나는 바람 코어', '바람 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowEarthCore, '빛나는 대지 코어', '대지 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowLightCore, '빛나는 빛의 코어', '빛의 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
+    MaterialInfo(MaterialId.glowShadowCore, '빛나는 그림자 코어', '그림자 코어 3개를 합친 것. 속성 장비 재료예요.',
+        rare: true, price: 80, processed: true),
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);

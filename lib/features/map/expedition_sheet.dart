@@ -10,14 +10,15 @@ import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
-import '../bulssi/spirit_art.dart';
+import '../bulssi/bulssi_mood.dart';
+import '../pets/pet_art.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.ok => '',
       ExpeditionCheck.needsLocation => '위치를 켜야 보낼 수 있어요',
       ExpeditionCheck.notEnoughMp => 'MP가 모자라요',
-      ExpeditionCheck.busy => '정령이 이미 원정 중이에요',
+      ExpeditionCheck.busy => '이미 원정 중이에요',
     };
 
 String _minutes(Duration d) {
@@ -43,11 +44,32 @@ Future<void> showSpawnSheet(
   );
 }
 
-class SpawnSheet extends StatelessWidget {
+class SpawnSheet extends StatefulWidget {
   const SpawnSheet({super.key, required this.controller, required this.spawn});
 
   final AppController controller;
   final FieldSpawn spawn;
+
+  @override
+  State<SpawnSheet> createState() => _SpawnSheetState();
+}
+
+class _SpawnSheetState extends State<SpawnSheet> {
+  /// 보낼 펫 (정령이 떠난 뒤). null 이면 동행 펫, 동행 펫이 나가 있으면 쉬는 펫
+  String? _petUid;
+
+  AppController get controller => widget.controller;
+  FieldSpawn get spawn => widget.spawn;
+
+  String? get _chosen {
+    final c = controller;
+    if (!c.farewellDone) return null;
+    if (_petUid != null && !c.isAway(_petUid)) return _petUid;
+    final comp = c.companionPet;
+    if (comp != null && !c.isAway(comp.uid)) return comp.uid;
+    final idle = c.idlePets;
+    return idle.isEmpty ? null : idle.first.uid;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +82,11 @@ class SpawnSheet extends StatelessWidget {
   Widget _build(BuildContext context) {
     final c = controller;
     final info = spawn.info;
-    final plan = c.planExpedition(spawn);
+    final chosen = _chosen;
+    final plan = c.planExpedition(spawn, petUid: chosen);
     final near = c.nearbySpawn?.id == spawn.id;
-    final spiritName = c.profile.spiritName;
+    final chosenPet = chosen == null ? null : c.pets.byUid(chosen);
+    final spiritName = chosenPet?.name ?? c.companionName;
 
     return SafeArea(
       child: Padding(
@@ -124,13 +148,48 @@ class SpawnSheet extends StatelessWidget {
                     Row(children: [
                       const GameIcon('expedition', size: 40),
                       const SizedBox(width: 6),
-                      SpiritArt(kind: c.profile.spiritKind, size: 36),
+                      if (chosenPet != null)
+                        PetArt.of(chosenPet, size: 36)
+                      else
+                        const CompanionArt(size: 36),
                       const SizedBox(width: 6),
                       Expanded(
                         child: KText('$spiritName 원정 보내기',
                             style: AppText.title(17)),
                       ),
                     ]),
+                    if (c.farewellDone && c.pets.pets.length > 1) ...[
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 6, runSpacing: 4, children: [
+                        for (final p in c.pets.pets)
+                          ChoiceChip(
+                            label: Text(c.isAway(p.uid)
+                                ? '${p.name} (원정 중)'
+                                : p.name),
+                            selected: p.uid == chosen,
+                            onSelected: c.isAway(p.uid)
+                                ? null
+                                : (_) => setState(() => _petUid = p.uid),
+                            selectedColor: AppColors.gold,
+                            backgroundColor: const Color(0xFF1E2250),
+                            labelStyle: TextStyle(
+                                color: p.uid == chosen
+                                    ? AppColors.night
+                                    : AppColors.text,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700),
+                            showCheckmark: false,
+                          ),
+                      ]),
+                      if (chosenPet != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: KText(
+                              '특기: ${chosenPet.adult ? chosenPet.info.specialAdult : chosenPet.info.special}',
+                              style: const TextStyle(
+                                  color: AppColors.goldBright, fontSize: 12)),
+                        ),
+                    ],
                     const SizedBox(height: 8),
                     if (plan.check != ExpeditionCheck.needsLocation) ...[
                       _InfoRow(
@@ -150,8 +209,8 @@ class SpawnSheet extends StatelessWidget {
                               '${c.compassReady ? ' (나침반으로 절반)' : ''}'),
                     ],
                     const SizedBox(height: 6),
-                    const KText(
-                      '정령은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
+                    KText(
+                      '${c.farewellDone ? '펫' : '정령'}은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
                       '지면 MP만 쓰고 무사히 돌아와요.',
                       style: TextStyle(
                           color: AppColors.textMuted, fontSize: 12, height: 1.35),
@@ -170,16 +229,17 @@ class SpawnSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             GoldButton(
-              label: '정령 보내기',
+              label: '${c.farewellDone ? spiritName : '정령'} 보내기',
               onPressed: plan.check == ExpeditionCheck.ok
                   ? () async {
-                      final result = await c.sendSpirit(spawn);
+                      final result =
+                          await c.sendSpirit(spawn, petUid: chosen);
                       if (!context.mounted) return;
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(result == ExpeditionCheck.ok
                             ? '${josa(spiritName, '이/가')} 원정을 떠났어요. '
-                                '${_minutes(c.expedition!.returnAt.difference(c.now))} 뒤에 돌아와요!'
+                                '${_minutes(plan.oneWay * 2)} 뒤에 돌아와요!'
                             : expeditionReason(result)),
                       ));
                     }
@@ -218,10 +278,14 @@ class _InfoRow extends StatelessWidget {
 
 /// 원정 중인 정령 안내 (지도 아래)
 class ExpeditionCard extends StatelessWidget {
-  const ExpeditionCard({super.key, required this.controller, required this.ex});
+  const ExpeditionCard(
+      {super.key, required this.controller, required this.ex, this.others = 0});
 
   final AppController controller;
   final Expedition ex;
+
+  /// 함께 나가 있는 다른 원정 수
+  final int others;
 
   @override
   Widget build(BuildContext context) {
@@ -234,14 +298,19 @@ class ExpeditionCard extends StatelessWidget {
     final name = id == null ? '몬스터' : Monsters.info(id).name;
     return OrnatePanel(
       child: Row(children: [
-        SpiritArt(kind: controller.profile.spiritKind, size: 48),
+        if (ex.petUid != null && controller.pets.byUid(ex.petUid!) != null)
+          PetArt.of(controller.pets.byUid(ex.petUid!)!, size: 48)
+        else
+          const CompanionArt(size: 48),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                going ? '$name에게 가는 중' : '싸우고 돌아오는 중',
+                '${ex.petName != null ? '${ex.petName} · ' : ''}'
+                '${going ? '$name에게 가는 중' : '싸우고 돌아오는 중'}'
+                '${others > 0 ? ' (외 $others마리)' : ''}',
                 style: AppText.title(16),
               ),
               const SizedBox(height: 4),

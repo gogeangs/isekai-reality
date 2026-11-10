@@ -1,5 +1,6 @@
 import '../models/daily_record.dart';
 import 'board_rules.dart';
+import 'lens_rules.dart';
 import 'materials.dart';
 import 'rule_constants.dart';
 
@@ -40,6 +41,10 @@ enum ShopItem {
 
   /// 약초: 회복 물약 재료 (하루 5개, 11-11)
   herb,
+
+  /// 마법 돋보기 「감정」: 카메라로 비춘 사람의 이세계 종족을 감정한다 (11-11 #60, 하루 3개).
+  /// 예전 [magicLens](안개 걷기)와는 다른 물건이다.
+  raceLens,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -240,6 +245,15 @@ class TownRules {
       material: MaterialId.herb,
     ),
     ShopItemInfo(
+      item: ShopItem.raceLens,
+      name: '마법 돋보기',
+      description: '가방에 넣어 두고, 카메라로 비추면 그 사람의 이세계 종족을 감정해요.',
+      price: LensRules.price,
+      limit: ShopLimit.perDay,
+      perLimit: LensRules.perDay,
+      icon: 'icon_lens',
+    ),
+    ShopItemInfo(
       item: ShopItem.magicLens,
       name: '마법 돋보기',
       description: '지금 있는 곳 주변 150m의 안개를 걷어요.',
@@ -389,6 +403,7 @@ class TownRules {
     ShopItem.bulssiPotion,
     ShopItem.expeditionCompass,
     ShopItem.purifyIncense,
+    ShopItem.raceLens,
   };
 
   static int usedOn(DailyRecord r, ShopItem item) =>
@@ -397,11 +412,17 @@ class TownRules {
   /// 버리거나 판 개수를 적는 counters 키 (11-11 #48)
   static String dropKey(ShopItem item) => 'drop:${item.name}';
 
+  /// 선물로 받은 개수를 적는 counters 키 (정령 편지 등)
+  static String giftKey(ShopItem item) => 'gift:${item.name}';
+
   /// 가방에 남은 개수 (산 것 − 쓴 것 − 버리거나 판 것)
   static int bagCount(List<DailyRecord> history, ShopItem item) {
     var n = 0;
     for (final r in history) {
-      n += boughtOn(r, item) - usedOn(r, item) - (r.counters[dropKey(item)] ?? 0);
+      n += boughtOn(r, item) +
+          (r.counters[giftKey(item)] ?? 0) -
+          usedOn(r, item) -
+          (r.counters[dropKey(item)] ?? 0);
     }
     return n < 0 ? 0 : n;
   }

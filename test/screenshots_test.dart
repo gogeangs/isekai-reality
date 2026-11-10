@@ -14,14 +14,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/lens/demo_filter_engine.dart';
+import 'package:isekai_reality/features/lens/lens_output.dart';
+import 'package:isekai_reality/features/lens/lens_screen.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/map/expedition_result.dart';
+import 'package:isekai_reality/features/pets/farewell_screen.dart';
+import 'package:isekai_reality/features/pets/pet_screen.dart';
+import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/features/town/bag_tab.dart';
 import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/features/town/shop_screen.dart';
@@ -147,11 +154,11 @@ void main() {
     // 연출 중간 모습: 타격 순간, 불씨의 일격
     await tester.pump(const Duration(milliseconds: 250));
     await _shot(tester, '05b_던전_타격');
-    if (find.text('정령의 일격!').evaluate().isNotEmpty) {
+    if (find.text('약점 간파!').evaluate().isNotEmpty) {
       await tester.pump(const Duration(milliseconds: 550));
       await _shot(tester, '05a_던전_대기');
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('정령의 일격!').last);
+      await tester.tap(find.byKey(const Key('skillButton')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
       await _shot(tester, '05c_던전_일격');
@@ -168,13 +175,18 @@ void main() {
         await tester.pump(const Duration(milliseconds: 900));
         await _shot(tester, '06_던전_보스');
       }
-      if (find.text('정령의 일격!').evaluate().isNotEmpty) {
-        await tester.tap(find.text('정령의 일격!'));
+      if (find.text('약점 간파!').evaluate().isNotEmpty) {
+        await tester.tap(find.byKey(const Key('skillButton')),
+            warnIfMissed: false);
       }
       await tester.pump(const Duration(milliseconds: 900));
     }
     await tester.pumpAndSettle();
     await _shot(tester, '07_던전_결과');
+    // 알을 주웠다는 알림이 버튼을 가리지 않게
+    ScaffoldMessenger.of(tester.element(find.byType(Scaffold).last))
+        .clearSnackBars();
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('돌아가기'), 300,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
@@ -556,5 +568,138 @@ void main() {
       await tester.pumpAndSettle();
       await _shot(tester, e.key);
     }
+  });
+
+  testWidgets('화면 미리보기: 정령 이별과 펫', (tester) async {
+    _phone(tester);
+    final c = AppController(
+      store: InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루'),
+        history: [
+          DailyRecord(
+              date: DateTime(2026, 11, 8),
+              gains: {'exp': LevelRules.totalExpToReach(11)}),
+        ],
+        json: {
+          'pets': const PetState(
+                  eggs: [PetEgg(id: 'egg1', source: 'field')],
+                  firstEggFound: true,
+                  nextId: 2)
+              .toJson(),
+        },
+      ),
+      health: FakeHealthSource(granted: false),
+      clock: () => DateTime(2026, 11, 8, 14),
+    );
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    // 레벨업 연출이 먼저 뜨면 닫는다
+    if (find.text('계속').evaluate().isNotEmpty) {
+      await tester.tap(find.text('계속').first);
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    expect(find.byType(FarewellScreen), findsOneWidget);
+    await _shot(tester, '40_정령_이별1');
+    await tester.tap(find.text('다음'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('다음'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await _shot(tester, '40b_정령_이별_알');
+    await tester.tap(find.text('알을 깨운다'));
+    await tester.pump(const Duration(seconds: 1));
+    await _shot(tester, '41_첫_펫_부화');
+    await tester.enterText(find.byKey(const Key('petName')), '호호');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.text('이름 짓기'));
+    await tester.tap(find.text('이름 짓기'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, '42_정령_작별');
+    await tester.tap(find.textContaining('함께 가기'));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '43_펫과_상태창');
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => PetScreen(controller: c)));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '44_내_펫');
+  });
+
+  testWidgets('화면 미리보기: 펫 도감·알·원정', (tester) async {
+    _phone(tester);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('펫'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '45_도감_펫');
+    await tester.tap(find.text('가방'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BagSlot).first);
+    await tester.pumpAndSettle();
+    await _shot(tester, '46_가방_펫_알');
+  });
+
+  testWidgets('화면 미리보기: 마법 돋보기 감정', (tester) async {
+    _phone(tester);
+    LensScreen.engineFactory = DemoFilterEngine.new;
+    var saved = 0;
+    LensOutput.saver = (_) async {
+      saved++;
+      return null;
+    };
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    await tester.pumpAndSettle();
+    expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => LensScreen(controller: c)));
+    await tester.pumpAndSettle();
+    await _shot(tester, '47_돋보기_조준');
+    await tester.tap(find.byKey(const Key('appraise')));
+    await tester.pump(const Duration(milliseconds: 1100));
+    await _shot(tester, '48_돋보기_감정중');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('감정 결과'), findsOneWidget);
+    await _shot(tester, '49_돋보기_감정결과');
+    expect(c.bagCount(ShopItem.raceLens), 0);
+    expect(c.racesSeen, isNotEmpty);
+    await tester.tap(find.byKey(const Key('lensToFilter')));
+    await tester.pumpAndSettle();
+    await _shot(tester, '50_돋보기_종족필터');
+    // 사진 만들기(그림 그리기·PNG)는 실제 시간이 필요하다
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('lensShutter')));
+      await Future<void>.delayed(const Duration(seconds: 2));
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('lensPhoto')), findsOneWidget);
+    await _shot(tester, '51_돋보기_사진틀');
+    await tester.tap(find.byKey(const Key('lensSave')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(saved, 1);
+    await tester.tap(find.byTooltip('돌아가기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('도감'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('종족'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '52_도감_종족');
   });
 }

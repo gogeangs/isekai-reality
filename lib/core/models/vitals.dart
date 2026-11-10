@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-/// 정령 원정 하나 (한 번에 한 곳만)
+/// 정령·펫 원정 하나 (11-11 #38: 펫마다 하나씩 동시에)
 class Expedition {
   const Expedition({
     required this.spawnId,
@@ -20,7 +20,13 @@ class Expedition {
     this.reward = const {},
     this.newSpecies = false,
     this.route = const [],
+    this.petUid,
+    this.petName,
   });
+
+  /// 원정을 간 펫 (null 이면 정령)
+  final String? petUid;
+  final String? petName;
 
   /// 정령이 따라가는 길 (위도, 경도) 점들. 비어 있으면 직선 (11-11 #42)
   final List<(double, double)> route;
@@ -129,6 +135,8 @@ class Expedition {
         reward: reward,
         newSpecies: newSpecies,
         route: route,
+        petUid: petUid,
+        petName: petName,
       );
 
   Map<String, dynamic> toJson() => {
@@ -149,6 +157,8 @@ class Expedition {
         'reward': reward,
         'newSpecies': newSpecies,
         if (route.isNotEmpty) 'route': [for (final p in route) [p.$1, p.$2]],
+        if (petUid != null) 'petUid': petUid,
+        if (petName != null) 'petName': petName,
       };
 
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
@@ -171,6 +181,8 @@ class Expedition {
             e.key as String: (e.value as num).toInt(),
         },
         newSpecies: j['newSpecies'] as bool? ?? false,
+        petUid: j['petUid'] as String?,
+        petName: j['petName'] as String?,
         route: [
           for (final p in (j['route'] as List?) ?? const [])
             (((p as List)[0] as num).toDouble(), (p[1] as num).toDouble()),
@@ -190,7 +202,7 @@ class Vitals {
     this.stepsDay,
     this.stepsCounted = 0,
     this.restStartedAt,
-    this.expedition,
+    this.expeditions = const [],
     this.compassReady = false,
   });
 
@@ -213,8 +225,11 @@ class Vitals {
   /// 여관 체크인 시각. 쉬는 중이 아니면 null.
   final DateTime? restStartedAt;
 
-  /// 진행 중이거나 결과를 아직 보지 않은 원정
-  final Expedition? expedition;
+  /// 진행 중이거나 결과를 아직 보지 않은 원정 (펫마다 하나, 11-11 #38)
+  final List<Expedition> expeditions;
+
+  /// 첫 원정 (예전 코드·테스트용)
+  Expedition? get expedition => expeditions.isEmpty ? null : expeditions.first;
 
   /// 원정 나침반을 써 두었는지 (다음 원정의 이동 시간 절반, 11-10)
   final bool compassReady;
@@ -230,6 +245,7 @@ class Vitals {
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
+    List<Expedition>? expeditions,
     bool? compassReady,
   }) =>
       Vitals(
@@ -240,7 +256,12 @@ class Vitals {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
-        expedition: clearExpedition ? null : (expedition ?? this.expedition),
+        expeditions: expeditions ??
+            (clearExpedition
+                ? const []
+                : expedition != null
+                    ? [expedition]
+                    : this.expeditions),
         compassReady: compassReady ?? this.compassReady,
       );
 
@@ -252,7 +273,7 @@ class Vitals {
         'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
-        'expedition': expedition?.toJson(),
+        'expeditions': [for (final e in expeditions) e.toJson()],
         'compassReady': compassReady,
       };
 
@@ -266,10 +287,12 @@ class Vitals {
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
-        expedition: j['expedition'] == null
-            ? null
-            : Expedition.fromJson(
-                Map<String, dynamic>.from(j['expedition'] as Map)),
+        // 예전 저장본은 원정 하나 ('expedition')
+        expeditions: [
+          for (final e in (j['expeditions'] as List?) ??
+              [if (j['expedition'] != null) j['expedition']])
+            Expedition.fromJson(Map<String, dynamic>.from(e as Map)),
+        ],
         compassReady: j['compassReady'] as bool? ?? false,
       );
 }

@@ -11,9 +11,10 @@ class VitalRules {
   /// [mpAt] 부터 [now] 까지 저절로 찬 MP. (새 MP, 새 기준 시각)
   /// 가득 차면 기준 시각을 지금으로 옮겨, 쓰고 난 뒤부터 다시 센다.
   static (int, DateTime) regenMp(int mp, DateTime mpAt, DateTime now,
-      {int max = RuleConstants.mpMax}) {
+      {int max = RuleConstants.mpMax,
+      int perHour = RuleConstants.mpRegenPerHour}) {
     if (mp >= max || now.isBefore(mpAt)) return (math.min(mp, max), now);
-    const minutesPerPoint = 60 / RuleConstants.mpRegenPerHour; // 6분에 1
+    final minutesPerPoint = 60 / perHour; // 기본 6분에 1
     final minutes = now.difference(mpAt).inSeconds / 60;
     final gained = (minutes / minutesPerPoint).floor();
     if (gained <= 0) return (mp, mpAt);
@@ -26,10 +27,11 @@ class VitalRules {
   }
 
   /// MP가 가득 찰 때까지 남은 시간
-  static Duration mpFullIn(int mp, {int max = RuleConstants.mpMax}) {
+  static Duration mpFullIn(int mp,
+      {int max = RuleConstants.mpMax, int perHour = RuleConstants.mpRegenPerHour}) {
     final missing = max - mp;
     if (missing <= 0) return Duration.zero;
-    return Duration(minutes: (missing * 60 / RuleConstants.mpRegenPerHour).ceil());
+    return Duration(minutes: (missing * 60 / perHour).ceil());
   }
 
   // ───────────────────────── HP

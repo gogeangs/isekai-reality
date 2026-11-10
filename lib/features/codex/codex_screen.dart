@@ -6,16 +6,33 @@ import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../pets/pet_art.dart';
 
 /// 도감 (11-11 #41): 탭 없이 몬스터 한 목록. 속성 슬라임도 각각 한 칸.
 /// 목록 아래에 「희귀·전설 사냥 기록」. 칭호는 프로필로 옮겼다.
-class CodexScreen extends StatelessWidget {
+class CodexScreen extends StatefulWidget {
   const CodexScreen({
     super.key,
     required this.purifiedMonsters,
     this.huntCounts = const {},
     this.modHunts = const {},
+    this.petsSeen = const {},
+    this.onOpenPets,
+    this.racesSeen = const {},
+    this.raceCounts = const {},
   });
+
+  /// 마법 돋보기로 감정한 종족 (11-11 #60 종족 탭)
+  final Set<Race> racesSeen;
+
+  /// 종족별 감정 횟수
+  final Map<Race, int> raceCounts;
+
+  /// 한 번이라도 함께한 펫 종류 (11-11 #38 펫 탭)
+  final Set<PetSpecies> petsSeen;
+
+  /// 「내 펫」 화면 열기 (정령이 떠나기 전에는 null)
+  final VoidCallback? onOpenPets;
 
   /// 한 번이라도 사냥한 몬스터
   final Set<MonsterId> purifiedMonsters;
@@ -25,6 +42,17 @@ class CodexScreen extends StatelessWidget {
 
   /// 희귀·전설 수식어 몬스터 사냥 기록 ([ModifierRules.codexKey] → 마릿수)
   final Map<String, int> modHunts;
+
+  @override
+  State<CodexScreen> createState() => _CodexScreenState();
+}
+
+class _CodexScreenState extends State<CodexScreen> {
+  int _tab = 0;
+
+  Set<MonsterId> get purifiedMonsters => widget.purifiedMonsters;
+  Map<MonsterId, int> get huntCounts => widget.huntCounts;
+  Map<String, int> get modHunts => widget.modHunts;
 
   Future<void> _showMonster(BuildContext context, MonsterInfo m) =>
       showModalBottomSheet<void>(
@@ -88,8 +116,42 @@ class CodexScreen extends StatelessWidget {
           const OrnateTopBar(title: '도감'),
           const SizedBox(height: 6),
           BulssiLine(
-              line: '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'),
-          const SizedBox(height: 10),
+              line: switch (_tab) {
+                0 => '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!',
+                1 => '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!',
+                _ => '마법 돋보기로 감정한 종족이 여기 남아. 별의 아이는 아주 드물대!',
+              }),
+          const SizedBox(height: 8),
+          Row(children: [
+            for (final (i, label) in const [(0, '몬스터'), (1, '펫'), (2, '종족')]) ...[
+              Expanded(
+                child: ChoiceChip(
+                  label: SizedBox(
+                      width: double.infinity,
+                      child: Text(label, textAlign: TextAlign.center)),
+                  selected: _tab == i,
+                  onSelected: (_) => setState(() => _tab = i),
+                  selectedColor: AppColors.gold,
+                  backgroundColor: const Color(0xFF1E2250),
+                  labelStyle: TextStyle(
+                      color: _tab == i ? AppColors.night : AppColors.text,
+                      fontWeight: FontWeight.w700),
+                  showCheckmark: false,
+                ),
+              ),
+              if (i < 2) const SizedBox(width: 8),
+            ],
+          ]),
+          const SizedBox(height: 8),
+          if (_tab == 2)
+            Expanded(
+                child: _RaceCodex(
+                    seen: widget.racesSeen, counts: widget.raceCounts))
+          else if (_tab == 1)
+            Expanded(
+                child: _PetCodex(
+                    seen: widget.petsSeen, onOpenPets: widget.onOpenPets))
+          else
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(bottom: 24),
@@ -274,3 +336,205 @@ IconData titleIcon(TitleId id) => switch (id) {
       TitleId.lakeFriend => Icons.water_drop_rounded,
       TitleId.townLight => Icons.light_mode_rounded,
     };
+
+/// 도감 펫 탭: 일반 6종 (희귀·전설은 나중에 더한다)
+class _PetCodex extends StatelessWidget {
+  const _PetCodex({required this.seen, this.onOpenPets});
+
+  final Set<PetSpecies> seen;
+  final VoidCallback? onOpenPets;
+
+  Future<void> _show(BuildContext context, PetSpeciesInfo info) =>
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.night,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (sheet) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  PetArt(species: info.id, size: 100),
+                  const SizedBox(width: 12),
+                  PetArt(species: info.id, adult: true, size: 120),
+                ]),
+                const SizedBox(height: 8),
+                Text(info.name,
+                    textAlign: TextAlign.center,
+                    style: AppText.title(22, color: AppColors.goldBright)),
+                const SizedBox(height: 10),
+                _Fact(label: '원정 특기', value: '${info.special} (성체: ${info.specialAdult})'),
+                _Fact(
+                    label: '던전 스킬',
+                    value: '${info.skillName} · ${info.skillText} '
+                        '(성체: ${info.skillTextAdult})'),
+                const SizedBox(height: 12),
+                FrameButton(
+                    label: '닫기', onPressed: () => Navigator.of(sheet).pop()),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('펫 도감 ${seen.length} / ${PetSpecies.values.length}',
+                  style: AppText.title(18)),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 3,
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.8,
+                children: [
+                  for (final s in PetSpecies.values)
+                    GestureDetector(
+                      onTap: seen.contains(s)
+                          ? () => _show(context, PetRules.info(s))
+                          : null,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B1E4C),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: seen.contains(s)
+                                  ? AppColors.goldBright
+                                  : AppColors.gold.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(children: [
+                          Expanded(
+                            child: seen.contains(s)
+                                ? PetArt(species: s, size: 80)
+                                : Opacity(
+                                    opacity: 0.25,
+                                    child: PetArt(species: s, size: 80)),
+                          ),
+                          Text(seen.contains(s) ? PetRules.info(s).name : '???',
+                              style: TextStyle(
+                                  color: seen.contains(s)
+                                      ? AppColors.text
+                                      : AppColors.textMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const KText('희귀·전설 펫은 앞으로 이곳에 더해져요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            ],
+          ),
+        ),
+        if (onOpenPets != null) ...[
+          const SizedBox(height: 10),
+          FrameButton(label: '내 펫 보기', onPressed: onOpenPets),
+        ],
+      ],
+    );
+  }
+}
+
+/// 종족 도감 (11-11 #60): 마법 돋보기로 처음 감정한 종족이 남는다
+class _RaceCodex extends StatelessWidget {
+  const _RaceCodex({required this.seen, required this.counts});
+
+  final Set<Race> seen;
+  final Map<Race, int> counts;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        OrnatePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('종족 도감 ${seen.length} / ${Race.values.length}',
+                  style: AppText.title(18)),
+              const SizedBox(height: 4),
+              const KText(
+                  '가방의 마법 돋보기로 친구나 가족을 비춰 감정해 봐요. '
+                  '처음 감정한 종족은 경험치 +${LensRules.firstExp}.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const SizedBox(height: 10),
+              for (final info in LensRules.all)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: seen.contains(info.id)
+                            ? Color(info.color).withValues(alpha: 0.25)
+                            : const Color(0xFF1B1E4C),
+                        border: Border.all(
+                            color: seen.contains(info.id)
+                                ? Color(info.color)
+                                : AppColors.gold.withValues(alpha: 0.3)),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(info.asset,
+                            fit: BoxFit.cover,
+                            color: seen.contains(info.id)
+                                ? null
+                                : const Color(0x33FFFFFF),
+                            colorBlendMode: BlendMode.modulate,
+                            errorBuilder: (_, __, ___) => Icon(
+                                seen.contains(info.id)
+                                    ? Icons.auto_awesome_rounded
+                                    : Icons.help_outline_rounded,
+                                color: seen.contains(info.id)
+                                    ? Color(info.color)
+                                    : AppColors.textMuted)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(seen.contains(info.id) ? info.name : '???',
+                              style: AppText.title(16,
+                                  color: seen.contains(info.id)
+                                      ? AppColors.text
+                                      : AppColors.textMuted)),
+                          Text(
+                              seen.contains(info.id)
+                                  ? '${info.line} · ${counts[info.id] ?? 0}번 감정'
+                                  : '아직 감정하지 못한 종족',
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 11.5)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

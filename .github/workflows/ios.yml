@@ -10,6 +10,11 @@ name: iPhone 테스트 빌드
 
 on:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: "테스터에게 올리기 (끄면 빌드만 확인)"
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths:
@@ -79,7 +84,7 @@ jobs:
           exit ${PIPESTATUS[0]}
 
       - name: 서명하고 TestFlight 로 올리기
-        if: steps.check.outputs.ready == 'true'
+        if: steps.check.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.upload)
         shell: bash
         run: |
           KEY="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"

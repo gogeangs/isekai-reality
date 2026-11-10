@@ -556,15 +556,14 @@ void main() {
     expect(c.player.manaStones, stones - 1);
     expect(c.player.gold, gold + 10);
 
-    // 정령 물약 (원정 나침반도 금화 50이라 첫 번째)
-    await tester.scrollUntilVisible(find.text('정령 물약'), 200,
+    // 정령 물약 = 예시 모드(Lv.14, 정령과 헤어짐)에서는 펫 간식
+    await tester.scrollUntilVisible(find.text('펫 간식'), 200,
         scrollable: find.byType(Scrollable).first);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     final buy = find
         .descendant(
             of: find.ancestor(
-                of: find.text('정령 물약'), matching: find.byType(OrnatePanel)),
+                of: find.text('펫 간식'), matching: find.byType(OrnatePanel)),
             matching: find.text('50'))
         .first;
     await tester.ensureVisible(buy);

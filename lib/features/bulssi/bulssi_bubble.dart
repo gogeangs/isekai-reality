@@ -60,7 +60,7 @@ class BulssiBubble extends StatelessWidget {
                   ),
                 ),
               ),
-              SpiritArt(kind: kind, size: size, name: name, mood: mood),
+              CompanionArt(size: size, mood: mood),
             ],
           ),
         ),
@@ -150,7 +150,7 @@ class BulssiLine extends StatelessWidget {
       child: Row(children: [
         _Glow(
             color: glow,
-            child: SpiritArt(kind: kind, size: 38, name: name, mood: mood)),
+            child: CompanionArt(size: 38, mood: mood)),
         const SizedBox(width: 8),
         Expanded(
           child: Text.rich(
@@ -234,7 +234,7 @@ class ArtSpirit extends StatelessWidget {
         _Glow(
             color: glow,
             spread: 0.4,
-            child: SpiritArt(kind: kind, size: size, name: name, mood: mood)),
+            child: CompanionArt(size: size, mood: mood)),
       ],
     );
   }

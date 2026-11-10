@@ -55,7 +55,11 @@ class BagSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('가방', style: AppText.title(20)),
+                Row(children: [
+                  const GameIcon('bag', size: 30),
+                  const SizedBox(width: 6),
+                  Text('가방', style: AppText.title(20)),
+                ]),
                 const SizedBox(height: 4),
                 Text(
                   'HP ${comma(c.hp)} / ${comma(c.maxHp)} · '

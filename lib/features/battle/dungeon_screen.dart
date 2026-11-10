@@ -6,6 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
 import '../town/bag_sheet.dart';
 import 'battle_view.dart';
 
@@ -138,8 +139,18 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
     return [
       // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
-      BulssiLine(line: line),
+      BulssiLine(
+          line: line,
+          mood: hp < maxHp * 0.3 ? SpiritMood.worried : SpiritMood.normal),
       const SizedBox(height: 10),
+      // HP 0: 지쳐 주저앉은 각성자
+      if (hp <= 0) ...[
+        SizedBox(
+          height: 200,
+          child: HeroSprite(look: _c.profile.look, pose: HeroPose.tired),
+        ),
+        const SizedBox(height: 10),
+      ],
       // 미궁 문 그림
       ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -219,8 +230,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               const SizedBox(width: 6),
               TextButton.icon(
                 onPressed: () => showBagSheet(context, _c),
-                icon: const Icon(Icons.backpack_rounded,
-                    size: 18, color: AppColors.goldBright),
+                icon: const GameIcon('bag', size: 22),
                 label: const Text('가방',
                     style: TextStyle(color: AppColors.goldBright)),
               ),
@@ -330,7 +340,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
     return [
       // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리
-      BulssiLine(line: line),
+      BulssiLine(
+          line: line,
+          mood: cleared ? SpiritMood.cheer : SpiritMood.worried),
       const SizedBox(height: 10),
       // 배너
       SizedBox(

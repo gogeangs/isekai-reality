@@ -4,6 +4,7 @@ import '../../core/rules/level_rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/spirit_art.dart';
 
 /// 레벨업 연출 (목업 확정본 기준). [from] → [to] 로 여러 레벨이 한 번에 오를 수도 있다.
 class LevelUpDialog extends StatelessWidget {
@@ -60,7 +61,7 @@ class LevelUpDialog extends StatelessWidget {
                     text: '다음 레벨까지 ${LevelRules.expRequiredFor(to)}',
                     icon: Icons.auto_awesome_rounded),
                 const SizedBox(height: 16),
-                BulssiBubble(line: _line),
+                BulssiBubble(line: _line, mood: SpiritMood.cheer),
                 const SizedBox(height: 18),
                 GoldButton(
                   label: '계속',

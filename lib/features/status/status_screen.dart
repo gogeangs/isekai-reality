@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
+import '../bulssi/spirit_art.dart';
 
 /// 메인 상태창 (목업 확정본 구도).
 ///
@@ -81,6 +82,14 @@ class StatusScreen extends StatelessWidget {
       resting: restLeft != null,
       spiritAway: spiritAway != null,
     );
+    // 11-10 정령 표정: 쉬는 중 졸림, HP가 낮으면 걱정, 퀘스트를 다 하면 축하
+    final mood = restLeft != null
+        ? SpiritMood.sleepy
+        : curHp < player.maxHp * 0.3
+            ? SpiritMood.worried
+            : QuestRules.allDone(today)
+                ? SpiritMood.cheer
+                : SpiritMood.normal;
 
     return NightBackground(
       child: ListView(
@@ -94,14 +103,15 @@ class StatusScreen extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _HeroArt(look: look, top: top),
+                // HP 0이면 지친 각성자 그림
+                _HeroArt(look: look, top: top, tired: curHp <= 0),
                 Positioned(
                   top: top + 36,
                   right: 12,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                         maxWidth: MediaQuery.sizeOf(context).width * 0.5),
-                    child: ArtSpirit(line: line),
+                    child: ArtSpirit(line: line, mood: mood),
                   ),
                 ),
               ],
@@ -244,9 +254,12 @@ class _TownTile extends StatelessWidget {
 /// 가리지 않도록 그림 전체를 상태 표시줄 아래 ~ 배지 위 사이에 넣는다.
 /// 그 바깥(상태 표시줄 뒤, 배지 뒤)은 같은 그림을 흐리게 깔아 이어 보이게 한다.
 class _HeroArt extends StatelessWidget {
-  const _HeroArt({required this.look, required this.top});
+  const _HeroArt({required this.look, required this.top, this.tired = false});
 
   final HeroLook look;
+
+  /// HP 0: 지친 모습
+  final bool tired;
 
   /// 상태 표시줄 높이
   final double top;
@@ -259,9 +272,8 @@ class _HeroArt extends StatelessWidget {
     final asset = look == HeroLook.female
         ? 'assets/images/bg_status_female.jpg'
         : 'assets/images/bg_status_male.jpg';
-    final cutout = look == HeroLook.female
-        ? 'assets/images/hero_status_female.png'
-        : 'assets/images/hero_status_male.png';
+    final cutout = 'assets/images/hero_status_${tired ? 'tired_' : ''}'
+        '${look == HeroLook.female ? 'female' : 'male'}.png';
     final alignment = look == HeroLook.female
         ? const Alignment(-0.45, 0)
         : const Alignment(-0.42, 0);
@@ -428,9 +440,10 @@ class _StatusPanel extends StatelessWidget {
               if (onOpenBag != null) ...[
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 112,
+                  width: 128,
                   child: FrameButton(
                     onPressed: onOpenBag,
+                    gameIcon: 'bag',
                     height: 46,
                     label: '가방',
                   ),

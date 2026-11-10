@@ -109,8 +109,10 @@ class SpawnSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(children: [
-                      SpiritArt(kind: c.profile.spiritKind, size: 44),
-                      const SizedBox(width: 8),
+                      const GameIcon('expedition', size: 40),
+                      const SizedBox(width: 6),
+                      SpiritArt(kind: c.profile.spiritKind, size: 36),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text('$spiritName 원정 보내기',
                             style: AppText.title(17)),

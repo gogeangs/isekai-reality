@@ -440,9 +440,10 @@ class _StatusPanel extends StatelessWidget {
               if (onOpenBag != null) ...[
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 112,
+                  width: 128,
                   child: FrameButton(
                     onPressed: onOpenBag,
+                    gameIcon: 'bag',
                     height: 46,
                     label: '가방',
                   ),

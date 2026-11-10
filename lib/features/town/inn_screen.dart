@@ -139,7 +139,7 @@ class InnScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(children: [
-                          const GameIcon('medal', size: 30),
+                          const GameIcon('streak', size: 32),
                           const SizedBox(width: 8),
                           Text('연속 휴식 $streak일',
                               style: AppText.title(18,

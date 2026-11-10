@@ -49,3 +49,6 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | spirit_<fire·water·plant>_worried | HP가 낮거나 쓰러졌을 때, 전투에서 졌을 때 |
 | spirit_<…>_cheer | 레벨업, 정화 성공, 일일 퀘스트 모두 완료 |
 | spirit_<…>_sleepy | 여관에서 쉬는 중 |
+| icon_streak | 여관 '연속 휴식' |
+| icon_expedition | 지도 몬스터 창의 '원정 보내기' |
+| icon_bag | 가방 버튼(상태창·던전 입구·잡화상)과 가방 창 |

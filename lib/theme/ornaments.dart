@@ -396,12 +396,16 @@ class FrameButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.gameIcon,
     this.height = 50,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+
+  /// 그림 아이콘 이름 (icon_<이름>.png). [icon] 보다 먼저 쓴다
+  final String? gameIcon;
   final double height;
 
   @override
@@ -417,7 +421,10 @@ class FrameButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[
+          if (gameIcon != null) ...[
+            GameIcon(gameIcon!, size: 24),
+            const SizedBox(width: 5),
+          ] else if (icon != null) ...[
             Icon(icon, size: 20, color: color),
             const SizedBox(width: 8),
           ],

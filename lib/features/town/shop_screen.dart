@@ -104,7 +104,7 @@ class ShopScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 FrameButton(
                   onPressed: () => showBagSheet(context, controller),
-                  icon: Icons.backpack_rounded,
+                  gameIcon: 'bag',
                   height: 44,
                   label: '가방 열기',
                 ),

@@ -230,8 +230,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               const SizedBox(width: 6),
               TextButton.icon(
                 onPressed: () => showBagSheet(context, _c),
-                icon: const Icon(Icons.backpack_rounded,
-                    size: 18, color: AppColors.goldBright),
+                icon: const GameIcon('bag', size: 22),
                 label: const Text('가방',
                     style: TextStyle(color: AppColors.goldBright)),
               ),

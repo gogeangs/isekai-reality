@@ -84,7 +84,7 @@ void main() {
       final c = AppController(
         area: KoreaArea.area,
         store: store,
-        health: FakeHealthSource(stepsByDay: {'2026-11-11': 3000}),
+        health: FakeHealthSource(stepsByDay: {'2026-11-11': 1000}),
         location: FakeLocationSource(),
         clock: () => at,
         random: Random(3),
@@ -242,7 +242,7 @@ void main() {
       final c = AppController(
         area: KoreaArea.area,
         store: store,
-        health: FakeHealthSource(stepsByDay: {'2026-11-11': 3000}),
+        health: FakeHealthSource(stepsByDay: {'2026-11-11': 1000}),
         location: loc,
         clock: () => now,
         random: Random(2),

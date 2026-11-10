@@ -64,7 +64,7 @@ class AppController extends ChangeNotifier {
       health: FakeHealthSource(granted: false),
       stepGoal: 8000, // 예시 기록과 같은 목표
       clock: clock,
-    );
+    )..walkEvents = false; // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
   }
 
   final RecordStore store;
@@ -1937,10 +1937,13 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 걸음 주머니·길가의 발견·떠돌이 상인을 만들지 (예시 모드는 끔)
+  bool walkEvents = true;
+
   /// 걸음 주머니·무작위 이벤트를 걸음에 맞춰 만든다 (앱을 열 때·화면을 볼 때)
   Future<void> _checkWalkEvents() async {
     final today = player.today;
-    if (today == null) return;
+    if (today == null || !walkEvents) return;
     final now = _clock();
     var g = _gather;
     if (g.day != today.dayKey) {

@@ -70,7 +70,7 @@ void main() {
             ),
           ],
         ),
-        health: FakeHealthSource(stepsByDay: {'2026-11-10': 3000}),
+        health: FakeHealthSource(stepsByDay: {'2026-11-10': 1000}),
         location: FakeLocationSource(),
         clock: () => now,
         random: Random(5),

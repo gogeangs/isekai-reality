@@ -22,6 +22,19 @@ class AppText {
           Shadow(color: AppColors.gold.withValues(alpha: 0.45), blurRadius: 10),
         ],
       );
+
+  /// 레벨 숫자 ('Lv.3'): 다른 UI와 같은 기본 글꼴, 굵게 (11-10 #29.
+  /// 제목 글꼴은 영문이 세리프라 'Lv.' 만 튀었다)
+  static TextStyle level(double size, {Color color = AppColors.goldBright}) =>
+      TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: size,
+        color: color,
+        height: 1.15,
+        shadows: [
+          Shadow(color: AppColors.gold.withValues(alpha: 0.35), blurRadius: 8),
+        ],
+      );
 }
 
 /// 금색 그라데이션 (테두리·버튼)
@@ -579,7 +592,7 @@ class LaurelBadge extends StatelessWidget {
                     errorBuilder: (_, __, ___) => const SizedBox()),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 14),
-                  child: Text('Lv.$level', style: AppText.title(36)),
+                  child: Text('Lv.$level', style: AppText.level(34)),
                 ),
               ]),
             ),

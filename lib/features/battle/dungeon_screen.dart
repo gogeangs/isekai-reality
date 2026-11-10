@@ -436,7 +436,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
             const SizedBox(height: 10),
             Row(children: [
               Text('Lv.${player.level.level}',
-                  style: AppText.title(16, color: AppColors.text)),
+                  style: AppText.level(15, color: AppColors.text)),
               const SizedBox(width: 8),
               Expanded(
                   child: GlowBar(

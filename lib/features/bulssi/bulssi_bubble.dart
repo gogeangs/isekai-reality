@@ -197,9 +197,12 @@ class ArtSpirit extends StatelessWidget {
     final kind = scope?.kind ?? SpiritKind.fire;
     final glow = scope?.glow ?? spiritColor(kind);
     final name = scope?.spiritName ?? kind.defaultName;
+    // 11-10 #28: 말풍선은 정령 바로 위에 붙이고, 왼쪽 아래 꼬리가 정령을 향한다.
+    // 긴 대사는 글자를 줄이고 세 줄까지만.
+    final long = line.length > 30;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SpeechBubbleArt(
           child: Text.rich(
@@ -208,20 +211,23 @@ class ArtSpirit extends StatelessWidget {
                 text: '$name\n',
                 style: const TextStyle(
                     color: Color(0xFF8A5A12),
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w800),
               ),
               TextSpan(text: keepAll(line)),
             ]),
-            style: const TextStyle(
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
                 color: AppColors.night,
-                fontSize: 13.5,
-                height: 1.3,
+                fontSize: long ? 11.5 : 13,
+                height: 1.25,
                 fontWeight: FontWeight.w600),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(right: 6),
+          // 꼬리 바로 아래
+          padding: const EdgeInsets.only(left: 2),
           child: _Glow(
               color: glow,
               spread: 0.4,

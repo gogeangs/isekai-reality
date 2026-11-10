@@ -105,13 +105,14 @@ class StatusScreen extends StatelessWidget {
               children: [
                 // HP 0이면 지친 각성자 그림
                 _HeroArt(look: look, top: top, tired: curHp <= 0),
+                // 정령은 오른쪽 위 빈자리: 각성자 얼굴·손·지도를 가리지 않게
                 Positioned(
-                  top: top + 36,
-                  right: 12,
+                  top: top + 6,
+                  right: 8,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                        maxWidth: MediaQuery.sizeOf(context).width * 0.5),
-                    child: ArtSpirit(line: line, mood: mood),
+                        maxWidth: MediaQuery.sizeOf(context).width * 0.46),
+                    child: ArtSpirit(line: line, mood: mood, size: 44),
                   ),
                 ),
               ],
@@ -475,7 +476,7 @@ class _LevelLine extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
       ),
       child: Row(children: [
-        Text('Lv.${level.level}', style: AppText.title(18)),
+        Text('Lv.${level.level}', style: AppText.level(17)),
         const SizedBox(width: 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 120),

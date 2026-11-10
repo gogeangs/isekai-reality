@@ -38,8 +38,7 @@ class _StatScreenState extends State<StatScreen> {
     final cost = c.statResetCost;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
-        backgroundColor: AppColors.night,
+      builder: (d) => GameAlert(
         title: Text('포인트를 되돌릴까요?',
             style: AppText.title(18, color: AppColors.text)),
         content: KText(

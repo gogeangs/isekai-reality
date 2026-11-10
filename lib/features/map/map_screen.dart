@@ -18,9 +18,15 @@ import 'map_config.dart';
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 class MapScreen extends StatelessWidget {
-  const MapScreen({super.key, required this.controller});
+  const MapScreen({super.key, required this.controller, this.onOpenDungeon});
 
   final AppController controller;
+
+  /// 던전 열기 (11-11 #68: 상태 화면에서 지도 아래 띠로 옮겼다)
+  final VoidCallback? onOpenDungeon;
+
+  /// 아래 던전 띠 높이
+  static const double stripH = 58;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +37,8 @@ class MapScreen extends StatelessWidget {
     final top = MediaQuery.paddingOf(context).top;
     // 아래 카드가 덮는 높이 (원정 카드 + 몬스터·발견 카드)
     final cardBelow = controller.lastDiscovery != null || spawn != null;
-    final bottomInset = (cardBelow ? 150.0 : 24.0) + (away ? 130.0 : 0.0);
+    final bottomInset =
+        stripH + (cardBelow ? 150.0 : 24.0) + (away ? 130.0 : 0.0);
     return Stack(
       children: [
         Positioned.fill(
@@ -68,7 +75,8 @@ class MapScreen extends StatelessWidget {
           Positioned(
             left: 16,
             right: 16,
-            bottom: controller.lastDiscovery != null || spawn != null ? 150 : 24,
+            bottom: stripH +
+                (controller.lastDiscovery != null || spawn != null ? 150 : 24),
             // 여러 마리가 나가 있으면 가장 먼저 돌아오는 원정 + 나머지 수
             child: ExpeditionCard(
                 controller: controller,
@@ -81,7 +89,7 @@ class MapScreen extends StatelessWidget {
           Positioned(
             left: 16,
             right: 16,
-            bottom: 24,
+            bottom: stripH + 24,
             child: _DiscoveryCard(
               place: controller.lastDiscovery!,
               onClose: controller.clearDiscovery,
@@ -91,13 +99,85 @@ class MapScreen extends StatelessWidget {
           Positioned(
             left: 16,
             right: 16,
-            bottom: 24,
+            bottom: stripH + 24,
             child: _MonsterCard(
               spawn: spawn,
               onPurify: () => showSpawnSheet(context, controller, spawn),
             ),
           ),
+        // 던전 게이지·열쇠·던전 열기 (11-11 #68): 아래 메뉴 바로 위 얇은 띠
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 4,
+          height: stripH - 8,
+          child: DungeonStrip(
+            gauge: gauge,
+            onOpen: onOpenDungeon,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+/// 지도 아래 던전 띠: 열쇠 · 게이지 · [던전 열기] (11-11 #68)
+class DungeonStrip extends StatelessWidget {
+  const DungeonStrip({super.key, required this.gauge, this.onOpen});
+
+  final DungeonGaugeState gauge;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final keys = gauge.keysAvailable;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xE6141638),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
+      ),
+      child: Row(children: [
+        const GameIcon('key', size: 24),
+        const SizedBox(width: 4),
+        Text('열쇠 $keys',
+            key: const Key('stripKeys'),
+            style: const TextStyle(
+                color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GlowBar(ratio: gauge.ratio, colors: BarColors.gauge, height: 7),
+              const SizedBox(height: 2),
+              Text(
+                  gauge.dailyKeyLimitReached
+                      ? '오늘은 다 모았어요'
+                      : '${comma(gauge.stepsIntoNextKey)} / ${comma(gauge.stepsPerKey)}보',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        // 열쇠가 있으면 금색으로 빛나고, 없으면 흐리게
+        SizedBox(
+          width: 104,
+          child: Opacity(
+            opacity: keys > 0 ? 1 : 0.45,
+            child: GoldButton(
+              key: const Key('openDungeon'),
+              label: '던전 열기',
+              height: 38,
+              fontSize: 15,
+              onPressed: keys > 0 ? onOpen : null,
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -132,17 +212,10 @@ class _TopPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              KText(
-                  '오늘 사냥 $purifiedToday / '
-                  '${RuleConstants.maxFieldMonstersPerDay}마리',
+              // 11-11 #69: 한도가 드러나지 않게 마릿수만
+              KText('오늘 사냥 $purifiedToday마리',
+                  key: const Key('huntToday'),
                   style: const TextStyle(color: AppColors.text, fontSize: 13)),
-              const SizedBox(height: 4),
-              GlowBar(
-                  ratio: (purifiedToday / RuleConstants.maxFieldMonstersPerDay)
-                      .clamp(0, 1)
-                      .toDouble(),
-                  colors: BarColors.exp,
-                  height: 7),
             ],
           ),
         ),

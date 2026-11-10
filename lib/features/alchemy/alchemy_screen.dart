@@ -333,8 +333,7 @@ Future<void> _showResult(BuildContext context, AppController c, BrewResult r) {
   }
   return showDialog<void>(
     context: context,
-    builder: (d) => AlertDialog(
-      backgroundColor: AppColors.night,
+    builder: (d) => GameAlert(
       title: Row(children: [
         PotionIcon(
             potion: r.potion, suspicious: r.suspicious != null, size: 40),

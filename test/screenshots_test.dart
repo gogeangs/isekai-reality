@@ -134,13 +134,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // 던전
-    await tester.tap(find.text('상태'));
+    // 11-11 #68: 던전 열기는 지도 아래 띠
+    await tester.tap(find.text('지도'));
     await tester.pumpAndSettle();
-    final open = find.text('던전 열기');
-    await tester.scrollUntilVisible(open, 300,
-        scrollable: find.byType(Scrollable).first);
-    await _shot(tester, '03_상태창_아래');
-    await tester.tap(open);
+    await _shot(tester, '03_지도_던전_띠');
+    await tester.tap(find.byKey(const Key('openDungeon')));
     await tester.pumpAndSettle();
     await _shot(tester, '04_던전_입장');
 

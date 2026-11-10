@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/format.dart';
 import 'app_colors.dart';
@@ -140,7 +141,7 @@ class SpeechBubbleArt extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 13, 30, 19),
+            padding: const EdgeInsets.fromLTRB(24, 17, 34, 21),
             child: child,
           ),
         ]),
@@ -153,7 +154,7 @@ class SpeechBubbleArt extends StatelessWidget {
         slice: const Rect.fromLTRB(110, 55, 400, 175),
         scale: _scale,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(30, 13, 20, 19),
+          padding: const EdgeInsets.fromLTRB(34, 17, 24, 21),
           child: Align(
             alignment: Alignment.centerLeft,
             widthFactor: 1,
@@ -372,6 +373,11 @@ class RibbonHeading extends StatelessWidget {
               // 밝은 그림 위에서도 읽히게 짙은 그림자 (11-10 A5)
               style: AppText.title(size).copyWith(shadows: const [
                 Shadow(color: Color(0xE6000000), blurRadius: 6),
+                // 은은한 테두리 (사방 1px 그림자)
+                Shadow(color: Color(0xCC0B0D26), offset: Offset(1, 0)),
+                Shadow(color: Color(0xCC0B0D26), offset: Offset(-1, 0)),
+                Shadow(color: Color(0xCC0B0D26), offset: Offset(0, 1)),
+                Shadow(color: Color(0xCC0B0D26), offset: Offset(0, -1)),
                 Shadow(
                     color: Color(0xCC0B0D26),
                     blurRadius: 2,
@@ -758,18 +764,10 @@ class OrnateTopBar extends StatelessWidget {
             // 눈 문장은 누를 기능이 없어 뺐다 (11-10 A4). 제목이 가운데 오게 빈칸
             const SizedBox(width: 40),
           const SizedBox(width: 6),
-          // 제목 뒤에 어두운 띠 (하늘 그림에 글자가 묻히지 않게)
+          // 11-11 #71: 제목 뒤 어두운 띠를 없애고 글자 그림자·테두리로 읽히게
           Expanded(
-            child: Container(
+            child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: const RadialGradient(
-                  radius: 2.2,
-                  colors: [Color(0xE00B0D26), Color(0x000B0D26)],
-                  stops: [0.45, 1],
-                ),
-              ),
               child: RibbonHeading(title, size: 21),
             ),
           ),
@@ -947,4 +945,179 @@ class KText extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(keepAll(data),
       style: style, textAlign: textAlign, maxLines: maxLines, overflow: overflow);
+}
+
+
+/// 키보드 닫기 (11-11 #73): 입력칸 포커스를 풀고 키보드를 내린다.
+void hideKeyboard() {
+  FocusManager.instance.primaryFocus?.unfocus();
+  SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+}
+
+/// 입력칸 바깥을 누르면 키보드를 닫는다 (11-11 #73, 앱 전체).
+/// 입력칸·복사/붙여넣기 메뉴를 누를 때는 그대로 둔다.
+class TapOutsideToHideKeyboard extends StatelessWidget {
+  const TapOutsideToHideKeyboard({super.key, required this.child});
+
+  final Widget child;
+
+  static void _onDown(PointerDownEvent e) {
+    final ctx = FocusManager.instance.primaryFocus?.context;
+    if (ctx == null) return;
+    final typing = ctx.widget is EditableText ||
+        ctx.findAncestorWidgetOfExactType<EditableText>() != null;
+    if (!typing) return;
+    final hit = HitTestResult();
+    WidgetsBinding.instance.hitTestInView(hit, e.position, e.viewId);
+    for (final h in hit.path) {
+      final t = h.target;
+      if (t is RenderTapRegion && t.groupId == EditableText) return;
+    }
+    hideKeyboard();
+  }
+
+  @override
+  Widget build(BuildContext context) => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: _onDown,
+        child: child,
+      );
+}
+
+/// 화면을 옮기거나 창이 닫힐 때마다 키보드를 닫는다 (11-11 #73)
+class KeyboardCloser extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      hideKeyboard();
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      hideKeyboard();
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      hideKeyboard();
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      hideKeyboard();
+}
+
+/// 버튼 모양 (금색 = 주된 버튼, 어두운 = 그만두기 등)
+ButtonStyle gameButtonStyle({required bool gold}) => ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(88, 44)),
+      padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+      shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+      textStyle: const WidgetStatePropertyAll(TextStyle(
+          fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 16)),
+      backgroundColor: WidgetStateProperty.resolveWith((s) {
+        final off = s.contains(WidgetState.disabled);
+        if (gold) {
+          return off ? const Color(0xFF4A4330) : const Color(0xFFE2B856);
+        }
+        return off ? const Color(0xFF1A1E3E) : const Color(0xFF232A5C);
+      }),
+      foregroundColor: WidgetStateProperty.resolveWith((s) {
+        final off = s.contains(WidgetState.disabled);
+        if (gold) return off ? const Color(0xFF8C8370) : const Color(0xFF3A2208);
+        return off ? AppColors.textMuted : AppColors.goldBright;
+      }),
+      side: WidgetStateProperty.resolveWith((s) {
+        final off = s.contains(WidgetState.disabled);
+        return BorderSide(
+            color: gold
+                ? (off ? const Color(0xFF6E6248) : const Color(0xFFFBE7A6))
+                : AppColors.gold.withValues(alpha: off ? 0.25 : 0.6),
+            width: 1.2);
+      }),
+      overlayColor: WidgetStatePropertyAll(
+          (gold ? Colors.white : AppColors.gold).withValues(alpha: 0.12)),
+    );
+
+/// 금테 공용 팝업 (11-11 #72). AlertDialog 와 같은 모양으로 쓴다.
+/// 마지막 버튼은 금색, 나머지는 어두운 버튼. 닫히면 키보드도 닫는다 (#73).
+class GameAlert extends StatelessWidget {
+  const GameAlert({
+    super.key,
+    this.title,
+    this.content,
+    this.actions,
+    this.alignment,
+  });
+
+  final Widget? title;
+  final Widget? content;
+  final List<Widget>? actions;
+
+  /// 창 자리. 입력 창은 아래(키보드 바로 위)에 붙인다.
+  final AlignmentGeometry? alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final acts = actions ?? const <Widget>[];
+    return PopScope(
+      onPopInvokedWithResult: (_, __) => hideKeyboard(),
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        alignment: alignment,
+        insetPadding: alignment == Alignment.bottomCenter
+            ? const EdgeInsets.fromLTRB(16, 24, 16, 10)
+            : const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: OrnatePanel(
+            art: false,
+            ornament: true,
+            radius: 18,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (title != null)
+                  DefaultTextStyle.merge(
+                    style: AppText.title(19),
+                    textAlign: TextAlign.center,
+                    child: Center(child: title!),
+                  ),
+                if (title != null && content != null)
+                  const SizedBox(height: 12),
+                if (content != null)
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: DefaultTextStyle.merge(
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 15, height: 1.4),
+                        child: content!,
+                      ),
+                    ),
+                  ),
+                if (acts.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      for (var i = 0; i < acts.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 10),
+                        Expanded(
+                          child: TextButtonTheme(
+                            data: TextButtonThemeData(
+                                style: gameButtonStyle(
+                                    gold: i == acts.length - 1)),
+                            child: acts[i],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

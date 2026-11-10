@@ -175,8 +175,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
 
   Future<void> _showMade(EquipItem item) => showDialog<void>(
         context: context,
-        builder: (d) => AlertDialog(
-          backgroundColor: AppColors.night,
+        builder: (d) => GameAlert(
           title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
               textAlign: TextAlign.center,
               style: AppText.title(22, color: equipGradeColor(item.grade))),
@@ -381,8 +380,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
     ].join(', ');
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
-        backgroundColor: AppColors.night,
+      builder: (d) => GameAlert(
         title: Text('${josa(item.name, '을/를')} 분해할까요?',
             style: AppText.title(18, color: AppColors.text)),
         content: KText('돌려받는 것: $list\n분해한 장비는 되돌릴 수 없어요.',

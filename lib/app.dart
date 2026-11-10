@@ -37,6 +37,8 @@ class IsekaiRealityApp extends StatelessWidget {
     return MaterialApp(
       title: '이세계가 현실이라면?',
       debugShowCheckedModeBanner: false,
+      // 화면을 옮기면 키보드 닫기 (11-11 #73)
+      navigatorObservers: [KeyboardCloser()],
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColors.night,
@@ -58,7 +60,9 @@ class IsekaiRealityApp extends StatelessWidget {
           petAdult: controller.companionPet?.adult ?? false,
           // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
           child: Stack(children: [
-            Positioned.fill(child: child ?? const SizedBox()),
+            Positioned.fill(
+                child: TapOutsideToHideKeyboard(
+                    child: child ?? const SizedBox())),
             if (controller.passengerMode)
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 52,
@@ -146,8 +150,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       if (c.justRested) {
         await showDialog<void>(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.night,
+          builder: (context) => GameAlert(
             title: Text('푹 쉬었어요', style: AppText.title(20)),
             content: Text(
                 'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
@@ -231,8 +234,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         c.takeNewLetter();
         await showDialog<void>(
           context: context,
-          builder: (d) => AlertDialog(
-            backgroundColor: AppColors.night,
+          builder: (d) => GameAlert(
             title: Text('${c.firstSpiritName}의 편지 · ${letter.title}',
                 style: AppText.title(18)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -291,8 +293,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (!mounted) return;
         final open = await showDialog<bool>(
           context: context,
-          builder: (d) => AlertDialog(
-            backgroundColor: AppColors.night,
+          builder: (d) => GameAlert(
             title: Text('길가에서 반짝이는 것을 발견했어!', style: AppText.title(18)),
             content: const KText('30분 안에 열어 보면 받을 수 있어요.',
                 style: TextStyle(color: AppColors.text)),
@@ -440,7 +441,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onOpenInn: () => push(InnScreen(controller: controller)),
             look: controller.profile.look,
           ),
-          MapScreen(controller: controller),
+          MapScreen(
+              controller: controller,
+              onOpenDungeon: () => push(DungeonScreen(controller: controller))),
           NightBackground(
               header: true, child: VillageScreen(controller: controller)),
           NightBackground(header: true, child: BagTab(controller: controller)),
@@ -512,7 +515,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           backgroundColor: const Color(0xFF0F1233),
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
-            onTap: (i) => setState(() => _tab = i),
+            onTap: (i) {
+              hideKeyboard(); // 탭을 옮기면 키보드 닫기 (11-11 #73)
+              setState(() => _tab = i);
+            },
           ),
         );
       },

@@ -42,7 +42,29 @@ class RuleConstants {
   static const int maxDungeonRunsPerDay = 4;
 
   static const int fieldMonsterExp = 15;
+  /// 하루 사냥 보상이 그대로인 마리 수 (11-11 #69: 그 뒤에도 사냥은 되고 보상만 줄어든다)
   static const int maxFieldMonstersPerDay = 5;
+
+  /// 6~15마리째는 경험치·마석 절반, 16마리째부터 10% (숨은 규칙)
+  static const int fieldHalfUntil = 15;
+  static const double fieldHalf = 0.5;
+  static const double fieldTail = 0.1;
+
+  /// [n] 번째(1부터) 사냥의 경험치·마석 배율
+  static double fieldFactor(int n) => n <= maxFieldMonstersPerDay
+      ? 1
+      : n <= fieldHalfUntil
+          ? fieldHalf
+          : fieldTail;
+
+  /// 그날 [count] 마리를 사냥했을 때 보상 단위 합
+  static double fieldUnits(int count) {
+    var u = 0.0;
+    for (var i = 1; i <= count; i++) {
+      u += fieldFactor(i);
+    }
+    return u;
+  }
 
   static const int newPlaceExp = 30;
   static const int maxNewPlacesPerDay = 3;

@@ -131,7 +131,7 @@ class _BagTabState extends State<BagTab> {
     if (cost == null) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
+      builder: (d) => GameAlert(
         title: const Text('가방 늘리기'),
         content: KText('금화 ${comma(cost)}으로 가방을 '
             '${BagRules.slotsPerExpansion}칸 늘릴까요?'),
@@ -172,6 +172,11 @@ class _BagTabState extends State<BagTab> {
         // 전체 보기에서는 빈칸도 그린다
         final empty = _filter == BagFilter.all && cap > all.length
             ? cap - all.length
+            : 0;
+        // 11-11 #70: 한 줄 4칸. 마지막 줄이 모자라면 「늘릴 수 있는 칸」으로 채운다
+        final cells = (_filter == BagFilter.all ? all.length + empty : 0);
+        final locks = _filter == BagFilter.all && cost != null && cells % 4 != 0
+            ? 4 - cells % 4
             : 0;
         return ListView(
           padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
@@ -271,7 +276,7 @@ class _BagTabState extends State<BagTab> {
                     )
                   else
                     GridView.count(
-                      crossAxisCount: 5,
+                      crossAxisCount: 4,
                       padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -285,6 +290,8 @@ class _BagTabState extends State<BagTab> {
                             onTap: () => showBagEntry(context, c, e),
                           ),
                         for (var i = 0; i < empty; i++) const BagSlot(),
+                        for (var i = 0; i < locks; i++)
+                          BagSlot(locked: true, onTap: _expand),
                       ],
                     ),
                 ],
@@ -299,7 +306,11 @@ class _BagTabState extends State<BagTab> {
 
 /// 가방 한 칸
 class BagSlot extends StatelessWidget {
-  const BagSlot({super.key, this.entry, this.controller, this.onTap});
+  const BagSlot(
+      {super.key, this.entry, this.controller, this.onTap, this.locked = false});
+
+  /// 금화로 늘릴 수 있는 칸 (자물쇠)
+  final bool locked;
 
   final BagEntry? entry;
   final AppController? controller;
@@ -323,6 +334,20 @@ class BagSlot extends StatelessWidget {
         count,
       _ => 0,
     };
+    if (locked) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF10132F),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.12)),
+          ),
+          child: Icon(Icons.lock_rounded,
+              size: 22, color: AppColors.gold.withValues(alpha: 0.45)),
+        ),
+      );
+    }
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -332,45 +357,61 @@ class BagSlot extends StatelessWidget {
           border: Border.all(color: border, width: e is EquipEntry ? 2 : 1),
         ),
         child: Stack(children: [
+          // 11-11 #70: 그림이 칸의 85% 쯤
           Positioned.fill(
             child: Padding(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(5),
+              child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+              width: 64,
+              height: 64,
               child: switch (e) {
                 null => const SizedBox(),
-                MaterialEntry(:final id) => MaterialIcon(id, size: 40),
+                MaterialEntry(:final id) => MaterialIcon(id, size: 64),
                 ItemEntry(:final item) => Image.asset(
                     bagIconAsset(controller!, item),
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) =>
-                        const GameIcon('bag', size: 36)),
+                        const GameIcon('bag', size: 56)),
                 EquipEntry(:final item) =>
-                  EquipIcon(base: item.base, grade: item.grade, size: 40),
+                  EquipIcon(base: item.base, grade: item.grade, size: 64),
                 PotionEntry(:final key) => PotionIcon(
                     potion: AlchemyRules.byName(key.replaceAll('*', '')),
                     suspicious: key.startsWith('?:'),
-                    size: 40),
+                    size: 64),
                 PouchEntry() => Image.asset('assets/images/item_pouch.png',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(
                         Icons.shopping_bag_rounded,
-                        size: 34,
+                        size: 54,
                         color: AppColors.goldBright)),
                 EggEntry(:final egg) => EggArt(
-                    size: 40,
+                    size: 64,
                     glowing: controller != null && controller!.eggReady(egg)),
               },
+              ),
+              ),
             ),
           ),
+          // 개수는 오른쪽 아래 작은 뱃지 (그림을 가리지 않게)
           if (count > 1)
             Positioned(
-              right: 4,
+              right: 2,
               bottom: 2,
-              child: Text('$count',
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      shadows: [Shadow(blurRadius: 3)])),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                decoration: BoxDecoration(
+                  color: const Color(0xE60B0D26),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.6), width: 0.8),
+                ),
+                child: Text('$count',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ),
             ),
           if (e case EggEntry(:final egg) when egg.incubatedAt != null)
             const Positioned(
@@ -431,7 +472,7 @@ class _EntrySheet extends StatelessWidget {
     final what = entry is EquipEntry ? name : '$name $n개';
     final ok = await showDialog<bool>(
       context: context,
-      builder: (d) => AlertDialog(
+      builder: (d) => GameAlert(
         title: const Text('버리기'),
         content: KText('${josa(what, '을/를')} 버릴까요? 버리면 되찾을 수 없어요.'),
         actions: [

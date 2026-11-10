@@ -571,6 +571,6 @@ void main() {
     await tester.tap(buy);
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
-    expect(find.text('오늘 샀어요'), findsOneWidget);
+    expect(find.textContaining('다시 살 수 있어요 · '), findsOneWidget);
   });
 }

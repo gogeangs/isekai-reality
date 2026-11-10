@@ -283,10 +283,9 @@ class TownRules {
           ? RuleConstants.crystalsPerDungeonClear
           : RuleConstants.crystalsPerDungeonFail;
     }
-    final field = r.fieldMonstersPurified > RuleConstants.maxFieldMonstersPerDay
-        ? RuleConstants.maxFieldMonstersPerDay
-        : r.fieldMonstersPurified;
-    return c + field * RuleConstants.crystalsPerFieldMonster;
+    // 11-11 #69: 5마리 뒤로는 마석이 줄어든다
+    final field = RuleConstants.fieldUnits(r.fieldMonstersPurified);
+    return c + (field * RuleConstants.crystalsPerFieldMonster).floor();
   }
 
   /// 그날 예전 결정 가격으로 산 것 (지금은 마석으로 쓴 것으로 센다)

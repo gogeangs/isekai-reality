@@ -121,15 +121,24 @@ class StatusScreen extends StatelessWidget {
                 ? SpiritMood.cheer
                 : SpiritMood.normal;
 
+    // 11-11 #66: 한 화면에 고정 (당겨도 끌려 내려가지 않게). 작은 기기에서만
+    // 끝에서 튕기지 않는 스크롤. 무대 그림은 상태 표시줄 뒤까지 깐다.
     return NightBackground(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      statusScrim: false,
+      child: LayoutBuilder(builder: (context, box) {
+        // 아래 정보(레벨·HP·MP·스탯)가 차지하는 높이 (대략)
+        final below = 300.0 + (restLeft != null ? 48 : 0);
+        final heroH = (box.maxHeight - below).clamp(320.0, 470.0 + top);
+        return SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ─────────── 각성자 그림 + 그 오른쪽 빈자리의 정령 (11-10 A3)
           // 날씨 칩은 게임에 영향이 없어 평소에는 숨긴다 (C6),
           // 눈 문장은 누를 기능이 없어 뺐다 (A4).
           SizedBox(
-            height: 400 + top,
+            height: heroH,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -208,7 +217,6 @@ class StatusScreen extends StatelessWidget {
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
-                  onOpenDungeon: onOpenDungeon,
                 ),
                 const SizedBox(height: 12),
                 _StatsSection(
@@ -220,6 +228,8 @@ class StatusScreen extends StatelessWidget {
           ),
         ],
       ),
+      );
+      }),
     );
   }
 }
@@ -444,7 +454,7 @@ String _left(Duration d) {
   return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
 }
 
-/// 오늘 정보: HP | 정령 MP 나란히, 던전 게이지·열쇠는 던전 버튼 바로 위 (11-10 C3)
+/// 오늘 정보: HP | 정령 MP 나란히 (11-11 #68: 던전 게이지·던전 열기는 지도로 옮겼다)
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
     required this.player,
@@ -453,7 +463,6 @@ class _StatusPanel extends StatelessWidget {
     required this.hp,
     required this.mp,
     this.spiritAway,
-    this.onOpenDungeon,
   });
 
   final PlayerState player;
@@ -462,12 +471,9 @@ class _StatusPanel extends StatelessWidget {
   final int mp;
   final int mpMax;
   final String? spiritAway;
-  final VoidCallback? onOpenDungeon;
 
   @override
   Widget build(BuildContext context) {
-    final gauge = player.gauge;
-
     return OrnatePanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -498,33 +504,6 @@ class _StatusPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(height: 1, color: AppColors.gold.withValues(alpha: 0.25)),
-          const SizedBox(height: 10),
-          _Gauge(
-            icon: 'key',
-            label: '던전 게이지 · 열쇠 ${gauge.keysAvailable}',
-            ratio: gauge.ratio,
-            colors: BarColors.gauge,
-            value: gauge.dailyKeyLimitReached
-                ? '오늘은 다 모았어요'
-                : '${comma(gauge.stepsIntoNextKey)} / '
-                    '${comma(gauge.stepsPerKey)}보',
-          ),
-          if (onOpenDungeon != null) ...[
-            const SizedBox(height: 10),
-            Row(children: [
-              Expanded(
-                child: FrameButton(
-                  onPressed: onOpenDungeon,
-                  icon: Icons.door_front_door_rounded,
-                  height: 46,
-                  // 열쇠 개수는 바로 위 게이지에 있어 짧게
-                  label: gauge.keysAvailable > 0 ? '던전 열기' : '열쇠 없음',
-                ),
-              ),
-            ]),
-          ],
         ],
       ),
     );

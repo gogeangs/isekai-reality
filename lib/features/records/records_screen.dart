@@ -134,7 +134,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           _ChartPanel(
             icon: 'crystal',
             title: '필드 몬스터',
-            goalLabel: '하루 ${RuleConstants.maxFieldMonstersPerDay}마리까지',
+            goalLabel: '사냥한 마릿수',
             days: days,
             values: [
               for (final r in records)

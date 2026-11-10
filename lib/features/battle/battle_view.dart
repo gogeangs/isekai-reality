@@ -816,6 +816,7 @@ class _SkillOrb extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         InkWell(
+          key: const Key('skillButton'),
           onTap: ready ? onPressed : null,
           child: Text(
               away

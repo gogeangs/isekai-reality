@@ -155,7 +155,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 550));
       await _shot(tester, '05a_던전_대기');
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.text('약점 간파!').last);
+      await tester.tap(find.byKey(const Key('skillButton')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 240));
       await _shot(tester, '05c_던전_일격');
@@ -173,7 +173,8 @@ void main() {
         await _shot(tester, '06_던전_보스');
       }
       if (find.text('약점 간파!').evaluate().isNotEmpty) {
-        await tester.tap(find.text('약점 간파!'));
+        await tester.tap(find.byKey(const Key('skillButton')),
+            warnIfMissed: false);
       }
       await tester.pump(const Duration(milliseconds: 900));
     }

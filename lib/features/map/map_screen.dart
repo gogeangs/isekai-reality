@@ -32,10 +32,10 @@ class MapScreen extends StatelessWidget {
               : _ExploreSummary(controller: controller),
         ),
         Positioned(
-          // 위쪽 프로필·설정 버튼 사이
-          left: 66,
-          right: 66,
-          top: MediaQuery.paddingOf(context).top + 8,
+          // 위쪽 프로필·설정 버튼 아래
+          left: 16,
+          right: 16,
+          top: MediaQuery.paddingOf(context).top + 60,
           child: _TopPanel(
             purifiedToday: controller.player.today?.fieldMonstersPurified ?? 0,
             keys: gauge.keysAvailable,
@@ -247,7 +247,7 @@ class _ExploreSummary extends StatelessWidget {
     return NightBackground(
       child: ListView(
         padding: EdgeInsets.fromLTRB(
-            16, MediaQuery.paddingOf(context).top + 90, 16, 24),
+            16, MediaQuery.paddingOf(context).top + 140, 16, 24),
         children: [
           const BulssiLine(
               line: '지도를 열려면 네이버 지도 키가 필요해. 그동안은 탐험 기록을 보여 줄게!'),

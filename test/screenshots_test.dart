@@ -537,14 +537,17 @@ void main() {
       '33c_원정_놓침': base.withResult(false, escaped: true),
     };
     for (final e in cases.entries) {
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData.dark(),
-        home: Scaffold(
-          backgroundColor: const Color(0xFF0F1233),
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: ExpeditionResultCard(ex: e.value, spiritName: '불씨'),
+      await tester.pumpWidget(RepaintBoundary(
+        key: _root,
+        child: MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            backgroundColor: const Color(0xFF0F1233),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: ExpeditionResultCard(ex: e.value, spiritName: '불씨'),
+              ),
             ),
           ),
         ),

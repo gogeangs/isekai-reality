@@ -104,7 +104,14 @@ class _FarewellScreenState extends State<FarewellScreen>
           duration: const Duration(milliseconds: 900),
           curve: Curves.elasticOut,
           builder: (_, t, child) => Transform.scale(scale: t, child: child),
-          child: PetArt(species: _species, size: 170),
+          child: Stack(alignment: Alignment.center, children: [
+            // 깨진 알 껍데기와 빛 (그림이 없으면 펫만)
+            Image.asset('assets/images/scene_hatch.png',
+                width: 260,
+                height: 260,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            PetArt(species: _species, size: 170),
+          ]),
         ),
         const SizedBox(height: 10),
         Text('${josa(info.name, '이/가')} 태어났어요!',
@@ -143,11 +150,17 @@ class _FarewellScreenState extends State<FarewellScreen>
     } else {
       final pet = _pet!;
       body = Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Opacity(opacity: 0.55, child: SpiritArt(kind: kind, size: 110)),
-          const SizedBox(width: 8),
-          PetArt.of(pet, size: 110),
-        ]),
+        // 정령이 탑으로 돌아가는 장면 (그림이 없으면 흐려진 정령)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.asset('assets/images/scene_farewell.png',
+              height: 170,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Opacity(
+                  opacity: 0.55, child: SpiritArt(kind: kind, size: 110))),
+        ),
+        const SizedBox(height: 6),
+        PetArt.of(pet, size: 110),
         const SizedBox(height: 16),
         _Bubble(
             name: spiritName,

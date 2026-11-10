@@ -113,6 +113,12 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
     final known = c.knownRecipes;
     return [
       if (c.recipeNotes > 0)
+        Center(
+          child: Image.asset('assets/images/item_recipe_note.png',
+              height: 64,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+        ),
+      if (c.recipeNotes > 0)
         GoldButton(
           label: '레시피 쪽지 읽기 (${c.recipeNotes}장)',
           height: 46,
@@ -130,7 +136,16 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('알아낸 레시피 ${known.length}', style: AppText.title(18)),
+            Row(children: [
+              Image.asset('assets/images/item_recipe_book.png',
+                  width: 40,
+                  height: 40,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.menu_book_rounded,
+                      color: AppColors.goldBright)),
+              const SizedBox(width: 8),
+              Text('알아낸 레시피 ${known.length}', style: AppText.title(18)),
+            ]),
             const SizedBox(height: 2),
             const KText('모르는 물약은 이름도 보이지 않아요. 재료를 자유롭게 넣어 끓여 보세요.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),

@@ -96,7 +96,10 @@ class PotionInfo {
   /// 버프·저항·풍요 지속 시간
   final Duration duration;
 
-  String get asset => 'assets/images/potion_${id.name}.png';
+  /// 잡화상에도 있는 물약은 잡화상 그림을 같이 쓴다
+  String get asset => shopItem != null
+      ? 'assets/images/${TownRules.info(shopItem!).icon}.png'
+      : 'assets/images/potion_${id.name}.png';
 
   /// 재료 종류·개수 (순서 없이)
   Map<MaterialId, int> get counts {

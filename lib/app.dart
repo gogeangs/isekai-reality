@@ -221,8 +221,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             backgroundColor: AppColors.night,
             title: Text('${c.firstSpiritName}의 편지 · ${letter.title}',
                 style: AppText.title(18)),
-            content: KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}',
-                style: const TextStyle(color: AppColors.text, height: 1.45)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              // 정령의 편지 그림 (없으면 글만)
+              Image.asset('assets/images/letter_spirit.png',
+                  height: 120,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+              KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}',
+                  style: const TextStyle(color: AppColors.text, height: 1.45)),
+            ]),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(d), child: const Text('고마워')),

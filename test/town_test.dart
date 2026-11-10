@@ -543,7 +543,7 @@ void main() {
     // 마석 1개를 팔면 금화 10
     final gold = c.player.gold;
     final stones = c.player.manaStones;
-    await tester.tap(find.text('1개'));
+    await tester.tap(find.text('1개 팔기'));
     await tester.pumpAndSettle();
     expect(c.player.manaStones, stones - 1);
     expect(c.player.gold, gold + 10);
@@ -553,7 +553,7 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('금화 50').first);
+    await tester.tap(find.text('50').first);
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
     expect(find.text('오늘 샀어요'), findsOneWidget);

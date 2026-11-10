@@ -207,16 +207,25 @@ class _ItemCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 106,
-            child: GoldButton(
-              label: '금화 ${info.price}',
-              height: 46,
-              fontSize: 15,
-              onPressed: ok ? onBuy : null,
+          const SizedBox(width: 6),
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            SizedBox(
+              width: 96,
+              child: GoldButton(
+                label: '${info.price}',
+                height: 44,
+                fontSize: 17,
+                onPressed: ok ? onBuy : null,
+              ),
             ),
-          ),
+            const SizedBox(height: 2),
+            const Row(mainAxisSize: MainAxisSize.min, children: [
+              GameIcon('gold', size: 14, fallback: Icons.monetization_on_rounded),
+              SizedBox(width: 2),
+              Text('금화',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            ]),
+          ]),
         ],
       ),
     );
@@ -243,42 +252,50 @@ class _SellPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrnatePanel(
-      child: Row(children: [
-        const GameIcon('mana_stone', size: 40, fallback: Icons.diamond_rounded),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('마석 팔기', style: AppText.title(17, color: AppColors.text)),
-              const Text(
-                  '1개에 금화 ${RuleConstants.goldPerManaStone}. '
-                  '대장간에서도 쓰니 조금 남겨 두세요.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        SizedBox(
-          width: 64,
-          child: GoldButton(
-            label: '1개',
-            height: 40,
-            fontSize: 14,
-            onPressed: manaStones >= 1 ? () => _sell(context, 1) : null,
-          ),
-        ),
-        const SizedBox(width: 4),
-        SizedBox(
-          width: 64,
-          child: GoldButton(
-            label: '5개',
-            height: 40,
-            fontSize: 14,
-            onPressed: manaStones >= 5 ? () => _sell(context, 5) : null,
-          ),
-        ),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const GameIcon('mana_stone',
+                size: 36, fallback: Icons.diamond_rounded),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('마석 팔기',
+                      style: AppText.title(17, color: AppColors.text)),
+                  const Text(
+                      '1개에 금화 ${RuleConstants.goldPerManaStone}. '
+                      '대장간에서도 쓰니 조금 남겨 두세요.',
+                      style:
+                          TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: GoldButton(
+                label: '1개 팔기',
+                height: 40,
+                fontSize: 14,
+                onPressed: manaStones >= 1 ? () => _sell(context, 1) : null,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GoldButton(
+                label: '5개 팔기',
+                height: 40,
+                fontSize: 14,
+                onPressed: manaStones >= 5 ? () => _sell(context, 5) : null,
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
 }

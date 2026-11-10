@@ -31,11 +31,17 @@ jobs:
       - name: 패키지 설치
         run: flutter pub get
 
-      - name: 지도 플러그인 API 메모
+      - name: 플러그인 API 메모
         shell: bash
         run: |
-          d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'flutter_naver_map-*' | head -1)
-          { echo "$d"; grep -rn "Future<[^>]*> [a-zA-Z]*(\|onCamera[A-Za-z]*\|class NPathOverlay\|class NArrowheadPathOverlay\|factory NCameraUpdate\|static NCameraUpdate" "$d/lib" | sed "s#$d/##"; grep -n -A25 "NPathOverlay({" -r "$d/lib" | sed "s#$d/##"; } > api-notes.txt 2>&1 || true
+          { for n in camera google_mlkit_face_detection google_mlkit_commons gal share_plus; do
+              d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name "${n}-*" | sort -V | tail -1); echo "== $d"
+            done
+            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'gal-*' | sort -V | tail -1); grep -rn "static Future" "$d/lib" | sed "s#$d/##"
+            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'share_plus-*' | sort -V | tail -1); grep -rn "class ShareParams\|Future<ShareResult> share\|static.*instance" "$d/lib" | sed "s#$d/##"
+            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'google_mlkit_commons-*' | sort -V | tail -1); grep -rn "factory InputImage\|class InputImageMetadata" -A8 "$d/lib" | sed "s#$d/##" | head -60
+            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'google_mlkit_face_detection-*' | sort -V | tail -1); grep -n "FaceDetectorOptions({" -A12 "$d/lib/src/face_detector.dart"; grep -n "final .* boundingBox\|headEulerAngleZ\|trackingId" "$d/lib/src/face_detector.dart"; grep -rn "ios, '\|platform :ios\|s.platform\|ios.deployment_target" "$d/ios" 2>/dev/null
+          } > api-notes.txt 2>&1 || true
 
       - name: 코드 분석
         run: flutter analyze --no-fatal-infos 2>&1 | tee analyze-output.txt; exit ${PIPESTATUS[0]}

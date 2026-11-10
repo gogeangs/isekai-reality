@@ -12,7 +12,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 ios = root / "ios"
 runner = ios / "Runner"
 
-# 1. Info.plist: 앱 이름, 권한 설명, 수출 규정(암호화 없음)
+# 1. Info.plist: 앱 이름, 권한 설명(카메라·사진 저장은 11-11 #60 마법 돋보기), 수출 규정(암호화 없음)
 info_path = runner / "Info.plist"
 info = plistlib.loads(info_path.read_bytes())
 info.update({
@@ -22,6 +22,10 @@ info.update({
     "NSHealthUpdateUsageDescription": "건강 앱에 기록을 쓰지 않아요. 읽기만 해요.",
     "NSLocationWhenInUseUsageDescription":
         "동네의 잿빛 안개를 걷고 가까운 이세계 장소를 찾을 때 위치를 써요. 앱을 보고 있을 때만 사용해요.",
+    "NSCameraUsageDescription":
+        "마법 돋보기로 감정할 때 카메라를 써요. 얼굴 인식은 휴대폰 안에서만 하고, 사진을 보내거나 저장해 두지 않아요.",
+    "NSPhotoLibraryAddUsageDescription":
+        "감정한 사진을 저장하기를 누르면 사진 앨범에 넣어요.",
     "ITSAppUsesNonExemptEncryption": False,
 })
 info_path.write_bytes(plistlib.dumps(info))
@@ -40,13 +44,14 @@ if "CODE_SIGN_ENTITLEMENTS" not in s:
         r"\n\2CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;\1",
         s,
     )
-s = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;", "IPHONEOS_DEPLOYMENT_TARGET = 14.0;", s)
+s = re.sub(r"IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;", "IPHONEOS_DEPLOYMENT_TARGET = 15.5;", s)
 pbx.write_text(s)
+# 11-11 #60: 얼굴 인식(Google ML Kit)이 iOS 15.5 이상을 요구한다
 
 podfile = ios / "Podfile"
 if podfile.exists():
     p = podfile.read_text()
-    p = re.sub(r"#?\s*platform :ios, '[\d.]+'", "platform :ios, '14.0'", p)
+    p = re.sub(r"#?\s*platform :ios, '[\d.]+'", "platform :ios, '15.5'", p)
     podfile.write_text(p)
 
 # 3. 앱 아이콘 (assets/branding/app_icon.png → 크기별, 투명 없이)

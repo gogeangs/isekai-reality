@@ -39,9 +39,12 @@ perms = """
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
 """
 if "health.READ_STEPS" not in s:
     s = re.sub(r"(<manifest[^>]*>)", r"\1" + perms, s, count=1)
+# 11-11 #60 마법 돋보기: 카메라, 사진 저장(안드로이드 9 이하)
 s = re.sub(r'android:label="[^"]*"', 'android:label="이세계가 현실이라면?"', s, count=1)
 rationale = """
             <intent-filter>

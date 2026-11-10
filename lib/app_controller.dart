@@ -1218,16 +1218,30 @@ class AppController extends ChangeNotifier {
       gear: gear,
     ).runToEnd(useSkills: true);
     final cleared = battle.phase == BattlePhase.cleared;
-    if (battle.phase == BattlePhase.escaped) {
+    final escaped = battle.phase == BattlePhase.escaped;
+    if (escaped) {
       final today = await _todayRecord();
       await _save(
           today.copyWith(fledSpawnIds: [...today.fledSpawnIds, ex.spawnId]));
     }
+    final isNew = !purifiedEver.contains(monster);
     _lastExpeditionExp = cleared
         ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
             mods: mods, count: battle.floors.length)
         : 0;
-    _vitals = _vitals.copyWith(expedition: ex.withResult(cleared));
+    final r = _lastReward;
+    _vitals = _vitals.copyWith(
+        expedition: ex.withResult(cleared,
+            escaped: escaped,
+            newSpecies: cleared && isNew,
+            reward: cleared
+                ? {
+                    if (r.exp > 0) 'exp': r.exp,
+                    if (r.manaStones > 0) Wallet.manaStone: r.manaStones,
+                    if (r.gold > 0) Wallet.gold: r.gold,
+                    for (final e in r.materials.entries) e.key.name: e.value,
+                  }
+                : const {}));
     await store.saveVitals(_vitals);
   }
 

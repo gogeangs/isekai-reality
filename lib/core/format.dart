@@ -35,7 +35,10 @@ bool _isSpace(int c) => c == 0x20 || c == 0x0A || c == 0x09;
 /// 숫자·영어로 끝나면 읽는 소리로 정한다 (3 → 삼, L → 엘).
 String josa(String word, String pair) {
   final parts = pair.split('/');
-  final withBatchim = parts[0], without = parts[1];
+  // '와/과'만 받침 없는 쪽이 앞에 온다
+  final swap = pair == '와/과';
+  final withBatchim = swap ? parts[1] : parts[0];
+  final without = swap ? parts[0] : parts[1];
   final b = _batchim(word);
   if (pair == '으로/로') {
     // 받침이 없거나 ㄹ 받침이면 '로'

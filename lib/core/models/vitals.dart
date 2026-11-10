@@ -14,7 +14,19 @@ class Expedition {
     required this.arriveAt,
     required this.returnAt,
     this.cleared,
+    this.escaped = false,
+    this.reward = const {},
+    this.newSpecies = false,
   });
+
+  /// 몬스터가 도망쳤는지 (황금빛 등, 11-11 #51)
+  final bool escaped;
+
+  /// 받은 보상 ('exp'·'manaStone'·'gold'·재료 이름 → 수)
+  final Map<String, int> reward;
+
+  /// 도감에 새로 오른 몬스터인지
+  final bool newSpecies;
 
   /// 보낸 필드 몬스터 자리 id ([FieldSpawn.id])
   final String spawnId;
@@ -62,7 +74,11 @@ class Expedition {
   /// 몬스터에게 가는 중인지 (아니면 돌아오는 중)
   bool goingAt(DateTime now) => now.isBefore(arriveAt);
 
-  Expedition withResult(bool cleared) => Expedition(
+  Expedition withResult(bool cleared,
+          {bool escaped = false,
+          Map<String, int> reward = const {},
+          bool newSpecies = false}) =>
+      Expedition(
         spawnId: spawnId,
         monster: monster,
         mods: mods,
@@ -76,6 +92,9 @@ class Expedition {
         arriveAt: arriveAt,
         returnAt: returnAt,
         cleared: cleared,
+        escaped: escaped,
+        reward: reward,
+        newSpecies: newSpecies,
       );
 
   Map<String, dynamic> toJson() => {
@@ -92,6 +111,9 @@ class Expedition {
         'arriveAt': arriveAt.toIso8601String(),
         'returnAt': returnAt.toIso8601String(),
         'cleared': cleared,
+        'escaped': escaped,
+        'reward': reward,
+        'newSpecies': newSpecies,
       };
 
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
@@ -108,6 +130,12 @@ class Expedition {
         arriveAt: DateTime.parse(j['arriveAt'] as String),
         returnAt: DateTime.parse(j['returnAt'] as String),
         cleared: j['cleared'] as bool?,
+        escaped: j['escaped'] as bool? ?? false,
+        reward: {
+          for (final e in ((j['reward'] as Map?) ?? const {}).entries)
+            e.key as String: (e.value as num).toInt(),
+        },
+        newSpecies: j['newSpecies'] as bool? ?? false,
       );
 }
 

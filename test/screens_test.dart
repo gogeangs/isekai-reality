@@ -174,7 +174,7 @@ void main() {
       expect(find.text('대표 칭호'), findsOneWidget);
       await tester.tap(find.text('기록'));
       await tester.pump();
-      expect(find.textContaining('최근 7일'), findsOneWidget);
+      expect(findK('최근 7일', contains: true), findsOneWidget);
       await tester.scrollUntilVisible(find.textContaining('오늘 ·'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('오늘 ·'), findsOneWidget);
@@ -185,11 +185,11 @@ void main() {
       await tester.tap(find.text('도감'));
       await tester.pump();
       expect(find.textContaining('/${TitleRules.all.length}'), findsWidgets);
-      expect(find.text('몬스터 도감 0 / 5'), findsNothing);
+      expect(findK('몬스터 도감 0 / 5'), findsNothing);
       // 탭을 누르면 몬스터 그룹만 보인다
       await tester.tap(find.text('몬스터 0/5'));
       await tester.pump();
-      expect(find.text('몬스터 도감 0 / 5'), findsOneWidget);
+      expect(findK('몬스터 도감 0 / 5'), findsOneWidget);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {
@@ -214,3 +214,10 @@ void main() {
     });
   });
 }
+
+/// 줄바꿈 금지 문자(keepAll)를 빼고 글자를 찾는다
+Finder findK(String text, {bool contains = false}) => find.byWidgetPredicate((w) {
+      if (w is! Text) return false;
+      final d = (w.data ?? w.textSpan?.toPlainText() ?? '').replaceAll('\u2060', '');
+      return contains ? d.contains(text) : d == text;
+    });

@@ -186,6 +186,39 @@ class _BagTabState extends State<BagTab> {
             OrnatePanel(
               child: WalletRow(manaStones: p.manaStones, gold: p.gold),
             ),
+            // 지금 걸린 물약 (11-11 #74): 전투 · 속성 · 탐험 하나씩
+            if (c.activeBuffs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              OrnatePanel(
+                key: const Key('activePotions'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('지금 걸린 물약', style: AppText.title(15)),
+                    const SizedBox(height: 4),
+                    for (final b in c.activeBuffs)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(children: [
+                          PotionIcon(
+                              potion: AlchemyRules.byName(b.key),
+                              suspicious: b.key.startsWith('?:'),
+                              size: 24),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(c.buffName(b),
+                                style: const TextStyle(
+                                    color: AppColors.text, fontSize: 13)),
+                          ),
+                          Text(c.buffLeftLabel(b),
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 12)),
+                        ]),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             // 채집 도구 (11-11 #56): 가방 칸을 쓰지 않는다
             if (c.harvest.granted) ...[
               const SizedBox(height: 8),
@@ -377,7 +410,7 @@ class BagSlot extends StatelessWidget {
                 EquipEntry(:final item) =>
                   EquipIcon(base: item.base, grade: item.grade, size: 64),
                 PotionEntry(:final key) => PotionIcon(
-                    potion: AlchemyRules.byName(key.replaceAll('*', '')),
+                    potion: AlchemyRules.parseKey(key)?.id,
                     suspicious: key.startsWith('?:'),
                     size: 64),
                 PouchEntry() => Image.asset('assets/images/item_pouch.png',
@@ -410,6 +443,27 @@ class BagSlot extends StatelessWidget {
                     style: const TextStyle(
                         color: AppColors.text,
                         fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
+          // 물약 품질 (11-11 #74): 좋음·최상만 왼쪽 위에 작게
+          if (e case PotionEntry(:final key)
+              when (AlchemyRules.parseKey(key)?.quality ?? PotionQuality.normal) !=
+                  PotionQuality.normal)
+            Positioned(
+              left: 3,
+              top: 2,
+              child: Container(
+                key: const Key('potionQuality'),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  gradient: kGoldGradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(AlchemyRules.parseKey(key)!.quality.label,
+                    style: const TextStyle(
+                        color: Color(0xFF3A2208),
+                        fontSize: 9,
                         fontWeight: FontWeight.w800)),
               ),
             ),
@@ -585,6 +639,7 @@ class _EntrySheet extends StatelessWidget {
           label: '마시기',
           height: 44,
           onPressed: () async {
+            final name = c.potionName(key);
             final why = await c.drinkPotion(key);
             if (!context.mounted) return;
             if (why != null) {
@@ -592,6 +647,8 @@ class _EntrySheet extends StatelessWidget {
                   .showSnackBar(SnackBar(content: Text(why)));
             } else {
               Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${josa(name, '을/를')} 마셨어요.')));
             }
           },
         );
@@ -810,7 +867,7 @@ Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
                   contentPadding: EdgeInsets.zero,
                   value: c.alchemy.autoCure,
                   onChanged: (v) => c.setAutoUse(cure: v),
-                  title: const Text('중독·화상·눈부심이면 해독제·연고·맑은 눈 물약',
+                  title: const Text('중독·화상·눈부심·빙결이면 해독제·연고·맑은 눈·녹이는 물약',
                       style: TextStyle(color: AppColors.text, fontSize: 14)),
                 ),
               ],

@@ -71,6 +71,17 @@ enum MaterialId {
   manaOre,
   sturdyKnot,
   riverPearl,
+  // 11-11 #74 속성 마석 (공방 전용: 속성 물약 재료)
+  stoneFire,
+  stoneWater,
+  stoneWind,
+  stoneEarth,
+  stoneLight,
+  stoneDark,
+  stoneIce,
+  stoneThunder,
+  stoneMetal,
+  stonePoison,
 }
 
 class MaterialInfo {
@@ -156,17 +167,17 @@ class Materials {
         price: 30, processed: true),
     MaterialInfo(MaterialId.essence, '정제 에센스', '젤리 5개에서 뽑은 맑은 에센스. 상급 물약 재료예요.',
         price: 30, processed: true),
-    MaterialInfo(MaterialId.glowFireCore, '빛나는 불꽃 코어', '불꽃 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowFireCore, '빛나는 불꽃 코어', '불꽃 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowWaterCore, '빛나는 물방울 코어', '물방울 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowWaterCore, '빛나는 물방울 코어', '물방울 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowWindCore, '빛나는 바람 코어', '바람 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowWindCore, '빛나는 바람 코어', '바람 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowEarthCore, '빛나는 대지 코어', '대지 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowEarthCore, '빛나는 대지 코어', '대지 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowLightCore, '빛나는 빛의 코어', '빛의 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowLightCore, '빛나는 빛의 코어', '빛의 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowShadowCore, '빛나는 그림자 코어', '그림자 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowShadowCore, '빛나는 그림자 코어', '그림자 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
     MaterialInfo(MaterialId.iceJelly, '얼음 젤리', '차가운 젤리. 모아 두는 재료예요.'),
     MaterialInfo(MaterialId.iceCore, '얼음 코어', '얼음 슬라임의 코어.', rare: true),
@@ -176,13 +187,13 @@ class Materials {
     MaterialInfo(MaterialId.metalCore, '금속 코어', '금속 슬라임의 코어.', rare: true),
     MaterialInfo(MaterialId.poisonJelly, '독 젤리', '보랏빛이 도는 젤리. 모아 두는 재료예요.'),
     MaterialInfo(MaterialId.poisonCore, '독 코어', '독 슬라임의 코어.', rare: true),
-    MaterialInfo(MaterialId.glowIceCore, '빛나는 얼음 코어', '얼음 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowIceCore, '빛나는 얼음 코어', '얼음 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowThunderCore, '빛나는 번개 코어', '번개 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowThunderCore, '빛나는 번개 코어', '번개 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowMetalCore, '빛나는 금속 코어', '금속 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowMetalCore, '빛나는 금속 코어', '금속 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
-    MaterialInfo(MaterialId.glowPoisonCore, '빛나는 독 코어', '독 코어 3개를 합친 것. 속성 장비 재료예요.',
+    MaterialInfo(MaterialId.glowPoisonCore, '빛나는 독 코어', '독 코어 3개를 합친 것. 대장간에서 장비에 속성을 입힐 때 써요.',
         rare: true, price: 80, processed: true),
     // 11-11 #56 채집 귀한 재료
     MaterialInfo(MaterialId.dewHerb, '이슬 맺힌 약초',
@@ -193,23 +204,86 @@ class Materials {
         '오래된 나무의 단단한 옹이. 대장간에서 단단한 목재 2개로 가공해요.', rare: true),
     MaterialInfo(MaterialId.riverPearl, '강의 진주',
         '물가에서 건진 작은 진주. 공방에서 정제 에센스 2개로 가공해요.', rare: true),
+    // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
+    MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneWater, '물의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneWind, '바람의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneEarth, '대지의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneLight, '빛의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneDark, '어둠의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneIce, '얼음의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneThunder, '번개의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stoneMetal, '금속의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
+    MaterialInfo(MaterialId.stonePoison, '독의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
+        rare: true, price: 60, processed: true),
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);
 
   /// 재료의 속성 (속성 젤리·코어, 11-11 #63). 없으면 null.
   static Element? elementOf(MaterialId m) => switch (m) {
-        MaterialId.fireJelly || MaterialId.fireCore || MaterialId.glowFireCore => Element.fire,
-        MaterialId.waterJelly || MaterialId.waterCore || MaterialId.glowWaterCore => Element.water,
-        MaterialId.windJelly || MaterialId.windCore || MaterialId.glowWindCore => Element.wind,
-        MaterialId.mudJelly || MaterialId.earthCore || MaterialId.glowEarthCore => Element.earth,
-        MaterialId.lightJelly || MaterialId.lightCore || MaterialId.glowLightCore => Element.light,
-        MaterialId.darkJelly || MaterialId.shadowCore || MaterialId.glowShadowCore => Element.dark,
-        MaterialId.iceJelly || MaterialId.iceCore || MaterialId.glowIceCore => Element.ice,
-        MaterialId.thunderJelly || MaterialId.thunderCore || MaterialId.glowThunderCore => Element.thunder,
-        MaterialId.metalJelly || MaterialId.metalCore || MaterialId.glowMetalCore => Element.metal,
-        MaterialId.poisonJelly || MaterialId.poisonCore || MaterialId.glowPoisonCore => Element.poison,
+        MaterialId.fireJelly || MaterialId.fireCore || MaterialId.glowFireCore || MaterialId.stoneFire => Element.fire,
+        MaterialId.waterJelly || MaterialId.waterCore || MaterialId.glowWaterCore || MaterialId.stoneWater => Element.water,
+        MaterialId.windJelly || MaterialId.windCore || MaterialId.glowWindCore || MaterialId.stoneWind => Element.wind,
+        MaterialId.mudJelly || MaterialId.earthCore || MaterialId.glowEarthCore || MaterialId.stoneEarth => Element.earth,
+        MaterialId.lightJelly || MaterialId.lightCore || MaterialId.glowLightCore || MaterialId.stoneLight => Element.light,
+        MaterialId.darkJelly || MaterialId.shadowCore || MaterialId.glowShadowCore || MaterialId.stoneDark => Element.dark,
+        MaterialId.iceJelly || MaterialId.iceCore || MaterialId.glowIceCore || MaterialId.stoneIce => Element.ice,
+        MaterialId.thunderJelly || MaterialId.thunderCore || MaterialId.glowThunderCore || MaterialId.stoneThunder => Element.thunder,
+        MaterialId.metalJelly || MaterialId.metalCore || MaterialId.glowMetalCore || MaterialId.stoneMetal => Element.metal,
+        MaterialId.poisonJelly || MaterialId.poisonCore || MaterialId.glowPoisonCore || MaterialId.stonePoison => Element.poison,
         _ => null,
+      };
+
+  /// 속성 마석 (11-11 #74)
+  static MaterialId elementStone(Element e) => switch (e) {
+        Element.fire => MaterialId.stoneFire,
+        Element.water => MaterialId.stoneWater,
+        Element.wind => MaterialId.stoneWind,
+        Element.earth => MaterialId.stoneEarth,
+        Element.light => MaterialId.stoneLight,
+        Element.dark => MaterialId.stoneDark,
+        Element.ice => MaterialId.stoneIce,
+        Element.thunder => MaterialId.stoneThunder,
+        Element.metal => MaterialId.stoneMetal,
+        Element.poison => MaterialId.stonePoison,
+      };
+
+  /// 속성 젤리
+  static MaterialId elementJelly(Element e) => switch (e) {
+        Element.fire => MaterialId.fireJelly,
+        Element.water => MaterialId.waterJelly,
+        Element.wind => MaterialId.windJelly,
+        Element.earth => MaterialId.mudJelly,
+        Element.light => MaterialId.lightJelly,
+        Element.dark => MaterialId.darkJelly,
+        Element.ice => MaterialId.iceJelly,
+        Element.thunder => MaterialId.thunderJelly,
+        Element.metal => MaterialId.metalJelly,
+        Element.poison => MaterialId.poisonJelly,
+      };
+
+  /// 속성 코어 (슬라임의 귀한 재료)
+  static MaterialId elementCore(Element e) => switch (e) {
+        Element.fire => MaterialId.fireCore,
+        Element.water => MaterialId.waterCore,
+        Element.wind => MaterialId.windCore,
+        Element.earth => MaterialId.earthCore,
+        Element.light => MaterialId.lightCore,
+        Element.dark => MaterialId.shadowCore,
+        Element.ice => MaterialId.iceCore,
+        Element.thunder => MaterialId.thunderCore,
+        Element.metal => MaterialId.metalCore,
+        Element.poison => MaterialId.poisonCore,
       };
 
   static MaterialId? byName(String name) {

@@ -203,6 +203,7 @@ class HarvestRules {
     ExclusionIndex? exclusions,
     List<GamePlace> places = const [],
     bool Function(GeoPoint)? excluded,
+    double density = 1,
   }) {
     final out = <HarvestSpot>[];
     const blockLat = blockM / 111320;
@@ -245,6 +246,24 @@ class HarvestRules {
                     ? HarvestKind.wood
                     : HarvestKind.ore;
         out.add(HarvestSpot(id: 'h${r}_$c', kind: kind, point: p));
+        // 유인 물약 (11-11 #74): 칸마다 [density]-1 확률로 한 자리 더
+        if (density > 1) {
+          final lr = math.Random(_hash('lure|$r|$c'));
+          if (lr.nextDouble() < density - 1) {
+            for (var t = 0; t < 6; t++) {
+              final q = GeoPoint(s0 + lr.nextDouble() * blockLat,
+                  w0 + lr.nextDouble() * blockLng);
+              if ((roads?.isRoad(q) ?? false) ||
+                  (exclusions?.contains(q) ?? false) ||
+                  (excluded?.call(q) ?? false)) {
+                continue;
+              }
+              final k2 = lr.nextDouble() < 0.5 ? HarvestKind.herb : HarvestKind.wood;
+              out.add(HarvestSpot(id: 'h${r}_${c}L', kind: k2, point: q));
+              break;
+            }
+          }
+        }
       }
     }
     return out;

@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../battle/element_view.dart';
 
 /// 재료 그림 (mat_<이름>.png). 그림이 오기 전에는 아이콘으로 대신한다.
 class MaterialIcon extends StatelessWidget {
@@ -66,6 +67,18 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.manaOre => Icons.diamond_rounded,
         MaterialId.sturdyKnot => Icons.forest_rounded,
         MaterialId.riverPearl => Icons.circle_rounded,
+        // 속성 마석 (11-11 #74): 마석 모양
+        MaterialId.stoneFire ||
+        MaterialId.stoneWater ||
+        MaterialId.stoneWind ||
+        MaterialId.stoneEarth ||
+        MaterialId.stoneLight ||
+        MaterialId.stoneDark ||
+        MaterialId.stoneIce ||
+        MaterialId.stoneThunder ||
+        MaterialId.stoneMetal ||
+        MaterialId.stonePoison =>
+          Icons.hexagon_rounded,
       };
 
   @override
@@ -88,7 +101,11 @@ class MaterialIcon extends StatelessWidget {
         ),
         child: Icon(fallback(id),
             size: size * 0.58,
-            color: info.rare ? AppColors.goldBright : AppColors.text),
+            color: fallback(id) == Icons.hexagon_rounded
+                ? elementColor(Materials.elementOf(id))
+                : info.rare
+                    ? AppColors.goldBright
+                    : AppColors.text),
       ),
     );
   }

@@ -46,6 +46,7 @@ class PlayerState {
           goal: d.stepGoal,
           extra: TownRules.spareKeysOn(d),
           runs: d.dungeonRuns.length,
+          bonus: TownRules.gaugeBonusOn(d),
         ),
     ]);
 
@@ -62,6 +63,7 @@ class PlayerState {
         extraKeys: today == null ? 0 : TownRules.spareKeysOn(today),
         carriedKeys: carried,
         keysUsedToday: today?.dungeonRuns.length ?? 0,
+        bonusSteps: today == null ? 0 : TownRules.gaugeBonusOn(today),
       ),
       dailyExp: dailyExp,
       manaStones: TownRules.manaStones(history),

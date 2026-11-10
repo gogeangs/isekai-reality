@@ -26,18 +26,53 @@ class Brew {
 }
 
 /// 마신 물약의 남은 효과 (버프·저항·풍요·수상한 물약)
+///
+/// 11-11 #74: 전투·속성 물약은 남은 전투 수([battles]), 걸음 물약은
+/// 마신 때 걸음([stepsFrom])부터 [stepsCap] 보까지, 나머지는 시간([until]).
 class ActiveBuff {
-  const ActiveBuff({required this.key, required this.until, this.amount = 0});
+  const ActiveBuff({
+    required this.key,
+    required this.until,
+    this.amount = 0,
+    this.battles,
+    this.stepsFrom,
+    this.stepsCap,
+    this.day,
+  });
 
   /// 'strength'·'resistFire'·'plenty'·'?:agility' (수상한 물약은 ?:스탯)
   final String key;
   final DateTime until;
 
-  /// 스탯 버프 크기 (완벽한 조제·수상한 물약)
+  /// 스탯 버프 크기 (품질·수상한 물약)
   final int amount;
 
-  Map<String, dynamic> toJson() =>
-      {'key': key, 'until': until.toIso8601String(), 'amount': amount};
+  /// 남은 전투 수 (전투·속성 물약)
+  final int? battles;
+
+  /// 걸음 물약: 마신 때 오늘 걸음, 늘어나는 걸음 한도, 그날
+  final int? stepsFrom;
+  final int? stepsCap;
+  final String? day;
+
+  ActiveBuff withBattles(int n) => ActiveBuff(
+      key: key,
+      until: until,
+      amount: amount,
+      battles: n,
+      stepsFrom: stepsFrom,
+      stepsCap: stepsCap,
+      day: day);
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'until': until.toIso8601String(),
+        'amount': amount,
+        if (battles != null) 'battles': battles,
+        if (stepsFrom != null) 'stepsFrom': stepsFrom,
+        if (stepsCap != null) 'stepsCap': stepsCap,
+        if (day != null) 'day': day,
+      };
 
   static ActiveBuff? fromJson(Object? j) {
     if (j is! Map) return null;
@@ -46,7 +81,56 @@ class ActiveBuff {
     return ActiveBuff(
         key: j['key'] as String,
         until: u,
-        amount: (j['amount'] as num?)?.toInt() ?? 0);
+        amount: (j['amount'] as num?)?.toInt() ?? 0,
+        battles: (j['battles'] as num?)?.toInt(),
+        stepsFrom: (j['stepsFrom'] as num?)?.toInt(),
+        stepsCap: (j['stepsCap'] as num?)?.toInt(),
+        day: j['day'] as String?);
+  }
+}
+
+/// 변환대에서 진행 중인 변환 (11-11 #74). 넣은 것은 시작할 때 이미 뺐다.
+class ConvertJob {
+  const ConvertJob({
+    required this.kind,
+    required this.get,
+    required this.startedAt,
+    required this.readyAt,
+    this.getManaStones = 0,
+  });
+
+  /// ConvertKind 이름
+  final String kind;
+
+  /// 나오는 재료 (이름 → 개수)
+  final Map<String, int> get;
+  final int getManaStones;
+  final DateTime startedAt;
+  final DateTime readyAt;
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'get': get,
+        'getManaStones': getManaStones,
+        'startedAt': startedAt.toIso8601String(),
+        'readyAt': readyAt.toIso8601String(),
+      };
+
+  static ConvertJob? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final s = DateTime.tryParse(j['startedAt'] as String? ?? '');
+    final r = DateTime.tryParse(j['readyAt'] as String? ?? '');
+    if (s == null || r == null) return null;
+    return ConvertJob(
+      kind: j['kind'] as String? ?? '',
+      get: {
+        for (final e in ((j['get'] as Map?) ?? const {}).entries)
+          e.key as String: (e.value as num).toInt(),
+      },
+      getManaStones: (j['getManaStones'] as num?)?.toInt() ?? 0,
+      startedAt: s,
+      readyAt: r,
+    );
   }
 }
 
@@ -95,7 +179,15 @@ class AlchemyState {
     this.autoHp = 0,
     this.autoCure = false,
     this.saved = const [],
+    this.convert,
+    this.mastery = 0,
   });
+
+  /// 변환대 (11-11 #74, 1칸)
+  final ConvertJob? convert;
+
+  /// 연금술사 숙련도 점수 (11-11 #74). 직업 각성 전에는 모아 두기만 한다.
+  final int mastery;
 
   /// 가방의 공방 물약: 'healBig', 'healBig*'(완벽한 조제), '?:herb+herb'(수상한 물약)
   final Map<String, int> potions;
@@ -146,6 +238,9 @@ class AlchemyState {
     Map<String, String>? calledDays,
     int? autoHp,
     bool? autoCure,
+    ConvertJob? convert,
+    bool clearConvert = false,
+    int? mastery,
   }) =>
       AlchemyState(
         potions: potions ?? this.potions,
@@ -160,6 +255,8 @@ class AlchemyState {
         autoHp: autoHp ?? this.autoHp,
         autoCure: autoCure ?? this.autoCure,
         saved: saved,
+        convert: clearConvert ? null : (convert ?? this.convert),
+        mastery: mastery ?? this.mastery,
       );
 
   /// [key] 를 [n] 개 더한다 (빼면 0개는 지운다)
@@ -187,6 +284,8 @@ class AlchemyState {
         'autoHp': autoHp,
         'autoCure': autoCure,
         'saved': saved,
+        if (convert != null) 'convert': convert!.toJson(),
+        'mastery': mastery,
       };
 
   factory AlchemyState.fromJson(Map<String, dynamic> j) {
@@ -224,6 +323,8 @@ class AlchemyState {
         for (final s in (j['saved'] as List?) ?? const [])
           Map<String, dynamic>.from(s as Map),
       ],
+      convert: ConvertJob.fromJson(j['convert']),
+      mastery: (j['mastery'] as num?)?.toInt() ?? 0,
     );
   }
 }

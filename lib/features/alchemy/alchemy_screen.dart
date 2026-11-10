@@ -5,9 +5,11 @@ import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../battle/element_view.dart' show elementColor;
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
+import 'convert_panel.dart';
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {
@@ -21,7 +23,7 @@ class AlchemyScreen extends StatefulWidget {
 
 class _AlchemyScreenState extends State<AlchemyScreen> {
   int _tab = 0;
-  static const _tabs = ['가마솥', '레시피 책', '재료 가공'];
+  static const _tabs = ['가마솥', '레시피 책', '재료 가공', '변환'];
 
   AppController get c => widget.controller;
 
@@ -43,9 +45,10 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
               const SizedBox(height: 6),
               BulssiLine(
                   line: switch (_tab) {
-                0 => '재료를 넣는 순서도 중요하대. 딱 맞으면 「완벽한 조제」야!',
+                0 => '넣는 순서가 딱 맞거나 귀한 재료를 쓰면 품질이 좋아져!',
                 1 => '한 번 만든 물약은 여기 적혀. 쪽지를 읽으면 재료를 알 수 있어.',
-                _ => '하위 재료 여러 개를 상위 재료로 바꿀 수 있어.',
+                2 => '하위 재료 여러 개를 상위 재료로 바꿀 수 있어.',
+                _ => '남는 재료를 바꾸거나, 마석을 속성 마석으로 정제할 수 있어.',
               }),
               const SizedBox(height: 10),
               Row(children: [
@@ -73,6 +76,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
               ...switch (_tab) {
                 0 => _cauldrons(context),
                 1 => _book(context),
+                3 => [ConvertPanel(controller: c)],
                 _ => [
                     ProcessPanel(controller: c),
                     const SizedBox(height: 10),
@@ -96,7 +100,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
         _CauldronCard(controller: c, slot: i),
         const SizedBox(height: 10),
       ],
-      if (gold != null)
+      if (gold != null) ...[
         FrameButton(
           label: '가마솥 하나 더 · 금화 ${comma(gold)}'
               '${c.cauldronStone > 0 ? ' + 미궁 석재 ${c.cauldronStone}' : ''}',
@@ -109,6 +113,9 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                 content: Text(ok ? '가마솥이 하나 늘었어요!' : '금화나 재료가 모자라요.')));
           },
         ),
+        const SizedBox(height: 10),
+      ],
+      AlchemistPanel(controller: c),
     ];
   }
 
@@ -215,6 +222,7 @@ class PotionIcon extends StatelessWidget {
         PotionKind.buff => const Color(0xFFF0A93B),
         PotionKind.resist => const Color(0xFFC79BFF),
         PotionKind.special => AppColors.goldBright,
+        PotionKind.weapon => elementColor(AlchemyRules.info(p!).element),
         null => const Color(0xFF9AA6D8),
       };
 
@@ -326,9 +334,14 @@ Future<void> _showResult(BuildContext context, AppController c, BrewResult r) {
     line = '맞는 조합이 아니었나 봐요. 무슨 효과일지는 마셔 봐야 알아요.';
   } else {
     final info = AlchemyRules.info(r.potion!);
-    title = r.perfect ? '완벽한 조제!' : info.name;
-    line = '${info.name} ${r.count}개를 만들었어요.'
-        '${r.perfect ? ' 순서까지 딱 맞아서 효과가 25% 더 좋아요!' : ''}'
+    // 품질 (11-11 #74): 등급만 보여 주고 판정은 숨긴다
+    title = switch (r.quality) {
+      PotionQuality.best => '최상 품질!',
+      PotionQuality.good => '좋은 품질!',
+      PotionQuality.normal => info.name,
+    };
+    line = '${info.name} ${r.count}개를 만들었어요. 품질: ${r.quality.label}'
+        '${r.quality == PotionQuality.normal ? '' : '\n효과가 더 크고 오래가요.'}'
         '${r.discovered ? '\n새 레시피를 레시피 책에 적었어요.' : ''}';
   }
   return showDialog<void>(

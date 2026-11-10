@@ -14,7 +14,11 @@ class EquipItem {
     this.enhanceManaSpent = 0,
     this.appearance,
     this.element,
+    this.elementLevel = 0,
   });
+
+  /// 속성 강화 단계 (11-11 #74, 0~3). 숫자는 숨기고 아이콘 빛으로만 보인다.
+  final int elementLevel;
 
   /// 속성 (11-11 #63). 무기는 공격 속성, 나머지는 방어(저항) 속성. 없으면 무속성.
   final Element? element;
@@ -53,6 +57,8 @@ class EquipItem {
     int? durability,
     int? enhanceManaSpent,
     Element? element,
+    int? elementLevel,
+    bool clearElement = false,
   }) =>
       EquipItem(
         uid: uid,
@@ -64,7 +70,8 @@ class EquipItem {
         materialsUsed: materialsUsed,
         enhanceManaSpent: enhanceManaSpent ?? this.enhanceManaSpent,
         appearance: appearance,
-        element: element ?? this.element,
+        element: clearElement ? null : (element ?? this.element),
+        elementLevel: clearElement ? 0 : (elementLevel ?? this.elementLevel),
       );
 
   Map<String, dynamic> toJson() => {
@@ -78,6 +85,7 @@ class EquipItem {
         'enhanceManaSpent': enhanceManaSpent,
         'appearance': appearance,
         if (element != null) 'element': element!.name,
+        if (elementLevel > 0) 'elementLevel': elementLevel,
       };
 
   static EquipItem? fromJson(Map<String, dynamic> j) {
@@ -100,6 +108,7 @@ class EquipItem {
       enhanceManaSpent: (j['enhanceManaSpent'] as num?)?.toInt() ?? 0,
       appearance: j['appearance'] as String?,
       element: ElementRules.parse(j['element'] as String?),
+      elementLevel: (j['elementLevel'] as num?)?.toInt() ?? 0,
     );
   }
 }

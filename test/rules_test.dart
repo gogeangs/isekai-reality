@@ -129,8 +129,8 @@ void main() {
 
     test('보너스 열쇠도 다음 날로 넘어간다 (이월 최대 3개)', () {
       final carried = DungeonGaugeRules.carriedIntoLastDay([
-        (date: DateTime(2026, 11, 1), steps: 3000, goal: 3000, extra: 0, runs: 0),
-        (date: DateTime(2026, 11, 2), steps: 0, goal: 3000, extra: 0, runs: 0),
+        (date: DateTime(2026, 11, 1), steps: 3000, goal: 3000, extra: 0, runs: 0, bonus: 0),
+        (date: DateTime(2026, 11, 2), steps: 0, goal: 3000, extra: 0, runs: 0, bonus: 0),
       ]);
       expect(carried, 2);
     });

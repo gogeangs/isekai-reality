@@ -9,6 +9,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../alchemy/alchemy_screen.dart' show ProcessPanel;
+import '../alchemy/convert_panel.dart' show LockedJobPanel;
 import 'equipment_view.dart';
 import '../battle/element_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
@@ -285,10 +286,10 @@ class _SmithyScreenState extends State<SmithyScreen> {
               onPressed: () => _imbueSheet(item),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (item.element != null) ...[
-                  ElementIcon(item.element, size: 16),
+                  ElementIcon(item.element, size: 16, level: item.elementLevel),
                   const SizedBox(width: 3),
                 ],
-                const Text('속성 부여',
+                const Text('속성',
                     style: TextStyle(color: AppColors.goldBright)),
               ]),
             ),
@@ -316,9 +317,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
     ];
   }
 
-  /// 속성 부여 (11-11 #63): 빛나는 속성 코어 1개 + 금화 100
+  /// 장비 속성 (11-11 #74): 입히기 · 바꾸기 · 추출 · 강화.
+  /// 실패 확률과 강화 배율은 숨기고, 강화 단계는 아이콘 빛으로만 보여 준다.
   Future<void> _imbueSheet(EquipItem item) async {
-    final weapon = item.slot == EquipSlot.weapon;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.night,
@@ -326,46 +327,156 @@ class _SmithyScreenState extends State<SmithyScreen> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheet) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-          children: [
-            Text('${item.name} 속성 부여', style: AppText.title(19)),
-            const SizedBox(height: 4),
-            KText(
-                weapon
-                    ? '무기에 속성을 붙이면 그 속성으로 공격해요. 상성이 맞으면 더 세요.'
-                    : '방어구·장신구에 속성을 붙이면 그 속성 몬스터에게 덜 다쳐요.',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            Text('빛나는 속성 코어 1개 + 금화 ${EquipmentRules.imbueGold} (재료 가공에서 만들어요)',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            const SizedBox(height: 8),
-            for (final e in Element.values)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: ElementIcon(e, size: 28),
-                title: Text('${e.label} 속성',
-                    style: const TextStyle(color: AppColors.text)),
-                subtitle: Text(
-                    '${Materials.info(EquipmentRules.imbueCore(e)).name} '
-                    '${c.player.materialCount(EquipmentRules.imbueCore(e))}개',
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 11.5)),
-                trailing: TextButton(
-                  onPressed: c.player.materialCount(EquipmentRules.imbueCore(e)) > 0 &&
-                          c.player.gold >= EquipmentRules.imbueGold &&
-                          item.element != e
-                      ? () async {
-                          final ok = await c.imbue(item.uid, e);
-                          if (!sheet.mounted) return;
-                          Navigator.of(sheet).pop();
-                          if (ok) _snack('${e.label} 속성을 붙였어요!');
-                        }
-                      : null,
-                  child: Text(item.element == e ? '지금 속성' : '붙이기'),
+        child: ListenableBuilder(
+          listenable: c,
+          builder: (sheet, _) {
+            final it = c.armory.byUid(item.uid) ?? item;
+            final weapon = it.slot == EquipSlot.weapon;
+            final el = it.element;
+            Future<void> run(SmithAction a, {Element? to}) async {
+              final r = await c.smith(it.uid, a, to: to);
+              if (!mounted) return;
+              _snack(switch (r) {
+                SmithResult.ok => switch (a) {
+                    SmithAction.apply => '${to!.label} 속성을 입혔어요!',
+                    SmithAction.change => '${to!.label} 속성으로 바꿨어요!',
+                    SmithAction.extract => '속성을 뽑아 빛나는 코어를 돌려받았어요.',
+                    SmithAction.upgrade => '속성이 더 진하게 빛나요!',
+                  },
+                SmithResult.failed => SmithRules.failLine,
+                SmithResult.cannot => '금화나 빛나는 속성 코어가 모자라요.',
+              });
+            }
+
+            String cost(SmithAction a, Element? e) => [
+                  '금화 ${SmithRules.gold(a)}',
+                  if (SmithRules.cores(a) > 0 && e != null)
+                    '${Materials.info(EquipmentRules.imbueCore(e)).name} ${SmithRules.cores(a)}'
+                        ' (가진 것 ${c.player.materialCount(EquipmentRules.imbueCore(e))})',
+                ].join(' + ');
+
+            bool can(SmithAction a, Element? e) =>
+                c.player.gold >= SmithRules.gold(a) &&
+                (SmithRules.cores(a) == 0 ||
+                    (e != null &&
+                        c.player.materialCount(EquipmentRules.imbueCore(e)) >=
+                            SmithRules.cores(a)));
+
+            Widget pick(SmithAction a) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final e in Element.values)
+                      if (e != el)
+                        ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: ElementIcon(e, size: 26),
+                          title: Text('${e.label} 속성',
+                              style: const TextStyle(color: AppColors.text)),
+                          subtitle: Text(cost(a, e),
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 11.5)),
+                          trailing: TextButton(
+                            key: Key('smith_${a.name}_${e.name}'),
+                            onPressed: can(a, e) ? () => run(a, to: e) : null,
+                            child: Text(a == SmithAction.apply ? '입히기' : '바꾸기'),
+                          ),
+                        ),
+                  ],
+                );
+
+            return ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+              children: [
+                Row(children: [
+                  if (el != null) ...[
+                    ElementIcon(el, size: 28, level: it.elementLevel),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                      child: Text('${it.name} 속성', style: AppText.title(19))),
+                ]),
+                const SizedBox(height: 4),
+                KText(
+                    weapon
+                        ? '무기에 속성을 입히면 그 속성으로 공격해요. 상성이 맞으면 더 세요.'
+                        : '방어구·장신구에 속성을 입히면 그 속성 몬스터에게 덜 다쳐요.',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                const KText('도르군의 망치질은 가끔 빗나가요. 그때는 금화만 들고, 코어는 돌려받아요.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 8),
+                if (el == null) ...[
+                  Text(SmithAction.apply.label, style: AppText.title(16)),
+                  pick(SmithAction.apply),
+                ] else ...[
+                  OrnatePanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                            '${el.label} 속성 ${weapon ? '공격' : '방어'}'
+                            '${it.elementLevel >= SmithRules.maxLevel ? ' · 가장 진하게 빛나요' : ''}',
+                            style: const TextStyle(color: AppColors.text, fontSize: 14)),
+                        const SizedBox(height: 6),
+                        Row(children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(SmithAction.upgrade.label, style: AppText.title(15)),
+                                KText(cost(SmithAction.upgrade, el),
+                                    style: const TextStyle(
+                                        color: AppColors.textMuted, fontSize: 11.5)),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            key: const Key('smith_upgrade'),
+                            onPressed: it.elementLevel < SmithRules.maxLevel &&
+                                    can(SmithAction.upgrade, el)
+                                ? () => run(SmithAction.upgrade)
+                                : null,
+                            child: const Text('강화'),
+                          ),
+                        ]),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(SmithAction.extract.label, style: AppText.title(15)),
+                                KText(
+                                    '${cost(SmithAction.extract, el)} · 빛나는 코어 1개를 돌려받고 무속성이 돼요 (강화한 빛은 사라져요)',
+                                    style: const TextStyle(
+                                        color: AppColors.textMuted, fontSize: 11.5)),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            key: const Key('smith_extract'),
+                            onPressed: can(SmithAction.extract, el)
+                                ? () => run(SmithAction.extract)
+                                : null,
+                            child: const Text('추출'),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(SmithAction.change.label, style: AppText.title(16)),
+                  pick(SmithAction.change),
+                ],
+                const SizedBox(height: 8),
+                const LockedJobPanel(
+                  title: '대장장이',
+                  lines: ['속성 작업이 더 싸고 잘 돼요', '속성 강화의 힘이 더 커요'],
                 ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );

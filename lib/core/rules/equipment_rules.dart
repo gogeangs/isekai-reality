@@ -99,6 +99,8 @@ class GearBonus {
     this.stats = Stats.zero,
     this.attackElement,
     this.guardElements = const {},
+    this.attackLevel = 0,
+    this.guardLevels = const {},
   });
 
   /// 무기의 공격 속성 (11-11 #63)
@@ -106,6 +108,10 @@ class GearBonus {
 
   /// 방어구·장신구의 방어 속성
   final Set<Element> guardElements;
+
+  /// 속성 강화 단계 (11-11 #74, 숨김)
+  final int attackLevel;
+  final Map<Element, int> guardLevels;
 
   final double attack;
   final double reduce;
@@ -414,13 +420,18 @@ class EquipmentRules {
     var faster = 0;
     var extra = Stats.zero;
     Element? atkEl;
+    var atkLv = 0;
     final guards = <Element>{};
+    final guardLv = <Element, int>{};
     for (final item in worn) {
       if (item.element != null) {
         if (item.slot == EquipSlot.weapon) {
           atkEl = item.element;
+          atkLv = item.elementLevel;
         } else {
           guards.add(item.element!);
+          final e = item.element!;
+          if (item.elementLevel > (guardLv[e] ?? 0)) guardLv[e] = item.elementLevel;
         }
       }
       final base = EquipmentRules.info(item.base);
@@ -447,6 +458,8 @@ class EquipmentRules {
       stats: extra,
       attackElement: atkEl,
       guardElements: guards,
+      attackLevel: atkLv,
+      guardLevels: guardLv,
     );
   }
 

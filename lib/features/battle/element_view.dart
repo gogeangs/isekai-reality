@@ -33,15 +33,36 @@ IconData elementIconData(Element? e) => switch (e) {
 
 /// 속성 아이콘 (11-11 #63). 숫자 없이 아이콘만 보여 준다.
 /// 그림(assets/images/icon_el_<속성>.png, 무속성은 icon_el_none.png)이 없으면 색 동그라미.
+/// [level] 은 장비 속성 강화 단계 (11-11 #74): 숫자 대신 빛이 진해진다.
 class ElementIcon extends StatelessWidget {
-  const ElementIcon(this.element, {super.key, this.size = 20});
+  const ElementIcon(this.element, {super.key, this.size = 20, this.level = 0});
 
   final Element? element;
   final double size;
+  final int level;
 
   @override
   Widget build(BuildContext context) {
     final e = element;
+    final icon = _icon(e);
+    if (e == null || level <= 0) return icon;
+    return DecoratedBox(
+      key: ValueKey('elGlow$level'),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: elementColor(e).withValues(alpha: 0.25 + 0.2 * level),
+            blurRadius: 4.0 + 4 * level,
+            spreadRadius: 0.5 * level,
+          ),
+        ],
+      ),
+      child: icon,
+    );
+  }
+
+  Widget _icon(Element? e) {
     return Tooltip(
       message: e == null ? '무속성' : '${e.label} 속성',
       child: Image.asset(

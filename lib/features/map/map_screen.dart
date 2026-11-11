@@ -14,6 +14,7 @@ import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../harvest/harvest_sheet.dart';
+import '../town/bag_tab.dart' show showMerchantSheet;
 import '../town/material_view.dart';
 import 'expedition_sheet.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
@@ -498,6 +499,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   int _drawnSpawns = -1;
   String? _drawnFix;
   String? _drawnSpirit;
+  String? _drawnMerchant;
 
   static NLatLng _ll(GeoPoint p) => NLatLng(p.lat, p.lng);
 
@@ -505,6 +507,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   void didUpdateWidget(covariant _NaverMapLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     _redraw();
+    _focus();
+  }
+
+  /// 위쪽 띠에서 「상인 보기」를 눌렀을 때 그 자리로 (11-11 #84)
+  Future<void> _focus() async {
+    final map = _map;
+    if (map == null) return;
+    final p = widget.controller.takeMapFocus();
+    if (p == null) return;
+    try {
+      await map.updateCamera(
+          NCameraUpdate.scrollAndZoomTo(target: _ll(p), zoom: 16));
+    } catch (_) {}
   }
 
   /// 장소·몬스터·내 위치를 다시 그린다 (바뀐 게 있을 때만)
@@ -524,14 +539,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         : positions
             .map((p) => '${p.$1.toStringAsFixed(4)},${p.$2.toStringAsFixed(4)}')
             .join('|');
+    final merchantAt = c.merchantPoint;
+    final merchantKey =
+        merchantAt == null ? null : '${c.merchantMinutesLeft}';
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
-        _drawnSpirit == spiritKey) {
+        _drawnSpirit == spiritKey &&
+        _drawnMerchant == merchantKey) {
       return;
     }
     _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
     _drawnSpirit = spiritKey;
+    _drawnMerchant = merchantKey;
 
     final area = c.area;
     final visited = c.everVisitedPlaceIds;
@@ -581,6 +601,21 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
         ),
+      // 떠돌이 상인 (11-11 #84): 누르면 거리와 상관없이 바로 상점
+      if (merchantAt != null)
+        NMarker(
+          id: 'merchant',
+          position: _ll(merchantAt),
+          icon: const NOverlayImage.fromAssetImage('assets/images/merchant.png'),
+          size: const Size(58, 58),
+          caption: NOverlayCaption(
+            text: '떠돌이 상인 · ${c.merchantMinutesLeft}분',
+            color: AppColors.goldBright,
+            haloColor: const Color(0xFF0B0D26),
+          ),
+        )..setOnTapListener((_) {
+            if (mounted) showMerchantSheet(context, c);
+          }),
       if (fix != null)
         NMarker(
           id: 'player',

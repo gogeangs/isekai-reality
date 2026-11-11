@@ -12,7 +12,17 @@ class GatherState {
     this.offers = const {},
     this.noteOffer = false,
     this.notify = true,
+    this.merchantLat,
+    this.merchantLng,
+    this.sold = const [],
   });
+
+  /// 떠돌이 상인이 선 자리 (11-11 #84, 지도에 보인다)
+  final double? merchantLat;
+  final double? merchantLng;
+
+  /// 이번 상인에게서 이미 산 것 (재료 이름, 레시피 쪽지는 'note'). 「팔렸어요」로 보인다.
+  final List<String> sold;
 
   /// 가방의 걸음 주머니 수
   final int pouches;
@@ -55,6 +65,9 @@ class GatherState {
     Map<String, int>? offers,
     bool? noteOffer,
     bool? notify,
+    double? merchantLat,
+    double? merchantLng,
+    List<String>? sold,
   }) =>
       GatherState(
         pouches: pouches ?? this.pouches,
@@ -69,6 +82,9 @@ class GatherState {
         offers: offers ?? this.offers,
         noteOffer: noteOffer ?? this.noteOffer,
         notify: notify ?? this.notify,
+        merchantLat: merchantLat ?? this.merchantLat,
+        merchantLng: merchantLng ?? this.merchantLng,
+        sold: sold ?? this.sold,
       );
 
   Map<String, dynamic> toJson() => {
@@ -84,6 +100,9 @@ class GatherState {
         'offers': offers,
         'noteOffer': noteOffer,
         'notify': notify,
+        if (merchantLat != null) 'merchantLat': merchantLat,
+        if (merchantLng != null) 'merchantLng': merchantLng,
+        if (sold.isNotEmpty) 'sold': sold,
       };
 
   factory GatherState.fromJson(Map<String, dynamic> j) => GatherState(
@@ -101,5 +120,8 @@ class GatherState {
         },
         noteOffer: j['noteOffer'] as bool? ?? false,
         notify: j['notify'] as bool? ?? true,
+        merchantLat: (j['merchantLat'] as num?)?.toDouble(),
+        merchantLng: (j['merchantLng'] as num?)?.toDouble(),
+        sold: [for (final x in (j['sold'] as List?) ?? const []) '$x'],
       );
 }

@@ -2313,9 +2313,18 @@ class AppController extends ChangeNotifier {
       if (checked % GatherRules.merchantSteps < GatherRules.findSteps &&
           g.merchantToday < GatherRules.merchantPerDay &&
           _random.nextDouble() < GatherRules.merchantChance) {
+        // 상인은 내 근처(60~120m)에 선다 (11-11 #84)
+        final here = _lastFix?.point ?? fallbackCenter;
+        final at = here == null
+            ? null
+            : _merchantSpot(here, 60 + _random.nextDouble() * 60,
+                _random.nextDouble() * math.pi * 2);
         g = g.copyWith(
           merchantUntil: now.add(GatherRules.merchantStay),
           merchantToday: g.merchantToday + 1,
+          merchantLat: at?.lat,
+          merchantLng: at?.lng,
+          sold: const [],
           offers: {
             for (final e in GatherRules.offers(_random).entries)
               e.key.name: e.value,
@@ -2357,6 +2366,46 @@ class AppController extends ChangeNotifier {
   bool get merchantHere =>
       _gather.merchantUntil != null && _gather.merchantUntil!.isAfter(_clock());
 
+  static GeoPoint _merchantSpot(GeoPoint from, double meters, double angle) {
+    const mPerDegLat = 111320.0;
+    final dLat = meters * math.cos(angle) / mPerDegLat;
+    final dLng = meters *
+        math.sin(angle) /
+        (mPerDegLat * math.cos(from.lat * math.pi / 180));
+    return GeoPoint(from.lat + dLat, from.lng + dLng);
+  }
+
+  /// 떠돌이 상인이 선 자리 (없으면 null). 예전 기록처럼 자리가 없으면 내 위치.
+  GeoPoint? get merchantPoint {
+    if (!merchantHere) return null;
+    final g = _gather;
+    if (g.merchantLat != null && g.merchantLng != null) {
+      return GeoPoint(g.merchantLat!, g.merchantLng!);
+    }
+    return _lastFix?.point ?? fallbackCenter;
+  }
+
+  /// 상인이 떠나기까지 남은 분 (없으면 0)
+  int get merchantMinutesLeft => merchantHere
+      ? _gather.merchantUntil!.difference(_clock()).inMinutes + 1
+      : 0;
+
+  /// 이번 상인에게서 이미 샀는지 ([m] 이 null 이면 레시피 쪽지)
+  bool merchantSold(MaterialId? m) => _gather.sold.contains(m?.name ?? 'note');
+
+  // 지도에서 보여 달라는 자리 (위쪽 띠를 눌렀을 때, 11-11 #84)
+  GeoPoint? _mapFocus;
+  void requestMapFocus(GeoPoint p) {
+    _mapFocus = p;
+    notifyListeners();
+  }
+
+  GeoPoint? takeMapFocus() {
+    final p = _mapFocus;
+    _mapFocus = null;
+    return p;
+  }
+
   /// 걸음 주머니를 연다
   Future<({Map<MaterialId, int> mats, int gold, bool note})?> openPouch() async {
     if (_gather.pouches <= 0) return null;
@@ -2383,18 +2432,18 @@ class AppController extends ChangeNotifier {
     final price = m == null
         ? (_gather.noteOffer ? GatherRules.notePrice : null)
         : _gather.offers[m.name];
-    if (price == null || player.gold < price) return false;
+    if (price == null || player.gold < price || merchantSold(m)) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {Wallet.gold: price})));
+    // 한 번만 살 수 있다: 팔린 것은 「팔렸어요」로 남긴다 (11-11 #84)
     if (m == null) {
       await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
-      await _saveGather(_gather.copyWith(noteOffer: false));
     } else {
       await _grant(0, 0, {m: 1});
-      await _saveGather(_gather.copyWith(
-          offers: {..._gather.offers}..remove(m.name)));
     }
+    await _saveGather(
+        _gather.copyWith(sold: [..._gather.sold, m?.name ?? 'note']));
     return true;
   }
 

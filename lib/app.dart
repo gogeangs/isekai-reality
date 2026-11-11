@@ -326,13 +326,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       });
       return;
     }
+    // 떠돌이 상인 (11-11 #84): 창을 저절로 띄우지 않고 위쪽 띠만.
+    // 누르면 지도로 가서 상인 자리를 보여 준다.
     if (merchant != null && merchant != _shownMerchant) {
       _shownMerchant = merchant;
-      _walkShowing = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        await showMerchantSheet(context, c);
-        _walkShowing = false;
+        showTopNotice(
+            context, '떠돌이 상인이 왔어요 · ${c.merchantMinutesLeft}분',
+            icon: Icons.storefront_rounded, onTap: () {
+          final at = c.merchantPoint;
+          if (at == null) return;
+          setState(() => _tab = 1);
+          c.requestMapFocus(at);
+        });
       });
     }
   }

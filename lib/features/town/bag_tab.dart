@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -880,86 +882,203 @@ String gatherLine(({Map<MaterialId, int> mats, int gold, bool note}) r) => [
       if (r.note) '레시피 쪽지 +1',
     ].join(' · ');
 
-/// 떠돌이 상인 (11-11 #59): 잠깐 동안 귀한 재료를 금화로
+/// 떠돌이 상인 (11-11 #59, #84): 금테 공용 팝업. 상품마다 그림·이름·한 줄 설명·가격.
+/// 금화가 모자라면 「금화 N 부족」, 산 것은 「팔렸어요」. 상인이 떠나면 안내와 함께 닫힌다.
 Future<void> showMerchantSheet(BuildContext context, AppController c) =>
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      backgroundColor: AppColors.night,
-      isScrollControlled: true,
-      builder: (sheet) => ListenableBuilder(
-        listenable: c,
-        builder: (sheet, _) {
-          final g = c.gather;
-          final left = c.merchantHere
-              ? g.merchantUntil!.difference(c.now).inMinutes + 1
-              : 0;
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+      builder: (d) => _MerchantDialog(controller: c),
+    );
+
+class _MerchantDialog extends StatefulWidget {
+  const _MerchantDialog({required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<_MerchantDialog> createState() => _MerchantDialogState();
+}
+
+class _MerchantDialogState extends State<_MerchantDialog> {
+  Timer? _tick;
+  bool _left = false;
+
+  AppController get c => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 10), (_) => _check());
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  void _check() {
+    if (!mounted || _left) return;
+    if (!c.merchantHere) {
+      _left = true;
+      final nav = Navigator.of(context);
+      showTopNotice(context, '상인이 떠났어요. 또 만나요!',
+          icon: Icons.storefront_rounded);
+      nav.pop();
+    } else {
+      setState(() {});
+    }
+  }
+
+  Widget _row({
+    required Widget icon,
+    required String name,
+    required String line,
+    required int price,
+    required bool sold,
+    required VoidCallback onBuy,
+    required Key key,
+  }) {
+    final gold = c.player.gold;
+    final short = price - gold;
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(children: [
+        Opacity(opacity: sold ? 0.45 : 1, child: icon),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name,
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
+              KText(line,
+                  maxLines: 2,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 11.5, height: 1.35)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 92,
+          child: sold
+              ? const Center(
+                  child: Text('팔렸어요',
+                      style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w700)))
+              : Column(mainAxisSize: MainAxisSize.min, children: [
+                  TextButton(
+                    style: gameButtonStyle(gold: short <= 0).copyWith(
+                      minimumSize: const WidgetStatePropertyAll(Size(88, 38)),
+                      padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 6)),
+                    ),
+                    onPressed: short <= 0 && c.merchantHere ? onBuy : null,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('금화 ${comma(price)}'),
+                    ),
+                  ),
+                  if (short > 0)
+                    Text('금화 ${comma(short)} 부족',
+                        style: const TextStyle(
+                            color: Color(0xFFE88B8B), fontSize: 11)),
+                ]),
+        ),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: c,
+      builder: (context, _) {
+        final g = c.gather;
+        Future<void> buy(MaterialId? m, String name) async {
+          final ok = await c.buyFromMerchant(m);
+          if (ok && context.mounted) {
+            showTopNotice(context, '${josa(name, '을/를')} 샀어요.',
+                icon: Icons.storefront_rounded);
+          }
+        }
+
+        return GameAlert(
+          title: Row(children: [
+            Image.asset('assets/images/merchant.png',
+                width: 60,
+                height: 60,
+                errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded,
+                    size: 46, color: AppColors.goldBright)),
+            const SizedBox(width: 10),
+            Expanded(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Image.asset('assets/images/merchant.png',
-                        width: 56,
-                        height: 56,
-                        errorBuilder: (_, __, ___) => const Icon(
-                            Icons.storefront_rounded,
-                            size: 44,
-                            color: AppColors.goldBright)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('떠돌이 상인', style: AppText.title(19)),
-                          Text(
-                              c.merchantHere ? '$left분 뒤 떠나요 · 금화 ${c.player.gold}' : '상인이 떠났어요',
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 12.5)),
-                        ],
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 10),
-                  for (final e in g.offers.entries)
-                    if (Materials.byName(e.key) case final m?)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: MaterialIcon(m, size: 36),
-                        title: Text(Materials.info(m).name,
-                            style: const TextStyle(color: AppColors.text)),
-                        trailing: TextButton(
-                          onPressed: c.merchantHere && c.player.gold >= e.value
-                              ? () => c.buyFromMerchant(m)
-                              : null,
-                          child: Text('금화 ${e.value}'),
-                        ),
-                      ),
-                  if (g.noteOffer)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.description_rounded,
-                          color: AppColors.goldBright, size: 32),
-                      title: const Text('레시피 쪽지',
-                          style: TextStyle(color: AppColors.text)),
-                      trailing: TextButton(
-                        onPressed: c.merchantHere &&
-                                c.player.gold >= GatherRules.notePrice
-                            ? () => c.buyFromMerchant(null)
-                            : null,
-                        child: const Text('금화 ${GatherRules.notePrice}'),
-                      ),
-                    ),
-                  if (g.offers.isEmpty && !g.noteOffer)
-                    const KText('다 팔렸어요. 또 만나요!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textMuted)),
+                  Text('떠돌이 상인', style: AppText.title(20)),
+                  Text(
+                      c.merchantHere
+                          ? '${c.merchantMinutesLeft}분 뒤 떠나요'
+                          : '상인이 떠났어요',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 12.5)),
                 ],
               ),
             ),
-          );
-        },
-      ),
+            const GameIcon('gold', size: 20, fallback: Icons.paid_rounded),
+            const SizedBox(width: 3),
+            Text(comma(c.player.gold),
+                style: const TextStyle(
+                    color: AppColors.goldBright,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final e in g.offers.entries)
+                if (Materials.byName(e.key) case final m?)
+                  _row(
+                    key: Key('merchant_${m.name}'),
+                    icon: MaterialIcon(m, size: 40),
+                    name: Materials.info(m).name,
+                    line: Materials.info(m).description,
+                    price: e.value,
+                    sold: c.merchantSold(m),
+                    onBuy: () => buy(m, Materials.info(m).name),
+                  ),
+              if (g.noteOffer || c.merchantSold(null))
+                _row(
+                  key: const Key('merchant_note'),
+                  icon: Image.asset('assets/images/item_recipe_note.png',
+                      width: 40,
+                      height: 40,
+                      errorBuilder: (_, __, ___) => const Icon(
+                          Icons.description_rounded,
+                          size: 34,
+                          color: AppColors.goldBright)),
+                  name: '레시피 쪽지',
+                  line: '공방에서 읽으면 아직 모르는 물약의 재료를 알 수 있어요.',
+                  price: GatherRules.notePrice,
+                  sold: c.merchantSold(null),
+                  onBuy: () => buy(null, '레시피 쪽지'),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('닫기')),
+          ],
+        );
+      },
     );
+  }
+}

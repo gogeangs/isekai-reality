@@ -125,3 +125,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_bossQueenWing, mat_bossThunderFeather, mat_bossShard | 보스 재료: 여왕의 밤날개, 천둥 깃털, 보스 장비 조각 (256×256) |
 | mat_stoneWater, mat_stoneFire | 물의 마석, 불꽃의 마석 (256×256) |
 | mat_stoneWind | 바람의 마석 (256×256) |
+| icon_convert_table | 공방 변환대 (256×256) |

@@ -113,6 +113,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     weather: _c.weather?.kind,
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
+                    onAutoChanged: (hp, cure) =>
+                        _c.setAutoUse(hpPercent: hp, cure: cure),
                     poisonTip: !_c.poisonTipSeen,
                     onPoisonTipShown: _c.markPoisonTipSeen,
                     aura: switch (_c.gear.sets.look) {

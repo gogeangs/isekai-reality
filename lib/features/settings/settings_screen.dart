@@ -7,6 +7,7 @@ import '../../core/format.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../battle/auto_use_window.dart';
 import '../legal/legal_screen.dart';
 import '../../theme/top_notice.dart';
 
@@ -52,6 +53,53 @@ class SettingsScreen extends StatelessWidget {
               ListenableBuilder(
                 listenable: controller,
                 builder: (context, _) => Column(children: [
+                  // 11-11 #93: 전투·가방과 같은 자동 마시기 설정
+                  ListTile(
+                    key: const Key('settingsAutoUse'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('자동으로 마시기',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    subtitle: const Text('HP가 낮거나 상태 이상일 때 물약',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                          autoUseLabel(controller.alchemy.autoHp,
+                              controller.alchemy.autoCure),
+                          style: const TextStyle(
+                              color: AppColors.goldBright,
+                              fontWeight: FontWeight.w700)),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: AppColors.gold),
+                    ]),
+                    onTap: () => showAutoUseWindow(context,
+                        hp: controller.alchemy.autoHp,
+                        cure: controller.alchemy.autoCure,
+                        onChanged: (hp, cure) => controller.setAutoUse(
+                            hpPercent: hp, cure: cure)),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('전투 속도 기본값',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    trailing: Wrap(spacing: 6, children: [
+                      for (final fast in const [false, true])
+                        ChoiceChip(
+                          key: Key('settingsSpeed_${fast ? 2 : 1}'),
+                          label: Text(fast ? '2배' : '1배'),
+                          selected: controller.fastBattle == fast,
+                          onSelected: (_) => controller.setFastBattle(fast),
+                          selectedColor: AppColors.gold,
+                          backgroundColor: const Color(0xFF1E2250),
+                          labelStyle: TextStyle(
+                              color: controller.fastBattle == fast
+                                  ? AppColors.night
+                                  : AppColors.text,
+                              fontWeight: FontWeight.w700),
+                          showCheckmark: false,
+                        ),
+                    ]),
+                  ),
                   SwitchListTile(
                     key: const Key('feelVibrate'),
                     contentPadding: EdgeInsets.zero,

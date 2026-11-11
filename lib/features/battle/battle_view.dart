@@ -10,6 +10,7 @@ import '../../data/sound/sfx.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'auto_use_window.dart';
 import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
@@ -32,6 +33,7 @@ class BattleView extends StatefulWidget {
     this.sound = false,
     this.fast = false,
     this.onFastChanged,
+    this.onAutoChanged,
     this.poisonTip = false,
     this.onPoisonTipShown,
     this.aura,
@@ -64,6 +66,9 @@ class BattleView extends StatefulWidget {
   final bool fast;
   final ValueChanged<bool>? onFastChanged;
 
+  /// 자동 마시기 설정을 바꿨을 때 (가방·설정과 같은 설정, 11-11 #93)
+  final void Function(int hp, bool cure)? onAutoChanged;
+
   /// 처음 중독되면 해독제 안내를 한 번 보여 준다 (11-11 A4)
   final bool poisonTip;
   final VoidCallback? onPoisonTipShown;
@@ -89,6 +94,9 @@ class _BattleViewState extends State<BattleView> {
   bool _tipShown = false;
   bool _tipOpen = false;
 
+  /// 자동 마시기 창이 열린 동안 전투를 멈춘다
+  bool _paused = false;
+
   /// 전투 기록 두 줄
   final List<String> _log = [];
 
@@ -99,6 +107,8 @@ class _BattleViewState extends State<BattleView> {
   static const _hitStop = Duration(milliseconds: 120);
 
   Battle get _b => widget.battle;
+
+  bool get _autoOn => _b.autoHp > 0 || _b.autoCure;
 
   Duration get _interval =>
       _fast ? widget.tickInterval ~/ 2 : widget.tickInterval;
@@ -121,7 +131,7 @@ class _BattleViewState extends State<BattleView> {
   }
 
   void _step() {
-    if (!mounted || _b.isOver || _tipOpen) return;
+    if (!mounted || _b.isOver || _tipOpen || _paused) return;
     final floorBefore = _b.floor;
     setState(() {
       final before = _b.ticks;
@@ -129,6 +139,9 @@ class _BattleViewState extends State<BattleView> {
       if (_b.ticks != before) _beat++; // 층이 바뀌는 틱은 연출하지 않는다
       if (_b.floor != floorBefore && _b.foe.isBoss) _bossBeat++;
       _record();
+      // 자동으로 마시면 전투 기록 한 줄 (11-11 #93)
+      if (_b.autoHealed) _addLog('회복 물약을 자동으로 마셨다');
+      if (_b.autoCured) _addLog('물약을 자동으로 마셨다');
     });
     _feel();
     _checkEnd();
@@ -190,8 +203,28 @@ class _BattleViewState extends State<BattleView> {
       line = '$e ${comma(_b.lastTaken)} 피해를 받았어요';
     }
     if (line == null) return;
+    _addLog(line);
+  }
+
+  void _addLog(String line) {
     _log.add(line);
     if (_log.length > 2) _log.removeAt(0);
+  }
+
+  /// 자동 마시기 창: 전투를 잠깐 멈추고, 닫으면 이어 간다 (11-11 #93)
+  Future<void> _autoWindow() async {
+    _timer?.cancel();
+    _paused = true;
+    await showAutoUseWindow(context,
+        hp: _b.autoHp, cure: _b.autoCure, onChanged: (hp, cure) {
+      _b
+        ..autoHp = hp
+        ..autoCure = cure;
+      widget.onAutoChanged?.call(hp, cure);
+    });
+    if (!mounted) return;
+    setState(() => _paused = false);
+    if (!_b.isOver && !_tipOpen) _afterTick(first: true);
   }
 
   void _feel() {
@@ -444,14 +477,40 @@ class _BattleViewState extends State<BattleView> {
                       ),
                     ),
                     if (_b.potions.isNotEmpty && !_b.isOver)
-                      IconButton(
-                        key: const Key('battlePotion'),
-                        tooltip: '물약 마시기',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: _potionSheet,
-                        icon: const Icon(Icons.local_drink_rounded,
-                            color: AppColors.goldBright),
-                      ),
+                      Column(mainAxisSize: MainAxisSize.min, children: [
+                        IconButton(
+                          key: const Key('battlePotion'),
+                          tooltip: '물약 마시기',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: _potionSheet,
+                          icon: const Icon(Icons.local_drink_rounded,
+                              color: AppColors.goldBright),
+                        ),
+                        // 물약 줄 끝 작은 「자동」 표시 (11-11 #93)
+                        GestureDetector(
+                          key: const Key('battleAuto'),
+                          onTap: _autoWindow,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: _autoOn
+                                      ? AppColors.goldBright
+                                      : AppColors.textMuted
+                                          .withValues(alpha: 0.5)),
+                            ),
+                            child: Text(autoUseLabel(_b.autoHp, _b.autoCure),
+                                style: TextStyle(
+                                    color: _autoOn
+                                        ? AppColors.goldBright
+                                        : AppColors.textMuted,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ]),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _HpColumn(

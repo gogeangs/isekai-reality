@@ -80,6 +80,8 @@ jobs:
         run: |
           flutter build ios --release --no-codesign \
             --build-number=${{ github.run_number }} \
+            --dart-define=APP_BUILD=${{ github.run_number }} \
+            --dart-define=APP_COMMIT=${{ github.sha }} \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" 2>&1 | tee build-output.txt
           exit ${PIPESTATUS[0]}
 

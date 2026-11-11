@@ -58,6 +58,9 @@ jobs:
         run: |
           # 요즘 Android 휴대폰(64비트 ARM)용만 만들어 파일 크기를 줄인다
           flutter build apk --release --target-platform android-arm64 \
+            --build-number=${{ github.run_number }} \
+            --dart-define=APP_BUILD=${{ github.run_number }} \
+            --dart-define=APP_COMMIT=${{ github.sha }} \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" 2>&1 | tee build-output.txt
           status=${PIPESTATUS[0]}
           [ $status -eq 0 ] && cp build/app/outputs/flutter-apk/app-release.apk isekai-reality.apk

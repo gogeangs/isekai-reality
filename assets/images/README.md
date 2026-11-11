@@ -149,3 +149,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | bg_dungeon_1~3, bg_boss_<warden·flame·frost·grove·night·storm> | 던전·보스 전투 배경 9장 (1024×1024 jpg) |
 | mat_shadeMushroom, mat_poisonMushroom, mat_moonMushroom, mat_springPetal, mat_summerPetal | 채집 재료: 버섯 3종, 벚꽃잎, 해바라기 꽃잎 (256×256) |
 | mat_<autumn·winter>Petal, mat_sunPollen, mat_breezeBloom, mat_roughGem, mat_gem<Fire·Water·Wind·Earth·Light·Dark·Ice·Thunder·Metal·Poison>, mat_ancientShard, mat_relicSeal | 채집 재료 17종 (256×256) |
+| fx_hit_<fire·water·wind·earth·light·dark·ice·thunder·metal·poison> | 속성 타격 효과 10종 (512×512, 붉은·자홍 테두리를 지워서 넣음) |

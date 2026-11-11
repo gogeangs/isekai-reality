@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/armory.dart';
@@ -9,6 +10,7 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/map/korea_area.dart';
+import 'package:isekai_reality/features/smithy/boss_gear_tab.dart';
 
 /// 늘 같은 값을 내는 난수
 class _Fixed implements Random {
@@ -153,6 +155,24 @@ void main() {
       await c.init();
       return c;
     }
+
+    testWidgets('보스 장비 탭: 잡은 보스 세트는 열리고 나머지는 그림자 (휴대폰 폭)',
+        (tester) async {
+      tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      late AppController c;
+      await tester.runAsync(() async => c = await start(0.9));
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ListView(children: [BossGearTab(controller: c)]),
+        ),
+      ));
+      expect(find.byKey(const Key('bossSet_warden')), findsOneWidget);
+      expect(find.byKey(const Key('bossSetHidden_frost')), findsOneWidget);
+      expect(find.text('문지기의 대검'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
 
     test('못 잡은 보스의 세트는 잠겨 있다', () async {
       final c = await start(0.9, metWarden: false);

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
@@ -14,40 +16,82 @@ import '../bulssi/spirit_art.dart';
 import '../harvest/harvest_sheet.dart';
 import '../town/material_view.dart';
 import 'expedition_sheet.dart';
+import '../alchemy/alchemy_screen.dart' show PotionIcon;
+import '../../core/models/alchemy_state.dart' show ActiveBuff;
 import 'map_config.dart';
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key, required this.controller, this.onOpenDungeon});
+///
+/// 11-11 #76~#78: 위쪽 「내 주변」 박스를 없애 지도를 넓게. 아래는 던전 띠 + 원정 한 줄 띠,
+/// 지도의 내 위치 버튼·NAVER 로고·축척은 늘 그 위에 오도록 지도 여백을 띠 높이만큼 올린다.
+class MapScreen extends StatefulWidget {
+  const MapScreen({
+    super.key,
+    required this.controller,
+    this.onOpenDungeon,
+    this.onShowExpeditionResults,
+  });
 
   final AppController controller;
 
   /// 던전 열기 (11-11 #68: 상태 화면에서 지도 아래 띠로 옮겼다)
   final VoidCallback? onOpenDungeon;
 
+  /// 돌아온 원정 결과 카드 보기 (11-11 #78: 띠를 눌러서)
+  final VoidCallback? onShowExpeditionResults;
+
   /// 아래 던전 띠 높이
   static const double stripH = 58;
+
+  /// 원정 한 줄 띠 높이 (던전 띠보다 낮게)
+  static const double expStripH = 44;
+
+  /// 펼친 원정 카드 하나의 높이
+  static const double expCardH = 86;
+
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  bool _expOpen = false;
+
+  AppController get controller => widget.controller;
+
+  void _closeExp() {
+    if (_expOpen && mounted) setState(() => _expOpen = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final gauge = controller.player.gauge;
     final spawn = controller.nearbySpawn;
     final actives = controller.activeExpeditions;
-    final away = actives.isNotEmpty;
+    final returned = controller.finishedExpeditions;
+    final away = actives.isNotEmpty || returned.isNotEmpty;
     final top = MediaQuery.paddingOf(context).top;
-    // 아래 카드가 덮는 높이 (원정 카드 + 몬스터·발견 카드)
-    final cardBelow = controller.lastDiscovery != null || spawn != null;
-    final bottomInset =
-        stripH + (cardBelow ? 150.0 : 24.0) + (away ? 130.0 : 0.0);
+    final buffs = controller.activeBuffs;
+    // 아래에서부터 쌓이는 것들: 던전 띠 → 원정 띠(펼치면 카드) → 몬스터·발견 카드
+    final expH = !away
+        ? 0.0
+        : _expOpen && actives.isNotEmpty
+            ? MapScreen.expCardH * actives.length + 8
+            : MapScreen.expStripH;
+    final expBottom = MapScreen.stripH + 2;
+    final cardBottom = expBottom + (away ? expH + 6 : 0);
+    final card = controller.lastDiscovery != null || spawn != null;
+    final coverBottom = cardBottom + (card ? 150 : 0) + 4;
+    // 위쪽: 프로필·설정 버튼 줄 (+ 걸린 물약이 있으면 작은 줄)
+    final coverTop = top + 58 + (buffs.isEmpty ? 0 : 34);
     return Stack(
       children: [
         Positioned.fill(
           child: naverMapEnabled
               ? _NaverMapLayer(
                   controller: controller,
-                  // 위 패널 아래부터, 아래 카드 위까지가 몬스터가 보이는 곳 (11-11 #43)
-                  safeTop: top + 60 + 64,
-                  safeBottom: bottomInset,
+                  safeTop: coverTop,
+                  safeBottom: coverBottom,
+                  onUserMove: _closeExp,
                 )
               : _ExploreSummary(controller: controller),
         ),
@@ -61,35 +105,31 @@ class MapScreen extends StatelessWidget {
             child: ColoredBox(color: Color(0xE60B0D26)),
           ),
         ),
-        Positioned(
-          // 위쪽 프로필·설정 버튼 아래
-          left: 16,
-          right: 16,
-          top: MediaQuery.paddingOf(context).top + 60,
-          child: _TopPanel(
-            purifiedToday: controller.player.today?.fieldMonstersPurified ?? 0,
-            keys: gauge.keysAvailable,
+        // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
+        if (buffs.isNotEmpty)
+          Positioned(
+            left: 70,
+            right: 70,
+            top: top + 62,
+            child: _BuffBar(controller: controller, buffs: buffs),
           ),
-        ),
         if (away)
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: stripH +
-                (controller.lastDiscovery != null || spawn != null ? 150 : 24),
-            // 여러 마리가 나가 있으면 가장 먼저 돌아오는 원정 + 나머지 수
-            child: ExpeditionCard(
-                controller: controller,
-                ex: (actives.toList()
-                      ..sort((a, b) => a.returnAt.compareTo(b.returnAt)))
-                    .first,
-                others: actives.length - 1),
+            left: 12,
+            right: 12,
+            bottom: expBottom,
+            child: ExpeditionStrip(
+              controller: controller,
+              open: _expOpen,
+              onToggle: () => setState(() => _expOpen = !_expOpen),
+              onShowResults: widget.onShowExpeditionResults,
+            ),
           ),
         if (controller.lastDiscovery != null)
           Positioned(
             left: 16,
             right: 16,
-            bottom: stripH + 24,
+            bottom: cardBottom,
             child: _DiscoveryCard(
               place: controller.lastDiscovery!,
               onClose: controller.clearDiscovery,
@@ -99,7 +139,7 @@ class MapScreen extends StatelessWidget {
           Positioned(
             left: 16,
             right: 16,
-            bottom: stripH + 24,
+            bottom: cardBottom,
             child: _MonsterCard(
               spawn: spawn,
               onPurify: () => showSpawnSheet(context, controller, spawn),
@@ -110,15 +150,56 @@ class MapScreen extends StatelessWidget {
           left: 10,
           right: 10,
           bottom: 4,
-          height: stripH - 8,
+          height: MapScreen.stripH - 8,
           child: DungeonStrip(
             gauge: gauge,
-            onOpen: onOpenDungeon,
+            onOpen: widget.onOpenDungeon,
           ),
         ),
       ],
     );
   }
+}
+
+/// 지금 걸린 물약 (11-11 #76): 작은 아이콘 + 남은 시간·전투·걸음
+class _BuffBar extends StatelessWidget {
+  const _BuffBar({required this.controller, required this.buffs});
+
+  final AppController controller;
+  final List<ActiveBuff> buffs;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Wrap(
+          key: const Key('mapBuffs'),
+          spacing: 6,
+          runSpacing: 4,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final b in buffs)
+              Container(
+                padding: const EdgeInsets.fromLTRB(3, 2, 8, 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xE60B0D26),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  PotionIcon(
+                      potion: AlchemyRules.byName(b.key),
+                      suspicious: b.key.startsWith('?:'),
+                      size: 22),
+                  const SizedBox(width: 3),
+                  Text(controller.buffLeftLabel(b).replaceAll(' 남음', ''),
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+          ],
+        ),
+      );
 }
 
 /// 지도 아래 던전 띠: 열쇠 · 게이지 · [던전 열기] (11-11 #68)
@@ -189,47 +270,6 @@ String placeIconAsset(PlaceKind kind) => switch (kind) {
       PlaceKind.labyrinthGate => 'assets/images/map_gate.png',
       PlaceKind.spiritLake => 'assets/images/map_lake.png',
     };
-
-// ───────────────────────────────────────────── 위쪽 패널
-
-class _TopPanel extends StatelessWidget {
-  const _TopPanel({
-    required this.purifiedToday,
-    required this.keys,
-  });
-
-  /// 오늘 정화한 필드 몬스터 (경험치는 하루 5마리까지)
-  final int purifiedToday;
-  final int keys;
-
-  @override
-  Widget build(BuildContext context) {
-    return OrnatePanel(
-      radius: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Row(children: [
-        Text('내 주변', style: AppText.title(19)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 11-11 #69: 한도가 드러나지 않게 마릿수만
-              KText('오늘 사냥 $purifiedToday마리',
-                  key: const Key('huntToday'),
-                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        const GameIcon('key', size: 26),
-        const SizedBox(width: 4),
-        Text('$keys',
-            style: const TextStyle(color: AppColors.text, fontSize: 16)),
-      ]),
-    );
-  }
-}
 
 // ───────────────────────────────────────────── 새 장소 발견
 
@@ -404,9 +444,13 @@ class _NaverMapLayer extends StatefulWidget {
     required this.controller,
     this.safeTop = 0,
     this.safeBottom = 0,
+    this.onUserMove,
   });
 
   final AppController controller;
+
+  /// 사용자가 지도를 움직이거나 눌렀을 때 (원정 띠 접기, 11-11 #78)
+  final VoidCallback? onUserMove;
 
   /// 위 패널·아래 카드가 덮는 높이. 그 뒤에 숨은 몬스터는 가장자리 표시로 알린다.
   final double safeTop;
@@ -459,6 +503,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final area = c.area;
     final visited = c.everVisitedPlaceIds;
 
+    _sized.clear();
     final overlays = <NAddableOverlay>{
       for (final place in area.places)
         NMarker(
@@ -475,52 +520,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       // 시내 전체에 몬스터가 많아 이름은 빼고 그림만. 수식어 몬스터만 수식어를
       // 등급 색으로 보여 준다 (11-10 #21). 누르면 직접 사냥·정령 보내기
       for (final spawn in spawns)
-        if (spawn.modifiers.isEmpty)
-          NMarker(
-            id: 'monster_${spawn.id}',
-            position: _ll(spawn.point),
-            icon: const NOverlayImage.fromAssetImage(
-                'assets/images/map_monster.png'),
-            size: const Size(40, 40),
-          )..setOnTapListener((_) {
-              if (mounted) showSpawnSheet(context, c, spawn);
-            })
-        else
-          NMarker(
-            id: 'monster_${spawn.id}',
-            position: _ll(spawn.point),
-            icon: const NOverlayImage.fromAssetImage(
-                'assets/images/map_monster.png'),
-            size: spawn.grade.index >= ModGrade.rare.index
-                ? const Size(48, 48)
-                : const Size(42, 42),
-            caption: NOverlayCaption(
-              text: spawn.modifiers
-                  .map((m) => ModifierRules.info(m).name)
-                  .join(' '),
-              color: modGradeColor(spawn.grade),
-              haloColor: const Color(0xFF0B0D26),
-            ),
-          )..setOnTapListener((_) {
-              if (mounted) showSpawnSheet(context, c, spawn);
-            }),
+        _monster(c, spawn, fix?.point),
       // 채집 자리 (11-11 #56): 1.5km 안, 남은 횟수는 점으로
       for (final h in c.harvestSpots)
         if (fix == null || h.point.distanceTo(fix.point) <= 1500)
-          NMarker(
-            id: 'harvest_${h.id}',
-            position: _ll(h.point),
-            icon: NOverlayImage.fromAssetImage(h.info.mapAsset),
-            size: const Size(30, 30),
-            caption: NOverlayCaption(
-              text: '●' * c.harvestCharges(h),
-              textSize: 9,
-              color: AppColors.goldBright,
-              haloColor: const Color(0xFF0B0D26),
-            ),
-          )..setOnTapListener((_) {
-              if (mounted) showHarvestSheet(context, c, h);
-            }),
+          _harvest(c, h),
       // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
       for (var i = 0; i < actives.length; i++)
         if (actives[i].path.length >= 2)
@@ -550,14 +554,113 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           position: _ll(fix.point),
           icon: const NOverlayImage.fromAssetImage(
               'assets/images/map_player.png'),
-          size: const Size(48, 48),
+          // 내 위치는 몬스터보다 조금 크게 (11-11 #79)
+          size: const Size(64, 64),
           caption: NOverlayCaption(text: c.profile.name),
         ),
     };
 
     await map.clearOverlays();
     await map.addOverlayAll(overlays);
+    _scale = -1;
+    await _resize();
     await _findHidden();
+  }
+
+  // ───────────── 아이콘 크기 (11-11 #79): 확대·축소에 따라, 최소·최대 사이
+
+  final List<(NMarker, Size, bool)> _sized = [];
+  double _scale = -1;
+
+  /// 줌 15에서 1배, 한 단계마다 √2배. 0.55~1.15 사이.
+  static double scaleAt(double zoom) =>
+      math.pow(2, (zoom - 15) / 2).toDouble().clamp(0.55, 1.15);
+
+  NMarker _monster(AppController c, FieldSpawn spawn, GeoPoint? me) {
+    // 기본 40 → 60 (1.5배). 희귀 이상 수식어는 조금 더 크게
+    final base = spawn.modifiers.isEmpty
+        ? 60.0
+        : spawn.grade.index >= ModGrade.rare.index
+            ? 70.0
+            : 64.0;
+    final m = NMarker(
+      id: 'monster_${spawn.id}',
+      position: _ll(spawn.point),
+      icon: const NOverlayImage.fromAssetImage('assets/images/map_monster.png'),
+      size: Size(base, base),
+      caption: spawn.modifiers.isEmpty
+          ? null
+          : NOverlayCaption(
+              text: spawn.modifiers
+                  .map((m) => ModifierRules.info(m).name)
+                  .join(' '),
+              color: modGradeColor(spawn.grade),
+              haloColor: const Color(0xFF0B0D26),
+            ),
+    )..setOnTapListener((_) {
+        if (mounted) showSpawnSheet(context, c, spawn);
+      });
+    // 11-11 #80: 지도를 축소하면 먼 몬스터는 숨기고 가까운 몬스터 위주로
+    if (me != null) {
+      final d = spawn.point.distanceTo(me);
+      if (d > 1800) {
+        m.setMinZoom(14.5);
+      } else if (d > 900) {
+        m.setMinZoom(13.5);
+      }
+    }
+    _sized.add((m, Size(base, base), false));
+    return m;
+  }
+
+  NMarker _harvest(AppController c, HarvestSpot h) {
+    const base = 42.0; // 30 → 42 (몬스터와 같은 비율)
+    final m = NMarker(
+      id: 'harvest_${h.id}',
+      position: _ll(h.point),
+      icon: NOverlayImage.fromAssetImage(h.info.mapAsset),
+      size: const Size(base, base),
+      caption: _dots(c.harvestCharges(h), 1),
+    )..setOnTapListener((_) {
+        if (mounted) showHarvestSheet(context, c, h);
+      });
+    _sized.add((m, const Size(base, base), true));
+    return m;
+  }
+
+  NOverlayCaption _dots(int n, double scale) => NOverlayCaption(
+        text: '●' * n,
+        textSize: 12 * scale,
+        color: AppColors.goldBright,
+        haloColor: const Color(0xFF0B0D26),
+      );
+
+  /// 지금 줌에 맞춰 몬스터·채집 아이콘 크기를 바꾼다
+  Future<void> _resize() async {
+    final map = _map;
+    if (map == null || _sized.isEmpty) return;
+    double zoom;
+    try {
+      zoom = (await map.getCameraPosition()).zoom;
+    } catch (_) {
+      return;
+    }
+    final s = scaleAt(zoom);
+    if ((s - _scale).abs() < 0.04) return;
+    _scale = s;
+    final c = widget.controller;
+    for (final (m, base, harvest) in _sized) {
+      try {
+        m.setSize(Size(base.width * s, base.height * s));
+        if (harvest) {
+          final id = m.info.id.substring('harvest_'.length);
+          final spot = c.harvestSpots.where((h) => h.id == id).firstOrNull;
+          if (spot != null) m.setCaption(_dots(c.harvestCharges(spot), s));
+        }
+      } catch (_) {
+        // 지도에서 이미 빠진 아이콘
+      }
+    }
   }
 
   // ───────────── 가려진 몬스터 표시 (11-11 #43)
@@ -577,7 +680,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     ]..sort((a, b) =>
         a.point.distanceTo(from).compareTo(b.point.distanceTo(from)));
     final safe = Rect.fromLTRB(
-        24, widget.safeTop + 24, _size.width - 24, _size.height - widget.safeBottom - 24);
+        24, widget.safeTop + 22, _size.width - 24, _size.height - widget.safeBottom - 22);
     if (safe.height < 60) return;
     final marks = <_EdgeMark>[];
     try {
@@ -617,7 +720,12 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
               initialCameraPosition:
                   NCameraPosition(target: _ll(center), zoom: 15),
               locationButtonEnable: true,
+              // 11-11 #77: 내 위치 버튼·NAVER 로고·축척이 위아래 띠·카드에
+              // 가려지지 않게, 가려지는 높이만큼 지도 여백을 둔다
+              contentPadding: EdgeInsets.only(
+                  top: widget.safeTop, bottom: widget.safeBottom),
             ),
+            onMapTapped: (_, __) => widget.onUserMove?.call(),
             onMapReady: (map) {
               _map = map;
               _drawnSpawns = -1;
@@ -625,10 +733,14 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             },
             // 지도를 움직이는 동안에는 가장자리 표시를 숨긴다 (11-11: 화면에 붙어
             // 따라다니는 몬스터처럼 보였다). 멈추면 다시 찾는다.
-            onCameraChange: (_, __) {
+            onCameraChange: (reason, _) {
               if (_edges.isNotEmpty && mounted) setState(() => _edges = const []);
+              if (reason == NCameraUpdateReason.gesture) widget.onUserMove?.call();
             },
-            onCameraIdle: _findHidden,
+            onCameraIdle: () async {
+              await _resize();
+              await _findHidden();
+            },
           ),
         ),
         for (final e in _edges)

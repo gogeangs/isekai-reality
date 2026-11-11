@@ -136,12 +136,12 @@ void main() {
   group('필드 몬스터 자리', () {
     final day = DateTime(2026, 11, 8);
 
-    test('시내 1km 블록마다 한 마리꼴, 같은 날에는 같은 자리', () {
+    test('시내 500m 블록마다 한 마리꼴, 같은 날에는 같은 자리 (11-11 #80)', () {
       final a = FieldMonsterRules.spawnsFor(area, day);
       final b = FieldMonsterRules.spawnsFor(area, day);
-      // 장소마다 1 + 블록(약 1km²)의 70%
-      expect(a.length, greaterThan(area.places.length + 50));
-      expect(a.length, lessThan(area.places.length + 250));
+      // 장소마다 1 + 블록(약 0.25km²)의 70%: 1km 블록 때의 약 4배
+      expect(a.length, greaterThan(area.places.length + 200));
+      expect(a.length, lessThan(area.places.length + 1000));
       expect(a.map((s) => s.id), b.map((s) => s.id));
       expect(a.first.point.lat, b.first.point.lat);
       final other = FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 9));
@@ -192,8 +192,9 @@ void main() {
     test('전국: 내 둘레 3km 블록에만, 어디서 봐도 같은 블록엔 같은 몬스터', () {
       const busan = GeoPoint(35.1580, 129.1600);
       final a = FieldMonsterRules.spawnsFor(KoreaArea.area, day, center: busan);
-      expect(a.length, greaterThan(10));
-      expect(a.length, lessThan(40));
+      // 3km 둘레 500m 블록 약 113칸 × 70% (11-11 #80)
+      expect(a.length, greaterThan(50));
+      expect(a.length, lessThan(120));
       for (final s in a) {
         expect(s.point.distanceTo(busan), lessThan(3000 + 1500));
       }

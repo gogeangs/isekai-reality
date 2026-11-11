@@ -372,3 +372,157 @@ class ExpeditionCard extends StatelessWidget {
     );
   }
 }
+
+/// 지도 아래 원정 한 줄 띠 (11-11 #78). 누르면 원정마다 카드로 펼친다.
+/// 돌아와 결과가 나오면 금빛으로 반짝이고, 누르면 원정 결과 카드(#51).
+class ExpeditionStrip extends StatelessWidget {
+  const ExpeditionStrip({
+    super.key,
+    required this.controller,
+    required this.open,
+    required this.onToggle,
+    this.onShowResults,
+  });
+
+  final AppController controller;
+  final bool open;
+  final VoidCallback onToggle;
+  final VoidCallback? onShowResults;
+
+  Widget _face(Expedition ex, double size) {
+    final pet = ex.petUid == null ? null : controller.pets.byUid(ex.petUid!);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF1A1D4A),
+        border: Border.all(color: AppColors.goldBright, width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: pet != null
+          ? PetArt.of(pet, size: size)
+          : CompanionArt(size: size),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final now = c.now;
+    final actives = [...c.activeExpeditions]
+      ..sort((a, b) => a.returnAt.compareTo(b.returnAt));
+    final returned = c.finishedExpeditions;
+    // 결과가 나온 원정이 있으면 반짝이는 띠 하나
+    if (returned.isNotEmpty) {
+      return GestureDetector(
+        key: const Key('expeditionReturned'),
+        onTap: onShowResults,
+        child: Container(
+          height: MapScreenSizes.expStripH,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            gradient: kGoldGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                  color: AppColors.goldBright.withValues(alpha: 0.8),
+                  blurRadius: 16),
+            ],
+          ),
+          child: Row(children: [
+            for (var i = 0; i < returned.length && i < 3; i++)
+              Align(widthFactor: 0.7, child: _face(returned[i], 30)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                returned.length == 1
+                    ? '${returned.first.petName ?? c.firstSpiritName}이(가) 돌아왔어요! 결과 보기'
+                    : '원정 ${returned.length}마리가 돌아왔어요! 결과 보기',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Color(0xFF3A2208),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800),
+              ),
+            ),
+            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF3A2208), size: 20),
+          ]),
+        ),
+      );
+    }
+    if (actives.isEmpty) return const SizedBox.shrink();
+    if (open) {
+      return GestureDetector(
+        onTap: onToggle,
+        child: Column(
+          key: const Key('expeditionOpen'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final ex in actives) ...[
+              ExpeditionCard(controller: c, ex: ex),
+              const SizedBox(height: 4),
+            ],
+          ],
+        ),
+      );
+    }
+    final first = actives.first;
+    final left = first.returnAt.difference(now);
+    final going = first.goingAt(now);
+    final total = first.returnAt.difference(first.startedAt).inSeconds;
+    final done = now.difference(first.startedAt).inSeconds;
+    final id = Monsters.byName(first.monster);
+    final name = id == null ? '몬스터' : Monsters.info(id).name;
+    return GestureDetector(
+      key: const Key('expeditionStrip'),
+      onTap: onToggle,
+      child: Container(
+        height: MapScreenSizes.expStripH,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xF0141638),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
+        ),
+        child: Row(children: [
+          for (var i = 0; i < actives.length && i < 3; i++)
+            Align(widthFactor: 0.7, child: _face(actives[i], 30)),
+          const SizedBox(width: 10),
+          Flexible(
+            flex: 5,
+            child: Text(
+              actives.length == 1
+                  ? (going ? '$name에게 가는 중' : '돌아오는 중')
+                  : '원정 ${actives.length}마리',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 4,
+            child: GlowBar(
+                ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0),
+                colors: BarColors.mana,
+                height: 6),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            actives.length == 1
+                ? _minutes(left.isNegative ? Duration.zero : left)
+                : '가장 빠른 도착 ${_minutes(left.isNegative ? Duration.zero : left)}',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// 지도 아래 띠 높이 (map_screen 과 같이 쓴다)
+class MapScreenSizes {
+  MapScreenSizes._();
+  static const double expStripH = 44;
+}

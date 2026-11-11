@@ -507,11 +507,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   void didUpdateWidget(covariant _NaverMapLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     _redraw();
-    _focus();
+    _focusRequested();
   }
 
   /// 위쪽 띠에서 「상인 보기」를 눌렀을 때 그 자리로 (11-11 #84)
-  Future<void> _focus() async {
+  Future<void> _focusRequested() async {
     final map = _map;
     if (map == null) return;
     final p = widget.controller.takeMapFocus();

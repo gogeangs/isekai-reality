@@ -92,3 +92,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | cauldron | 연금술 가마솥 (512×512) |
 | item_recipe_book, item_recipe_note, potion_suspicious | 레시피 책·쪽지, 수상한 물약 (256×256) |
 | potion_<healBig·antidote·burnSalve·clearEye·strength·agility·intellect·vitality·luck> | 연금술 새 물약 9종 (256×256) |
+| potion_resist<Fire·Water·Wind·Earth·Light·Dark>, potion_callMonsters, potion_callModified, potion_plenty | 저항 물약 6종, 부르는 물약 2종, 풍요의 물약 (256×256) |

@@ -133,3 +133,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_stoneMetal | 금속의 마석 (256×256) |
 | mat_stonePoison | 독의 마석 (256×256) |
 | potion_weaponFire | 불꽃 공격 물약 (256×256) |
+| potion_weaponWater | 물 공격 물약 (256×256) |

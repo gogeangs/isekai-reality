@@ -19,15 +19,19 @@ class CodexScreen extends StatefulWidget {
     this.modHunts = const {},
     this.petsSeen = const {},
     this.onOpenPets,
-    this.racesSeen = const {},
-    this.raceCounts = const {},
+    this.petsOpen = false,
+    this.petsNew = false,
+    this.onPetsTab,
   });
 
-  /// 마법 돋보기로 감정한 종족 (11-11 #60 종족 탭)
-  final Set<Race> racesSeen;
+  /// 펫 탭이 열렸는지 (11-11 #96: 첫 알을 받은 뒤부터. 그 전에는 탭을 아예 숨긴다)
+  final bool petsOpen;
 
-  /// 종족별 감정 횟수
-  final Map<Race, int> raceCounts;
+  /// 펫 탭에 새 표시
+  final bool petsNew;
+
+  /// 펫 탭을 처음 열었을 때
+  final VoidCallback? onPetsTab;
 
   /// 한 번이라도 함께한 펫 종류 (11-11 #38 펫 탭)
   final Set<PetSpecies> petsSeen;
@@ -102,6 +106,7 @@ class _CodexScreenState extends State<CodexScreen> {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
+    final tab = widget.petsOpen ? _tab : 0;
     final all = Monsters.all;
     final have = [for (final m in all) if (purifiedMonsters.contains(m.id)) m];
     final records = [
@@ -120,38 +125,53 @@ class _CodexScreenState extends State<CodexScreen> {
           const OrnateTopBar(title: '도감'),
           const SizedBox(height: 6),
           BulssiLine(
-              line: switch (_tab) {
-                0 => '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!',
-                1 => '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!',
-                _ => '마법 돋보기로 감정한 종족이 여기 남아. 별의 아이는 아주 드물대!',
-              }),
+              line: tab == 1
+                  ? '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'
+                  : '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'),
           const SizedBox(height: 8),
+          // 11-11 #96·#97: 종족은 돋보기 「감정 앨범」으로 옮겼고, 펫 탭은 첫 알 뒤에만
+          if (widget.petsOpen)
           Row(children: [
-            for (final (i, label) in const [(0, '몬스터'), (1, '펫'), (2, '종족')]) ...[
+            for (final (i, label) in const [(0, '몬스터'), (1, '펫')]) ...[
               Expanded(
                 child: ChoiceChip(
+                  key: Key('codexTab_$i'),
                   label: SizedBox(
                       width: double.infinity,
-                      child: Text(label, textAlign: TextAlign.center)),
-                  selected: _tab == i,
-                  onSelected: (_) => setState(() => _tab = i),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(label, textAlign: TextAlign.center),
+                            if (i == 1 && widget.petsNew) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                key: const Key('codexPetNew'),
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                    color: Color(0xFFE5484D),
+                                    shape: BoxShape.circle),
+                              ),
+                            ],
+                          ])),
+                  selected: tab == i,
+                  onSelected: (_) {
+                    setState(() => _tab = i);
+                    if (i == 1) widget.onPetsTab?.call();
+                  },
                   selectedColor: AppColors.gold,
                   backgroundColor: const Color(0xFF1E2250),
                   labelStyle: TextStyle(
-                      color: _tab == i ? AppColors.night : AppColors.text,
+                      color: tab == i ? AppColors.night : AppColors.text,
                       fontWeight: FontWeight.w700),
                   showCheckmark: false,
                 ),
               ),
-              if (i < 2) const SizedBox(width: 8),
+              if (i < 1) const SizedBox(width: 8),
             ],
           ]),
           const SizedBox(height: 8),
-          if (_tab == 2)
-            Expanded(
-                child: _RaceCodex(
-                    seen: widget.racesSeen, counts: widget.raceCounts))
-          else if (_tab == 1)
+          if (tab == 1)
             Expanded(
                 child: _PetCodex(
                     seen: widget.petsSeen, onOpenPets: widget.onOpenPets))
@@ -432,8 +452,10 @@ class _PetCodex extends StatelessWidget {
                           Expanded(
                             child: seen.contains(s)
                                 ? PetArt(species: s, size: 80)
-                                : Opacity(
-                                    opacity: 0.25,
+                                // 11-11 #96: 못 만난 펫은 완전한 검은 실루엣
+                                : ColorFiltered(
+                                    colorFilter: const ColorFilter.mode(
+                                        Color(0xFF05060F), BlendMode.srcATop),
                                     child: PetArt(species: s, size: 80)),
                           ),
                           Text(seen.contains(s) ? PetRules.info(s).name : '???',
@@ -459,92 +481,6 @@ class _PetCodex extends StatelessWidget {
           const SizedBox(height: 10),
           FrameButton(label: '내 펫 보기', onPressed: onOpenPets),
         ],
-      ],
-    );
-  }
-}
-
-/// 종족 도감 (11-11 #60): 마법 돋보기로 처음 감정한 종족이 남는다
-class _RaceCodex extends StatelessWidget {
-  const _RaceCodex({required this.seen, required this.counts});
-
-  final Set<Race> seen;
-  final Map<Race, int> counts;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
-      children: [
-        OrnatePanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('종족 도감 ${seen.length} / ${Race.values.length}',
-                  style: AppText.title(18)),
-              const SizedBox(height: 4),
-              const KText(
-                  '가방의 마법 돋보기로 친구나 가족을 비춰 감정해 봐요. '
-                  '처음 감정한 종족은 경험치 +${LensRules.firstExp}.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-              const SizedBox(height: 10),
-              for (final info in LensRules.all)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: seen.contains(info.id)
-                            ? Color(info.color).withValues(alpha: 0.25)
-                            : const Color(0xFF1B1E4C),
-                        border: Border.all(
-                            color: seen.contains(info.id)
-                                ? Color(info.color)
-                                : AppColors.gold.withValues(alpha: 0.3)),
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(info.asset,
-                            fit: BoxFit.cover,
-                            color: seen.contains(info.id)
-                                ? null
-                                : const Color(0x33FFFFFF),
-                            colorBlendMode: BlendMode.modulate,
-                            errorBuilder: (_, __, ___) => Icon(
-                                seen.contains(info.id)
-                                    ? Icons.auto_awesome_rounded
-                                    : Icons.help_outline_rounded,
-                                color: seen.contains(info.id)
-                                    ? Color(info.color)
-                                    : AppColors.textMuted)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(seen.contains(info.id) ? info.name : '???',
-                              style: AppText.title(16,
-                                  color: seen.contains(info.id)
-                                      ? AppColors.text
-                                      : AppColors.textMuted)),
-                          Text(
-                              seen.contains(info.id)
-                                  ? '${info.line} · ${counts[info.id] ?? 0}번 감정'
-                                  : '아직 감정하지 못한 종족',
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 11.5)),
-                        ],
-                      ),
-                    ),
-                  ]),
-                ),
-            ],
-          ),
-        ),
       ],
     );
   }

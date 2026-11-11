@@ -56,7 +56,7 @@ class _AutoUseWindowState extends State<_AutoUseWindow> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const KText('던전·필드·펫 원정 모두 같아요. 전투 한 번에 3개까지.',
+          const KText('던전·필드·원정 모두 같아요. 전투 한 번에 3개까지.',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 10),
           const Text('HP가 이만큼 아래면 회복 물약',

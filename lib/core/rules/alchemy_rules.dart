@@ -462,7 +462,7 @@ class AlchemyRules {
       id: PotionId.spiritPotion,
       name: '정령 물약',
       kind: PotionKind.special,
-      description: '정령 물약 (정령이 떠난 뒤에는 펫 간식).',
+      description: '정령 물약.',
       recipe: [MaterialId.lightJelly, MaterialId.herb, MaterialId.rabbitMeat],
       minutes: 30,
       shopItem: ShopItem.bulssiPotion,

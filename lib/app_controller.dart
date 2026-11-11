@@ -265,6 +265,8 @@ class AppController extends ChangeNotifier {
     _sound = feel['sound'] != false;
     _fastBattle = feel['fast'] == true;
     _poisonTipSeen = feel['poisonTip'] == true;
+    _petCodexSeen = feel['petCodex'] == true;
+    _petCodexAnnounced = feel['petCodexNotice'] == true;
     final tired = await store.loadJson(_tiredKey);
     _tiredUntil = DateTime.tryParse('${tired?['until'] ?? ''}');
     final board = await store.loadJson(_boardKey);
@@ -3733,6 +3735,30 @@ class AppController extends ChangeNotifier {
   bool _sound = true;
   bool _fastBattle = false;
   bool _poisonTipSeen = false;
+  bool _petCodexSeen = false;
+  bool _petCodexAnnounced = false;
+
+  /// 도감 펫 탭이 열렸는지 (11-11 #96): 첫 알을 받은 뒤부터
+  bool get petCodexOpen =>
+      _pets.firstEggFound || _pets.eggs.isNotEmpty || _pets.pets.isNotEmpty;
+
+  /// 펫 탭에 새 표시 (아직 열어 보지 않았으면)
+  bool get petCodexNew => petCodexOpen && !_petCodexSeen;
+
+  /// 「새 도감이 열렸어요」를 아직 알리지 않았으면 true
+  bool get petCodexToAnnounce => petCodexOpen && !_petCodexAnnounced;
+
+  Future<void> markPetCodexSeen() async {
+    if (_petCodexSeen) return;
+    _petCodexSeen = true;
+    await _saveFeel();
+  }
+
+  Future<void> markPetCodexAnnounced() async {
+    if (_petCodexAnnounced) return;
+    _petCodexAnnounced = true;
+    await _saveFeel();
+  }
 
   bool get vibrate => _vibrate;
   bool get sound => _sound;
@@ -3747,6 +3773,8 @@ class AppController extends ChangeNotifier {
       'sound': _sound,
       'fast': _fastBattle,
       'poisonTip': _poisonTipSeen,
+      'petCodex': _petCodexSeen,
+      'petCodexNotice': _petCodexAnnounced,
     });
     notifyListeners();
   }

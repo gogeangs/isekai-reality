@@ -96,3 +96,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | icon_post | 마을 우체국 배지 (512×512) |
 | icon_mail | 화면 위 우편 아이콘 (256×256) |
 | monster_<ice·thunder·metal·poison>Slime | 새 속성 슬라임 4종 (512×512) |
+| potion_resist<Ice·Thunder·Metal·Poison> | 새 저항 물약 4종 (256×256) |

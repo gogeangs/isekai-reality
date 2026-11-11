@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../smithy/equipment_view.dart';
 import 'bag_tab.dart';
+import '../../theme/top_notice.dart';
 
 /// 잡화상에서 가방 물건 팔기 (11-11 #48). 입은 장비는 팔 수 없다.
 Future<void> showSellSheet(BuildContext context, AppController c) =>
@@ -42,11 +43,9 @@ class SellSheet extends StatelessWidget {
       EggEntry() || PotionEntry() || PouchEntry() => false,
     };
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok
+    showTopNotice(context, ok
           ? '${bagEntryName(e)} $n개를 팔았어요. 금화 +${comma(n * sellPrice(e))}'
-          : '팔지 못했어요.'),
-    ));
+          : '팔지 못했어요.');
   }
 
   Future<void> _confirmEquip(BuildContext context, EquipEntry e) async {

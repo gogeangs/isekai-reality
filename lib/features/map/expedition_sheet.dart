@@ -13,6 +13,7 @@ import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../pets/pet_art.dart';
 import '../battle/element_view.dart';
+import '../../theme/top_notice.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
@@ -250,12 +251,10 @@ class _SpawnSheetState extends State<SpawnSheet> {
                           await c.sendSpirit(spawn, petUid: chosen);
                       if (!context.mounted) return;
                       Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(result == ExpeditionCheck.ok
+                      showTopNotice(context, result == ExpeditionCheck.ok
                             ? '${josa(spiritName, '이/가')} 원정을 떠났어요. '
                                 '${_minutes(plan.oneWay * 2)} 뒤에 돌아와요!'
-                            : expeditionReason(result)),
-                      ));
+                            : expeditionReason(result));
                     }
                   : null,
             ),

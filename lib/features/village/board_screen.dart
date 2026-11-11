@@ -8,6 +8,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import 'daily_quests.dart';
+import '../../theme/top_notice.dart';
 
 /// 마을 의뢰 게시판 (11-10 #26): 일일 · 주간 · 수시 · 긴급.
 /// 경험치는 일일·주간만, 수시·긴급은 금화·재료만 준다.
@@ -251,8 +252,7 @@ class _ErrandCard extends StatelessWidget {
                         ? () async {
                             final ok = await c.claimErrand(slot);
                             if (!context.mounted || !ok) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: KText('의뢰 완료! ${t.rewardLabel}')));
+                            showTopNotice(context, '의뢰 완료! ${t.rewardLabel}');
                           }
                         : null,
               ),

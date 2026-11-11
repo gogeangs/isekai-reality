@@ -9,6 +9,7 @@ import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'pet_art.dart';
 import '../battle/element_view.dart';
+import '../../theme/top_notice.dart';
 
 /// 펫 목록 (11-11 #38): 데리고 다니기, 먹이 주기, 이름 바꾸기, 자연으로 돌려보내기
 class PetScreen extends StatelessWidget {
@@ -120,11 +121,9 @@ class _PetCard extends StatelessWidget {
     }
     final ok = await c.releasePet(pet.uid);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok
+    showTopNotice(context, ok
           ? '${josa(pet.name, '이/가')} 자연으로 돌아갔어요. 마석 +$mana, $fav +${PetRules.releaseMaterials}'
-          : '지금은 돌려보낼 수 없어요 (마지막 한 마리이거나 원정 중이에요).'),
-    ));
+          : '지금은 돌려보낼 수 없어요 (마지막 한 마리이거나 원정 중이에요).');
   }
 
   @override

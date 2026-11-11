@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'harvest_games.dart';
+import '../../theme/top_notice.dart';
 
 String harvestReason(HarvestCheck c) => switch (c) {
       HarvestCheck.ok => '',
@@ -44,10 +45,9 @@ class HarvestSheet extends StatelessWidget {
     final line = [
       for (final e in mats.entries) '${Materials.info(e.key).name} +${e.value}',
     ].join(', ');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(grade == HarvestGrade.quick
+    showTopNotice(context, grade == HarvestGrade.quick
             ? '채집했어요! $line'
-            : '${gradeLabel(grade)} $line')));
+            : '${gradeLabel(grade)} $line');
   }
 
   @override
@@ -175,8 +175,7 @@ class ToolRepairPanel extends StatelessWidget {
                         c.player.materialCount(HarvestRules.repairMaterial(t)) > 0
                     ? () async {
                         if (await c.repairTool(t) && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('${HarvestRules.toolName(t)}를 고쳤어요!')));
+                          showTopNotice(context, '${HarvestRules.toolName(t)}를 고쳤어요!');
                         }
                       }
                     : null,

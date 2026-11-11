@@ -35,7 +35,14 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
   @override
   void initState() {
     super.initState();
+    widget.controller.holdNoticesWhile(true); // 칭호 축하는 결과를 닫은 뒤 (#85)
     _battle = widget.controller.startFieldBattle(widget.spawn);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.holdNoticesWhile(false);
+    super.dispose();
   }
 
   Future<void> _finish() async {

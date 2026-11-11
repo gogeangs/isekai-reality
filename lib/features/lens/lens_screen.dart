@@ -14,6 +14,7 @@ import 'camera_sticker_engine.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
 import 'race_filter_engine.dart';
+import '../../theme/top_notice.dart';
 
 /// 마법 돋보기 「감정」 (11-11 #60): 카메라 → 감정 연출 → 종족 필터 → 사진(틀) → 저장·공유.
 /// 얼굴 인식은 휴대폰 안에서만 하고, 게임은 사진을 남기지 않는다.
@@ -70,9 +71,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   }
 
   void _snack(String s) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(s)));
+    showTopNotice(context, s);
   }
 
   Future<void> _appraise() async {

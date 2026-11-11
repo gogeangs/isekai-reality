@@ -162,6 +162,22 @@ class AppController extends ChangeNotifier {
     return null;
   }
 
+  /// 칭호 하나만 알린 것으로 (축하 연출을 하나씩, 11-11 #85)
+  Future<void> acknowledgeTitle(TitleId t) async {
+    _seenTitles = {..._seenTitles, t};
+    await _saveSeenTitles();
+    notifyListeners();
+  }
+
+  /// 전투 화면이 열려 있는 동안 칭호 축하 같은 큰 연출을 미룬다 (11-11 #85)
+  bool get holdNotices => _holdNotices > 0;
+  int _holdNotices = 0;
+  void holdNoticesWhile(bool on) {
+    _holdNotices = (_holdNotices + (on ? 1 : -1)).clamp(0, 99);
+    // 화면을 닫는 중(dispose)에 불릴 수 있어 한 박자 뒤에 알린다
+    if (!on) Future<void>.microtask(notifyListeners);
+  }
+
   Future<void> acknowledgeTitles() async {
     _seenTitles = {..._seenTitles, ...player.titles};
     await _saveSeenTitles();

@@ -12,6 +12,7 @@ import 'bag_sheet.dart';
 import 'material_view.dart';
 import 'sell_sheet.dart';
 import '../bulssi/bulssi_mood.dart';
+import '../../theme/top_notice.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터가 떨어뜨린 마석을 금화로 팔고, 금화로 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -132,11 +133,9 @@ class ShopScreen extends StatelessWidget {
                     onBuy: () async {
                       final result = await controller.buy(info.item);
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(result == PurchaseCheck.ok
+                      showTopNotice(context, result == PurchaseCheck.ok
                             ? boughtLine(info.item)
-                            : reason(result, info, controller.player.gold)),
-                      ));
+                            : reason(result, info, controller.player.gold));
                     },
                   ),
                   const SizedBox(height: 10),
@@ -175,11 +174,9 @@ class ShopScreen extends StatelessWidget {
                     onBuy: () async {
                       final result = await controller.buy(info.item);
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(result == PurchaseCheck.ok
+                      showTopNotice(context, result == PurchaseCheck.ok
                             ? boughtLine(info.item)
-                            : reason(result, info, controller.player.gold)),
-                      ));
+                            : reason(result, info, controller.player.gold));
                     },
                   ),
                             const SizedBox(height: 10),
@@ -313,11 +310,9 @@ class _SellPanel extends StatelessWidget {
   Future<void> _sell(BuildContext context, int n) async {
     final ok = await controller.sellManaStones(n);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok
+    showTopNotice(context, ok
           ? '마석 $n개를 팔았어요. 금화 +${n * RuleConstants.goldPerManaStone}'
-          : '마석이 모자라요.'),
-    ));
+          : '마석이 모자라요.');
   }
 
   @override

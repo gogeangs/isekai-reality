@@ -5,6 +5,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../../theme/top_notice.dart';
 
 /// 스탯 포인트 분배 (11-11 #50).
 /// 합계와 '포인트로 올린 값'만 보여 준다. 생활 활동으로 오른 값은 따로 보여 주지 않는다.
@@ -32,7 +33,7 @@ class _StatScreenState extends State<StatScreen> {
       };
 
   void _snack(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+      showTopNotice(context, t);
 
   Future<void> _reset() async {
     final cost = c.statResetCost;

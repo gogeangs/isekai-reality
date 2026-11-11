@@ -27,6 +27,8 @@ import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/ornaments.dart';
+import 'theme/top_notice.dart';
+import 'features/profile/title_celebration.dart';
 
 class IsekaiRealityApp extends StatelessWidget {
   const IsekaiRealityApp({super.key, required this.controller});
@@ -60,7 +62,9 @@ class IsekaiRealityApp extends StatelessWidget {
           petSpecies: controller.companionPet?.species,
           petAdult: controller.companionPet?.adult ?? false,
           // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
-          child: Stack(children: [
+          // 앱 안 알림은 모두 위쪽 금테 띠로 (11-11 #85)
+          child: TopNoticeHost(
+            child: Stack(children: [
             Positioned.fill(
                 child: TapOutsideToHideKeyboard(
                     child: child ?? const SizedBox())),
@@ -74,6 +78,7 @@ class IsekaiRealityApp extends StatelessWidget {
             if (controller.driveBlocked)
               Positioned.fill(child: DriveOverlay(controller: controller)),
           ]),
+          ),
         ),
       ),
       home: HomeShell(controller: controller),
@@ -226,11 +231,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(c.farewellDone
+        showTopNotice(context, c.farewellDone
               ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
-              : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.'),
-        ));
+              : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
       });
     }
     if (letter == null && ready == null) return;
@@ -287,8 +290,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (c.takeNewPouch()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('걷다가 주운 것들을 걸음 주머니에 담았어요. 가방에서 열어 보세요!')));
+        showTopNotice(context, '걷다가 주운 것들을 걸음 주머니에 담았어요. 가방에서 열어 보세요!');
       });
     }
     final find = c.findOpen ? c.gather.findUntil : null;
@@ -317,8 +319,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (open == true) {
           final r = await c.openFind();
           if (mounted && r != null) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(gatherLine(r))));
+            showTopNotice(context, gatherLine(r));
           }
         }
         _walkShowing = false;
@@ -338,27 +339,22 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   bool _titleShowing = false;
 
-  /// 칭호를 새로 얻으면 알림. 누르면 프로필 칭호 목록으로 (11-11 #41)
+  /// 칭호를 새로 얻으면 화면 가운데 축하 연출 (11-11 #85).
+  /// 전투 중에는 전투 결과를 닫은 뒤에, 여러 개면 하나씩 차례로.
   void _maybeShowTitle() {
     final c = widget.controller;
     final t = c.newTitle;
-    if (t == null || _titleShowing || _levelUpShowing) return;
+    if (t == null || _titleShowing || _levelUpShowing || c.holdNotices) return;
     _titleShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final name = TitleRules.info(t).name;
-      final eul = josa(name, '을/를').substring(name.length);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('새 칭호 「$name」$eul 얻었어요!'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: '보기',
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => ProfileScreen(controller: c))),
-        ),
-      ));
-      await c.acknowledgeTitles();
+      if (!mounted) {
+        _titleShowing = false;
+        return;
+      }
+      await showTitleCelebration(context, c, t);
+      await c.acknowledgeTitle(t);
       _titleShowing = false;
+      if (mounted) _maybeShowTitle();
     });
   }
 
@@ -370,10 +366,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       if (!mounted) return;
       final g = c.takeBagOverflow();
       if (g <= 0) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}'),
-        duration: const Duration(seconds: 4),
-      ));
+      showTopNotice(context, '가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}');
     });
   }
 

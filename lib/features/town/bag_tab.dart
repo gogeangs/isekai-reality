@@ -14,6 +14,7 @@ import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
+import '../../theme/top_notice.dart';
 
 /// 가방 칸 거르기
 enum BagFilter {
@@ -148,11 +149,9 @@ class _BagTabState extends State<BagTab> {
     if (ok != true || !mounted) return;
     final done = await c.expandBag();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(done
+    showTopNotice(context, done
           ? '가방이 ${c.bagCapacity}칸이 됐어요!'
-          : '금화가 ${comma(cost - c.player.gold)} 모자라요.'),
-    ));
+          : '금화가 ${comma(cost - c.player.gold)} 모자라요.');
   }
 
   @override
@@ -630,8 +629,7 @@ class _EntrySheet extends StatelessWidget {
             final r = await c.openPouch();
             if (r == null || !context.mounted) return;
             Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(gatherLine(r))));
+            showTopNotice(context, gatherLine(r));
           },
         );
       case PotionEntry(:final key):
@@ -643,12 +641,10 @@ class _EntrySheet extends StatelessWidget {
             final why = await c.drinkPotion(key);
             if (!context.mounted) return;
             if (why != null) {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(why)));
+              showTopNotice(context, why);
             } else {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(c.drinkNote ?? '${josa(name, '을/를')} 마셨어요.')));
+              showTopNotice(context, c.drinkNote ?? '${josa(name, '을/를')} 마셨어요.');
             }
           },
         );

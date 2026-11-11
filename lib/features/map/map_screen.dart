@@ -19,6 +19,7 @@ import 'expedition_sheet.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../../core/models/alchemy_state.dart' show ActiveBuff;
 import 'map_config.dart';
+import '../../theme/top_notice.dart';
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 ///
@@ -213,8 +214,7 @@ class TiredBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
         key: const Key('tiredBadge'),
-        onTap: () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            const SnackBar(content: Text(AppController.tiredLine))),
+        onTap: () => showTopNotice(context, AppController.tiredLine),
         child: Container(
           padding: const EdgeInsets.fromLTRB(6, 3, 9, 3),
           decoration: BoxDecoration(

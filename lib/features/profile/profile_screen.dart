@@ -13,6 +13,7 @@ import '../pets/pet_art.dart';
 import '../pets/pet_screen.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
+import '../../theme/top_notice.dart';
 
 /// 지금은 직업이 없다 (각성 기능에서 정하기로 미룸)
 const String kNoJobLabel = '견습 각성자';
@@ -479,10 +480,9 @@ Future<void> _rename(BuildContext context, AppController c) async {
   if (name.trim().isEmpty || name.trim() == c.profile.name) return;
   final ok = await c.renameHero(name);
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok
+  showTopNotice(context, ok
           ? '${josa(name.trim(), '으로/로')} 바꿨어요.'
-          : '금화가 모자라요. (금화 $cost)')));
+          : '금화가 모자라요. (금화 $cost)');
 }
 
 /// 이름 바꾸기 창 (11-11 #72): 금테 팝업, 가격 뱃지, 칸 안 글자 수,

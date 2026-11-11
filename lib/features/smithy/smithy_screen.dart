@@ -14,6 +14,7 @@ import 'boss_gear_tab.dart';
 import 'equipment_view.dart';
 import '../battle/element_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
+import '../../theme/top_notice.dart';
 
 /// 마을 대장간 (11-10 #27): 장비 만들기 · 강화 · 수리 · 분해.
 /// 장비는 대장간에서만 만든다.
@@ -34,8 +35,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
 
   static const _tabs = ['만들기', '강화', '수리 · 분해', '가공', '보스 장비'];
 
-  void _snack(String text) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(text)));
+  void _snack(String text) => showTopNotice(context, text);
 
   @override
   Widget build(BuildContext context) {

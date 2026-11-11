@@ -5,6 +5,7 @@ import '../../core/models/mail_state.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../theme/top_notice.dart';
 
 /// 우편함 (11-11 #65): 「선물」 탭(받을 것, 보상 우편은 30일) · 「편지」 탭(계속 보관)
 class MailScreen extends StatefulWidget {
@@ -22,9 +23,7 @@ class _MailScreenState extends State<MailScreen> {
 
   AppController get c => widget.controller;
 
-  void _snack(String s) => ScaffoldMessenger.of(context)
-    ..clearSnackBars()
-    ..showSnackBar(SnackBar(content: Text(s)));
+  void _snack(String s) => showTopNotice(context, s);
 
   Future<void> _open(MailItem m) async {
     await c.readMail(m.id);

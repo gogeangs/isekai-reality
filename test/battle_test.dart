@@ -338,7 +338,8 @@ void main() {
 
     test('필드 몬스터를 정화하면 경험치, 다시 나오지 않음', () async {
       final c = await start();
-      final spawn = c.todaySpawns.first;
+      // 수식어 몬스터는 재료를 더 준다 → 보통 몬스터로
+      final spawn = c.todaySpawns.firstWhere((s) => s.modifiers.isEmpty);
       await c.handleFix(LocationFix(point: spawn.point, speedMps: 1));
       expect(c.nearbySpawn?.id, spawn.id);
 

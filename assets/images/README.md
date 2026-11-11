@@ -104,3 +104,5 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | filter_catfolk | 마법 돋보기 고양이 수인 장식 (1024×1024, 뿌연 배경을 지워서 넣음) |
 | filter_foxfolk | 마법 돋보기 여우 수인 장식 (1024×1024) |
 | filter_mermaid, filter_starChild | 마법 돋보기 인어·별의 아이 장식 (1024×1024, 둘레 얼룩을 지워서 넣음) |
+| item_pouch | 걸음 주머니 (256×256) |
+| mat_labyrinthStone, mat_runeStone, mat_ironIngot, mat_hardWood, mat_tannedLeather, mat_herbExtract | 재료 수집·가공 재료 6종 (256×256) |

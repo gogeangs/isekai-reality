@@ -676,8 +676,7 @@ class _EdgeChip extends StatelessWidget {
               angle: mark.angle,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: Icon(Icons.navigation_rounded,
-                    size: 18, color: color),
+                child: Icon(Icons.play_arrow_rounded, size: 22, color: color),
               ),
             ),
             Container(

@@ -109,6 +109,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     look: _c.profile.look,
                     vibrate: _c.vibrate,
                     sound: _c.sound,
+                    hour: _c.now.hour,
+                    weather: _c.weather?.kind,
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
                     poisonTip: !_c.poisonTipSeen,

@@ -344,6 +344,28 @@ class Battle {
   /// 혀로 묶기: 몬스터가 다음 차례를 쉰다
   bool _foeBound = false;
 
+  // ───────────── 화면 연출용 (11-11 #81 1단계)
+
+  /// 이번 차례 내 공격이 치명타였는지 / 약점(효과가 굉장했다)이었는지
+  bool lastCrit = false;
+  bool lastSuper = false;
+
+  /// 이번 차례 회복한 HP (물약·고목 세트·흡혈). 화면에 초록 숫자로.
+  int lastHealed = 0;
+
+  /// 회복할 때마다 1씩 (화면이 초록 숫자를 새로 띄우는 신호)
+  int heals = 0;
+
+  void _healed(int n) {
+    if (n <= 0) return;
+    lastHealed += n;
+    heals++;
+  }
+
+  /// 몬스터가 묶였는지·얼었는지 (상태 이상 표시)
+  bool get foeBound => _foeBound;
+  bool get foeFrozen => _foeFrozen;
+
   /// 약점 간파: 남은 턴 동안 각성자 피해 증가
   int insightTurns = 0;
 
@@ -423,7 +445,9 @@ class Battle {
         case BossSetAbility.drain:
           final heal = math.max(1, (dealt * BossGearRules.drainRatio).round());
           if (playerHp < playerMaxHp) {
+            final before = playerHp;
             playerHp = math.min(playerMaxHp, playerHp + heal);
+            _healed(playerHp - before);
             setProcs++;
           }
         case BossSetAbility.chain:
@@ -627,8 +651,10 @@ class Battle {
         freezeImmune = 3;
       case null:
         if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
+        final before = playerHp;
         playerHp = math.min(
             playerMaxHp, playerHp + (playerMaxHp * p.hpRatio).round());
+        _healed(playerHp - before);
     }
     _potionLeft[key] = potionLeft(key) - 1;
     potionsUsed[key] = (potionsUsed[key] ?? 0) + 1;
@@ -765,6 +791,9 @@ class Battle {
     lastBash = false;
     lastGuard = null;
     lastEvent = null;
+    lastCrit = false;
+    lastSuper = false;
+    lastHealed = 0;
     // 이번 틱의 몬스터 첫 공격이 예고된 강한 공격인지
     _strongNow = _strongNext;
     _strongNowMult = _strongNextMult;
@@ -811,6 +840,7 @@ class Battle {
       if (playerCrit > 0 && _rng.nextDouble() < playerCrit) {
         dmg = (dmg * StatRules.critMultiplier).round();
         lastEvent = '치명타!';
+        lastCrit = true;
       }
       if (f.defense != 1) dmg = math.max(1, (dmg / f.defense).round());
       dmg = _elemental(dmg, weaponPotion ?? attackElement,
@@ -872,8 +902,10 @@ class Battle {
     if (stanceTurns > 0) stanceTurns--;
     // 고목 세트 6개: 매 턴 HP 조금 회복 (11-11 #82)
     if (setAbilities.contains(BossSetAbility.regrow) && playerHp < playerMaxHp) {
+      final before = playerHp;
       playerHp = math.min(playerMaxHp,
           playerHp + math.max(1, (playerMaxHp * BossGearRules.regrowRatio).round()));
+      _healed(playerHp - before);
       setProcs++;
     }
     _autoDrink();
@@ -1080,7 +1112,10 @@ class Battle {
     if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;
     // 보스 장비 4개 세트: 그 속성 공격 강화 (11-11 #82)
     if (attack != null && setAttack[attack] != null) d *= 1 + setAttack[attack]!;
-    if (m > 1) lastEvent = superEffective;
+    if (m > 1) {
+      lastEvent = superEffective;
+      lastSuper = true;
+    }
     if (m < 1) lastEvent = notEffective;
     return math.max(1, d.round());
   }

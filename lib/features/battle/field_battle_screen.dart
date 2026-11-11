@@ -125,7 +125,6 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 vibrate: widget.controller.vibrate,
                 sound: widget.controller.sound,
                 hour: widget.controller.now.hour,
-                weather: widget.controller.weather?.kind,
                 fast: widget.controller.fastBattle,
                 onFastChanged: widget.controller.setFastBattle,
                 onAutoChanged: (hp, cure) =>

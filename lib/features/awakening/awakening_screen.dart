@@ -26,9 +26,8 @@ class AwakeningScreen extends StatefulWidget {
   /// 지금 시각 (테스트용, 없으면 기기 시각)
   final DateTime Function()? now;
 
-  /// [weather] 날씨 조회(선택 동의)를 켰는지
-  final Future<void> Function(String name, HeroLook look, bool weather,
-      SpiritKind spirit, String spiritName) onAwaken;
+  final Future<void> Function(
+      String name, HeroLook look, SpiritKind spirit, String spiritName) onAwaken;
 
   @override
   State<AwakeningScreen> createState() => _AwakeningScreenState();
@@ -118,8 +117,6 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     if (AgeRules.needsBirthdayQuestion(y!, _now)) return _birthdayPassed != null;
     return true;
   }
-  /// 날씨 기능은 11-10에 뺐다 (동의 항목 없음)
-  final bool _agreeWeather = false;
 
   bool get _requiredAgreed => _agreeHealth && _agreeLocation && _agreeAge;
 
@@ -155,8 +152,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   Future<void> _awaken() async {
     if (!_canAwaken) return;
     setState(() => _submitting = true);
-    await widget.onAwaken(_nameController.text.trim(), _look, _agreeWeather,
-        _spirit, _spiritName);
+    await widget.onAwaken(
+        _nameController.text.trim(), _look, _spirit, _spiritName);
     if (mounted) setState(() => _submitting = false);
   }
 

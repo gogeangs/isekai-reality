@@ -6,95 +6,14 @@ import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
-import 'package:isekai_reality/data/weather/weather_source.dart';
 import 'package:isekai_reality/features/bulssi/bulssi_mood.dart';
 
 void main() {
-  group('날씨와 불씨 색', () {
-    test('WMO 날씨 코드를 네 가지로 묶는다', () {
-      expect(WeatherNow.kindFromWmo(0), WeatherKind.clear);
-      expect(WeatherNow.kindFromWmo(3), WeatherKind.cloudy);
-      expect(WeatherNow.kindFromWmo(45), WeatherKind.cloudy);
-      expect(WeatherNow.kindFromWmo(61), WeatherKind.rain);
-      expect(WeatherNow.kindFromWmo(81), WeatherKind.rain);
-      expect(WeatherNow.kindFromWmo(95), WeatherKind.rain);
-      expect(WeatherNow.kindFromWmo(73), WeatherKind.snow);
-      expect(WeatherNow.kindFromWmo(86), WeatherKind.snow);
-    });
-
-    test('Open-Meteo 응답을 읽는다', () {
-      final w = OpenMeteoWeatherSource.parse({
-        'current': {'weather_code': 63, 'is_day': 1, 'temperature_2m': 8.4},
-      })!;
-      expect(w.kind, WeatherKind.rain);
-      expect(w.isDay, isTrue);
-      expect(w.temperatureC, 8.4);
-      expect(OpenMeteoWeatherSource.parse({'oops': 1}), isNull);
-    });
-
-    test('맑음 황금, 비 하늘색, 눈 흰색, 밤에는 보라', () {
-      final noon = DateTime(2026, 11, 8, 13);
-      expect(BulssiMoods.of(now: noon), BulssiMood.gold);
-      expect(
-          BulssiMoods.of(
-              weather: const WeatherNow(kind: WeatherKind.rain), now: noon),
-          BulssiMood.sky);
-      expect(
-          BulssiMoods.of(
-              weather: const WeatherNow(kind: WeatherKind.snow), now: noon),
-          BulssiMood.snow);
-      expect(
-          BulssiMoods.of(
-              weather: const WeatherNow(kind: WeatherKind.rain),
-              now: DateTime(2026, 11, 8, 21)),
-          BulssiMood.night);
-      expect(
-          BulssiMoods.of(
-              weather: const WeatherNow(kind: WeatherKind.clear, isDay: false),
-              now: noon),
-          BulssiMood.night);
-    });
-
-    test('날씨는 30분에 한 번만 읽고, 상태창에 이름과 기온을 보여 준다', () async {
-      var now = DateTime(2026, 11, 8, 13);
-      final weather = FakeWeatherSource(
-          const WeatherNow(kind: WeatherKind.rain, temperatureC: 7.6));
-      final c = AppController(
-        store: InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
-        health: FakeHealthSource(),
-        weatherSource: weather,
-        clock: () => now,
-      );
-      await c.init();
-      await c.refreshWeather();
-      expect(weather.calls, 1);
-      expect(c.weatherLabel, '비 8°');
-      expect(c.bulssiMood, BulssiMood.sky);
-
-      now = now.add(const Duration(minutes: 31));
-      await c.refreshWeather();
-      expect(weather.calls, 2);
-    });
-
-    test('날씨 조회를 끄면 조회하지 않고 받은 날씨도 버린다', () async {
-      final weather = FakeWeatherSource(
-          const WeatherNow(kind: WeatherKind.rain, temperatureC: 7.6));
-      final c = AppController(
-        store: InMemoryRecordStore(profile: const PlayerProfile(name: '하루')),
-        health: FakeHealthSource(),
-        weatherSource: weather,
-        clock: () => DateTime(2026, 11, 8, 13),
-      );
-      await c.init();
-      await c.refreshWeather();
-      final calls = weather.calls;
-
-      await c.setWeatherEnabled(false);
-      expect(c.weatherLabel, '날씨 꺼짐');
-      expect(c.weather, isNull);
-      await c.refreshWeather(force: true);
-      expect(weather.calls, calls);
-      expect(c.profile.weatherEnabled, isFalse);
+  group('불씨 색 (날씨 기능은 묶음 13에서 뺐다)', () {
+    test('낮에는 황금, 밤에는 보라 (기기 시간만)', () {
+      expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 13)), BulssiMood.gold);
+      expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 21)), BulssiMood.night);
+      expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 4)), BulssiMood.night);
     });
   });
 

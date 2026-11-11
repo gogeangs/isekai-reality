@@ -805,7 +805,6 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     for (final p in c.pets.pets) {
       if (p.uid == ex.petUid) species = p.species;
     }
-    final w = c.weather?.kind;
     final line = ExpeditionTalkRules.line(
       rng: _rng,
       going: going,
@@ -814,9 +813,6 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       monster: id == null ? '몬스터' : Monsters.info(id).name,
       hour: now.hour,
       species: species,
-      rain: w?.name == 'rain',
-      snow: w?.name == 'snow',
-      clear: w == null ? null : w.name == 'clear',
     );
     try {
       _talkOpen?.close();

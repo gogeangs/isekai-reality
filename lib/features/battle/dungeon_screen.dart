@@ -110,7 +110,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     vibrate: _c.vibrate,
                     sound: _c.sound,
                     hour: _c.now.hour,
-                    weather: _c.weather?.kind,
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
                     onAutoChanged: (hp, cure) =>

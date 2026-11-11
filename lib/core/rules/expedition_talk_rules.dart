@@ -5,7 +5,8 @@ import 'pet_rules.dart';
 
 /// 원정 중 지도 위 작은 말풍선 (11-11 #89)
 ///
-/// 남은 거리·시간, 목표 몬스터, 날씨, 시간대, 펫 성격(#38)에 맞춰 한 줄을 고른다.
+/// 남은 거리·시간, 목표 몬스터, 시간대, 펫 성격(#38)에 맞춰 한 줄을 고른다.
+/// (날씨 기능은 묶음 13에서 뺐다)
 /// 1~2분에 한 번, 여러 마리면 한 번에 하나만.
 class ExpeditionTalkRules {
   ExpeditionTalkRules._();
@@ -43,7 +44,7 @@ class ExpeditionTalkRules {
   ///
   /// [going] 가는 중 / 돌아오는 중, [progress] 0~1 (이번 구간에서 간 정도),
   /// [minutesLeft] 이번 구간 남은 분, [monster] 목표 몬스터 이름,
-  /// [rain]·[snow] 날씨 (모르면 둘 다 false·[clear] null), [hour] 지금 시,
+  /// [hour] 지금 시 (기기 시간),
   /// [species] 펫 종류 (정령이면 null).
   static String line({
     required math.Random rng,
@@ -53,9 +54,6 @@ class ExpeditionTalkRules {
     required String monster,
     required int hour,
     PetSpecies? species,
-    bool rain = false,
-    bool snow = false,
-    bool? clear,
   }) {
     final pool = <String>[];
     if (going) {
@@ -75,9 +73,6 @@ class ExpeditionTalkRules {
         '가방이 묵직해',
       ]);
     }
-    if (rain) pool.add('비가 오네… 젖겠다');
-    if (snow) pool.add('눈이다! 발이 시려');
-    if (clear == true) pool.add('오늘 날씨 좋다');
     if (hour >= 19 || hour < 5) {
       pool.add('밤길은 조금 무서워');
     } else if (hour < 9) {

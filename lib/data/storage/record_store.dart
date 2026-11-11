@@ -41,7 +41,6 @@ class PlayerProfile {
     this.spiritName = '불씨',
     this.spiritKind = SpiritKind.fire,
     this.lastSeenLevel,
-    this.weatherEnabled = true,
     this.equippedTitle,
     this.renames = 0,
   });
@@ -59,8 +58,6 @@ class PlayerProfile {
   /// 플레이어가 마지막으로 확인한 레벨. 이보다 오르면 레벨업 연출을 보여 준다.
   final int? lastSeenLevel;
 
-  /// 대략 위치로 날씨를 조회해 불씨 색을 바꿀지 (선택 동의)
-  final bool weatherEnabled;
 
   /// 플레이어가 고른 대표 칭호 ([TitleId] 이름). 없으면 자동.
   final String? equippedTitle;
@@ -75,7 +72,6 @@ class PlayerProfile {
     String? spiritName,
     SpiritKind? spiritKind,
     int? lastSeenLevel,
-    bool? weatherEnabled,
     String? equippedTitle,
     int? renames,
   }) =>
@@ -86,7 +82,6 @@ class PlayerProfile {
         spiritName: spiritName ?? this.spiritName,
         spiritKind: spiritKind ?? this.spiritKind,
         lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
-        weatherEnabled: weatherEnabled ?? this.weatherEnabled,
         equippedTitle: equippedTitle ?? this.equippedTitle,
         renames: renames ?? this.renames,
       );
@@ -98,7 +93,6 @@ class PlayerProfile {
         'spiritName': spiritName,
         'spiritKind': spiritKind.name,
         'lastSeenLevel': lastSeenLevel,
-        'weatherEnabled': weatherEnabled,
         'equippedTitle': equippedTitle,
         'renames': renames,
       };
@@ -112,7 +106,6 @@ class PlayerProfile {
         spiritName: json['spiritName'] as String? ?? '불씨',
         spiritKind: SpiritKindInfo.parse(json['spiritKind'] as String?),
         lastSeenLevel: json['lastSeenLevel'] as int?,
-        weatherEnabled: json['weatherEnabled'] as bool? ?? true,
         equippedTitle: json['equippedTitle'] as String?,
         renames: json['renames'] as int? ?? 0,
       );

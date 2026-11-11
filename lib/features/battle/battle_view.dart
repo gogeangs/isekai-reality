@@ -15,7 +15,6 @@ import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
-import '../../data/weather/weather_source.dart' show WeatherKind;
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -38,7 +37,6 @@ class BattleView extends StatefulWidget {
     this.onPoisonTipShown,
     this.aura,
     this.hour,
-    this.weather,
   });
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
@@ -47,8 +45,6 @@ class BattleView extends StatefulWidget {
   /// 지금 시각 (낮·노을·밤 색감, 11-11 #81). 없으면 낮.
   final int? hour;
 
-  /// 지금 날씨 (비·눈 효과). 날씨를 모르면 null.
-  final WeatherKind? weather;
 
   final Battle battle;
   final VoidCallback onFinished;
@@ -456,7 +452,6 @@ class _BattleViewState extends State<BattleView> {
                 heroTint: _heroTint,
                 foeTint: _foeTint,
                 hour: widget.hour,
-                weather: widget.weather,
               ),
               const SizedBox(height: 8),
               OrnatePanel(
@@ -820,7 +815,6 @@ class _Scene extends StatefulWidget {
     this.heroTint,
     this.foeTint,
     this.hour,
-    this.weather,
   });
 
   final Color? aura;
@@ -836,7 +830,6 @@ class _Scene extends StatefulWidget {
   final Color? heroTint;
   final Color? foeTint;
   final int? hour;
-  final WeatherKind? weather;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
   final bool petDash;
@@ -1002,7 +995,6 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                             t: ((widget.beat + t) * 0.11) % 1.0,
                             element: foe.info.element,
                             hour: widget.hour,
-                            weather: widget.weather,
                           ),
                         ),
                       ),
@@ -2019,15 +2011,13 @@ class _StatusIcons extends StatelessWidget {
       ]);
 }
 
-/// 배경 위 시간 색감·속성 입자·비·눈 (11-11 #81, 그림 없이 코드로)
+/// 배경 위 시간 색감·속성 입자·밤 반딧불 (11-11 #81, 그림 없이 코드로)
 class _AmbientPainter extends CustomPainter {
-  _AmbientPainter(
-      {required this.t, this.element, this.hour, this.weather});
+  _AmbientPainter({required this.t, this.element, this.hour});
 
   final double t;
   final Element? element;
   final int? hour;
-  final WeatherKind? weather;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2094,25 +2084,20 @@ class _AmbientPainter extends CustomPainter {
         }
       }
     }
-    // 비·눈 (실제 날씨)
-    final wk = weather;
-    if (wk == WeatherKind.rain) {
-      p
-        ..color = const Color(0x88B8D4FF)
-        ..strokeWidth = 1.3;
-      for (var i = 0; i < 60; i++) {
-        final x = rng.nextDouble() * (w + 40);
-        final v = (t * 4 + rng.nextDouble()) % 1.0;
-        final y = v * (h + 20) - 20;
-        canvas.drawLine(Offset(x, y), Offset(x - 4, y + 14), p);
-      }
-    } else if (wk == WeatherKind.snow) {
-      p.color = const Color(0xCCFFFFFF);
-      for (var i = 0; i < 40; i++) {
-        final x = rng.nextDouble() * w;
-        final v = (t * (0.6 + rng.nextDouble() * 0.6) + rng.nextDouble()) % 1.0;
+    // 밤에는 반딧불 (기기 시간, 날씨는 쓰지 않는다)
+    if (hr != null && (hr >= 19 || hr < 6)) {
+      for (var i = 0; i < 14; i++) {
+        final x0 = rng.nextDouble() * w;
+        final y0 = h * (0.25 + rng.nextDouble() * 0.6);
+        final ph = rng.nextDouble();
+        final v = (t * (0.4 + rng.nextDouble() * 0.4) + ph) % 1.0;
+        final a = (math.sin(v * math.pi * 2) * 0.5 + 0.5) * 0.85;
+        final o = Offset(x0 + math.sin(v * 6.28 + i) * 10,
+            y0 + math.cos(v * 6.28 + i * 0.7) * 8);
         canvas.drawCircle(
-            Offset(x + math.sin(v * 8 + i) * 6, v * h), 1.6 + (i % 3) * 0.6, p);
+            o, 5, p..color = Color.fromRGBO(220, 255, 140, a * 0.25));
+        canvas.drawCircle(
+            o, 1.8, p..color = Color.fromRGBO(240, 255, 170, a));
       }
     }
   }
@@ -2130,6 +2115,5 @@ class _AmbientPainter extends CustomPainter {
   bool shouldRepaint(covariant _AmbientPainter old) =>
       old.t != t ||
       old.element != element ||
-      old.hour != hour ||
-      old.weather != weather;
+      old.hour != hour;
 }

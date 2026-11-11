@@ -27,7 +27,6 @@ import 'data/mail/mail_source.dart';
 import 'data/notify/notifier.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
-import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/map/ansan_area.dart';
 import 'features/map/korea_area.dart';
@@ -43,7 +42,6 @@ class AppController extends ChangeNotifier {
     required this.store,
     required this.health,
     this.location,
-    this.weatherSource,
     this.notifier,
     this.roads,
     this.exclusions,
@@ -80,8 +78,6 @@ class AppController extends ChangeNotifier {
   /// 위치 (없으면 지도 탐험 없이 동작)
   final LocationSource? location;
 
-  /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
-  final WeatherSource? weatherSource;
 
   /// 휴대폰 알림 (없으면 앱 안에서만 알려 준다)
   final Notifier? notifier;
@@ -229,7 +225,6 @@ class AppController extends ChangeNotifier {
   Future<void> awaken({
     required String name,
     required HeroLook look,
-    bool weatherEnabled = true,
     SpiritKind spirit = SpiritKind.fire,
     String? spiritName,
   }) async {
@@ -238,7 +233,6 @@ class AppController extends ChangeNotifier {
       name: name.trim(),
       look: look,
       lastSeenLevel: 1,
-      weatherEnabled: weatherEnabled,
       spiritKind: spirit,
       spiritName: sn == null || sn.isEmpty ? spirit.defaultName : sn,
     );
@@ -340,42 +334,12 @@ class AppController extends ChangeNotifier {
     _history = await store.loadHistory();
     await refreshVitals();
     notifyListeners();
-    unawaited(refreshWeather());
   }
 
-  // ───────────────────────────────────────────── 날씨 · 불씨 색
+  // ───────────────────────────────────────────── 불씨 색 (11-11 묶음 13: 날씨 기능은 뺐다. 기기 시간만)
 
-  WeatherNow? _weather;
-  DateTime? _weatherAt;
-
-  WeatherNow? get weather => _weather;
-
-  /// 불씨 빛 색 (맑음 황금, 비 하늘색, 밤 보라, 눈 흰색)
-  BulssiMood get bulssiMood => BulssiMoods.of(weather: _weather, now: _clock());
-
-  /// 상태창 위쪽에 보이는 날씨 이름
-  String get weatherLabel {
-    if (!_profile.weatherEnabled) return '날씨 꺼짐';
-    final w = _weather;
-    if (w == null) return '날씨 확인 중';
-    final t = w.temperatureC;
-    return t == null ? w.kind.koreanName : '${w.kind.koreanName} ${t.round()}°';
-  }
-
-  /// 30분에 한 번만 새로 읽는다. 실패해도 게임은 그대로.
-  Future<void> refreshWeather({bool force = false}) async {
-    final source = weatherSource;
-    if (source == null || !_profile.weatherEnabled) return;
-    final now = _clock();
-    final last = _weatherAt;
-    if (!force && last != null && now.difference(last).inMinutes < 30) return;
-    _weatherAt = now;
-    final w = await source.current(_lastFix?.point ?? area.bounds.center);
-    if (w != null) {
-      _weather = w;
-      notifyListeners();
-    }
-  }
+  /// 불씨 빛 색 (낮 황금, 밤 보라)
+  BulssiMood get bulssiMood => BulssiMoods.of(now: _clock());
 
   // ───────────────────────────────────────────── 설정
 
@@ -3565,18 +3529,6 @@ class AppController extends ChangeNotifier {
               gold: gold + fit.gold,
               materials: fit.kept)),
     ));
-  }
-
-  /// 날씨 조회를 켜고 끈다. 끄면 받아 둔 날씨도 버린다.
-  Future<void> setWeatherEnabled(bool on) async {
-    await updateProfile(_profile.copyWith(weatherEnabled: on));
-    if (on) {
-      await refreshWeather(force: true);
-    } else {
-      _weather = null;
-      _weatherAt = null;
-      notifyListeners();
-    }
   }
 
   // ───────────────────────────────────────────── HP · 정령 MP · 여관 · 정령 원정

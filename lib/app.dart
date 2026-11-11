@@ -433,11 +433,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           return AwakeningScreen(
             onTooYoung: controller.blockForAge,
             now: () => controller.now,
-            onAwaken: (name, look, weather, spirit, spiritName) =>
+            onAwaken: (name, look, spirit, spiritName) =>
                 controller.awaken(
                     name: name,
                     look: look,
-                    weatherEnabled: weather,
                     spirit: spirit,
                     spiritName: spiritName),
           );

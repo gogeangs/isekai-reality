@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Element;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 import '../../core/format.dart';
@@ -20,6 +21,7 @@ import '../town/material_view.dart';
 import 'expedition_sheet.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../../core/models/alchemy_state.dart' show ActiveBuff;
+import '../../core/models/pet_state.dart' show Pet;
 import '../../core/models/vitals.dart' show Expedition;
 import 'map_config.dart';
 import '../../theme/top_notice.dart';
@@ -525,7 +527,33 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   }
 
   /// 장소·몬스터·내 위치를 다시 그린다 (바뀐 게 있을 때만)
+  /// 앱에 들어 있는 그림 목록 (지도는 없는 그림을 못 그려서 먼저 확인한다)
+  static Set<String>? _assets;
+
+  /// 원정 간 펫 지도 그림 (묶음 13 D): 지도용 pet_map_<종류>.png → 펫 그림 → 원정 아이콘
+  String _petMapAsset(AppController c, Expedition ex) {
+    Pet? pet;
+    for (final p in c.pets.pets) {
+      if (p.uid == ex.petUid) pet = p;
+    }
+    if (pet == null) return 'assets/images/icon_expedition.png';
+    final have = _assets ?? const <String>{};
+    final map = 'assets/images/pet_map_${pet.species.name}.png';
+    if (have.contains(map)) return map;
+    final art = PetRules.info(pet.species).asset(adult: pet.adult);
+    return have.contains(art) ? art : 'assets/images/icon_expedition.png';
+  }
+
   Future<void> _redraw() async {
+    if (_assets == null) {
+      try {
+        _assets = (await AssetManifest.loadFromAssetBundle(rootBundle))
+            .listAssets()
+            .toSet();
+      } catch (_) {
+        _assets = const {};
+      }
+    }
     final map = _map;
     if (map == null) return;
     final c = widget.controller;
@@ -633,8 +661,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           position: NLatLng(positions[i].$1, positions[i].$2),
           icon: NOverlayImage.fromAssetImage(actives[i].petUid == null
               ? spiritAsset(c.profile.spiritKind)
-              // 펫 그림이 들어오면 pet_*.png 로 바꾼다 (지도는 없는 그림을 못 그린다)
-              : 'assets/images/icon_expedition.png'),
+              : _petMapAsset(c, actives[i])),
           size: const Size(42, 46),
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),

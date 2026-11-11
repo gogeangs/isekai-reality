@@ -7,19 +7,20 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 
-/// 우편함 (11-11 #65): 「선물」 탭(받을 것, 보상 우편은 30일) · 「편지」 탭(계속 보관)
+/// 우편함 (11-11 #65, #100): 선물과 편지를 한 목록으로. 물건이 든 편지는 30일 안에 받기,
+/// 받은 뒤 편지는 계속 보관. 필터: 전체 / 받을 물건 있음 / 공지
 class MailScreen extends StatefulWidget {
-  const MailScreen({super.key, required this.controller, this.initialTab = 0});
+  const MailScreen({super.key, required this.controller});
 
   final AppController controller;
-  final int initialTab;
 
   @override
   State<MailScreen> createState() => _MailScreenState();
 }
 
 class _MailScreenState extends State<MailScreen> {
-  late int _tab = widget.initialTab;
+  /// 0 전체 · 1 받을 물건 있음 · 2 공지
+  int _tab = 0;
 
   AppController get c => widget.controller;
 
@@ -103,35 +104,38 @@ class _MailScreenState extends State<MailScreen> {
           listenable: c,
           builder: (context, _) {
             final gifts = c.giftMails;
-            final letters = c.letterMails;
-            final list = _tab == 0 ? gifts : letters;
+            final all = c.allMails;
+            final list = switch (_tab) {
+              1 => gifts,
+              2 => [for (final m in all) if (m.kind == MailKind.notice) m],
+              _ => all,
+            };
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
               children: [
                 OrnateTopBar(title: '우편함', onBack: () => Navigator.of(context).maybePop()),
                 const SizedBox(height: 10),
-                Row(children: [
-                  for (final (i, label) in [(0, '선물 ${gifts.length}'), (1, '편지 ${letters.length}')]) ...[
-                    Expanded(
-                      child: ChoiceChip(
-                        label: SizedBox(
-                            width: double.infinity,
-                            child: Text(label, textAlign: TextAlign.center)),
-                        selected: _tab == i,
-                        onSelected: (_) => setState(() => _tab = i),
-                        selectedColor: AppColors.gold,
-                        backgroundColor: const Color(0xFF1E2250),
-                        labelStyle: TextStyle(
-                            color: _tab == i ? AppColors.night : AppColors.text,
-                            fontWeight: FontWeight.w700),
-                        showCheckmark: false,
-                      ),
+                Wrap(spacing: 6, children: [
+                  for (final (i, label) in [
+                    (0, '전체'),
+                    (1, '받을 물건 ${gifts.length}'),
+                    (2, '공지'),
+                  ])
+                    ChoiceChip(
+                      key: Key('mailFilter_$i'),
+                      label: Text(label),
+                      selected: _tab == i,
+                      onSelected: (_) => setState(() => _tab = i),
+                      selectedColor: AppColors.gold,
+                      backgroundColor: const Color(0xFF1E2250),
+                      labelStyle: TextStyle(
+                          color: _tab == i ? AppColors.night : AppColors.text,
+                          fontWeight: FontWeight.w700),
+                      showCheckmark: false,
                     ),
-                    if (i == 0) const SizedBox(width: 8),
-                  ],
                 ]),
                 const SizedBox(height: 10),
-                if (_tab == 0 && gifts.isNotEmpty) ...[
+                if (gifts.isNotEmpty) ...[
                   GoldButton(
                     key: const Key('mailClaimAll'),
                     label: '모두 받기',
@@ -150,7 +154,12 @@ class _MailScreenState extends State<MailScreen> {
                 if (list.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 30),
-                    child: KText(_tab == 0 ? '받을 선물이 없어요.' : '아직 편지가 없어요.',
+                    child: KText(
+                        switch (_tab) {
+                          1 => '받을 물건이 없어요.',
+                          2 => '공지가 없어요.',
+                          _ => '아직 편지가 없어요.',
+                        },
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: AppColors.textMuted)),
                   ),
@@ -204,12 +213,13 @@ class _MailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = mail;
-    final unread = !m.read || m.hasGifts;
-    final icon = switch (m.kind) {
-      MailKind.reward => Icons.card_giftcard_rounded,
-      MailKind.letter => unread ? Icons.mail_rounded : Icons.drafts_rounded,
-      MailKind.notice => Icons.campaign_rounded,
-    };
+    final unread = !m.read;
+    // 11-11 #100: 모두 편지. 공지만 확성기, 물건이 들어 있으면 작은 선물 상자
+    final icon = m.kind == MailKind.notice
+        ? Icons.campaign_rounded
+        : unread
+            ? Icons.mail_rounded
+            : Icons.drafts_rounded;
     final sub = [
       m.from,
       if (m.hasGifts) giftLabel(controller, m.gifts),
@@ -246,6 +256,11 @@ class _MailRow extends StatelessWidget {
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
             ]),
           ),
+          if (m.hasGifts) ...[
+            const SizedBox(width: 4),
+            const Icon(Icons.card_giftcard_rounded,
+                key: Key('mailGiftMark'), color: AppColors.goldBright, size: 18),
+          ],
           const SizedBox(width: 6),
           Text(when(m.sentAt, controller.now),
               style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),

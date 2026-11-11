@@ -786,10 +786,12 @@ void main() {
     // 우편함
     await tester.tap(find.byKey(const Key('mailButton')));
     await tester.pumpAndSettle();
-    await _shot(tester, '57_우편함_선물');
-    await tester.tap(find.textContaining('편지 '));
+    await _shot(tester, '57_우편함');
+    // 11-11 #100: 선물·편지 탭 없이 한 목록, 필터만
+    expect(find.textContaining('편지 '), findsNothing);
+    await tester.tap(find.byKey(const Key('mailFilter_1')));
     await tester.pumpAndSettle();
-    await _shot(tester, '58_우편함_편지');
+    await _shot(tester, '58_우편함_받을물건');
   });
 
   // 그림 확인 (11-11): 앱이 쓰는 그림 자리마다 실제 화면 위젯으로 그려 본다.

@@ -2460,7 +2460,11 @@ class AppController extends ChangeNotifier {
       ]..sort((a, b) => (a.expiresAt ?? DateTime(9999))
           .compareTo(b.expiresAt ?? DateTime(9999)));
 
-  /// 편지 탭: 편지·공지 (새것부터)
+  /// 우편함 한 목록 (11-11 #100): 선물과 편지를 함께, 새것부터
+  List<MailItem> get allMails => [..._mail.mails]
+    ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+
+  /// 편지·공지 (새것부터)
   List<MailItem> get letterMails => [
         for (final m in _mail.mails)
           if (m.kind != MailKind.reward) m,
@@ -2559,13 +2563,10 @@ class AppController extends ChangeNotifier {
     if (notes > 0) got.add('레시피 쪽지 $notes');
     if (eggs > 0) got.add('알 $eggs');
     if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
-    // 보상 우편은 받으면 지운다. 편지·공지는 편지 탭에 남는다.
+    // 11-11 #100: 받은 뒤에도 편지는 계속 보관한다 (보상 우편도 편지처럼)
     await _saveMail(_mail.copyWith(mails: [
       for (final x in _mail.mails)
-        if (x.id != id)
-          x
-        else if (x.kind != MailKind.reward)
-          x.copyWith(claimed: true, read: true),
+        if (x.id != id) x else x.copyWith(claimed: true, read: true),
     ]));
     return got.join(', ');
   }
@@ -2582,11 +2583,13 @@ class AppController extends ChangeNotifier {
   /// 우편 보내기·정리 (앱을 열 때·화면을 볼 때)
   Future<void> _checkMail() async {
     final now = _clock();
-    // 30일 지난 보상 우편은 사라진다
-    if (_mail.mails.any((m) => m.expiresAt != null && now.isAfter(m.expiresAt!))) {
+    // 30일 지나도록 받지 않은 물건이 든 편지는 사라진다 (받은 편지는 계속 보관)
+    bool gone(MailItem m) =>
+        m.hasGifts && m.expiresAt != null && now.isAfter(m.expiresAt!);
+    if (_mail.mails.any(gone)) {
       await _saveMail(_mail.copyWith(mails: [
         for (final m in _mail.mails)
-          if (m.expiresAt == null || !now.isAfter(m.expiresAt!)) m,
+          if (!gone(m)) m,
       ]));
     }
     // 운영 우편 (공지·보상)

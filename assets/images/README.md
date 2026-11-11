@@ -122,3 +122,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_bossWardenHeart, mat_bossKingOrb | 보스 재료: 문지기의 심장, 왕의 구슬 (256×256) |
 | mat_bossFrostFang | 보스 재료: 서리 송곳니 (256×256, 뿌연 배경과 바람 줄무늬를 지워서 넣음) |
 | mat_bossTreantHeart | 보스 재료: 고목의 심재 (256×256) |
+| mat_bossQueenWing, mat_bossThunderFeather, mat_bossShard | 보스 재료: 여왕의 밤날개, 천둥 깃털, 보스 장비 조각 (256×256) |

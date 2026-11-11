@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/armory.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import '../status/stat_icon.dart';
 import 'slot_glyph.dart';
 
 export 'slot_glyph.dart';
@@ -228,7 +229,69 @@ String gearSummary(GearBonus g) {
     if (g.reduce > 0) '받는 피해 -${pct(g.reduce)}%',
     if (g.maxHp > 0) '최대 HP +${pct(g.maxHp)}%',
     if (g.skillFaster > 0) '일격 충전 빨리',
-    if (g.stats.total > 0) '스탯 +${g.stats.total}',
+    for (final k in StatKind.values)
+      if (g.stats.of(k) > 0) '${k.label} +${g.stats.of(k)}',
   ];
   return parts.isEmpty ? '아직 입은 장비가 없어요' : parts.join(' · ');
+}
+
+/// 장비 능력 (11-11 묶음 13 A4): 공격·방어 같은 능력은 글로, 스탯은 [메달] +N 으로.
+/// [compare] 가 있으면 지금 입은 것과 비교해 오르면 초록 ↑, 내리면 빨강 ↓.
+class ItemStats extends StatelessWidget {
+  const ItemStats(this.item, {super.key, this.compare, this.fontSize = 11.5});
+
+  final EquipItem item;
+
+  /// 지금 그 부위에 입은 장비 (비교용)
+  final EquipItem? compare;
+  final double fontSize;
+
+  static const _up = Color(0xFF7BE08A);
+  static const _down = Color(0xFFE57373);
+
+  @override
+  Widget build(BuildContext context) {
+    final effect = EquipmentRules.itemEffectLabel(item);
+    final mine = EquipmentRules.itemStats(item);
+    final other = compare == null || compare!.uid == item.uid
+        ? null
+        : EquipmentRules.itemStats(compare!);
+    final kinds = [
+      for (final k in StatKind.values)
+        if ((mine[k] ?? 0) > 0 || (other?[k] ?? 0) > 0) k,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (effect.isNotEmpty)
+          Text(effect,
+              style: TextStyle(color: AppColors.textMuted, fontSize: fontSize)),
+        if (kinds.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Wrap(spacing: 8, runSpacing: 2, children: [
+              for (final k in kinds)
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  StatIcon(k, size: fontSize + 4, color: AppColors.goldBright),
+                  const SizedBox(width: 2),
+                  Text('+${mine[k] ?? 0}',
+                      style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w700)),
+                  if (other != null && (mine[k] ?? 0) != (other[k] ?? 0))
+                    Text((mine[k] ?? 0) > (other[k] ?? 0) ? ' ↑' : ' ↓',
+                        style: TextStyle(
+                            color: (mine[k] ?? 0) > (other[k] ?? 0)
+                                ? _up
+                                : _down,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w900)),
+                ]),
+            ]),
+          ),
+      ],
+    );
+  }
 }

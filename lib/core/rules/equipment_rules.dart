@@ -485,7 +485,21 @@ class EquipmentRules {
   }
 
   /// 장비 하나의 능력 글 (예: '공격 +9.2%')
-  static String itemStatLabel(EquipItem item) {
+  /// 장비 하나의 스탯 (11-11 묶음 13 A4: 스탯별로 보여 준다)
+  static Map<StatKind, int> itemStats(EquipItem item) {
+    final out = <StatKind, int>{};
+    for (final e in item.extras.entries) {
+      final k = StatKindInfo.parse(e.key);
+      if (k != null) out[k] = (out[k] ?? 0) + e.value;
+    }
+    return out;
+  }
+
+  /// 스탯을 뺀 장비 능력 (공격·받는 피해·속성 …)
+  static String itemEffectLabel(EquipItem item) =>
+      itemStatLabel(item, withStats: false);
+
+  static String itemStatLabel(EquipItem item, {bool withStats = true}) {
     final base = info(item.base);
     final p = power(item);
     return [
@@ -495,7 +509,8 @@ class EquipmentRules {
       if (base.skillFaster > 0) '일격 충전 하나 빨리',
       if (base.crit > 0) '치명타 +${_pct(base.crit * p)}%p',
       if (base.evade > 0) '회피 +${_pct(base.evade * p)}%p',
-      for (final e in item.extras.entries) '${statName(e.key)} +${e.value}',
+      if (withStats)
+        for (final e in item.extras.entries) '${statName(e.key)} +${e.value}',
       if (item.element != null)
         item.slot == EquipSlot.weapon
             ? '${item.element!.label} 속성 공격'

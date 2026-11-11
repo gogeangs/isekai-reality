@@ -770,7 +770,11 @@ class _EntrySheet extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 12),
-            if (desc.isNotEmpty)
+            if (e is EquipEntry)
+              // 묶음 13 A4: 스탯은 메달 + 숫자, 지금 입은 것과 비교
+              ItemStats(e.item,
+                  compare: c.armory.wornIn(e.item.slot), fontSize: 14)
+            else if (desc.isNotEmpty)
               KText(desc,
                   style: const TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 6),

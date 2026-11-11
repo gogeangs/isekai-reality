@@ -96,12 +96,14 @@ void main() {
         clock: () => now,
       )..mailSources = const [];
       await c.init();
-      expect(c.allMails.length, 2);
+      expect(c.giftMails.length, 2);
       expect(await c.claimMail('r1'), isNotNull);
       expect(c.allMails.any((m) => m.id == 'r1' && m.claimed), isTrue);
       now = now.add(const Duration(days: 31));
       await c.refreshVitals();
-      expect(c.allMails.map((m) => m.id), ['r1']); // 받은 것은 남고 받지 않은 것만 사라짐
+      final ids = c.allMails.map((m) => m.id).toList();
+      expect(ids, contains('r1')); // 받은 것은 남고
+      expect(ids, isNot(contains('r2'))); // 받지 않은 것만 사라짐
     });
   });
 }

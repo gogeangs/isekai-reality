@@ -26,6 +26,12 @@ info.update({
         "마법 돋보기로 감정할 때 카메라를 써요. 얼굴 인식은 휴대폰 안에서만 하고, 사진을 보내거나 저장해 두지 않아요.",
     "NSPhotoLibraryAddUsageDescription":
         "감정한 사진을 저장하기를 누르면 사진 앨범에 넣어요.",
+    # 11-11: 카메라·사진 저장 패키지가 들어 있으면 애플이 이 설명도 요구한다
+    # (없으면 업로드 뒤 처리에서 빌드가 빠진다). 마이크는 쓰지 않는다.
+    "NSMicrophoneUsageDescription":
+        "마법 돋보기는 소리를 쓰지 않아요. 카메라 기능에 함께 들어 있는 항목이라 설명만 적어 둬요.",
+    "NSPhotoLibraryUsageDescription":
+        "감정한 사진을 사진 앨범에 저장할 때만 써요. 앨범의 다른 사진은 보지 않아요.",
     "ITSAppUsesNonExemptEncryption": False,
 })
 info_path.write_bytes(plistlib.dumps(info))

@@ -154,10 +154,25 @@ class _MailScreenState extends State<MailScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: AppColors.textMuted)),
                   ),
-                for (final m in list) ...[
-                  _MailRow(controller: c, mail: m, onTap: () => _open(m)),
-                  const SizedBox(height: 8),
-                ],
+                // 큰 금테 판 하나 안에 한 줄씩 (11-11 #88)
+                if (list.isNotEmpty)
+                  OrnatePanel(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: Column(children: [
+                      for (var i = 0; i < list.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                              height: 1,
+                              thickness: 0.6,
+                              color: AppColors.gold.withValues(alpha: 0.25)),
+                        _MailRow(
+                            key: Key('mailRow_${list[i].id}'),
+                            controller: c,
+                            mail: list[i],
+                            onTap: () => _open(list[i])),
+                      ],
+                    ]),
+                  ),
               ],
             );
           },
@@ -168,51 +183,73 @@ class _MailScreenState extends State<MailScreen> {
 }
 
 class _MailRow extends StatelessWidget {
-  const _MailRow({required this.controller, required this.mail, required this.onTap});
+  const _MailRow(
+      {super.key, required this.controller, required this.mail, required this.onTap});
 
   final AppController controller;
   final MailItem mail;
   final VoidCallback onTap;
 
+  /// 받은 때 (오늘·어제·3일 전·11월 2일)
+  static String when(DateTime sent, DateTime now) {
+    final a = DateTime(sent.year, sent.month, sent.day);
+    final b = DateTime(now.year, now.month, now.day);
+    final d = b.difference(a).inDays;
+    if (d <= 0) return '오늘';
+    if (d == 1) return '어제';
+    if (d < 7) return '$d일 전';
+    return '${sent.month}월 ${sent.day}일';
+  }
+
   @override
   Widget build(BuildContext context) {
     final m = mail;
+    final unread = !m.read || m.hasGifts;
     final icon = switch (m.kind) {
       MailKind.reward => Icons.card_giftcard_rounded,
-      MailKind.letter => Icons.mail_rounded,
+      MailKind.letter => unread ? Icons.mail_rounded : Icons.drafts_rounded,
       MailKind.notice => Icons.campaign_rounded,
     };
-    return GestureDetector(
+    final sub = [
+      m.from,
+      if (m.hasGifts) giftLabel(controller, m.gifts),
+      if (m.expiresAt != null && m.hasGifts)
+        '${MailRules.daysLeft(m.expiresAt!, controller.now)}일 남음',
+    ].join(' · ');
+    return InkWell(
       onTap: onTap,
-      child: OrnatePanel(
-        padding: const EdgeInsets.all(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(children: [
-          Stack(clipBehavior: Clip.none, children: [
-            Icon(icon, color: AppColors.goldBright, size: 30),
-            if (!m.read || m.hasGifts)
-              const Positioned(
-                  right: -2, top: -2, child: _RedDot()),
-          ]),
-          const SizedBox(width: 10),
+          SizedBox(
+            width: 30,
+            child: Stack(clipBehavior: Clip.none, children: [
+              Icon(icon,
+                  color: unread ? AppColors.goldBright : AppColors.textMuted,
+                  size: 24),
+              if (unread) const Positioned(right: 0, top: -2, child: _RedDot()),
+            ]),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(m.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.title(15.5, color: AppColors.text)),
-              Text(
-                  [
-                    m.from,
-                    if (m.hasGifts) giftLabel(controller, m.gifts),
-                    if (m.expiresAt != null && m.hasGifts)
-                      '${MailRules.daysLeft(m.expiresAt!, controller.now)}일 남음',
-                  ].join(' · '),
-                  maxLines: 2,
+                  style: TextStyle(
+                      color: unread ? AppColors.text : AppColors.textMuted,
+                      fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 14.5)),
+              Text(sub,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
             ]),
           ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.gold),
+          const SizedBox(width: 6),
+          Text(when(m.sentAt, controller.now),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.gold, size: 20),
         ]),
       ),
     );

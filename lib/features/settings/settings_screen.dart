@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
                     onChanged: controller.setSound,
                     title: const Text('효과음',
                         style: TextStyle(color: AppColors.text, fontSize: 14)),
-                    subtitle: const Text('효과음은 곧 들어가요',
+                    subtitle: const Text('때릴 때, 막을 때, 이기고 질 때 소리가 나요',
                         style: TextStyle(
                             color: AppColors.textMuted, fontSize: 12)),
                   ),
@@ -158,6 +158,11 @@ class SettingsScreen extends StatelessWidget {
             title: '앱 정보',
             children: [
               _Row(label: '버전', value: appVersionLabel),
+              _Row(
+                label: LegalDoc.credits.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.credits),
+              ),
               _Row(
                 label: '오픈소스 라이선스',
                 value: '',

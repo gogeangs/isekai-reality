@@ -22,6 +22,8 @@ dependencies:
   gal: ^2.3.0
   share_plus: ^11.0.0
   path_provider: ^2.1.0
+  # 11-11 #75 전투 효과음 (Oculus Audio Pack 01, CC BY 4.0)
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -34,6 +36,7 @@ flutter:
     - assets/images/
     - assets/legal/
     - assets/data/
+    - assets/sfx/
   # 제목·숫자용 글꼴 (고운바탕 Bold, OFL). 자주 쓰는 한글 2,350자만 남겨 크기를 줄였다.
   fonts:
     - family: Title

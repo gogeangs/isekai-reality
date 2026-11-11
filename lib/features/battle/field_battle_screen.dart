@@ -116,6 +116,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,
                 vibrate: widget.controller.vibrate,
+                sound: widget.controller.sound,
                 fast: widget.controller.fastBattle,
                 onFastChanged: widget.controller.setFastBattle,
                 poisonTip: !widget.controller.poisonTipSeen,

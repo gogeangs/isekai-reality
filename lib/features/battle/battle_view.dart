@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
+import '../../data/sound/sfx.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -27,6 +28,7 @@ class BattleView extends StatefulWidget {
     this.playerName = '각성자',
     this.look = HeroLook.male,
     this.vibrate = false,
+    this.sound = false,
     this.fast = false,
     this.onFastChanged,
     this.poisonTip = false,
@@ -45,6 +47,9 @@ class BattleView extends StatefulWidget {
 
   /// 때리고 막을 때 진동 (설정 「진동」, 11-11 #75)
   final bool vibrate;
+
+  /// 효과음 (설정 「효과음」)
+  final bool sound;
 
   /// 2배속으로 시작 (마지막에 고른 속도를 기억한다)
   final bool fast;
@@ -174,6 +179,20 @@ class _BattleViewState extends State<BattleView> {
   }
 
   void _feel() {
+    if (widget.sound) {
+      final e = _b.lastEvent;
+      if (_b.lastGuard == GuardResult.perfect) {
+        Sfx.play(SfxKind.perfect);
+      } else if (_b.lastGuard == GuardResult.block) {
+        Sfx.play(SfxKind.block);
+      } else if (e == '치명타!' || _b.lastBash) {
+        Sfx.play(SfxKind.crit);
+      } else if (e == Battle.superEffective) {
+        Sfx.play(SfxKind.superEffective, volume: 0.6);
+      } else if (_b.lastDealt > 0) {
+        Sfx.play(SfxKind.hit, volume: 0.7);
+      }
+    }
     if (!widget.vibrate) return;
     if (_b.lastGuard == GuardResult.perfect) {
       HapticFeedback.heavyImpact();
@@ -245,6 +264,7 @@ class _BattleViewState extends State<BattleView> {
       if (_b.useSkill()) {
         _beat++;
         _record();
+        if (widget.sound) Sfx.play(SfxKind.crit);
       }
     });
     if (widget.vibrate) HapticFeedback.mediumImpact();
@@ -256,6 +276,7 @@ class _BattleViewState extends State<BattleView> {
       if (_b.useBash()) {
         _beat++;
         _record();
+        if (widget.sound) Sfx.play(SfxKind.crit);
       }
     });
     if (widget.vibrate) HapticFeedback.mediumImpact();
@@ -297,6 +318,10 @@ class _BattleViewState extends State<BattleView> {
     _reported = true;
     _timer?.cancel();
     _warning = false;
+    if (widget.sound) {
+      if (_b.phase == BattlePhase.cleared) Sfx.play(SfxKind.victory);
+      if (_b.phase == BattlePhase.failed) Sfx.play(SfxKind.defeat);
+    }
     if (widget.vibrate) {
       _b.phase == BattlePhase.cleared
           ? HapticFeedback.heavyImpact()

@@ -1,0 +1,20 @@
+# 만든 사람들
+
+## 만든 곳
+주식회사 프로젝트서티즈
+
+## 효과음
+Sounds: Oculus Audio Pack 01 (Meta), CC BY 4.0, 일부 편집
+- 원본: "Oculus Audio Pack 01" by Oculus VR, LLC (https://developers.meta.com/vr/downloads/package/oculus-audio-pack-1/)
+- 라이선스: Creative Commons Attribution 4.0 International (https://creativecommons.org/licenses/by/4.0/)
+- 편집: 두 소리를 겹치고(타격·완벽한 막기), 길이를 줄이고 끝을 서서히 줄였습니다.
+- 받은 곳: GitHub facebookincubator/Meta-open-sound
+
+## 글꼴
+고운바탕 (Gowun Batang), SIL Open Font License 1.1
+
+## 지도
+NAVER Maps
+
+## 그 밖의 오픈소스
+설정 › 앱 정보 › 오픈소스 라이선스에서 볼 수 있어요.

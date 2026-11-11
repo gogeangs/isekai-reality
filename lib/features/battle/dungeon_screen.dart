@@ -95,6 +95,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     playerName: _c.profile.name,
                     look: _c.profile.look,
                     vibrate: _c.vibrate,
+                    sound: _c.sound,
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
                     poisonTip: !_c.poisonTipSeen,

@@ -113,3 +113,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_poisonJelly, mat_poisonCore, mat_glowIceCore, mat_glowThunderCore | 독 젤리·코어, 빛나는 얼음·번개 코어 (256×256) |
 | mat_glowMetalCore, mat_glowPoisonCore | 빛나는 금속·독 코어 (256×256) |
 | icon_el_<fire·water·ice·wind·thunder> | 속성 아이콘 (256×256, 번개는 원 크기를 다른 아이콘에 맞춤) |
+| icon_el_<earth·metal·poison·light·dark·none> | 속성 아이콘 나머지 6종 (256×256, 원 크기를 불 아이콘에 맞춤) |

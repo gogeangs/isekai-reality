@@ -21,6 +21,7 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/lens/demo_filter_engine.dart';
 import 'package:isekai_reality/features/lens/lens_output.dart';
 import 'package:isekai_reality/features/lens/lens_screen.dart';
+import 'package:isekai_reality/features/lens/race_stickers.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
@@ -692,6 +693,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
     await tester.pumpAndSettle();
+    // 종족 장식 그림은 실제 시간에 읽어 둔다 (그림이 생기면 테스트 시계로는 끝나지 않는다)
+    await tester.runAsync(StickerArt.load);
     Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
         MaterialPageRoute<void>(builder: (_) => LensScreen(controller: c)));
     await tester.pumpAndSettle();

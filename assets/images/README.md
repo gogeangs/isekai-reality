@@ -99,3 +99,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | potion_resist<Ice·Thunder·Metal·Poison> | 새 저항 물약 4종 (256×256) |
 | mat_dewHerb, mat_manaOre, mat_sturdyKnot, mat_riverPearl | 채집 귀한 재료 4종 (256×256, 진주는 붉은 테두리를 지워서 넣음) |
 | filter_elf, filter_dwarf | 마법 돋보기 엘프·드워프 장식 (1024×1024, 엘프는 둘레 얼룩을 지워서 넣음) |
+| filter_fairy, filter_dragonkin | 마법 돋보기 요정·용인 장식 (1024×1024, 둘레 얼룩을 지워서 넣음) |

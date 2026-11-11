@@ -137,3 +137,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | potion_weaponLight, potion_weaponEarth, potion_weaponWind | 빛·대지·바람 공격 물약 (256×256) |
 | potion_weaponDark | 어둠 공격 물약 (256×256) |
 | potion_weaponIce | 얼음 공격 물약 (256×256) |
+| potion_weaponThunder | 번개 공격 물약 (256×256) |

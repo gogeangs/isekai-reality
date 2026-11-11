@@ -11,6 +11,7 @@ import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
 import '../mail/mail_screen.dart';
+import '../../theme/top_notice.dart';
 
 /// 마을 시설
 enum Facility { inn, shop, board, smithy, alchemy, market, post }
@@ -55,8 +56,7 @@ class VillageScreen extends StatelessWidget {
 
   void _enter(BuildContext context, FacilityInfo f) {
     if (!f.open) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${josa(f.name, '은/는')} 곧 열려요')));
+      showTopNotice(context, '${josa(f.name, '은/는')} 곧 열려요');
       return;
     }
     final Widget page = switch (f.facility) {

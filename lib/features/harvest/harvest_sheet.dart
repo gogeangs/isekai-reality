@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'harvest_games.dart';
+import '../../theme/top_notice.dart';
 
 String harvestReason(HarvestCheck c) => switch (c) {
       HarvestCheck.ok => '',
@@ -44,10 +45,15 @@ class HarvestSheet extends StatelessWidget {
     final line = [
       for (final e in mats.entries) '${Materials.info(e.key).name} +${e.value}',
     ].join(', ');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(grade == HarvestGrade.quick
+    showTopNotice(context, grade == HarvestGrade.quick
             ? '채집했어요! $line'
-            : '${gradeLabel(grade)} $line')));
+            : '${gradeLabel(grade)} $line');
+    // 고대 유물: 옛 이야기 한 조각 (11-11 #83)
+    final lore = c.lastRelicLore;
+    if (spot.kind == HarvestKind.relic && lore != null) {
+      showTopNotice(context, '옛 이야기 · $lore',
+          icon: Icons.menu_book_rounded, duration: const Duration(seconds: 6));
+    }
   }
 
   @override
@@ -82,7 +88,12 @@ class HarvestSheet extends StatelessWidget {
                               '${refill != null ? ' · ${_left(refill)} 뒤 하나 더' : ''}',
                               style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
                           Text(
-                              '${Materials.info(info.base).name}이(가) 늘 나오고, 가끔 ${Materials.info(info.rare).name}',
+                              switch (spot.kind) {
+                                HarvestKind.mushroom => '그늘버섯·독버섯이 늘 나오고, 가끔 달빛 버섯',
+                                HarvestKind.flower => '계절 꽃잎이 늘 나오고, 가끔 햇살 꽃가루·바람꽃',
+                                HarvestKind.gem => '원석 조각이 늘 나오고, 가끔 속성 보석',
+                                _ => '${Materials.info(info.base).name}이(가) 늘 나오고, 가끔 ${Materials.info(info.rare).name}',
+                              },
                               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         ],
                       ),
@@ -113,7 +124,9 @@ class HarvestSheet extends StatelessWidget {
                           ? () async {
                               final g = await Navigator.of(context).push<HarvestGrade>(
                                   MaterialPageRoute(
-                                      builder: (_) => HarvestGameScreen(kind: spot.kind)));
+                                      builder: (_) => HarvestGameScreen(
+                                          kind: spot.kind,
+                                          ease: c.harvestEase(spot.kind))));
                               if (g != null && context.mounted) await _go(context, g);
                             }
                           : null,
@@ -122,7 +135,7 @@ class HarvestSheet extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                       game == HarvestCheck.ok || game == quick
-                          ? '${info.toolName} 내구도 $dur / ${HarvestRules.toolMax} · 잘하면 더 많이, 귀한 재료도 잘 나와요'
+                          ? '${c.toolTier(info.tool).label} ${info.toolName} 내구도 $dur / ${c.toolMaxOf(info.tool)} · 잘하면 더 많이, 귀한 재료도 잘 나와요'
                           : harvestReason(game),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
@@ -134,12 +147,54 @@ class HarvestSheet extends StatelessWidget {
       );
 }
 
-/// 채집 도구 목록과 수리 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대)
+/// 채집 도구 목록·수리·등급·속성 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대·붓)
 class ToolRepairPanel extends StatelessWidget {
   const ToolRepairPanel({super.key, required this.controller, required this.smithy});
 
   final AppController controller;
   final bool smithy;
+
+  /// 빛나는 속성 코어가 있는 속성만 고를 수 있다 (금화 100)
+  Future<void> _imbue(BuildContext context, HarvestTool t) async {
+    final c = controller;
+    final options = [
+      for (final e in Element.values)
+        if (c.player.materialCount(EquipmentRules.imbueCore(e)) > 0) e,
+    ];
+    final picked = await showDialog<Element>(
+      context: context,
+      builder: (d) => GameAlert(
+        title: Text('${HarvestRules.toolName(t)}에 속성 입히기',
+            style: AppText.title(18)),
+        content: options.isEmpty
+            ? const KText('빛나는 속성 코어가 있어야 해요. 공방 「가공」에서 만들 수 있어요.',
+                style: TextStyle(color: AppColors.text))
+            : Column(mainAxisSize: MainAxisSize.min, children: [
+                const KText(
+                    '빛나는 속성 코어 1개 + 금화 ${EquipmentRules.imbueGold}. 그 속성의 귀한 재료가 더 잘 나와요.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 6, runSpacing: 6, children: [
+                  for (final e in options)
+                    ActionChip(
+                      label: Text(e.label),
+                      onPressed: () => Navigator.of(d).pop(e),
+                    ),
+                ]),
+              ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(), child: const Text('닫기')),
+        ],
+      ),
+    );
+    if (picked == null) return;
+    final ok = await c.imbueTool(t, picked);
+    if (context.mounted) {
+      showTopNotice(context,
+          ok ? '${HarvestRules.toolName(t)}에 ${picked.label} 속성을 입혔어요!' : '금화나 코어가 모자라요.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,37 +207,70 @@ class ToolRepairPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('채집 도구 수리', style: AppText.title(16)),
+          Text('채집 도구', style: AppText.title(16)),
           const SizedBox(height: 2),
           KText(
               c.harvest.granted
-                  ? '금화 ${HarvestRules.repairGold} + 재료 1개로 내구도를 다 채워요.'
+                  ? '수리: 금화 ${HarvestRules.repairGold} + 재료 1개 · 더 좋은 도구로 만들면 오래 가고 채집이 쉬워져요.'
                   : '처음 채집할 때 기본 도구를 받아요.',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          for (final t in tools)
+          for (final t in tools) ...[
+            const SizedBox(height: 6),
             Row(children: [
-              MaterialIcon(HarvestRules.ofTool(t).base, size: 28),
+              // 도구 등급별 그림 (없으면 재료 아이콘)
+              Image.asset('assets/images/tool_${t.name}_${c.toolTier(t).name}.png',
+                  width: 28,
+                  height: 28,
+                  errorBuilder: (_, __, ___) =>
+                      MaterialIcon(HarvestRules.ofTool(t).base, size: 28)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                    '${HarvestRules.toolName(t)} ${c.toolDurability(t)} / ${HarvestRules.toolMax}',
+                    '${c.toolTier(t).label} ${HarvestRules.toolName(t)}'
+                    '${c.toolElement(t) == null ? '' : ' (${c.toolElement(t)!.label})'}'
+                    ' ${c.toolDurability(t)} / ${c.toolMaxOf(t)}',
                     style: const TextStyle(color: AppColors.text)),
               ),
               TextButton(
                 onPressed: c.harvest.granted &&
-                        c.toolDurability(t) < HarvestRules.toolMax &&
+                        c.toolDurability(t) < c.toolMaxOf(t) &&
                         c.player.gold >= HarvestRules.repairGold &&
                         c.player.materialCount(HarvestRules.repairMaterial(t)) > 0
                     ? () async {
                         if (await c.repairTool(t) && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('${HarvestRules.toolName(t)}를 고쳤어요!')));
+                          showTopNotice(context, '${HarvestRules.toolName(t)}를 고쳤어요!');
                         }
                       }
                     : null,
                 child: Text('수리 (${Materials.info(HarvestRules.repairMaterial(t)).name} 1)'),
               ),
             ]),
+            Wrap(spacing: 6, children: [
+              if (HarvestRules.upgradeCost(c.toolTier(t)) case final cost?)
+                TextButton(
+                  key: Key('toolUpgrade_${t.name}'),
+                  onPressed: c.canUpgradeTool(t) == CraftCheck.ok
+                      ? () async {
+                          if (await c.upgradeTool(t) && context.mounted) {
+                            showTopNotice(context,
+                                '${c.toolTier(t).label} ${HarvestRules.toolName(t)}를 만들었어요!');
+                          }
+                        }
+                      : null,
+                  child: Text(
+                      '${ToolTier.values[c.toolTier(t).index + 1].label} 도구로 (${[
+                    for (final e in cost.mats.entries)
+                      '${Materials.info(e.key).name} ${e.value}',
+                    '금화 ${cost.gold}',
+                  ].join(', ')})'),
+                ),
+              TextButton(
+                key: Key('toolImbue_${t.name}'),
+                onPressed: () => _imbue(context, t),
+                child: const Text('속성 입히기'),
+              ),
+            ]),
+          ],
         ],
       ),
     );

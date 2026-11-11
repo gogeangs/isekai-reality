@@ -8,6 +8,7 @@ import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../legal/legal_screen.dart';
+import '../../theme/top_notice.dart';
 
 /// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
 class SettingsScreen extends StatelessWidget {
@@ -69,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
                     onChanged: controller.setSound,
                     title: const Text('효과음',
                         style: TextStyle(color: AppColors.text, fontSize: 14)),
-                    subtitle: const Text('효과음은 곧 들어가요',
+                    subtitle: const Text('때릴 때, 막을 때, 이기고 질 때 소리가 나요',
                         style: TextStyle(
                             color: AppColors.textMuted, fontSize: 12)),
                   ),
@@ -107,8 +108,7 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () async {
                   final ok = await DeviceLinks.openAppSettings();
                   if (!ok && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('휴대폰 설정 앱에서 이 앱을 찾아 주세요')));
+                    showTopNotice(context, '휴대폰 설정 앱에서 이 앱을 찾아 주세요');
                   }
                 },
               ),
@@ -131,9 +131,7 @@ class SettingsScreen extends StatelessWidget {
                   await Clipboard.setData(
                       ClipboardData(text: controller.exportRecordsCsv()));
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('기록을 복사했어요')),
-                    );
+                    showTopNotice(context, '기록을 복사했어요');
                   }
                 },
               ),
@@ -158,6 +156,11 @@ class SettingsScreen extends StatelessWidget {
             title: '앱 정보',
             children: [
               _Row(label: '버전', value: appVersionLabel),
+              _Row(
+                label: LegalDoc.credits.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.credits),
+              ),
               _Row(
                 label: '오픈소스 라이선스',
                 value: '',
@@ -184,9 +187,8 @@ class SettingsScreen extends StatelessWidget {
     // 메일 앱이 없으면 요청 내용을 복사해 둔다
     await Clipboard.setData(ClipboardData(text: _exclusionRequestText()));
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('메일 앱을 열 수 없어 요청 내용을 복사했어요. '
-              '받는 곳: $kSupportContact')));
+      showTopNotice(context, '메일 앱을 열 수 없어 요청 내용을 복사했어요. '
+              '받는 곳: $kSupportContact');
     }
   }
 

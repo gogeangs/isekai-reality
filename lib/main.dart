@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
@@ -10,6 +11,7 @@ import 'data/route/route_tile_source.dart';
 import 'data/health/device_health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/notify/notifier.dart';
+import 'data/sound/sfx.dart';
 import 'data/storage/record_store.dart';
 import 'features/map/map_config.dart';
 
@@ -19,6 +21,12 @@ const bool kDemoMode = bool.fromEnvironment('DEMO');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 효과음 출처 (CC BY 4.0): 오픈소스 라이선스 화면에도 싣는다
+  LicenseRegistry.addLicense(() => Stream.value(const LicenseEntryWithLineBreaks(
+      ['Oculus Audio Pack 01 (sounds)'],
+      'Sounds: "Oculus Audio Pack 01" by Oculus VR, LLC (Meta), '
+      'licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). '
+      'Some sounds were edited (layered, trimmed, faded).')));
 
   if (naverMapEnabled) {
     await FlutterNaverMap().init(
@@ -50,6 +58,7 @@ Future<void> main() async {
   } catch (_) {
     // 자료가 없으면 이름을 아는 제외 구역만 쓴다
   }
+  Sfx.init(); // 기다리지 않는다 (소리 준비가 늦어도 화면은 바로)
   runApp(IsekaiRealityApp(controller: controller));
   controller.init();
 }

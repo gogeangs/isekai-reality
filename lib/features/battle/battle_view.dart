@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
+import '../../data/sound/sfx.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -13,6 +14,7 @@ import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
+import '../../data/weather/weather_source.dart' show WeatherKind;
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -27,15 +29,24 @@ class BattleView extends StatefulWidget {
     this.playerName = '각성자',
     this.look = HeroLook.male,
     this.vibrate = false,
+    this.sound = false,
     this.fast = false,
     this.onFastChanged,
     this.poisonTip = false,
     this.onPoisonTipShown,
     this.aura,
+    this.hour,
+    this.weather,
   });
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
   final Color? aura;
+
+  /// 지금 시각 (낮·노을·밤 색감, 11-11 #81). 없으면 낮.
+  final int? hour;
+
+  /// 지금 날씨 (비·눈 효과). 날씨를 모르면 null.
+  final WeatherKind? weather;
 
   final Battle battle;
   final VoidCallback onFinished;
@@ -45,6 +56,9 @@ class BattleView extends StatefulWidget {
 
   /// 때리고 막을 때 진동 (설정 「진동」, 11-11 #75)
   final bool vibrate;
+
+  /// 효과음 (설정 「효과음」)
+  final bool sound;
 
   /// 2배속으로 시작 (마지막에 고른 속도를 기억한다)
   final bool fast;
@@ -78,6 +92,9 @@ class _BattleViewState extends State<BattleView> {
   /// 전투 기록 두 줄
   final List<String> _log = [];
 
+  /// 보스가 나오는 순간 (이름 띠 + 확대, 11-11 #81)
+  int _bossBeat = 0;
+
   /// 강한 타격 뒤 잠깐 멈춤 (손맛)
   static const _hitStop = Duration(milliseconds: 120);
 
@@ -105,10 +122,12 @@ class _BattleViewState extends State<BattleView> {
 
   void _step() {
     if (!mounted || _b.isOver || _tipOpen) return;
+    final floorBefore = _b.floor;
     setState(() {
       final before = _b.ticks;
       _b.tick();
       if (_b.ticks != before) _beat++; // 층이 바뀌는 틱은 연출하지 않는다
+      if (_b.floor != floorBefore && _b.foe.isBoss) _bossBeat++;
       _record();
     });
     _feel();
@@ -121,10 +140,12 @@ class _BattleViewState extends State<BattleView> {
   void _afterTick({bool first = false}) {
     var next = _interval;
     if (!first &&
-        (_b.lastGuard == GuardResult.perfect ||
-            _b.lastEvent == '치명타!' ||
-            _b.lastBash)) {
+        (_b.lastGuard == GuardResult.perfect || _b.lastCrit || _b.lastBash)) {
       next += _hitStop;
+    }
+    // 보스 등장: 이름 띠를 보여 주는 동안 잠깐 기다린다
+    if (!first && _bossBeat > 0 && _b.floorTicks == 0) {
+      next += const Duration(milliseconds: 1300);
     }
     if (_b.strongNext) {
       _warning = true;
@@ -174,12 +195,26 @@ class _BattleViewState extends State<BattleView> {
   }
 
   void _feel() {
+    if (widget.sound) {
+      final e = _b.lastEvent;
+      if (_b.lastGuard == GuardResult.perfect) {
+        Sfx.play(SfxKind.perfect);
+      } else if (_b.lastGuard == GuardResult.block) {
+        Sfx.play(SfxKind.block);
+      } else if (_b.lastCrit || _b.lastBash) {
+        Sfx.play(SfxKind.crit);
+      } else if (_b.lastSuper || e == Battle.superEffective) {
+        Sfx.play(SfxKind.superEffective, volume: 0.6);
+      } else if (_b.lastDealt > 0) {
+        Sfx.play(SfxKind.hit, volume: 0.7);
+      }
+    }
     if (!widget.vibrate) return;
     if (_b.lastGuard == GuardResult.perfect) {
       HapticFeedback.heavyImpact();
     } else if (_b.lastGuard == GuardResult.block) {
       HapticFeedback.mediumImpact();
-    } else if (_b.lastEvent == '치명타!' || _b.lastBash) {
+    } else if (_b.lastCrit || _b.lastBash) {
       HapticFeedback.mediumImpact();
     } else if (_b.lastTaken > 0) {
       HapticFeedback.lightImpact();
@@ -245,6 +280,7 @@ class _BattleViewState extends State<BattleView> {
       if (_b.useSkill()) {
         _beat++;
         _record();
+        if (widget.sound) Sfx.play(SfxKind.crit);
       }
     });
     if (widget.vibrate) HapticFeedback.mediumImpact();
@@ -256,6 +292,7 @@ class _BattleViewState extends State<BattleView> {
       if (_b.useBash()) {
         _beat++;
         _record();
+        if (widget.sound) Sfx.play(SfxKind.crit);
       }
     });
     if (widget.vibrate) HapticFeedback.mediumImpact();
@@ -297,6 +334,10 @@ class _BattleViewState extends State<BattleView> {
     _reported = true;
     _timer?.cancel();
     _warning = false;
+    if (widget.sound) {
+      if (_b.phase == BattlePhase.cleared) Sfx.play(SfxKind.victory);
+      if (_b.phase == BattlePhase.failed) Sfx.play(SfxKind.defeat);
+    }
     if (widget.vibrate) {
       _b.phase == BattlePhase.cleared
           ? HapticFeedback.heavyImpact()
@@ -307,6 +348,28 @@ class _BattleViewState extends State<BattleView> {
       if (mounted) widget.onFinished();
     });
   }
+
+  List<_Status> get _heroStatus => [
+        if (_b.poisonTurns > 0 && !_b.burning) _Status.poison,
+        if (_b.poisonTurns > 0 && _b.burning) _Status.burn,
+        if (_b.frozen) _Status.frozen,
+        if (_b.foe.trait == MonsterTrait.dazzle && !_b.clearEye) _Status.dazzle,
+        if (_b.stanceTurns > 0) _Status.stance,
+      ];
+
+  List<_Status> get _foeStatus => [
+        if (_b.foeBurnTurns > 0) _Status.burn,
+        if (_b.foeFrozen) _Status.frozen,
+        if (_b.foeBound) _Status.bound,
+      ];
+
+  Color? get _heroTint => _heroStatus.isEmpty || _b.isOver
+      ? null
+      : _heroStatus.first.color;
+
+  Color? get _foeTint => _foeStatus.isEmpty || _b.isOver
+      ? null
+      : _foeStatus.first.color;
 
   String get _floorLabel {
     if (_b.floors.length == 1) return '필드 전투';
@@ -350,6 +413,17 @@ class _BattleViewState extends State<BattleView> {
                 enraged: _b.enraged,
                 stance: _b.stanceTurns > 0,
                 aura: widget.aura,
+                crit: _b.lastCrit,
+                superHit: _b.lastSuper,
+                heals: _b.heals,
+                healed: _b.lastHealed,
+                defeated: _b.phase == BattlePhase.failed,
+                bossBeat: _bossBeat,
+                hitElement: _b.weaponPotion ?? _b.attackElement,
+                heroTint: _heroTint,
+                foeTint: _foeTint,
+                hour: widget.hour,
+                weather: widget.weather,
               ),
               const SizedBox(height: 8),
               OrnatePanel(
@@ -393,6 +467,20 @@ class _BattleViewState extends State<BattleView> {
                       ),
                     ),
                   ]),
+                  // 상태 이상 (11-11 #81): 체력 막대 아래 아이콘
+                  if (_heroStatus.isNotEmpty || _foeStatus.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(children: [
+                        const SizedBox(width: 52),
+                        Expanded(child: _StatusIcons(_heroStatus)),
+                        Expanded(
+                          child: Align(
+                              alignment: Alignment.centerRight,
+                              child: _StatusIcons(_foeStatus)),
+                        ),
+                      ]),
+                    ),
                   // 전투 기록 두 줄
                   Container(
                     key: const Key('battleLog'),
@@ -663,9 +751,33 @@ class _Scene extends StatefulWidget {
     this.enraged = false,
     this.stance = false,
     this.aura,
+    this.crit = false,
+    this.superHit = false,
+    this.heals = 0,
+    this.healed = 0,
+    this.defeated = false,
+    this.bossBeat = 0,
+    this.hitElement,
+    this.heroTint,
+    this.foeTint,
+    this.hour,
+    this.weather,
   });
 
   final Color? aura;
+  final bool crit;
+  final bool superHit;
+
+  /// 회복할 때마다 늘어난다 (초록 숫자)
+  final int heals;
+  final int healed;
+  final bool defeated;
+  final int bossBeat;
+  final Element? hitElement;
+  final Color? heroTint;
+  final Color? foeTint;
+  final int? hour;
+  final WeatherKind? weather;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
   final bool petDash;
@@ -705,18 +817,28 @@ class _Scene extends StatefulWidget {
 /// 0.00~0.22 각성자가 달려든다 → 0.22 타격 (몬스터 흔들림·번쩍임, 불꽃, 피해 숫자)
 /// → 0.22~0.50 제자리로 → 0.50~0.70 몬스터 반격 (각성자 붉게 번쩍, 받은 피해 숫자)
 /// 일격은 화면이 흔들리고 금빛 베기가 가로지른다.
-class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
+class _SceneState extends State<_Scene> with TickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: widget.beatDuration);
+
+  /// 보스 등장 띠
+  late final AnimationController _boss = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1600));
 
   @override
   void didUpdateWidget(covariant _Scene old) {
     super.didUpdateWidget(old);
-    if (widget.beat != old.beat) _c.forward(from: 0);
+    if (widget.beat != old.beat) {
+      // 스킬은 조금 느리게 (슬로모션)
+      _c.duration = widget.skill ? widget.beatDuration * 1.6 : widget.beatDuration;
+      _c.forward(from: 0);
+    }
+    if (widget.bossBeat != old.bossBeat) _boss.forward(from: 0);
   }
 
   @override
   void dispose() {
+    _boss.dispose();
     _c.dispose();
     super.dispose();
   }
@@ -778,9 +900,19 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
               final hitX = monLeft + monSize * 0.45;
               final hitY = monTop + monSize * 0.45;
 
+              // 치명타·스킬: 살짝 확대 (11-11 #81)
+              final punch = !idle && (widget.crit || widget.skill)
+                  ? math.sin(_seg(t, 0.15, 0.7) * math.pi) *
+                      (widget.skill ? 0.08 : 0.05)
+                  : 0.0;
+              final critShake = widget.crit && hitting
+                  ? math.sin(hit * math.pi * 10) * (1 - hit) * 4
+                  : 0.0;
               return Transform.translate(
-                offset: Offset(camera, camera * 0.4),
-                child: Stack(
+                offset: Offset(camera + critShake, camera * 0.4),
+                child: Transform.scale(
+                 scale: 1 + punch,
+                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
@@ -797,6 +929,21 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                             end: Alignment.bottomCenter,
                             colors: [Color(0x00000000), Color(0xAA0B0D26)],
                             stops: [0.45, 1],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 시간 색감 · 몬스터 속성 입자 · 비·눈 (11-11 #81)
+                    // 공격이 오갈 때마다 조금씩 흐른다 (끝없이 도는 애니메이션은 쓰지 않는다)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          key: const Key('battleAmbient'),
+                          painter: _AmbientPainter(
+                            t: ((widget.beat + t) * 0.11) % 1.0,
+                            element: foe.info.element,
+                            hour: widget.hour,
+                            weather: widget.weather,
                           ),
                         ),
                       ),
@@ -852,11 +999,13 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                                       ),
                                     ),
                                   )
-                                : MonsterPicture(
-                                    monster: foe.monster,
-                                    size: monSize,
-                                    defeated: cleared,
-                                  ),
+                                : _tinted(
+                                    widget.foeTint,
+                                    MonsterPicture(
+                                      monster: foe.monster,
+                                      size: monSize,
+                                      defeated: cleared,
+                                    )),
                           ),
                         ),
                       ),
@@ -903,13 +1052,17 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                                   ? 1
                                   : 1 + math.sin(t * math.pi * 2) * 0.015,
                               alignment: Alignment.bottomCenter,
-                              child: HeroSprite(
-                                  look: widget.look,
-                                  pose: cleared
-                                      ? HeroPose.victory
-                                      : swinging
-                                          ? HeroPose.attack
-                                          : HeroPose.idle),
+                              child: _tinted(
+                                  widget.heroTint,
+                                  HeroSprite(
+                                      look: widget.look,
+                                      pose: cleared
+                                          ? HeroPose.victory
+                                          : widget.defeated
+                                              ? HeroPose.tired
+                                              : swinging
+                                                  ? HeroPose.attack
+                                                  : HeroPose.idle)),
                             ),
                           ),
                         ),
@@ -963,9 +1116,22 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           opacity: 1 - _seg(t, 0.32, 0.55),
                           child: Transform.scale(
                             scale: 0.5 + _seg(t, 0.22, 0.32) * 0.8,
-                            child: Image.asset('assets/images/fx_hit.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const SizedBox()),
+                            // 속성 타격 그림이 있으면 그것, 없으면 기본 타격에 속성 색
+                            child: widget.hitElement == null
+                                ? Image.asset('assets/images/fx_hit.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox())
+                                : Image.asset(
+                                    'assets/images/fx_hit_${widget.hitElement!.name}.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => _tinted(
+                                        elementColor(widget.hitElement),
+                                        Image.asset('assets/images/fx_hit.png',
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) =>
+                                                const SizedBox()),
+                                        alpha: 0.55)),
                           ),
                         ),
                       ),
@@ -1000,14 +1166,17 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                                       Curves.elasticOut
                                               .transform(_seg(t, 0.22, 0.45)) *
                                           0.4,
+                              // 피해 숫자 (11-11 #81): 보통 흰색, 치명타 크고 노랑, 약점 빨강
                               child: _Outlined(
                                 cleared ? '사냥!' : '-${comma(widget.dealt)}',
-                                size: widget.skill ? 36 : 28,
+                                size: widget.crit || widget.skill ? 38 : 28,
                                 color: cleared
                                     ? AppColors.goldBright
-                                    : widget.skill
-                                        ? const Color(0xFFFFE58A)
-                                        : Colors.white,
+                                    : widget.crit || widget.skill
+                                        ? const Color(0xFFFFE14D)
+                                        : widget.superHit
+                                            ? const Color(0xFFFF5A5A)
+                                            : Colors.white,
                               ),
                             ),
                           ),
@@ -1022,8 +1191,12 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                         child: Opacity(
                           opacity: 1 - _seg(t, 0.8, 0.98),
                           child: Center(
+                            // 막으면 파랑, 아니면 흰색
                             child: _Outlined('-${comma(widget.taken)}',
-                                size: 22, color: const Color(0xFFFF6B6B)),
+                                size: 22,
+                                color: widget.guard != null
+                                    ? const Color(0xFF6FB8FF)
+                                    : Colors.white),
                           ),
                         ),
                       ),
@@ -1123,6 +1296,119 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           ),
                         ),
                       ),
+                    // 회복: 초록 숫자
+                    if (widget.healed > 0)
+                      Positioned(
+                        left: w * 0.06,
+                        width: heroW * 0.7,
+                        bottom: h * 0.5,
+                        child: IgnorePointer(
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey('heal_${widget.heals}'),
+                            tween: Tween(begin: 0, end: 1),
+                            duration: const Duration(milliseconds: 900),
+                            builder: (_, v, __) => Opacity(
+                              opacity: (1 - v).clamp(0.0, 1.0),
+                              child: Transform.translate(
+                                offset: Offset(0, -24 * v),
+                                child: Center(
+                                  child: _Outlined('+${comma(widget.healed)}',
+                                      size: 22,
+                                      color: const Color(0xFF6BE38A)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // 승리: 빛 조각으로 흩어지고 마석·재료가 튀어나온다
+                    if (cleared && !idle) ...[
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            painter: _SparkPainter(
+                              origin: Offset(monLeft + monSize / 2,
+                                  monTop + monSize / 2),
+                              progress: _seg(t, 0, 0.9),
+                              seed: widget.beat + 7,
+                              count: 28,
+                              reach: 140,
+                            ),
+                          ),
+                        ),
+                      ),
+                      for (var i = 0; i < 3; i++)
+                        Positioned(
+                          left: monLeft +
+                              monSize / 2 -
+                              14 +
+                              (i - 1) * 30 * _seg(t, 0, 0.5) +
+                              _seg(t, 0.5, 1) * w * 0.25,
+                          top: monTop +
+                              monSize / 2 -
+                              math.sin(_seg(t, 0, 0.5) * math.pi) * 60 +
+                              _seg(t, 0.5, 1) * h * 0.35,
+                          child: Opacity(
+                            opacity: 1 - _seg(t, 0.8, 1),
+                            child: i == 1
+                                ? const GameIcon('mana_stone',
+                                    size: 28, fallback: Icons.diamond_rounded)
+                                : const Icon(Icons.inventory_2_rounded,
+                                    size: 24, color: AppColors.goldBright),
+                          ),
+                        ),
+                    ],
+                    // 패배: 화면이 어두워진다
+                    if (widget.defeated)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 0.62),
+                            duration: const Duration(milliseconds: 700),
+                            builder: (_, v, __) => ColoredBox(
+                                key: const Key('battleDefeatDim'),
+                                color: Colors.black.withValues(alpha: v)),
+                          ),
+                        ),
+                      ),
+                    // 보스 등장: 이름 띠
+                    AnimatedBuilder(
+                      animation: _boss,
+                      builder: (_, __) {
+                        final b = _boss.value;
+                        if (b <= 0 || b >= 1 || !foe.isBoss) {
+                          return const SizedBox.shrink();
+                        }
+                        final a = b < 0.15
+                            ? b / 0.15
+                            : b > 0.8
+                                ? (1 - b) / 0.2
+                                : 1.0;
+                        return Positioned(
+                          left: 0,
+                          right: 0,
+                          top: h * 0.42,
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: a,
+                              child: Container(
+                                key: const Key('bossIntro'),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                color: const Color(0xCC1A0B0B),
+                                child: Column(children: [
+                                  Text('BOSS',
+                                      style: AppText.title(14,
+                                          color: const Color(0xFFFF8A65))),
+                                  Text(foe.name,
+                                      style: AppText.title(24,
+                                          color: AppColors.goldBright)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     // 층 표시
                     Positioned(
                       top: 10,
@@ -1173,6 +1459,8 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           child: Text(
                               cleared
                                   ? '잡았어!'
+                                  : widget.defeated
+                                      ? '괜찮아? 오늘은 좀 쉬자.'
                                   : widget.warning != null
                                       ? '조심해!'
                                       : widget.enraged
@@ -1188,6 +1476,7 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                       ]),
                     ),
                   ],
+                 ),
                 ),
               );
             },
@@ -1601,3 +1890,187 @@ class MonsterPicture extends StatelessWidget {
 
 SpiritKind _kind(BuildContext context) =>
     BulssiScope.maybeOf(context)?.kind ?? SpiritKind.fire;
+
+
+/// 색을 살짝 입힌다 (상태 이상·속성 타격 색)
+Widget _tinted(Color? c, Widget child, {double alpha = 0.32}) => c == null
+    ? child
+    : ColorFiltered(
+        colorFilter: ColorFilter.mode(c.withValues(alpha: alpha), BlendMode.srcATop),
+        child: child);
+
+/// 상태 이상 (11-11 #81). 그림이 오기 전에는 아이콘.
+enum _Status { poison, burn, frozen, dazzle, bound, stance }
+
+extension on _Status {
+  String get label => switch (this) {
+        _Status.poison => '중독',
+        _Status.burn => '화상',
+        _Status.frozen => '빙결',
+        _Status.dazzle => '눈부심',
+        _Status.bound => '묶임',
+        _Status.stance => '방어 태세',
+      };
+
+  IconData get icon => switch (this) {
+        _Status.poison => Icons.bubble_chart_rounded,
+        _Status.burn => Icons.local_fire_department_rounded,
+        _Status.frozen => Icons.ac_unit_rounded,
+        _Status.dazzle => Icons.flare_rounded,
+        _Status.bound => Icons.link_rounded,
+        _Status.stance => Icons.shield_rounded,
+      };
+
+  Color get color => switch (this) {
+        _Status.poison => const Color(0xFF7BD86A),
+        _Status.burn => const Color(0xFFFF8A4C),
+        _Status.frozen => const Color(0xFF8FD3FF),
+        _Status.dazzle => const Color(0xFFFFF1A0),
+        _Status.bound => const Color(0xFFE0B3FF),
+        _Status.stance => const Color(0xFF6FB8FF),
+      };
+
+  String get asset => 'assets/images/status_$name.png';
+}
+
+class _StatusIcons extends StatelessWidget {
+  const _StatusIcons(this.list);
+
+  final List<_Status> list;
+
+  @override
+  Widget build(BuildContext context) => Wrap(spacing: 4, children: [
+        for (final s in list)
+          Tooltip(
+            message: s.label,
+            child: Container(
+              key: Key('status_${s.name}'),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: const Color(0xFF14173E),
+                shape: BoxShape.circle,
+                border: Border.all(color: s.color, width: 1.4),
+              ),
+              child: Image.asset(s.asset,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(s.icon, size: 14, color: s.color)),
+            ),
+          ),
+      ]);
+}
+
+/// 배경 위 시간 색감·속성 입자·비·눈 (11-11 #81, 그림 없이 코드로)
+class _AmbientPainter extends CustomPainter {
+  _AmbientPainter(
+      {required this.t, this.element, this.hour, this.weather});
+
+  final double t;
+  final Element? element;
+  final int? hour;
+  final WeatherKind? weather;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    // 시간 색감: 낮은 그대로, 노을(16~19시)은 주황, 밤(19~6시)은 남색
+    final hr = hour;
+    if (hr != null) {
+      Color? tint;
+      if (hr >= 16 && hr < 19) tint = const Color(0x38FF8A3D);
+      if (hr >= 19 || hr < 6) tint = const Color(0x5A0B1240);
+      if (tint != null) canvas.drawRect(Offset.zero & size, Paint()..color = tint);
+    }
+    final rng = math.Random(11);
+    final p = Paint();
+    // 몬스터 속성 입자
+    final e = element;
+    if (e != null) {
+      final c = elementColor(e);
+      for (var i = 0; i < 22; i++) {
+        final x0 = rng.nextDouble() * w;
+        final ph = rng.nextDouble();
+        final sp = 0.5 + rng.nextDouble();
+        final v = (t * sp + ph) % 1.0;
+        final a = math.sin(v * math.pi) * 0.75;
+        p.color = c.withValues(alpha: a);
+        switch (e) {
+          case Element.fire:
+            // 불똥이 위로
+            canvas.drawCircle(
+                Offset(x0 + math.sin(v * 6 + i) * 8, h * (1 - v)), 2.2, p);
+          case Element.ice:
+            // 눈송이가 아래로
+            _flake(canvas, Offset(x0 + math.sin(v * 4 + i) * 10, h * v), 4, p);
+          case Element.water || Element.poison:
+            // 물방울·기포가 위로
+            p
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.4;
+            canvas.drawCircle(Offset(x0, h * (1 - v)), 3 + (i % 3).toDouble(), p);
+            p.style = PaintingStyle.fill;
+          case Element.thunder:
+            // 번쩍이는 작은 번개
+            if (a > 0.55) {
+              p.strokeWidth = 2;
+              final o = Offset(x0, h * ((ph + i * 0.13) % 1.0));
+              canvas.drawLine(o, o + const Offset(5, 8), p);
+              canvas.drawLine(o + const Offset(5, 8), o + const Offset(1, 12), p);
+            }
+          case Element.wind:
+            // 옆으로 흐르는 바람 줄
+            p.strokeWidth = 1.6;
+            final y = h * ((ph + i * 0.07) % 1.0);
+            final x = w * v * 1.2 - 40;
+            canvas.drawLine(Offset(x, y), Offset(x + 30, y - 2), p);
+          case Element.earth || Element.metal:
+            // 흙먼지·금속 반짝임이 천천히
+            canvas.drawCircle(Offset(x0, h * (0.6 + 0.4 * ((ph + v * 0.2) % 1.0))),
+                e == Element.metal ? 1.6 : 2.4, p);
+          case Element.light || Element.dark:
+            // 빛 알갱이·어둠 안개
+            canvas.drawCircle(Offset(x0, h * ((ph - v * 0.3) % 1.0)),
+                e == Element.light ? 2.0 : 6.0,
+                p..color = c.withValues(alpha: e == Element.dark ? a * 0.35 : a));
+        }
+      }
+    }
+    // 비·눈 (실제 날씨)
+    final wk = weather;
+    if (wk == WeatherKind.rain) {
+      p
+        ..color = const Color(0x88B8D4FF)
+        ..strokeWidth = 1.3;
+      for (var i = 0; i < 60; i++) {
+        final x = rng.nextDouble() * (w + 40);
+        final v = (t * 4 + rng.nextDouble()) % 1.0;
+        final y = v * (h + 20) - 20;
+        canvas.drawLine(Offset(x, y), Offset(x - 4, y + 14), p);
+      }
+    } else if (wk == WeatherKind.snow) {
+      p.color = const Color(0xCCFFFFFF);
+      for (var i = 0; i < 40; i++) {
+        final x = rng.nextDouble() * w;
+        final v = (t * (0.6 + rng.nextDouble() * 0.6) + rng.nextDouble()) % 1.0;
+        canvas.drawCircle(
+            Offset(x + math.sin(v * 8 + i) * 6, v * h), 1.6 + (i % 3) * 0.6, p);
+      }
+    }
+  }
+
+  void _flake(Canvas c, Offset o, double r, Paint p) {
+    p.strokeWidth = 1.2;
+    for (var k = 0; k < 3; k++) {
+      final a = k * math.pi / 3;
+      final d = Offset(math.cos(a) * r, math.sin(a) * r);
+      c.drawLine(o - d, o + d, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AmbientPainter old) =>
+      old.t != t ||
+      old.element != element ||
+      old.hour != hour ||
+      old.weather != weather;
+}

@@ -6,7 +6,8 @@ import '../../theme/ornaments.dart';
 
 enum LegalDoc {
   privacy('개인정보처리방침', 'assets/legal/privacy.txt'),
-  locationTerms('위치기반서비스 이용약관', 'assets/legal/location_terms.txt');
+  locationTerms('위치기반서비스 이용약관', 'assets/legal/location_terms.txt'),
+  credits('만든 사람들', 'assets/legal/credits.txt');
 
   const LegalDoc(this.title, this.asset);
   final String title;

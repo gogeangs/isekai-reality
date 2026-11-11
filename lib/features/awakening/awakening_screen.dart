@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
+import '../../core/rules/age_rules.dart';
 
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
@@ -16,7 +17,14 @@ import '../legal/legal_screen.dart';
 /// 세계관 도입(일러스트 + 대사창) → 정령 고르기 → 정령 이름 → 동의 →
 /// 외형(남·여)과 이름 → 각성 장면 → 깨어나기.
 class AwakeningScreen extends StatefulWidget {
-  const AwakeningScreen({super.key, required this.onAwaken});
+  const AwakeningScreen(
+      {super.key, required this.onAwaken, this.onTooYoung, this.now});
+
+  /// 만 14세 미만으로 확인됐을 때 (11-11 #86). 앱이 이용 불가 화면으로 바꾼다.
+  final VoidCallback? onTooYoung;
+
+  /// 지금 시각 (테스트용, 없으면 기기 시각)
+  final DateTime Function()? now;
 
   /// [weather] 날씨 조회(선택 동의)를 켰는지
   final Future<void> Function(String name, HeroLook look, bool weather,
@@ -41,7 +49,7 @@ class IntroScene {
   final bool dialogTop;
 }
 
-enum _Stage { intro, spirit, spiritName, consent, form, finale }
+enum _Stage { intro, spirit, spiritName, consent, tooYoung, form, finale }
 
 class _AwakeningScreenState extends State<AwakeningScreen> {
   static const scenes = [
@@ -97,7 +105,19 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   // 동의 (필수 3개 + 선택 1개)
   bool _agreeHealth = false;
   bool _agreeLocation = false;
-  bool _agreeAge = false;
+  // 이용 연령 (11-11 #86): 출생 연도만
+  final _yearField = TextEditingController();
+  int? _birthYear;
+  bool? _birthdayPassed;
+
+  DateTime get _now => (widget.now ?? DateTime.now)();
+
+  bool get _agreeAge {
+    final y = _birthYear;
+    if (!AgeRules.validYear(y, _now)) return false;
+    if (AgeRules.needsBirthdayQuestion(y!, _now)) return _birthdayPassed != null;
+    return true;
+  }
   /// 날씨 기능은 11-10에 뺐다 (동의 항목 없음)
   final bool _agreeWeather = false;
 
@@ -115,6 +135,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   void dispose() {
     _nameController.dispose();
     _spiritNameController.dispose();
+    _yearField.dispose();
     super.dispose();
   }
 
@@ -153,6 +174,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           _Stage.spirit => _buildSpiritPick(),
           _Stage.spiritName => NightBackground(child: _buildSpiritName()),
           _Stage.consent => NightBackground(child: _buildConsent()),
+          _Stage.tooYoung => const NightBackground(child: AgeBlockedView()),
           _Stage.form => NightBackground(child: _buildForm()),
           _Stage.finale => _buildFinale(),
         },
@@ -439,6 +461,78 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   // ───────────────────────────────────────────── 동의
 
+  /// 출생 연도 (필수). 올해 14살이 되는 해면 생일이 지났는지 한 번 더 묻는다.
+  Widget _ageRow() {
+    final y = _birthYear;
+    final ask = AgeRules.validYear(y, _now) &&
+        AgeRules.needsBirthdayQuestion(y!, _now);
+    Widget chip(String label, bool v) => ChoiceChip(
+          label: Text(label),
+          selected: _birthdayPassed == v,
+          onSelected: (_) => setState(() => _birthdayPassed = v),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
+              const TextSpan(children: [
+                TextSpan(
+                    text: '(필수) ',
+                    style: TextStyle(
+                        color: AppColors.goldBright,
+                        fontWeight: FontWeight.w700)),
+                TextSpan(text: '만 14세 이상만 이용할 수 있어요. 태어난 해를 알려 주세요.'),
+              ]),
+              style: const TextStyle(
+                  color: AppColors.text, fontSize: 14, height: 1.45)),
+          const SizedBox(height: 6),
+          Row(children: [
+            SizedBox(
+              width: 120,
+              child: TextField(
+                key: const Key('birthYear'),
+                controller: _yearField,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                style: const TextStyle(color: AppColors.text, fontSize: 16),
+                decoration: const InputDecoration(
+                  hintText: '예: 1995',
+                  counterText: '',
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() {
+                  _birthYear = int.tryParse(v);
+                  _birthdayPassed = null;
+                }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('년생',
+                style: TextStyle(color: AppColors.text, fontSize: 14)),
+          ]),
+          if (_yearField.text.length == 4 && !AgeRules.validYear(y, _now))
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('태어난 해를 네 자리로 적어 주세요.',
+                  style: TextStyle(color: Color(0xFFE88B8B), fontSize: 12)),
+            ),
+          if (ask) ...[
+            const SizedBox(height: 8),
+            const Text('올해 생일이 지났나요?',
+                style: TextStyle(color: AppColors.text, fontSize: 13.5)),
+            const SizedBox(height: 4),
+            Wrap(spacing: 8, children: [chip('지났어요', true), chip('아직이에요', false)]),
+          ],
+          const SizedBox(height: 4),
+          const Text('태어난 해는 나이 확인에만 쓰고 저장하지 않아요.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildConsent() {
     final top = MediaQuery.paddingOf(context).top;
     Widget item({
@@ -535,12 +629,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                     '좌표는 저장하지 않습니다.',
                 doc: LegalDoc.locationTerms,
               ),
-              item(
-                value: _agreeAge,
-                onChanged: (v) => setState(() => _agreeAge = v),
-                label: '필수',
-                text: '만 14세 이상입니다.',
-              ),
+              _ageRow(),
             ],
           ),
         ),
@@ -548,7 +637,15 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         GoldButton(
           label: '동의하고 다음',
           onPressed: _requiredAgreed
-              ? () => setState(() => _stage = _Stage.form)
+              ? () {
+                  if (!AgeRules.allowed(_birthYear!, _now,
+                      birthdayPassed: _birthdayPassed)) {
+                    widget.onTooYoung?.call();
+                    setState(() => _stage = _Stage.tooYoung);
+                    return;
+                  }
+                  setState(() => _stage = _Stage.form);
+                }
               : null,
         ),
       ],
@@ -930,4 +1027,33 @@ class _FloatingSpirit extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// 만 14세 미만 (11-11 #86): 이용할 수 없다는 안내만 보여 준다.
+class AgeBlockedView extends StatelessWidget {
+  const AgeBlockedView({super.key});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: OrnatePanel(
+            key: const Key('ageBlocked'),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.lock_clock_rounded,
+                  size: 48, color: AppColors.goldBright),
+              const SizedBox(height: 10),
+              Text(AgeRules.blockedLine,
+                  textAlign: TextAlign.center, style: AppText.title(20)),
+              const SizedBox(height: 8),
+              const Text('「이세계가 현실이라면?」은 만 14세 이상만 이용할 수 있어요.\n'
+                  '조금 더 자란 뒤에 다시 만나요!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppColors.text, fontSize: 14, height: 1.5)),
+            ]),
+          ),
+        ),
+      );
 }

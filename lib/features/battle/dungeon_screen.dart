@@ -37,6 +37,19 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
   AppController get _c => widget.controller;
 
+  // 전투·결과 화면이 열려 있는 동안 칭호 축하는 미룬다 (11-11 #85)
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.holdNoticesWhile(true);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.holdNoticesWhile(false);
+    super.dispose();
+  }
+
   Future<void> _start() async {
     if (_c.resting) {
       final ok = await confirmStopResting(context);
@@ -95,6 +108,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     playerName: _c.profile.name,
                     look: _c.profile.look,
                     vibrate: _c.vibrate,
+                    sound: _c.sound,
+                    hour: _c.now.hour,
+                    weather: _c.weather?.kind,
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
                     poisonTip: !_c.poisonTipSeen,

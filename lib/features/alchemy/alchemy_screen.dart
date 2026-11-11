@@ -10,6 +10,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
+import '../../theme/top_notice.dart';
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {
@@ -109,8 +110,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
           onPressed: () async {
             final ok = await c.buyCauldron();
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(ok ? '가마솥이 하나 늘었어요!' : '금화나 재료가 모자라요.')));
+            showTopNotice(context, ok ? '가마솥이 하나 늘었어요!' : '금화나 재료가 모자라요.');
           },
         ),
         const SizedBox(height: 10),
@@ -137,10 +137,9 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
           onPressed: () async {
             final id = await c.readNote();
             if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(id == null
+            showTopNotice(context, id == null
                     ? '더 알아낼 레시피가 없어요.'
-                    : '「${AlchemyRules.info(id).name}」의 재료를 알아냈어요!')));
+                    : '「${AlchemyRules.info(id).name}」의 재료를 알아냈어요!');
           },
         ),
       if (c.recipeNotes > 0) const SizedBox(height: 10),
@@ -500,8 +499,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                             final ok = await c.startBrew(slot, put);
                             if (sheet.mounted) Navigator.of(sheet).pop();
                             if (!ok && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('끓이지 못했어요.')));
+                              showTopNotice(context, '끓이지 못했어요.');
                             }
                           },
                   ),
@@ -565,10 +563,9 @@ class ProcessPanel extends StatelessWidget {
                         ? () async {
                             final ok = await c.process(r);
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(ok
+                            showTopNotice(context, ok
                                     ? '${josa(Materials.info(r.output).name, '을/를')} 만들었어요.'
-                                    : '재료나 금화가 모자라요.')));
+                                    : '재료나 금화가 모자라요.');
                           }
                         : null,
                   ),

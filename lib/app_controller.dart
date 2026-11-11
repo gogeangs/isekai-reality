@@ -69,7 +69,9 @@ class AppController extends ChangeNotifier {
       health: FakeHealthSource(granted: false),
       stepGoal: 8000, // 예시 기록과 같은 목표
       clock: clock,
-    )..walkEvents = false; // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
+    )
+      ..walkEvents = false // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
+      ..quietTitles = true; // 예시 모드는 처음 칭호들을 축하 창 대신 띠로
   }
 
   final RecordStore store;
@@ -162,6 +164,25 @@ class AppController extends ChangeNotifier {
     return null;
   }
 
+  /// 칭호 축하 창 대신 위쪽 띠로만 (예시 모드)
+  bool quietTitles = false;
+
+  /// 칭호 하나만 알린 것으로 (축하 연출을 하나씩, 11-11 #85)
+  Future<void> acknowledgeTitle(TitleId t) async {
+    _seenTitles = {..._seenTitles, t};
+    await _saveSeenTitles();
+    notifyListeners();
+  }
+
+  /// 전투 화면이 열려 있는 동안 칭호 축하 같은 큰 연출을 미룬다 (11-11 #85)
+  bool get holdNotices => _holdNotices > 0;
+  int _holdNotices = 0;
+  void holdNoticesWhile(bool on) {
+    _holdNotices = (_holdNotices + (on ? 1 : -1)).clamp(0, 99);
+    // 화면을 닫는 중(dispose)에 불릴 수 있어 한 박자 뒤에 알린다
+    if (!on) Future<void>.microtask(notifyListeners);
+  }
+
   Future<void> acknowledgeTitles() async {
     _seenTitles = {..._seenTitles, ...player.titles};
     await _saveSeenTitles();
@@ -179,7 +200,19 @@ class AppController extends ChangeNotifier {
     return (from: seen, to: now);
   }
 
+  // 이용 연령 (11-11 #86): 만 14세 미만으로 확인되면 이용할 수 없다
+  static const _ageKey = 'age';
+  bool _ageBlocked = false;
+  bool get ageBlocked => _ageBlocked;
+
+  Future<void> blockForAge() async {
+    _ageBlocked = true;
+    await store.saveJson(_ageKey, {'blocked': true});
+    notifyListeners();
+  }
+
   Future<void> init() async {
+    _ageBlocked = (await store.loadJson(_ageKey))?['blocked'] == true;
     final saved = await store.loadProfile();
     if (saved == null) {
       // 처음 실행: 각성 화면에서 이름과 외형을 정한 뒤 시작한다
@@ -425,6 +458,7 @@ class AppController extends ChangeNotifier {
     _alloc = const StatAlloc();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
+    _ageBlocked = false;
     notifyListeners();
   }
 
@@ -2297,9 +2331,18 @@ class AppController extends ChangeNotifier {
       if (checked % GatherRules.merchantSteps < GatherRules.findSteps &&
           g.merchantToday < GatherRules.merchantPerDay &&
           _random.nextDouble() < GatherRules.merchantChance) {
+        // 상인은 내 근처(60~120m)에 선다 (11-11 #84)
+        final here = _lastFix?.point ?? fallbackCenter;
+        final at = here == null
+            ? null
+            : _merchantSpot(here, 60 + _random.nextDouble() * 60,
+                _random.nextDouble() * math.pi * 2);
         g = g.copyWith(
           merchantUntil: now.add(GatherRules.merchantStay),
           merchantToday: g.merchantToday + 1,
+          merchantLat: at?.lat,
+          merchantLng: at?.lng,
+          sold: const [],
           offers: {
             for (final e in GatherRules.offers(_random).entries)
               e.key.name: e.value,
@@ -2341,6 +2384,46 @@ class AppController extends ChangeNotifier {
   bool get merchantHere =>
       _gather.merchantUntil != null && _gather.merchantUntil!.isAfter(_clock());
 
+  static GeoPoint _merchantSpot(GeoPoint from, double meters, double angle) {
+    const mPerDegLat = 111320.0;
+    final dLat = meters * math.cos(angle) / mPerDegLat;
+    final dLng = meters *
+        math.sin(angle) /
+        (mPerDegLat * math.cos(from.lat * math.pi / 180));
+    return GeoPoint(from.lat + dLat, from.lng + dLng);
+  }
+
+  /// 떠돌이 상인이 선 자리 (없으면 null). 예전 기록처럼 자리가 없으면 내 위치.
+  GeoPoint? get merchantPoint {
+    if (!merchantHere) return null;
+    final g = _gather;
+    if (g.merchantLat != null && g.merchantLng != null) {
+      return GeoPoint(g.merchantLat!, g.merchantLng!);
+    }
+    return _lastFix?.point ?? fallbackCenter;
+  }
+
+  /// 상인이 떠나기까지 남은 분 (없으면 0)
+  int get merchantMinutesLeft => merchantHere
+      ? (_gather.merchantUntil!.difference(_clock()).inSeconds + 59) ~/ 60
+      : 0;
+
+  /// 이번 상인에게서 이미 샀는지 ([m] 이 null 이면 레시피 쪽지)
+  bool merchantSold(MaterialId? m) => _gather.sold.contains(m?.name ?? 'note');
+
+  // 지도에서 보여 달라는 자리 (위쪽 띠를 눌렀을 때, 11-11 #84)
+  GeoPoint? _mapFocus;
+  void requestMapFocus(GeoPoint p) {
+    _mapFocus = p;
+    notifyListeners();
+  }
+
+  GeoPoint? takeMapFocus() {
+    final p = _mapFocus;
+    _mapFocus = null;
+    return p;
+  }
+
   /// 걸음 주머니를 연다
   Future<({Map<MaterialId, int> mats, int gold, bool note})?> openPouch() async {
     if (_gather.pouches <= 0) return null;
@@ -2367,18 +2450,18 @@ class AppController extends ChangeNotifier {
     final price = m == null
         ? (_gather.noteOffer ? GatherRules.notePrice : null)
         : _gather.offers[m.name];
-    if (price == null || player.gold < price) return false;
+    if (price == null || player.gold < price || merchantSold(m)) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {Wallet.gold: price})));
+    // 한 번만 살 수 있다: 팔린 것은 「팔렸어요」로 남긴다 (11-11 #84)
     if (m == null) {
       await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
-      await _saveGather(_gather.copyWith(noteOffer: false));
     } else {
       await _grant(0, 0, {m: 1});
-      await _saveGather(_gather.copyWith(
-          offers: {..._gather.offers}..remove(m.name)));
     }
+    await _saveGather(
+        _gather.copyWith(sold: [..._gather.sold, m?.name ?? 'note']));
     return true;
   }
 
@@ -2737,8 +2820,9 @@ class AppController extends ChangeNotifier {
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     final lure = lureActive;
+    final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
-        '${lure ? 'L' : ''}';
+        '${lure ? 'L' : ''}${night ? 'N' : ''}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
@@ -2746,7 +2830,8 @@ class AppController extends ChangeNotifier {
           exclusions: exclusions,
           places: area.places,
           excluded: area.isExcluded,
-          density: lure ? AlchemyRules.lureHarvest : 1);
+          density: lure ? AlchemyRules.lureHarvest : 1,
+          night: night);
     }
     return _spotsCache;
   }
@@ -2777,8 +2862,69 @@ class AppController extends ChangeNotifier {
       _harvest.spots[s.id]?.untilNext(_clock());
 
   /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
-  int toolDurability(HarvestTool t) =>
-      _harvest.granted ? _harvest.durability(t) : HarvestRules.toolMax;
+  int toolDurability(HarvestTool t) => _harvest.granted
+      ? _harvest.durability(t)
+      : HarvestRules.toolMaxFor(_harvest.tierOf(t));
+
+  /// 도구 최대 내구도 (등급에 따라)
+  int toolMaxOf(HarvestTool t) => HarvestRules.toolMaxFor(_harvest.tierOf(t));
+
+  ToolTier toolTier(HarvestTool t) => _harvest.tierOf(t);
+  Element? toolElement(HarvestTool t) => _harvest.elementOf(t);
+
+  /// 미니게임이 쉬워지는 정도 (도구 등급, 숨김)
+  int harvestEase(HarvestKind k) =>
+      _harvest.tierOf(HarvestRules.info(k).tool).index;
+
+  /// 채집가 직업 (#55 각성 뒤, 지금은 늘 false. 규칙만 준비)
+  bool get gatherer => false;
+
+  /// 도구를 다음 등급으로 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대·붓)
+  CraftCheck canUpgradeTool(HarvestTool t) {
+    final cost = HarvestRules.upgradeCost(_harvest.tierOf(t));
+    if (cost == null) return CraftCheck.maxed;
+    final p = player;
+    for (final e in cost.mats.entries) {
+      if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
+    }
+    if (p.gold < cost.gold) return CraftCheck.gold;
+    return CraftCheck.ok;
+  }
+
+  Future<bool> upgradeTool(HarvestTool t) async {
+    if (canUpgradeTool(t) != CraftCheck.ok) return false;
+    final tier = _harvest.tierOf(t);
+    final cost = HarvestRules.upgradeCost(tier)!;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {
+      for (final e in cost.mats.entries) e.key.name: e.value,
+      Wallet.gold: cost.gold,
+    })));
+    final next = ToolTier.values[tier.index + 1];
+    await _saveHarvest(_harvest.copyWith(
+      tiers: {..._harvest.tiers, t.name: next.index},
+      // 새 도구라 내구도를 다 채운다
+      tools: {..._harvest.tools, t.name: HarvestRules.toolMaxFor(next)},
+    ));
+    return true;
+  }
+
+  /// 도구에 속성을 입힌다: 빛나는 속성 코어 1개 + 금화 100 (11-11 #83, #63과 같다).
+  /// 그 속성의 귀한 재료가 더 잘 나온다 (숨김).
+  Future<bool> imbueTool(HarvestTool t, Element e) async {
+    final core = EquipmentRules.imbueCore(e);
+    if (player.materialCount(core) < 1 || player.gold < EquipmentRules.imbueGold) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends,
+            {core.name: 1, Wallet.gold: EquipmentRules.imbueGold})));
+    await _saveHarvest(
+        _harvest.copyWith(elements: {..._harvest.elements, t.name: e.name}));
+    return true;
+  }
 
   HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
     final fix = _lastFix;
@@ -2802,29 +2948,60 @@ class AppController extends ChangeNotifier {
     var h = _harvest;
     if (!h.granted) {
       h = h.copyWith(granted: true, tools: {
-        for (final t in HarvestTool.values) t.name: HarvestRules.toolMax,
+        for (final t in HarvestTool.values) t.name: toolMaxOf(t),
       });
     }
     final charge = h.spots[s.id] ??
         SpotCharge(charges: HarvestRules.maxCharges, at: now);
     final tool = s.info.tool;
+    // 한 종류에서 완벽을 많이 쌓았으면 빠른 채집도 「좋음」 (11-11 #83, 숨김)
+    final effective =
+        !minigame && h.mastered(s.kind) ? HarvestGrade.good : grade;
+    final streak = !minigame
+        ? h.streak
+        : grade == HarvestGrade.perfect
+            ? h.streak + 1
+            : 0;
+    final mats = HarvestRules.yieldOf(s.kind, effective, _random,
+        factor: passengerMode ? 0.5 : 1,
+        tier: h.tierOf(tool),
+        streak: grade == HarvestGrade.perfect ? h.streak : 0,
+        element: h.elementOf(tool),
+        month: now.month);
+    final relic = s.kind == HarvestKind.relic;
     h = h.copyWith(
       spots: {...h.spots, s.id: charge.use(now)},
       tools: minigame
           ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
           : h.tools,
       total: h.total + 1,
+      streak: streak,
+      perfects: grade == HarvestGrade.perfect
+          ? {...h.perfects, s.kind.name: (h.perfects[s.kind.name] ?? 0) + 1}
+          : h.perfects,
+      relics: relic ? h.relics + 1 : h.relics,
     ).pruned(now);
+    _lastRelicLore = relic
+        ? HarvestRules.relicLore[(h.relics - 1) % HarvestRules.relicLore.length]
+        : null;
     await _saveHarvest(h);
-    final mats = HarvestRules.yieldOf(s.kind, grade, _random,
-        factor: passengerMode ? 0.5 : 1);
     await _grant(0, 0, mats);
+    if (relic) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          counters: DailyRecord.addCounts(today.counters, {'relicDug': 1})));
+    }
     return mats;
   }
 
-  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대는 공방)
+  String? _lastRelicLore;
+
+  /// 방금 캔 고대 유물의 이야기 (없으면 null)
+  String? get lastRelicLore => _lastRelicLore;
+
+  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대·붓은 공방)
   Future<bool> repairTool(HarvestTool t) async {
-    if (!_harvest.granted || _harvest.durability(t) >= HarvestRules.toolMax) {
+    if (!_harvest.granted || _harvest.durability(t) >= toolMaxOf(t)) {
       return false;
     }
     final m = HarvestRules.repairMaterial(t);
@@ -2836,7 +3013,7 @@ class AppController extends ChangeNotifier {
         spends: DailyRecord.addCounts(
             today.spends, {Wallet.gold: HarvestRules.repairGold, m.name: 1})));
     await _saveHarvest(_harvest.copyWith(
-        tools: {..._harvest.tools, t.name: HarvestRules.toolMax}));
+        tools: {..._harvest.tools, t.name: toolMaxOf(t)}));
     return true;
   }
 

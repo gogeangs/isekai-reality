@@ -8,6 +8,7 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../bulssi/bulssi_mood.dart';
+import '../../theme/top_notice.dart';
 
 /// 여관 (앱 안 시설): 하루를 정리하고 쉰다.
 /// 언제든 체크인하고 4시간이 지나면 HP·정령 MP가 가득 차고,
@@ -199,10 +200,7 @@ class InnScreen extends StatelessWidget {
                     onPressed: () async {
                       final ok = await controller.restAtInn();
                       if (ok && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: KText('체크인했어요. 4시간 뒤에 다 쉬어요!')),
-                        );
+                        showTopNotice(context, '체크인했어요. 4시간 뒤에 다 쉬어요!');
                       }
                     },
                   ),

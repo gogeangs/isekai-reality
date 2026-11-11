@@ -14,11 +14,13 @@ import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../harvest/harvest_sheet.dart';
+import '../town/bag_tab.dart' show showMerchantSheet;
 import '../town/material_view.dart';
 import 'expedition_sheet.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../../core/models/alchemy_state.dart' show ActiveBuff;
 import 'map_config.dart';
+import '../../theme/top_notice.dart';
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 ///
@@ -213,8 +215,7 @@ class TiredBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
         key: const Key('tiredBadge'),
-        onTap: () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            const SnackBar(content: Text(AppController.tiredLine))),
+        onTap: () => showTopNotice(context, AppController.tiredLine),
         child: Container(
           padding: const EdgeInsets.fromLTRB(6, 3, 9, 3),
           decoration: BoxDecoration(
@@ -498,6 +499,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   int _drawnSpawns = -1;
   String? _drawnFix;
   String? _drawnSpirit;
+  String? _drawnMerchant;
 
   static NLatLng _ll(GeoPoint p) => NLatLng(p.lat, p.lng);
 
@@ -505,6 +507,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   void didUpdateWidget(covariant _NaverMapLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     _redraw();
+    _focusRequested();
+  }
+
+  /// 위쪽 띠에서 「상인 보기」를 눌렀을 때 그 자리로 (11-11 #84)
+  Future<void> _focusRequested() async {
+    final map = _map;
+    if (map == null) return;
+    final p = widget.controller.takeMapFocus();
+    if (p == null) return;
+    try {
+      await map.updateCamera(
+          NCameraUpdate.scrollAndZoomTo(target: _ll(p), zoom: 16));
+    } catch (_) {}
   }
 
   /// 장소·몬스터·내 위치를 다시 그린다 (바뀐 게 있을 때만)
@@ -524,14 +539,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         : positions
             .map((p) => '${p.$1.toStringAsFixed(4)},${p.$2.toStringAsFixed(4)}')
             .join('|');
+    final merchantAt = c.merchantPoint;
+    final merchantKey =
+        merchantAt == null ? null : '${c.merchantMinutesLeft}';
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
-        _drawnSpirit == spiritKey) {
+        _drawnSpirit == spiritKey &&
+        _drawnMerchant == merchantKey) {
       return;
     }
     _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
     _drawnSpirit = spiritKey;
+    _drawnMerchant = merchantKey;
 
     final area = c.area;
     final visited = c.everVisitedPlaceIds;
@@ -556,7 +576,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         _monster(c, spawn, fix?.point),
       // 채집 자리 (11-11 #56): 1.5km 안, 남은 횟수는 점으로
       for (final h in c.harvestSpots)
-        if (fix == null || h.point.distanceTo(fix.point) <= 1500)
+        if (fix == null ||
+            h.point.distanceTo(fix.point) <= HarvestRules.mapRadiusM)
           _harvest(c, h),
       // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
       for (var i = 0; i < actives.length; i++)
@@ -581,6 +602,21 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
         ),
+      // 떠돌이 상인 (11-11 #84): 누르면 거리와 상관없이 바로 상점
+      if (merchantAt != null)
+        NMarker(
+          id: 'merchant',
+          position: _ll(merchantAt),
+          icon: const NOverlayImage.fromAssetImage('assets/images/merchant.png'),
+          size: const Size(58, 58),
+          caption: NOverlayCaption(
+            text: '떠돌이 상인 · ${c.merchantMinutesLeft}분',
+            color: AppColors.goldBright,
+            haloColor: const Color(0xFF0B0D26),
+          ),
+        )..setOnTapListener((_) {
+            if (mounted) showMerchantSheet(context, c);
+          }),
       if (fix != null)
         NMarker(
           id: 'player',
@@ -762,7 +798,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             onMapReady: (map) {
               _map = map;
               _drawnSpawns = -1;
-              _redraw();
+              _redraw().then((_) => _focusRequested());
             },
             // 지도를 움직이는 동안에는 가장자리 표시를 숨긴다 (11-11: 화면에 붙어
             // 따라다니는 몬스터처럼 보였다). 멈추면 다시 찾는다.

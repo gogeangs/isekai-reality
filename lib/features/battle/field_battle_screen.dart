@@ -35,7 +35,14 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
   @override
   void initState() {
     super.initState();
+    widget.controller.holdNoticesWhile(true); // 칭호 축하는 결과를 닫은 뒤 (#85)
     _battle = widget.controller.startFieldBattle(widget.spawn);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.holdNoticesWhile(false);
+    super.dispose();
   }
 
   Future<void> _finish() async {
@@ -116,6 +123,9 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,
                 vibrate: widget.controller.vibrate,
+                sound: widget.controller.sound,
+                hour: widget.controller.now.hour,
+                weather: widget.controller.weather?.kind,
                 fast: widget.controller.fastBattle,
                 onFastChanged: widget.controller.setFastBattle,
                 poisonTip: !widget.controller.poisonTipSeen,

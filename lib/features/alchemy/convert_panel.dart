@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'alchemy_screen.dart' show PotionIcon;
+import '../../theme/top_notice.dart';
 
 /// 공방 변환 (11-11 #74): 변환대 1칸 · 상위 변환 · 같은 등급 교환 · 마석 정제 · 분해
 class ConvertPanel extends StatelessWidget {
@@ -17,7 +18,7 @@ class ConvertPanel extends StatelessWidget {
   AppController get c => controller;
 
   void _snack(BuildContext context, String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      showTopNotice(context, text);
 
   Future<void> _start(BuildContext context, ConvertPlan p) async {
     final ok = await c.startConvert(p);
@@ -280,8 +281,7 @@ class _JobCard extends StatelessWidget {
                 onPressed: () async {
                   final j = await c.collectConvert();
                   if (j == null || !context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('변환한 재료를 가방에 넣었어요.')));
+                  showTopNotice(context, '변환한 재료를 가방에 넣었어요.');
                 },
               ),
             ],

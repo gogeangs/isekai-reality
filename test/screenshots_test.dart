@@ -415,9 +415,10 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
     final checks = find.byType(Checkbox);
-    for (final i in [0, 1, 2]) {
+    for (final i in [0, 1]) {
       await tester.tap(checks.at(i));
     }
+    await tester.enterText(find.byKey(const Key('birthYear')), '1995');
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('동의하고 다음'), 200,
         scrollable: find.byType(Scrollable).first);

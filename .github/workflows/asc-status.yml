@@ -1,0 +1,49 @@
+# App Store Connect 에서 최근 iPhone 빌드의 처리 상태를 읽어 온다 (읽기만, 바꾸지 않음).
+# TestFlight 에 새 빌드가 안 보일 때 원인을 찾는 용도.
+name: TestFlight 빌드 상태 확인
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - run: pip install pyjwt cryptography requests
+      - name: 빌드 상태 읽기
+        shell: python
+        run: |
+          import os, time, jwt, requests, json
+          key = os.environ["ASC_KEY_P8"]
+          tok = jwt.encode(
+              {"iss": os.environ["ASC_ISSUER_ID"], "iat": int(time.time()),
+               "exp": int(time.time()) + 600, "aud": "appstoreconnect-v1"},
+              key, algorithm="ES256",
+              headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"})
+          H = {"Authorization": f"Bearer {tok}"}
+          B = "https://api.appstoreconnect.apple.com/v1"
+          apps = requests.get(f"{B}/apps", headers=H,
+                              params={"filter[bundleId]": "kr.itso.isekaiReality"}).json()
+          app = apps["data"][0]["id"]
+          print("app", app)
+          r = requests.get(f"{B}/builds", headers=H, params={
+              "filter[app]": app, "sort": "-uploadedDate", "limit": 30,
+              "include": "buildBetaDetail",
+              "fields[builds]": "version,uploadedDate,processingState,expired,minOsVersion,buildBetaDetail",
+          }).json()
+          detail = {d["id"]: d["attributes"] for d in r.get("included", [])}
+          for b in r.get("data", []):
+              a = b["attributes"]
+              bd = (b.get("relationships", {}).get("buildBetaDetail", {}) or {}).get("data") or {}
+              d = detail.get(bd.get("id"), {})
+              print(f'({a["version"]}) {a["uploadedDate"]} 처리={a["processingState"]} 만료={a["expired"]} '
+                    f'내부={d.get("internalBuildState")} 외부={d.get("externalBuildState")}')
+          groups = requests.get(f"{B}/apps/{app}/betaGroups", headers=H).json()
+          for g in groups.get("data", []):
+              ga = g["attributes"]
+              print("그룹:", ga.get("name"), "내부" if ga.get("isInternalGroup") else "외부",
+                    "자동배포=", ga.get("hasAccessToAllBuilds"))

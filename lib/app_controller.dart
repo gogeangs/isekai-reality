@@ -2950,7 +2950,8 @@ class AppController extends ChangeNotifier {
           : h.perfects,
       relics: relic ? h.relics + 1 : h.relics,
     ).pruned(now);
-    _lastRelicLore = relic
+    // 묶음 13 C8: 유물 이야기는 보류. 이야기 칸만 비우고 유물·재료는 그대로
+    _lastRelicLore = relic && HarvestRules.relicLore.isNotEmpty
         ? HarvestRules.relicLore[(h.relics - 1) % HarvestRules.relicLore.length]
         : null;
     await _saveHarvest(h);

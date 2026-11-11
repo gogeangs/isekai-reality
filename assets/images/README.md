@@ -138,3 +138,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | potion_weaponDark | 어둠 공격 물약 (256×256) |
 | potion_weaponIce | 얼음 공격 물약 (256×256) |
 | potion_weaponThunder | 번개 공격 물약 (256×256) |
+| potion_thaw, potion_steps, potion_weaponPoison, potion_weaponMetal | 녹이는 물약, 걸음 물약, 독·금속 공격 물약 (256×256) |

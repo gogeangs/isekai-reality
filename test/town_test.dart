@@ -555,6 +555,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(c.player.manaStones, stones - 1);
     expect(c.player.gold, gold + 10);
+    // 위쪽 알림 띠가 지나간 뒤에 (11-11 #85)
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
 
     // 정령 물약 = 예시 모드(Lv.14, 정령과 헤어짐)에서는 펫 간식
     await tester.scrollUntilVisible(find.text('펫 간식'), 200,

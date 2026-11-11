@@ -82,6 +82,14 @@ enum MaterialId {
   stoneThunder,
   stoneMetal,
   stonePoison,
+  // 11-11 #75 보스 전용 재료 · 보스 장비 조각
+  bossWardenHeart,
+  bossKingOrb,
+  bossFrostFang,
+  bossTreantHeart,
+  bossQueenWing,
+  bossThunderFeather,
+  bossShard,
 }
 
 class MaterialInfo {
@@ -204,6 +212,14 @@ class Materials {
         '오래된 나무의 단단한 옹이. 대장간에서 단단한 목재 2개로 가공해요.', rare: true),
     MaterialInfo(MaterialId.riverPearl, '강의 진주',
         '물가에서 건진 작은 진주. 공방에서 정제 에센스 2개로 가공해요.', rare: true),
+    // 11-11 #75 보스 전용 재료
+    MaterialInfo(MaterialId.bossWardenHeart, '문지기의 심장', '미궁 문지기를 쓰러뜨리면 나와요. 돌처럼 단단하게 뛰는 심장.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossKingOrb, '왕의 불꽃 구슬', '불꽃 슬라임 왕을 쓰러뜨리면 나와요. 꺼지지 않는 불꽃이 담겼어요.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossFrostFang, '서리 송곳니', '서리 늑대왕을 쓰러뜨리면 나와요. 만지면 손끝이 시려요.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossTreantHeart, '고목의 심재', '숲의 고목 정령을 달래면 나와요. 천 년의 나이테가 새겨졌어요.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossQueenWing, '여왕의 밤날개', '그림자 박쥐 여왕을 쓰러뜨리면 나와요. 빛을 삼키는 날개.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossThunderFeather, '천둥 깃털', '천둥 그리폰을 쓰러뜨리면 나와요. 찌릿찌릿 번개가 흘러요.', rare: true, price: 100),
+    MaterialInfo(MaterialId.bossShard, '보스 장비 조각', '던전 보스가 가끔 떨어뜨려요. 모아 두면 보스 장비를 만들 수 있어요 (다음에 열려요).', rare: true, price: 100),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
@@ -394,6 +410,13 @@ class LootRules {
             rare: MaterialId.labyrinthCore,
             chance: rareChance
           ),
+        // 11-11 #75 새 보스: 전용 재료는 던전 보상에서 따로 준다
+        MonsterId.fireSlimeKing ||
+        MonsterId.frostWolfKing ||
+        MonsterId.ancientTreant ||
+        MonsterId.shadowBatQueen ||
+        MonsterId.thunderGriffin =>
+          (common: [MaterialId.wardenShard], rare: MaterialId.labyrinthCore, chance: rareChance),
         // 예전 정령 몬스터 (지금은 나오지 않음)
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
@@ -413,13 +436,30 @@ class LootRules {
   /// 던전 한 번: 클리어 박쥐 날개 2 + 문지기의 돌조각 1 (+미궁 핵 10%, 박쥐 송곳니 10%),
   /// 실패 박쥐 날개 1
   static Map<MaterialId, int> dungeon(
-      {required bool cleared, required math.Random rng}) {
+      {required bool cleared,
+      required math.Random rng,
+      MonsterId boss = MonsterId.labyrinthWarden}) {
     if (!cleared) return {MaterialId.batWing: 1};
     return {
       MaterialId.batWing: 2,
       MaterialId.wardenShard: 1,
       if (rng.nextDouble() < rareChance) MaterialId.labyrinthCore: 1,
       if (rng.nextDouble() < rareChance) MaterialId.batFang: 1,
+      // 11-11 #75: 보스 전용 재료 1개(확정) + 보스 장비 조각 30%
+      bossMaterial(boss): 1,
+      if (rng.nextDouble() < bossShardChance) MaterialId.bossShard: 1,
     };
   }
+
+  static const double bossShardChance = 0.30;
+
+  /// 보스마다 전용 재료
+  static MaterialId bossMaterial(MonsterId boss) => switch (boss) {
+        MonsterId.fireSlimeKing => MaterialId.bossKingOrb,
+        MonsterId.frostWolfKing => MaterialId.bossFrostFang,
+        MonsterId.ancientTreant => MaterialId.bossTreantHeart,
+        MonsterId.shadowBatQueen => MaterialId.bossQueenWing,
+        MonsterId.thunderGriffin => MaterialId.bossThunderFeather,
+        _ => MaterialId.bossWardenHeart,
+      };
 }

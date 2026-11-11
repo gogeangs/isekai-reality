@@ -94,6 +94,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     tickInterval: widget.tickInterval,
                     playerName: _c.profile.name,
                     look: _c.profile.look,
+                    vibrate: _c.vibrate,
+                    fast: _c.fastBattle,
+                    onFastChanged: _c.setFastBattle,
+                    poisonTip: !_c.poisonTipSeen,
+                    onPoisonTipShown: _c.markPoisonTipSeen,
                   ),
                 ],
               _Stage.result => _result(),
@@ -268,15 +273,19 @@ class _DungeonScreenState extends State<DungeonScreen> {
           children: [
             const _FloorTrack(),
             const SizedBox(height: 8),
-            const SizedBox(
+            // 오늘의 보스 그림자 (요일마다 바뀐다, 11-11 #75. 일요일은 무작위라 문지기 그림자)
+            SizedBox(
               height: 110,
               child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
+                colorFilter: const ColorFilter.mode(
                     Color(0xFF55557A), BlendMode.modulate),
                 child: Opacity(
                   opacity: 0.85,
                   child: MonsterPicture(
-                      monster: MonsterId.labyrinthWarden, size: 110),
+                      monster: _c.now.weekday == DateTime.sunday
+                          ? MonsterId.labyrinthWarden
+                          : BattleRules.bossOf(_c.now, atGate: _c.atGate),
+                      size: 110),
                 ),
               ),
             ),
@@ -335,9 +344,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final keys = player.gauge.keysAvailable;
     final line = cleared
         ? (purified.any((m) => m.isBoss)
-            ? Monsters.info(MonsterId.labyrinthWarden).huntLine
+            ? purified.firstWhere((m) => m.isBoss).huntLine
             : '던전을 돌파했어!')
-        : '쓰러졌지만 괜찮아. 여관에서 쉬거나 걸으면 HP가 다시 차!';
+        : AppController.tiredLine;
 
     return [
       // 11-10 A3: 정령 한 줄은 제목 바로 아래 고정 자리

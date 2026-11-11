@@ -28,6 +28,13 @@ enum TitleId {
   elThunder,
   elMetal,
   elPoison,
+  // 보스 칭호 (11-11 #75): 처음 잡으면. 얻기 전에는 보이지 않는다
+  bossWarden,
+  bossFireKing,
+  bossFrostWolf,
+  bossTreant,
+  bossBatQueen,
+  bossGriffin,
 }
 
 class TitleInfo {
@@ -65,7 +72,26 @@ class TitleRules {
     TitleId.gateKeeper,
     TitleId.lakeFriend,
     ...elementTitles,
+    ...bossTitles,
   };
+
+  /// 보스 칭호와 그 보스
+  static const Map<TitleId, MonsterId> bossTitleMonsters = {
+    TitleId.bossWarden: MonsterId.labyrinthWarden,
+    TitleId.bossFireKing: MonsterId.fireSlimeKing,
+    TitleId.bossFrostWolf: MonsterId.frostWolfKing,
+    TitleId.bossTreant: MonsterId.ancientTreant,
+    TitleId.bossBatQueen: MonsterId.shadowBatQueen,
+    TitleId.bossGriffin: MonsterId.thunderGriffin,
+  };
+  static const List<TitleId> bossTitles = [
+    TitleId.bossWarden,
+    TitleId.bossFireKing,
+    TitleId.bossFrostWolf,
+    TitleId.bossTreant,
+    TitleId.bossBatQueen,
+    TitleId.bossGriffin,
+  ];
 
   /// 속성 칭호 (Element 순서와 같다)
   static const List<TitleId> elementTitles = [
@@ -85,6 +111,8 @@ class TitleRules {
   static List<TitleInfo> visible(Set<TitleId> earned) => [
         ...all,
         for (final t in elementTitles)
+          if (earned.contains(t)) info(t),
+        for (final t in bossTitles)
           if (earned.contains(t)) info(t),
       ];
 
@@ -110,6 +138,12 @@ class TitleRules {
     TitleInfo(TitleId.elThunder, _el7, '숨은 칭호'),
     TitleInfo(TitleId.elMetal, _el8, '숨은 칭호'),
     TitleInfo(TitleId.elPoison, _el9, '숨은 칭호'),
+    TitleInfo(TitleId.bossWarden, '문지기를 넘은 자', '숨은 칭호'),
+    TitleInfo(TitleId.bossFireKing, '불꽃왕 사냥꾼', '숨은 칭호'),
+    TitleInfo(TitleId.bossFrostWolf, '서리를 깨뜨린 자', '숨은 칭호'),
+    TitleInfo(TitleId.bossTreant, '숲을 달래는 자', '숨은 칭호'),
+    TitleInfo(TitleId.bossBatQueen, '밤을 밝힌 자', '숨은 칭호'),
+    TitleInfo(TitleId.bossGriffin, '하늘을 가른 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -162,7 +196,9 @@ class TitleRules {
     // 11-11: 속성 슬라임은 빼고 7종 (무속성 슬라임 포함)
     final active = {
       for (final m in Monsters.all)
-        if (!m.slimeKind) m.id.name,
+        // 11-11 #75 요일 보스는 빼고 (미궁 문지기는 그대로)
+        if (!m.slimeKind && (!m.isBoss || m.id == MonsterId.labyrinthWarden))
+          m.id.name,
     };
     const oldSix = {
       'ashSlime', 'labyrinthBat', 'roughWaterSpirit',
@@ -199,6 +235,10 @@ class TitleRules {
       if (v >= ElementRules.titleScore) {
         result.add(elementTitles[Element.values.indexOf(e)]);
       }
+    });
+    // 보스 칭호 (11-11 #75): 그 보스를 처음 잡으면
+    bossTitleMonsters.forEach((t, m) {
+      if (species.contains(m.name)) result.add(t);
     });
     final monsters =
         history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);

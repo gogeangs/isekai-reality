@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Element;
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
@@ -25,6 +26,11 @@ class BattleView extends StatefulWidget {
     this.tickInterval = const Duration(milliseconds: 900),
     this.playerName = '각성자',
     this.look = HeroLook.male,
+    this.vibrate = false,
+    this.fast = false,
+    this.onFastChanged,
+    this.poisonTip = false,
+    this.onPoisonTipShown,
   });
 
   final Battle battle;
@@ -32,6 +38,17 @@ class BattleView extends StatefulWidget {
   final Duration tickInterval;
   final String playerName;
   final HeroLook look;
+
+  /// 때리고 막을 때 진동 (설정 「진동」, 11-11 #75)
+  final bool vibrate;
+
+  /// 2배속으로 시작 (마지막에 고른 속도를 기억한다)
+  final bool fast;
+  final ValueChanged<bool>? onFastChanged;
+
+  /// 처음 중독되면 해독제 안내를 한 번 보여 준다 (11-11 A4)
+  final bool poisonTip;
+  final VoidCallback? onPoisonTipShown;
 
   @override
   State<BattleView> createState() => _BattleViewState();
@@ -44,12 +61,31 @@ class _BattleViewState extends State<BattleView> {
   /// 공격이 한 번 오갈 때마다 1씩 늘어난다 (전투 장면 연출의 신호)
   int _beat = 0;
 
+  late bool _fast = widget.fast;
+
+  /// 예고가 뜬 뒤 흐른 실제 시간 (2배속이어도 판정은 실제 시간)
+  final _warnClock = Stopwatch();
+  bool _warning = false;
+  bool _tapped = false;
+
+  bool _tipShown = false;
+  bool _tipOpen = false;
+
+  /// 전투 기록 두 줄
+  final List<String> _log = [];
+
+  /// 강한 타격 뒤 잠깐 멈춤 (손맛)
+  static const _hitStop = Duration(milliseconds: 120);
+
   Battle get _b => widget.battle;
+
+  Duration get _interval =>
+      _fast ? widget.tickInterval ~/ 2 : widget.tickInterval;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(widget.tickInterval, (_) => _step());
+    _afterTick(first: true);
   }
 
   @override
@@ -58,14 +94,106 @@ class _BattleViewState extends State<BattleView> {
     super.dispose();
   }
 
+  void _schedule(Duration d) {
+    _timer?.cancel();
+    _timer = Timer(d, _step);
+  }
+
   void _step() {
-    if (!mounted) return;
+    if (!mounted || _b.isOver || _tipOpen) return;
     setState(() {
       final before = _b.ticks;
       _b.tick();
       if (_b.ticks != before) _beat++; // 층이 바뀌는 틱은 연출하지 않는다
+      _record();
     });
+    _feel();
     _checkEnd();
+    if (_b.isOver) return;
+    _afterTick();
+  }
+
+  /// 다음 틱 시간을 정하고, 강한 공격 예고면 막기 시간을 연다
+  void _afterTick({bool first = false}) {
+    var next = _interval;
+    if (!first &&
+        (_b.lastGuard == GuardResult.perfect ||
+            _b.lastEvent == '치명타!' ||
+            _b.lastBash)) {
+      next += _hitStop;
+    }
+    if (_b.strongNext) {
+      _warning = true;
+      _tapped = false;
+      _warnClock
+        ..reset()
+        ..start();
+      final window = Battle.guardWindow + const Duration(milliseconds: 60);
+      if (next < window) next = window;
+    } else {
+      _warning = false;
+      _warnClock.stop();
+    }
+    // 처음 중독되면 해독제 안내 (한 번, 전투를 잠깐 멈춘다)
+    if (widget.poisonTip &&
+        !_tipShown &&
+        _b.poisonedThisBattle &&
+        _b.poisonTurns > 0 &&
+        !_b.burning) {
+      _tipShown = true;
+      _tipOpen = true;
+      widget.onPoisonTipShown?.call();
+      _timer?.cancel();
+      if (!first) setState(() {});
+      return;
+    }
+    _schedule(next);
+  }
+
+  void _record() {
+    String? line;
+    final e = _b.lastEvent;
+    if (e != null) {
+      line = e;
+      if (_b.lastDealt > 0) line = '$e ${comma(_b.lastDealt)} 피해';
+    } else if (_b.lastDealt > 0) {
+      line = '${_b.foe.name}에게 ${comma(_b.lastDealt)} 피해';
+    } else if (_b.lastTaken > 0) {
+      line = '${comma(_b.lastTaken)} 피해를 받았어요';
+    }
+    if (_b.lastTaken > 0 && e != null && _b.lastDealt == 0) {
+      line = '$e ${comma(_b.lastTaken)} 피해를 받았어요';
+    }
+    if (line == null) return;
+    _log.add(line);
+    if (_log.length > 2) _log.removeAt(0);
+  }
+
+  void _feel() {
+    if (!widget.vibrate) return;
+    if (_b.lastGuard == GuardResult.perfect) {
+      HapticFeedback.heavyImpact();
+    } else if (_b.lastGuard == GuardResult.block) {
+      HapticFeedback.mediumImpact();
+    } else if (_b.lastEvent == '치명타!' || _b.lastBash) {
+      HapticFeedback.mediumImpact();
+    } else if (_b.lastTaken > 0) {
+      HapticFeedback.lightImpact();
+    } else if (_b.lastDealt > 0) {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// 화면 아무 곳이나 누르면 막기 (예고 하나에 한 번만, 일찍 눌러도 벌 없음)
+  void _onPointer(PointerDownEvent _) {
+    if (!_warning || _tapped || _b.isOver) return;
+    final r = Battle.judgeGuard(_warnClock.elapsed);
+    if (r == null) return;
+    if (_b.guard(perfect: r == GuardResult.perfect)) {
+      _tapped = true;
+      if (widget.vibrate) HapticFeedback.selectionClick();
+      setState(() {});
+    }
   }
 
   /// 전투 중 물약 (11-11 #57): 전투 한 번에 3개까지
@@ -110,15 +238,66 @@ class _BattleViewState extends State<BattleView> {
 
   void _skill() {
     setState(() {
-      if (_b.useSkill()) _beat++;
+      if (_b.useSkill()) {
+        _beat++;
+        _record();
+      }
     });
+    if (widget.vibrate) HapticFeedback.mediumImpact();
     _checkEnd();
+  }
+
+  void _bash() {
+    setState(() {
+      if (_b.useBash()) {
+        _beat++;
+        _record();
+      }
+    });
+    if (widget.vibrate) HapticFeedback.mediumImpact();
+    _checkEnd();
+  }
+
+  void _stance() {
+    setState(() {
+      if (_b.useStance()) _record();
+    });
+    if (widget.vibrate) HapticFeedback.lightImpact();
+  }
+
+  void _toggleSpeed() {
+    setState(() => _fast = !_fast);
+    widget.onFastChanged?.call(_fast);
+  }
+
+  BattlePotion? get _antidote {
+    for (final p in _b.potions.values) {
+      if (p.cure == CureKind.poison && _b.potionLeft(p.key) > 0) return p;
+    }
+    return null;
+  }
+
+  void _closeTip({bool drink = false}) {
+    setState(() {
+      if (drink && _antidote != null) {
+        _b.drink(_antidote!.key);
+        _record();
+      }
+      _tipOpen = false;
+    });
+    if (!_b.isOver) _afterTick(first: true);
   }
 
   void _checkEnd() {
     if (!_b.isOver || _reported) return;
     _reported = true;
     _timer?.cancel();
+    _warning = false;
+    if (widget.vibrate) {
+      _b.phase == BattlePhase.cleared
+          ? HapticFeedback.heavyImpact()
+          : HapticFeedback.vibrate();
+    }
     // 마지막 타격을 잠깐 보여 주고 결과로 넘어간다
     Timer(widget.tickInterval, () {
       if (mounted) widget.onFinished();
@@ -141,95 +320,320 @@ class _BattleViewState extends State<BattleView> {
     final foe = _b.foe;
     final cleared = _b.phase == BattlePhase.floorCleared ||
         _b.phase == BattlePhase.cleared;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Scene(
-          foe: foe,
-          cleared: cleared,
-          floorLabel: _floorLabel,
-          dealt: _b.lastDealt,
-          taken: _b.lastTaken,
-          skill: _b.lastWasSkill,
-          look: widget.look,
-          beat: _beat,
-          beatDuration: widget.tickInterval * 0.85,
-        ),
-        const SizedBox(height: 10),
-        OrnatePanel(
-          padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
-          child: Row(children: [
-            _Avatar(look: widget.look),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _HpColumn(
-                name: widget.playerName,
-                hp: _b.playerHp,
-                maxHp: _b.playerMaxHp,
-                colors: BarColors.hp,
-                note: _b.lastTaken > 0 ? '-${comma(_b.lastTaken)}' : null,
+    final warning = _warning && _b.strongNext && !_b.isOver;
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _onPointer,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Scene(
+                foe: foe,
+                cleared: cleared,
+                floorLabel: _floorLabel,
+                dealt: _b.lastDealt,
+                taken: _b.lastTaken,
+                skill: _b.lastWasSkill || _b.lastBash,
+                petDash: _b.lastWasSkill,
+                look: widget.look,
+                beat: _beat,
+                beatDuration: _interval * 0.85,
+                warning: warning ? (_b.strongLabel ?? '강한 공격!') : null,
+                guarded: _tapped && warning,
+                guard: _b.lastGuard,
+                enraged: _b.enraged,
+                stance: _b.stanceTurns > 0,
               ),
-            ),
-            if (_b.potions.isNotEmpty && !_b.isOver)
-              IconButton(
-                key: const Key('battlePotion'),
-                tooltip: '물약 마시기',
-                visualDensity: VisualDensity.compact,
-                onPressed: _potionSheet,
-                icon: const Icon(Icons.local_drink_rounded,
-                    color: AppColors.goldBright),
-              ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _HpColumn(
-                name: foe.name,
-                nameColor: modGradeColor(foe.grade),
-                element: Monsters.info(foe.monster).element,
-                showElement: true,
-                hp: _b.foeHp,
-                maxHp: foe.maxHp,
-                colors: BarColors.foe,
-                note: _b.lastEvent,
-                alignEnd: true,
-              ),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: OrnatePanel(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                child: Row(children: [
-                  const GameIcon('mana_stone', size: 40),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('사냥',
-                          style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 13)),
-                      Text('${_b.purified.length} / ${_b.floors.length}',
-                          style: AppText.title(26, color: AppColors.text)),
-                    ],
+              const SizedBox(height: 8),
+              OrnatePanel(
+                padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+                child: Column(children: [
+                  Row(children: [
+                    _Avatar(look: widget.look),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _HpColumn(
+                        name: widget.playerName,
+                        hp: _b.playerHp,
+                        maxHp: _b.playerMaxHp,
+                        colors: BarColors.hp,
+                        note: _b.lastTaken > 0
+                            ? '-${comma(_b.lastTaken)}'
+                            : null,
+                      ),
+                    ),
+                    if (_b.potions.isNotEmpty && !_b.isOver)
+                      IconButton(
+                        key: const Key('battlePotion'),
+                        tooltip: '물약 마시기',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _potionSheet,
+                        icon: const Icon(Icons.local_drink_rounded,
+                            color: AppColors.goldBright),
+                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _HpColumn(
+                        name: foe.name,
+                        nameColor: modGradeColor(foe.grade),
+                        element: Monsters.info(foe.monster).element,
+                        showElement: true,
+                        hp: _b.foeHp,
+                        maxHp: foe.maxHp,
+                        colors: BarColors.foe,
+                        note: _b.lastEvent,
+                        alignEnd: true,
+                      ),
+                    ),
+                  ]),
+                  // 전투 기록 두 줄
+                  Container(
+                    key: const Key('battleLog'),
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0x55000000),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var i = 0; i < 2; i++)
+                          Text(
+                            i < _log.length ? _log[i] : ' ',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: i == _log.length - 1
+                                    ? AppColors.text
+                                    : AppColors.textMuted,
+                                fontSize: 12),
+                          ),
+                      ],
+                    ),
                   ),
                 ]),
               ),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: OrnatePanel(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            const GameIcon('mana_stone', size: 26),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                  '${_b.purified.length} / ${_b.floors.length}',
+                                  style: AppText.title(20,
+                                      color: AppColors.text)),
+                            ),
+                          ]),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            key: const Key('battleSpeed'),
+                            onTap: _toggleSpeed,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: _fast
+                                        ? AppColors.goldBright
+                                        : AppColors.textMuted),
+                              ),
+                              child: Text(_fast ? '▶▶ 2배' : '▶ 1배',
+                                  style: TextStyle(
+                                      color: _fast
+                                          ? AppColors.goldBright
+                                          : AppColors.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_b.heroSkills) ...[
+                    const SizedBox(width: 8),
+                    _MiniSkill(
+                      key: const Key('bashButton'),
+                      label: '강타',
+                      icon: Icons.gavel_rounded,
+                      ratio: _b.bashRatio,
+                      ready: _b.bashReady,
+                      onPressed: _bash,
+                    ),
+                    const SizedBox(width: 6),
+                    _MiniSkill(
+                      key: const Key('stanceButton'),
+                      label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
+                      icon: Icons.shield_rounded,
+                      ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
+                      ready: _b.stanceReady,
+                      active: _b.stanceTurns > 0,
+                      onPressed: _stance,
+                    ),
+                  ],
+                  const SizedBox(width: 8),
+                  _SkillOrb(
+                    ratio: _b.skillRatio,
+                    ready: _b.skillReady,
+                    away: _b.skillDisabled,
+                    onPressed: _skill,
+                    size: _b.heroSkills ? 84 : 104,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (_tipOpen) Positioned.fill(child: _poisonTip()),
+        ],
+      ),
+    );
+  }
+
+  Widget _poisonTip() {
+    final a = _antidote;
+    return ColoredBox(
+      color: const Color(0x99000000),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: OrnatePanel(
+            key: const Key('poisonTip'),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('중독됐어요!', style: AppText.title(18)),
+                const SizedBox(height: 6),
+                Text(
+                    a != null
+                        ? '해독제를 마시면 바로 풀리고 잠깐 다시 걸리지 않아요.'
+                        : '해독제를 마시면 바로 풀려요. 공방에서 만들거나 잡화상에서 살 수 있어요.',
+                    style: const TextStyle(
+                        color: AppColors.text, fontSize: 14, height: 1.4)),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      key: const Key('poisonTipClose'),
+                      onPressed: () => _closeTip(),
+                      child: const Text('알겠어요'),
+                    ),
+                    if (a != null)
+                      TextButton(
+                        key: const Key('poisonTipUse'),
+                        onPressed: () => _closeTip(drink: true),
+                        child: Text('${a.name} 쓰기',
+                            style: const TextStyle(
+                                color: AppColors.goldBright,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            _SkillOrb(
-              ratio: _b.skillRatio,
-              ready: _b.skillReady,
-              away: _b.skillDisabled,
-              onPressed: _skill,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 내 스킬 작은 버튼 (강타 · 방어 태세, 11-11 #75)
+class _MiniSkill extends StatelessWidget {
+  const _MiniSkill({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.ratio,
+    required this.ready,
+    required this.onPressed,
+    this.active = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final double ratio;
+  final bool ready;
+  final bool active;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final lit = ready || active;
+    return GestureDetector(
+      onTap: ready ? onPressed : null,
+      child: SizedBox(
+        width: 58,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: Stack(alignment: Alignment.center, children: [
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CircularProgressIndicator(
+                    value: ratio,
+                    strokeWidth: 4,
+                    color: active ? AppColors.mana : AppColors.goldBright,
+                    backgroundColor: AppColors.track,
+                  ),
+                ),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: lit ? const Color(0xFF6A4A1C) : const Color(0xFF262A5A),
+                    border: Border.all(
+                        color: AppColors.goldBright, width: ready ? 2 : 1),
+                    boxShadow: ready
+                        ? [
+                            BoxShadow(
+                                color: AppColors.gold.withValues(alpha: 0.7),
+                                blurRadius: 14),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(icon,
+                      size: 24,
+                      color: lit ? AppColors.goldBright : AppColors.textMuted),
+                ),
+              ]),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(height: 2),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                softWrap: false,
+                style: TextStyle(
+                    color: lit ? AppColors.goldBright : AppColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700)),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -247,7 +651,31 @@ class _Scene extends StatefulWidget {
     required this.look,
     required this.beat,
     required this.beatDuration,
+    this.petDash = false,
+    this.warning,
+    this.guarded = false,
+    this.guard,
+    this.enraged = false,
+    this.stance = false,
   });
+
+  /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
+  final bool petDash;
+
+  /// 강한 공격 예고 문구 (막기 시간)
+  final String? warning;
+
+  /// 예고에 이미 막기를 눌렀다
+  final bool guarded;
+
+  /// 방금 막은 결과
+  final GuardResult? guard;
+
+  /// 보스 분노 (붉은 빛)
+  final bool enraged;
+
+  /// 방어 태세 중
+  final bool stance;
 
   final Foe foe;
   final bool cleared;
@@ -390,12 +818,37 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                               Colors.white.withValues(alpha: flash * 0.75),
                               BlendMode.srcATop),
                           child: Transform.scale(
-                            scale: 1 - flash * 0.06 + counter * 0.06,
-                            child: MonsterPicture(
-                              monster: foe.monster,
-                              size: monSize,
-                              defeated: cleared,
-                            ),
+                            scale: (1 - flash * 0.06 + counter * 0.06) *
+                                (widget.enraged ? 1.08 : 1),
+                            child: widget.enraged && !cleared
+                                ? DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color: const Color(0xFFFF3B3B)
+                                                .withValues(alpha: 0.55),
+                                            blurRadius: 40,
+                                            spreadRadius: 6),
+                                      ],
+                                    ),
+                                    child: ColorFiltered(
+                                      key: const Key('bossRage'),
+                                      colorFilter: ColorFilter.mode(
+                                          const Color(0xFFFF2E2E)
+                                              .withValues(alpha: 0.35),
+                                          BlendMode.srcATop),
+                                      child: MonsterPicture(
+                                        monster: foe.monster,
+                                        size: monSize,
+                                      ),
+                                    ),
+                                  )
+                                : MonsterPicture(
+                                    monster: foe.monster,
+                                    size: monSize,
+                                    defeated: cleared,
+                                  ),
                           ),
                         ),
                       ),
@@ -556,6 +1009,92 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           ),
                         ),
                       ),
+                    // 방어 태세: 각성자 둘레 푸른 방패
+                    if (widget.stance && !cleared)
+                      Positioned(
+                        left: w * 0.06 + lunge * w * 0.08,
+                        bottom: 30,
+                        width: heroW * 0.8,
+                        height: h * 0.5,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(80),
+                              border: Border.all(
+                                  color: AppColors.mana.withValues(alpha: 0.7),
+                                  width: 3),
+                              color: AppColors.mana.withValues(alpha: 0.12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // 막기 결과
+                    if (widget.guard != null && !idle)
+                      Positioned(
+                        left: w * 0.1,
+                        width: heroW * 0.8,
+                        top: h * 0.28 - _seg(t, 0.4, 0.9) * 20,
+                        child: Opacity(
+                          opacity: 1 - _seg(t, 0.75, 0.98),
+                          child: Column(children: [
+                            Icon(Icons.shield_rounded,
+                                size: widget.guard == GuardResult.perfect
+                                    ? 64
+                                    : 48,
+                                color: widget.guard == GuardResult.perfect
+                                    ? AppColors.goldBright
+                                    : AppColors.mana),
+                            _Outlined(
+                                widget.guard == GuardResult.perfect
+                                    ? '완벽한 막기!'
+                                    : '막았다!',
+                                size: 22,
+                                color: widget.guard == GuardResult.perfect
+                                    ? AppColors.goldBright
+                                    : Colors.white),
+                          ]),
+                        ),
+                      ),
+                    // 강한 공격 예고: 화면을 누르면 막기
+                    if (widget.warning != null)
+                      Positioned(
+                        key: const Key('guardWarning'),
+                        left: 0,
+                        right: 0,
+                        top: monTop - 46,
+                        child: IgnorePointer(
+                          child: Column(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xDDB3261E),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.white70),
+                              ),
+                              child: Text('⚠ ${widget.warning}',
+                                  style: AppText.title(16,
+                                      color: Colors.white)),
+                            ),
+                          ]),
+                        ),
+                      ),
+                    if (widget.warning != null)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: h * 0.42,
+                        child: IgnorePointer(
+                          child: Center(
+                            child: _Outlined(
+                                widget.guarded ? '막기 준비!' : '화면을 눌러 막기!',
+                                size: 20,
+                                color: widget.guarded
+                                    ? AppColors.mana
+                                    : AppColors.goldBright),
+                          ),
+                        ),
+                      ),
                     // 층 표시
                     Positioned(
                       top: 10,
@@ -587,7 +1126,13 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                       bottom: 6,
                       child: Row(children: [
                         Transform.translate(
-                          offset: Offset(0, -math.sin(t * math.pi) * 6),
+                          offset: Offset(
+                              widget.petDash && !idle
+                                  ? math.sin(_seg(t, 0, 0.5) * math.pi) *
+                                      w *
+                                      0.45
+                                  : 0,
+                              -math.sin(t * math.pi) * 6),
                           child: const CompanionArt(size: 54),
                         ),
                         Container(
@@ -600,6 +1145,10 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                           child: Text(
                               cleared
                                   ? '잡았어!'
+                                  : widget.warning != null
+                                      ? '조심해!'
+                                      : widget.enraged
+                                          ? '화났어, 조심!'
                                   : widget.skill && hitting
                                       ? skillLabel(context)
                                       : '할 수 있어!',
@@ -811,8 +1360,10 @@ class _SkillOrb extends StatelessWidget {
     required this.ready,
     required this.onPressed,
     this.away = false,
+    this.size = 104,
   });
 
+  final double size;
   final double ratio;
   final bool ready;
   final VoidCallback onPressed;
@@ -828,14 +1379,14 @@ class _SkillOrb extends StatelessWidget {
         GestureDetector(
           onTap: ready ? onPressed : null,
           child: SizedBox(
-            width: 104,
-            height: 104,
+            width: size,
+            height: size,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 104,
-                  height: 104,
+                  width: size,
+                  height: size,
                   child: CircularProgressIndicator(
                     value: ratio,
                     strokeWidth: 6,
@@ -844,8 +1395,8 @@ class _SkillOrb extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  width: 82,
-                  height: 82,
+                  width: size * 0.79,
+                  height: size * 0.79,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
@@ -867,7 +1418,7 @@ class _SkillOrb extends StatelessWidget {
                         : null,
                   ),
                   child: Icon(Icons.flare_rounded,
-                      size: 46,
+                      size: size * 0.44,
                       color: ready
                           ? const Color(0xFF5A3410)
                           : AppColors.textMuted),
@@ -959,6 +1510,11 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
         MonsterId.lostStoneSpirit => Icons.landscape_rounded,
         MonsterId.labyrinthWarden => Icons.shield_moon_rounded,
+        MonsterId.fireSlimeKing => Icons.local_fire_department_rounded,
+        MonsterId.frostWolfKing => Icons.ac_unit_rounded,
+        MonsterId.ancientTreant => Icons.park_rounded,
+        MonsterId.shadowBatQueen => Icons.dark_mode_rounded,
+        MonsterId.thunderGriffin => Icons.bolt_rounded,
         MonsterId.giantRat => Icons.pest_control_rodent_rounded,
         MonsterId.hornRabbit => Icons.cruelty_free_rounded,
         MonsterId.babyBoar => Icons.savings_rounded,
@@ -997,7 +1553,9 @@ class MonsterPicture extends StatelessWidget {
           : Icon(
               iconOf(monster),
               size: size * 0.7,
-              color: const Color(0xFFB8B2C8),
+              color: info.isBoss && info.element != null
+                  ? elementColor(info.element)
+                  : const Color(0xFFB8B2C8),
               semanticLabel: info.name,
             ),
     );

@@ -28,6 +28,12 @@ enum MonsterId {
   thunderSlime,
   metalSlime,
   poisonSlime,
+  // 11-11 #75 던전 보스 (요일마다)
+  fireSlimeKing,
+  frostWolfKing,
+  ancientTreant,
+  shadowBatQueen,
+  thunderGriffin,
 }
 
 /// 전투 성향 (도감 설명)
@@ -57,6 +63,9 @@ enum MonsterTrait {
 
   /// 맞히면 20% 확률로 얼어 다음 차례를 쉼 (11-11 #74 얼음 슬라임)
   freeze,
+
+  /// 맞히면 낮은 확률로 약한 중독 (11-11 A4 큰쥐: 2턴 동안 매 턴 최대 HP 1%)
+  weakPoison,
 }
 
 class MonsterInfo {
@@ -311,7 +320,8 @@ class Monsters {
       huntLine: '큰쥐를 잡았어! 가죽은 장비 만들 때 쓸 수 있어.',
       description: '골목을 누비는 커다란 쥐. 재빠르게 덤벼요.',
       tendency: Tendency.nimble,
-      traitText: '기본형',
+      trait: MonsterTrait.weakPoison,
+      traitText: '가끔 물려서 약하게 중독',
     ),
     MonsterInfo(
       id: MonsterId.hornRabbit,
@@ -364,7 +374,57 @@ class Monsters {
       habitat: '던전 마지막 층',
       huntLine: '문지기를 쓰러뜨렸어! 던전을 끝까지 돌파했어!',
       description: '던전 마지막 층을 지키는 돌 거인.',
-      traitText: '보스: 체력이 많고 세게 때림',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
+      isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.fireSlimeKing,
+      element: Element.fire,
+      name: '불꽃 슬라임 왕',
+      habitat: '던전 마지막 층',
+      huntLine: '불꽃 슬라임 왕을 쓰러뜨렸어! 왕관이 식었어.',
+      description: '불타는 왕관을 쓴 거대한 슬라임. 화요일 던전의 주인.',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
+      isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.frostWolfKing,
+      element: Element.ice,
+      name: '서리 늑대왕',
+      habitat: '던전 마지막 층',
+      huntLine: '서리 늑대왕을 쓰러뜨렸어! 숨결이 얼음 같았어.',
+      description: '서리 갈기를 두른 늑대들의 왕. 수요일 던전의 주인.',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
+      isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ancientTreant,
+      element: Element.earth,
+      name: '숲의 고목 정령',
+      habitat: '던전 마지막 층',
+      huntLine: '숲의 고목 정령을 달랬어! 나뭇잎이 조용해졌어.',
+      description: '천 년 묵은 고목에 깃든 숲의 수호자. 목요일 던전의 주인.',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
+      isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.shadowBatQueen,
+      element: Element.dark,
+      name: '그림자 박쥐 여왕',
+      habitat: '던전 마지막 층',
+      huntLine: '그림자 박쥐 여왕을 쓰러뜨렸어! 밤이 밝아졌어.',
+      description: '미궁 박쥐들을 거느리는 밤의 여왕. 금요일 던전의 주인.',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
+      isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.thunderGriffin,
+      element: Element.thunder,
+      name: '천둥 그리폰',
+      habitat: '던전 마지막 층',
+      huntLine: '천둥 그리폰을 쓰러뜨렸어! 하늘이 맑아졌어.',
+      description: '번개를 몰고 다니는 하늘의 사냥꾼. 토요일 던전의 주인.',
+      traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
       isBoss: true,
     ),
     MonsterInfo(

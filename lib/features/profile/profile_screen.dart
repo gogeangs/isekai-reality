@@ -292,6 +292,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: const TextStyle(
                             color: AppColors.textMuted, fontSize: 12.5)),
                   ),
+                  // 지친 상태 (11-11 #75): 정령(펫)의 한마디
+                  if (c.tired)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(
+                        key: const Key('tiredStatus'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.bedtime_rounded,
+                              size: 16, color: Color(0xFFF2B0B0)),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                                '지친 상태 · 「${AppController.tiredLine}」',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Color(0xFFF7D2D2), fontSize: 12.5)),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 8),
                   _Tabs(
                     labels: const ['정보', '기록'],

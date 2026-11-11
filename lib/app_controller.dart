@@ -227,6 +227,13 @@ class AppController extends ChangeNotifier {
     _alloc = alloc == null ? const StatAlloc() : StatAlloc.fromJson(alloc);
     final armory = await store.loadJson(_armoryKey);
     _armory = armory == null ? const Armory() : Armory.fromJson(armory);
+    final feel = await store.loadJson(_feelKey) ?? const {};
+    _vibrate = feel['vibrate'] != false;
+    _sound = feel['sound'] != false;
+    _fastBattle = feel['fast'] == true;
+    _poisonTipSeen = feel['poisonTip'] == true;
+    final tired = await store.loadJson(_tiredKey);
+    _tiredUntil = DateTime.tryParse('${tired?['until'] ?? ''}');
     final board = await store.loadJson(_boardKey);
     _board = board == null ? const BoardState() : BoardState.fromJson(board);
     final bag = await store.loadJson(_bagKey);
@@ -512,7 +519,7 @@ class AppController extends ChangeNotifier {
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.dungeonFloors(
-          level: p.level.level, atGate: atGate, rng: _random),
+          level: p.level.level, atGate: atGate, rng: _random, day: _clock()),
       rng: _random,
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
@@ -526,6 +533,8 @@ class AppController extends ChangeNotifier {
       skillElement: companionPet?.element,
       mainElement: mainElement,
       weaponPotion: weaponPotionElement,
+      telegraphs: true,
+      heroSkills: true,
     );
   }
 
@@ -556,14 +565,23 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
-    final exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
+    var exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
         ? ExpRules.dungeonRunExp(run)
         : 0;
+    var mana = run.cleared
+        ? RuleConstants.crystalsPerDungeonClear
+        : RuleConstants.crystalsPerDungeonFail;
+    // 지친 상태 (11-11 #75): 경험치·마석 -20% (숨김)
+    final tiredExp = tired ? exp - _tiredCut(exp) : 0;
+    final tiredMana = tired ? mana - _tiredCut(mana) : 0;
+    exp -= tiredExp;
+    mana -= tiredMana;
     if (run.cleared && _pets.farewellDone) {
       await _maybeEgg(PetRules.dungeonEggChance, 'dungeon');
     }
     if (run.cleared) await _maybeNote(AlchemyRules.noteFromDungeon);
-    final loot = LootRules.dungeon(cleared: run.cleared, rng: _random);
+    final loot = LootRules.dungeon(
+        cleared: run.cleared, rng: _random, boss: battle.floors.last.monster);
     // 던전 전용 재료 (11-11 #59)
     GatherRules.dungeon(run.cleared, _random)
         .forEach((k, v) => loot[k] = (loot[k] ?? 0) + v);
@@ -579,17 +597,18 @@ class AppController extends ChangeNotifier {
         if (FieldMonsterRules.isNight(_clock()))
           'nightHunts': battle.purified.length,
         ..._elementCounters(battle.purified),
+        if (tiredExp > 0) TownRules.tiredExpKey: tiredExp,
+        if (tiredMana > 0) TownRules.tiredManaKey: tiredMana,
       }),
     ));
+    if (!run.cleared) await _defeated();
     if (companionPet != null && battle.purified.isNotEmpty) {
       await _givePetExp(
           companionPet!.uid, PetRules.expPerHunt * battle.purified.length);
     }
     _lastReward = HuntReward(
       exp: exp,
-      manaStones: run.cleared
-          ? RuleConstants.crystalsPerDungeonClear
-          : RuleConstants.crystalsPerDungeonFail,
+      manaStones: mana,
       gold: fit.gold,
       materials: mats,
     );
@@ -655,6 +674,8 @@ class AppController extends ChangeNotifier {
       skillElement: companionPet?.element,
       mainElement: mainElement,
       weaponPotion: weaponPotionElement,
+      telegraphs: true,
+      heroSkills: true,
     );
   }
 
@@ -678,6 +699,7 @@ class AppController extends ChangeNotifier {
         await _save(
             today.copyWith(lostSpawnIds: [...today.lostSpawnIds, spawn.id]));
       }
+      await _defeated();
       return 0;
     }
     if (battle.phase != BattlePhase.cleared) return 0;
@@ -722,6 +744,10 @@ class AppController extends ChangeNotifier {
     // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
     final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
     if (half) exp = exp ~/ 2;
+    // 지친 상태 (11-11 #75, 숨김): 경험치 -20%
+    final tiredNow = tired;
+    final tiredExp = tiredNow ? exp - _tiredCut(exp) : 0;
+    exp -= tiredExp;
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;
@@ -760,6 +786,13 @@ class AppController extends ChangeNotifier {
         ..addAll(fit.kept);
       gold += fit.gold;
     }
+    final fieldMana = (RuleConstants.fieldUnits(n + 1) *
+                RuleConstants.crystalsPerFieldMonster)
+            .floor() -
+        (RuleConstants.fieldUnits(n) * RuleConstants.crystalsPerFieldMonster)
+            .floor() +
+        extraMana;
+    final tiredMana = tiredNow ? fieldMana - _tiredCut(fieldMana) : 0;
     final modKey = ModifierRules.recordInCodex(mods)
         ? ModifierRules.codexKey(monster, mods)
         : null;
@@ -771,7 +804,7 @@ class AppController extends ChangeNotifier {
       gains: DailyRecord.addCounts(today.gains, {
         ...HuntReward.ledger(
             extraManaStones: extraMana, gold: gold, materials: mats),
-        if (exp != baseExp) Wallet.exp: exp - baseExp,
+        if (exp + tiredExp != baseExp) Wallet.exp: exp + tiredExp - baseExp,
       }),
       modHunts: modKey == null
           ? null
@@ -784,15 +817,13 @@ class AppController extends ChangeNotifier {
         if (FieldMonsterRules.isNight(_clock())) 'nightHunts': count,
         if (today.lostSpawnIds.contains(spawnId)) 'revenge': 1,
         ..._elementCounters(List.filled(count, monster)),
+        if (tiredExp > 0) TownRules.tiredExpKey: tiredExp,
+        if (tiredMana > 0) TownRules.tiredManaKey: tiredMana,
       }),
     ));
     _lastReward = HuntReward(
       exp: exp,
-      manaStones: (RuleConstants.fieldUnits(n + 1) * RuleConstants.crystalsPerFieldMonster)
-                  .floor() -
-              (RuleConstants.fieldUnits(n) * RuleConstants.crystalsPerFieldMonster)
-                  .floor() +
-          extraMana,
+      manaStones: fieldMana - tiredMana,
       gold: gold,
       materials: mats,
     );
@@ -1830,7 +1861,11 @@ class AppController extends ChangeNotifier {
   ///
   /// 11-11 #74: 전투·속성·탐험 물약은 종류마다 하나씩 걸린다. 같은 종류를 또
   /// 마시면 새 물약으로 바뀐다. 회복·마나는 바로 듣는다.
+  /// 마신 뒤 덧붙여 알려 줄 말 (예: 유인 물약을 같은 날 또 마셨을 때)
+  String? drinkNote;
+
   Future<String?> drinkPotion(String key) async {
+    drinkNote = null;
     if (_alc.count(key) <= 0) return '가방에 없어요';
     final now = _clock();
     final buffs = [for (final b in _alc.buffs) if (_buffActive(b, now)) b];
@@ -1916,18 +1951,26 @@ class AppController extends ChangeNotifier {
             );
           case PotionId.callMonsters || PotionId.callModified:
             final day = player.today?.dayKey ?? '';
-            if (a.calledDays[info.id.name] == day) return '오늘은 이미 불렀어요';
-            final center = _lastFix?.point;
-            if (center == null) return '위치를 켜 주세요';
-            a = a.copyWith(
-              calledDays: {...a.calledDays, info.id.name: day},
-              called: [
-                for (final c in a.called)
-                  if (c.id.startsWith(day)) c,
-                ..._callSpawns(center, day, info.id == PotionId.callModified,
-                    a.called.length),
-              ],
-            );
+            final already = a.calledDays[info.id.name] == day;
+            // 11-11 A3: 유인 물약은 하루 1번만 부르고, 채집 자리 1.5배는 마실 때마다 다시
+            if (already && info.id != PotionId.callMonsters) {
+              return '오늘은 이미 불렀어요';
+            }
+            if (already) {
+              drinkNote = '오늘은 이미 불렀어요. 채집 자리만 늘었어요.';
+            } else {
+              final center = _lastFix?.point;
+              if (center == null) return '위치를 켜 주세요';
+              a = a.copyWith(
+                calledDays: {...a.calledDays, info.id.name: day},
+                called: [
+                  for (final c in a.called)
+                    if (c.id.startsWith(day)) c,
+                  ..._callSpawns(center, day, info.id == PotionId.callModified,
+                      a.called.length),
+                ],
+              );
+            }
             // 유인 물약 (11-11 #74): 30분 동안 채집 자리 1.5배
             if (info.id == PotionId.callMonsters) {
               next = ActiveBuff(
@@ -3413,6 +3456,8 @@ class AppController extends ChangeNotifier {
     final now = _clock();
     _vitals = _vitals.copyWith(restStartedAt: now);
     await store.saveVitals(_vitals);
+    // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
+    if (_tiredUntil != null) await _setTired(null);
     unawaited(notifier?.schedule(
       NotifyId.rest,
       now.add(const Duration(hours: RuleConstants.restHours)),
@@ -3429,6 +3474,81 @@ class AppController extends ChangeNotifier {
     _stopResting();
     await store.saveVitals(_vitals);
     notifyListeners();
+  }
+
+  // ───────────── 전투 손맛 설정 (11-11 #75): 진동 · 효과음 · 2배속 · 첫 중독 안내
+
+  static const _feelKey = 'feel';
+  bool _vibrate = true;
+  bool _sound = true;
+  bool _fastBattle = false;
+  bool _poisonTipSeen = false;
+
+  bool get vibrate => _vibrate;
+  bool get sound => _sound;
+  bool get fastBattle => _fastBattle;
+
+  /// 처음 중독됐을 때 해독제 안내를 이미 보여 줬는지
+  bool get poisonTipSeen => _poisonTipSeen;
+
+  Future<void> _saveFeel() async {
+    await store.saveJson(_feelKey, {
+      'vibrate': _vibrate,
+      'sound': _sound,
+      'fast': _fastBattle,
+      'poisonTip': _poisonTipSeen,
+    });
+    notifyListeners();
+  }
+
+  Future<void> setVibrate(bool on) async {
+    _vibrate = on;
+    await _saveFeel();
+  }
+
+  Future<void> setSound(bool on) async {
+    _sound = on;
+    await _saveFeel();
+  }
+
+  Future<void> setFastBattle(bool on) async {
+    _fastBattle = on;
+    await _saveFeel();
+  }
+
+  Future<void> markPoisonTipSeen() async {
+    if (_poisonTipSeen) return;
+    _poisonTipSeen = true;
+    await _saveFeel();
+  }
+
+  // ───────────── 패배의 벌 · 지친 상태 (11-11 #75)
+
+  static const _tiredKey = 'tired';
+  DateTime? _tiredUntil;
+
+  /// 지친 상태인지 (패배 뒤 1시간, 여관에 들르면 풀림). 경험치·마석이 줄어드는 정도는 숨김.
+  bool get tired => _tiredUntil != null && _clock().isBefore(_tiredUntil!);
+
+  /// 지친 상태가 풀리는 때
+  DateTime? get tiredUntil => tired ? _tiredUntil : null;
+
+  /// 정령(펫)의 한마디
+  static const tiredLine = '오늘은 좀 쉬어야겠어. 여관에 들르자.';
+
+  int _tiredCut(int v) => (v * RuleConstants.tiredRewardMultiplier).round();
+
+  Future<void> _setTired(DateTime? until) async {
+    _tiredUntil = until;
+    await store.saveJson(
+        _tiredKey, {if (until != null) 'until': until.toIso8601String()});
+  }
+
+  /// 졌을 때: 입은 장비 내구도가 더 깎이고, 1시간 지친다 (겹치지 않고 시간만 다시).
+  /// 금화·아이템은 잃지 않는다.
+  Future<void> _defeated() async {
+    await _wear(RuleConstants.defeatExtraWear);
+    await _setTired(_clock().add(RuleConstants.tiredFor));
   }
 
   void _stopResting() {

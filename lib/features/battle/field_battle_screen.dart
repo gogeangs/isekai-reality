@@ -85,6 +85,11 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   height: 240,
                   child: HeroSprite(
                       look: widget.controller.profile.look,
+                      vibrate: widget.controller.vibrate,
+                      fast: widget.controller.fastBattle,
+                      onFastChanged: widget.controller.setFastBattle,
+                      poisonTip: !widget.controller.poisonTipSeen,
+                      onPoisonTipShown: widget.controller.markPoisonTipSeen,
                       pose: HeroPose.tired),
                 ),
             ] else if (_done) ...[
@@ -143,6 +148,14 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   MonsterPicture(monster: info.id, size: 190, defeated: cleared),
                 ]),
               ),
+              if (!cleared && !escaped)
+                const Padding(
+                  key: Key('tiredLine'),
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('「${AppController.tiredLine}」',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.text, fontSize: 14)),
+                ),
               if (cleared)
                 OrnatePanel(
                   ornament: true,

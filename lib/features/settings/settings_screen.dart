@@ -45,6 +45,38 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          _Section(
+            title: '전투',
+            children: [
+              ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => Column(children: [
+                  SwitchListTile(
+                    key: const Key('feelVibrate'),
+                    contentPadding: EdgeInsets.zero,
+                    value: controller.vibrate,
+                    onChanged: controller.setVibrate,
+                    title: const Text('진동',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    subtitle: const Text('때리고 막을 때 손에 느껴져요',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                  SwitchListTile(
+                    key: const Key('feelSound'),
+                    contentPadding: EdgeInsets.zero,
+                    value: controller.sound,
+                    onChanged: controller.setSound,
+                    title: const Text('효과음',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    subtitle: const Text('효과음은 곧 들어가요',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                ]),
+              ),
+            ],
+          ),
           // 11-10 #24: 이름·정령 이름 바꾸기는 프로필로 옮겼다
           // 11-10 D1: 긴 설명 대신 한 줄 + 목록 항목
           _Section(

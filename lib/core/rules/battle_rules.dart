@@ -73,6 +73,7 @@ class BattleRules {
     required int level,
     required bool atGate,
     required math.Random rng,
+    DateTime? day,
   }) {
     final atk = expectedAttack(level);
     final hp = expectedMaxHp(level);
@@ -91,11 +92,33 @@ class BattleRules {
           attack: floorAttack,
         ),
       Foe(
-        monster: MonsterId.labyrinthWarden,
+        monster: bossOf(day, atGate: atGate, rng: rng),
         maxHp: atk * RuleConstants.bossHitsToClear,
         attack: (floorAttack * RuleConstants.bossAttackMultiplier).round(),
       ),
     ];
+  }
+
+  /// 요일 보스 (11-11 #75). 강도는 모두 미궁 문지기와 같고 속성만 다르다.
+  /// 월 문지기 · 화 불꽃 슬라임 왕 · 수 서리 늑대왕 · 목 숲의 고목 정령 ·
+  /// 금 그림자 박쥐 여왕 · 토 천둥 그리폰 · 일 6종 중 무작위. 미궁 입구에서는 늘 문지기.
+  static const List<MonsterId> weekBosses = [
+    MonsterId.labyrinthWarden,
+    MonsterId.fireSlimeKing,
+    MonsterId.frostWolfKing,
+    MonsterId.ancientTreant,
+    MonsterId.shadowBatQueen,
+    MonsterId.thunderGriffin,
+  ];
+
+  static MonsterId bossOf(DateTime? day,
+      {required bool atGate, math.Random? rng}) {
+    if (atGate || day == null) return MonsterId.labyrinthWarden;
+    final w = day.weekday; // 1=월 … 7=일
+    if (w == DateTime.sunday) {
+      return weekBosses[(rng ?? math.Random()).nextInt(weekBosses.length)];
+    }
+    return weekBosses[w - 1];
   }
 
   /// 지도에서 만나는 필드 몬스터 한 마리 (가볍게 사냥)
@@ -203,6 +226,8 @@ class Battle {
     this.attackLevel = 0,
     this.guardLevels = const {},
     this.weaponPotion,
+    this.telegraphs = false,
+    this.heroSkills = false,
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -212,7 +237,9 @@ class Battle {
         playerSpeed = playerSpeed,
         _rng = rng ?? math.Random(),
         playerHp = math.min(playerMaxHp, math.max(0, startHp ?? playerMaxHp)),
-        foeHp = floors.first.maxHp;
+        foeHp = floors.first.maxHp {
+    _prepareStrong();
+  }
 
   /// 플레이어 상태로 전투를 만든다. [gear] 는 입은 장비의 힘 (11-10 #27).
   /// 스탯 5종(11-11 #50): 힘 → 공격, 지능 → 정령의 일격, 체력 → HP·받는 피해,
@@ -235,6 +262,8 @@ class Battle {
     Element? skillElement,
     Element? mainElement,
     Element? weaponPotion,
+    bool telegraphs = false,
+    bool heroSkills = false,
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
@@ -274,6 +303,8 @@ class Battle {
       attackLevel: gear.attackLevel,
       guardLevels: gear.guardLevels,
       weaponPotion: weaponPotion,
+      telegraphs: telegraphs,
+      heroSkills: heroSkills,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -350,6 +381,142 @@ class Battle {
   /// 공격 속성 물약 (11-11 #74): 무기 속성보다 먼저
   final Element? weaponPotion;
 
+  // ───────────── 11-11 #75 막기 타이밍 · 내 스킬 · 보스 분노 (숫자는 숨김)
+
+  /// 강한 공격을 예고하고 막기를 받는지 (화면이 있는 전투만. 원정 자동 전투는 false)
+  final bool telegraphs;
+
+  /// 내 스킬 2칸(강타·방어 태세)을 쓸 수 있는지
+  final bool heroSkills;
+
+  /// 다음 차례에 몬스터가 강한 공격을 한다 (화면은 예고 표시를 띄우고 막기를 받는다)
+  bool get strongNext => _strongNext && phase == BattlePhase.fighting;
+  bool _strongNext = false;
+  double _strongNextMult = 1;
+
+  /// 예고 문구 ('힘을 모은다!' 등)
+  String? strongLabel;
+
+  bool _strongNow = false;
+  double _strongNowMult = 1;
+  GuardResult? _guard;
+
+  /// 마지막 막기 결과 (화면 연출용, 다음 틱에 지운다)
+  GuardResult? lastGuard;
+
+  /// 이번 전투에서 막은 횟수
+  int guards = 0;
+
+  /// 막기 (화면 아무 곳이나 탭). 예고 하나에 한 번만. 예고가 없으면 아무 일도 없다.
+  bool guard({required bool perfect}) {
+    if (!strongNext || _guard != null) return false;
+    _guard = perfect ? GuardResult.perfect : GuardResult.block;
+    return true;
+  }
+
+  /// 막기 판정 (실제 시간, 2배속이어도 같다): 예고 뒤 1.0초 안 = 막기, 그중 끝 0.3초 = 완벽한 막기
+  static const Duration guardWindow = Duration(milliseconds: 1000);
+  static const Duration perfectFrom = Duration(milliseconds: 700);
+
+  static GuardResult? judgeGuard(Duration sinceWarning) {
+    if (sinceWarning.isNegative || sinceWarning > guardWindow) return null;
+    return sinceWarning >= perfectFrom ? GuardResult.perfect : GuardResult.block;
+  }
+
+  static const double strongPowerUp = 1.5; // 4턴마다 힘을 모은다
+  static const double bossBigHit = 2.0; // 보스 3턴마다 큰 공격
+  static const double blockTaken = 0.4; // 막기: 받는 피해 -60%
+  static const double bossRageAttack = 1.3;
+  static const double bossRageSpeed = 1.2;
+
+  /// 다음 몬스터 차례가 강한 공격인지 정한다
+  void _prepareStrong() {
+    _strongNext = false;
+    _strongNextMult = 1;
+    strongLabel = null;
+    if (!telegraphs || phase != BattlePhase.fighting) return;
+    final f = foe;
+    final next = floorTicks + 1;
+    if (f.isBoss && next % 3 == 0) {
+      _strongNext = true;
+      _strongNextMult = bossBigHit;
+      strongLabel = '큰 공격이 온다!';
+    } else if (f.has(ModifierId.charging) && !_charged && next == 1) {
+      _strongNext = true; // 돌진은 원래 ×2
+      strongLabel = '돌진해 온다!';
+    } else if (f.has(ModifierId.ancient) && next % 4 == 0) {
+      _strongNext = true; // 강타는 원래 ×2.5
+      strongLabel = '강타가 온다!';
+    } else if (next % 4 == 0) {
+      _strongNext = true;
+      _strongNextMult = strongPowerUp;
+      strongLabel = '힘을 모은다!';
+    }
+  }
+
+  /// 보스 분노 (체력 절반 아래)
+  bool enraged = false;
+
+  /// 강타: 6턴마다, 보통 공격 ×2.5
+  static const int bashTicks = 6;
+  static const double bashMultiplier = 2.5;
+
+  /// 방어 태세: 8턴마다, 3턴 동안 받는 피해 -40%
+  static const int stanceTicks = 8;
+  static const int stanceLength = 3;
+  static const double stanceTaken = 0.6;
+
+  int bashCharge = 0;
+  int stanceCharge = 0;
+  int stanceTurns = 0;
+
+  bool get bashReady =>
+      heroSkills && phase == BattlePhase.fighting && bashCharge >= bashTicks;
+  bool get stanceReady =>
+      heroSkills && phase == BattlePhase.fighting && stanceCharge >= stanceTicks;
+  double get bashRatio => (bashCharge / bashTicks).clamp(0, 1).toDouble();
+  double get stanceRatio => (stanceCharge / stanceTicks).clamp(0, 1).toDouble();
+
+  /// 강타
+  bool useBash() {
+    if (!bashReady) return false;
+    bashCharge = 0;
+    lastWasSkill = false;
+    lastEvent = '강타!';
+    var dmg = (_vary(playerAttack) * bashMultiplier).round();
+    if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
+    dmg = _elemental(dmg, weaponPotion ?? attackElement,
+        level: weaponPotion != null ? 0 : attackLevel);
+    lastDealt = dmg;
+    lastTaken = 0;
+    lastBash = true;
+    _hitFoe(dmg);
+    _checkRage();
+    return true;
+  }
+
+  /// 방금 강타를 썼는지 (연출용)
+  bool lastBash = false;
+
+  /// 방어 태세
+  bool useStance() {
+    if (!stanceReady) return false;
+    stanceCharge = 0;
+    stanceTurns = stanceLength;
+    lastEvent = '방어 태세!';
+    lastDealt = 0;
+    lastTaken = 0;
+    return true;
+  }
+
+  void _checkRage() {
+    if (!foe.isBoss || enraged || phase != BattlePhase.fighting) return;
+    if (foeHp * 2 < foe.maxHp) {
+      enraged = true;
+      lastEvent = '분노했다!';
+    }
+  }
+
   /// 빙결 (11-11 #74 얼음 슬라임): 다음 내 차례를 쉰다
   bool frozen = false;
 
@@ -364,6 +531,12 @@ class Battle {
 
   /// 지금 걸린 것이 화상인지 (아니면 중독)
   bool burning = false;
+
+  /// 이번 중독이 약한 중독인지 (큰쥐, 11-11 A4)
+  bool weakPoisoned = false;
+
+  /// 이번 전투에서 처음 중독됐는지 (해독제 안내용)
+  bool poisonedThisBattle = false;
 
   /// 해독제·연고를 마신 뒤 다시 안 걸리는 턴
   int immuneTurns = 0;
@@ -519,20 +692,30 @@ class Battle {
       _foeBound = false;
       _foeFrozen = false;
       foeBurnTurns = 0;
+      enraged = false;
+      _guard = null;
       lastDealt = 0;
       lastTaken = 0;
       lastWasSkill = false;
       lastEvent = null;
+      _prepareStrong();
       return;
     }
     ticks++;
     floorTicks++;
     lastWasSkill = false;
+    lastBash = false;
+    lastGuard = null;
     lastEvent = null;
+    // 이번 틱의 몬스터 첫 공격이 예고된 강한 공격인지
+    _strongNow = _strongNext;
+    _strongNowMult = _strongNextMult;
+    _strongNext = false;
     lastDealt = 0;
     lastTaken = 0;
     final f = foe;
-    final foeFirst = f.has(ModifierId.hungry) || f.speed > playerSpeed;
+    final foeFirst = f.has(ModifierId.hungry) ||
+        f.speed * (enraged ? bossRageSpeed : 1) > playerSpeed;
 
     if (foeFirst) {
       _foeTurn();
@@ -581,6 +764,7 @@ class Battle {
       lastDealt = dmg;
       _hitFoe(dmg);
       _inflict();
+      _checkRage();
     }
     if (phase != BattlePhase.fighting) return;
 
@@ -607,7 +791,8 @@ class Battle {
 
     // 중독·화상
     if (poisonTurns > 0) {
-      final p = math.max(1, (playerMaxHp * 0.02).round());
+      final p = math.max(
+          1, (playerMaxHp * (weakPoisoned && !burning ? 0.01 : 0.02)).round());
       poisonTurns--;
       lastTaken += p;
       playerHp = math.max(0, playerHp - p);
@@ -625,8 +810,15 @@ class Battle {
     }
     if (immuneTurns > 0) immuneTurns--;
     if (freezeImmune > 0) freezeImmune--;
+    if (stanceTurns > 0) stanceTurns--;
     _autoDrink();
     if (skillCharge < skillChargeTicks) skillCharge++;
+    if (heroSkills) {
+      if (bashCharge < bashTicks) bashCharge++;
+      if (stanceCharge < stanceTicks) stanceCharge++;
+    }
+    _guard = null;
+    _prepareStrong();
   }
 
   void _foeTurn() {
@@ -646,6 +838,14 @@ class Battle {
       return;
     }
     var atk = f.attack.toDouble();
+    // 11-11 #75: 예고한 강한 공격 (그 틱의 첫 공격만)
+    final strong = _strongNow;
+    if (strong) {
+      atk *= _strongNowMult;
+      _strongNow = false;
+    }
+    if (enraged) atk *= bossRageAttack;
+    if (stanceTurns > 0) atk *= stanceTaken;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
     if (f.has(ModifierId.charging) && !_charged) {
       atk *= 2;
@@ -673,6 +873,23 @@ class Battle {
       shieldHits--;
       lastEvent ??= '보호막!';
     }
+    // 막기 (11-11 #75): 막기는 받는 피해 -60%, 완벽한 막기는 피해 없음 + 반격
+    if (strong && _guard != null) {
+      final g = _guard!;
+      _guard = null;
+      lastGuard = g;
+      guards++;
+      if (g == GuardResult.perfect) {
+        lastEvent = '완벽한 막기!';
+        final counterDmg = _vary(playerAttack);
+        lastDealt = counterDmg;
+        _hitFoe(counterDmg);
+        _checkRage();
+        return;
+      }
+      atk *= blockTaken;
+      lastEvent = '막았다!';
+    }
     final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
@@ -683,6 +900,17 @@ class Battle {
         _rng.nextDouble() < 0.30) {
       poisonTurns = 3;
       burning = false;
+      weakPoisoned = false;
+      poisonedThisBattle = true;
+      lastEvent = '중독!';
+    } else if (f.trait == MonsterTrait.weakPoison &&
+        immuneTurns <= 0 &&
+        poisonTurns <= 0 &&
+        _rng.nextDouble() < weakPoisonChance) {
+      poisonTurns = 2;
+      burning = false;
+      weakPoisoned = true;
+      poisonedThisBattle = true;
       lastEvent = '중독!';
     }
     if (f.trait == MonsterTrait.freeze &&
@@ -748,6 +976,9 @@ class Battle {
   /// 얼음 슬라임이 얼릴 확률
   static const double freezeChance = 0.20;
 
+  /// 큰쥐가 약하게 중독시킬 확률 (11-11 A4, 숨김)
+  static const double weakPoisonChance = 0.10;
+
   /// 공격 속성 물약의 상태 이상 (독·불: 3턴 동안 2%, 얼음: 다음 차례를 쉼)
   void _inflict() {
     final e = weaponPotion;
@@ -805,6 +1036,9 @@ class Battle {
     return this;
   }
 }
+
+/// 막기 결과 (11-11 #75)
+enum GuardResult { block, perfect }
 
 /// 물약이 푸는 상태
 enum CureKind { poison, burn, dazzle, freeze }

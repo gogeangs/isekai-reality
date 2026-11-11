@@ -220,7 +220,8 @@ class PotionIcon extends StatelessWidget {
         PotionKind.mana => const Color(0xFF5FA8F0),
         PotionKind.care => const Color(0xFF7FD0A0),
         PotionKind.buff => const Color(0xFFF0A93B),
-        PotionKind.resist => const Color(0xFFC79BFF),
+        // 저항 물약도 속성 색 (11-11: 그림이 오기 전 아이콘)
+        PotionKind.resist => elementColor(AlchemyRules.info(p!).element),
         PotionKind.special => AppColors.goldBright,
         PotionKind.weapon => elementColor(AlchemyRules.info(p!).element),
         null => const Color(0xFF9AA6D8),

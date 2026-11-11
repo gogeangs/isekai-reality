@@ -647,8 +647,8 @@ class _EntrySheet extends StatelessWidget {
                   .showSnackBar(SnackBar(content: Text(why)));
             } else {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${josa(name, '을/를')} 마셨어요.')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(c.drinkNote ?? '${josa(name, '을/를')} 마셨어요.')));
             }
           },
         );

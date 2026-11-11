@@ -187,7 +187,7 @@ void main() {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
-      expect(findK('몬스터 도감 0 / 17'), findsOneWidget);
+      expect(findK('몬스터 도감 0 / 22'), findsOneWidget);
       await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('희귀·전설'), findsWidgets);

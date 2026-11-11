@@ -79,6 +79,14 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.stoneMetal ||
         MaterialId.stonePoison =>
           Icons.hexagon_rounded,
+        // 보스 전용 재료 (11-11 #75)
+        MaterialId.bossWardenHeart => Icons.favorite_rounded,
+        MaterialId.bossKingOrb => Icons.local_fire_department_rounded,
+        MaterialId.bossFrostFang => Icons.ac_unit_rounded,
+        MaterialId.bossTreantHeart => Icons.park_rounded,
+        MaterialId.bossQueenWing => Icons.dark_mode_rounded,
+        MaterialId.bossThunderFeather => Icons.bolt_rounded,
+        MaterialId.bossShard => Icons.extension_rounded,
       };
 
   @override

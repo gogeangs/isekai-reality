@@ -106,7 +106,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
         // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
-        if (buffs.isNotEmpty)
+        if (buffs.isNotEmpty || controller.tired)
           Positioned(
             left: 70,
             right: 70,
@@ -176,6 +176,8 @@ class _BuffBar extends StatelessWidget {
           runSpacing: 4,
           alignment: WrapAlignment.center,
           children: [
+            // 지친 상태 (11-11 #75): 패배 뒤 1시간, 여관에서 쉬면 풀림
+            if (controller.tired) TiredBadge(controller: controller),
             for (final b in buffs)
               Container(
                 padding: const EdgeInsets.fromLTRB(3, 2, 8, 2),
@@ -198,6 +200,37 @@ class _BuffBar extends StatelessWidget {
                 ]),
               ),
           ],
+        ),
+      );
+}
+
+/// 「지친 상태」 표시 (11-11 #75). 누르면 정령(펫)의 한마디.
+class TiredBadge extends StatelessWidget {
+  const TiredBadge({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        key: const Key('tiredBadge'),
+        onTap: () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            const SnackBar(content: Text(AppController.tiredLine))),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 3, 9, 3),
+          decoration: BoxDecoration(
+            color: const Color(0xE63A1630),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE07A7A)),
+          ),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.bedtime_rounded, size: 16, color: Color(0xFFF2B0B0)),
+            SizedBox(width: 3),
+            Text('지친 상태',
+                style: TextStyle(
+                    color: Color(0xFFF7D2D2),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700)),
+          ]),
         ),
       );
 }

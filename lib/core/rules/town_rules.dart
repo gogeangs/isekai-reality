@@ -310,7 +310,13 @@ class TownRules {
 
   /// 그날 얻은 마석 (규칙 몫 + 추가로 얻은 것)
   static int manaStonesEarnedOn(DailyRecord r) =>
-      crystalsEarnedOn(r) + (r.gains[Wallet.manaStone] ?? 0);
+      crystalsEarnedOn(r) +
+      (r.gains[Wallet.manaStone] ?? 0) -
+      (r.counters[tiredManaKey] ?? 0);
+
+  /// 지친 상태로 덜 받은 마석·경험치 (11-11 #75, 숨김)
+  static const tiredManaKey = 'tiredMana';
+  static const tiredExpKey = 'tiredExp';
 
   /// 지금 가진 마석
   static int manaStones(List<DailyRecord> history) {

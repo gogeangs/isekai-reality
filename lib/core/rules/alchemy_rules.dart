@@ -49,6 +49,13 @@ enum PotionId {
   weaponPoison,
   steps,
   thaw,
+  // 11-11 C1 회복·MP 물약 3~5등급 (공방 레시피로만, 처음엔 숨김)
+  heal3,
+  heal4,
+  heal5,
+  mana3,
+  mana4,
+  mana5,
 }
 
 enum PotionKind { heal, mana, care, buff, resist, special, weapon }
@@ -107,7 +114,11 @@ class PotionInfo {
     this.duration = Duration.zero,
     this.battles = 0,
     this.steps = 0,
+    this.icon,
   });
+
+  /// 그림 이름을 따로 정한 물약 (등급 물약: potion_heal_3 등)
+  final String? icon;
 
   /// 지속: 전투 N번 (전투·속성 물약, 11-11 #74)
   final int battles;
@@ -159,7 +170,9 @@ class PotionInfo {
   /// 잡화상에도 있는 물약은 잡화상 그림을 같이 쓴다
   String get asset => shopItem != null
       ? 'assets/images/${TownRules.info(shopItem!).icon}.png'
-      : 'assets/images/potion_${id.name}.png';
+      : icon != null
+          ? 'assets/images/$icon.png'
+          : 'assets/images/potion_${id.name}.png';
 
   /// 재료 종류·개수 (순서 없이)
   Map<MaterialId, int> get counts {
@@ -772,6 +785,101 @@ class AlchemyRules {
       ],
       minutes: 40,
       steps: stepCap,
+    ),
+    // ───────────── 11-11 C1 회복·MP 물약 3~5등급 (잡화상·던전 보상에는 없음)
+    PotionInfo(
+      id: PotionId.heal3,
+      name: '치유의 물약',
+      kind: PotionKind.heal,
+      description: 'HP가 55% 차요.',
+      recipe: [
+        MaterialId.herbExtract,
+        MaterialId.slimeJelly,
+        MaterialId.slimeJelly,
+        MaterialId.dewHerb,
+      ],
+      minutes: 40,
+      yields: 2,
+      hpRatio: 0.55,
+      icon: 'potion_heal_3',
+    ),
+    PotionInfo(
+      id: PotionId.heal4,
+      name: '생명의 물약',
+      kind: PotionKind.heal,
+      description: 'HP가 85% 차요.',
+      recipe: [
+        MaterialId.herbExtract,
+        MaterialId.essence,
+        MaterialId.lightCore,
+        MaterialId.riverPearl,
+      ],
+      minutes: 60,
+      hpRatio: 0.85,
+      icon: 'potion_heal_4',
+    ),
+    PotionInfo(
+      id: PotionId.heal5,
+      name: '여명의 물약',
+      kind: PotionKind.heal,
+      description: 'HP가 가득 차요. 여명의 탑의 빛을 담은 물약.',
+      recipe: [
+        MaterialId.herbExtract,
+        MaterialId.essence,
+        MaterialId.riverPearl,
+        MaterialId.glowLightCore,
+        MaterialId.labyrinthCore,
+      ],
+      minutes: 120,
+      hpRatio: 1.0,
+      icon: 'potion_heal_5',
+    ),
+    PotionInfo(
+      id: PotionId.mana3,
+      name: '맑은 마나 물약',
+      kind: PotionKind.mana,
+      description: 'MP가 55% 차요.',
+      recipe: [
+        MaterialId.essence,
+        MaterialId.waterJelly,
+        MaterialId.waterJelly,
+        MaterialId.butterflyDust,
+      ],
+      minutes: 40,
+      yields: 2,
+      mpRatio: 0.55,
+      icon: 'potion_mana_3',
+    ),
+    PotionInfo(
+      id: PotionId.mana4,
+      name: '깊은 마나 물약',
+      kind: PotionKind.mana,
+      description: 'MP가 85% 차요.',
+      recipe: [
+        MaterialId.essence,
+        MaterialId.waterCore,
+        MaterialId.sleepPowder,
+        MaterialId.riverPearl,
+      ],
+      minutes: 60,
+      mpRatio: 0.85,
+      icon: 'potion_mana_4',
+    ),
+    PotionInfo(
+      id: PotionId.mana5,
+      name: '여명의 마나 물약',
+      kind: PotionKind.mana,
+      description: 'MP가 가득 차요. 여명의 탑의 빛을 담은 물약.',
+      recipe: [
+        MaterialId.essence,
+        MaterialId.essence,
+        MaterialId.riverPearl,
+        MaterialId.glowWaterCore,
+        MaterialId.labyrinthCore,
+      ],
+      minutes: 120,
+      mpRatio: 1.0,
+      icon: 'potion_mana_5',
     ),
     PotionInfo(
       id: PotionId.thaw,

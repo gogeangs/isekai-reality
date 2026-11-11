@@ -90,7 +90,8 @@ class ExpRules {
                       ? RuleConstants.incenseExpMultiplier
                       : 1))
               .round() +
-          (record.gains['exp'] ?? 0),
+          (record.gains['exp'] ?? 0) -
+          (record.counters[TownRules.tiredExpKey] ?? 0),
       exploration: newPlaces * RuleConstants.newPlaceExp +
           record.placesRevisited * RuleConstants.revisitPlaceExp,
       quest: quests * RuleConstants.questExp,

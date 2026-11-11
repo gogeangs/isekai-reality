@@ -312,7 +312,11 @@ void main() {
       // 일일 퀘스트 '던전 1번 열기'도 끝난다 (11-10)
       expect(c.player.totalExp - expBefore,
           RuleConstants.dungeonClearExp + RuleConstants.questExp);
-      expect(c.purifiedEver, contains(MonsterId.labyrinthWarden));
+      // 11-11 #75: 요일 보스 (11-08 일요일은 6종 중 무작위)
+      final boss = battle.floors.last.monster;
+      expect(BattleRules.weekBosses, contains(boss));
+      expect(c.purifiedEver, contains(boss));
+      expect(c.player.materialCount(LootRules.bossMaterial(boss)), 1);
       // 마석 3개, 박쥐 날개 2 + 문지기의 돌조각 1 (11-10)
       expect(c.lastReward.manaStones, 3);
       expect(c.player.materialCount(MaterialId.batWing), 2);
@@ -398,7 +402,7 @@ void main() {
     expect(find.text('1층 / 3층'), findsOneWidget);
 
     for (var i = 0;
-        i < 200 && find.text('던전 돌파!').evaluate().isEmpty;
+        i < 900 && find.text('던전 돌파!').evaluate().isEmpty;
         i++) {
       if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
         await tester.tap(find.text('불씨의 일격!'));

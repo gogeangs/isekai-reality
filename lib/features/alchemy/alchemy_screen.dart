@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
@@ -220,7 +220,8 @@ class PotionIcon extends StatelessWidget {
         PotionKind.mana => const Color(0xFF5FA8F0),
         PotionKind.care => const Color(0xFF7FD0A0),
         PotionKind.buff => const Color(0xFFF0A93B),
-        PotionKind.resist => const Color(0xFFC79BFF),
+        // 저항 물약도 속성 색 (11-11: 그림이 오기 전 아이콘)
+        PotionKind.resist => elementColor(AlchemyRules.info(p!).element),
         PotionKind.special => AppColors.goldBright,
         PotionKind.weapon => elementColor(AlchemyRules.info(p!).element),
         null => const Color(0xFF9AA6D8),
@@ -231,7 +232,7 @@ class PotionIcon extends StatelessWidget {
     final asset = suspicious || potion == null
         ? 'assets/images/potion_suspicious.png'
         : AlchemyRules.info(potion!).asset;
-    return Image.asset(asset,
+    final image = Image.asset(asset,
         width: size,
         height: size,
         fit: BoxFit.contain,
@@ -239,6 +240,27 @@ class PotionIcon extends StatelessWidget {
             suspicious ? Icons.help_center_rounded : Icons.science_rounded,
             size: size * 0.8,
             color: colorOf(suspicious ? null : potion)));
+    // 저항 물약 병을 속성 색으로 (11-11 #75·3: 새 그림이 오기 전 임시로 색만 입힌다, 독은 그대로)
+    final p = potion;
+    if (!suspicious && p != null) {
+      final info = AlchemyRules.info(p);
+      if (info.kind == PotionKind.resist && info.element != Element.poison) {
+        return ColorFiltered(
+            colorFilter: _tint(elementColor(info.element)), child: image);
+      }
+    }
+    return image;
+  }
+
+  /// 명암은 두고 색만 바꾼다
+  static ColorFilter _tint(Color c) {
+    final r = c.r * 1.35, g = c.g * 1.35, b = c.b * 1.35;
+    return ColorFilter.matrix([
+      0.30 * r, 0.59 * r, 0.11 * r, 0, 0,
+      0.30 * g, 0.59 * g, 0.11 * g, 0, 0,
+      0.30 * b, 0.59 * b, 0.11 * b, 0, 0,
+      0, 0, 0, 1, 0,
+    ]);
   }
 }
 

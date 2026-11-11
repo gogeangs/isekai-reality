@@ -141,6 +141,17 @@ void main() {
     await tester.tap(find.text('지도'));
     await tester.pumpAndSettle();
     await _shot(tester, '03_지도_던전_띠');
+    // 원정 한 줄 띠와 펼친 모습 (11-11 #78)
+    final sent = await c.sendSpirit(c.todaySpawns.first);
+    await tester.pumpAndSettle();
+    if (sent == ExpeditionCheck.ok) {
+      await _shot(tester, '03b_지도_원정_띠');
+      await tester.tap(find.byKey(const Key('expeditionStrip')));
+      await tester.pumpAndSettle();
+      await _shot(tester, '03c_지도_원정_펼침');
+      await tester.tap(find.byKey(const Key('expeditionOpen')));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.byKey(const Key('openDungeon')));
     await tester.pumpAndSettle();
     await _shot(tester, '04_던전_입장');

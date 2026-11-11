@@ -255,8 +255,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final near = [...c.todaySpawns]..sort((a, b) =>
           a.point.distanceTo(here).compareTo(b.point.distanceTo(here)));
-      final s1 = near[0];
-      final s2 = near[1];
+      // 11-11 #80: 몬스터가 촘촘해져 너무 가까우면 MP 차이가 반올림에 묻힌다
+      final far = [for (final s in near) if (s.point.distanceTo(here) > 800) s];
+      final s1 = far[0];
+      final s2 = far[1];
 
       final lizard = c.planExpedition(s1, petUid: 'pet1');
       final crow = c.planExpedition(s1, petUid: 'pet2');

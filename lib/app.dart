@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'core/format.dart';
+import 'core/models/vitals.dart' show Expedition;
 import 'app_controller.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
@@ -143,7 +144,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (_noticeShowing || _levelUpShowing) return;
     final done = c.finishedExpeditions;
-    if (!c.justRested && done.isEmpty) return;
+    // 지도에서는 원정 띠가 반짝이고, 눌러야 결과 카드를 연다 (11-11 #78)
+    final onMap = _tab == 1;
+    if (!c.justRested && (done.isEmpty || onMap)) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -166,19 +169,23 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         );
         c.clearJustRested();
       } else {
-        // 원정 결과 금테 카드 (11-11 #51). 여러 마리가 함께 돌아오면 차례로
-        for (final ex in done) {
-          if (!mounted) break;
-          await showExpeditionResult(
-              context, ex, ex.petName ?? c.firstSpiritName,
-              more: done.length > 1
-                  ? '${done.indexOf(ex) + 1} / ${done.length}'
-                  : null);
-          await c.acknowledgeExpedition(ex);
-        }
+        await _showExpeditionResults(done);
       }
       _noticeShowing = false;
     });
+  }
+
+  /// 원정 결과 금테 카드 (11-11 #51). 여러 마리가 함께 돌아오면 차례로
+  Future<void> _showExpeditionResults(List<Expedition> done) async {
+    final c = widget.controller;
+    for (final ex in done) {
+      if (!mounted) break;
+      await showExpeditionResult(context, ex, ex.petName ?? c.firstSpiritName,
+          more: done.length > 1
+              ? '${done.indexOf(ex) + 1} / ${done.length}'
+              : null);
+      await c.acknowledgeExpedition(ex);
+    }
   }
 
   bool _farewellShowing = false;
@@ -443,7 +450,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
           MapScreen(
               controller: controller,
-              onOpenDungeon: () => push(DungeonScreen(controller: controller))),
+              onOpenDungeon: () => push(DungeonScreen(controller: controller)),
+              onShowExpeditionResults: () async {
+                if (_noticeShowing) return;
+                _noticeShowing = true;
+                await _showExpeditionResults(controller.finishedExpeditions);
+                _noticeShowing = false;
+              }),
           NightBackground(
               header: true, child: VillageScreen(controller: controller)),
           NightBackground(header: true, child: BagTab(controller: controller)),

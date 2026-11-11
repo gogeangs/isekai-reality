@@ -113,7 +113,7 @@ class RuleConstants {
 
   /// 필드 몬스터: 지역을 이 크기(미터) 블록으로 나눠 블록마다 하루 한 마리,
   /// 블록에 몬스터가 나올 확률, 만나는 거리(미터)
-  static const double fieldSpawnBlockM = 1000;
+  static const double fieldSpawnBlockM = 500; // 11-11 #80: 1km → 500m (가까이 3~4배 촘촘히)
   static const double fieldSpawnChance = 0.7;
   static const double fieldEncounterRadiusM = 40;
 

@@ -282,7 +282,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : TitleRules.info(equipped).name,
                     onEditName: () => _rename(context, c),
                   ),
-                  const SizedBox(height: 10),
+                  // 오늘 사냥 수 (11-11 #76: 지도 위 박스에서 옮김, 한도는 보여 주지 않음)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        '오늘 사냥 ${p.today?.fieldMonstersPurified ?? 0}마리',
+                        key: const Key('huntToday'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 12.5)),
+                  ),
+                  const SizedBox(height: 8),
                   _Tabs(
                     labels: const ['정보', '기록'],
                     index: _tab,

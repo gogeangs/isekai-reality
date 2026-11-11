@@ -623,6 +623,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
               _drawnSpawns = -1;
               _redraw();
             },
+            // 지도를 움직이는 동안에는 가장자리 표시를 숨긴다 (11-11: 화면에 붙어
+            // 따라다니는 몬스터처럼 보였다). 멈추면 다시 찾는다.
+            onCameraChange: (_, __) {
+              if (_edges.isNotEmpty && mounted) setState(() => _edges = const []);
+            },
             onCameraIdle: _findHidden,
           ),
         ),
@@ -658,31 +663,36 @@ class _EdgeChip extends StatelessWidget {
     final color = mark.spawn.modifiers.isEmpty
         ? AppColors.gold
         : modGradeColor(mark.spawn.grade);
+    // 지도 위 몬스터와 헷갈리지 않게: 작고 반투명한 원 + 큰 방향 화살표
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: Stack(alignment: Alignment.center, children: [
-          Transform.rotate(
-            angle: mark.angle,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Icon(Icons.play_arrow_rounded, size: 16, color: color),
+      child: Opacity(
+        opacity: 0.85,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(alignment: Alignment.center, children: [
+            Transform.rotate(
+              angle: mark.angle,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Icon(Icons.navigation_rounded,
+                    size: 18, color: color),
+              ),
             ),
-          ),
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xE60B0D26),
-              border: Border.all(color: color, width: 1.5),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xCC0B0D26),
+                border: Border.all(color: color, width: 1.2),
+              ),
+              child: ClipOval(
+                  child: MonsterPicture(monster: mark.spawn.monster, size: 22)),
             ),
-            child: ClipOval(
-                child: MonsterPicture(monster: mark.spawn.monster, size: 30)),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }

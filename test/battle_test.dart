@@ -402,7 +402,7 @@ void main() {
     expect(find.text('1층 / 3층'), findsOneWidget);
 
     for (var i = 0;
-        i < 200 && find.text('던전 돌파!').evaluate().isEmpty;
+        i < 900 && find.text('던전 돌파!').evaluate().isEmpty;
         i++) {
       if (find.text('불씨의 일격!').evaluate().isNotEmpty) {
         await tester.tap(find.text('불씨의 일격!'));

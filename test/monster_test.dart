@@ -51,8 +51,14 @@ void main() {
     });
 
     test('도감은 13칸, 칭호 도감의 현자는 속성 슬라임을 뺀 7종', () {
-      expect(Monsters.all, hasLength(17));
-      final base = [for (final m in Monsters.all) if (!m.slimeKind) m.id.name];
+      // 11-11 #75: 요일 보스 5종이 더해져 22칸 (도감의 현자는 그대로 7종)
+      expect(Monsters.all, hasLength(22));
+      final base = [
+        for (final m in Monsters.all)
+          if (!m.slimeKind &&
+              (!m.isBoss || m.id == MonsterId.labyrinthWarden))
+            m.id.name
+      ];
       expect(base, hasLength(7));
       expect(TitleRules.earned([DailyRecord(date: DateTime(2026, 11, 11), purifiedMonsterIds: base)], 1),
           contains(TitleId.bookwormSage));

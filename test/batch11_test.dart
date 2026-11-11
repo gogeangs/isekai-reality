@@ -67,14 +67,16 @@ void main() {
     ));
     await tester.tap(find.text('보내기'));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('첫째 알림'), findsOneWidget);
     expect(find.text('둘째 알림'), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
     await tester.tap(find.byKey(const Key('topNotice')));
     expect(tapped, 1);
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('둘째 알림'), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
     await tester.pump(const Duration(seconds: 1));

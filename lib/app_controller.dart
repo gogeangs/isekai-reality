@@ -69,7 +69,9 @@ class AppController extends ChangeNotifier {
       health: FakeHealthSource(granted: false),
       stepGoal: 8000, // 예시 기록과 같은 목표
       clock: clock,
-    )..walkEvents = false; // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
+    )
+      ..walkEvents = false // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
+      ..quietTitles = true; // 예시 모드는 처음 칭호들을 축하 창 대신 띠로
   }
 
   final RecordStore store;
@@ -161,6 +163,9 @@ class AppController extends ChangeNotifier {
     }
     return null;
   }
+
+  /// 칭호 축하 창 대신 위쪽 띠로만 (예시 모드)
+  bool quietTitles = false;
 
   /// 칭호 하나만 알린 것으로 (축하 연출을 하나씩, 11-11 #85)
   Future<void> acknowledgeTitle(TitleId t) async {

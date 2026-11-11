@@ -358,7 +358,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _titleShowing = false;
         return;
       }
-      await showTitleCelebration(context, c, t);
+      if (c.quietTitles) {
+        showTopNotice(context, '새 칭호 「${TitleRules.info(t).name}」',
+            icon: Icons.military_tech_rounded);
+      } else {
+        await showTitleCelebration(context, c, t);
+      }
       await c.acknowledgeTitle(t);
       _titleShowing = false;
       if (mounted) _maybeShowTitle();

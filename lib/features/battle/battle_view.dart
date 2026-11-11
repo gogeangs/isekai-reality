@@ -821,11 +821,6 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: widget.beatDuration);
 
-  /// 배경 입자·날씨 (늘 돈다)
-  late final AnimationController _amb = AnimationController(
-      vsync: this, duration: const Duration(seconds: 6))
-    ..repeat();
-
   /// 보스 등장 띠
   late final AnimationController _boss = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1600));
@@ -843,7 +838,6 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _amb.dispose();
     _boss.dispose();
     _c.dispose();
     super.dispose();
@@ -940,18 +934,16 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       ),
                     ),
                     // 시간 색감 · 몬스터 속성 입자 · 비·눈 (11-11 #81)
+                    // 공격이 오갈 때마다 조금씩 흐른다 (끝없이 도는 애니메이션은 쓰지 않는다)
                     Positioned.fill(
                       child: IgnorePointer(
-                        child: AnimatedBuilder(
-                          animation: _amb,
-                          builder: (_, __) => CustomPaint(
-                            key: const Key('battleAmbient'),
-                            painter: _AmbientPainter(
-                              t: _amb.value,
-                              element: foe.info.element,
-                              hour: widget.hour,
-                              weather: widget.weather,
-                            ),
+                        child: CustomPaint(
+                          key: const Key('battleAmbient'),
+                          painter: _AmbientPainter(
+                            t: ((widget.beat + t) * 0.11) % 1.0,
+                            element: foe.info.element,
+                            hour: widget.hour,
+                            weather: widget.weather,
                           ),
                         ),
                       ),

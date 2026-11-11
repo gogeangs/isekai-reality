@@ -42,8 +42,8 @@ class _TitleCelebration extends StatefulWidget {
 class _TitleCelebrationState extends State<_TitleCelebration>
     with SingleTickerProviderStateMixin {
   late final AnimationController _a = AnimationController(
-      vsync: this, duration: const Duration(seconds: 4))
-    ..repeat();
+      vsync: this, duration: const Duration(seconds: 3))
+    ..forward();
 
   @override
   void dispose() {

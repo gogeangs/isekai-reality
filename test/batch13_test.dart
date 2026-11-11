@@ -64,7 +64,7 @@ void main() {
   group('#100 우편함 한 목록', () {
     test('받은 보상 편지는 지우지 않고 보관, 받지 않은 것만 30일 뒤 사라짐', () async {
       var now = DateTime(2026, 11, 11, 12);
-      final store = InMemoryRecordStore();
+      final store = InMemoryRecordStore(profile: const PlayerProfile(name: '하루'));
       await store.saveJson(
           'mail',
           MailState(mails: [

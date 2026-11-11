@@ -145,3 +145,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | hero_parts_male | 각성자(남) 부위 시트 (2048×2048, 개발이 잘라서 씀) |
 | hero_parts_female | 각성자(여) 부위 시트 (2048×2048, 개발이 잘라서 씀) |
 | status_<poison·burn·frozen·dazzle·bound·stance> | 전투 상태 이상 아이콘 6종 (256×256, 원 크기를 맞춤) |
+| bg_field_village, bg_field_mountain | 필드 전투 배경: 마을(기본)·산 (1024×1024 jpg) |

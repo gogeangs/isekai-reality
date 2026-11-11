@@ -109,3 +109,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_essence, mat_glow<Fire·Water·Wind·Earth·Light>Core | 정제 에센스, 빛나는 속성 코어 5종 (256×256) |
 | merchant | 떠돌이 상인 (512×512) |
 | mat_glowShadowCore | 빛나는 그림자 코어 (256×256) |
+| mat_<ice·thunder·metal>Jelly, mat_<ice·thunder·metal>Core | 얼음·번개·금속 젤리와 코어 (256×256) |

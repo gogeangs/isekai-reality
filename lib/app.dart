@@ -327,7 +327,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       return;
     }
     // 첫 알을 받으면 도감 펫 탭이 열린다 (11-11 #96)
-    if (c.petCodexToAnnounce && !_petCodexNoticed) {
+    if (c.petCodexToAnnounce && !_petCodexNoticed && !c.quietTitles) {
       _petCodexNoticed = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;

@@ -10,6 +10,8 @@ import '../../core/rules/rules.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'album_files.dart';
+import 'album_screen.dart';
 import 'camera_sticker_engine.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
@@ -99,7 +101,45 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _result = r;
       _phase = _Phase.reveal;
     });
+    final id = r.albumId;
+    if (id != null) unawaited(_keepInAlbum(id, races));
   }
+
+  /// 감정할 때마다 감정 앨범에 사진 한 장 (11-11 #97). 휴대폰 안에만 둔다.
+  Future<void> _keepInAlbum(String id, List<Race> races) async {
+    if (_albumBusy) return;
+    _albumBusy = true;
+    try {
+      final photo = await _engine.capture(races);
+      if (photo == null) return;
+      final png = await PhotoFrame.compose(photo, races);
+      photo.dispose();
+      final file = await AlbumFiles.writer(id, png);
+      if (file != null) await c.attachAlbumFile(id, file);
+    } catch (_) {
+      // 사진이 없어도 앨범에는 종족 그림으로 남는다
+    } finally {
+      _albumBusy = false;
+    }
+  }
+
+  /// 앨범 사진을 만드는 중 (셔터와 따로)
+  bool _albumBusy = false;
+
+  void _openAlbum() => Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AlbumScreen(
+            controller: c,
+            onShootNext: () {
+              if (mounted && _phase != _Phase.appraising) {
+                setState(() {
+                  _races = null;
+                  _result = null;
+                  _png = null;
+                  _phase = _phase == _Phase.error ? _Phase.error : _Phase.aim;
+                });
+              }
+            },
+          )));
 
   Future<void> _shoot() async {
     final races = _races;
@@ -119,6 +159,15 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         _phase = _Phase.shot;
       }
     });
+    // 앨범 사진이 아직 없으면 지금 찍은 사진으로 (11-11 #97)
+    final id = _result?.albumId;
+    if (png != null && id != null) {
+      final has = c.album.any((p) => p.id == id && p.file != null);
+      if (!has) {
+        final file = await AlbumFiles.writer(id, png);
+        if (file != null) await c.attachAlbumFile(id, file);
+      }
+    }
     if (png == null) _snack('사진을 찍지 못했어요. 다시 해 볼까요?');
   }
 
@@ -181,6 +230,16 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
           ),
           Text('마법 돋보기', style: AppText.title(20)),
           const Spacer(),
+          // 11-11 #97: 도감 「종족」 대신 감정 앨범
+          TextButton.icon(
+            key: const Key('lensAlbum'),
+            onPressed: _openAlbum,
+            icon: const Icon(Icons.photo_library_rounded,
+                size: 18, color: AppColors.goldBright),
+            label: const Text('감정 앨범',
+                style: TextStyle(
+                    color: AppColors.goldBright, fontWeight: FontWeight.w700)),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -382,7 +441,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             child: const Text('다시 찍기',
                 style: TextStyle(color: AppColors.textMuted)),
           ),
-          const Text('게임 안에는 사진을 남기지 않아요. 저장하거나 공유한 사진만 남아요.',
+          const Text('감정 사진은 이 휴대폰 안 「감정 앨범」에만 남아요. 앱을 지우면 사라질 수 있어요.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
         ]);
@@ -437,7 +496,7 @@ class _RevealPanel extends StatelessWidget {
     final r = result;
     final rewards = <String>[
       if (r.firsts.isNotEmpty)
-        '처음 감정한 종족! 도감 「종족」에 남았어요 · 경험치 +${r.exp}',
+        '처음 만난 종족! 감정 앨범에 남았어요 · 경험치 +${r.exp}',
       if (r.material != null)
         '돋보기에 ${Materials.info(r.material!).name} 1개가 걸려 나왔어요',
       if (r.note) '레시피 쪽지 1장을 주웠어요',

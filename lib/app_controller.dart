@@ -3085,7 +3085,15 @@ class AppController extends ChangeNotifier {
           : today.gains,
     ));
     final day = today.dayKey;
+    final now = _clock();
+    final photo = AlbumPhoto(
+      id: 'p${now.microsecondsSinceEpoch}',
+      races: [for (final r in races) r.name],
+      at: now,
+      firsts: [for (final r in firsts) r.name],
+    );
     _lens = _lens.copyWith(
+      album: [..._lens.album, photo],
       seen: [..._lens.seen, for (final r in firsts) r.name],
       counts: {
         ..._lens.counts,
@@ -3102,7 +3110,39 @@ class AppController extends ChangeNotifier {
     if (note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     notifyListeners();
     return AppraiseResult(
-        races: races, firsts: firsts, exp: exp, material: mat, note: note);
+        races: races,
+        firsts: firsts,
+        exp: exp,
+        material: mat,
+        note: note,
+        albumId: photo.id);
+  }
+
+  /// 감정 앨범 (11-11 #97)
+  List<AlbumPhoto> get album => _lens.album;
+
+  /// 앨범 사진에 찍은 사진 파일을 붙인다
+  Future<void> attachAlbumFile(String id, String file) async {
+    _lens = _lens.copyWith(album: [
+      for (final p in _lens.album) p.id == id ? p.withFile(file) : p,
+    ]);
+    await store.saveJson(_lensKey, _lens.toJson());
+    notifyListeners();
+  }
+
+  /// 앨범에서 지운다 (지운 사진의 파일 이름, 없으면 null). 감정한 종족 기록은 그대로.
+  Future<String?> deleteAlbumPhoto(String id) async {
+    String? file;
+    for (final p in _lens.album) {
+      if (p.id == id) file = p.file;
+    }
+    _lens = _lens.copyWith(album: [
+      for (final p in _lens.album)
+        if (p.id != id) p,
+    ]);
+    await store.saveJson(_lensKey, _lens.toJson());
+    notifyListeners();
+    return file;
   }
 
   // ───────────────────────────────────────────── 대장간 · 장비 (11-10 #27)
@@ -4323,9 +4363,13 @@ class AppraiseResult {
     this.exp = 0,
     this.material,
     this.note = false,
+    this.albumId,
   });
 
   final List<Race> races;
+
+  /// 앨범에 남은 사진 id (11-11 #97)
+  final String? albumId;
 
   /// 처음 감정한 종족 (도감에 새로 남음)
   final List<Race> firsts;

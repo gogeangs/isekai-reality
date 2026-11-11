@@ -58,6 +58,13 @@ class ExpeditionResultCard extends StatelessWidget {
         ExpeditionOutcome.missed => 'assets/images/ribbon_missed.png',
       };
 
+  /// 그림 안 가운데 띠의 위·아래 (그림 높이 비율). 그림마다 다르다 (11-11 #94)
+  static (double, double) ribbonBand(ExpeditionOutcome o) => switch (o) {
+        ExpeditionOutcome.success => (0.15, 0.51),
+        ExpeditionOutcome.fail => (0.18, 0.53),
+        ExpeditionOutcome.missed => (0.18, 0.53),
+      };
+
   static String ribbonText(ExpeditionOutcome o) => switch (o) {
         ExpeditionOutcome.success => '원정 성공',
         ExpeditionOutcome.fail => '원정 실패',
@@ -101,37 +108,79 @@ class ExpeditionResultCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 리본 그림 위에 글자 (그림이 없으면 색 띠)
+          // 리본 그림 위에 글자 (그림이 없으면 색 띠). 11-11 #94: 그림 안 가운데 띠
+          // 자리(비율)에 정확히 맞추고, 띠 높이에 맞게 글자 크기를 정한다
           SizedBox(
-            height: 64,
-            child: Stack(alignment: Alignment.center, children: [
-              Positioned.fill(
-                child: Image.asset(
-                  ribbonAsset(o),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Center(
-                    child: Container(
-                      width: 190,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: ribbonColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border:
-                            Border.all(color: AppColors.goldBright, width: 1.5),
+            height: 84,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 3,
+                child: LayoutBuilder(builder: (context, box) {
+                  final (b0, b1) = ribbonBand(o);
+                  final bandTop = box.maxHeight * b0;
+                  final bandH = box.maxHeight * (b1 - b0);
+                  final text = ribbonText(o);
+                  final size = (bandH * 0.62).clamp(12.0, 26.0);
+                  final style = AppText.title(size, color: AppColors.text)
+                      .copyWith(height: 1.0);
+                  return Stack(children: [
+                    Positioned.fill(
+                      child: Image.asset(
+                        ribbonAsset(o),
+                        fit: BoxFit.fill,
+                        errorBuilder: (_, __, ___) => Stack(children: [
+                          Positioned(
+                            left: box.maxWidth * 0.12,
+                            right: box.maxWidth * 0.12,
+                            top: bandTop,
+                            height: bandH,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: ribbonColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: AppColors.goldBright, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ]),
                       ),
                     ),
-                  ),
-                ),
+                    Positioned(
+                      key: const Key('ribbonText'),
+                      left: box.maxWidth * 0.18,
+                      right: box.maxWidth * 0.18,
+                      top: bandTop + bandH * 0.12,
+                      height: bandH * 0.76,
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Stack(children: [
+                            // 테두리
+                            Text(text,
+                                style: TextStyle(
+                                    fontFamily: style.fontFamily,
+                                    fontSize: style.fontSize,
+                                    fontWeight: style.fontWeight,
+                                    letterSpacing: style.letterSpacing,
+                                    height: 1.0,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 3
+                                      ..color = const Color(0xCC1A1030))),
+                            Text(text,
+                                style: style.copyWith(shadows: const [
+                                  Shadow(
+                                      color: Color(0xCC000000), blurRadius: 4)
+                                ])),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ]);
+                }),
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(ribbonText(o),
-                    style: AppText.title(22, color: AppColors.text).copyWith(
-                        shadows: const [
-                          Shadow(color: Color(0xCC000000), blurRadius: 4)
-                        ])),
-              ),
-            ]),
+            ),
           ),
           const SizedBox(height: 6),
           Center(

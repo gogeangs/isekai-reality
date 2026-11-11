@@ -85,11 +85,6 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   height: 240,
                   child: HeroSprite(
                       look: widget.controller.profile.look,
-                      vibrate: widget.controller.vibrate,
-                      fast: widget.controller.fastBattle,
-                      onFastChanged: widget.controller.setFastBattle,
-                      poisonTip: !widget.controller.poisonTipSeen,
-                      onPoisonTipShown: widget.controller.markPoisonTipSeen,
                       pose: HeroPose.tired),
                 ),
             ] else if (_done) ...[
@@ -120,6 +115,11 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 tickInterval: widget.tickInterval,
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,
+                vibrate: widget.controller.vibrate,
+                fast: widget.controller.fastBattle,
+                onFastChanged: widget.controller.setFastBattle,
+                poisonTip: !widget.controller.poisonTipSeen,
+                onPoisonTipShown: widget.controller.markPoisonTipSeen,
               )
             else if (_done) ...[
               const SizedBox(height: 8),

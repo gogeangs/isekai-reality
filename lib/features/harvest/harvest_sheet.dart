@@ -217,7 +217,12 @@ class ToolRepairPanel extends StatelessWidget {
           for (final t in tools) ...[
             const SizedBox(height: 6),
             Row(children: [
-              MaterialIcon(HarvestRules.ofTool(t).base, size: 28),
+              // 도구 등급별 그림 (없으면 재료 아이콘)
+              Image.asset('assets/images/tool_${t.name}_${c.toolTier(t).name}.png',
+                  width: 28,
+                  height: 28,
+                  errorBuilder: (_, __, ___) =>
+                      MaterialIcon(HarvestRules.ofTool(t).base, size: 28)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

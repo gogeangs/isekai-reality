@@ -1116,15 +1116,22 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           opacity: 1 - _seg(t, 0.32, 0.55),
                           child: Transform.scale(
                             scale: 0.5 + _seg(t, 0.22, 0.32) * 0.8,
-                            child: _tinted(
-                                widget.hitElement == null
-                                    ? null
-                                    : elementColor(widget.hitElement),
-                                Image.asset('assets/images/fx_hit.png',
+                            // 속성 타격 그림이 있으면 그것, 없으면 기본 타격에 속성 색
+                            child: widget.hitElement == null
+                                ? Image.asset('assets/images/fx_hit.png',
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) =>
-                                        const SizedBox()),
-                                alpha: 0.55),
+                                        const SizedBox())
+                                : Image.asset(
+                                    'assets/images/fx_hit_${widget.hitElement!.name}.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => _tinted(
+                                        elementColor(widget.hitElement),
+                                        Image.asset('assets/images/fx_hit.png',
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) =>
+                                                const SizedBox()),
+                                        alpha: 0.55)),
                           ),
                         ),
                       ),

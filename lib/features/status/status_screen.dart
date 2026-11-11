@@ -13,6 +13,8 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
 import '../smithy/equipment_view.dart';
+import 'stat_icon.dart';
+import '../battle/element_view.dart';
 import '../bulssi/bulssi_mood.dart';
 
 /// 메인 상태창 (목업 확정본 구도).
@@ -377,7 +379,9 @@ class _GearSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final it = item;
-    final color = it == null ? AppColors.gold : equipGradeColor(it.grade);
+    // 11-11 #98: 등급색 테두리, 강화는 빛 세기로(숫자 숨김), 속성은 구석에 작은 아이콘
+    final color = it == null ? AppColors.gold : wornBorderColor(it);
+    final glow = it == null ? 0.0 : enhanceGlow(it.enhance);
     return Semantics(
       button: true,
       label: '${EquipmentRules.slotLabel(slot)} 칸${it == null ? ', 비어 있음' : ', ${it.name}'}',
@@ -392,32 +396,33 @@ class _GearSlot extends StatelessWidget {
             border: Border.all(
                 color: color.withValues(alpha: it == null ? 0.45 : 0.95),
                 width: it == null ? 1 : 2),
-            boxShadow: it != null && it.grade.index >= EquipGrade.blue.index
-                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+            boxShadow: glow > 0
+                ? [
+                    BoxShadow(
+                        color: color.withValues(
+                            alpha: (0.35 + glow / 30).clamp(0.0, 0.9)),
+                        blurRadius: glow,
+                        spreadRadius: glow / 8),
+                  ]
                 : null,
           ),
           child: Stack(children: [
             Center(
               child: it == null
-                  ? Icon(slotIcon(slot),
+                  ? SlotGlyph(slot,
                       color: AppColors.textMuted.withValues(alpha: 0.7),
-                      size: 22)
+                      size: 24)
                   : Image.asset('assets/images/${it.info.asset}.png',
                       width: size - 10,
                       height: size - 10,
                       errorBuilder: (_, __, ___) =>
-                          Icon(slotIcon(slot), color: color, size: 24)),
+                          SlotGlyph(slot, color: color, size: 26)),
             ),
-            if (it != null && it.enhance > 0)
+            if (it?.element != null)
               Positioned(
-                right: 3,
-                bottom: 1,
-                child: Text('+${it.enhance}',
-                    style: const TextStyle(
-                        color: AppColors.goldBright,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        shadows: [Shadow(color: Colors.black, blurRadius: 3)])),
+                right: 2,
+                bottom: 2,
+                child: ElementIcon(it!.element, size: 13),
               ),
           ]),
         ),
@@ -604,14 +609,23 @@ class _StatsSection extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w700)),
           const SizedBox(width: 8),
+          // 11-11 #95: 스탯마다 아이콘 + 숫자
           Expanded(
-            child: Text(
-              [
-                for (final k in StatKind.values) '${k.label} ${stats.of(k)}',
-              ].join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(children: [
+                for (final k in StatKind.values) ...[
+                  StatIcon(k, size: 15, color: AppColors.textMuted),
+                  const SizedBox(width: 2),
+                  Text('${stats.of(k)}',
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                  if (k != StatKind.values.last) const SizedBox(width: 7),
+                ],
+              ]),
             ),
           ),
           if (unspent > 0)

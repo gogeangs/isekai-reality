@@ -34,7 +34,7 @@ Future<void> showEquipPicker(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(children: [
-                  Icon(slotIcon(slot), color: AppColors.goldBright),
+                  SlotGlyph(slot, color: AppColors.goldBright),
                   const SizedBox(width: 6),
                   Text(EquipmentRules.slotLabel(slot), style: AppText.title(20)),
                 ]),

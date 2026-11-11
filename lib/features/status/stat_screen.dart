@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../../theme/top_notice.dart';
+import 'stat_icon.dart';
 
 /// 스탯 포인트 분배 (11-11 #50).
 /// 합계와 '포인트로 올린 값'만 보여 준다. 생활 활동으로 오른 값은 따로 보여 주지 않는다.
@@ -28,13 +29,7 @@ class _StatScreenState extends State<StatScreen> {
 
   AppController get c => widget.controller;
 
-  static IconData icon(StatKind k) => switch (k) {
-        StatKind.strength => Icons.fitness_center_rounded,
-        StatKind.agility => Icons.directions_run_rounded,
-        StatKind.intellect => Icons.auto_fix_high_rounded,
-        StatKind.vitality => Icons.favorite_rounded,
-        StatKind.luck => Icons.auto_awesome_rounded,
-      };
+  static IconData icon(StatKind k) => StatIcon.fallback(k);
 
   void _snack(String t) =>
       showTopNotice(context, t);
@@ -233,7 +228,7 @@ class _StatRow extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        Icon(icon, color: AppColors.goldBright, size: 22),
+        StatIcon(kind, size: 26, color: AppColors.goldBright),
         const SizedBox(width: 8),
         Expanded(
           child: Column(

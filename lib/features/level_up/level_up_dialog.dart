@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rules/level_rules.dart';
+import '../../core/rules/stat_rules.dart';
+import '../status/stat_icon.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -60,6 +62,19 @@ class LevelUpDialog extends StatelessWidget {
                 ChipBadge(
                     text: '다음 레벨까지 ${LevelRules.expRequiredFor(to)}',
                     icon: Icons.auto_awesome_rounded),
+                const SizedBox(height: 10),
+                // 11-11 #95: 받은 스탯 포인트 + 다섯 스탯 메달
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  for (final k in StatKind.values) ...[
+                    StatIcon(k, size: 22),
+                    const SizedBox(width: 4),
+                  ],
+                  const SizedBox(width: 4),
+                  Text('스탯 포인트 +${(to - from) * StatRules.pointsPerLevel}',
+                      style: const TextStyle(
+                          color: AppColors.goldBright,
+                          fontWeight: FontWeight.w700)),
+                ]),
                 const SizedBox(height: 16),
                 BulssiBubble(line: _line, mood: SpiritMood.cheer),
                 const SizedBox(height: 18),

@@ -32,7 +32,7 @@ class LensRules {
   static const int price = 40;
   static const int perDay = 3;
 
-  /// 종족을 처음 감정하면 도감 「종족」에 남고 경험치
+  /// 종족을 처음 감정하면 앨범에 「처음 만난 종족!」으로 남고 경험치
   static const int firstExp = 20;
 
   /// 보상을 받는 감정 횟수 (하루)

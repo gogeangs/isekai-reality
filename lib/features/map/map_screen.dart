@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 import '../../core/format.dart';
@@ -19,6 +20,7 @@ import '../town/material_view.dart';
 import 'expedition_sheet.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../../core/models/alchemy_state.dart' show ActiveBuff;
+import '../../core/models/vitals.dart' show Expedition;
 import 'map_config.dart';
 import '../../theme/top_notice.dart';
 
@@ -557,6 +559,9 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final visited = c.everVisitedPlaceIds;
 
     _sized.clear();
+    _routes.clear();
+    _petMarkers.clear();
+    _talkOpen = null;
     final overlays = <NAddableOverlay>{
       for (final place in area.places)
         NMarker(
@@ -579,19 +584,51 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         if (fix == null ||
             h.point.distanceTo(fix.point) <= HarvestRules.mapRadiusM)
           _harvest(c, h),
-      // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
+      // 원정 목표 (11-11 #90): 원정 동안 그대로 보이고 깃발 + 금빛 고리.
+      // 직접 사냥은 못 하고, 누르면 「이슬이 가는 중이에요 · 9분」
+      for (var i = 0; i < actives.length; i++) ...[
+        NMarker(
+          id: 'target_ring_$i',
+          position: NLatLng(actives[i].lat, actives[i].lng),
+          icon: const NOverlayImage.fromAssetImage(
+              'assets/images/map_target_ring.png'),
+          size: const Size(72, 72),
+          anchor: const NPoint(0.5, 0.5),
+          isHideCollidedSymbols: true,
+        )..setOnTapListener((_) => _targetTapped(actives[i])),
+        NMarker(
+          id: 'target_$i',
+          position: NLatLng(actives[i].lat, actives[i].lng),
+          icon: const NOverlayImage.fromAssetImage(
+              'assets/images/map_monster.png'),
+          size: const Size(48, 48),
+          anchor: const NPoint(0.5, 0.5),
+          alpha: 0.9,
+          caption: const NOverlayCaption(
+            text: '원정 목표',
+            textSize: 11,
+            color: AppColors.goldBright,
+            haloColor: Color(0xFF0B0D26),
+          ),
+        )..setOnTapListener((_) => _targetTapped(actives[i])),
+      ],
+      // 정령·펫이 따라가는 길 (11-11 #92): 남은 길에만 펫 속성 색 발자국.
+      // 지나간 길은 사라지고, 돌아올 때는 내 쪽을 가리킨다
       for (var i = 0; i < actives.length; i++)
-        if (actives[i].path.length >= 2)
-          NPathOverlay(
+        if (_routeCoords(actives[i], c.now) case final coords?)
+          _routes[i] = NPathOverlay(
             id: 'route_$i',
-            coords: [for (final p in actives[i].path) NLatLng(p.$1, p.$2)],
-            width: 5,
-            color: const Color(0xCCF5DC94),
-            outlineWidth: 1.5,
-            outlineColor: const Color(0xFF0B0D26),
+            coords: coords,
+            width: 2,
+            color: _routeColor(c, actives[i]).withValues(alpha: 0.28),
+            outlineWidth: 0,
+            outlineColor: const Color(0x00000000),
+            patternImage: NOverlayImage.fromAssetImage(
+                'assets/images/map_step_${_stepKey(c, actives[i])}.png'),
+            patternInterval: _stepGap,
           ),
       for (var i = 0; i < actives.length; i++)
-        NMarker(
+        _petMarkers[i] = NMarker(
           id: 'spirit_$i',
           position: NLatLng(positions[i].$1, positions[i].$2),
           icon: NOverlayImage.fromAssetImage(actives[i].petUid == null
@@ -634,6 +671,185 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     _scale = -1;
     await _resize();
     await _findHidden();
+    if (_anim == null && actives.isNotEmpty && mounted) {
+      await _updateScale();
+      _startAnim();
+    }
+  }
+
+  // ───────────── 원정: 목표·발자국·펫 움직임·말풍선 (11-11 #89·#90·#92)
+
+  final Map<int, NPathOverlay> _routes = {};
+  final Map<int, NMarker> _petMarkers = {};
+  Timer? _anim;
+  int _frame = 0;
+  DateTime? _nextTalk;
+  int _talkTurn = 0;
+  NInfoWindow? _talkOpen;
+  final _rng = math.Random();
+
+  /// 발자국 사이 (화면 dp)
+  static const double _stepGap = 26;
+
+  /// 기기 「동작 줄이기」
+  bool _still = false;
+
+  /// 지금 줌에서 1dp 의 미터
+  double _metersPerDp = 0;
+
+  Element? _elementOf(AppController c, Expedition ex) {
+    if (ex.petUid == null) return null;
+    for (final p in c.pets.pets) {
+      if (p.uid == ex.petUid) return p.element;
+    }
+    return null;
+  }
+
+  String _stepKey(AppController c, Expedition ex) =>
+      ExpeditionTalkRules.colorKey(_elementOf(c, ex));
+
+  Color _routeColor(AppController c, Expedition ex) =>
+      Color(ExpeditionTalkRules.colorValue(_stepKey(c, ex)));
+
+  /// 남은 길 좌표. 발자국이 흘러가 보이게 [_frame] 에 따라 앞을 조금씩 건너뛴다
+  List<NLatLng>? _routeCoords(Expedition ex, DateTime now) {
+    var skip = 0.0;
+    if (!_still && _metersPerDp > 0 && ex.distanceM > 0) {
+      skip = (_frame % 3) / 3 * _stepGap * _metersPerDp / ex.distanceM;
+    }
+    final pts = ex.remainingAt(now, skip: skip);
+    if (pts.length < 2) return null;
+    final a = pts.first, b = pts.last;
+    if ((a.$1 - b.$1).abs() < 1e-6 && (a.$2 - b.$2).abs() < 1e-6) return null;
+    return [for (final p in pts) NLatLng(p.$1, p.$2)];
+  }
+
+  void _targetTapped(Expedition ex) {
+    if (!mounted) return;
+    final c = widget.controller;
+    final who = josa(ex.petName ?? c.firstSpiritName, '이/가');
+    final going = ex.goingAt(c.now);
+    final end = going ? ex.arriveAt : ex.returnAt;
+    final m = math.max(1, (end.difference(c.now).inSeconds + 59) ~/ 60);
+    showTopNotice(context,
+        going ? '$who 가는 중이에요 · $m분' : '$who 돌아오는 중이에요 · $m분');
+  }
+
+  void _startAnim() {
+    _anim?.cancel();
+    _anim = Timer.periodic(const Duration(milliseconds: 200), (_) => _animate());
+  }
+
+  /// 펫이 둥실둥실 떠다니며 가는 방향으로 살짝 기운다. 0.6초마다 발자국이 흐른다.
+  void _animate() {
+    if (!mounted || _map == null) return;
+    final c = widget.controller;
+    final actives = c.activeExpeditions;
+    if (actives.isEmpty) {
+      _anim?.cancel();
+      _anim = null;
+      return;
+    }
+    final now = c.now;
+    final ms = DateTime.now().millisecondsSinceEpoch;
+    try {
+      for (var i = 0; i < actives.length; i++) {
+        final m = _petMarkers[i];
+        if (m == null) continue;
+        final ex = actives[i];
+        final p = ex.positionAt(now);
+        m.setPosition(NLatLng(p.$1, p.$2));
+        if (_still) continue;
+        final ahead = ex.positionAt(now.add(const Duration(seconds: 20)));
+        final dx = (ahead.$2 - p.$2) * 0.8;
+        final dy = ahead.$1 - p.$1;
+        final moving = dx.abs() + dy.abs() > 1e-7;
+        // 마리마다 박자가 조금씩 다르게. 멈춰 있으면 천천히 오르내림
+        final phase = (ms / (moving ? 1300 : 2600)) * 2 * math.pi + i * 1.7;
+        final lift = (moving ? 0.10 : 0.06) * (1 + math.sin(phase)) / 2;
+        m.setAnchor(NPoint(0.5, 1 + lift));
+        final tilt = !moving ? 0.0 : (dx > 0 ? 8.0 : (dx < 0 ? -8.0 : 0.0));
+        m.setAngle(tilt + (moving ? 2 * math.sin(phase / 2) : 0));
+      }
+      // 발자국 흐르기 (0.6초마다 한 칸의 1/3)
+      if (!_still && ms ~/ 600 != _frame) {
+        _frame = ms ~/ 600;
+        for (var i = 0; i < actives.length; i++) {
+          final r = _routes[i];
+          final coords = _routeCoords(actives[i], now);
+          if (r != null && coords != null) r.setCoords(coords);
+        }
+      }
+    } catch (_) {
+      // 지도에서 이미 빠진 표시
+    }
+    _maybeTalk(actives, now);
+  }
+
+  /// 1~2분에 한 번, 한 마리만 작은 말풍선
+  void _maybeTalk(List<Expedition> actives, DateTime now) {
+    final wall = DateTime.now();
+    final next = _nextTalk ??= wall.add(const Duration(seconds: 20));
+    if (wall.isBefore(next) || _petMarkers.isEmpty) return;
+    _nextTalk = wall.add(ExpeditionTalkRules.nextGap(_rng));
+    final i = _talkTurn++ % actives.length;
+    final m = _petMarkers[i];
+    if (m == null) return;
+    final ex = actives[i];
+    final c = widget.controller;
+    final going = ex.goingAt(now);
+    final end = going ? ex.arriveAt : ex.returnAt;
+    final t = ex.tAt(now);
+    final id = Monsters.byName(ex.monster);
+    PetSpecies? species;
+    for (final p in c.pets.pets) {
+      if (p.uid == ex.petUid) species = p.species;
+    }
+    final w = c.weather?.kind;
+    final line = ExpeditionTalkRules.line(
+      rng: _rng,
+      going: going,
+      progress: going ? t : 1 - t,
+      minutesLeft: end.difference(now).inMinutes,
+      monster: id == null ? '몬스터' : Monsters.info(id).name,
+      hour: now.hour,
+      species: species,
+      rain: w?.name == 'rain',
+      snow: w?.name == 'snow',
+      clear: w == null ? null : w.name == 'clear',
+    );
+    try {
+      _talkOpen?.close();
+      final win = NInfoWindow.onMarker(id: 'talk', text: line);
+      _talkOpen = win;
+      m.openInfoWindow(win);
+      Timer(ExpeditionTalkRules.showFor, () {
+        try {
+          if (_talkOpen == win) {
+            win.close();
+            _talkOpen = null;
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _updateScale() async {
+    final map = _map;
+    if (map == null) return;
+    try {
+      final cam = await map.getCameraPosition();
+      // 줌 z 에서 1dp 의 미터 (256dp 타일 기준)
+      _metersPerDp = 156543.03392 *
+          math.cos(cam.target.latitude * math.pi / 180) /
+          math.pow(2, cam.zoom);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _anim?.cancel();
+    super.dispose();
   }
 
   // ───────────── 아이콘 크기 (11-11 #79): 확대·축소에 따라, 최소·최대 사이
@@ -657,6 +873,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       position: _ll(spawn.point),
       icon: const NOverlayImage.fromAssetImage('assets/images/map_monster.png'),
       size: Size(base, base),
+      // 11-11 #91: 수식어 이름표가 지도 장소 이름과 겹치면 지도 이름을 비킨다
+      isHideCollidedSymbols: spawn.modifiers.isNotEmpty,
       caption: spawn.modifiers.isEmpty
           ? null
           : NOverlayCaption(
@@ -757,8 +975,16 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         final pt = await map.latLngToScreenLocation(_ll(s.point));
         final p = Offset(pt.x, pt.y);
         if (safe.contains(p)) continue;
-        final at = Offset(p.dx.clamp(safe.left, safe.right),
+        var at = Offset(p.dx.clamp(safe.left, safe.right),
             p.dy.clamp(safe.top, safe.bottom));
+        // 11-11 #91: NAVER 로고·축척·내 위치 버튼 자리(왼쪽 아래)는 비킨다
+        final ui = _mapUiZone();
+        if (ui.contains(at)) {
+          at = at.dy >= safe.bottom - 1
+              ? Offset(ui.right, at.dy) // 아래 가장자리 → 오른쪽으로
+              : Offset(at.dx, ui.top); // 왼쪽 가장자리 → 위로
+          if (!safe.inflate(1).contains(at)) continue;
+        }
         final dir = p - at;
         marks.add(_EdgeMark(s, at, dir.direction));
         if (marks.length >= 5) break;
@@ -767,6 +993,15 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       return;
     }
     if (mounted) setState(() => _edges = marks);
+  }
+
+  /// 지도 UI(NAVER 로고·축척·내 위치 버튼)가 있는 왼쪽 아래 자리.
+  /// 가장자리 표시(반지름 22)가 겹치지 않게 넉넉히 잡는다.
+  Rect _mapUiZone() {
+    final bottom = _size.height - widget.safeBottom;
+    // 로고 여백 16 + 로고 17 + 12 + 내 위치 버튼 44 + 여유
+    return Rect.fromLTRB(-30, bottom - 16 - 17 - 12 - 44 - 30, 12 + 48 + 16 + 110 + 26,
+        _size.height + 30);
   }
 
   Future<void> _focus(FieldSpawn s) async {
@@ -780,6 +1015,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final center = widget.controller.lastFix?.point ??
         widget.controller.fallbackCenter ??
         widget.controller.area.bounds.center;
+    _still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     return LayoutBuilder(builder: (context, box) {
       _size = box.biggest;
       return Stack(children: [
@@ -807,6 +1043,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
               if (reason == NCameraUpdateReason.gesture) widget.onUserMove?.call();
             },
             onCameraIdle: () async {
+              await _updateScale();
               await _resize();
               await _findHidden();
             },

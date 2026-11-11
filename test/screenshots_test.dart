@@ -737,13 +737,14 @@ void main() {
     await tester.tap(find.byKey(const Key('lensSave')));
     await tester.pump(const Duration(milliseconds: 300));
     expect(saved, 1);
-    await tester.tap(find.byTooltip('돌아가기'));
+    // 11-11 #97: 도감 「종족」 대신 돋보기 안 감정 앨범
+    expect(c.album, isNotEmpty);
+    await tester.tap(find.byKey(const Key('lensAlbum')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('도감'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('종족'));
-    await tester.pumpAndSettle();
-    await _shot(tester, '52_도감_종족');
+    expect(find.text('사진 ${c.album.length}장'), findsOneWidget);
+    expect(find.text('처음 만난 종족!'), findsWidgets);
+    expect(find.textContaining('/ 8'), findsNothing);
+    await _shot(tester, '52_감정_앨범');
   });
 
   testWidgets('화면 미리보기: 채집·승객·우편 (11-11)', (tester) async {

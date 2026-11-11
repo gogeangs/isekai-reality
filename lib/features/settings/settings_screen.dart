@@ -7,7 +7,9 @@ import '../../core/format.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../battle/auto_use_window.dart';
 import '../legal/legal_screen.dart';
+import '../lens/album_files.dart';
 import '../../theme/top_notice.dart';
 
 /// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
@@ -52,6 +54,53 @@ class SettingsScreen extends StatelessWidget {
               ListenableBuilder(
                 listenable: controller,
                 builder: (context, _) => Column(children: [
+                  // 11-11 #93: 전투·가방과 같은 자동 마시기 설정
+                  ListTile(
+                    key: const Key('settingsAutoUse'),
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('자동으로 마시기',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    subtitle: const Text('HP가 낮거나 상태 이상일 때 물약',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                          autoUseLabel(controller.alchemy.autoHp,
+                              controller.alchemy.autoCure),
+                          style: const TextStyle(
+                              color: AppColors.goldBright,
+                              fontWeight: FontWeight.w700)),
+                      const Icon(Icons.chevron_right_rounded,
+                          color: AppColors.gold),
+                    ]),
+                    onTap: () => showAutoUseWindow(context,
+                        hp: controller.alchemy.autoHp,
+                        cure: controller.alchemy.autoCure,
+                        onChanged: (hp, cure) => controller.setAutoUse(
+                            hpPercent: hp, cure: cure)),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('전투 속도 기본값',
+                        style: TextStyle(color: AppColors.text, fontSize: 14)),
+                    trailing: Wrap(spacing: 6, children: [
+                      for (final fast in const [false, true])
+                        ChoiceChip(
+                          key: Key('settingsSpeed_${fast ? 2 : 1}'),
+                          label: Text(fast ? '2배' : '1배'),
+                          selected: controller.fastBattle == fast,
+                          onSelected: (_) => controller.setFastBattle(fast),
+                          selectedColor: AppColors.gold,
+                          backgroundColor: const Color(0xFF1E2250),
+                          labelStyle: TextStyle(
+                              color: controller.fastBattle == fast
+                                  ? AppColors.night
+                                  : AppColors.text,
+                              fontWeight: FontWeight.w700),
+                          showCheckmark: false,
+                        ),
+                    ]),
+                  ),
                   SwitchListTile(
                     key: const Key('feelVibrate'),
                     contentPadding: EdgeInsets.zero,
@@ -95,7 +144,7 @@ class SettingsScreen extends StatelessWidget {
             title: '내 데이터',
             children: [
               const _Note('걸음과 위치 기록은 휴대폰에만 저장돼요'),
-              const _Note('마법 돋보기 사진은 휴대폰 안에서만 감정하고, 게임에 남기지 않아요'),
+              const _Note('감정 앨범 사진은 이 휴대폰에만 있고, 앱을 지우면 사라질 수 있어요'),
               _Row(
                 label: '자세히 보기',
                 value: '',
@@ -235,6 +284,7 @@ class SettingsScreen extends StatelessWidget {
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
     await controller.resetAll();
+    await AlbumFiles.deleteAll(); // 감정 앨범 사진 (11-11 #97)
   }
 
 }
@@ -317,8 +367,9 @@ class DataInfoScreen extends StatelessWidget {
   static const _paras = [
     '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요.',
     '위치는 앱을 보고 있을 때만 쓰고, 방문 기록과 밝힌 지도는 휴대폰에만 저장해요.',
-    '마법 돋보기는 카메라 화면에서 얼굴의 위치만 휴대폰 안에서 찾아 장식을 붙여요. 얼굴 사진이나 얼굴 정보를 밖으로 보내지 않고, 게임 안에 저장하지도 않아요.',
-    '감정한 사진은 「앨범에 저장」이나 「공유하기」를 눌렀을 때만 휴대폰 앨범이나 고른 앱으로 가요. 게임에는 어떤 종족을 감정했는지만 남아요.',
+    '마법 돋보기는 카메라 화면에서 얼굴의 위치만 휴대폰 안에서 찾아 장식을 붙여요. 얼굴 사진이나 얼굴 정보를 밖으로 보내지 않아요.',
+    '감정할 때마다 장식을 붙인 사진 한 장이 「감정 앨범」에 남아요. 이 사진은 휴대폰 안 앱 폴더에만 있고 서버로 보내지 않아요. 앨범에서 언제든 지울 수 있고, 앱을 지우면 함께 사라질 수 있어요.',
+    '「저장」이나 「공유」를 눌렀을 때만 휴대폰 사진 앨범이나 고른 앱으로 가요.',
     '건강 앱·위치·알림·카메라·사진 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
     '설정의 「모든 기록 지우고 처음부터」를 누르면 이 앱에 저장된 기록이 모두 지워져요. 건강 앱의 원래 기록은 그대로예요.',
   ];

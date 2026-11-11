@@ -11,6 +11,7 @@ import '../../theme/ornaments.dart';
 import '../smithy/equipment_view.dart';
 import '../../core/models/pet_state.dart';
 import '../alchemy/alchemy_screen.dart' show PotionIcon;
+import '../battle/auto_use_window.dart';
 import '../lens/lens_screen.dart' show openLens;
 import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
@@ -132,18 +133,36 @@ class _BagTabState extends State<BagTab> {
   Future<void> _expand() async {
     final cost = c.bagExpandCost;
     if (cost == null) return;
+    final short = cost - c.player.gold;
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => GameAlert(
+        key: const Key('bagExpandAlert'),
         title: const Text('가방 늘리기'),
-        content: KText('금화 ${comma(cost)}으로 가방을 '
-            '${BagRules.slotsPerExpansion}칸 늘릴까요?'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          KText('가방을 ${BagRules.slotsPerExpansion}칸 늘릴까요?',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const GameIcon('gold', size: 20),
+            const SizedBox(width: 4),
+            Text('금화 ${comma(cost)}',
+                style: AppText.title(16, color: AppColors.goldBright)),
+          ]),
+          if (short > 0) ...[
+            const SizedBox(height: 6),
+            Text('금화 ${comma(short)} 부족',
+                style: const TextStyle(
+                    color: Color(0xFFE57373), fontWeight: FontWeight.w700)),
+          ],
+        ]),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(d, false),
               child: const Text('그만둘래요')),
           TextButton(
-              onPressed: () => Navigator.pop(d, true),
+              key: const Key('bagExpandOk'),
+              onPressed: short > 0 ? null : () => Navigator.pop(d, true),
               child: const Text('늘리기')),
         ],
       ),
@@ -151,9 +170,7 @@ class _BagTabState extends State<BagTab> {
     if (ok != true || !mounted) return;
     final done = await c.expandBag();
     if (!mounted) return;
-    showTopNotice(context, done
-          ? '가방이 ${c.bagCapacity}칸이 됐어요!'
-          : '금화가 ${comma(cost - c.player.gold)} 모자라요.');
+    if (done) showTopNotice(context, '가방이 ${c.bagCapacity}칸이 됐어요!');
   }
 
   @override
@@ -176,17 +193,28 @@ class _BagTabState extends State<BagTab> {
             : 0;
         // 11-11 #70: 한 줄 4칸. 마지막 줄이 모자라면 「늘릴 수 있는 칸」으로 채운다
         final cells = (_filter == BagFilter.all ? all.length + empty : 0);
-        final locks = _filter == BagFilter.all && cost != null && cells % 4 != 0
-            ? 4 - cells % 4
+        // 11-11 #93: 맨 끝에는 언제나 「🔒 +5칸 · 금화 200」 칸 하나
+        final locks = _filter == BagFilter.all && cost != null
+            ? (cells % 4 == 0 ? 1 : 4 - cells % 4)
             : 0;
-        return ListView(
-          padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
+        // 11-11 #93: 위쪽 버튼 줄·마석·금화 칸은 고정하고 아래만 스크롤한다
+        // (스크롤한 내용이 상태 표시줄 뒤로 비쳐 보이지 않게)
+        return Column(children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
+            child: Column(children: [
+              const OrnateTopBar(title: '가방'),
+              const SizedBox(height: 10),
+              OrnatePanel(
+                child: WalletRow(manaStones: p.manaStones, gold: p.gold),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: ClipRect(
+              child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
           children: [
-            const OrnateTopBar(title: '가방'),
-            const SizedBox(height: 10),
-            OrnatePanel(
-              child: WalletRow(manaStones: p.manaStones, gold: p.gold),
-            ),
             // 지금 걸린 물약 (11-11 #74): 전투 · 속성 · 탐험 하나씩
             if (c.activeBuffs.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -253,23 +281,20 @@ class _BagTabState extends State<BagTab> {
                                 : AppColors.text,
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
-                  ]),
-                  if (cost != null) ...[
-                    const SizedBox(height: 8),
-                    FrameButton(
-                      label: '가방 ${BagRules.slotsPerExpansion}칸 늘리기 · 금화 ${comma(cost)}',
-                      gameIcon: 'gold',
-                      height: 40,
-                      onPressed: _expand,
+                    const Spacer(),
+                    // 전투 자동 마시기 (11-11 #93): 작은 물약 아이콘
+                    IconButton(
+                      key: const Key('bagAutoUse'),
+                      tooltip: '전투에서 자동으로 마시기',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => showAutoUseSheet(context, c),
+                      icon: Icon(Icons.local_drink_rounded,
+                          size: 22,
+                          color: c.alchemy.autoHp > 0 || c.alchemy.autoCure
+                              ? AppColors.goldBright
+                              : AppColors.textMuted),
                     ),
-                  ],
-                  const SizedBox(height: 6),
-                  FrameButton(
-                    label: '전투에서 자동으로 마시기',
-                    icon: Icons.auto_mode_rounded,
-                    height: 38,
-                    onPressed: () => showAutoUseSheet(context, c),
-                  ),
+                  ]),
                   if (used > cap)
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
@@ -325,14 +350,25 @@ class _BagTabState extends State<BagTab> {
                           ),
                         for (var i = 0; i < empty; i++) const BagSlot(),
                         for (var i = 0; i < locks; i++)
-                          BagSlot(locked: true, onTap: _expand),
+                          BagSlot(
+                              key: i == locks - 1
+                                  ? const Key('bagExpandSlot')
+                                  : null,
+                              locked: true,
+                              lockLabel: i == locks - 1 && cost != null
+                                  ? '+${BagRules.slotsPerExpansion}칸 · 금화 ${comma(cost)}'
+                                  : null,
+                              onTap: _expand),
                       ],
                     ),
                 ],
               ),
             ),
           ],
-        );
+              ),
+            ),
+          ),
+        ]);
       },
     );
   }
@@ -341,10 +377,18 @@ class _BagTabState extends State<BagTab> {
 /// 가방 한 칸
 class BagSlot extends StatelessWidget {
   const BagSlot(
-      {super.key, this.entry, this.controller, this.onTap, this.locked = false});
+      {super.key,
+      this.entry,
+      this.controller,
+      this.onTap,
+      this.locked = false,
+      this.lockLabel});
 
   /// 금화로 늘릴 수 있는 칸 (자물쇠)
   final bool locked;
+
+  /// 자물쇠 칸 글 (「+5칸 · 금화 200」)
+  final String? lockLabel;
 
   final BagEntry? entry;
   final AppController? controller;
@@ -377,8 +421,25 @@ class BagSlot extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.gold.withValues(alpha: 0.12)),
           ),
-          child: Icon(Icons.lock_rounded,
-              size: 22, color: AppColors.gold.withValues(alpha: 0.45)),
+          child: lockLabel == null
+              ? Icon(Icons.lock_rounded,
+                  size: 22, color: AppColors.gold.withValues(alpha: 0.45))
+              : Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.lock_rounded,
+                          size: 22, color: AppColors.goldBright),
+                      for (final t in lockLabel!.split(' · '))
+                        Text(t,
+                            style: const TextStyle(
+                                color: AppColors.goldBright,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
         ),
       );
     }
@@ -830,50 +891,12 @@ class EggSheet extends StatelessWidget {
   }
 }
 
-/// 전투 자동 마시기 설정 (11-11 #57): 회복·상태이상. 원정에도 같이 쓴다.
+/// 전투 자동 마시기 설정 (11-11 #57, #93): 전투·설정·가방이 같은 창을 쓴다
 Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.night,
-      builder: (sheet) => ListenableBuilder(
-        listenable: c,
-        builder: (sheet, _) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('전투에서 자동으로 마시기', style: AppText.title(19)),
-                const SizedBox(height: 4),
-                const KText('던전·필드·펫 원정 모두에 써요. 전투 한 번에 3개까지.',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                const SizedBox(height: 10),
-                const Text('HP가 이만큼 아래면 회복 물약',
-                    style: TextStyle(color: AppColors.text)),
-                const SizedBox(height: 6),
-                Wrap(spacing: 6, children: [
-                  for (final v in const [0, 30, 50])
-                    ChoiceChip(
-                      label: Text(v == 0 ? '안 마심' : '$v%'),
-                      selected: c.alchemy.autoHp == v,
-                      onSelected: (_) => c.setAutoUse(hpPercent: v),
-                    ),
-                ]),
-                const SizedBox(height: 6),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: c.alchemy.autoCure,
-                  onChanged: (v) => c.setAutoUse(cure: v),
-                  title: const Text('중독·화상·눈부심·빙결이면 해독제·연고·맑은 눈·녹이는 물약',
-                      style: TextStyle(color: AppColors.text, fontSize: 14)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    showAutoUseWindow(context,
+        hp: c.alchemy.autoHp,
+        cure: c.alchemy.autoCure,
+        onChanged: (hp, cure) => c.setAutoUse(hpPercent: hp, cure: cure));
 
 /// 주머니·길가에서 나온 것 한 줄
 String gatherLine(({Map<MaterialId, int> mats, int gold, bool note}) r) => [

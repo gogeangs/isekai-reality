@@ -128,6 +128,8 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 weather: widget.controller.weather?.kind,
                 fast: widget.controller.fastBattle,
                 onFastChanged: widget.controller.setFastBattle,
+                onAutoChanged: (hp, cure) =>
+                    widget.controller.setAutoUse(hpPercent: hp, cure: cure),
                 poisonTip: !widget.controller.poisonTipSeen,
                 onPoisonTipShown: widget.controller.markPoisonTipSeen,
                 aura: switch (widget.controller.gear.sets.look) {

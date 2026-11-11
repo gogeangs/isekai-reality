@@ -65,25 +65,67 @@ class Expedition {
 
   bool get finished => cleared != null;
 
-  /// 가는 길 점들 (출발 → 몬스터)
-  List<(double, double)> get path => route.length >= 2
-      ? route
-      : [(fromLat ?? lat, fromLng ?? lng), (lat, lng)];
+  /// 가는 길 점들 (출발 → 몬스터). 끝은 언제나 몬스터 자리에 정확히 닿는다 (11-11 #90)
+  List<(double, double)> get path {
+    if (route.length < 2) return [(fromLat ?? lat, fromLng ?? lng), (lat, lng)];
+    final last = route.last;
+    if ((last.$1 - lat).abs() < 1e-7 && (last.$2 - lng).abs() < 1e-7) {
+      return route;
+    }
+    return [...route, (lat, lng)];
+  }
+
+  /// 길 위에서 지금 있는 비율 (0 = 출발점, 1 = 몬스터)
+  double tAt(DateTime now) {
+    if (now.isBefore(arriveAt)) {
+      final total = arriveAt.difference(startedAt).inMilliseconds;
+      return (total <= 0 ? 1.0 : now.difference(startedAt).inMilliseconds / total)
+          .clamp(0.0, 1.0);
+    }
+    if (now.isBefore(returnAt)) {
+      final total = returnAt.difference(arriveAt).inMilliseconds;
+      return (1 - (total <= 0 ? 1.0 : now.difference(arriveAt).inMilliseconds / total))
+          .clamp(0.0, 1.0);
+    }
+    return 0;
+  }
+
+  /// 남은 길 (11-11 #92): 갈 때는 지금 자리 → 몬스터, 돌아올 때는 지금 자리 → 출발점.
+  /// 발자국이 가는 방향을 가리키도록 언제나 지금 자리에서 시작한다.
+  /// [skip] 만큼(0~1, 길 전체 비율) 앞부분을 건너뛴다 (발자국이 흘러가는 연출).
+  List<(double, double)> remainingAt(DateTime now, {double skip = 0}) {
+    final going = goingAt(now);
+    final t = tAt(now);
+    final pts = path;
+    final from = going ? (t + skip).clamp(0.0, 1.0) : (t - skip).clamp(0.0, 1.0);
+    final to = going ? 1.0 : 0.0;
+    return subPath(pts, from, to);
+  }
+
+  /// 길의 [a]~[b] 구간 (b < a 면 거꾸로)
+  static List<(double, double)> subPath(
+      List<(double, double)> pts, double a, double b) {
+    if (a > b) return subPath(pts, b, a).reversed.toList();
+    if (pts.length < 2) return pts;
+    final lens = <double>[0];
+    var total = 0.0;
+    for (var i = 1; i < pts.length; i++) {
+      final dy = pts[i].$1 - pts[i - 1].$1;
+      final dx = (pts[i].$2 - pts[i - 1].$2) * 0.8;
+      total += math.sqrt(dx * dx + dy * dy);
+      lens.add(total);
+    }
+    final out = <(double, double)>[pointAlong(pts, a)];
+    for (var i = 1; i < pts.length - 1; i++) {
+      final f = total == 0 ? 0 : lens[i] / total;
+      if (f > a && f < b) out.add(pts[i]);
+    }
+    out.add(pointAlong(pts, b));
+    return out;
+  }
 
   /// 지금 정령이 있는 곳 (가는 길 → 몬스터 자리 → 돌아오는 길). (위도, 경도)
-  (double, double) positionAt(DateTime now) {
-    double t;
-    if (now.isBefore(arriveAt)) {
-      final total = arriveAt.difference(startedAt).inSeconds;
-      t = total <= 0 ? 1 : now.difference(startedAt).inSeconds / total;
-    } else if (now.isBefore(returnAt)) {
-      final total = returnAt.difference(arriveAt).inSeconds;
-      t = 1 - (total <= 0 ? 1 : now.difference(arriveAt).inSeconds / total);
-    } else {
-      t = 0;
-    }
-    return pointAlong(path, t.clamp(0.0, 1.0));
-  }
+  (double, double) positionAt(DateTime now) => pointAlong(path, tAt(now));
 
   /// 점들을 이은 길에서 [t] (0~1) 만큼 간 곳
   static (double, double) pointAlong(List<(double, double)> pts, double t) {

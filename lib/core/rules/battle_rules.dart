@@ -385,11 +385,15 @@ class Battle {
   final Map<String, int> potionsUsed = {};
   int get potionsDrunk => potionsUsed.values.fold(0, (a, b) => a + b);
 
-  /// 자동 마시기: HP 이 % 아래면 회복 물약 (0이면 끔)
-  final int autoHp;
+  /// 자동 마시기: HP 이 % 아래면 회복 물약 (0이면 끔). 전투 중에도 바꿀 수 있다 (11-11 #93)
+  int autoHp;
 
   /// 자동 마시기: 중독·화상·눈부심 풀기
-  final bool autoCure;
+  bool autoCure;
+
+  /// 이번 틱에 자동으로 마신 물약 (전투 기록 한 줄, 11-11 #93)
+  bool autoHealed = false;
+  bool autoCured = false;
 
   /// 속성 저항 (그 속성 몬스터에게 받는 피해 감소)
   final Map<Element, double> resist;
@@ -664,7 +668,10 @@ class Battle {
 
   /// 자동으로 마실 물약이 있으면 마신다
   void _autoDrink() {
+    autoHealed = false;
+    autoCured = false;
     if (isOver) return;
+    final before = potionsDrunk;
     if (autoCure && poisonTurns > 0) {
       final kind = burning ? CureKind.burn : CureKind.poison;
       for (final p in potions.values) {
@@ -689,8 +696,9 @@ class Battle {
         for (final p in potions.values)
           if (p.cure == null && p.hpRatio > 0 && potionLeft(p.key) > 0) p,
       ]..sort((a, b) => a.hpRatio.compareTo(b.hpRatio));
-      if (heals.isNotEmpty) drink(heals.first.key);
+      if (heals.isNotEmpty && drink(heals.first.key)) autoHealed = true;
     }
+    if (!autoHealed && potionsDrunk > before) autoCured = true;
   }
 
   /// 받는 피해 배수 (장비·체력으로 줄어든다)

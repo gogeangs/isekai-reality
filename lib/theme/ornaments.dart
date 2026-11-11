@@ -421,14 +421,19 @@ class GoldButton extends StatelessWidget {
       height: height,
       onPressed: onPressed,
       glow: enabled,
-      child: Text(
-        label,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontFamily: 'Title',
-          fontWeight: FontWeight.w700,
-          fontSize: fontSize,
-          color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
+      // 버튼 글자는 말줄임·줄바꿈 없이 다 보이게 (11-11 #87): 좁으면 글자만 줄인다
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          style: TextStyle(
+            fontFamily: 'Title',
+            fontWeight: FontWeight.w700,
+            fontSize: fontSize,
+            color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
+          ),
         ),
       ),
     );
@@ -475,14 +480,18 @@ class FrameButton extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Title',
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
-                color: color,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  fontFamily: 'Title',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  color: color,
+                ),
               ),
             ),
           ),

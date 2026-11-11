@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/models/armory.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
+import 'slot_glyph.dart';
+
+export 'slot_glyph.dart';
 
 /// 장비 등급 색: 흰색 · 초록 · 파랑 · 보라 · 주황
 Color equipGradeColor(EquipGrade g) => switch (g) {
@@ -21,6 +24,20 @@ IconData slotIcon(EquipSlot s) => switch (s) {
       EquipSlot.feet => Icons.hiking_rounded,
       EquipSlot.accessory => Icons.diamond_outlined,
     };
+
+/// 입은 칸 테두리 색 (11-11 #98): 일반 흰색 · 희귀 파랑 · 영웅 보라 · 보스 장비 주황
+Color wornBorderColor(EquipItem it) {
+  if (EquipmentRules.isBossGear(it.base)) return const Color(0xFFFFA244);
+  return switch (it.grade) {
+    EquipGrade.white || EquipGrade.green => AppColors.text,
+    EquipGrade.blue => const Color(0xFF6BB4FF),
+    EquipGrade.purple || EquipGrade.orange => const Color(0xFFC79BFF),
+  };
+}
+
+/// 강화 단계 → 테두리 빛 세기 (숫자는 숨긴다)
+double enhanceGlow(int enhance) =>
+    enhance <= 0 ? 0 : 3 + 13 * (enhance / EquipmentRules.maxEnhance).clamp(0.0, 1.0);
 
 /// 장비 그림 (equip_*.png). 그림이 없으면 부위 아이콘. 등급 색 테두리.
 class EquipIcon extends StatelessWidget {
@@ -53,13 +70,15 @@ class EquipIcon extends StatelessWidget {
       child: Image.asset('assets/images/${info.asset}.png',
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
-              Icon(slotIcon(info.slot),
-                  // 보스 장비는 세트 빛깔로 (11-11 #82, 그림이 오기 전)
-                  color: switch (BossGearRules.setOf(base)) {
-                    final set? => Color(BossGearRules.info(set).aura),
-                    null => color,
-                  },
-                  size: size * 0.55)),
+              Center(
+                child: SlotGlyph(info.slot,
+                    // 보스 장비는 세트 빛깔로 (11-11 #82, 그림이 오기 전)
+                    color: switch (BossGearRules.setOf(base)) {
+                      final set? => Color(BossGearRules.info(set).aura),
+                      null => color,
+                    },
+                    size: size * 0.55),
+              )),
     );
   }
 }
@@ -163,13 +182,21 @@ class _SlotTile extends StatelessWidget {
           border: Border.all(
               color: it == null
                   ? AppColors.gold.withValues(alpha: 0.3)
-                  : equipGradeColor(it.grade).withValues(alpha: 0.8)),
+                  : wornBorderColor(it).withValues(alpha: 0.9),
+              width: it == null ? 1 : 1.6),
+          boxShadow: it != null && it.enhance > 0
+              ? [
+                  BoxShadow(
+                      color: wornBorderColor(it).withValues(alpha: 0.45),
+                      blurRadius: enhanceGlow(it.enhance)),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (it == null)
-              Icon(slotIcon(slot), color: AppColors.textMuted, size: 26)
+              SlotGlyph(slot, color: AppColors.textMuted, size: 26)
             else
               EquipIcon(base: it.base, grade: it.grade, size: 40),
             const SizedBox(height: 3),

@@ -9,6 +9,7 @@ export 'dungeon_gauge_rules.dart';
 export 'element_rules.dart';
 export 'equipment_rules.dart';
 export 'exp_rules.dart';
+export 'expedition_talk_rules.dart';
 export 'exploration_rules.dart';
 export 'field_monster_rules.dart';
 export 'job_rules.dart';

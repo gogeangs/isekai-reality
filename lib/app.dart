@@ -326,6 +326,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       });
       return;
     }
+    // 첫 알을 받으면 도감 펫 탭이 열린다 (11-11 #96)
+    if (c.petCodexToAnnounce && !_petCodexNoticed && !c.quietTitles) {
+      _petCodexNoticed = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        c.markPetCodexAnnounced();
+        showTopNotice(context, '새 도감이 열렸어요', icon: Icons.menu_book_rounded,
+            onTap: () => setState(() => _tab = 4));
+      });
+    }
     // 떠돌이 상인 (11-11 #84): 창을 저절로 띄우지 않고 위쪽 띠만.
     // 누르면 지도로 가서 상인 자리를 보여 준다.
     if (merchant != null && merchant != _shownMerchant) {
@@ -345,6 +355,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   }
 
   bool _titleShowing = false;
+  bool _petCodexNoticed = false;
 
   /// 칭호를 새로 얻으면 화면 가운데 축하 연출 (11-11 #85).
   /// 전투 중에는 전투 결과를 닫은 뒤에, 여러 개면 하나씩 차례로.
@@ -482,14 +493,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
               petsSeen: controller.pets.seen,
+              petsOpen: controller.petCodexOpen,
+              petsNew: controller.petCodexNew,
+              onPetsTab: controller.markPetCodexSeen,
               onOpenPets: controller.farewellDone
                   ? () => push(PetScreen(controller: controller))
                   : null,
-              racesSeen: controller.racesSeen,
-              raceCounts: {
-                for (final e in controller.lens.counts.entries)
-                  if (LensRules.parse(e.key) case final r?) r: e.value,
-              },
             ),
           ),
         ];

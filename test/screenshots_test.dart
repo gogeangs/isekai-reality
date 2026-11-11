@@ -35,6 +35,7 @@ import 'package:isekai_reality/features/town/shop_screen.dart';
 import 'package:isekai_reality/features/settings/settings_screen.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
 import 'package:isekai_reality/features/alchemy/alchemy_screen.dart';
+import 'package:isekai_reality/features/town/material_view.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/features/harvest/harvest_sheet.dart';
@@ -775,5 +776,80 @@ void main() {
     await tester.tap(find.textContaining('편지 '));
     await tester.pumpAndSettle();
     await _shot(tester, '58_우편함_편지');
+  });
+
+  // 그림 확인 (11-11): 앱이 쓰는 그림 자리마다 실제 화면 위젯으로 그려 본다.
+  // 그림이 있으면 그림, 없으면 대신 그리는 아이콘이 보인다.
+  testWidgets('화면 미리보기: 그림 확인 (물약·재료·몬스터)', (tester) async {
+    _phone(tester);
+    Widget grid(String title, List<(String, Widget)> items) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            backgroundColor: const Color(0xFF141B3A),
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(children: [
+                  Text(title,
+                      style: const TextStyle(color: Color(0xFFF5DC94), fontSize: 18)),
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 6,
+                      childAspectRatio: 0.72,
+                      children: [
+                        for (final (name, w) in items)
+                          Column(children: [
+                            SizedBox(width: 52, height: 52, child: w),
+                            Text(name,
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Color(0xFFF2EEE4), fontSize: 9)),
+                          ]),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        );
+    Future<void> show(String shot, String title, List<(String, Widget)> items) async {
+      await tester.pumpWidget(RepaintBoundary(key: _root, child: grid(title, items)));
+      await tester.pump();
+      await _shot(tester, shot);
+    }
+
+    await show('90_그림확인_물약', '물약 (PotionIcon)', [
+      for (final p in AlchemyRules.all)
+        (p.name, PotionIcon(potion: p.id, size: 52)),
+      ('수상한 물약', const PotionIcon(suspicious: true, size: 52)),
+    ]);
+    final mats = Materials.all;
+    final half = (mats.length / 2).ceil();
+    await show('91_그림확인_재료1', '재료 1 (MaterialIcon)', [
+      for (final m in mats.take(half)) (m.name, MaterialIcon(m.id, size: 52)),
+    ]);
+    await show('92_그림확인_재료2', '재료 2 (MaterialIcon)', [
+      for (final m in mats.skip(half)) (m.name, MaterialIcon(m.id, size: 52)),
+    ]);
+    await show('93_그림확인_몬스터·아이콘', '몬스터 · 아이콘', [
+      for (final m in MonsterId.values)
+        (
+          Monsters.info(m).name,
+          Image.asset(Monsters.info(m).asset,
+              errorBuilder: (_, __, ___) => const Icon(Icons.help_outline,
+                  color: Colors.redAccent, size: 40))
+        ),
+      for (final n in ['icon_post', 'icon_mail', 'icon_alchemy', 'cauldron',
+          'item_recipe_book', 'item_recipe_note', 'item_pouch', 'icon_convert_table'])
+        (
+          n,
+          Image.asset('assets/images/$n.png',
+              errorBuilder: (_, __, ___) => const Icon(Icons.help_outline,
+                  color: Colors.redAccent, size: 40))
+        ),
+    ]);
   });
 }

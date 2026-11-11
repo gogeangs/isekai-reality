@@ -130,3 +130,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_stoneDark | 어둠의 마석 (256×256) |
 | mat_stoneIce | 얼음의 마석 (256×256) |
 | mat_stoneThunder | 번개의 마석 (256×256) |
+| mat_stoneMetal | 금속의 마석 (256×256) |

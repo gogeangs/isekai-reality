@@ -125,14 +125,14 @@ class SettingsScreen extends StatelessWidget {
           _Section(
             title: '앱 정보',
             children: [
-              const _Row(label: '버전', value: kAppVersion),
+              _Row(label: '버전', value: appVersionLabel),
               _Row(
                 label: '오픈소스 라이선스',
                 value: '',
                 onTap: () => showLicensePage(
                   context: context,
                   applicationName: '이세계가 현실이라면?',
-                  applicationVersion: kAppVersion,
+                  applicationVersion: appVersionLabel,
                 ),
               ),
             ],

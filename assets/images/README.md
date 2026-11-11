@@ -111,3 +111,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_glowShadowCore | 빛나는 그림자 코어 (256×256) |
 | mat_<ice·thunder·metal>Jelly, mat_<ice·thunder·metal>Core | 얼음·번개·금속 젤리와 코어 (256×256) |
 | mat_poisonJelly, mat_poisonCore, mat_glowIceCore, mat_glowThunderCore | 독 젤리·코어, 빛나는 얼음·번개 코어 (256×256) |
+| mat_glowMetalCore, mat_glowPoisonCore | 빛나는 금속·독 코어 (256×256) |

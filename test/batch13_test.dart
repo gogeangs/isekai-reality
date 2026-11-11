@@ -3,7 +3,13 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
+import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/mail_state.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
+import 'package:isekai_reality/data/health/health_source.dart';
+import 'package:isekai_reality/data/location/location_source.dart';
+import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/map/korea_area.dart';
 
 void main() {
   group('C7 장소 종류 격자', () {
@@ -52,6 +58,50 @@ void main() {
       expect(count(LandKind.city, {HarvestKind.ore, HarvestKind.gem}),
           greaterThan(1600));
       expect(count(LandKind.sea, {HarvestKind.water}), greaterThan(1600));
+    });
+  });
+
+  group('#100 우편함 한 목록', () {
+    test('받은 보상 편지는 지우지 않고 보관, 받지 않은 것만 30일 뒤 사라짐', () async {
+      var now = DateTime(2026, 11, 11, 12);
+      final store = InMemoryRecordStore();
+      await store.saveJson(
+          'mail',
+          MailState(mails: [
+            MailItem(
+                id: 'r1',
+                kind: MailKind.reward,
+                from: MailRules.operator,
+                title: '점검 보상',
+                gifts: const {'gold': 100},
+                sentAt: now,
+                expiresAt: now.add(MailRules.rewardKeep)),
+            MailItem(
+                id: 'r2',
+                kind: MailKind.reward,
+                from: MailRules.operator,
+                title: '두 번째 보상',
+                gifts: const {'gold': 50},
+                sentAt: now,
+                expiresAt: now.add(MailRules.rewardKeep)),
+          ], sent: const [
+            'r1',
+            'r2'
+          ]).toJson());
+      final c = AppController(
+        area: KoreaArea.area,
+        store: store,
+        health: FakeHealthSource(stepsByDay: {'2026-11-11': 3000}),
+        location: FakeLocationSource(),
+        clock: () => now,
+      )..mailSources = const [];
+      await c.init();
+      expect(c.allMails.length, 2);
+      expect(await c.claimMail('r1'), isNotNull);
+      expect(c.allMails.any((m) => m.id == 'r1' && m.claimed), isTrue);
+      now = now.add(const Duration(days: 31));
+      await c.refreshVitals();
+      expect(c.allMails.map((m) => m.id), ['r1']); // 받은 것은 남고 받지 않은 것만 사라짐
     });
   });
 }

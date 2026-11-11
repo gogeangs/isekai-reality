@@ -440,6 +440,7 @@ class BagSlot extends StatelessWidget {
                     ]),
                   ),
                 ),
+        ),
       );
     }
     return GestureDetector(

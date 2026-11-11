@@ -263,7 +263,7 @@ class _StatRow extends StatelessWidget {
                   child: Text('$total',
                       style: AppText.title(20,
                               color: Color.lerp(AppColors.text,
-                                  AppColors.goldBright, v))
+                                  AppColors.goldBright, v)!)
                           .copyWith(shadows: [
                         Shadow(
                             color: AppColors.gold.withValues(alpha: v),

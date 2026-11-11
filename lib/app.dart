@@ -408,9 +408,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         }
         if (!controller.needsAwakening) _maybeShowTitle();
         _maybeShowBagFull();
+        if (controller.ageBlocked) {
+          return const Scaffold(
+              body: NightBackground(child: AgeBlockedView()));
+        }
         if (controller.needsAwakening) {
           _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
           return AwakeningScreen(
+            onTooYoung: controller.blockForAge,
+            now: () => controller.now,
             onAwaken: (name, look, weather, spirit, spiritName) =>
                 controller.awaken(
                     name: name,

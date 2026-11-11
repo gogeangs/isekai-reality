@@ -195,7 +195,19 @@ class AppController extends ChangeNotifier {
     return (from: seen, to: now);
   }
 
+  // 이용 연령 (11-11 #86): 만 14세 미만으로 확인되면 이용할 수 없다
+  static const _ageKey = 'age';
+  bool _ageBlocked = false;
+  bool get ageBlocked => _ageBlocked;
+
+  Future<void> blockForAge() async {
+    _ageBlocked = true;
+    await store.saveJson(_ageKey, {'blocked': true});
+    notifyListeners();
+  }
+
   Future<void> init() async {
+    _ageBlocked = (await store.loadJson(_ageKey))?['blocked'] == true;
     final saved = await store.loadProfile();
     if (saved == null) {
       // 처음 실행: 각성 화면에서 이름과 외형을 정한 뒤 시작한다
@@ -441,6 +453,7 @@ class AppController extends ChangeNotifier {
     _alloc = const StatAlloc();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
+    _ageBlocked = false;
     notifyListeners();
   }
 

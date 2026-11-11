@@ -1,3 +1,4 @@
+export 'age_rules.dart';
 export 'alchemy_rules.dart';
 export 'bag_rules.dart';
 export 'battle_rules.dart';

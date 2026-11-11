@@ -31,7 +31,11 @@ class BattleView extends StatefulWidget {
     this.onFastChanged,
     this.poisonTip = false,
     this.onPoisonTipShown,
+    this.aura,
   });
+
+  /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
+  final Color? aura;
 
   final Battle battle;
   final VoidCallback onFinished;
@@ -345,6 +349,7 @@ class _BattleViewState extends State<BattleView> {
                 guard: _b.lastGuard,
                 enraged: _b.enraged,
                 stance: _b.stanceTurns > 0,
+                aura: widget.aura,
               ),
               const SizedBox(height: 8),
               OrnatePanel(
@@ -657,7 +662,10 @@ class _Scene extends StatefulWidget {
     this.guard,
     this.enraged = false,
     this.stance = false,
+    this.aura,
   });
+
+  final Color? aura;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
   final bool petDash;
@@ -853,6 +861,26 @@ class _SceneState extends State<_Scene> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
+                    // 보스 장비 6개 세트: 각성자 둘레 세트 빛 (11-11 #82)
+                    if (widget.aura != null)
+                      Positioned(
+                        key: const Key('battleAura'),
+                        left: w * 0.02 + lunge * w * 0.08 - heroW * 0.1,
+                        bottom: 10,
+                        width: heroW * 1.2,
+                        height: h * 0.62,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(colors: [
+                                widget.aura!.withValues(
+                                    alpha: 0.45 + 0.15 * math.sin(t * math.pi)),
+                                widget.aura!.withValues(alpha: 0),
+                              ]),
+                            ),
+                          ),
+                        ),
+                      ),
                     // 각성자 (달려들고, 맞으면 붉게 번쩍)
                     Positioned(
                       left: w * 0.02 + lunge * w * 0.08,

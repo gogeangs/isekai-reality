@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'alchemy_rules.dart';
+import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'job_rules.dart';
@@ -228,6 +229,8 @@ class Battle {
     this.weaponPotion,
     this.telegraphs = false,
     this.heroSkills = false,
+    this.setAttack = const {},
+    this.setAbilities = const {},
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -295,7 +298,14 @@ class Battle {
       potions: potions,
       autoHp: autoHp,
       autoCure: autoCure,
-      resist: resist,
+      // 보스 장비 2개 세트 효과는 저항 물약과 더한다 (11-11 #82)
+      resist: {
+        ...resist,
+        for (final e in gear.sets.resist.entries)
+          e.key: math.min(0.6, (resist[e.key] ?? 0) + e.value),
+      },
+      setAttack: gear.sets.attack,
+      setAbilities: gear.sets.abilities,
       attackElement: gear.attackElement,
       skillElement: skillElement,
       guardElements: gear.guardElements,
@@ -382,6 +392,54 @@ class Battle {
   final Element? weaponPotion;
 
   // ───────────── 11-11 #75 막기 타이밍 · 내 스킬 · 보스 분노 (숫자는 숨김)
+
+  /// 보스 장비 4개 세트 효과: 그 속성으로 공격할 때 피해 증가 (11-11 #82, 숨김)
+  final Map<Element, double> setAttack;
+
+  /// 보스 장비 6개 세트 효과: 고유 능력
+  final Set<BossSetAbility> setAbilities;
+
+  /// 6개 세트 능력이 발동한 횟수 (테스트·연출용)
+  int setProcs = 0;
+
+  void _setOnHit(int dealt) {
+    if (setAbilities.isEmpty || phase != BattlePhase.fighting) return;
+    for (final a in setAbilities) {
+      if (phase != BattlePhase.fighting) return;
+      switch (a) {
+        case BossSetAbility.burn:
+          if (_rng.nextDouble() < BossGearRules.burnChance) {
+            foeBurnTurns = 3;
+            setProcs++;
+            lastEvent = '불태웠어요!';
+          }
+        case BossSetAbility.freeze:
+          if (_rng.nextDouble() < BossGearRules.freezeChance) {
+            _foeFrozen = true;
+            foeFreezes++;
+            setProcs++;
+            lastEvent = '얼렸어요!';
+          }
+        case BossSetAbility.drain:
+          final heal = math.max(1, (dealt * BossGearRules.drainRatio).round());
+          if (playerHp < playerMaxHp) {
+            playerHp = math.min(playerMaxHp, playerHp + heal);
+            setProcs++;
+          }
+        case BossSetAbility.chain:
+          if (_rng.nextDouble() < BossGearRules.chainChance) {
+            final extra = _elemental(_vary(playerAttack), weaponPotion ?? attackElement,
+                level: weaponPotion != null ? 0 : attackLevel);
+            lastDealt += extra;
+            setProcs++;
+            lastEvent = '연쇄 번개!';
+            _hitFoe(extra);
+          }
+        case BossSetAbility.stoneSkin || BossSetAbility.regrow:
+          break;
+      }
+    }
+  }
 
   /// 강한 공격을 예고하고 막기를 받는지 (화면이 있는 전투만. 원정 자동 전투는 false)
   final bool telegraphs;
@@ -764,6 +822,7 @@ class Battle {
       lastDealt = dmg;
       _hitFoe(dmg);
       _inflict();
+      _setOnHit(dmg);
       _checkRage();
     }
     if (phase != BattlePhase.fighting) return;
@@ -811,6 +870,12 @@ class Battle {
     if (immuneTurns > 0) immuneTurns--;
     if (freezeImmune > 0) freezeImmune--;
     if (stanceTurns > 0) stanceTurns--;
+    // 고목 세트 6개: 매 턴 HP 조금 회복 (11-11 #82)
+    if (setAbilities.contains(BossSetAbility.regrow) && playerHp < playerMaxHp) {
+      playerHp = math.min(playerMaxHp,
+          playerHp + math.max(1, (playerMaxHp * BossGearRules.regrowRatio).round()));
+      setProcs++;
+    }
     _autoDrink();
     if (skillCharge < skillChargeTicks) skillCharge++;
     if (heroSkills) {
@@ -872,6 +937,13 @@ class Battle {
       atk *= 0.5;
       shieldHits--;
       lastEvent ??= '보호막!';
+    }
+    // 문지기 세트 6개: 돌 피부 (11-11 #82, 숨김)
+    if (setAbilities.contains(BossSetAbility.stoneSkin) &&
+        _rng.nextDouble() < BossGearRules.stoneSkinChance) {
+      atk *= 0.5;
+      setProcs++;
+      lastEvent ??= '돌 피부!';
     }
     // 막기 (11-11 #75): 막기는 받는 피해 -60%, 완벽한 막기는 피해 없음 + 반격
     if (strong && _guard != null) {
@@ -1006,6 +1078,8 @@ class Battle {
     if (m > 1 && level > 0) m = SmithRules.strongAt(level);
     var d = dmg * m;
     if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;
+    // 보스 장비 4개 세트: 그 속성 공격 강화 (11-11 #82)
+    if (attack != null && setAttack[attack] != null) d *= 1 + setAttack[attack]!;
     if (m > 1) lastEvent = superEffective;
     if (m < 1) lastEvent = notEffective;
     return math.max(1, d.round());

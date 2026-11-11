@@ -10,6 +10,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import '../alchemy/convert_panel.dart' show LockedJobPanel;
+import 'boss_gear_tab.dart';
 import 'equipment_view.dart';
 import '../battle/element_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
@@ -31,7 +32,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
 
   AppController get c => widget.controller;
 
-  static const _tabs = ['만들기', '강화', '수리 · 분해', '가공'];
+  static const _tabs = ['만들기', '강화', '수리 · 분해', '가공', '보스 장비'];
 
   void _snack(String text) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(text)));
@@ -59,6 +60,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                     line: switch (_tab) {
                   0 => '몬스터 재료로 장비를 만들 수 있어. 귀한 재료를 넣으면 좋은 등급이 잘 나와!',
                   1 => '강화는 실패해도 장비가 부서지지 않아. 마석과 금화만 써.',
+                  4 => '보스 장비 조각과 보스 재료로 세트 장비를 만들어. 같은 세트를 모아 입을수록 힘이 깨어나!',
                   _ => '닳은 장비는 고치고, 안 쓰는 장비는 분해해서 재료로 돌려받자.',
                 }),
                 const SizedBox(height: 8),
@@ -88,6 +90,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   0 => _craftTab(),
                   1 => _enhanceTab(),
                   2 => _repairTab(),
+                  4 => [BossGearTab(controller: c)],
                   _ => [
                       ProcessPanel(controller: c, smithy: true),
                       const SizedBox(height: 10),
@@ -532,11 +535,16 @@ class _TabButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
           ),
-          child: Text(label,
-              style: TextStyle(
-                  color: selected ? const Color(0xFF3A2208) : AppColors.text,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14)),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label,
+                maxLines: 1,
+                style: TextStyle(
+                    color: selected ? const Color(0xFF3A2208) : AppColors.text,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+          ),
         ),
       );
 }

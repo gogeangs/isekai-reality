@@ -99,6 +99,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     onFastChanged: _c.setFastBattle,
                     poisonTip: !_c.poisonTipSeen,
                     onPoisonTipShown: _c.markPoisonTipSeen,
+                    aura: switch (_c.gear.sets.look) {
+                      final set? => Color(BossGearRules.info(set).aura),
+                      null => null,
+                    },
                   ),
                 ],
               _Stage.result => _result(),

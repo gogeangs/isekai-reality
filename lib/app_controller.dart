@@ -2405,7 +2405,7 @@ class AppController extends ChangeNotifier {
 
   /// 상인이 떠나기까지 남은 분 (없으면 0)
   int get merchantMinutesLeft => merchantHere
-      ? _gather.merchantUntil!.difference(_clock()).inMinutes + 1
+      ? (_gather.merchantUntil!.difference(_clock()).inSeconds + 59) ~/ 60
       : 0;
 
   /// 이번 상인에게서 이미 샀는지 ([m] 이 null 이면 레시피 쪽지)

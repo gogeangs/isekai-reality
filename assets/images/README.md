@@ -119,3 +119,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | potion_heal_3, potion_heal_4, potion_heal_5 | 치유·생명·여명의 물약 (256×256) |
 | potion_mana_3 | 맑은 마나 물약 (256×256) |
 | potion_mana_4, potion_mana_5 | 깊은 마나·여명의 마나 물약 (256×256, 4등급은 뿌연 얼룩을 지워서 넣음) |
+| mat_bossWardenHeart, mat_bossKingOrb | 보스 재료: 문지기의 심장, 왕의 구슬 (256×256) |

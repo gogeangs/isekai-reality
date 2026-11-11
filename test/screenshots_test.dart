@@ -540,6 +540,10 @@ void main() {
     await _shot(tester, '28d_대장간_속성');
     Navigator.of(tester.element(find.text('속성 입히기'))).pop();
     await tester.pumpAndSettle();
+    // 보스 장비 (11-11 #82)
+    await tester.tap(find.text('보스 장비'));
+    await tester.pumpAndSettle();
+    await _shot(tester, '28g_대장간_보스장비');
     Navigator.of(tester.element(find.byType(SmithyScreen))).pop();
     await tester.pumpAndSettle();
 

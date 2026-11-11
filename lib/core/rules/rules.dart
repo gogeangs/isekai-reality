@@ -2,6 +2,7 @@ export 'alchemy_rules.dart';
 export 'bag_rules.dart';
 export 'battle_rules.dart';
 export 'board_rules.dart';
+export 'boss_gear_rules.dart';
 export 'convert_rules.dart';
 export 'dungeon_gauge_rules.dart';
 export 'element_rules.dart';

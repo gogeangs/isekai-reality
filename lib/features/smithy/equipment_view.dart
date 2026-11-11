@@ -53,7 +53,13 @@ class EquipIcon extends StatelessWidget {
       child: Image.asset('assets/images/${info.asset}.png',
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
-              Icon(slotIcon(info.slot), color: color, size: size * 0.55)),
+              Icon(slotIcon(info.slot),
+                  // 보스 장비는 세트 빛깔로 (11-11 #82, 그림이 오기 전)
+                  color: switch (BossGearRules.setOf(base)) {
+                    final set? => Color(BossGearRules.info(set).aura),
+                    null => color,
+                  },
+                  size: size * 0.55)),
     );
   }
 }

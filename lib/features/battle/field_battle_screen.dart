@@ -120,6 +120,10 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 onFastChanged: widget.controller.setFastBattle,
                 poisonTip: !widget.controller.poisonTipSeen,
                 onPoisonTipShown: widget.controller.markPoisonTipSeen,
+                aura: switch (widget.controller.gear.sets.look) {
+                  final set? => Color(BossGearRules.info(set).aura),
+                  null => null,
+                },
               )
             else if (_done) ...[
               const SizedBox(height: 8),

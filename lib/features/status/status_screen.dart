@@ -143,7 +143,17 @@ class StatusScreen extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 // HP 0이면 지친 각성자 그림
-                _HeroArt(look: look, top: top, tired: curHp <= 0),
+                _HeroArt(
+                    look: look,
+                    top: top,
+                    tired: curHp <= 0,
+                    // 보스 장비 6개 세트 외형 (11-11 #82): 그림 전에는 세트 빛깔
+                    aura: switch (armory == null
+                        ? null
+                        : SetBonus.of(armory!.worn).look) {
+                      final set? => Color(BossGearRules.info(set).aura),
+                      null => null,
+                    }),
                 // 장비 칸 (11-11 #44): 왼쪽 무기·장갑·장신구, 오른쪽 머리·몸·신발.
                 // 말풍선(오른쪽 위) 아래에서 시작하고, 각성자·마법진은 가리지 않게 작게
                 if (armory != null) ...[
@@ -239,9 +249,13 @@ class StatusScreen extends StatelessWidget {
 /// 무대형 배경 (11-11 #39): 남·여 공통 무대 그림, 가운데 마법진 위에 각성자.
 /// 은은한 테두리 빛과 발밑 그림자로 배경과 나눈다. 오른쪽 위 하늘은 정령 말풍선 자리.
 class _HeroArt extends StatelessWidget {
-  const _HeroArt({required this.look, required this.top, this.tired = false});
+  const _HeroArt(
+      {required this.look, required this.top, this.tired = false, this.aura});
 
   final HeroLook look;
+
+  /// 보스 장비 6개 세트 빛 (없으면 보통 금빛 테두리)
+  final Color? aura;
 
   /// HP 0: 지친 모습
   final bool tired;
@@ -303,10 +317,13 @@ class _HeroArt extends StatelessWidget {
           height: heroH,
           child: Stack(alignment: Alignment.bottomCenter, children: [
             ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              imageFilter: ImageFilter.blur(
+                  sigmaX: aura == null ? 6 : 12, sigmaY: aura == null ? 6 : 12),
               child: ColorFiltered(
-                colorFilter: const ColorFilter.mode(
-                    Color(0xCCFFF1C9), BlendMode.srcIn),
+                key: aura == null ? null : const Key('heroAura'),
+                colorFilter: ColorFilter.mode(
+                    aura?.withValues(alpha: 0.95) ?? const Color(0xCCFFF1C9),
+                    BlendMode.srcIn),
                 child: Image.asset(hero,
                     height: heroH,
                     fit: BoxFit.contain,

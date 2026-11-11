@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../models/armory.dart';
+import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
 import 'stat_rules.dart';
@@ -26,6 +27,13 @@ enum EquipBase {
   boarArmor,
   rabbitBoots,
   tuskNecklace,
+  // 11-11 #82 보스 장비 6세트 (무기·머리·몸·장갑·신발·장신구)
+  wardenWeapon, wardenHead, wardenBody, wardenHands, wardenFeet, wardenAcc,
+  flameWeapon, flameHead, flameBody, flameHands, flameFeet, flameAcc,
+  frostWeapon, frostHead, frostBody, frostHands, frostFeet, frostAcc,
+  groveWeapon, groveHead, groveBody, groveHands, groveFeet, groveAcc,
+  nightWeapon, nightHead, nightBody, nightHands, nightFeet, nightAcc,
+  stormWeapon, stormHead, stormBody, stormHands, stormFeet, stormAcc,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -101,7 +109,11 @@ class GearBonus {
     this.guardElements = const {},
     this.attackLevel = 0,
     this.guardLevels = const {},
+    this.sets = SetBonus.none,
   });
+
+  /// 보스 장비 세트 효과 (11-11 #82)
+  final SetBonus sets;
 
   /// 무기의 공격 속성 (11-11 #63)
   final Element? attackElement;
@@ -249,7 +261,15 @@ class EquipmentRules {
     ),
   ];
 
-  static EquipBaseInfo info(EquipBase id) => all.firstWhere((e) => e.id == id);
+  static EquipBaseInfo info(EquipBase id) => _byId[id]!;
+
+  static final Map<EquipBase, EquipBaseInfo> _byId = {
+    for (final e in all) e.id: e,
+    for (final e in BossGearRules.infos) e.id: e,
+  };
+
+  /// 보스 장비인지 (11-11 #82)
+  static bool isBossGear(EquipBase id) => BossGearRules.setOf(id) != null;
 
   static EquipBase? baseByName(String name) {
     for (final b in EquipBase.values) {
@@ -460,6 +480,7 @@ class EquipmentRules {
       guardElements: guards,
       attackLevel: atkLv,
       guardLevels: guardLv,
+      sets: SetBonus.of(worn),
     );
   }
 

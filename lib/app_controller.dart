@@ -2994,6 +2994,79 @@ class AppController extends ChangeNotifier {
     return item;
   }
 
+  // ───────────── 보스 장비 만들기 (11-11 #82)
+
+  /// 대장장이 직업 (#55 직업 각성 뒤 열림, 지금은 늘 false)
+  bool get blacksmith => false;
+
+  /// 이 세트의 보스를 잡아 봤는지 (못 잡은 보스의 세트는 그림자로 숨김)
+  bool bossSetOpen(BossSet s) =>
+      purifiedEver.contains(BossGearRules.info(s).boss);
+
+  /// 이 부위를 이미 만든 적이 있는지 (가진 것 중에)
+  bool hasBossPart(EquipBase base) => _armory.items.any((i) => i.base == base);
+
+  CraftCheck canCraftBoss(EquipBase base) {
+    final set = BossGearRules.setOf(base);
+    if (set == null || !bossSetOpen(set)) return CraftCheck.materials;
+    final info = BossGearRules.info(set);
+    final c = BossGearRules.cost(EquipmentRules.info(base).slot,
+        blacksmith: blacksmith);
+    final p = player;
+    if (p.materialCount(MaterialId.bossShard) < c.shards ||
+        p.materialCount(info.material) < c.mats) {
+      return CraftCheck.materials;
+    }
+    if (p.gold < c.gold) return CraftCheck.gold;
+    if (bagFree <= 0) return CraftCheck.bagFull;
+    return CraftCheck.ok;
+  }
+
+  /// 보스 장비를 만든다. 실패하면 금화 절반과 조각 일부를 잃고 전용 재료는 돌려받는다.
+  /// 처음부터 그 보스 속성이 입혀져 있다 (일반 장비처럼 바꾸기·추출·강화 가능).
+  Future<BossCraftResult?> craftBoss(EquipBase base) async {
+    if (canCraftBoss(base) != CraftCheck.ok) return null;
+    final set = BossGearRules.info(BossGearRules.setOf(base)!);
+    final slot = EquipmentRules.info(base).slot;
+    final c = BossGearRules.cost(slot, blacksmith: blacksmith);
+    final failed = _random.nextDouble() < BossGearRules.failChance(blacksmith: blacksmith);
+    final today = await _todayRecord();
+    if (failed) {
+      final loss = BossGearRules.failLoss(slot, blacksmith: blacksmith);
+      await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {
+          MaterialId.bossShard.name: loss.shards,
+          Wallet.gold: loss.gold,
+        }),
+      ));
+      return BossCraftResult(
+          line: BossGearRules.failLines[_random.nextInt(BossGearRules.failLines.length)]);
+    }
+    final used = <String, int>{
+      MaterialId.bossShard.name: c.shards,
+      set.material.name: c.mats,
+    };
+    await _save(today.copyWith(
+      spends: DailyRecord.addCounts(today.spends, {...used, Wallet.gold: c.gold}),
+    ));
+    final a = _armory;
+    final grade = EquipmentRules.rollGrade(_random, rare: true, crafts: a.crafts);
+    final item = EquipItem(
+      uid: 'eq${a.nextId}',
+      base: base,
+      grade: grade,
+      extras: EquipmentRules.rollExtras(grade, _random),
+      materialsUsed: used,
+      element: set.element,
+    );
+    await _saveArmory(a.copyWith(
+      items: [...a.items, item],
+      crafts: a.crafts + 1,
+      nextId: a.nextId + 1,
+    ));
+    return BossCraftResult(item: item);
+  }
+
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
     if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
@@ -3973,6 +4046,14 @@ enum SmithResult { ok, failed, cannot }
 
 /// 대장간에서 만들거나 강화할 수 있는지
 enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
+
+/// 보스 장비 만들기 결과 (실패면 item 이 null 이고 line 이 대장장이의 말)
+class BossCraftResult {
+  const BossCraftResult({this.item, this.line});
+  final EquipItem? item;
+  final String? line;
+  bool get ok => item != null;
+}
 
 /// 가마솥에서 꺼낸 것
 class BrewResult {

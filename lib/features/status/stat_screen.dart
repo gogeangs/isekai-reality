@@ -22,6 +22,10 @@ class _StatScreenState extends State<StatScreen> {
   /// 아직 확정하지 않은 분배
   Stats _draft = Stats.zero;
 
+  /// 확정할 때 바뀐 스탯 숫자를 금빛으로 한 번 반짝인다 (11-11 #85)
+  Set<StatKind> _flash = {};
+  int _flashTick = 0;
+
   AppController get c => widget.controller;
 
   static IconData icon(StatKind k) => switch (k) {
@@ -112,6 +116,8 @@ class _StatScreenState extends State<StatScreen> {
                           fromPoints: alloc.of(k) + _draft.of(k),
                           adding: _draft.of(k),
                           canAdd: left > 0,
+                          flash: _flash.contains(k),
+                          flashTick: _flashTick,
                           onAdd: () => setState(
                               () => _draft = _draft.withValue(k, _draft.of(k) + 1)),
                           onRemove: _draft.of(k) > 0
@@ -139,12 +145,22 @@ class _StatScreenState extends State<StatScreen> {
                     child: GoldButton(
                       label: '확정',
                       height: 44,
-                      onPressed: _draft.total > 0
+                      // 정령 말풍선이 알려 주므로 알림 띠는 띄우지 않는다
+                      onPressed: _draft.total > 0 && c.unspentPoints > 0
                           ? () async {
+                              final changed = {
+                                for (final k in StatKind.values)
+                                  if (_draft.of(k) > 0) k,
+                              };
                               final ok = await c.allocateStats(_draft);
                               if (!mounted) return;
-                              setState(() => _draft = Stats.zero);
-                              if (ok) _snack('스탯을 올렸어요!');
+                              setState(() {
+                                _draft = Stats.zero;
+                                if (ok) {
+                                  _flash = changed;
+                                  _flashTick++;
+                                }
+                              });
                             }
                           : null,
                     ),
@@ -162,7 +178,7 @@ class _StatScreenState extends State<StatScreen> {
                     ),
                     const SizedBox(width: 8),
                     SizedBox(
-                      width: 110,
+                      width: 128,
                       child: FrameButton(
                         label: '되돌리기',
                         height: 40,
@@ -190,7 +206,12 @@ class _StatRow extends StatelessWidget {
     required this.canAdd,
     required this.onAdd,
     this.onRemove,
+    this.flash = false,
+    this.flashTick = 0,
   });
+
+  final bool flash;
+  final int flashTick;
 
   final StatKind kind;
   final IconData icon;
@@ -219,7 +240,11 @@ class _StatRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(kind.label, style: AppText.title(16, color: AppColors.text)),
-              KText(kind.role,
+              // 다섯 칸 높이를 같게: 설명은 한 줄
+              Text(kind.role,
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
                   style:
                       const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
             ],
@@ -228,9 +253,28 @@ class _StatRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('$total',
-                style: AppText.title(20,
-                    color: adding > 0 ? AppColors.goldBright : AppColors.text)),
+            if (flash)
+              TweenAnimationBuilder<double>(
+                key: ValueKey('flash_$flashTick'),
+                tween: Tween(begin: 1, end: 0),
+                duration: const Duration(milliseconds: 1100),
+                builder: (_, v, __) => Transform.scale(
+                  scale: 1 + 0.25 * v,
+                  child: Text('$total',
+                      style: AppText.title(20,
+                              color: Color.lerp(AppColors.text,
+                                  AppColors.goldBright, v))
+                          .copyWith(shadows: [
+                        Shadow(
+                            color: AppColors.gold.withValues(alpha: v),
+                            blurRadius: 14 * v),
+                      ])),
+                ),
+              )
+            else
+              Text('$total',
+                  style: AppText.title(20,
+                      color: adding > 0 ? AppColors.goldBright : AppColors.text)),
             Text('포인트 +$fromPoints',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
           ],

@@ -115,7 +115,7 @@ extension StatKindInfo on StatKind {
         StatKind.agility => '먼저 공격·회피',
         StatKind.intellect => '정령의 일격·MP',
         StatKind.vitality => 'HP·받는 피해',
-        StatKind.luck => '치명타·귀한 재료·수식어 몬스터',
+        StatKind.luck => '치명타·귀한 재료',
       };
 
   /// 예전 이름 (장비 추가 능력 키를 옮길 때)

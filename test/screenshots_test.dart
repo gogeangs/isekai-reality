@@ -339,13 +339,7 @@ void main() {
     await c.buy(ShopItem.healSmall);
     await tester.pumpAndSettle();
     await _shot(tester, '22_잡화상');
-    await tester.ensureVisible(find.text('가방 열기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('가방 열기'));
-    await tester.pumpAndSettle();
-    await _shot(tester, '22b_가방');
-    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
-    await tester.pumpAndSettle();
+    expect(find.text('가방 열기'), findsNothing); // 11-11 #99
     await tester.ensureVisible(find.text('재료·물건·장비 팔기'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('재료·물건·장비 팔기'));

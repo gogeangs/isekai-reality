@@ -117,16 +117,26 @@ List<BagEntry> bagEntries(AppController c) {
 /// 하단 메뉴 '가방' 탭 (11-11 #48).
 /// 칸 20개에서 시작, 금화로 5칸씩 늘린다. 마석·금화는 칸을 차지하지 않는다.
 class BagTab extends StatefulWidget {
-  const BagTab({super.key, required this.controller});
+  const BagTab(
+      {super.key,
+      required this.controller,
+      this.initialFilter = BagFilter.all,
+      this.onBack});
 
   final AppController controller;
+
+  /// 처음 고른 필터 (던전 입구에서는 「소비」, 11-11 #99)
+  final BagFilter initialFilter;
+
+  /// 따로 연 가방 화면이면 뒤로 가기
+  final VoidCallback? onBack;
 
   @override
   State<BagTab> createState() => _BagTabState();
 }
 
 class _BagTabState extends State<BagTab> {
-  BagFilter _filter = BagFilter.all;
+  late BagFilter _filter = widget.initialFilter;
 
   AppController get c => widget.controller;
 
@@ -203,7 +213,7 @@ class _BagTabState extends State<BagTab> {
           Padding(
             padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
             child: Column(children: [
-              const OrnateTopBar(title: '가방'),
+              OrnateTopBar(title: '가방', onBack: widget.onBack),
               const SizedBox(height: 10),
               OrnatePanel(
                 child: WalletRow(manaStones: p.manaStones, gold: p.gold),
@@ -373,6 +383,23 @@ class _BagTabState extends State<BagTab> {
     );
   }
 }
+
+/// 가방을 따로 연다 (던전 입구 등, 11-11 #99): 탭의 20칸 가방과 같은 화면
+Future<void> openBag(BuildContext context, AppController c,
+        {BagFilter filter = BagFilter.all}) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (route) => Scaffold(
+        backgroundColor: AppColors.night,
+        body: NightBackground(
+          header: true,
+          child: BagTab(
+            controller: c,
+            initialFilter: filter,
+            onBack: () => Navigator.of(route).maybePop(),
+          ),
+        ),
+      ),
+    ));
 
 /// 가방 한 칸
 class BagSlot extends StatelessWidget {

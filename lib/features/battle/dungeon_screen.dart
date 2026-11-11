@@ -7,7 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
-import '../town/bag_sheet.dart';
+import '../town/bag_tab.dart' show openBag, BagFilter;
 import '../town/material_view.dart';
 import 'battle_view.dart';
 
@@ -256,7 +256,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
               ),
               const SizedBox(width: 6),
               TextButton.icon(
-                onPressed: () => showBagSheet(context, _c),
+                key: const Key('dungeonBag'),
+                onPressed: () =>
+                    openBag(context, _c, filter: BagFilter.consumable),
                 icon: const GameIcon('bag', size: 22),
                 label: const Text('가방',
                     style: TextStyle(color: AppColors.goldBright)),

@@ -127,3 +127,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_stoneWind | 바람의 마석 (256×256) |
 | icon_convert_table | 공방 변환대 (256×256) |
 | mat_stoneLight, mat_stoneEarth | 빛의 마석, 대지의 마석 (256×256) |
+| mat_stoneDark | 어둠의 마석 (256×256) |

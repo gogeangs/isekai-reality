@@ -117,3 +117,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | equip_horn_dagger, equip_boar_armor, equip_rabbit_boots, equip_tusk_necklace | 새 장비 4종 (256×256, 단검은 둘레 얼룩을 지워서 넣음) |
 | monster_<fireSlimeKing·frostWolfKing·ancientTreant·shadowBatQueen·thunderGriffin> | 요일 보스 5종 (512×512, 둘레 얼룩을 지워서 넣음) |
 | potion_heal_3, potion_heal_4, potion_heal_5 | 치유·생명·여명의 물약 (256×256) |
+| potion_mana_3 | 맑은 마나 물약 (256×256) |

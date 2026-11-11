@@ -53,6 +53,7 @@ Future<void> showEquipPicker(
                     for (final item in items)
                       _PickRow(
                         item: item,
+                        current: worn,
                         worn: worn?.uid == item.uid,
                         onPressed: () => worn?.uid == item.uid
                             ? c.unequip(slot)
@@ -71,9 +72,15 @@ Future<void> showEquipPicker(
 
 class _PickRow extends StatelessWidget {
   const _PickRow(
-      {required this.item, required this.worn, required this.onPressed});
+      {required this.item,
+      required this.worn,
+      required this.onPressed,
+      this.current});
 
   final EquipItem item;
+
+  /// 지금 입은 장비 (비교: 오르면 초록 ↑, 내리면 빨강 ↓)
+  final EquipItem? current;
   final bool worn;
   final VoidCallback onPressed;
 
@@ -96,9 +103,7 @@ class _PickRow extends StatelessWidget {
                             color: AppColors.goldBright, fontSize: 11)),
                   ],
                 ]),
-                KText(EquipmentRules.itemStatLabel(item),
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 11.5)),
+                ItemStats(item, compare: current),
                 DurabilityBar(value: item.durability),
               ],
             ),

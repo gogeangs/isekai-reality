@@ -1,0 +1,40 @@
+name: 장소 종류 격자 만들기
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'wip/**']
+    paths:
+      - tool/build_place_grid.py
+      - .github/workflows/place-grid.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: 도구 설치
+        run: pip install osmium pyshp numpy pillow
+      - name: 지도 자료 받기 (Geofabrik 대한민국, OSM 육지 다각형)
+        run: |
+          mkdir -p /tmp/osm && cd /tmp/osm
+          curl -sSL -o kr.osm.pbf https://download.geofabrik.de/asia/south-korea-latest.osm.pbf
+          curl -sSL -o land.zip https://osmdata.openstreetmap.de/download/land-polygons-split-4326.zip
+          unzip -q land.zip
+          ls -la /tmp/osm /tmp/osm/land-polygons-split-4326 | head -20
+      - name: 격자 만들기
+        run: python3 tool/build_place_grid.py /tmp/osm/kr.osm.pbf /tmp/osm/land-polygons-split-4326/land_polygons.shp assets/data/place_grid.bin
+      - name: 저장소에 올리기
+        run: |
+          ls -la assets/data/place_grid.bin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/place_grid.bin
+          if git diff --cached --quiet; then echo "바뀐 것 없음"; exit 0; fi
+          git commit -m "장소 종류 격자 갱신 (OpenStreetMap)"
+          git pull --rebase
+          git push

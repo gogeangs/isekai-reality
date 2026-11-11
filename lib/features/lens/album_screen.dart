@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import 'album_files.dart';
+import 'consent_note.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
 
@@ -318,6 +319,7 @@ class _PhotoViewState extends State<_PhotoView> {
       showTopNotice(context, '이 기록에는 사진이 없어요.');
       return;
     }
+    if (!await confirmOthersConsent(context, share: false) || !mounted) return;
     setState(() => _busy = true);
     final err = await LensOutput.saver(b);
     if (!mounted) return;
@@ -332,6 +334,8 @@ class _PhotoViewState extends State<_PhotoView> {
       showTopNotice(context, '이 기록에는 사진이 없어요.');
       return;
     }
+    if (!await confirmOthersConsent(context, share: true) || !mounted) return;
+    if (!button.mounted) return;
     final box = button.findRenderObject() as RenderBox?;
     final origin =
         box == null ? null : box.localToGlobal(Offset.zero) & box.size;

@@ -43,8 +43,6 @@ class StatusScreen extends StatelessWidget {
     this.onOpenShop,
     this.equippedTitle,
     this.look = HeroLook.male,
-    this.weatherLabel = '맑음',
-    this.weatherIcon = Icons.wb_sunny_rounded,
   });
 
   final PlayerState player;
@@ -92,10 +90,6 @@ class StatusScreen extends StatelessWidget {
   /// 대표 칭호 (없으면 '새내기 각성자')
   final TitleId? equippedTitle;
   final HeroLook look;
-
-  /// 위쪽 날씨 표시 (예: '맑음 12°')
-  final String weatherLabel;
-  final IconData weatherIcon;
 
   @override
   Widget build(BuildContext context) {

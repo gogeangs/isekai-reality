@@ -12,6 +12,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import 'album_files.dart';
 import 'album_screen.dart';
+import 'consent_note.dart';
 import 'camera_sticker_engine.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
@@ -174,6 +175,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   Future<void> _save() async {
     final png = _png;
     if (png == null || _working) return;
+    if (!await confirmOthersConsent(context, share: false) || !mounted) return;
     setState(() => _working = true);
     final err = await LensOutput.saver(png);
     if (!mounted) return;
@@ -184,6 +186,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   Future<void> _share(BuildContext button) async {
     final png = _png;
     if (png == null || _working) return;
+    if (!await confirmOthersConsent(context, share: true) || !mounted) return;
+    if (!button.mounted) return;
     final box = button.findRenderObject() as RenderBox?;
     final origin =
         box == null ? null : box.localToGlobal(Offset.zero) & box.size;
@@ -362,6 +366,10 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.text, fontSize: 14)),
               const SizedBox(height: 4),
+              const Text(othersConsentLine,
+                  key: Key('lensConsent'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.goldBright, fontSize: 12)),
               Text(
                   '얼굴 인식은 휴대폰 안에서만 해요 · 오늘 보상 남은 횟수 ${c.lensRewardsLeft}',
                   textAlign: TextAlign.center,

@@ -102,13 +102,6 @@ class ShopScreen extends StatelessWidget {
                 _SellPanel(controller: controller, manaStones: player.manaStones),
                 const SizedBox(height: 10),
                 FrameButton(
-                  onPressed: () => showBagSheet(context, controller),
-                  gameIcon: 'bag',
-                  height: 44,
-                  label: '가방 열기',
-                ),
-                const SizedBox(height: 8),
-                FrameButton(
                   onPressed: () => showSellSheet(context, controller),
                   gameIcon: 'gold',
                   height: 44,

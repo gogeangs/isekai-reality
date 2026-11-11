@@ -84,12 +84,11 @@ void main() {
               minutesLeft: 12,
               monster: '슬라임',
               hour: 14,
-              species: PetSpecies.toad,
-              clear: true),
+              species: PetSpecies.toad),
       };
       expect(lines.every((l) => l.isNotEmpty), isTrue);
       expect(lines.any((l) => l.contains('개굴')), isTrue);
-      expect(lines, contains('오늘 날씨 좋다'));
+      expect(lines.any((l) => l.contains('날씨')), isFalse); // 날씨 기능은 뺐다
     });
 
     test('1~2분에 한 번', () {

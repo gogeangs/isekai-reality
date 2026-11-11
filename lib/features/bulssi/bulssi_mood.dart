@@ -5,7 +5,6 @@ import '../../core/rules/pet_rules.dart';
 import '../pets/pet_art.dart';
 import 'spirit_art.dart';
 
-import '../../data/weather/weather_source.dart';
 
 /// 불씨의 빛 색: 맑음 황금, 비 하늘색, 밤 보라, 눈 흰색
 enum BulssiMood { gold, sky, night, snow }
@@ -22,16 +21,11 @@ extension BulssiMoodColor on BulssiMood {
 class BulssiMoods {
   BulssiMoods._();
 
-  /// 밤(저녁 8시 ~ 아침 6시, 또는 해가 진 뒤)은 보라가 우선.
-  /// 그 밖에는 날씨를 따른다. 날씨를 모르면 황금.
-  static BulssiMood of({WeatherNow? weather, required DateTime now}) {
-    final night = now.hour >= 20 || now.hour < 6 || weather?.isDay == false;
-    if (night) return BulssiMood.night;
-    return switch (weather?.kind) {
-      WeatherKind.rain => BulssiMood.sky,
-      WeatherKind.snow => BulssiMood.snow,
-      _ => BulssiMood.gold,
-    };
+  /// 밤(저녁 8시 ~ 아침 6시)은 보라, 그 밖에는 황금. 기기 시간만 쓴다
+  /// (날씨 기능은 묶음 13에서 뺐다).
+  static BulssiMood of({required DateTime now}) {
+    final night = now.hour >= 20 || now.hour < 6;
+    return night ? BulssiMood.night : BulssiMood.gold;
   }
 }
 

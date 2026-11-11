@@ -339,13 +339,7 @@ void main() {
     await c.buy(ShopItem.healSmall);
     await tester.pumpAndSettle();
     await _shot(tester, '22_잡화상');
-    await tester.ensureVisible(find.text('가방 열기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('가방 열기'));
-    await tester.pumpAndSettle();
-    await _shot(tester, '22b_가방');
-    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
-    await tester.pumpAndSettle();
+    expect(find.text('가방 열기'), findsNothing); // 11-11 #99
     await tester.ensureVisible(find.text('재료·물건·장비 팔기'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('재료·물건·장비 팔기'));
@@ -735,6 +729,11 @@ void main() {
     expect(find.byKey(const Key('lensPhoto')), findsOneWidget);
     await _shot(tester, '51_돋보기_사진틀');
     await tester.tap(find.byKey(const Key('lensSave')));
+    await tester.pumpAndSettle();
+    // 묶음 13 B5: 저장 직전 다른 사람 동의 안내
+    expect(find.byKey(const Key('consentAlert')), findsOneWidget);
+    await _shot(tester, '51b_돋보기_동의_안내');
+    await tester.tap(find.byKey(const Key('consentOk')));
     await tester.pump(const Duration(milliseconds: 300));
     expect(saved, 1);
     // 11-11 #97: 도감 「종족」 대신 돋보기 안 감정 앨범
@@ -792,10 +791,12 @@ void main() {
     // 우편함
     await tester.tap(find.byKey(const Key('mailButton')));
     await tester.pumpAndSettle();
-    await _shot(tester, '57_우편함_선물');
-    await tester.tap(find.textContaining('편지 '));
+    await _shot(tester, '57_우편함');
+    // 11-11 #100: 선물·편지 탭 없이 한 목록, 필터만
+    expect(find.textContaining('편지 '), findsNothing);
+    await tester.tap(find.byKey(const Key('mailFilter_1')));
     await tester.pumpAndSettle();
-    await _shot(tester, '58_우편함_편지');
+    await _shot(tester, '58_우편함_받을물건');
   });
 
   // 그림 확인 (11-11): 앱이 쓰는 그림 자리마다 실제 화면 위젯으로 그려 본다.

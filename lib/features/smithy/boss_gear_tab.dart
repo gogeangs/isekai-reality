@@ -177,9 +177,7 @@ class _PartRow extends StatelessWidget {
                 const SizedBox(height: 8),
                 EquipName(r.item!, size: 17),
                 const SizedBox(height: 4),
-                Text(EquipmentRules.itemStatLabel(r.item!),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                ItemStats(r.item!, fontSize: 13),
               ])
             : KText(r.line ?? '', style: const TextStyle(color: AppColors.text)),
         actions: [

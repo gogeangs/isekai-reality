@@ -27,7 +27,6 @@ import 'data/mail/mail_source.dart';
 import 'data/notify/notifier.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
-import 'data/weather/weather_source.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/map/ansan_area.dart';
 import 'features/map/korea_area.dart';
@@ -43,7 +42,6 @@ class AppController extends ChangeNotifier {
     required this.store,
     required this.health,
     this.location,
-    this.weatherSource,
     this.notifier,
     this.roads,
     this.exclusions,
@@ -80,14 +78,18 @@ class AppController extends ChangeNotifier {
   /// 위치 (없으면 지도 탐험 없이 동작)
   final LocationSource? location;
 
-  /// 날씨 (없으면 불씨 색은 시간으로만 정한다)
-  final WeatherSource? weatherSource;
 
   /// 휴대폰 알림 (없으면 앱 안에서만 알려 준다)
   final Notifier? notifier;
 
   /// 큰길·철로 격자. 있으면 필드 몬스터가 차도·철로 위에 나오지 않는다 (지금은 안산만).
   RoadMask? roads;
+
+  /// 장소 종류 격자 (묶음 13 C7, OSM). 없으면 채집 자리를 고르게, 배경은 기본
+  PlaceGrid? lands;
+
+  /// 그 자리의 장소 종류 (격자가 없으면 null)
+  LandKind? landAt(GeoPoint p) => lands?.kindAt(p);
 
   /// 전국 제외 구역 (학교·병원·묘지 둘레). 그 안에는 몬스터를 두지 않는다.
   ExclusionIndex? exclusions;
@@ -229,7 +231,6 @@ class AppController extends ChangeNotifier {
   Future<void> awaken({
     required String name,
     required HeroLook look,
-    bool weatherEnabled = true,
     SpiritKind spirit = SpiritKind.fire,
     String? spiritName,
   }) async {
@@ -238,7 +239,6 @@ class AppController extends ChangeNotifier {
       name: name.trim(),
       look: look,
       lastSeenLevel: 1,
-      weatherEnabled: weatherEnabled,
       spiritKind: spirit,
       spiritName: sn == null || sn.isEmpty ? spirit.defaultName : sn,
     );
@@ -340,42 +340,12 @@ class AppController extends ChangeNotifier {
     _history = await store.loadHistory();
     await refreshVitals();
     notifyListeners();
-    unawaited(refreshWeather());
   }
 
-  // ───────────────────────────────────────────── 날씨 · 불씨 색
+  // ───────────────────────────────────────────── 불씨 색 (11-11 묶음 13: 날씨 기능은 뺐다. 기기 시간만)
 
-  WeatherNow? _weather;
-  DateTime? _weatherAt;
-
-  WeatherNow? get weather => _weather;
-
-  /// 불씨 빛 색 (맑음 황금, 비 하늘색, 밤 보라, 눈 흰색)
-  BulssiMood get bulssiMood => BulssiMoods.of(weather: _weather, now: _clock());
-
-  /// 상태창 위쪽에 보이는 날씨 이름
-  String get weatherLabel {
-    if (!_profile.weatherEnabled) return '날씨 꺼짐';
-    final w = _weather;
-    if (w == null) return '날씨 확인 중';
-    final t = w.temperatureC;
-    return t == null ? w.kind.koreanName : '${w.kind.koreanName} ${t.round()}°';
-  }
-
-  /// 30분에 한 번만 새로 읽는다. 실패해도 게임은 그대로.
-  Future<void> refreshWeather({bool force = false}) async {
-    final source = weatherSource;
-    if (source == null || !_profile.weatherEnabled) return;
-    final now = _clock();
-    final last = _weatherAt;
-    if (!force && last != null && now.difference(last).inMinutes < 30) return;
-    _weatherAt = now;
-    final w = await source.current(_lastFix?.point ?? area.bounds.center);
-    if (w != null) {
-      _weather = w;
-      notifyListeners();
-    }
-  }
+  /// 불씨 빛 색 (낮 황금, 밤 보라)
+  BulssiMood get bulssiMood => BulssiMoods.of(now: _clock());
 
   // ───────────────────────────────────────────── 설정
 
@@ -2496,7 +2466,11 @@ class AppController extends ChangeNotifier {
       ]..sort((a, b) => (a.expiresAt ?? DateTime(9999))
           .compareTo(b.expiresAt ?? DateTime(9999)));
 
-  /// 편지 탭: 편지·공지 (새것부터)
+  /// 우편함 한 목록 (11-11 #100): 선물과 편지를 함께, 새것부터
+  List<MailItem> get allMails => [..._mail.mails]
+    ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+
+  /// 편지·공지 (새것부터)
   List<MailItem> get letterMails => [
         for (final m in _mail.mails)
           if (m.kind != MailKind.reward) m,
@@ -2595,13 +2569,10 @@ class AppController extends ChangeNotifier {
     if (notes > 0) got.add('레시피 쪽지 $notes');
     if (eggs > 0) got.add('알 $eggs');
     if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
-    // 보상 우편은 받으면 지운다. 편지·공지는 편지 탭에 남는다.
+    // 11-11 #100: 받은 뒤에도 편지는 계속 보관한다 (보상 우편도 편지처럼)
     await _saveMail(_mail.copyWith(mails: [
       for (final x in _mail.mails)
-        if (x.id != id)
-          x
-        else if (x.kind != MailKind.reward)
-          x.copyWith(claimed: true, read: true),
+        if (x.id != id) x else x.copyWith(claimed: true, read: true),
     ]));
     return got.join(', ');
   }
@@ -2618,11 +2589,13 @@ class AppController extends ChangeNotifier {
   /// 우편 보내기·정리 (앱을 열 때·화면을 볼 때)
   Future<void> _checkMail() async {
     final now = _clock();
-    // 30일 지난 보상 우편은 사라진다
-    if (_mail.mails.any((m) => m.expiresAt != null && now.isAfter(m.expiresAt!))) {
+    // 30일 지나도록 받지 않은 물건이 든 편지는 사라진다 (받은 편지는 계속 보관)
+    bool gone(MailItem m) =>
+        m.hasGifts && m.expiresAt != null && now.isAfter(m.expiresAt!);
+    if (_mail.mails.any(gone)) {
       await _saveMail(_mail.copyWith(mails: [
         for (final m in _mail.mails)
-          if (m.expiresAt == null || !now.isAfter(m.expiresAt!)) m,
+          if (!gone(m)) m,
       ]));
     }
     // 운영 우편 (공지·보상)
@@ -2824,7 +2797,7 @@ class AppController extends ChangeNotifier {
     final lure = lureActive;
     final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
-        '${lure ? 'L' : ''}${night ? 'N' : ''}';
+        '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
@@ -2833,7 +2806,8 @@ class AppController extends ChangeNotifier {
           places: area.places,
           excluded: area.isExcluded,
           density: lure ? AlchemyRules.lureHarvest : 1,
-          night: night);
+          night: night,
+          land: lands?.kindAt);
     }
     return _spotsCache;
   }
@@ -2983,7 +2957,8 @@ class AppController extends ChangeNotifier {
           : h.perfects,
       relics: relic ? h.relics + 1 : h.relics,
     ).pruned(now);
-    _lastRelicLore = relic
+    // 묶음 13 C8: 유물 이야기는 보류. 이야기 칸만 비우고 유물·재료는 그대로
+    _lastRelicLore = relic && HarvestRules.relicLore.isNotEmpty
         ? HarvestRules.relicLore[(h.relics - 1) % HarvestRules.relicLore.length]
         : null;
     await _saveHarvest(h);
@@ -3565,18 +3540,6 @@ class AppController extends ChangeNotifier {
               gold: gold + fit.gold,
               materials: fit.kept)),
     ));
-  }
-
-  /// 날씨 조회를 켜고 끈다. 끄면 받아 둔 날씨도 버린다.
-  Future<void> setWeatherEnabled(bool on) async {
-    await updateProfile(_profile.copyWith(weatherEnabled: on));
-    if (on) {
-      await refreshWeather(force: true);
-    } else {
-      _weather = null;
-      _weatherAt = null;
-      notifyListeners();
-    }
   }
 
   // ───────────────────────────────────────────── HP · 정령 MP · 여관 · 정령 원정

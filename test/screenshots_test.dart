@@ -729,6 +729,11 @@ void main() {
     expect(find.byKey(const Key('lensPhoto')), findsOneWidget);
     await _shot(tester, '51_돋보기_사진틀');
     await tester.tap(find.byKey(const Key('lensSave')));
+    await tester.pumpAndSettle();
+    // 묶음 13 B5: 저장 직전 다른 사람 동의 안내
+    expect(find.byKey(const Key('consentAlert')), findsOneWidget);
+    await _shot(tester, '51b_돋보기_동의_안내');
+    await tester.tap(find.byKey(const Key('consentOk')));
     await tester.pump(const Duration(milliseconds: 300));
     expect(saved, 1);
     // 11-11 #97: 도감 「종족」 대신 돋보기 안 감정 앨범

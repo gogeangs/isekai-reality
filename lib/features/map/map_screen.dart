@@ -797,7 +797,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             onMapReady: (map) {
               _map = map;
               _drawnSpawns = -1;
-              _redraw();
+              _redraw().then((_) => _focusRequested());
             },
             // 지도를 움직이는 동안에는 가장자리 표시를 숨긴다 (11-11: 화면에 붙어
             // 따라다니는 몬스터처럼 보였다). 멈추면 다시 찾는다.

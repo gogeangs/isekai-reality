@@ -227,7 +227,7 @@ class _BagTabState extends State<BagTab> {
                 child: Wrap(spacing: 12, runSpacing: 4, children: [
                   for (final t in HarvestTool.values)
                     Text(
-                        '${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${HarvestRules.toolMax}',
+                        '${c.toolTier(t).label} ${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${c.toolMaxOf(t)}',
                         style: TextStyle(
                             color: c.toolDurability(t) > 0
                                 ? AppColors.text

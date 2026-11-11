@@ -2820,8 +2820,9 @@ class AppController extends ChangeNotifier {
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     final lure = lureActive;
+    final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
-        '${lure ? 'L' : ''}';
+        '${lure ? 'L' : ''}${night ? 'N' : ''}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
@@ -2829,7 +2830,8 @@ class AppController extends ChangeNotifier {
           exclusions: exclusions,
           places: area.places,
           excluded: area.isExcluded,
-          density: lure ? AlchemyRules.lureHarvest : 1);
+          density: lure ? AlchemyRules.lureHarvest : 1,
+          night: night);
     }
     return _spotsCache;
   }
@@ -2860,8 +2862,69 @@ class AppController extends ChangeNotifier {
       _harvest.spots[s.id]?.untilNext(_clock());
 
   /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
-  int toolDurability(HarvestTool t) =>
-      _harvest.granted ? _harvest.durability(t) : HarvestRules.toolMax;
+  int toolDurability(HarvestTool t) => _harvest.granted
+      ? _harvest.durability(t)
+      : HarvestRules.toolMaxFor(_harvest.tierOf(t));
+
+  /// 도구 최대 내구도 (등급에 따라)
+  int toolMaxOf(HarvestTool t) => HarvestRules.toolMaxFor(_harvest.tierOf(t));
+
+  ToolTier toolTier(HarvestTool t) => _harvest.tierOf(t);
+  Element? toolElement(HarvestTool t) => _harvest.elementOf(t);
+
+  /// 미니게임이 쉬워지는 정도 (도구 등급, 숨김)
+  int harvestEase(HarvestKind k) =>
+      _harvest.tierOf(HarvestRules.info(k).tool).index;
+
+  /// 채집가 직업 (#55 각성 뒤, 지금은 늘 false. 규칙만 준비)
+  bool get gatherer => false;
+
+  /// 도구를 다음 등급으로 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대·붓)
+  CraftCheck canUpgradeTool(HarvestTool t) {
+    final cost = HarvestRules.upgradeCost(_harvest.tierOf(t));
+    if (cost == null) return CraftCheck.maxed;
+    final p = player;
+    for (final e in cost.mats.entries) {
+      if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
+    }
+    if (p.gold < cost.gold) return CraftCheck.gold;
+    return CraftCheck.ok;
+  }
+
+  Future<bool> upgradeTool(HarvestTool t) async {
+    if (canUpgradeTool(t) != CraftCheck.ok) return false;
+    final tier = _harvest.tierOf(t);
+    final cost = HarvestRules.upgradeCost(tier)!;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {
+      for (final e in cost.mats.entries) e.key.name: e.value,
+      Wallet.gold: cost.gold,
+    })));
+    final next = ToolTier.values[tier.index + 1];
+    await _saveHarvest(_harvest.copyWith(
+      tiers: {..._harvest.tiers, t.name: next.index},
+      // 새 도구라 내구도를 다 채운다
+      tools: {..._harvest.tools, t.name: HarvestRules.toolMaxFor(next)},
+    ));
+    return true;
+  }
+
+  /// 도구에 속성을 입힌다: 빛나는 속성 코어 1개 + 금화 100 (11-11 #83, #63과 같다).
+  /// 그 속성의 귀한 재료가 더 잘 나온다 (숨김).
+  Future<bool> imbueTool(HarvestTool t, Element e) async {
+    final core = EquipmentRules.imbueCore(e);
+    if (player.materialCount(core) < 1 || player.gold < EquipmentRules.imbueGold) {
+      return false;
+    }
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends,
+            {core.name: 1, Wallet.gold: EquipmentRules.imbueGold})));
+    await _saveHarvest(
+        _harvest.copyWith(elements: {..._harvest.elements, t.name: e.name}));
+    return true;
+  }
 
   HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
     final fix = _lastFix;
@@ -2885,29 +2948,60 @@ class AppController extends ChangeNotifier {
     var h = _harvest;
     if (!h.granted) {
       h = h.copyWith(granted: true, tools: {
-        for (final t in HarvestTool.values) t.name: HarvestRules.toolMax,
+        for (final t in HarvestTool.values) t.name: toolMaxOf(t),
       });
     }
     final charge = h.spots[s.id] ??
         SpotCharge(charges: HarvestRules.maxCharges, at: now);
     final tool = s.info.tool;
+    // 한 종류에서 완벽을 많이 쌓았으면 빠른 채집도 「좋음」 (11-11 #83, 숨김)
+    final effective =
+        !minigame && h.mastered(s.kind) ? HarvestGrade.good : grade;
+    final streak = !minigame
+        ? h.streak
+        : grade == HarvestGrade.perfect
+            ? h.streak + 1
+            : 0;
+    final mats = HarvestRules.yieldOf(s.kind, effective, _random,
+        factor: passengerMode ? 0.5 : 1,
+        tier: h.tierOf(tool),
+        streak: grade == HarvestGrade.perfect ? h.streak : 0,
+        element: h.elementOf(tool),
+        month: now.month);
+    final relic = s.kind == HarvestKind.relic;
     h = h.copyWith(
       spots: {...h.spots, s.id: charge.use(now)},
       tools: minigame
           ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
           : h.tools,
       total: h.total + 1,
+      streak: streak,
+      perfects: grade == HarvestGrade.perfect
+          ? {...h.perfects, s.kind.name: (h.perfects[s.kind.name] ?? 0) + 1}
+          : h.perfects,
+      relics: relic ? h.relics + 1 : h.relics,
     ).pruned(now);
+    _lastRelicLore = relic
+        ? HarvestRules.relicLore[(h.relics - 1) % HarvestRules.relicLore.length]
+        : null;
     await _saveHarvest(h);
-    final mats = HarvestRules.yieldOf(s.kind, grade, _random,
-        factor: passengerMode ? 0.5 : 1);
     await _grant(0, 0, mats);
+    if (relic) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          counters: DailyRecord.addCounts(today.counters, {'relicDug': 1})));
+    }
     return mats;
   }
 
-  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대는 공방)
+  String? _lastRelicLore;
+
+  /// 방금 캔 고대 유물의 이야기 (없으면 null)
+  String? get lastRelicLore => _lastRelicLore;
+
+  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대·붓은 공방)
   Future<bool> repairTool(HarvestTool t) async {
-    if (!_harvest.granted || _harvest.durability(t) >= HarvestRules.toolMax) {
+    if (!_harvest.granted || _harvest.durability(t) >= toolMaxOf(t)) {
       return false;
     }
     final m = HarvestRules.repairMaterial(t);
@@ -2919,7 +3013,7 @@ class AppController extends ChangeNotifier {
         spends: DailyRecord.addCounts(
             today.spends, {Wallet.gold: HarvestRules.repairGold, m.name: 1})));
     await _saveHarvest(_harvest.copyWith(
-        tools: {..._harvest.tools, t.name: HarvestRules.toolMax}));
+        tools: {..._harvest.tools, t.name: toolMaxOf(t)}));
     return true;
   }
 

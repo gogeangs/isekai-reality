@@ -576,7 +576,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         _monster(c, spawn, fix?.point),
       // 채집 자리 (11-11 #56): 1.5km 안, 남은 횟수는 점으로
       for (final h in c.harvestSpots)
-        if (fix == null || h.point.distanceTo(fix.point) <= 1500)
+        if (fix == null ||
+            h.point.distanceTo(fix.point) <= HarvestRules.mapRadiusM)
           _harvest(c, h),
       // 정령·펫이 따라가는 길 (11-11 #42), 여러 마리면 마리마다
       for (var i = 0; i < actives.length; i++)

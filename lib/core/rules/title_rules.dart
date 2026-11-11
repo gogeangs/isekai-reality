@@ -35,6 +35,8 @@ enum TitleId {
   bossTreant,
   bossBatQueen,
   bossGriffin,
+  // 11-11 #83: 고대 유물을 다섯 번 캐면 (얻기 전엔 숨김)
+  relicHunter,
 }
 
 class TitleInfo {
@@ -85,6 +87,7 @@ class TitleRules {
       TitleId.bossTreant => '숲의 고목 정령을 처음 달랬어요',
       TitleId.bossBatQueen => '그림자 박쥐 여왕을 처음 쓰러뜨렸어요',
       TitleId.bossGriffin => '천둥 그리폰을 처음 쓰러뜨렸어요',
+      TitleId.relicHunter => '고대 유물을 다섯 번 발굴했어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -101,6 +104,7 @@ class TitleRules {
     TitleId.lakeFriend,
     ...elementTitles,
     ...bossTitles,
+    TitleId.relicHunter,
   };
 
   /// 보스 칭호와 그 보스
@@ -142,6 +146,7 @@ class TitleRules {
           if (earned.contains(t)) info(t),
         for (final t in bossTitles)
           if (earned.contains(t)) info(t),
+        if (earned.contains(TitleId.relicHunter)) info(TitleId.relicHunter),
       ];
 
   static const List<TitleInfo> _all = [
@@ -172,6 +177,7 @@ class TitleRules {
     TitleInfo(TitleId.bossTreant, '숲을 달래는 자', '숨은 칭호'),
     TitleInfo(TitleId.bossBatQueen, '밤을 밝힌 자', '숨은 칭호'),
     TitleInfo(TitleId.bossGriffin, '하늘을 가른 자', '숨은 칭호'),
+    TitleInfo(TitleId.relicHunter, '옛 이야기를 캔 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -268,6 +274,8 @@ class TitleRules {
     bossTitleMonsters.forEach((t, m) {
       if (species.contains(m.name)) result.add(t);
     });
+    final relics = history.fold<int>(0, (s, d) => s + (d.counters['relicDug'] ?? 0));
+    if (relics >= 5) result.add(TitleId.relicHunter);
     final monsters =
         history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);
     if (monsters >= RuleConstants.townLightMonsters) {

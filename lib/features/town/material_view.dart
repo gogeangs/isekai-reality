@@ -87,6 +87,32 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.bossQueenWing => Icons.dark_mode_rounded,
         MaterialId.bossThunderFeather => Icons.bolt_rounded,
         MaterialId.bossShard => Icons.extension_rounded,
+        // 11-11 #83 채집 2
+        MaterialId.shadeMushroom ||
+        MaterialId.poisonMushroom ||
+        MaterialId.moonMushroom =>
+          Icons.emoji_nature_rounded,
+        MaterialId.springPetal ||
+        MaterialId.summerPetal ||
+        MaterialId.autumnPetal ||
+        MaterialId.winterPetal =>
+          Icons.local_florist_rounded,
+        MaterialId.sunPollen => Icons.wb_sunny_rounded,
+        MaterialId.breezeBloom => Icons.filter_vintage_rounded,
+        MaterialId.roughGem => Icons.diamond_outlined,
+        MaterialId.gemFire ||
+        MaterialId.gemWater ||
+        MaterialId.gemWind ||
+        MaterialId.gemEarth ||
+        MaterialId.gemLight ||
+        MaterialId.gemDark ||
+        MaterialId.gemIce ||
+        MaterialId.gemThunder ||
+        MaterialId.gemMetal ||
+        MaterialId.gemPoison =>
+          Icons.diamond_rounded,
+        MaterialId.ancientShard => Icons.account_balance_rounded,
+        MaterialId.relicSeal => Icons.verified_rounded,
       };
 
   @override

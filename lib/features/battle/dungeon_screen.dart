@@ -103,6 +103,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               _Stage.battle => [
                   BattleView(
                     battle: _battle!,
+                    backgroundOf: dungeonBackground,
                     onFinished: _finish,
                     tickInterval: widget.tickInterval,
                     playerName: _c.profile.name,
@@ -673,4 +674,15 @@ Future<bool> confirmStopResting(BuildContext context) async {
     ),
   );
   return ok ?? false;
+}
+
+/// 던전 전투 배경: 일반 1~3층은 입구 돌복도·수정 동굴·깊은 어둠, 보스는 보스마다 방
+String dungeonBackground(int floor, Foe foe) {
+  if (foe.isBoss) {
+    for (final s in BossGearRules.sets) {
+      if (s.boss == foe.monster) return 'assets/images/bg_boss_${s.id.name}.jpg';
+    }
+    return 'assets/images/bg_boss_warden.jpg';
+  }
+  return 'assets/images/bg_dungeon_${(floor % 3) + 1}.jpg';
 }

@@ -38,6 +38,7 @@ class BattleView extends StatefulWidget {
     this.aura,
     this.hour,
     this.background,
+    this.backgroundOf,
   });
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
@@ -48,6 +49,9 @@ class BattleView extends StatefulWidget {
 
   /// 전투 배경 그림 (묶음 13 C7: 필드는 장소 종류에 맞춰). 없으면 기본
   final String? background;
+
+  /// 층마다 바뀌는 배경 (던전 1~3층·보스 방). 있으면 [background] 보다 먼저
+  final String? Function(int floor, Foe foe)? backgroundOf;
 
 
   final Battle battle;
@@ -456,7 +460,8 @@ class _BattleViewState extends State<BattleView> {
                 heroTint: _heroTint,
                 foeTint: _foeTint,
                 hour: widget.hour,
-                background: widget.background,
+                background: widget.backgroundOf?.call(_b.floor, _b.foe) ??
+                    widget.background,
               ),
               const SizedBox(height: 8),
               OrnatePanel(

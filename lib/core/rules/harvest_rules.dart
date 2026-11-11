@@ -5,6 +5,7 @@ import 'exclusion_index.dart';
 import 'element_rules.dart';
 import 'exploration_rules.dart';
 import 'materials.dart';
+import 'place_grid.dart';
 import 'road_mask.dart';
 
 /// 채집 자리 종류 (11-11 #56). 이름은 저장 기록의 키라 바꾸지 않는다.
@@ -326,6 +327,7 @@ class HarvestRules {
     bool Function(GeoPoint)? excluded,
     double density = 1,
     bool night = false,
+    LandKind? Function(GeoPoint)? land,
   }) {
     final out = <HarvestSpot>[];
     const blockLat = blockM / 111320;
@@ -360,7 +362,13 @@ class HarvestRules {
         if (p == null) continue;
         final roll = rng.nextDouble();
         final nearLake = lakes.any((l) => l.distanceTo(p!) <= lakeNearM);
-        final kind = nearLake ? HarvestKind.water : kindOf(roll, night: night);
+        // 묶음 13 C7: 실제 장소 종류(OSM 격자)에 맞춰. 격자가 없으면 예전처럼 고르게
+        final here = land?.call(p);
+        final kind = nearLake
+            ? HarvestKind.water
+            : here == null
+                ? kindOf(roll, night: night)
+                : kindAt(here, roll, rng.nextDouble(), night: night);
         out.add(HarvestSpot(id: 'h${r}_$c', kind: kind, point: p));
         // 유인 물약 (11-11 #74): 칸마다 [density]-1 확률로 한 자리 더
         if (density > 1) {
@@ -409,6 +417,53 @@ class HarvestRules {
     x -= flower;
     if (x < gem) return HarvestKind.gem;
     return HarvestKind.relic; // 나머지 3%: 문화재 자료가 들어오면 그 근처로
+  }
+
+  /// 장소 종류에 맞는 채집 자리 (묶음 13 C7). 어느 장소든 가끔(약 15%)은 다른 종류,
+  /// 고대 유물은 어디서나 드물게 (예전과 같은 3%).
+  static const double otherChance = 0.15;
+
+  static HarvestKind kindAt(LandKind land, double roll, double roll2,
+      {bool night = false}) {
+    if (roll < 0.03) return HarvestKind.relic;
+    if (roll < 0.03 + otherChance) {
+      final k = kindOf(roll2, night: night);
+      return k == HarvestKind.relic ? HarvestKind.herb : k;
+    }
+    // 이 장소의 몫: roll2 로 고른다 (가중치는 숨김)
+    final table = switch (land) {
+      LandKind.park || LandKind.forest => const [
+          (HarvestKind.herb, 3),
+          (HarvestKind.wood, 3),
+          (HarvestKind.mushroom, 2),
+          (HarvestKind.flower, 2),
+        ],
+      LandKind.water => const [(HarvestKind.water, 3), (HarvestKind.flower, 1)],
+      LandKind.sea => const [(HarvestKind.water, 1)],
+      LandKind.city => const [(HarvestKind.ore, 9), (HarvestKind.gem, 1)],
+      LandKind.mountain => const [
+          (HarvestKind.ore, 3),
+          (HarvestKind.wood, 3),
+          (HarvestKind.herb, 3),
+          (HarvestKind.gem, 1),
+        ],
+      LandKind.village => const [
+          (HarvestKind.herb, 1),
+          (HarvestKind.flower, 1),
+          (HarvestKind.wood, 1),
+        ],
+    };
+    final total = table.fold<int>(0, (a, e) => a + e.$2);
+    var x = roll2 * total;
+    for (final (k, w) in table) {
+      if (x < w) {
+        // 밤: 약초 덤불의 절반이 버섯으로 (예전 규칙)
+        if (k == HarvestKind.herb && night && x < w / 2) return HarvestKind.mushroom;
+        return k;
+      }
+      x -= w;
+    }
+    return table.last.$1;
   }
 
   static bool isNight(DateTime t) => t.hour >= 19 || t.hour < 6;

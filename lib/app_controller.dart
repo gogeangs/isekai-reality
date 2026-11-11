@@ -85,6 +85,12 @@ class AppController extends ChangeNotifier {
   /// 큰길·철로 격자. 있으면 필드 몬스터가 차도·철로 위에 나오지 않는다 (지금은 안산만).
   RoadMask? roads;
 
+  /// 장소 종류 격자 (묶음 13 C7, OSM). 없으면 채집 자리를 고르게, 배경은 기본
+  PlaceGrid? lands;
+
+  /// 그 자리의 장소 종류 (격자가 없으면 null)
+  LandKind? landAt(GeoPoint p) => lands?.kindAt(p);
+
   /// 전국 제외 구역 (학교·병원·묘지 둘레). 그 안에는 몬스터를 두지 않는다.
   ExclusionIndex? exclusions;
 
@@ -2791,7 +2797,7 @@ class AppController extends ChangeNotifier {
     final lure = lureActive;
     final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
-        '${lure ? 'L' : ''}${night ? 'N' : ''}';
+        '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
@@ -2800,7 +2806,8 @@ class AppController extends ChangeNotifier {
           places: area.places,
           excluded: area.isExcluded,
           density: lure ? AlchemyRules.lureHarvest : 1,
-          night: night);
+          night: night,
+          land: lands?.kindAt);
     }
     return _spotsCache;
   }

@@ -1,4 +1,9 @@
-import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
+import 'dart:async';
+import 'dart:io' show gzip;
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart'
+    show LicenseEntryWithLineBreaks, LicenseRegistry, compute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
@@ -6,6 +11,7 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'app.dart';
 import 'app_controller.dart';
 import 'core/rules/exclusion_index.dart';
+import 'core/rules/place_grid.dart';
 import 'core/rules/road_mask.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/health/device_health_source.dart';
@@ -52,6 +58,8 @@ Future<void> main() async {
   } catch (_) {
     // 격자가 없으면 길 검사 없이 둔다
   }
+  // 장소 종류 격자 (묶음 13 C7): 크니 화면을 띄운 뒤 따로 풀어 둔다
+  unawaited(_loadLands(controller));
   try {
     controller.exclusions = ExclusionIndex.tryParse(
         await rootBundle.loadString('assets/data/exclusions.json'));
@@ -62,3 +70,14 @@ Future<void> main() async {
   runApp(IsekaiRealityApp(controller: controller));
   controller.init();
 }
+
+/// 장소 종류 격자를 풀어 컨트롤러에 넣는다 (없거나 틀리면 예전처럼 고르게)
+Future<void> _loadLands(AppController c) async {
+  try {
+    final data = await rootBundle.load('assets/data/place_grid.bin');
+    final raw = await compute(_gunzip, data.buffer.asUint8List());
+    c.lands = PlaceGrid.tryParse(raw);
+  } catch (_) {}
+}
+
+Uint8List _gunzip(Uint8List b) => Uint8List.fromList(gzip.decode(b));

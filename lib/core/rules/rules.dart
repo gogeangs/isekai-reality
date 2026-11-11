@@ -24,6 +24,7 @@ export 'monsters.dart';
 export 'pet_rules.dart';
 export 'process_rules.dart';
 export 'quest_rules.dart';
+export 'place_grid.dart';
 export 'road_mask.dart';
 export 'exclusion_index.dart';
 export 'rule_constants.dart';

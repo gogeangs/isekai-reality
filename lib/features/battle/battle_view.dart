@@ -37,6 +37,7 @@ class BattleView extends StatefulWidget {
     this.onPoisonTipShown,
     this.aura,
     this.hour,
+    this.background,
   });
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
@@ -44,6 +45,9 @@ class BattleView extends StatefulWidget {
 
   /// 지금 시각 (낮·노을·밤 색감, 11-11 #81). 없으면 낮.
   final int? hour;
+
+  /// 전투 배경 그림 (묶음 13 C7: 필드는 장소 종류에 맞춰). 없으면 기본
+  final String? background;
 
 
   final Battle battle;
@@ -452,6 +456,7 @@ class _BattleViewState extends State<BattleView> {
                 heroTint: _heroTint,
                 foeTint: _foeTint,
                 hour: widget.hour,
+                background: widget.background,
               ),
               const SizedBox(height: 8),
               OrnatePanel(
@@ -815,6 +820,7 @@ class _Scene extends StatefulWidget {
     this.heroTint,
     this.foeTint,
     this.hour,
+    this.background,
   });
 
   final Color? aura;
@@ -830,6 +836,7 @@ class _Scene extends StatefulWidget {
   final Color? heroTint;
   final Color? foeTint;
   final int? hour;
+  final String? background;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
   final bool petDash;
@@ -968,7 +975,8 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                   clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
-                      child: Image.asset('assets/images/bg_battle.jpg',
+                      child: Image.asset(
+                          widget.background ?? 'assets/images/bg_battle.jpg',
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               const ColoredBox(color: Color(0xFF1B1840))),

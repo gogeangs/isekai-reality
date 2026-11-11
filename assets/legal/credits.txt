@@ -16,5 +16,12 @@ Sounds: Oculus Audio Pack 01 (Meta), CC BY 4.0, 일부 편집
 ## 지도
 NAVER Maps
 
+## 지도 자료
+© OpenStreetMap 기여자 (OpenStreetMap contributors)
+- 장소 종류(공원·숲·물·바다·산·도심)와 길, 제외 구역은 OpenStreetMap 자료로 미리 만들어 앱에 넣었습니다.
+- 라이선스: Open Database License (ODbL) 1.0 (https://opendatacommons.org/licenses/odbl/)
+- 자료: https://www.openstreetmap.org/copyright
+- 받은 곳: Geofabrik (download.geofabrik.de), osmdata.openstreetmap.de (육지 다각형)
+
 ## 그 밖의 오픈소스
 설정 › 앱 정보 › 오픈소스 라이선스에서 볼 수 있어요.

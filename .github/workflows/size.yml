@@ -1,0 +1,117 @@
+# 앱 크기 재기 (묶음 17 #145). 손으로 돌린다: Actions → 앱 크기 재기 → 브랜치 고르기
+# - Android: Play 에 올리는 AAB 를 만들고, arm64 휴대폰이 실제로 받는 크기를 bundletool 로 잰다
+# - iPhone: 서명 없이 Runner.app 을 만들어 크기를 잰다 (App Store 는 압축해 보내므로 실제 다운로드는 더 작다)
+# 결과는 각 작업의 요약(Summary)에 나온다.
+name: 앱 크기 재기
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
+  SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
+  SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
+  SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
+  SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID || '3ff54981-128a-44ab-ba03-0a5897b18f1b' }}
+  ADMOB_APP_ID_IOS: ${{ vars.ADMOB_APP_ID_IOS }}
+  ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: 준비
+        run: |
+          python3 -m pip install --quiet pillow
+          if [ -f tool/optimize_images.py ]; then python3 tool/optimize_images.py; fi
+          flutter create --platforms android --org kr.itso --project-name isekai_reality .
+          python3 tool/prepare_android.py
+      - name: AAB 만들기
+        shell: bash
+        run: |
+          flutter build appbundle --release \
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
+            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
+            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+          flutter build apk --release --target-platform android-arm64 \
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
+            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
+            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+      - name: arm64 휴대폰이 받는 크기
+        shell: bash
+        run: |
+          curl -sSL -o bundletool.jar https://github.com/google/bundletool/releases/download/1.17.2/bundletool-all-1.17.2.jar
+          cat > spec.json <<'EOF'
+          {"supportedAbis":["arm64-v8a"],"supportedLocales":["ko"],"screenDensity":480,"sdkVersion":34}
+          EOF
+          java -jar bundletool.jar build-apks --bundle=build/app/outputs/bundle/release/app-release.aab \
+            --output=app.apks --device-spec=spec.json
+          java -jar bundletool.jar get-size total --apks=app.apks --device-spec=spec.json | tee size.csv
+          AAB=$(stat -c %s build/app/outputs/bundle/release/app-release.aab)
+          APK=$(stat -c %s build/app/outputs/flutter-apk/app-release.apk)
+          ASSETS=$(du -sb assets/images | cut -f1)
+          {
+            echo "## Android"
+            echo "- AAB 파일: $((AAB/1000000)) MB"
+            echo "- arm64 APK: $((APK/1000000)) MB"
+            echo "- 그림 폴더: $((ASSETS/1000000)) MB"
+            echo "- arm64 기기가 받는 크기 (bundletool, 바이트):"
+            echo '```'; cat size.csv; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "AAB=$AAB APK=$APK ASSETS=$ASSETS"
+          unzip -l build/app/outputs/flutter-apk/app-release.apk | sort -k1 -n -r | head -25
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: 준비
+        run: |
+          python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          if [ -f tool/optimize_images.py ]; then python3 tool/optimize_images.py; fi
+          flutter create --platforms ios --org kr.itso --project-name isekai_reality .
+          python3 tool/prepare_ios.py
+      - name: 앱 만들기 (서명 없이)
+        shell: bash
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
+            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
+            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+      - name: 크기
+        shell: bash
+        run: |
+          APP=build/ios/iphoneos/Runner.app
+          SIZE=$(du -sk "$APP" | cut -f1)
+          ZIP=$(cd build/ios/iphoneos && ditto -c -k --keepParent Runner.app /tmp/r.zip && stat -f %z /tmp/r.zip)
+          {
+            echo "## iPhone"
+            echo "- Runner.app: $((SIZE/1000)) MB"
+            echo "- 압축했을 때(다운로드 크기에 가까움): $((ZIP/1000000)) MB"
+            echo '```'; du -sk "$APP"/Frameworks/* "$APP"/Frameworks/App.framework/flutter_assets 2>/dev/null | sort -n -r | head -15; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          du -sk "$APP"/Frameworks/* | sort -n -r | head -20

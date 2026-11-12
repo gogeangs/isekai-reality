@@ -163,3 +163,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | tool_rod_<stone·iron·silver·mithril>, tool_brush_<stone·iron·silver·mithril> | 낚싯대·붓 4등급 (256×256) |
 | bg_field_sea | 필드 전투 배경: 바다 (1024×1024 jpg) |
 | title_boss<Warden·FireKing·FrostWolf·Treant·BatQueen·Griffin>, title_relicHunter | 보스·유물 칭호 배지 7종 (256×256, 시트 한 장에서 잘라 냄) |
+| title_el<Fire·Water·Wind·Earth·Light·Dark·Ice·Thunder·Metal·Poison> | 속성 칭호 배지 10종 (256×256, 시트 한 장에서 잘라 냄) |

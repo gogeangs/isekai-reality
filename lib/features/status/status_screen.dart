@@ -119,8 +119,11 @@ class StatusScreen extends StatelessWidget {
     return NightBackground(
       statusScrim: false,
       child: LayoutBuilder(builder: (context, box) {
+        // 묶음 16 #134: 화면 높이 비율로 (아이폰 13 높이를 1로 두고 지금과 같게)
+        final k = statusScale(box.maxHeight);
         // 아래 정보(레벨·HP·MP·스탯)가 차지하는 높이 (대략)
-        final below = 300.0 + (restLeft != null ? 48 : 0);
+        final below = 300.0 * k + (restLeft != null ? 48 : 0);
+        final slotTop = top + 168 * k;
         final heroH = (box.maxHeight - below).clamp(320.0, 470.0 + top);
         return SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
@@ -153,9 +156,9 @@ class StatusScreen extends StatelessWidget {
                 if (armory != null) ...[
                   Positioned(
                     left: 10,
-                    top: top + 168,
+                    top: slotTop,
                     child: _SlotColumn(
-                      fit: gearSlotFit(heroH - top - 168 - 10),
+                      fit: gearSlotFit(heroH - slotTop - 10),
                       slots: const [
                         EquipSlot.weapon,
                         EquipSlot.hands,
@@ -167,9 +170,9 @@ class StatusScreen extends StatelessWidget {
                   ),
                   Positioned(
                     right: 10,
-                    top: top + 168,
+                    top: slotTop,
                     child: _SlotColumn(
-                      fit: gearSlotFit(heroH - top - 168 - 10),
+                      fit: gearSlotFit(heroH - slotTop - 10),
                       slots: const [
                         EquipSlot.head,
                         EquipSlot.body,
@@ -365,6 +368,13 @@ class _HeroArt extends StatelessWidget {
     });
   }
 }
+
+/// 상태 화면 배치 비율 (묶음 16 #134): 아이폰 13 의 화면 높이일 때 1
+double statusScale(double h) =>
+    h.isFinite ? (h / statusRefHeight).clamp(0.82, 1.18) : 1;
+
+/// 아이폰 13 (390×844) 에서 상태 탭이 차지하는 높이
+const statusRefHeight = 726.0;
 
 /// 장비 칸 3개가 [room] 높이 안에 들어가게 (묶음 15 #108):
 /// 모자라면 간격을 먼저 줄이고(8 → 3), 그래도 모자라면 칸을 조금 줄인다(50 → 36).

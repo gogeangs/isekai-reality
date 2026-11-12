@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/vitals.dart';
@@ -10,6 +11,7 @@ import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
+import 'package:isekai_reality/features/status/status_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 건강 데이터가 끝내 답하지 않는 기기
@@ -215,5 +217,24 @@ void main() {
       await c.skipTutorial();
       expect(c.player.totalExp, greaterThanOrEqualTo(held));
     });
+  });
+
+  testWidgets('#134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    tester.view.padding = const FakeViewPadding(top: 141, bottom: 102);
+    tester.view.viewPadding = const FakeViewPadding(top: 141, bottom: 102);
+    addTearDown(tester.view.reset);
+    final c = AppController.demo(clock: () => DateTime(2026, 11, 8, 14));
+    await tester.pumpWidget(IsekaiRealityApp(controller: c));
+    await c.init();
+    await tester.pump();
+    await tester.tap(find.text('상태'));
+    await tester.pump();
+    final h = tester.getSize(find.byType(StatusScreen)).height;
+    // ignore: avoid_print
+    print('status height on iPhone 13: $h');
+    expect((h - statusRefHeight).abs(), lessThan(4));
+    expect(statusScale(h), closeTo(1, 0.01));
   });
 }

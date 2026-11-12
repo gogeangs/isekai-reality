@@ -109,7 +109,7 @@ class ShopScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 // 11-11 #67: 이번에 다 산 물건은 아래 「다시 살 수 있어요」로 (접어 둔다)
-                for (final info in TownRules.items)
+                for (final info in controller.shopItems)
                   if (controller.canBuy(info.item, hasLocation: hasLocation) !=
                       PurchaseCheck.limitReached) ...[
                   _ItemCard(
@@ -133,7 +133,7 @@ class ShopScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                if (TownRules.items.any((info) =>
+                if (controller.shopItems.any((info) =>
                     controller.canBuy(info.item, hasLocation: hasLocation) ==
                     PurchaseCheck.limitReached))
                   Theme(
@@ -146,10 +146,10 @@ class ShopScreen extends StatelessWidget {
                       iconColor: AppColors.goldBright,
                       collapsedIconColor: AppColors.goldBright,
                       title: Text(
-                          '다시 살 수 있어요 · ${TownRules.items.where((info) => controller.canBuy(info.item, hasLocation: hasLocation) == PurchaseCheck.limitReached).length}',
+                          '다시 살 수 있어요 · ${controller.shopItems.where((info) => controller.canBuy(info.item, hasLocation: hasLocation) == PurchaseCheck.limitReached).length}',
                           style: AppText.title(16)),
                       children: [
-                        for (final info in TownRules.items)
+                        for (final info in controller.shopItems)
                           if (controller.canBuy(info.item,
                                   hasLocation: hasLocation) ==
                               PurchaseCheck.limitReached) ...[

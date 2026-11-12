@@ -118,8 +118,17 @@ class _MapScreenState extends State<MapScreen> {
             child: ColoredBox(color: Color(0xE60B0D26)),
           ),
         ),
+        // 튜토리얼 동안은 누를 곳(안내 카드·띠)만 밝게 (묶음 16 #125)
+        if (controller.inTutorial &&
+            controller.tutorialStep != TutorialStep.intro)
+          const Positioned.fill(
+            child: IgnorePointer(
+              child: ColoredBox(color: Color(0x66000000)),
+            ),
+          ),
         // Lv.1~2 튜토리얼 (묶음 15 #104): 위쪽에 정령 안내 한 장
-        if (controller.inTutorial)
+        if (controller.inTutorial &&
+            controller.tutorialStep != TutorialStep.intro)
           Positioned(
             left: 12,
             right: 12,
@@ -187,6 +196,9 @@ class _MapScreenState extends State<MapScreen> {
             onOpen: widget.onOpenDungeon,
           ),
         ),
+        // 묶음 16 #140: 각성 직후 평범한 지도가 이세계로 물든다
+        if (controller.tutorialStep == TutorialStep.intro)
+          Positioned.fill(child: IsekaiIntro(controller: controller)),
       ],
     );
   }
@@ -1369,7 +1381,7 @@ class TutorialCard extends StatelessWidget {
                   await c.sendSpirit(spawn);
                 },
         ),
-      TutorialStep.done => ('', null, null),
+      TutorialStep.done || TutorialStep.intro => ('', null, null),
     };
     return Container(
       key: const Key('tutorialCard'),
@@ -1411,4 +1423,128 @@ class TutorialCard extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// 각성 직후 연출 (묶음 16 #140): 빛이 가운데서 퍼지며 지도가 이세계 색으로
+/// 물들고, 정령이 한두 마디 한 뒤 「어? 바로 옆에 뭔가 있어!」로 첫 전투.
+class IsekaiIntro extends StatefulWidget {
+  const IsekaiIntro({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<IsekaiIntro> createState() => _IsekaiIntroState();
+}
+
+class _IsekaiIntroState extends State<IsekaiIntro>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2400))
+    ..forward();
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (still) _a.value = 1;
+    return AnimatedBuilder(
+      key: const Key('isekaiIntro'),
+      animation: _a,
+      builder: (context, _) {
+        final t = Curves.easeOutCubic.transform(_a.value);
+        final textIn = ((_a.value - 0.55) / 0.45).clamp(0.0, 1.0);
+        return Stack(fit: StackFit.expand, children: [
+          // 빛 번짐: 가운데서 바깥으로 금빛 → 보랏빛 물들이기
+          IgnorePointer(
+            child: CustomPaint(painter: _IntroGlowPainter(t)),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: const Alignment(0, 0.55),
+              child: Opacity(
+                opacity: textIn,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const BulssiLine(
+                        line: '여기가 네가 사는 동네야. 그런데 봐, '
+                            '세상이 조금 다르게 빛나지?'),
+                    const SizedBox(height: 14),
+                    GoldButton(
+                      key: const Key('introNext'),
+                      label: '어? 바로 옆에 뭔가 있어!',
+                      height: 52,
+                      fontSize: 18,
+                      onPressed:
+                          textIn < 1 ? null : widget.controller.finishIntro,
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        key: const Key('introSkip'),
+                        onPressed: widget.controller.finishIntro,
+                        child: const Text('건너뛰기',
+                            style: TextStyle(
+                                color: AppColors.textMuted, fontSize: 12)),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+}
+
+class _IntroGlowPainter extends CustomPainter {
+  _IntroGlowPainter(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.longestSide * (0.15 + 0.9 * t);
+    // 바깥은 밤빛 보라로 덮고, 가운데 빛 고리가 퍼진다
+    canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..color = Color.lerp(const Color(0xEE0B0D26),
+              const Color(0x553A1E6E), t)!);
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = RadialGradient(colors: [
+            const Color(0xFFFFE9A8).withValues(alpha: 0.55 * (1 - t * 0.6)),
+            const Color(0xFFB98330).withValues(alpha: 0.25 * (1 - t * 0.5)),
+            const Color(0x00000000),
+          ], stops: const [0, 0.55, 1])
+              .createShader(Rect.fromCircle(center: c, radius: r)));
+    // 반짝이 몇 개
+    final rnd = math.Random(7);
+    for (var i = 0; i < 24; i++) {
+      final a = rnd.nextDouble() * math.pi * 2;
+      final d = r * (0.3 + rnd.nextDouble() * 0.7);
+      final p = c + Offset(math.cos(a) * d, math.sin(a) * d);
+      canvas.drawCircle(
+          p,
+          1.2 + rnd.nextDouble() * 1.8,
+          Paint()
+            ..color = const Color(0xFFFFF3C4)
+                .withValues(alpha: (0.8 * t) * (1 - (d / r) * 0.5)));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_IntroGlowPainter old) => old.t != t;
 }

@@ -140,8 +140,14 @@ class AppController extends ChangeNotifier {
   PlayerProfile get profile => _profile;
   List<DailyRecord> get history => List.unmodifiable(_history);
 
-  PlayerState get player =>
-      PlayerState.fromHistory(name: _profile.name, history: _history);
+  PlayerState get player => PlayerState.fromHistory(
+      name: _profile.name,
+      history: _history,
+      expCap: inTutorial ? LevelRules.totalExpToReach(2) - 1 : null);
+
+  /// 튜토리얼에서 모아 둔 경험치까지 센 값
+  int get _fullExp =>
+      PlayerState.fromHistory(name: _profile.name, history: _history).totalExp;
 
   /// 대표 칭호 (고른 것이 없으면 자동)
   TitleId? get equippedTitle => TitleRules.equipped(player.titles,
@@ -305,7 +311,10 @@ class AppController extends ChangeNotifier {
     await store.saveProfile(_profile);
     // 묶음 15 #104: 새로 시작하는 사람만 Lv.1~2 튜토리얼 (기존 사용자는 그대로)
     if (player.level.level < 2 && player.history.every((d) => d.fieldMonstersPurified == 0)) {
-      await _setTutorial(TutorialStep.hunt);
+      // 묶음 16 #140: 지도가 이세계로 물드는 연출부터
+      await _setTutorial(TutorialStep.intro);
+      // 묶음 16 #141~#144: 새로 시작하는 사람만 레벨에 따라 기능이 열린다
+      await store.saveJson(_gatesKey, {'legacy': false, 'seen': <String>[]});
     }
     _needsAwakening = false;
     await _startPlaying();
@@ -390,6 +399,20 @@ class AppController extends ChangeNotifier {
       _drive = _drive.copyWith(mode: DriveMode.none);
     }
     _mail = await _load(_mailKey, MailState.fromJson, const MailState());
+    final gates = await _load(_gatesKey, (j) => j, null);
+    if (gates == null) {
+      // 이번 묶음 전부터 하던 사람: 기능을 잠그지 않는다
+      _legacyGates = true;
+      _introsSeen = {for (final f in Feature.values) f.name};
+      _hpTipShown = true;
+      await _saveGates();
+    } else {
+      _legacyGates = gates['legacy'] != false;
+      _introsSeen = {
+        for (final x in (gates['seen'] as List?) ?? const []) '$x'
+      };
+      _hpTipShown = gates['hpTip'] == true || _legacyGates;
+    }
     _lens = await _load(_lensKey, LensState.fromJson, const LensState());
     await sync();
     final titles = await store.loadJson(_titlesKey);
@@ -790,7 +813,7 @@ class AppController extends ChangeNotifier {
 
   /// 튜토리얼 몬스터: 첫째는 바로 옆(걸어갈 필요 없음), 둘째는 조금 떨어진 곳(정령 원정)
   List<FieldSpawn> _tutorialSpawns(GeoPoint center) => switch (tutorialStep) {
-        TutorialStep.hunt => [
+        TutorialStep.hunt || TutorialStep.intro => [
             FieldSpawn(
                 id: tutorialHuntId,
                 monster: MonsterId.ashSlime,
@@ -805,6 +828,71 @@ class AppController extends ChangeNotifier {
         _ => const [],
       };
 
+  /// 연출을 보고 「어? 바로 옆에 뭔가 있어!」를 눌렀을 때 (#140)
+  Future<void> finishIntro() async {
+    if (tutorialStep != TutorialStep.intro) return;
+    await _setTutorial(TutorialStep.hunt);
+    final s = tutorialSpawn;
+    if (s != null) requestMapFocus(s.point);
+  }
+
+  // ───────────────────────────── 레벨에 따라 여는 기능 (묶음 16 #141~#144)
+  static const _gatesKey = 'gates';
+
+  /// 이번 묶음 전부터 하던 사람: 열린 기능은 그대로 (잠그지 않음)
+  bool _legacyGates = true;
+  Set<String> _introsSeen = {};
+  bool _hpTipShown = true;
+
+  static const featureLevel = {
+    Feature.smithy: 3,
+    Feature.board: 4,
+    Feature.harvest: 5,
+    Feature.lens: 6,
+  };
+
+  bool featureOpen(Feature f) =>
+      _legacyGates || player.level.level >= featureLevel[f]!;
+
+  /// 게시판 전체(주간·긴급)는 Lv.5부터 (새로 시작한 사람만)
+  bool get boardFull => _legacyGates || player.level.level >= 5;
+
+  /// 막 열린 기능의 안내 (레벨업 창 등을 닫은 뒤 한 번)
+  Feature? get pendingFeatureIntro {
+    if (_legacyGates || inTutorial || pendingLevelUp != null) return null;
+    for (final f in Feature.values) {
+      if (featureOpen(f) && !_introsSeen.contains(f.name)) return f;
+    }
+    return null;
+  }
+
+  /// 채집 안내 중이면 바로 옆에 꽃 자리 하나 (#143)
+  bool _harvestTutorial = false;
+
+  Future<void> markFeatureIntro(Feature f) async {
+    _introsSeen = {..._introsSeen, f.name};
+    _harvestTutorial = f == Feature.harvest;
+    _spotsKey = null;
+    await _saveGates();
+    notifyListeners();
+  }
+
+  Future<void> _saveGates() => store.saveJson(_gatesKey, {
+        'legacy': _legacyGates,
+        'seen': _introsSeen.toList(),
+        'hpTip': _hpTipShown,
+      });
+
+  /// 처음으로 HP가 절반 아래가 됐을 때 한 번 회복 팁 (#141)
+  bool takeHpTip() {
+    if (_hpTipShown || _legacyGates || maxHp <= 0 || hp * 2 >= maxHp) {
+      return false;
+    }
+    _hpTipShown = true;
+    unawaited(_saveGates());
+    return true;
+  }
+
   /// 튜토리얼 첫 몬스터 (지금 단계가 아니면 null)
   FieldSpawn? get tutorialSpawn {
     for (final s in todaySpawns) {
@@ -818,7 +906,7 @@ class AppController extends ChangeNotifier {
     if (spawnId == tutorialHuntId && tutorialStep == TutorialStep.hunt) {
       await _setTutorial(TutorialStep.bag);
     } else if (spawnId == tutorialExpeditionId) {
-      final need = LevelRules.totalExpToReach(2) - player.totalExp;
+      final need = LevelRules.totalExpToReach(2) - _fullExp;
       if (need > 0) {
         final today = await _todayRecord();
         await _save(today.copyWith(
@@ -1074,6 +1162,12 @@ class AppController extends ChangeNotifier {
   }
 
   /// 살 수 있는지 (가방 칸까지 본다)
+  /// 잡화상에 보이는 물건 (묶음 16 #144: 감정 돋보기는 Lv.6에 열린다)
+  List<ShopItemInfo> get shopItems => [
+        for (final i in TownRules.items)
+          if (i.item != ShopItem.raceLens || featureOpen(Feature.lens)) i,
+      ];
+
   PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {
     final mat = TownRules.info(item).material;
     final have = mat != null
@@ -3110,7 +3204,8 @@ class AppController extends ChangeNotifier {
     final lure = lureActive;
     final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
-        '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}';
+        '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}'
+        '${_legacyGates ? '' : 'v${player.level.level}${_harvestTutorial ? 'T' : ''}'}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
@@ -3121,6 +3216,25 @@ class AppController extends ChangeNotifier {
           density: lure ? AlchemyRules.lureHarvest : 1,
           night: night,
           land: lands?.kindAt);
+      // 묶음 16 #143: 새로 시작한 사람은 Lv.5에 채집이 열리고, 처음엔 꽃·버섯 자리만
+      if (!_legacyGates) {
+        final lv = player.level.level;
+        _spotsCache = lv < 5
+            ? const []
+            : [
+                if (_harvestTutorial && _lastFix != null)
+                  HarvestSpot(
+                      id: 'tutorial-harvest',
+                      kind: HarvestKind.flower,
+                      point: GeoPoint(_lastFix!.point.lat + 0.00008,
+                          _lastFix!.point.lng + 0.00006)),
+                for (final x in _spotsCache)
+                  if (lv >= 7 ||
+                      x.kind == HarvestKind.flower ||
+                      x.kind == HarvestKind.mushroom)
+                    x,
+              ];
+      }
     }
     return _spotsCache;
   }
@@ -3233,6 +3347,11 @@ class AppController extends ChangeNotifier {
   Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) async {
     final minigame = grade != HarvestGrade.quick;
     if (canHarvest(s, minigame: minigame) != HarvestCheck.ok) return null;
+    if (s.id == 'tutorial-harvest') {
+      // 채집 안내 끝: 다음부터는 보통 자리만
+      _harvestTutorial = false;
+      _spotsKey = null;
+    }
     final now = _clock();
     var h = _harvest;
     if (!h.granted) {
@@ -3452,10 +3571,27 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 첫 무기는 공짜 (묶음 16 #141): 새로 시작한 사람이 무기를 아직 안 가졌을 때 한 번
+  bool get firstWeaponFree =>
+      !_legacyGates &&
+      featureOpen(Feature.smithy) &&
+      !_introsSeen.contains('freeWeapon') &&
+      !_armory.items.any(
+          (i) => EquipmentRules.info(i.base).slot == EquipSlot.weapon);
+
+  bool _isFreeCraft(EquipBase base, MaterialId? rare) =>
+      rare == null &&
+      firstWeaponFree &&
+      EquipmentRules.info(base).slot == EquipSlot.weapon &&
+      !EquipmentRules.isBossGear(base);
+
   /// 만들 수 있는지 (재료·마석). [rare] 는 더 넣을 귀한 재료.
   CraftCheck canCraft(EquipBase base, {MaterialId? rare}) {
     final info = EquipmentRules.info(base);
     final p = player;
+    if (_isFreeCraft(base, rare)) {
+      return bagFree <= 0 ? CraftCheck.bagFull : CraftCheck.ok;
+    }
     for (final e in info.recipe.entries) {
       if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
     }
@@ -3472,17 +3608,25 @@ class AppController extends ChangeNotifier {
   Future<EquipItem?> craft(EquipBase base, {MaterialId? rare}) async {
     if (canCraft(base, rare: rare) != CraftCheck.ok) return null;
     final info = EquipmentRules.info(base);
-    final used = <String, int>{
-      for (final e in info.recipe.entries) e.key.name: e.value,
-      if (rare != null) rare.name: (info.recipe[rare] ?? 0) + 1,
-    };
-    final today = await _todayRecord();
-    await _save(today.copyWith(
-      spends: DailyRecord.addCounts(today.spends, {
-        ...used,
-        if (info.manaStones > 0) Wallet.manaStone: info.manaStones,
-      }),
-    ));
+    final free = _isFreeCraft(base, rare);
+    final used = free
+        ? <String, int>{}
+        : <String, int>{
+            for (final e in info.recipe.entries) e.key.name: e.value,
+            if (rare != null) rare.name: (info.recipe[rare] ?? 0) + 1,
+          };
+    if (free) {
+      _introsSeen = {..._introsSeen, 'freeWeapon'};
+      await _saveGates();
+    } else {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+        spends: DailyRecord.addCounts(today.spends, {
+          ...used,
+          if (info.manaStones > 0) Wallet.manaStone: info.manaStones,
+        }),
+      ));
+    }
     final a = _armory;
     final grade =
         EquipmentRules.rollGrade(_random, rare: rare != null, crafts: a.crafts);
@@ -4700,7 +4844,11 @@ enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
 /// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
 /// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·
 /// bag: 결과·가방 보기 · expedition: 정령 원정으로 두 번째 몬스터
-enum TutorialStep { done, hunt, bag, expedition }
+/// 저장값은 순서 번호라 새 단계는 끝에 붙인다
+enum TutorialStep { done, hunt, bag, expedition, intro }
+
+/// 레벨에 따라 여는 기능 (묶음 16)
+enum Feature { smithy, board, harvest, lens }
 
 class ExpeditionPlan {
   const ExpeditionPlan(

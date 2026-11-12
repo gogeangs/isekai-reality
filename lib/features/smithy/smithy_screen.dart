@@ -58,6 +58,8 @@ class _SmithyScreenState extends State<SmithyScreen> {
                 const SizedBox(height: 6),
                 BulssiLine(
                     line: switch (_tab) {
+                  0 when c.firstWeaponFree =>
+                    '첫 무기는 내가 낼게! 마음에 드는 무기를 하나 골라 만들어 봐.',
                   0 => '몬스터 재료로 장비를 만들 수 있어. 귀한 재료를 넣으면 좋은 등급이 잘 나와!',
                   1 => '강화는 실패해도 장비가 부서지지 않아. 마석과 금화만 써.',
                   4 => '보스 장비 조각과 보스 재료로 세트 장비를 만들어. 같은 세트를 모아 입을수록 힘이 깨어나!',

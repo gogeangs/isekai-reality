@@ -29,7 +29,9 @@ class BoardScreen extends StatelessWidget {
           builder: (context, _) {
             final p = controller.player;
             final today = p.today!;
-            final urgent = controller.urgent;
+            // 묶음 16 #142: 막 열린 게시판(Lv.4)은 일일·수시 의뢰만
+            final full = controller.boardFull;
+            final urgent = full ? controller.urgent : null;
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
               children: [
@@ -52,8 +54,10 @@ class BoardScreen extends StatelessWidget {
                   allDone: QuestRules.allDone(today),
                   streak: QuestRules.allDoneStreak(p.history),
                 ),
-                const SizedBox(height: 12),
-                _WeeklyPanel(controller: controller),
+                if (full) ...[
+                  const SizedBox(height: 12),
+                  _WeeklyPanel(controller: controller),
+                ],
                 const SizedBox(height: 12),
                 _ErrandPanel(controller: controller),
               ],

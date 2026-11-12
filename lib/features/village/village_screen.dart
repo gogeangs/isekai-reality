@@ -51,7 +51,31 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.market, '거래소', 'icon_lock', '', open: false),
   ];
 
+  /// 레벨이 모자라 잠긴 시설이면 그 레벨 (묶음 16 #141 #142)
+  int? _lockLevel(Facility f) => switch (f) {
+        Facility.smithy when !controller.featureOpen(Feature.smithy) =>
+          AppController.featureLevel[Feature.smithy],
+        Facility.board when !controller.featureOpen(Feature.board) =>
+          AppController.featureLevel[Feature.board],
+        _ => null,
+      };
+
+  /// 지금 보여 줄 시설 (레벨로 잠긴 곳은 자물쇠)
+  List<FacilityInfo> get _shown => [
+        for (final f in facilities)
+          _lockLevel(f.facility) == null
+              ? f
+              : FacilityInfo(f.facility, f.name, f.icon, f.subtitle,
+                  open: false, inArt: f.inArt),
+      ];
+
   void _enter(BuildContext context, FacilityInfo f) {
+    final lv = _lockLevel(f.facility);
+    if (lv != null) {
+      showTopNotice(context, '${josa(f.name, '은/는')} Lv.$lv에 열려요',
+          icon: Icons.lock_outline_rounded);
+      return;
+    }
     if (!f.open) {
       // 묶음 16 #137: 잠긴 곳을 누르면 위쪽 띠로 「곧 열려요」
       showTopNotice(context, '${josa(f.name, '은/는')} 곧 열려요',
@@ -84,9 +108,9 @@ class VillageScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
-              _VillageArt(onTap: (f) => _enter(context, f)),
+              _VillageArt(list: _shown, onTap: (f) => _enter(context, f)),
               const SizedBox(height: 12),
-              for (final f in facilities)
+              for (final f in _shown)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _FacilityCard(
@@ -103,8 +127,9 @@ class VillageScreen extends StatelessWidget {
 /// 마을 그림(village.jpg): 건물을 누르면 시설로. 그림이 없으면 하늘 띠 위에
 /// 건물 아이콘을 같은 자리에 놓는다.
 class _VillageArt extends StatelessWidget {
-  const _VillageArt({required this.onTap});
+  const _VillageArt({required this.list, required this.onTap});
 
+  final List<FacilityInfo> list;
   final ValueChanged<FacilityInfo> onTap;
 
   // 건물이 차지하는 칸 (그림 안 비율: 왼쪽, 위, 너비, 높이). village.jpg 기준
@@ -138,7 +163,7 @@ class _VillageArt extends StatelessWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               const ColoredBox(color: Color(0xFF1A1D4A))),
-                      for (final f in VillageScreen.facilities)
+                      for (final f in list)
                         Positioned.fromRect(
                           rect: at(f.facility),
                           child: Center(
@@ -162,7 +187,7 @@ class _VillageArt extends StatelessWidget {
                 ),
               ),
             ),
-            for (final f in VillageScreen.facilities)
+            for (final f in list)
               Positioned.fromRect(
                 rect: at(f.facility),
                 child: Semantics(

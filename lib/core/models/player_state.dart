@@ -24,6 +24,7 @@ class PlayerState {
   factory PlayerState.fromHistory({
     required String name,
     required List<DailyRecord> history,
+    int? expCap,
   }) {
     var totalExp = 0;
     final restStreaks = TownRules.restStreaks(history);
@@ -35,6 +36,8 @@ class PlayerState {
       dailyExp.add(exp);
       totalExp += exp.total;
     }
+    // 묶음 16 #125: 튜토리얼 동안은 걸음 경험치를 모아 두었다가 Lv.2 뒤에 준다
+    if (expCap != null && totalExp > expCap) totalExp = expCap;
     final level = LevelRules.fromTotalExp(totalExp);
     final stats = StatRules.fromHistory(history);
     final today = history.isEmpty ? null : history.last;

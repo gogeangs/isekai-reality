@@ -158,3 +158,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | monster_parts_<shadowButterfly·labyrinthWarden·fireSlimeKing> | 몬스터 부위 시트 3종 (2048×2048, 개발이 잘라서 씀) |
 | monster_parts_<frostWolfKing·ancientTreant·shadowBatQueen·thunderGriffin> | 보스 부위 시트 4종 (2048×2048, 개발이 잘라서 씀) |
 | tool_sickle_<stone·iron·silver·mithril> | 약초 낫 4등급 (256×256) |
+| tool_pickaxe_<stone·iron·silver·mithril> | 곡괭이 4등급 (256×256) |

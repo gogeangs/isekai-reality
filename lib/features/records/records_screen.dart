@@ -409,7 +409,7 @@ class _DayRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = record;
     final parts = [
-      '${comma(r.steps)}보${r.stepGoalAchieved ? ' ✓' : ''}',
+      '${comma(r.steps)}보${r.stepGoalAchieved ? ' 달성' : ''}',
       if (r.rested) '휴식',
       if (r.dungeonRuns.isNotEmpty) '던전 ${r.dungeonRuns.length}회',
       if (r.fieldMonstersPurified > 0) '사냥 ${r.fieldMonstersPurified}',

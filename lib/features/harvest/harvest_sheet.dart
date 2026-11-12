@@ -83,10 +83,23 @@ class HarvestSheet extends StatelessWidget {
                         children: [
                           Text(info.name, style: AppText.title(20)),
                           const SizedBox(height: 2),
-                          Text(
-                              '남은 횟수 ${'●' * charges}${'○' * (HarvestRules.maxCharges - charges)}'
-                              '${refill != null ? ' · ${_left(refill)} 뒤 하나 더' : ''}',
-                              style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+                          Row(children: [
+                            const Text('남은 횟수 ',
+                                style: TextStyle(
+                                    color: AppColors.goldBright, fontSize: 13)),
+                            GlyphDots(
+                                filled: charges,
+                                total: HarvestRules.maxCharges,
+                                size: 11),
+                            if (refill != null)
+                              Flexible(
+                                child: Text(' · ${_left(refill)} 뒤 하나 더',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        color: AppColors.goldBright,
+                                        fontSize: 13)),
+                              ),
+                          ]),
                           Text(
                               switch (spot.kind) {
                                 HarvestKind.mushroom => '그늘버섯·독버섯이 늘 나오고, 가끔 달빛 버섯',

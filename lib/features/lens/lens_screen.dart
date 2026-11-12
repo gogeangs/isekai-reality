@@ -584,9 +584,17 @@ class _RevealPanel extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('✦ 감정 결과 ✦',
-                        textAlign: TextAlign.center,
-                        style: AppText.title(16, color: AppColors.textMuted)),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const GameGlyph(Glyph.sparkle, size: 14),
+                          const SizedBox(width: 6),
+                          Text('감정 결과',
+                              style: AppText.title(16,
+                                  color: AppColors.textMuted)),
+                          const SizedBox(width: 6),
+                          const GameGlyph(Glyph.sparkle, size: 14),
+                        ]),
                     const SizedBox(height: 8),
                     for (final (i, race) in r.races.indexed) ...[
                       Text(

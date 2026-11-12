@@ -269,17 +269,15 @@ class _AdRewardsState extends State<_AdRewards> {
     final c = widget.controller;
     final ex = widget.ex;
     final canDouble = !_doubled && c.canDoubleExpedition(ex);
-    final canAgain = c.canExpeditionAgain(ex);
-    if (!canDouble && !canAgain && !_doubled) return const SizedBox.shrink();
+    if (!canDouble && !_doubled) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(children: [
-        if (canDouble || _doubled)
-          Expanded(
-            child: FrameButton(
+        Expanded(
+            child: AdButton(
               key: const Key('adDouble'),
-              label: _doubled ? '두 배 받았어요' : '▶ 광고 보고 두 배',
-              height: 40,
+              label: _doubled ? '두 배 받았어요' : '광고 보고 두 배',
+              height: 42,
               onPressed: _doubled
                   ? null
                   : () async {
@@ -291,24 +289,6 @@ class _AdRewardsState extends State<_AdRewards> {
                         showTopNotice(context, '광고를 불러오지 못했어요.');
                       }
                     },
-            ),
-          ),
-        if ((canDouble || _doubled) && canAgain) const SizedBox(width: 6),
-        if (canAgain)
-          Expanded(
-            child: FrameButton(
-              key: const Key('adAgain'),
-              label: '▶ 광고 보고 한 번 더',
-              height: 40,
-              onPressed: () async {
-                final ok = await c.adExpeditionAgain(ex);
-                if (!context.mounted) return;
-                if (ok) {
-                  Navigator.of(context).pop();
-                } else {
-                  showTopNotice(context, '광고를 불러오지 못했어요.');
-                }
-              },
             ),
           ),
       ]),

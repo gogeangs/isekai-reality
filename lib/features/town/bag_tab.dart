@@ -146,39 +146,43 @@ class _BagTabState extends State<BagTab> {
     if (cost == null) return;
     final short = cost - c.player.gold;
     final byAd = c.bagSlotByAd && c.adsReady;
+    // 묶음 16 #136: 세로 버튼. 금화 크게 · 광고 둘째 · 닫기 작게
     final choice = await showDialog<String>(
       context: context,
       builder: (d) => GameAlert(
         key: const Key('bagExpandAlert'),
         title: const Text('가방 한 칸 열기'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            const GameIcon('gold', size: 20),
-            const SizedBox(width: 4),
-            Text('금화 ${comma(cost)}',
-                style: AppText.title(16, color: AppColors.goldBright)),
-          ]),
+          GoldButton(
+            key: const Key('bagExpandOk'),
+            label: '${comma(cost)}으로 열기',
+            height: 54,
+            fontSize: 19,
+            leading: const GameIcon('gold', size: 22),
+            onPressed: short > 0 ? null : () => Navigator.pop(d, 'gold'),
+          ),
           if (short > 0) ...[
-            const SizedBox(height: 6),
-            Text('금화 ${comma(short)} 부족',
-                style: const TextStyle(
-                    color: Color(0xFFE57373), fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            const Text('금화가 모자라요',
+                key: Key('bagGoldShort'),
+                style: TextStyle(
+                    color: Color(0xFFE57373),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
           ],
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(d),
-              child: const Text('그만둘래요')),
-          if (byAd)
-            TextButton(
+          if (byAd) ...[
+            const SizedBox(height: 8),
+            AdButton(
                 key: const Key('bagExpandAd'),
-                onPressed: () => Navigator.pop(d, 'ad'),
-                child: const Text('광고 보고 열기')),
+                label: '광고 보고 열기',
+                onPressed: () => Navigator.pop(d, 'ad')),
+          ],
+          const SizedBox(height: 4),
           TextButton(
-              key: const Key('bagExpandOk'),
-              onPressed: short > 0 ? null : () => Navigator.pop(d, 'gold'),
-              child: const Text('금화로 열기')),
-        ],
+              key: const Key('bagExpandClose'),
+              onPressed: () => Navigator.pop(d),
+              child: const Text('닫기', style: TextStyle(fontSize: 14))),
+        ]),
       ),
     );
     if (choice == null || !mounted) return;
@@ -379,12 +383,9 @@ class _BagTabState extends State<BagTab> {
                                   ? const Key('bagExpandSlot')
                                   : null,
                               locked: true,
-                              // 바로 다음 한 칸에만 가격 (처음 두 칸은 금화 / 광고)
-                              lockLabel: i == 0 && cost != null
-                                  ? c.bagSlotByAd && c.adsReady
-                                      ? '금화 ${comma(cost)} · 광고'
-                                      : '금화 ${comma(cost)}'
-                                  : null,
+                              // 묶음 16 #118: 자물쇠만. 바로 다음 칸은 조금 밝게,
+                              // 어느 칸을 눌러도 다음 한 칸 열기 창
+                              nextLock: i == 0,
                               onTap: _expand),
                       ],
                     ),
@@ -426,13 +427,13 @@ class BagSlot extends StatelessWidget {
       this.controller,
       this.onTap,
       this.locked = false,
-      this.lockLabel});
+      this.nextLock = false});
 
   /// 금화로 늘릴 수 있는 칸 (자물쇠)
   final bool locked;
 
-  /// 자물쇠 칸 글 (「+5칸 · 금화 200」)
-  final String? lockLabel;
+  /// 바로 다음에 열 칸 (자물쇠를 조금 밝게)
+  final bool nextLock;
 
   final BagEntry? entry;
   final AppController? controller;
@@ -463,27 +464,13 @@ class BagSlot extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF10132F),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.12)),
+            border: Border.all(
+                color: AppColors.gold
+                    .withValues(alpha: nextLock ? 0.35 : 0.12)),
           ),
-          child: lockLabel == null
-              ? Icon(Icons.lock_rounded,
-                  size: 22, color: AppColors.gold.withValues(alpha: 0.45))
-              : Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.lock_rounded,
-                          size: 22, color: AppColors.goldBright),
-                      for (final t in lockLabel!.split(' · '))
-                        Text(t,
-                            style: const TextStyle(
-                                color: AppColors.goldBright,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
+          child: Center(
+            child: GameGlyph(Glyph.lock, size: 22, dim: !nextLock),
+          ),
         ),
       );
     }

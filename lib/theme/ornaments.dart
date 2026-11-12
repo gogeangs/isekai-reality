@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 
 import '../core/format.dart';
 import 'app_colors.dart';
+import 'glyphs.dart';
+export 'glyphs.dart';
 
 /// 목업의 장식 요소: 금테 패널, 리본 제목, 금색 버튼, 빛나는 막대, 월계관 배지.
 /// 그림 파일 없이 코드로 그린다.
@@ -400,6 +402,7 @@ class GoldButton extends StatelessWidget {
     required this.onPressed,
     this.height = 58,
     this.fontSize = 21,
+    this.leading,
   });
 
   final String label;
@@ -407,9 +410,24 @@ class GoldButton extends StatelessWidget {
   final double height;
   final double fontSize;
 
+  /// 글자 앞 아이콘 (금화·광고 등)
+  final Widget? leading;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final text = Text(
+      label,
+      maxLines: 1,
+      softWrap: false,
+      style: TextStyle(
+        fontFamily: 'Title',
+        fontWeight: FontWeight.w700,
+        fontSize: fontSize,
+        letterSpacing: 0,
+        color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
+      ),
+    );
     return _ArtButton(
       asset: enabled
           ? 'assets/images/ui_button_gold.png'
@@ -424,20 +442,35 @@ class GoldButton extends StatelessWidget {
       // 버튼 글자는 말줄임·줄바꿈 없이 다 보이게 (11-11 #87): 좁으면 글자만 줄인다
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Text(
-          label,
-          maxLines: 1,
-          softWrap: false,
-          style: TextStyle(
-            fontFamily: 'Title',
-            fontWeight: FontWeight.w700,
-            fontSize: fontSize,
-            color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
-          ),
-        ),
+        child: leading == null
+            ? text
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Opacity(opacity: enabled ? 1 : 0.5, child: leading),
+                SizedBox(width: fontSize * 0.3),
+                text,
+              ]),
       ),
     );
   }
+}
+
+/// 광고 보상 버튼 (묶음 16 #119): 금색 버튼과 같은 모양, 한 단계 작게
+class AdButton extends StatelessWidget {
+  const AdButton(
+      {super.key, required this.label, required this.onPressed, this.height = 46});
+
+  final String label;
+  final VoidCallback? onPressed;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => GoldButton(
+        label: label,
+        onPressed: onPressed,
+        height: height,
+        fontSize: 16,
+        leading: GameGlyph(Glyph.ad, size: 18, dim: onPressed == null),
+      );
 }
 
 /// 금테 두른 어두운 버튼 (ui_button_dark 그림)

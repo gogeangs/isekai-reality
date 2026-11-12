@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
@@ -8,6 +9,7 @@ import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/level_up/level_up_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 건강 데이터가 끝내 답하지 않는 기기
@@ -136,5 +138,39 @@ void main() {
       await expectLater(store.loadJson('bag'), throwsA(anything));
       expect(prefs.getString('json.bag.broken'), '{"singleSlots": 3');
     });
+  });
+
+  testWidgets('#127 레벨업 창은 작은 휴대폰(칭호와 함께)에서도 한 화면, 버튼은 화면 안',
+      (tester) async {
+    tester.view.physicalSize = const Size(320 * 2, 568 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => const LevelUpDialog(
+                  from: 1,
+                  to: 2,
+                  title: '첫걸음을 뗀 각성자',
+                  healedFrom: (hp: 3, maxHp: 120, mp: 1, mpMax: 30),
+                ),
+              ),
+              child: const Text('열기'),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final ok = tester.getRect(find.byKey(const Key('levelUpOk')));
+    expect(ok.bottom, lessThanOrEqualTo(568));
+    expect(find.byKey(const Key('levelUpArrow')), findsOneWidget);
+    expect(find.text('Lv.2'), findsNothing); // 중복 Lv 명판 없음
   });
 }

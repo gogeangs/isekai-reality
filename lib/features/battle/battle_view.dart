@@ -623,13 +623,22 @@ class _BattleViewState extends State<BattleView> {
                                         ? AppColors.goldBright
                                         : AppColors.textMuted),
                               ),
-                              child: Text(_fast ? '▶▶ 2배' : '▶ 1배',
-                                  style: TextStyle(
-                                      color: _fast
-                                          ? AppColors.goldBright
-                                          : AppColors.textMuted,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GameGlyph(
+                                        _fast ? Glyph.fast : Glyph.play,
+                                        size: 13,
+                                        dim: !_fast),
+                                    const SizedBox(width: 3),
+                                    Text(_fast ? '2배' : '1배',
+                                        style: TextStyle(
+                                            color: _fast
+                                                ? AppColors.goldBright
+                                                : AppColors.textMuted,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700)),
+                                  ]),
                             ),
                           ),
                         ],
@@ -1402,9 +1411,17 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: Colors.white70),
                               ),
-                              child: Text('⚠ ${widget.warning}',
-                                  style: AppText.title(16,
-                                      color: Colors.white)),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const GameGlyph(Glyph.warn, size: 16),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(widget.warning!,
+                                          style: AppText.title(16,
+                                              color: Colors.white)),
+                                    ),
+                                  ]),
                             ),
                           ]),
                         ),

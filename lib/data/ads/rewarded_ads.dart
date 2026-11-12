@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// 보상형 광고 (묶음 15 #103, AdMob). 끝까지 본 경우에만 보상.
@@ -22,6 +23,21 @@ class RewardedAds {
       defaultValue: 'ca-app-pub-3940256099942544/1712485313');
 
   static String get unitId => Platform.isIOS ? _iosUnit : _androidUnit;
+
+  /// 아이폰이면 애플 추적 허용 창(ATT)을 띄운다. 허용이면 true,
+  /// 거부·제한이면 false, 아이폰이 아니면 null (안드로이드는 앱 안 선택으로)
+  static Future<bool?> requestTracking() async {
+    if (!Platform.isIOS) return null;
+    try {
+      var s = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (s == TrackingStatus.notDetermined) {
+        s = await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+      return s == TrackingStatus.authorized;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<void>? _ready;
 

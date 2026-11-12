@@ -191,10 +191,9 @@ class InnScreen extends StatelessWidget {
                   // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
                   if (controller.canShortenRest) ...[
                     const SizedBox(height: 8),
-                    FrameButton(
+                    AdButton(
                       key: const Key('adShortenRest'),
-                      label: '▶ 광고 보고 1시간 줄이기',
-                      height: 44,
+                      label: '광고 보고 1시간 줄이기',
                       onPressed: () async {
                         final ok = await controller.adShortenRest();
                         if (!ok && context.mounted) {

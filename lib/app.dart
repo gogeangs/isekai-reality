@@ -196,34 +196,48 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
-  /// 처음 광고를 볼 때 한 번 묻는다: 내 관심사에 맞춘 광고를 볼지 (설정에서 바꿀 수 있다)
+  /// 처음 광고를 볼 때 한 번 (묶음 16): 이슬이 짧게 이유를 말하고, 아이폰은 애플 추적 허용 창.
+  /// 거부하면 맞춤이 아닌 광고. 설정에서 바꿀 수 있다
   Future<bool> _adConsent() async {
     final c = widget.controller;
     final known = c.adPersonal;
     if (known != null || !mounted) return known ?? false;
+    final ios = Theme.of(context).platform == TargetPlatform.iOS;
     final yes = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (d) => GameAlert(
         key: const Key('adConsent'),
-        title: const Text('광고를 보고 보상을 받아요'),
-        content: const KText(
-            '내 관심사에 맞춘 광고를 볼까요? 허용하지 않아도 광고 보상은 똑같이 받아요. '
-            '설정에서 언제든 바꿀 수 있어요.',
-            style: TextStyle(color: AppColors.text)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(d, false),
-              child: const Text('허용 안 함')),
-          TextButton(
-              key: const Key('adConsentYes'),
-              onPressed: () => Navigator.pop(d, true),
-              child: const Text('맞춤 광고 허용')),
-        ],
+        title: Text(c.firstSpiritName),
+        content: KText(
+            ios
+                ? '광고를 끝까지 보면 보상을 받을 수 있어! 곧 뜨는 창에서 허용하면 '
+                    '관심 있는 광고가 나오고, 허용하지 않아도 보상은 똑같아.'
+                : '광고를 끝까지 보면 보상을 받을 수 있어! 관심 있는 광고를 볼래? '
+                    '허용하지 않아도 보상은 똑같아.',
+            style: const TextStyle(color: AppColors.text)),
+        actions: ios
+            ? [
+                TextButton(
+                    key: const Key('adConsentYes'),
+                    onPressed: () => Navigator.pop(d, true),
+                    child: const Text('알겠어')),
+              ]
+            : [
+                TextButton(
+                    onPressed: () => Navigator.pop(d, false),
+                    child: const Text('허용 안 함')),
+                TextButton(
+                    key: const Key('adConsentYes'),
+                    onPressed: () => Navigator.pop(d, true),
+                    child: const Text('허용')),
+              ],
       ),
     );
-    await c.setAdPersonal(yes ?? false);
-    return yes ?? false;
+    var personal = yes ?? false;
+    if (ios) personal = await RewardedAds.requestTracking() ?? false;
+    await c.setAdPersonal(personal);
+    return personal;
   }
 
   /// 원정 결과 금테 카드 (11-11 #51). 여러 마리가 함께 돌아오면 차례로

@@ -19,8 +19,8 @@ Future<void> showAutoUseWindow(
 /// 전투 물약 줄 끝 작은 표시: 「자동 50%」(+✚) / 「자동 끔」
 String autoUseLabel(int hp, bool cure) {
   if (hp <= 0 && !cure) return '자동 끔';
-  if (hp <= 0) return '자동 ✚';
-  return cure ? '자동 $hp% ✚' : '자동 $hp%';
+  if (hp <= 0) return '자동 해독';
+  return cure ? '자동 $hp% · 해독' : '자동 $hp%';
 }
 
 class _AutoUseWindow extends StatefulWidget {

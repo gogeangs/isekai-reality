@@ -47,6 +47,9 @@ if os.environ.get("SNAP_APP_ID") and os.environ.get("SNAP_API_TOKEN"):
 # 저장소 변수 ADMOB_APP_ID_IOS 가 없으면 Google 시험 앱 ID
 info["GADApplicationIdentifier"] = os.environ.get(
     "ADMOB_APP_ID_IOS") or "ca-app-pub-3940256099942544~1458002511"
+# 묶음 16: 앱 추적 투명성(ATT) 창 설명. 거부하면 맞춤이 아닌 광고만
+info["NSUserTrackingUsageDescription"] = (
+    "허용하면 관심사에 맞는 광고가 나와요. 허용하지 않아도 광고 보상은 똑같아요.")
 info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"}]
 
 info_path.write_bytes(plistlib.dumps(info))

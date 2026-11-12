@@ -341,10 +341,20 @@ class AppController extends ChangeNotifier {
 
   Future<void> _startPlaying() async {
     // 건강 데이터 권한·위치는 늦으면 기다리지 않는다 (화면 먼저, 뒤에서 채운다)
-    _healthGranted = await health
-        .requestPermission()
-        .timeout(const Duration(seconds: 8), onTimeout: () => false)
-        .catchError((_) => false);
+    final perm = health.requestPermission().catchError((_) => false);
+    _healthGranted =
+        await perm.timeout(const Duration(seconds: 8), onTimeout: () {
+      // 늦게 허용되면 그때 걸음을 채운다
+      unawaited(perm.then((granted) async {
+        if (granted && !_healthGranted && _ready) {
+          _healthGranted = true;
+          try {
+            await sync();
+          } catch (_) {}
+        }
+      }));
+      return false;
+    });
     try {
       _vitals = await store.loadVitals();
     } catch (_) {
@@ -395,8 +405,12 @@ class AppController extends ChangeNotifier {
       _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
       await store.saveJson(_statsKey, _alloc.toJson());
     }
-    // 위치 권한은 기다리지 않는다 (늦으면 화면 먼저)
-    unawaited(_startExploring().catchError((_) {}));
+    // 위치 권한은 오래 기다리지 않는다 (늦으면 화면 먼저, 뒤에서 마저 채운다)
+    try {
+      await _startExploring()
+          .catchError((_) {})
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {}
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
     if (_profile.lastSeenLevel == null) {
       _profile = _profile.copyWith(lastSeenLevel: player.level.level);
@@ -416,8 +430,8 @@ class AppController extends ChangeNotifier {
     final y = _find(yesterday);
     if (_healthGranted && y != null) {
       final closed = await _withHealth(y, yesterday, today)
-          .timeout(const Duration(seconds: 8), onTimeout: () => y)
-          .catchError((_) => y);
+          .catchError((_) => y)
+          .timeout(const Duration(seconds: 8), onTimeout: () => y);
       await store.upsert(_withQuests(closed));
     }
 
@@ -426,8 +440,8 @@ class AppController extends ChangeNotifier {
     if (_healthGranted) {
       final base = todayRecord;
       todayRecord = await _withHealth(base, today, now)
-          .timeout(const Duration(seconds: 8), onTimeout: () => base)
-          .catchError((_) => base);
+          .catchError((_) => base)
+          .timeout(const Duration(seconds: 8), onTimeout: () => base);
     }
     await store.upsert(_withQuests(todayRecord.copyWith(openedApp: true)));
 
@@ -1200,51 +1214,6 @@ class AppController extends ChangeNotifier {
     }
     _markAd(ex, 'double');
     await store.saveVitals(_vitals);
-    notifyListeners();
-    return true;
-  }
-
-  /// 원정 한 번 더: 같은 몬스터 자리로 다시 보낸다 (MP 없이, 걸리는 시간은 같게)
-  bool canExpeditionAgain(Expedition ex) =>
-      adsReady &&
-      ex.finished &&
-      !isTutorialSpawn(ex.spawnId) &&
-      !ex.adUsed.contains('again');
-
-  Future<bool> adExpeditionAgain(Expedition ex) async {
-    if (!canExpeditionAgain(ex) || !await _watchAd('expedition_again')) {
-      return false;
-    }
-    final now = _clock();
-    final oneWay = ex.arriveAt.difference(ex.startedAt);
-    final again = Expedition(
-      spawnId: '${ex.spawnId}~${now.millisecondsSinceEpoch}',
-      monster: ex.monster,
-      mods: ex.mods,
-      lat: ex.lat,
-      lng: ex.lng,
-      fromLat: ex.fromLat,
-      fromLng: ex.fromLng,
-      distanceM: ex.distanceM,
-      mpCost: 0,
-      startedAt: now,
-      arriveAt: now.add(oneWay),
-      returnAt: now.add(oneWay * 2),
-      route: ex.route,
-      petUid: ex.petUid,
-      petName: ex.petName,
-      adUsed: const {'again'},
-    );
-    // 결과를 받은 것으로 하고 새 원정을 보낸다
-    _vitals = _vitals.copyWith(expeditions: [
-      for (final e in _vitals.expeditions)
-        if (!(e.spawnId == ex.spawnId && e.petUid == ex.petUid)) e,
-      again,
-    ]);
-    await store.saveVitals(_vitals);
-    final who = ex.petName ?? _profile.spiritName;
-    unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), again.returnAt,
-        '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
     notifyListeners();
     return true;
   }

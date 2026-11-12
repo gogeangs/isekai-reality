@@ -493,11 +493,29 @@ class LootRules {
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };
 
+  /// 초반에 아직 쓸 곳이 없는 재료 → 초반 제작에 쓰는 재료 (#129)
+  static const earlyCommon = {
+    MaterialId.fireJelly: MaterialId.slimeJelly,
+    MaterialId.waterJelly: MaterialId.slimeJelly,
+    MaterialId.windJelly: MaterialId.slimeJelly,
+    MaterialId.mudJelly: MaterialId.slimeJelly,
+    MaterialId.lightJelly: MaterialId.slimeJelly,
+    MaterialId.darkJelly: MaterialId.slimeJelly,
+    MaterialId.iceJelly: MaterialId.slimeJelly,
+    MaterialId.thunderJelly: MaterialId.slimeJelly,
+    MaterialId.metalJelly: MaterialId.slimeJelly,
+    MaterialId.poisonJelly: MaterialId.slimeJelly,
+    MaterialId.rabbitMeat: MaterialId.smallHorn,
+    MaterialId.boarMeat: MaterialId.toughHide,
+  };
+
   /// 필드 몬스터 한 마리: 그 몬스터 재료 1 (+귀한 재료). [rareBonus] 는 행운 보너스.
   static Map<MaterialId, int> field(MonsterId m, math.Random rng,
-      {double rareBonus = 0}) {
+      {double rareBonus = 0, bool early = false}) {
     final d = dropsOf(m);
-    final common = d.common[rng.nextInt(d.common.length)];
+    var common = d.common[rng.nextInt(d.common.length)];
+    // 묶음 16 #129: 처음(Lv.5까지)엔 바로 쓰는 재료만. 속성 젤리 → 슬라임 젤리
+    if (early) common = earlyCommon[common] ?? common;
     return {
       common: 1,
       if (rng.nextDouble() < d.chance + rareBonus) d.rare: 1,

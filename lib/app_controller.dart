@@ -854,6 +854,9 @@ class AppController extends ChangeNotifier {
   bool featureOpen(Feature f) =>
       _legacyGates || player.level.level >= featureLevel[f]!;
 
+  /// 초반 재료만 떨어뜨리는지 (새로 시작한 사람 Lv.5까지, #129)
+  bool get earlyLoot => !_legacyGates && player.level.level <= 5;
+
   /// 게시판 전체(주간·긴급)는 Lv.5부터 (새로 시작한 사람만)
   bool get boardFull => _legacyGates || player.level.level >= 5;
 
@@ -1047,6 +1050,7 @@ class AppController extends ChangeNotifier {
     if (paid) {
       for (var i = 0; i < count; i++) {
         LootRules.field(monster, _random,
+                early: earlyLoot,
                 rareBonus: StatRules.rareDropBonus(combatStats) +
                     (plentyActive ? LootRules.dropsOf(monster).chance * 0.5 : 0))
             .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
@@ -4653,7 +4657,7 @@ class AppController extends ChangeNotifier {
       if (extra > 0 && r.exp > 0) {
         final more = <MaterialId, int>{};
         for (var i = 0; i < extra; i++) {
-          LootRules.field(monster, _random)
+          LootRules.field(monster, _random, early: earlyLoot)
               .forEach((k, v) => more[k] = (more[k] ?? 0) + v);
         }
         await _grant(0, 0, more);

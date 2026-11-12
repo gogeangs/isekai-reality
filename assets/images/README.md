@@ -168,3 +168,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | equip_warden<Weapon·Head·Body·Hands·Feet·Acc> | 보스 장비 문지기 세트 6종 (512×512, 시트에서 잘라 냄, 뿌연 빛무리 지움) |
 | 2026-11-13 | equip_flame{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 불꽃 왕 세트 (시트에서 잘라 냄, 512) |
 | 2026-11-13 | equip_frost{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 서리 늑대 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_grove{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 고목 세트 (시트에서 잘라 냄, 512) |

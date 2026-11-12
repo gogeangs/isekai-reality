@@ -276,7 +276,7 @@ class _HeroArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hero = 'assets/images/hero_stand_${tired ? 'tired_' : ''}'
-        '${look == HeroLook.female ? 'female' : 'male'}.png';
+        '${look == HeroLook.female ? 'female' : 'male'}.webp';
     return LayoutBuilder(builder: (context, box) {
       final h = box.maxHeight;
       // 마법진 가운데 (무대 그림의 아래쪽 1/4쯤)
@@ -292,13 +292,13 @@ class _HeroArt extends StatelessWidget {
             stops: [0, 0.86, 1],
           ).createShader(r),
           blendMode: BlendMode.dstIn,
-          child: Image.asset('assets/images/bg_status_stage.jpg',
+          child: Image.asset('assets/images/bg_status_stage.webp',
               fit: BoxFit.cover,
               alignment: const Alignment(0, 0.55),
               errorBuilder: (_, __, ___) => Image.asset(
                   look == HeroLook.female
-                      ? 'assets/images/bg_status_female.jpg'
-                      : 'assets/images/bg_status_male.jpg',
+                      ? 'assets/images/bg_status_female.webp'
+                      : 'assets/images/bg_status_male.webp',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox())),
         ),
@@ -460,7 +460,7 @@ class _GearSlot extends StatelessWidget {
                   ? SlotGlyph(slot,
                       color: AppColors.textMuted.withValues(alpha: 0.7),
                       size: size * 0.48)
-                  : Image.asset('assets/images/${it.info.asset}.png',
+                  : Image.asset('assets/images/${it.info.asset}.webp',
                       width: size - 10,
                       height: size - 10,
                       errorBuilder: (_, __, ___) =>

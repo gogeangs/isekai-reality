@@ -21,7 +21,7 @@ class StatIcon extends StatelessWidget {
         StatKind.luck => Icons.auto_awesome_rounded,
       };
 
-  static String asset(StatKind k) => 'assets/images/stat_${k.name}.png';
+  static String asset(StatKind k) => 'assets/images/stat_${k.name}.webp';
 
   @override
   Widget build(BuildContext context) => Image.asset(

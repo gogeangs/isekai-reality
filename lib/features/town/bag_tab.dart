@@ -275,7 +275,7 @@ class _BagTabState extends State<BagTab> {
                     Row(mainAxisSize: MainAxisSize.min, children: [
                       // 도구 등급 그림 (묶음 14 E: 가방에도). 없으면 글자만
                       Image.asset(
-                          'assets/images/tool_${t.name}_${c.toolTier(t).name}.png',
+                          'assets/images/tool_${t.name}_${c.toolTier(t).name}.webp',
                           key: Key('bagTool_${t.name}'),
                           width: 22,
                           height: 22,
@@ -506,7 +506,7 @@ class BagSlot extends StatelessWidget {
                     potion: AlchemyRules.parseKey(key)?.id,
                     suspicious: key.startsWith('?:'),
                     size: 64),
-                PouchEntry() => Image.asset('assets/images/item_pouch.png',
+                PouchEntry() => Image.asset('assets/images/item_pouch.webp',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(
                         Icons.shopping_bag_rounded,
@@ -1069,7 +1069,7 @@ class _MerchantDialogState extends State<_MerchantDialog> {
 
         return GameAlert(
           title: Row(children: [
-            Image.asset('assets/images/merchant.png',
+            Image.asset('assets/images/merchant.webp',
                 width: 60,
                 height: 60,
                 errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded,
@@ -1115,7 +1115,7 @@ class _MerchantDialogState extends State<_MerchantDialog> {
               if (g.noteOffer || c.merchantSold(null))
                 _row(
                   key: const Key('merchant_note'),
-                  icon: Image.asset('assets/images/item_recipe_note.png',
+                  icon: Image.asset('assets/images/item_recipe_note.webp',
                       width: 40,
                       height: 40,
                       errorBuilder: (_, __, ___) => const Icon(

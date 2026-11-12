@@ -133,7 +133,7 @@ class MaterialInfo {
   final bool rare;
 
   /// assets/images/<asset>.png (그림이 없으면 아이콘으로 대신)
-  String get asset => 'assets/images/mat_${id.name}.png';
+  String get asset => 'assets/images/mat_${id.name}.webp';
 }
 
 /// 지갑의 키: 마석·금화 (재료는 [MaterialId] 이름)

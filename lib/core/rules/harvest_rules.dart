@@ -54,8 +54,8 @@ class HarvestKindInfo {
         HarvestKind.flower ||
         HarvestKind.gem ||
         HarvestKind.relic =>
-          'assets/images/map_harvest_${kind.name}.png',
-        _ => 'assets/images/mat_${base.name}.png',
+          'assets/images/map_harvest_${kind.name}.webp',
+        _ => 'assets/images/mat_${base.name}.webp',
       };
 }
 

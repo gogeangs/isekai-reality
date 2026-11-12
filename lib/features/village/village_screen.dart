@@ -156,10 +156,10 @@ class _VillageArt extends StatelessWidget {
           }
 
           return Stack(fit: StackFit.expand, children: [
-            Image.asset('assets/images/village.jpg',
+            Image.asset('assets/images/village.webp',
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Stack(fit: StackFit.expand, children: [
-                      Image.asset('assets/images/bg_header.jpg',
+                      Image.asset('assets/images/bg_header.webp',
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               const ColoredBox(color: Color(0xFF1A1D4A))),
@@ -251,7 +251,7 @@ class _BuildingIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(
-        'assets/images/$icon.png',
+        'assets/images/$icon.webp',
         width: size,
         height: size,
         errorBuilder: (_, __, ___) => Icon(

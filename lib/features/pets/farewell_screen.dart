@@ -106,7 +106,7 @@ class _FarewellScreenState extends State<FarewellScreen>
           builder: (_, t, child) => Transform.scale(scale: t, child: child),
           child: Stack(alignment: Alignment.center, children: [
             // 깨진 알 껍데기와 빛 (그림이 없으면 펫만)
-            Image.asset('assets/images/scene_hatch.png',
+            Image.asset('assets/images/scene_hatch.webp',
                 width: 260,
                 height: 260,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink()),
@@ -153,7 +153,7 @@ class _FarewellScreenState extends State<FarewellScreen>
         // 정령이 탑으로 돌아가는 장면 (그림이 없으면 흐려진 정령)
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Image.asset('assets/images/scene_farewell.png',
+          child: Image.asset('assets/images/scene_farewell.webp',
               height: 170,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Opacity(

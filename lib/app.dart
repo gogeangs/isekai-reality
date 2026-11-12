@@ -346,7 +346,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 style: AppText.title(19)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               // 정령의 편지 그림 (없으면 글만)
-              Image.asset('assets/images/letter_spirit.png',
+              Image.asset('assets/images/letter_spirit.webp',
                   height: 120,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink()),
               KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}\n'
@@ -598,7 +598,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           return Scaffold(
             backgroundColor: AppColors.deepNight,
             body: Stack(fit: StackFit.expand, children: [
-              Image.asset('assets/images/splash.jpg',
+              Image.asset('assets/images/splash.webp',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox()),
               if (controller.startError == null)
@@ -930,11 +930,11 @@ class OrnateNavBar extends StatelessWidget {
                                 Opacity(
                                   opacity: i == index || i == mapIndex ? 1 : 0.7,
                                   child: Image.asset(
-                                      'assets/images/${items[i].$1}.png',
+                                      'assets/images/${items[i].$1}.webp',
                                       width: i == mapIndex ? 36 : 30,
                                       height: i == mapIndex ? 36 : 30,
                                       errorBuilder: (_, __, ___) => Image.asset(
-                                          'assets/images/${_fallback[items[i].$1] ?? 'icon_quest'}.png',
+                                          'assets/images/${_fallback[items[i].$1] ?? 'icon_quest'}.webp',
                                           width: 30,
                                           height: 30,
                                           errorBuilder: (_, __, ___) =>

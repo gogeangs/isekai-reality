@@ -877,7 +877,7 @@ void main() {
           'item_recipe_book', 'item_recipe_note', 'item_pouch', 'icon_convert_table'])
         (
           n,
-          Image.asset('assets/images/$n.png',
+          Image.asset('assets/images/$n.webp',
               errorBuilder: (_, __, ___) => const Icon(Icons.help_outline,
                   color: Colors.redAccent, size: 40))
         ),

@@ -52,21 +52,21 @@ enum _Stage { intro, spirit, spiritName, consent, tooYoung, form, finale }
 
 class _AwakeningScreenState extends State<AwakeningScreen> {
   static const scenes = [
-    IntroScene('assets/images/intro_01_alley.jpg', ['오늘도 별일 없는 하루였어.'],
+    IntroScene('assets/images/intro_01_alley.webp', ['오늘도 별일 없는 하루였어.'],
         dialogTop: true),
-    IntroScene('assets/images/intro_02_glitch.jpg',
+    IntroScene('assets/images/intro_02_glitch.webp',
         ['…어? 화면이 왜 이래?', '바닥에서… 보랏빛 안개가 올라와.'],
         dialogTop: true),
-    IntroScene('assets/images/intro_03_tower.jpg',
+    IntroScene('assets/images/intro_03_tower.webp',
         ['저긴 분명히 아파트밖에 없던 곳인데…', '저 탑은 대체 뭐야?']),
-    IntroScene('assets/images/intro_04_onlyme.jpg',
+    IntroScene('assets/images/intro_04_onlyme.webp',
         ['다들 안 보여? 설마… 나만 보이는 거야?'],
         dialogTop: true),
-    IntroScene('assets/images/intro_05_lights.jpg',
+    IntroScene('assets/images/intro_05_lights.webp',
         ['안개를 헤치고 작은 빛 셋이 날아온다!', '찾았다! 탑이 고른 각성자!'],
         dialogTop: true),
     IntroScene(
-      'assets/images/intro_06_spirits.jpg',
+      'assets/images/intro_06_spirits.webp',
       [
         '여명의 탑 아르카의 불꽃이 깨져 버렸어.',
         '그래서 우리 세계가 네 세계 위에 겹쳐 버렸지.',
@@ -202,7 +202,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     return Stack(fit: StackFit.expand, children: [
       ImageFiltered(
         imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Image.asset('assets/images/intro_06_spirits.jpg',
+        child: Image.asset('assets/images/intro_06_spirits.webp',
             fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox()),
       ),
       const ColoredBox(color: Color(0x990B0D26)),
@@ -394,8 +394,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     return Stack(fit: StackFit.expand, children: [
       IllustratedScene(
         image: _look == HeroLook.female
-            ? 'assets/images/intro_08_awaken_female.jpg'
-            : 'assets/images/intro_08_awaken_male.jpg',
+            ? 'assets/images/intro_08_awaken_female.webp'
+            : 'assets/images/intro_08_awaken_male.webp',
         speaker: _spiritName,
         line: '준비됐어, ${_nameController.text.trim()}? 아르카의 빛을 되찾으러 가자!',
         lineKey: 'finale',
@@ -425,8 +425,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           top: overlay != null ? MediaQuery.paddingOf(context).top + 46 : 0,
           child: Image.asset(
               _look == HeroLook.female
-                  ? 'assets/images/bg_status_female.jpg'
-                  : 'assets/images/bg_status_male.jpg',
+                  ? 'assets/images/bg_status_female.webp'
+                  : 'assets/images/bg_status_male.webp',
               fit: BoxFit.cover,
               alignment: const Alignment(-0.42, -0.6),
               errorBuilder: (_, __, ___) => const SizedBox()),
@@ -707,14 +707,14 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                       Row(children: [
                         _LookCard(
                           label: '남',
-                          image: 'assets/images/portrait_male.png',
+                          image: 'assets/images/portrait_male.webp',
                           selected: _look == HeroLook.male,
                           onTap: () => setState(() => _look = HeroLook.male),
                         ),
                         const SizedBox(width: 12),
                         _LookCard(
                           label: '여',
-                          image: 'assets/images/portrait_female.png',
+                          image: 'assets/images/portrait_female.webp',
                           selected: _look == HeroLook.female,
                           onTap: () =>
                               setState(() => _look = HeroLook.female),

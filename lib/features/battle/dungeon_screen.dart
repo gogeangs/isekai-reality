@@ -195,7 +195,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset('assets/images/bg_gate.jpg',
+              Image.asset('assets/images/bg_gate.webp',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
                       const ColoredBox(color: Color(0xFF1B1840))),
@@ -401,8 +401,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   blendMode: BlendMode.dstIn,
                   child: Image.asset(
                       cleared
-                          ? 'assets/images/bg_victory.jpg'
-                          : 'assets/images/bg_battle.jpg',
+                          ? 'assets/images/bg_victory.webp'
+                          : 'assets/images/bg_battle.webp',
                       fit: BoxFit.cover,
                       alignment: const Alignment(0, 0.2),
                       errorBuilder: (_, __, ___) => const SizedBox()),
@@ -415,7 +415,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               right: 0,
               child: Center(
                 child: ArtBanner(
-                  asset: 'assets/images/banner_clear.png',
+                  asset: 'assets/images/banner_clear.webp',
                   width: 330,
                   aspect: 760 / 302,
                   text: cleared ? '던전 돌파!' : '이번엔 물러났어요',
@@ -445,7 +445,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
             Positioned(
               right: 36,
               bottom: 60,
-              child: Image.asset('assets/images/bulssi.png',
+              child: Image.asset('assets/images/bulssi.webp',
                   width: 76, errorBuilder: (_, __, ___) => const SizedBox()),
             ),
           ],
@@ -556,7 +556,7 @@ class _FloorTrack extends StatelessWidget {
     Widget node(String label, String asset) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/$asset.png',
+            Image.asset('assets/images/$asset.webp',
                 width: 62,
                 height: 62,
                 errorBuilder: (_, __, ___) => const Icon(
@@ -595,7 +595,7 @@ class _GateBonusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ArtBanner(
-      asset: 'assets/images/badge_gate.png',
+      asset: 'assets/images/badge_gate.webp',
       width: small ? 56 : 92,
       aspect: 240 / 225,
       text: '×1.5',
@@ -684,9 +684,9 @@ Future<bool> confirmStopResting(BuildContext context) async {
 String dungeonBackground(int floor, Foe foe) {
   if (foe.isBoss) {
     for (final s in BossGearRules.sets) {
-      if (s.boss == foe.monster) return 'assets/images/bg_boss_${s.id.name}.jpg';
+      if (s.boss == foe.monster) return 'assets/images/bg_boss_${s.id.name}.webp';
     }
-    return 'assets/images/bg_boss_warden.jpg';
+    return 'assets/images/bg_boss_warden.webp';
   }
-  return 'assets/images/bg_dungeon_${(floor % 3) + 1}.jpg';
+  return 'assets/images/bg_dungeon_${(floor % 3) + 1}.webp';
 }

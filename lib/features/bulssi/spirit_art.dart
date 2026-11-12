@@ -9,18 +9,18 @@ enum SpiritMood { normal, worried, cheer, sleepy }
 String spiritMoodAsset(SpiritKind kind, SpiritMood mood) =>
     mood == SpiritMood.normal
         ? spiritAsset(kind)
-        : 'assets/images/spirit_${kind.name}_${mood.name}.png';
+        : 'assets/images/spirit_${kind.name}_${mood.name}.webp';
 
 /// 정령 종류별 그림 (기본 표정)
 String spiritAsset(SpiritKind kind) => switch (kind) {
-      SpiritKind.fire => 'assets/images/bulssi.png',
-      SpiritKind.water => 'assets/images/spirit_water.png',
-      SpiritKind.plant => 'assets/images/spirit_plant.png',
+      SpiritKind.fire => 'assets/images/bulssi.webp',
+      SpiritKind.water => 'assets/images/spirit_water.webp',
+      SpiritKind.plant => 'assets/images/spirit_plant.webp',
     };
 
 /// 정령 종류별 물약 그림 (잡화상 '정령 물약')
 String spiritPotionAsset(SpiritKind kind) =>
-    'assets/images/potion_spirit_${kind.name}.png';
+    'assets/images/potion_spirit_${kind.name}.webp';
 
 /// 정령의 속성 색 (빛, 일격 효과)
 Color spiritColor(SpiritKind kind) => switch (kind) {

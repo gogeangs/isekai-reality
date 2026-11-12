@@ -19,7 +19,7 @@ extension ElementName on Element {
       };
 
   /// 아이콘 그림 (없으면 화면에서 색 동그라미로)
-  String get asset => 'assets/images/icon_el_$name.png';
+  String get asset => 'assets/images/icon_el_$name.webp';
 }
 
 /// 속성 상성 (11-11 #63 확정). 숫자는 게임에 보여 주지 않는다.

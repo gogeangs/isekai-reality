@@ -148,8 +148,8 @@ class ProfileCard extends StatelessWidget {
 }
 
 String portraitAsset(HeroLook look) => look == HeroLook.female
-    ? 'assets/images/portrait_female.png'
-    : 'assets/images/portrait_male.png';
+    ? 'assets/images/portrait_female.webp'
+    : 'assets/images/portrait_male.webp';
 
 /// 왼쪽 위 프로필 버튼: 얼굴 동그라미 + Lv.
 class ProfileButton extends StatelessWidget {
@@ -438,7 +438,7 @@ class _TitleRow extends StatelessWidget {
               SizedBox(
                 width: 38,
                 height: 38,
-                child: Image.asset('assets/images/title_${info.id.name}.png',
+                child: Image.asset('assets/images/title_${info.id.name}.webp',
                     errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
                         color: earned
                             ? AppColors.goldBright

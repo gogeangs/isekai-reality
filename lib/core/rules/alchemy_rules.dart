@@ -169,10 +169,10 @@ class PotionInfo {
 
   /// 잡화상에도 있는 물약은 잡화상 그림을 같이 쓴다
   String get asset => shopItem != null
-      ? 'assets/images/${TownRules.info(shopItem!).icon}.png'
+      ? 'assets/images/${TownRules.info(shopItem!).icon}.webp'
       : icon != null
-          ? 'assets/images/$icon.png'
-          : 'assets/images/potion_${id.name}.png';
+          ? 'assets/images/$icon.webp'
+          : 'assets/images/potion_${id.name}.webp';
 
   /// 재료 종류·개수 (순서 없이)
   Map<MaterialId, int> get counts {

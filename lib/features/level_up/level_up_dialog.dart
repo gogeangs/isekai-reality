@@ -75,7 +75,7 @@ class LevelUpDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ArtBanner(
-              asset: 'assets/images/banner_levelup.png',
+              asset: 'assets/images/banner_levelup.webp',
               width: 160,
               aspect: 520 / 489,
               text: 'LEVEL UP',
@@ -167,7 +167,7 @@ class _TitleRibbon extends StatelessWidget {
       width: 160,
       height: 52,
       child: Stack(alignment: Alignment.center, children: [
-        Image.asset('assets/images/ui_ribbon.png',
+        Image.asset('assets/images/ui_ribbon.webp',
             width: 160,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const SizedBox()),

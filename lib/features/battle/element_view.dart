@@ -66,7 +66,7 @@ class ElementIcon extends StatelessWidget {
     return Tooltip(
       message: e == null ? '무속성' : '${e.label} 속성',
       child: Image.asset(
-        e?.asset ?? 'assets/images/icon_el_none.png',
+        e?.asset ?? 'assets/images/icon_el_none.webp',
         width: size,
         height: size,
         errorBuilder: (_, __, ___) => Container(

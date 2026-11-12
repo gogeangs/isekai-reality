@@ -80,7 +80,7 @@ class ShopScreen extends StatelessWidget {
                     line: '몬스터를 잡으면 마석이 나와. 팔아서 금화로 필요한 걸 사자!'),
                 const SizedBox(height: 4),
                 Center(
-                  child: Image.asset('assets/images/map_store.png',
+                  child: Image.asset('assets/images/map_store.webp',
                       height: 110,
                       errorBuilder: (_, __, ___) => const SizedBox()),
                 ),
@@ -221,7 +221,7 @@ class _ItemCard extends StatelessWidget {
                 iconAsset ??
                     (info.item == ShopItem.bulssiPotion
                         ? spiritPotionAsset(spiritKind)
-                        : 'assets/images/${info.icon}.png'),
+                        : 'assets/images/${info.icon}.webp'),
                 width: 48,
                 height: 48,
                 errorBuilder: (_, __, ___) => const GameIcon('gold', size: 48)),

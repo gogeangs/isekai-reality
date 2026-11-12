@@ -126,7 +126,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
     return [
       if (c.recipeNotes > 0)
         Center(
-          child: Image.asset('assets/images/item_recipe_note.png',
+          child: Image.asset('assets/images/item_recipe_note.webp',
               height: 64,
               errorBuilder: (_, __, ___) => const SizedBox.shrink()),
         ),
@@ -148,7 +148,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(children: [
-              Image.asset('assets/images/item_recipe_book.png',
+              Image.asset('assets/images/item_recipe_book.webp',
                   width: 40,
                   height: 40,
                   errorBuilder: (_, __, ___) => const Icon(
@@ -229,7 +229,7 @@ class PotionIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asset = suspicious || potion == null
-        ? 'assets/images/potion_suspicious.png'
+        ? 'assets/images/potion_suspicious.webp'
         : AlchemyRules.info(potion!).asset;
     final image = Image.asset(asset,
         width: size,
@@ -331,7 +331,7 @@ class _CauldronCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            Image.asset('assets/images/cauldron.png',
+            Image.asset('assets/images/cauldron.webp',
                 width: 44,
                 height: 44,
                 errorBuilder: (_, __, ___) => const Icon(Icons.soup_kitchen_rounded,

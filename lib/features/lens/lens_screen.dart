@@ -296,7 +296,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Image.asset('assets/images/icon_lens.png',
+              Image.asset('assets/images/icon_lens.webp',
                   width: 18,
                   height: 18,
                   errorBuilder: (_, __, ___) => const Icon(Icons.search_rounded,

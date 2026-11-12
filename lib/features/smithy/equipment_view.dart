@@ -68,7 +68,7 @@ class EquipIcon extends StatelessWidget {
             ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8)]
             : null,
       ),
-      child: Image.asset('assets/images/${info.asset}.png',
+      child: Image.asset('assets/images/${info.asset}.webp',
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
               Center(

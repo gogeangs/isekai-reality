@@ -6,9 +6,9 @@ import '../bulssi/spirit_art.dart';
 String bagIconAsset(AppController c, ShopItem item) =>
     item == ShopItem.bulssiPotion
         ? (c.farewellDone
-            ? 'assets/images/item_pet_snack.png'
+            ? 'assets/images/item_pet_snack.webp'
             : spiritPotionAsset(c.profile.spiritKind))
-        : 'assets/images/${TownRules.info(item).icon}.png';
+        : 'assets/images/${TownRules.info(item).icon}.webp';
 
 String useReason(UseCheck c) => switch (c) {
       UseCheck.ok => '',

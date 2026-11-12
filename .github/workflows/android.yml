@@ -54,6 +54,7 @@ jobs:
           ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
         run: |
           python3 -m pip install --quiet pillow
+          python3 tool/optimize_images.py
           python3 tool/prepare_android.py
 
       - name: APK 만들기

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../models/daily_record.dart';
 import 'board_rules.dart';
 import 'lens_rules.dart';
@@ -507,8 +508,14 @@ class TownRules {
   }
 
   /// 쉬는 동안 [from] 에서 [max] 까지 시간에 맞춰 고르게 (끝나면 가득)
-  static int restFill(int from, int max, double progress) =>
-      (from + (max - from) * progress).floor().clamp(from, max);
+  /// (묶음 16 #124: 시작 값이 지금 최대보다 크면 — 쉬는 사이 장비를 벗어 최대가 줄었을 때 —
+  /// 예전에는 clamp 가 오류를 내 앱이 시작 화면에서 멈췄다. 이제 최대로 맞춘다)
+  static int restFill(int from, int max, double progress) {
+    if (max <= 0) return 0;
+    final f = math.min(math.max(from, 0), max);
+    final p = progress.isNaN ? 0.0 : progress.clamp(0.0, 1.0);
+    return (f + (max - f) * p).floor().clamp(f, max);
+  }
 
   /// 휴식이 끝나기까지 남은 시간 (끝났으면 0)
   static Duration restLeft(DateTime startedAt, DateTime now) {

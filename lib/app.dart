@@ -462,10 +462,48 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               Image.asset('assets/images/splash.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox()),
-              const Align(
-                alignment: Alignment(0, 0.15),
-                child: CircularProgressIndicator(color: AppColors.gold),
-              ),
+              if (controller.startError == null)
+                const Align(
+                  alignment: Alignment(0, 0.15),
+                  child: CircularProgressIndicator(color: AppColors.gold),
+                )
+              else
+                // 묶음 16 #124: 무한 로딩 대신 다시 시도 (기록은 지우지 않는다)
+                Align(
+                  alignment: const Alignment(0, 0.3),
+                  child: Container(
+                    key: const Key('startRetry'),
+                    margin: const EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE6151838),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.gold, width: 1.2),
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Text('잠깐 길을 잃었어요',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 8),
+                      const Text('기록은 그대로 있어요. 다시 시도해 주세요.',
+                          textAlign: TextAlign.center,
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 14)),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        key: const Key('startRetryButton'),
+                        style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.gold,
+                            foregroundColor: const Color(0xFF1A1405)),
+                        onPressed: controller.init,
+                        child: const Text('다시 시도',
+                            style: TextStyle(fontSize: 16)),
+                      ),
+                    ]),
+                  ),
+                ),
             ]),
           );
         }

@@ -212,7 +212,20 @@ class SharedPrefsRecordStore implements RecordStore {
   Future<Vitals> loadVitals() async {
     final raw = (await _prefs).getString(_vitalsKey);
     if (raw == null) return const Vitals();
-    return Vitals.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    try {
+      return Vitals.fromJson(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+    } catch (_) {
+      // 묶음 16 #124: 못 읽으면 원본은 따로 남기고 처음 상태로 (앱은 켜진다)
+      await _keepBroken(_vitalsKey, raw);
+      return const Vitals();
+    }
+  }
+
+  /// 읽지 못한 원본을 지우지 않고 따로 둔다 (같은 키에 쌓지 않고 마지막 것만)
+  Future<void> _keepBroken(String key, String raw) async {
+    try {
+      await (await _prefs).setString('$key.broken', raw);
+    } catch (_) {}
   }
 
   @override
@@ -226,7 +239,14 @@ class SharedPrefsRecordStore implements RecordStore {
   Future<PlayerProfile?> loadProfile() async {
     final raw = (await _prefs).getString(_profileKey);
     if (raw == null) return null;
-    return PlayerProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    try {
+      return PlayerProfile.fromJson(
+          Map<String, dynamic>.from(jsonDecode(raw) as Map));
+    } catch (_) {
+      // 프로필은 처음부터 다시 만들지 않는다: 원본을 남기고 「다시 시도」 화면으로
+      await _keepBroken(_profileKey, raw);
+      rethrow;
+    }
   }
 
   @override
@@ -238,10 +258,36 @@ class SharedPrefsRecordStore implements RecordStore {
   Future<List<DailyRecord>> loadHistory() async {
     final raw = (await _prefs).getString(_historyKey);
     if (raw == null) return [];
-    final list = (jsonDecode(raw) as List)
-        .map((e) => DailyRecord.fromJson(Map<String, dynamic>.from(e as Map)))
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    List<dynamic> items;
+    try {
+      items = jsonDecode(raw) as List;
+    } catch (_) {
+      await _keepBroken(_historyKey, raw);
+      return [];
+    }
+    // 하루치 기록 하나가 틀려도 나머지 날은 지킨다. 틀린 것은 따로 남긴다
+    final list = <DailyRecord>[];
+    final broken = <dynamic>[];
+    for (final e in items) {
+      try {
+        list.add(DailyRecord.fromJson(Map<String, dynamic>.from(e as Map)));
+      } catch (_) {
+        broken.add(e);
+      }
+    }
+    if (broken.isNotEmpty) {
+      final prefs = await _prefs;
+      final old = prefs.getString('$_historyKey.broken');
+      var kept = <dynamic>[];
+      try {
+        if (old != null) kept = jsonDecode(old) as List;
+      } catch (_) {}
+      try {
+        await prefs.setString(
+            '$_historyKey.broken', jsonEncode([...kept, ...broken]));
+      } catch (_) {}
+    }
+    list.sort((a, b) => a.date.compareTo(b.date));
     return list;
   }
 
@@ -278,7 +324,12 @@ class SharedPrefsRecordStore implements RecordStore {
   Future<Map<String, dynamic>?> loadJson(String key) async {
     final raw = (await _prefs).getString('json.$key');
     if (raw == null) return null;
-    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      await _keepBroken('json.$key', raw);
+      rethrow;
+    }
   }
 
   @override

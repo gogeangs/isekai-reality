@@ -213,8 +213,67 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 시작하다 생긴 오류 (묶음 16 #124). 있으면 화면이 「다시 시도」를 보여 준다
+  String? get startError => _startError;
+  String? _startError;
+
+  /// 읽지 못해 기본값으로 시작한 기록 이름 (나머지 기록은 그대로 지킨다)
+  List<String> get loadIssues => List.unmodifiable(_loadIssues);
+  final List<String> _loadIssues = [];
+
+  /// 시작 (묶음 16 #124): 기록 하나를 못 읽어도 앱은 켜진다. 그래도 멈추면
+  /// 무한 로딩 대신 「다시 시도」 화면 + 오류 기록
   Future<void> init() async {
-    _ageBlocked = (await store.loadJson(_ageKey))?['blocked'] == true;
+    _startError = null;
+    notifyListeners();
+    try {
+      await _init().timeout(const Duration(seconds: 40));
+    } catch (e, st) {
+      _startError = '$e';
+      await _logStartError(e, st);
+      notifyListeners();
+    }
+  }
+
+  Future<void> _logStartError(Object e, StackTrace st) async {
+    try {
+      final old = await store.loadJson(_startErrorsKey);
+      final list = [...((old?['list'] as List?) ?? const [])];
+      list.add({
+        'at': _clock().toIso8601String(),
+        'error': '$e',
+        'stack': st.toString().split('\n').take(8).join('\n'),
+        'build': const String.fromEnvironment('APP_BUILD'),
+      });
+      while (list.length > 5) {
+        list.removeAt(0);
+      }
+      await store.saveJson(_startErrorsKey, {'list': list});
+    } catch (_) {}
+  }
+
+  static const _startErrorsKey = 'startErrors';
+
+  /// 저장 기록 하나를 읽는다. 틀린 기록이면 원본을 따로 남기고(지우지 않음) 기본값으로
+  Future<T> _load<T>(String key, T Function(Map<String, dynamic>) parse,
+      T fallback) async {
+    Map<String, dynamic>? raw;
+    try {
+      raw = await store.loadJson(key);
+      if (raw == null) return fallback;
+      return parse(raw);
+    } catch (e) {
+      _loadIssues.add(key);
+      try {
+        if (raw != null) await store.saveJson('$key.broken', raw);
+      } catch (_) {}
+      return fallback;
+    }
+  }
+
+  Future<void> _init() async {
+    _loadIssues.clear();
+    _ageBlocked = await _load(_ageKey, (j) => j['blocked'] == true, false);
     final saved = await store.loadProfile();
     if (saved == null) {
       // 처음 실행: 각성 화면에서 이름과 외형을 정한 뒤 시작한다
@@ -281,48 +340,47 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _startPlaying() async {
-    _healthGranted = await health.requestPermission();
-    _vitals = await store.loadVitals();
-    final alloc = await store.loadJson(_statsKey);
-    _alloc = alloc == null ? const StatAlloc() : StatAlloc.fromJson(alloc);
-    final armory = await store.loadJson(_armoryKey);
-    _armory = armory == null ? const Armory() : Armory.fromJson(armory);
-    final feel = await store.loadJson(_feelKey) ?? const {};
+    // 건강 데이터 권한·위치는 늦으면 기다리지 않는다 (화면 먼저, 뒤에서 채운다)
+    _healthGranted = await health
+        .requestPermission()
+        .timeout(const Duration(seconds: 8), onTimeout: () => false)
+        .catchError((_) => false);
+    try {
+      _vitals = await store.loadVitals();
+    } catch (_) {
+      _loadIssues.add('vitals');
+      _vitals = const Vitals();
+    }
+    _alloc = await _load(_statsKey, StatAlloc.fromJson, const StatAlloc());
+    _armory = await _load(_armoryKey, Armory.fromJson, const Armory());
+    final feel = await _load(_feelKey, (j) => j, const <String, dynamic>{});
     _vibrate = feel['vibrate'] != false;
     _sound = feel['sound'] != false;
     _fastBattle = feel['fast'] == true;
     _poisonTipSeen = feel['poisonTip'] == true;
     _petCodexSeen = feel['petCodex'] == true;
     _petCodexAnnounced = feel['petCodexNotice'] == true;
-    _adPersonal = feel['adPersonal'] as bool?;
-    final tut = await store.loadJson(_tutorialKey);
-    _tutorial = (tut?['step'] as int?) ?? 0;
-    final tired = await store.loadJson(_tiredKey);
-    _tiredUntil = DateTime.tryParse('${tired?['until'] ?? ''}');
-    final board = await store.loadJson(_boardKey);
-    _board = board == null ? const BoardState() : BoardState.fromJson(board);
-    final bag = await store.loadJson(_bagKey);
-    _bag = bag == null ? const BagState() : BagState.fromJson(bag);
-    final pets = await store.loadJson(_petsKey);
-    _pets = pets == null ? const PetState() : PetState.fromJson(pets);
-    final alc = await store.loadJson(_alchemyKey);
-    _alc = alc == null ? const AlchemyState() : AlchemyState.fromJson(alc);
-    final gather = await store.loadJson(_gatherKey);
-    _gather = gather == null ? const GatherState() : GatherState.fromJson(gather);
-    final harvest = await store.loadJson(_harvestKey);
-    _harvest = harvest == null ? const HarvestState() : HarvestState.fromJson(harvest);
-    final drive = await store.loadJson(_driveKey);
-    _drive = drive == null ? const DriveState() : DriveState.fromJson(drive);
+    _adPersonal = feel['adPersonal'] is bool ? feel['adPersonal'] as bool : null;
+    _tutorial = await _load(
+        _tutorialKey, (j) => (j['step'] as num?)?.toInt() ?? 0, 0);
+    _tiredUntil = await _load(_tiredKey,
+        (j) => DateTime.tryParse('${j['until'] ?? ''}'), null);
+    _board = await _load(_boardKey, BoardState.fromJson, const BoardState());
+    _bag = await _load(_bagKey, BagState.fromJson, const BagState());
+    _pets = await _load(_petsKey, PetState.fromJson, const PetState());
+    _alc = await _load(_alchemyKey, AlchemyState.fromJson, const AlchemyState());
+    _gather = await _load(_gatherKey, GatherState.fromJson, const GatherState());
+    _harvest =
+        await _load(_harvestKey, HarvestState.fromJson, const HarvestState());
+    _drive = await _load(_driveKey, DriveState.fromJson, const DriveState());
     // 오래전에 막힌 화면은 풀어 둔다 (위치가 꺼져 있으면 끝을 알 수 없다)
     if (_drive.mode != DriveMode.none &&
         (_drive.askedAt == null ||
             _clock().difference(_drive.askedAt!) > const Duration(minutes: 30))) {
       _drive = _drive.copyWith(mode: DriveMode.none);
     }
-    final mail = await store.loadJson(_mailKey);
-    _mail = mail == null ? const MailState() : MailState.fromJson(mail);
-    final lens = await store.loadJson(_lensKey);
-    _lens = lens == null ? const LensState() : LensState.fromJson(lens);
+    _mail = await _load(_mailKey, MailState.fromJson, const MailState());
+    _lens = await _load(_lensKey, LensState.fromJson, const LensState());
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -337,7 +395,8 @@ class AppController extends ChangeNotifier {
       _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
       await store.saveJson(_statsKey, _alloc.toJson());
     }
-    await _startExploring();
+    // 위치 권한은 기다리지 않는다 (늦으면 화면 먼저)
+    unawaited(_startExploring().catchError((_) {}));
     // 예전 저장본처럼 확인한 레벨이 없으면 지금 레벨부터 센다 (연출 없이)
     if (_profile.lastSeenLevel == null) {
       _profile = _profile.copyWith(lastSeenLevel: player.level.level);
@@ -356,14 +415,19 @@ class AppController extends ChangeNotifier {
     // 어제 기록이 있으면 하루 전체 걸음으로 마감한다 (밤에 앱을 안 열었을 때 대비)
     final y = _find(yesterday);
     if (_healthGranted && y != null) {
-      final closed = await _withHealth(y, yesterday, today);
+      final closed = await _withHealth(y, yesterday, today)
+          .timeout(const Duration(seconds: 8), onTimeout: () => y)
+          .catchError((_) => y);
       await store.upsert(_withQuests(closed));
     }
 
     var todayRecord =
         _find(today) ?? DailyRecord(date: today, stepGoal: stepGoal);
     if (_healthGranted) {
-      todayRecord = await _withHealth(todayRecord, today, now);
+      final base = todayRecord;
+      todayRecord = await _withHealth(base, today, now)
+          .timeout(const Duration(seconds: 8), onTimeout: () => base)
+          .catchError((_) => base);
     }
     await store.upsert(_withQuests(todayRecord.copyWith(openedApp: true)));
 
@@ -3898,6 +3962,9 @@ class AppController extends ChangeNotifier {
     _refreshing = true;
     try {
       await _refreshVitals();
+    } catch (e, st) {
+      // 묶음 16 #124: 시간에 따른 갱신이 실패해도 앱은 계속 (오류만 남긴다)
+      await _logStartError(e, st);
     } finally {
       _refreshing = false;
     }

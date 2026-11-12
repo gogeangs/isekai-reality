@@ -391,17 +391,17 @@ class Vitals {
       };
 
   factory Vitals.fromJson(Map<String, dynamic> j) => Vitals(
-        hp: j['hp'] as int?,
-        lastMaxHp: j['lastMaxHp'] as int?,
-        mp: j['mp'] as int?,
+        hp: (j['hp'] as num?)?.toInt(),
+        lastMaxHp: (j['lastMaxHp'] as num?)?.toInt(),
+        mp: (j['mp'] as num?)?.toInt(),
         mpAt: j['mpAt'] == null ? null : DateTime.parse(j['mpAt'] as String),
         stepsDay: j['stepsDay'] as String?,
-        stepsCounted: j['stepsCounted'] as int? ?? 0,
+        stepsCounted: (j['stepsCounted'] as num?)?.toInt() ?? 0,
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
-        restHp0: j['restHp0'] as int?,
-        restMp0: j['restMp0'] as int?,
+        restHp0: (j['restHp0'] as num?)?.toInt(),
+        restMp0: (j['restMp0'] as num?)?.toInt(),
         // 예전 저장본은 원정 하나 ('expedition')
         expeditions: [
           for (final e in (j['expeditions'] as List?) ??

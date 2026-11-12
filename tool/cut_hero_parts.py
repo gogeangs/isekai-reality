@@ -17,7 +17,7 @@ NAMES = ['head', 'torso', 'arm_back_upper', 'arm_front_upper', 'arm_back_fore',
          'leg_back_shin', 'leg_front_thigh', 'leg_front_shin', 'tail']
 
 for g in ['male', 'female']:
-    src = root / 'assets' / 'images' / f'hero_parts_{g}.png'
+    src = root / 'art_src' / f'hero_parts_{g}.png'
     if not src.exists():
         continue
     a = np.array(Image.open(src).convert('RGBA'))

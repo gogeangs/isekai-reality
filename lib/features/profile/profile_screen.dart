@@ -168,12 +168,12 @@ class ProfileButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(
-          width: 46,
-          height: 52,
+          width: 48,
+          height: 54,
           child: Stack(alignment: Alignment.topCenter, children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFF1A1D4A),
@@ -202,7 +202,7 @@ class ProfileButton extends StatelessWidget {
                   border: Border.all(color: AppColors.gold, width: 1),
                 ),
                 child: Text('Lv.$level',
-                    style: AppText.level(10.5, color: AppColors.goldBright)),
+                    style: AppText.level(12, color: AppColors.goldBright)),
               ),
             ),
           ]),
@@ -226,10 +226,15 @@ class SettingsButton extends StatelessWidget {
         color: const Color(0xCC1A1D4A),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.8)),
       ),
-      child: IconButton(
-        onPressed: onTap,
-        tooltip: '설정',
-        icon: const Icon(Icons.settings_rounded, color: AppColors.goldBright),
+      child: SizedBox.square(
+        dimension: 44,
+        child: IconButton(
+          onPressed: onTap,
+          tooltip: '설정',
+          padding: EdgeInsets.zero,
+          icon: const Icon(Icons.settings_rounded,
+              color: AppColors.goldBright, size: 24),
+        ),
       ),
     );
   }

@@ -734,6 +734,26 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         return Scaffold(
           body: Stack(children: [
             Positioned.fill(child: IndexedStack(index: _tab, children: pages)),
+            // 묶음 16 #133: 지도 위 공통 위쪽 띠는 비치게 (상태 탭은 그대로)
+            if (_tab == tMap)
+              Positioned(
+                key: const Key('topStrip'),
+                left: 0,
+                right: 0,
+                top: 0,
+                height: topInset + 62,
+                child: const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xB30B0D26), Color(0x000B0D26)],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // 위쪽 메뉴 (모든 탭 같은 자리): 왼쪽 프로필, 오른쪽 설정
             Positioned(
               top: topInset + 6,
@@ -746,15 +766,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ),
             // 우편 (11-11 #65): 새 우편이 있으면 빨간 점
             Positioned(
-              top: topInset + 12,
-              right: 70,
+              top: topInset + 6,
+              right: 66,
               child: MailButton(
                 hasNew: controller.hasNewMail,
                 onTap: () => push(MailScreen(controller: controller)),
               ),
             ),
             Positioned(
-              top: topInset + 8,
+              top: topInset + 6,
               right: 12,
               child: SettingsButton(
                 onTap: () => push(Scaffold(

@@ -315,8 +315,8 @@ class MailButton extends StatelessWidget {
         onTap: onTap,
         child: Stack(clipBehavior: Clip.none, children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xCC14163A),

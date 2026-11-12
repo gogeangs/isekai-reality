@@ -148,8 +148,8 @@ class ProfileCard extends StatelessWidget {
 }
 
 String portraitAsset(HeroLook look) => look == HeroLook.female
-    ? 'assets/images/portrait_female.png'
-    : 'assets/images/portrait_male.png';
+    ? 'assets/images/portrait_female.webp'
+    : 'assets/images/portrait_male.webp';
 
 /// 왼쪽 위 프로필 버튼: 얼굴 동그라미 + Lv.
 class ProfileButton extends StatelessWidget {
@@ -300,20 +300,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   // 지친 상태 (11-11 #75): 정령(펫)의 한마디
                   if (c.tired)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
                       child: Row(
-                        key: const Key('tiredStatus'),
+                        key: Key('tiredStatus'),
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.bedtime_rounded,
+                          Icon(Icons.bedtime_rounded,
                               size: 16, color: Color(0xFFF2B0B0)),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Flexible(
                             child: Text(
                                 '지친 상태 · 「${AppController.tiredLine}」',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: Color(0xFFF7D2D2), fontSize: 12)),
                           ),
                         ],
@@ -438,7 +438,7 @@ class _TitleRow extends StatelessWidget {
               SizedBox(
                 width: 38,
                 height: 38,
-                child: Image.asset('assets/images/title_${info.id.name}.png',
+                child: Image.asset('assets/images/title_${info.id.name}.webp',
                     errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
                         color: earned
                             ? AppColors.goldBright

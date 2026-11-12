@@ -128,10 +128,10 @@ class _WeeklyPanel extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 6),
-          KText(
+          const KText(
               '하나 마칠 때마다 경험치 +${BoardRules.weeklyExp}, '
               '금화 +${BoardRules.weeklyGold}. 매주 월요일에 새로 시작해요.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ),
     );

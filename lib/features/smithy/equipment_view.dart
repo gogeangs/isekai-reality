@@ -17,15 +17,6 @@ Color equipGradeColor(EquipGrade g) => switch (g) {
       EquipGrade.orange => const Color(0xFFFFA244),
     };
 
-IconData slotIcon(EquipSlot s) => switch (s) {
-      EquipSlot.weapon => Icons.gavel_rounded,
-      EquipSlot.head => Icons.face_retouching_natural_rounded,
-      EquipSlot.body => Icons.checkroom_rounded,
-      EquipSlot.hands => Icons.back_hand_rounded,
-      EquipSlot.feet => Icons.hiking_rounded,
-      EquipSlot.accessory => Icons.diamond_outlined,
-    };
-
 /// 입은 칸 테두리 색 (11-11 #98): 일반 흰색 · 희귀 파랑 · 영웅 보라 · 보스 장비 주황
 Color wornBorderColor(EquipItem it) {
   if (EquipmentRules.isBossGear(it.base)) return const Color(0xFFFFA244);
@@ -68,7 +59,7 @@ class EquipIcon extends StatelessWidget {
             ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8)]
             : null,
       ),
-      child: Image.asset('assets/images/${info.asset}.png',
+      child: Image.asset('assets/images/${info.asset}.webp',
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
               Center(
@@ -219,20 +210,6 @@ class _SlotTile extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 입은 장비의 힘 한 줄
-String gearSummary(GearBonus g) {
-  String pct(double r) => (r * 100).toStringAsFixed(r * 100 % 1 == 0 ? 0 : 1);
-  final parts = [
-    if (g.attack > 0) '공격 +${pct(g.attack)}%',
-    if (g.reduce > 0) '받는 피해 -${pct(g.reduce)}%',
-    if (g.maxHp > 0) '최대 HP +${pct(g.maxHp)}%',
-    if (g.skillFaster > 0) '일격 충전 빨리',
-    for (final k in StatKind.values)
-      if (g.stats.of(k) > 0) '${k.label} +${g.stats.of(k)}',
-  ];
-  return parts.isEmpty ? '아직 입은 장비가 없어요' : parts.join(' · ');
 }
 
 /// 장비 능력 (11-11 묶음 13 A4): 공격·방어 같은 능력은 글로, 스탯은 [메달] +N 으로.

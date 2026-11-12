@@ -73,7 +73,7 @@ class InnScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Center(
-                  child: Image.asset('assets/images/map_inn.png',
+                  child: Image.asset('assets/images/map_inn.webp',
                       height: 110,
                       errorBuilder: (_, __, ___) => const SizedBox()),
                 ),

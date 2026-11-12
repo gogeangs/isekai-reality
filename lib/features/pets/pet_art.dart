@@ -76,7 +76,7 @@ class EggArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Image.asset(
-        'assets/images/pet_egg.png',
+        'assets/images/pet_egg.webp',
         width: size,
         height: size,
         fit: BoxFit.contain,

@@ -136,7 +136,7 @@ class SpeechBubbleArt extends StatelessWidget {
             child: Transform.flip(
               flipX: true,
               child: const _NineSlice(
-                asset: 'assets/images/ui_bubble.png',
+                asset: 'assets/images/ui_bubble.webp',
                 slice: Rect.fromLTRB(110, 55, 400, 175),
                 scale: _scale,
                 child: SizedBox.expand(),
@@ -153,7 +153,7 @@ class SpeechBubbleArt extends StatelessWidget {
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
       child: _NineSlice(
-        asset: 'assets/images/ui_bubble.png',
+        asset: 'assets/images/ui_bubble.webp',
         slice: const Rect.fromLTRB(110, 55, 400, 175),
         scale: _scale,
         child: Padding(
@@ -211,8 +211,8 @@ class OrnatePanel extends StatelessWidget {
           : const Rect.fromLTRB(60, 66, 422 - 60, 410 - 58);
       final framed = _NineSlice(
         asset: wide
-            ? 'assets/images/ui_panel_wide.png'
-            : 'assets/images/ui_panel.png',
+            ? 'assets/images/ui_panel_wide.webp'
+            : 'assets/images/ui_panel.webp',
         slice: slice,
         scale: s,
         child: Padding(
@@ -304,7 +304,7 @@ class GameIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/icon_$name.png',
+      'assets/images/icon_$name.webp',
       width: size,
       height: size,
       fit: BoxFit.contain,
@@ -353,8 +353,8 @@ class RibbonHeading extends StatelessWidget {
             height: size * 0.75,
             child: Image.asset(
               left
-                  ? 'assets/images/ui_divider_left.png'
-                  : 'assets/images/ui_divider_right.png',
+                  ? 'assets/images/ui_divider_left.webp'
+                  : 'assets/images/ui_divider_right.webp',
               fit: BoxFit.fitHeight,
               alignment: left ? Alignment.centerRight : Alignment.centerLeft,
               errorBuilder: (_, __, ___) => Center(
@@ -430,8 +430,8 @@ class GoldButton extends StatelessWidget {
     );
     return _ArtButton(
       asset: enabled
-          ? 'assets/images/ui_button_gold.png'
-          : 'assets/images/ui_button_dark.png',
+          ? 'assets/images/ui_button_gold.webp'
+          : 'assets/images/ui_button_dark.webp',
       imgH: enabled ? 159 : 160,
       slice: enabled
           ? const Rect.fromLTRB(110, 48, 668 - 110, 159 - 48)
@@ -497,7 +497,7 @@ class FrameButton extends StatelessWidget {
     final color =
         onPressed == null ? AppColors.textMuted : AppColors.goldBright;
     return _ArtButton(
-      asset: 'assets/images/ui_button_dark.png',
+      asset: 'assets/images/ui_button_dark.webp',
       imgH: 160,
       slice: const Rect.fromLTRB(90, 48, 662 - 90, 160 - 48),
       height: height,
@@ -668,7 +668,7 @@ class LaurelBadge extends StatelessWidget {
               width: 250,
               height: 116,
               child: Stack(alignment: Alignment.center, children: [
-                Image.asset('assets/images/ui_level_plaque.png',
+                Image.asset('assets/images/ui_level_plaque.webp',
                     width: 250, fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const SizedBox()),
                 Padding(
@@ -684,7 +684,7 @@ class LaurelBadge extends StatelessWidget {
               width: 190,
               height: 68,
               child: Stack(alignment: Alignment.center, children: [
-                Image.asset('assets/images/ui_ribbon.png',
+                Image.asset('assets/images/ui_ribbon.webp',
                     width: 190, fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const SizedBox()),
                 Padding(
@@ -893,7 +893,7 @@ class NightBackground extends StatelessWidget {
                 blendMode: BlendMode.dstIn,
                 child: Opacity(
                   opacity: 0.85,
-                  child: Image.asset('assets/images/bg_header.jpg',
+                  child: Image.asset('assets/images/bg_header.webp',
                       fit: BoxFit.cover,
                       alignment: const Alignment(0.4, -0.2),
                       errorBuilder: (_, __, ___) => const SizedBox()),

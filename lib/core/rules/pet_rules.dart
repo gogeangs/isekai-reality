@@ -50,7 +50,7 @@ class PetSpeciesInfo {
   final MaterialId favorite;
 
   String asset({required bool adult}) =>
-      'assets/images/pet_${id.name}_${adult ? 'adult' : 'baby'}.png';
+      'assets/images/pet_${id.name}_${adult ? 'adult' : 'baby'}.webp';
 }
 
 /// 펫 규칙 (11-11 제안서 3 확정 값)

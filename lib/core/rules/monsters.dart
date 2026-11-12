@@ -127,7 +127,7 @@ class MonsterInfo {
   final int? tint;
 
   /// 그림 파일. 없으면 화면에서 아이콘으로 대신 그린다.
-  String get asset => 'assets/images/monster_${id.name}.png';
+  String get asset => 'assets/images/monster_${id.name}.webp';
 
   String get tendencyName => switch (tendency) {
         Tendency.sturdy => '단단함',

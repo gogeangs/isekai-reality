@@ -220,7 +220,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                     KText(
                       '${c.farewellDone ? '펫' : '정령'}은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
                       '지면 MP만 쓰고 무사히 돌아와요.',
-                      style: TextStyle(
+                      style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 12, height: 1.35),
                     ),
                     if (plan.check != ExpeditionCheck.ok) ...[

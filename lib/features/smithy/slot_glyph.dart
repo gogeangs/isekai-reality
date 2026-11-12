@@ -20,7 +20,7 @@ class SlotGlyph extends StatelessWidget {
       width: size,
       height: size,
       child: Image.asset(
-        'assets/images/slot_${slot.name}.png',
+        'assets/images/slot_${slot.name}.webp',
         width: size,
         height: size,
         color: color,

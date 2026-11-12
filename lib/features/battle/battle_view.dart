@@ -1034,7 +1034,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                   children: [
                     Positioned.fill(
                       child: Image.asset(
-                          widget.background ?? 'assets/images/bg_battle.jpg',
+                          widget.background ?? 'assets/images/bg_battle.webp',
                           fit: BoxFit.cover,
                           // 그림이 아직 없으면 비슷한 배경 → 기본 배경 → 색
                           errorBuilder: (_, __, ___) => Image.asset(
@@ -1215,7 +1215,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         height: monSize + 80,
                         child: Opacity(
                           opacity: idle ? 1 : _seg(t, 0, 0.3),
-                          child: Image.asset('assets/images/fx_purify.png',
+                          child: Image.asset('assets/images/fx_purify.webp',
                               fit: BoxFit.contain,
                               errorBuilder: (_, __, ___) => const SizedBox()),
                         ),
@@ -1236,7 +1236,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                       ? Colors.white
                                       : spiritColor(_kind(context)),
                                   BlendMode.modulate),
-                              child: Image.asset('assets/images/fx_slash.png',
+                              child: Image.asset('assets/images/fx_slash.webp',
                                   fit: BoxFit.contain,
                                   errorBuilder: (_, __, ___) =>
                                       const SizedBox()),
@@ -1256,16 +1256,16 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                             scale: 0.5 + _seg(t, 0.22, 0.32) * 0.8,
                             // 속성 타격 그림이 있으면 그것, 없으면 기본 타격에 속성 색
                             child: widget.hitElement == null
-                                ? Image.asset('assets/images/fx_hit.png',
+                                ? Image.asset('assets/images/fx_hit.webp',
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) =>
                                         const SizedBox())
                                 : Image.asset(
-                                    'assets/images/fx_hit_${widget.hitElement!.name}.png',
+                                    'assets/images/fx_hit_${widget.hitElement!.name}.webp',
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => _tinted(
                                         elementColor(widget.hitElement),
-                                        Image.asset('assets/images/fx_hit.png',
+                                        Image.asset('assets/images/fx_hit.webp',
                                             fit: BoxFit.contain,
                                             errorBuilder: (_, __, ___) =>
                                                 const SizedBox()),
@@ -1738,8 +1738,8 @@ class _Avatar extends StatelessWidget {
       child: ClipOval(
         child: Image.asset(
           look == HeroLook.female
-              ? 'assets/images/portrait_female.png'
-              : 'assets/images/portrait_male.png',
+              ? 'assets/images/portrait_female.webp'
+              : 'assets/images/portrait_male.webp',
           fit: BoxFit.cover,
           alignment: const Alignment(0, -0.6),
           errorBuilder: (_, __, ___) =>
@@ -1910,8 +1910,8 @@ class _SkillOrb extends StatelessWidget {
 
 /// 배경 그림이 없을 때 대신 쓸 그림 (바다 → 물가, 나머지 → 기본)
 String backgroundFallback(String? bg) => switch (bg) {
-      'assets/images/bg_field_sea.jpg' => 'assets/images/bg_field_water.jpg',
-      _ => 'assets/images/bg_battle.jpg',
+      'assets/images/bg_field_sea.webp' => 'assets/images/bg_field_water.webp',
+      _ => 'assets/images/bg_battle.webp',
     };
 
 /// tired: HP 0으로 싸울 수 없을 때 (11-10)
@@ -1928,11 +1928,11 @@ class HeroSprite extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/hero_${pose.name}_${look.name}.png',
+      'assets/images/hero_${pose.name}_${look.name}.webp',
       fit: BoxFit.contain,
       semanticLabel: '각성자',
       errorBuilder: (_, __, ___) => look == HeroLook.male
-          ? Image.asset('assets/images/hero_chibi_male.png',
+          ? Image.asset('assets/images/hero_chibi_male.webp',
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded,
                   size: 140, color: AppColors.textMuted))
@@ -2082,7 +2082,7 @@ extension on _Status {
         _Status.stance => const Color(0xFF6FB8FF),
       };
 
-  String get asset => 'assets/images/status_$name.png';
+  String get asset => 'assets/images/status_$name.webp';
 }
 
 class _StatusIcons extends StatelessWidget {

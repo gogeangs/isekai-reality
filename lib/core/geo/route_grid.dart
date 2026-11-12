@@ -159,7 +159,7 @@ class RouteFinder {
     if (start == goal) return [start];
     // 경도 칸이 위도 칸보다 약간 넓다 → 미터 단위 가중치
     final midLat = RouteTiles.pointOf(start.$1, start.$2).lat;
-    final wLat = RouteTiles.cellLat * 111320.0;
+    const wLat = RouteTiles.cellLat * 111320.0;
     final wLng = RouteTiles.cellLng * 111320.0 * math.cos(midLat * math.pi / 180);
     final wDiag = math.sqrt(wLat * wLat + wLng * wLng);
 

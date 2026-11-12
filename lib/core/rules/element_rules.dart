@@ -19,7 +19,7 @@ extension ElementName on Element {
       };
 
   /// 아이콘 그림 (없으면 화면에서 색 동그라미로)
-  String get asset => 'assets/images/icon_el_$name.png';
+  String get asset => 'assets/images/icon_el_$name.webp';
 }
 
 /// 속성 상성 (11-11 #63 확정). 숫자는 게임에 보여 주지 않는다.
@@ -146,17 +146,4 @@ class ElementRules {
     return null;
   }
 
-  /// 속성 칭호 이름 (주 속성 점수 100)
-  static String titleName(Element e) => switch (e) {
-        Element.fire => '불꽃을 닮은 자',
-        Element.water => '물결을 닮은 자',
-        Element.ice => '서리를 닮은 자',
-        Element.wind => '바람을 닮은 자',
-        Element.thunder => '번개를 닮은 자',
-        Element.earth => '대지를 닮은 자',
-        Element.metal => '강철을 닮은 자',
-        Element.poison => '독초를 닮은 자',
-        Element.light => '빛을 닮은 자',
-        Element.dark => '어둠을 닮은 자',
-      };
 }

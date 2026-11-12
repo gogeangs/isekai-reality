@@ -107,12 +107,6 @@ class ExplorationRules {
   static bool countsAsExploring(LocationFix fix) =>
       fix.speedMps <= maxExploreSpeedMps;
 
-  /// 밝힌 비율 (0.0 ~ 1.0)
-  static double revealedRatio(ExploreArea area, Set<String> revealedCells) {
-    if (area.totalCells == 0) return 0;
-    return (revealedCells.length / area.totalCells).clamp(0, 1).toDouble();
-  }
-
   /// 이 위치에서 방문으로 칠 장소들 (제외 구역 안이면 없음)
   static List<GamePlace> placesInReach(ExploreArea area, GeoPoint p) {
     if (area.isExcluded(p)) return const [];
@@ -121,14 +115,4 @@ class ExplorationRules {
         .toList();
   }
 
-  /// 지금 위치에서 가장 가까운 미궁 입구까지 거리(미터). 입구가 없으면 null.
-  static double? distanceToNearestGate(ExploreArea area, GeoPoint p) {
-    double? best;
-    for (final place in area.places) {
-      if (place.kind != PlaceKind.labyrinthGate) continue;
-      final d = place.point.distanceTo(p);
-      if (best == null || d < best) best = d;
-    }
-    return best;
-  }
 }

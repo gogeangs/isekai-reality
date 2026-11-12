@@ -62,9 +62,9 @@ class ExpeditionResultCard extends StatelessWidget {
   final String? more;
 
   static String ribbonAsset(ExpeditionOutcome o) => switch (o) {
-        ExpeditionOutcome.success => 'assets/images/ribbon_success.png',
-        ExpeditionOutcome.fail => 'assets/images/ribbon_fail.png',
-        ExpeditionOutcome.missed => 'assets/images/ribbon_missed.png',
+        ExpeditionOutcome.success => 'assets/images/ribbon_success.webp',
+        ExpeditionOutcome.fail => 'assets/images/ribbon_fail.webp',
+        ExpeditionOutcome.missed => 'assets/images/ribbon_missed.webp',
       };
 
   /// 그림 안 가운데 띠의 위·아래 (그림 높이 비율). 그림마다 다르다 (11-11 #94)
@@ -286,7 +286,7 @@ class _AdRewardsState extends State<_AdRewards> {
                       if (ok) {
                         setState(() => _doubled = true);
                       } else {
-                        showTopNotice(context, '광고를 불러오지 못했어요.');
+                        showTopNotice(this.context, '광고를 불러오지 못했어요.');
                       }
                     },
             ),

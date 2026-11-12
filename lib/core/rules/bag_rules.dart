@@ -15,14 +15,6 @@ class BagRules {
   static const int maxSlots = 100;
   static const int stackMax = 99;
 
-  /// [done] 번 늘린 뒤 다음 확장 가격 (200, 400, 700, 1,000, 그다음 1,000씩 더)
-  static int expansionCost(int done) => switch (done) {
-        0 => 200,
-        1 => 400,
-        2 => 700,
-        _ => 1000 * (done - 2),
-      };
-
   /// 한 칸씩 열기 (묶음 15 #106): [opened] 칸 연 뒤 다음 한 칸 가격.
   /// 80 → 100 → 130 → 170 → 220 → 280 … (오름폭이 10씩 커진다), 최대 2,000
   static int slotCost(int opened) =>

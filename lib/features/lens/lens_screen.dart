@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
@@ -296,7 +295,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Image.asset('assets/images/icon_lens.png',
+              Image.asset('assets/images/icon_lens.webp',
                   width: 18,
                   height: 18,
                   errorBuilder: (_, __, ___) => const Icon(Icons.search_rounded,
@@ -720,5 +719,3 @@ class _AppraisePainter extends CustomPainter {
 Future<void> openLens(NavigatorState nav, AppController c) =>
     nav.push(MaterialPageRoute<void>(builder: (_) => LensScreen(controller: c)));
 
-/// 종족 이름 + 조사 (도감 등에서 쓴다)
-String raceWithJosa(Race r, String pair) => josa(LensRules.info(r).name, pair);

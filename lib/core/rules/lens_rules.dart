@@ -21,7 +21,7 @@ class RaceInfo {
   final int color;
 
   /// 필터 장식 그림 (없으면 그려서 보여 준다)
-  String get asset => 'assets/images/filter_${id.name}.png';
+  String get asset => 'assets/images/filter_${id.name}.webp';
 }
 
 /// 마법 돋보기 규칙

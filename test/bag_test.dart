@@ -26,7 +26,7 @@ void main() {
     test('99개마다 한 칸, 입은 장비는 칸을 쓰지 않는다', () {
       const a = EquipItem(uid: 'a', base: EquipBase.dagger, grade: EquipGrade.white);
       const b = EquipItem(uid: 'b', base: EquipBase.armor, grade: EquipGrade.white);
-      final armory = Armory(items: const [a, b], equipped: const {EquipSlot.weapon: 'a'});
+      const armory = Armory(items: [a, b], equipped: {EquipSlot.weapon: 'a'});
       expect(
           BagRules.usedSlots(
             materials: {MaterialId.slimeJelly: 99, MaterialId.ratHide: 100},

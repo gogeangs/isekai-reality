@@ -19,10 +19,6 @@ class FaceSpot {
   final int? id;
 }
 
-/// 얼굴 순서 (왼쪽부터): 종족은 이 순서로 붙는다
-List<FaceSpot> facesLeftToRight(Iterable<FaceSpot> faces) =>
-    [...faces]..sort((a, b) => a.box.center.dx.compareTo(b.box.center.dx));
-
 /// 마법 돋보기의 필터 엔진 (11-11 #60).
 ///
 /// 1차는 [CameraStickerEngine] (카메라 + Google ML Kit 얼굴 인식 + 2D 장식).

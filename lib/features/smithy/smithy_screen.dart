@@ -67,7 +67,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                 }),
                 const SizedBox(height: 8),
                 Center(
-                  child: Image.asset('assets/images/icon_smithy.png',
+                  child: Image.asset('assets/images/icon_smithy.webp',
                       height: 90, errorBuilder: (_, __, ___) => const SizedBox()),
                 ),
                 const SizedBox(height: 8),

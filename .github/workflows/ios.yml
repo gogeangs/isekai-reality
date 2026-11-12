@@ -82,6 +82,11 @@ jobs:
             echo "새로 모아 둔 그림이 없습니다."; exit 0
           fi
           if git merge --no-edit -m "모아 둔 그림 합치기 (wip/images)" FETCH_HEAD; then
+            # 묶음 17 #145: 합친 PNG·JPG 를 WebP 로 바꿔 함께 올린다
+            python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+            python3 tool/optimize_images.py
+            git add -A assets/images
+            git commit -q -m "합친 그림을 WebP 로 줄이기" || true
             git push origin HEAD:main || echo "main 이 그새 바뀌어 올리지 못했어요. 이번 빌드에는 그림이 들어갑니다."
           else
             git merge --abort || true
@@ -99,6 +104,7 @@ jobs:
         run: |
           flutter create --platforms ios --org kr.itso --project-name isekai_reality .
           python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
+          python3 tool/optimize_images.py
           python3 tool/prepare_ios.py
 
       - name: API 키 파일

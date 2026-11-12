@@ -98,8 +98,8 @@ class HeroRigData {
   static const Offset weaponAttach = Offset(72, 55);
 
   static String partAsset(HeroLook look, String image) =>
-      'assets/images/rig/hero_${look.name}_$image.png';
-  static String weaponAsset(WeaponKind k) => 'assets/images/weapon_${k.name}.png';
+      'assets/images/rig/hero_${look.name}_$image.webp';
+  static String weaponAsset(WeaponKind k) => 'assets/images/weapon_${k.name}.webp';
 }
 
 /// 자세 하나: 뼈 각도(°) + 무기 세계 각도 W + 몸 위치 dx·dy (px)
@@ -143,7 +143,7 @@ class RigMotions {
   RigMotions._();
 
   static RigPose _p(Map<String, double> m) => RigPose.from(m);
-  static final RigPose _s = RigPose.stand;
+  static const RigPose _s = RigPose.stand;
 
   static final Map<String, List<(double, RigPose)>> keys = {
     // 검: 뒤로 젖혔다가 옆으로 베기

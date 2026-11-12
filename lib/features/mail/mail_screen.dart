@@ -53,7 +53,7 @@ class _MailScreenState extends State<MailScreen> {
                     cur.id.startsWith('spirit_')) ...[
                   const SizedBox(height: 8),
                   Center(
-                    child: Image.asset('assets/images/letter_spirit.png',
+                    child: Image.asset('assets/images/letter_spirit.webp',
                         height: 110,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                   ),
@@ -322,7 +322,7 @@ class MailButton extends StatelessWidget {
               color: const Color(0xCC14163A),
               border: Border.all(color: AppColors.gold, width: 1.5),
             ),
-            child: Image.asset('assets/images/icon_mail.png',
+            child: Image.asset('assets/images/icon_mail.webp',
                 width: 26,
                 height: 26,
                 errorBuilder: (_, __, ___) => const Icon(Icons.mail_rounded,

@@ -216,11 +216,11 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
 
 /// 필드 전투 배경 (묶음 13 C7): 몬스터 자리의 장소 종류에 맞춰. 모르면 마을.
 String fieldBackground(LandKind? land) => switch (land) {
-      LandKind.park || LandKind.forest => 'assets/images/bg_field_forest.jpg',
-      LandKind.water => 'assets/images/bg_field_water.jpg',
+      LandKind.park || LandKind.forest => 'assets/images/bg_field_forest.webp',
+      LandKind.water => 'assets/images/bg_field_water.webp',
       // 바다 그림이 오기 전에는 물가 그림 (backgroundFallback)
-      LandKind.sea => 'assets/images/bg_field_sea.jpg',
-      LandKind.city => 'assets/images/bg_field_city.jpg',
-      LandKind.mountain => 'assets/images/bg_field_mountain.jpg',
-      LandKind.village || null => 'assets/images/bg_field_village.jpg',
+      LandKind.sea => 'assets/images/bg_field_sea.webp',
+      LandKind.city => 'assets/images/bg_field_city.webp',
+      LandKind.mountain => 'assets/images/bg_field_mountain.webp',
+      LandKind.village || null => 'assets/images/bg_field_village.webp',
     };

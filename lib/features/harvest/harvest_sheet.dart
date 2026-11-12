@@ -231,7 +231,7 @@ class ToolRepairPanel extends StatelessWidget {
             const SizedBox(height: 6),
             Row(children: [
               // 도구 등급별 그림 (없으면 재료 아이콘)
-              Image.asset('assets/images/tool_${t.name}_${c.toolTier(t).name}.png',
+              Image.asset('assets/images/tool_${t.name}_${c.toolTier(t).name}.webp',
                   width: 28,
                   height: 28,
                   errorBuilder: (_, __, ___) =>

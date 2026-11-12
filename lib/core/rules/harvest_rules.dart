@@ -54,8 +54,8 @@ class HarvestKindInfo {
         HarvestKind.flower ||
         HarvestKind.gem ||
         HarvestKind.relic =>
-          'assets/images/map_harvest_${kind.name}.png',
-        _ => 'assets/images/mat_${base.name}.png',
+          'assets/images/map_harvest_${kind.name}.webp',
+        _ => 'assets/images/mat_${base.name}.webp',
       };
 }
 
@@ -245,20 +245,6 @@ class HarvestRules {
         HarvestTool.rod => MaterialId.twig,
         HarvestTool.brush => MaterialId.twig,
       };
-
-  static HarvestKind? parseKind(String? s) {
-    for (final k in HarvestKind.values) {
-      if (k.name == s) return k;
-    }
-    return null;
-  }
-
-  static HarvestTool? parseTool(String? s) {
-    for (final t in HarvestTool.values) {
-      if (t.name == s) return t;
-    }
-    return null;
-  }
 
   /// 계절 꽃잎 (3~5월 봄, 6~8월 여름, 9~11월 가을, 겨울)
   static MaterialId seasonPetal(int month) => switch (month) {

@@ -90,7 +90,7 @@ class _MapScreenState extends State<MapScreen> {
         : _expOpen && actives.isNotEmpty
             ? MapScreen.expCardH * actives.length + 8
             : MapScreen.expStripH;
-    final expBottom = MapScreen.stripH + 2;
+    const expBottom = MapScreen.stripH + 2;
     final cardBottom = expBottom + (away ? expH + 6 : 0);
     final card = controller.lastDiscovery != null || spawn != null;
     final coverBottom = cardBottom + (card ? 150 : 0) + 4;
@@ -394,7 +394,7 @@ class DungeonStrip extends StatelessWidget {
                 EdgeInsets.symmetric(horizontal: 14)),
             textStyle: const WidgetStatePropertyAll(TextStyle(
                 fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 14)),
-            shadowColor: WidgetStatePropertyAll(AppColors.gold),
+            shadowColor: const WidgetStatePropertyAll(AppColors.gold),
             elevation: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.disabled) ? 0 : 6),
           ),
@@ -408,8 +408,8 @@ class DungeonStrip extends StatelessWidget {
 
 /// 장소 종류별 지도 표시 그림
 String placeIconAsset(PlaceKind kind) => switch (kind) {
-      PlaceKind.labyrinthGate => 'assets/images/map_gate.png',
-      PlaceKind.spiritLake => 'assets/images/map_lake.png',
+      PlaceKind.labyrinthGate => 'assets/images/map_gate.webp',
+      PlaceKind.spiritLake => 'assets/images/map_lake.webp',
     };
 
 // ───────────────────────────────────────────── 새 장소 발견
@@ -558,7 +558,7 @@ class _ExploreSummary extends StatelessWidget {
               leading: Image.asset(
                 visited.contains(place.id)
                     ? placeIconAsset(place.kind)
-                    : 'assets/images/map_unknown.png',
+                    : 'assets/images/map_unknown.webp',
                 width: 44,
                 height: 44,
                 errorBuilder: (_, __, ___) => const Icon(
@@ -639,12 +639,12 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     for (final p in c.pets.pets) {
       if (p.uid == ex.petUid) pet = p;
     }
-    if (pet == null) return 'assets/images/icon_expedition.png';
+    if (pet == null) return 'assets/images/icon_expedition.webp';
     final have = _assets ?? const <String>{};
-    final map = 'assets/images/pet_map_${pet.species.name}.png';
+    final map = 'assets/images/pet_map_${pet.species.name}.webp';
     if (have.contains(map)) return map;
     final art = PetRules.info(pet.species).asset(adult: pet.adult);
-    return have.contains(art) ? art : 'assets/images/icon_expedition.png';
+    return have.contains(art) ? art : 'assets/images/icon_expedition.webp';
   }
 
   Future<void> _redraw() async {
@@ -700,7 +700,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           position: _ll(place.point),
           icon: NOverlayImage.fromAssetImage(visited.contains(place.id)
               ? placeIconAsset(place.kind)
-              : 'assets/images/map_unknown.png'),
+              : 'assets/images/map_unknown.webp'),
           size: const Size(46, 46),
           caption: NOverlayCaption(
             text: visited.contains(place.id) ? place.name : '???',
@@ -722,7 +722,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           id: 'target_ring_$i',
           position: NLatLng(actives[i].lat, actives[i].lng),
           icon: const NOverlayImage.fromAssetImage(
-              'assets/images/map_target_ring.png'),
+              'assets/images/map_target_ring.webp'),
           size: const Size(72, 72),
           anchor: const NPoint(0.5, 0.5),
           isHideCollidedSymbols: true,
@@ -731,7 +731,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           id: 'target_$i',
           position: NLatLng(actives[i].lat, actives[i].lng),
           icon: const NOverlayImage.fromAssetImage(
-              'assets/images/map_monster.png'),
+              'assets/images/map_monster.webp'),
           size: const Size(48, 48),
           anchor: const NPoint(0.5, 0.5),
           alpha: 0.9,
@@ -755,7 +755,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             outlineWidth: 0,
             outlineColor: const Color(0x00000000),
             patternImage: NOverlayImage.fromAssetImage(
-                'assets/images/map_step_${_stepKey(c, actives[i])}.png'),
+                'assets/images/map_step_${_stepKey(c, actives[i])}.webp'),
             patternInterval: _stepGap,
           ),
       for (var i = 0; i < actives.length; i++)
@@ -774,7 +774,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         NMarker(
           id: 'merchant',
           position: _ll(merchantAt),
-          icon: const NOverlayImage.fromAssetImage('assets/images/merchant.png'),
+          icon: const NOverlayImage.fromAssetImage('assets/images/merchant.webp'),
           size: const Size(58, 58),
           caption: NOverlayCaption(
             text: '떠돌이 상인 · ${c.merchantMinutesLeft}분',
@@ -789,7 +789,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           id: 'player',
           position: _ll(fix.point),
           icon: const NOverlayImage.fromAssetImage(
-              'assets/images/map_player.png'),
+              'assets/images/map_player.webp'),
           // 내 위치는 몬스터보다 조금 크게 (11-11 #79)
           size: const Size(64, 64),
           caption: NOverlayCaption(text: c.profile.name),
@@ -997,7 +997,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final m = NMarker(
       id: 'monster_${spawn.id}',
       position: _ll(spawn.point),
-      icon: const NOverlayImage.fromAssetImage('assets/images/map_monster.png'),
+      icon: const NOverlayImage.fromAssetImage('assets/images/map_monster.webp'),
       size: Size(base, base),
       // 11-11 #91: 수식어 이름표가 지도 장소 이름과 겹치면 지도 이름을 비킨다
       isHideCollidedSymbols: spawn.modifiers.isNotEmpty,

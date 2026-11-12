@@ -51,8 +51,6 @@ class HarvestState {
   int durability(HarvestTool t) =>
       tools[t.name] ?? HarvestRules.toolMaxFor(tierOf(t));
 
-  bool hasTool(HarvestTool t) => tools.containsKey(t.name);
-
   bool mastered(HarvestKind k) =>
       (perfects[k.name] ?? 0) >= HarvestRules.masteryPerfects;
 

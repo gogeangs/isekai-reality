@@ -28,6 +28,12 @@ jobs:
       - name: Flutter 버전
         run: flutter --version
 
+      # 묶음 17 #145: 새로 올린 PNG·JPG 그림을 WebP 로 (이미 바꾼 그림은 건너뜀)
+      - name: 그림 줄이기
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 tool/optimize_images.py
+
       - name: 패키지 설치
         run: flutter pub get
 

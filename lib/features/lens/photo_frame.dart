@@ -17,8 +17,8 @@ class PhotoFrame {
   static const double width = 1080;
   static const double height = 1440;
   static const Rect window = Rect.fromLTRB(60, 60, 1020, 1200);
-  static const String frameAsset = 'assets/images/lens_frame.png';
-  static const String logoAsset = 'assets/images/logo_small.png';
+  static const String frameAsset = 'assets/images/lens_frame.webp';
+  static const String logoAsset = 'assets/images/logo_small.webp';
   static const String gameName = '이세계가 현실이라면?';
 
   static Future<ui.Image?> _load(String asset) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/models/vitals.dart';
 import '../../core/rules/rules.dart';
@@ -7,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
 import '../town/material_view.dart';
+import '../../theme/top_notice.dart';
 
 /// 원정 결과 (성공·실패·놓쳤어요)
 enum ExpeditionOutcome { success, fail, missed }
@@ -31,21 +33,28 @@ HuntReward rewardOf(Expedition ex) => HuntReward(
 /// 원정 결과 금테 카드 (11-11 #51)
 Future<void> showExpeditionResult(
         BuildContext context, Expedition ex, String spiritName,
-        {String? more}) =>
+        {String? more, AppController? controller}) =>
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 22),
-        child: ExpeditionResultCard(ex: ex, spiritName: spiritName, more: more),
+        child: ExpeditionResultCard(
+            ex: ex, spiritName: spiritName, more: more, controller: controller),
       ),
     );
 
 class ExpeditionResultCard extends StatelessWidget {
   const ExpeditionResultCard(
-      {super.key, required this.ex, required this.spiritName, this.more});
+      {super.key,
+      required this.ex,
+      required this.spiritName,
+      this.more,
+      this.controller});
 
+  /// 광고 보상 버튼용 (없으면 버튼 없음)
+  final AppController? controller;
   final Expedition ex;
   final String spiritName;
 
@@ -224,6 +233,9 @@ class ExpeditionResultCard extends StatelessWidget {
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
             ),
+          // 묶음 15 #103: 광고 보고 기본 보상 두 배 · 한 번 더 보내기
+          if (controller case final c?)
+            _AdRewards(controller: c, ex: ex),
           GoldButton(
             label: more != null &&
                     more!.split(' / ').first != more!.split(' / ').last
@@ -234,6 +246,72 @@ class ExpeditionResultCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class _AdRewards extends StatefulWidget {
+  const _AdRewards({required this.controller, required this.ex});
+
+  final AppController controller;
+  final Expedition ex;
+
+  @override
+  State<_AdRewards> createState() => _AdRewardsState();
+}
+
+class _AdRewardsState extends State<_AdRewards> {
+  bool _doubled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.controller;
+    final ex = widget.ex;
+    final canDouble = !_doubled && c.canDoubleExpedition(ex);
+    final canAgain = c.canExpeditionAgain(ex);
+    if (!canDouble && !canAgain && !_doubled) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        if (canDouble || _doubled)
+          Expanded(
+            child: FrameButton(
+              key: const Key('adDouble'),
+              label: _doubled ? '두 배 받았어요' : '▶ 광고 보고 두 배',
+              height: 40,
+              onPressed: _doubled
+                  ? null
+                  : () async {
+                      final ok = await c.adDoubleExpedition(ex);
+                      if (!mounted) return;
+                      if (ok) {
+                        setState(() => _doubled = true);
+                      } else {
+                        showTopNotice(context, '광고를 불러오지 못했어요.');
+                      }
+                    },
+            ),
+          ),
+        if ((canDouble || _doubled) && canAgain) const SizedBox(width: 6),
+        if (canAgain)
+          Expanded(
+            child: FrameButton(
+              key: const Key('adAgain'),
+              label: '▶ 광고 보고 한 번 더',
+              height: 40,
+              onPressed: () async {
+                final ok = await c.adExpeditionAgain(ex);
+                if (!context.mounted) return;
+                if (ok) {
+                  Navigator.of(context).pop();
+                } else {
+                  showTopNotice(context, '광고를 불러오지 못했어요.');
+                }
+              },
+            ),
+          ),
+      ]),
     );
   }
 }

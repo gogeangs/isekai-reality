@@ -499,6 +499,17 @@ class TownRules {
   static bool restDone(DateTime startedAt, DateTime now) =>
       !now.isBefore(startedAt.add(const Duration(hours: RuleConstants.restHours)));
 
+  /// 휴식이 얼마나 지났는지 (0 → 1, 묶음 15 #107)
+  static double restProgress(DateTime startedAt, DateTime now) {
+    const total = Duration(hours: RuleConstants.restHours);
+    final done = now.difference(startedAt).inSeconds / total.inSeconds;
+    return done.clamp(0.0, 1.0);
+  }
+
+  /// 쉬는 동안 [from] 에서 [max] 까지 시간에 맞춰 고르게 (끝나면 가득)
+  static int restFill(int from, int max, double progress) =>
+      (from + (max - from) * progress).floor().clamp(from, max);
+
   /// 휴식이 끝나기까지 남은 시간 (끝났으면 0)
   static Duration restLeft(DateTime startedAt, DateTime now) {
     final left = startedAt

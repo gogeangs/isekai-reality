@@ -678,8 +678,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('펫'));
-    await tester.pumpAndSettle();
+    // 묶음 15 #116: 펫 탭은 정령과 이별한 뒤에만
+    if (c.farewellDone) {
+      await tester.tap(find.text('펫'));
+      await tester.pumpAndSettle();
+    } else {
+      expect(find.byKey(const Key('codexTab_1')), findsNothing);
+    }
     await _shot(tester, '45_도감_펫');
     await tester.tap(find.text('가방'));
     await tester.pumpAndSettle();
@@ -796,7 +801,7 @@ void main() {
     expect(find.textContaining('편지 '), findsNothing);
     await tester.tap(find.byKey(const Key('mailFilter_1')));
     await tester.pumpAndSettle();
-    await _shot(tester, '58_우편함_받을물건');
+    await _shot(tester, '58_우편함_공지');
   });
 
   // 그림 확인 (11-11): 앱이 쓰는 그림 자리마다 실제 화면 위젯으로 그려 본다.

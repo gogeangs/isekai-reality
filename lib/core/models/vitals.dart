@@ -22,7 +22,54 @@ class Expedition {
     this.route = const [],
     this.petUid,
     this.petName,
+    this.baseReward = const {},
+    this.adUsed = const {},
   });
+
+  /// 기본 보상 (펫 특기로 더 가져온 것 빼고). 광고 보고 두 배는 이것만 (묶음 15 #103)
+  final Map<String, int> baseReward;
+
+  /// 이 원정에 이미 쓴 광고 보상 ('half' 시간 절반 · 'double' 보상 두 배 · 'again' 한 번 더)
+  final Set<String> adUsed;
+
+  /// 시간을 [cut] 만큼 앞당긴다 (아직 돌아오지 않았을 때, 남은 시간 안에서)
+  Expedition shortened(Duration cut, DateTime now, {String? ad}) {
+    final arrive = arriveAt.isAfter(now) ? arriveAt.subtract(cut) : arriveAt;
+    return copy(
+      arriveAt: arrive.isBefore(now) ? now : arrive,
+      returnAt: returnAt.subtract(cut).isBefore(now) ? now : returnAt.subtract(cut),
+      adUsed: ad == null ? null : {...adUsed, ad},
+    );
+  }
+
+  Expedition copy({
+    DateTime? arriveAt,
+    DateTime? returnAt,
+    Set<String>? adUsed,
+  }) =>
+      Expedition(
+        spawnId: spawnId,
+        monster: monster,
+        mods: mods,
+        lat: lat,
+        lng: lng,
+        fromLat: fromLat,
+        fromLng: fromLng,
+        distanceM: distanceM,
+        mpCost: mpCost,
+        startedAt: startedAt,
+        arriveAt: arriveAt ?? this.arriveAt,
+        returnAt: returnAt ?? this.returnAt,
+        cleared: cleared,
+        escaped: escaped,
+        reward: reward,
+        newSpecies: newSpecies,
+        route: route,
+        petUid: petUid,
+        petName: petName,
+        baseReward: baseReward,
+        adUsed: adUsed ?? this.adUsed,
+      );
 
   /// 원정을 간 펫 (null 이면 정령)
   final String? petUid;
@@ -158,6 +205,7 @@ class Expedition {
   Expedition withResult(bool cleared,
           {bool escaped = false,
           Map<String, int> reward = const {},
+          Map<String, int>? baseReward,
           bool newSpecies = false}) =>
       Expedition(
         spawnId: spawnId,
@@ -179,6 +227,8 @@ class Expedition {
         route: route,
         petUid: petUid,
         petName: petName,
+        baseReward: baseReward ?? reward,
+        adUsed: adUsed,
       );
 
   Map<String, dynamic> toJson() => {
@@ -201,6 +251,8 @@ class Expedition {
         if (route.isNotEmpty) 'route': [for (final p in route) [p.$1, p.$2]],
         if (petUid != null) 'petUid': petUid,
         if (petName != null) 'petName': petName,
+        if (baseReward.isNotEmpty) 'baseReward': baseReward,
+        if (adUsed.isNotEmpty) 'adUsed': adUsed.toList(),
       };
 
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
@@ -225,6 +277,13 @@ class Expedition {
         newSpecies: j['newSpecies'] as bool? ?? false,
         petUid: j['petUid'] as String?,
         petName: j['petName'] as String?,
+        baseReward: {
+          for (final e in ((j['baseReward'] as Map?) ?? const {}).entries)
+            e.key as String: (e.value as num).toInt(),
+        },
+        adUsed: {
+          for (final a in (j['adUsed'] as List?) ?? const []) a as String,
+        },
         route: [
           for (final p in (j['route'] as List?) ?? const [])
             (((p as List)[0] as num).toDouble(), (p[1] as num).toDouble()),
@@ -244,9 +303,15 @@ class Vitals {
     this.stepsDay,
     this.stepsCounted = 0,
     this.restStartedAt,
+    this.restHp0,
+    this.restMp0,
     this.expeditions = const [],
     this.compassReady = false,
   });
+
+  /// 휴식을 시작할 때의 HP·MP (묶음 15 #107: 쉬는 동안 여기서부터 고르게 차오른다)
+  final int? restHp0;
+  final int? restMp0;
 
   /// 지금 HP. null 이면 가득.
   final int? hp;
@@ -284,6 +349,8 @@ class Vitals {
     String? stepsDay,
     int? stepsCounted,
     DateTime? restStartedAt,
+    int? restHp0,
+    int? restMp0,
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
@@ -298,6 +365,8 @@ class Vitals {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
+        restHp0: clearRest ? null : (restHp0 ?? this.restHp0),
+        restMp0: clearRest ? null : (restMp0 ?? this.restMp0),
         expeditions: expeditions ??
             (clearExpedition
                 ? const []
@@ -315,6 +384,8 @@ class Vitals {
         'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
+        'restHp0': restHp0,
+        'restMp0': restMp0,
         'expeditions': [for (final e in expeditions) e.toJson()],
         'compassReady': compassReady,
       };
@@ -329,6 +400,8 @@ class Vitals {
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
+        restHp0: j['restHp0'] as int?,
+        restMp0: j['restMp0'] as int?,
         // 예전 저장본은 원정 하나 ('expedition')
         expeditions: [
           for (final e in (j['expeditions'] as List?) ??

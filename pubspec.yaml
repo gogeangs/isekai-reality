@@ -23,6 +23,8 @@ dependencies:
   share_plus: ^11.0.0
   # #60 Snap Camera Kit 시험 렌즈 (엘프 1개, 묶음 13 A2)
   camerakit_flutter: ^1.0.7
+  # 묶음 15 #103 보상형 광고 (AdMob)
+  google_mobile_ads: ^9.0.0
   path_provider: ^2.1.0
   # 11-11 #75 전투 효과음 (Oculus Audio Pack 01, CC BY 4.0)
   audioplayers: ^6.1.0

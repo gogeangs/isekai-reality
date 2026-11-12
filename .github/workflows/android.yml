@@ -51,6 +51,7 @@ jobs:
           # #60 Snap Camera Kit: 출시용 승인 전까지는 시험용(Staging) 토큰
           SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
           SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
+          ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
         run: |
           python3 -m pip install --quiet pillow
           python3 tool/prepare_android.py
@@ -60,7 +61,12 @@ jobs:
           NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
           SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
           SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
-          SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID }}
+          SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID || '3ff54981-128a-44ab-ba03-0a5897b18f1b' }}
+          # 묶음 15 #103 AdMob (저장소 변수, 없으면 Google 시험 광고)
+          ADMOB_APP_ID_IOS: ${{ vars.ADMOB_APP_ID_IOS }}
+          ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
+          ADMOB_REWARDED_IOS: ${{ vars.ADMOB_REWARDED_IOS }}
+          ADMOB_REWARDED_ANDROID: ${{ vars.ADMOB_REWARDED_ANDROID }}
         shell: bash
         run: |
           # 요즘 Android 휴대폰(64비트 ARM)용만 만들어 파일 크기를 줄인다
@@ -72,6 +78,9 @@ jobs:
             --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
             --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=ADS_ON=1 \
+            --dart-define=ADMOB_REWARDED_IOS="${ADMOB_REWARDED_IOS:-ca-app-pub-3940256099942544/1712485313}" \
+            --dart-define=ADMOB_REWARDED_ANDROID="${ADMOB_REWARDED_ANDROID:-ca-app-pub-3940256099942544/5224354917}" \
             --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt
           status=${PIPESTATUS[0]}
           [ $status -eq 0 ] && cp build/app/outputs/flutter-apk/app-release.apk isekai-reality.apk

@@ -170,7 +170,7 @@ class InnScreen extends StatelessWidget {
                       SizedBox(width: 10),
                       Expanded(
                         child: KText(
-                          '언제든 체크인하고 4시간 쉬면 HP와 정령 MP가 가득 차요.\n'
+                          '쉬는 동안 HP와 정령 MP가 조금씩 차오르고, 4시간이면 가득 차요.\n'
                           '하루 첫 휴식은 경험치 +${RuleConstants.restBonusExp}, '
                           '며칠 이어서 쉬면 보너스가 커져요.',
                           style: TextStyle(
@@ -188,10 +188,26 @@ class InnScreen extends StatelessWidget {
                         : '쉬는 중 · ${left(controller.restLeft)} 남음',
                     onPressed: null,
                   ),
+                  // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
+                  if (controller.canShortenRest) ...[
+                    const SizedBox(height: 8),
+                    FrameButton(
+                      key: const Key('adShortenRest'),
+                      label: '▶ 광고 보고 1시간 줄이기',
+                      height: 44,
+                      onPressed: () async {
+                        final ok = await controller.adShortenRest();
+                        if (!ok && context.mounted) {
+                          showTopNotice(context, '광고를 불러오지 못했어요.');
+                        }
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 8),
+                  // 묶음 15 #107: 일어나도 그때까지 찬 HP·MP는 그대로
                   TextButton(
                     onPressed: () => controller.stopResting(),
-                    child: const KText('그만 쉬기 (보상 없음)',
+                    child: const KText('일어나기 (찬 만큼은 그대로)',
                         style: TextStyle(color: AppColors.textMuted)),
                   ),
                 ] else

@@ -248,6 +248,29 @@ class AppController extends ChangeNotifier {
     await _startPlaying();
   }
 
+  /// 레벨 업하면 HP·정령(펫) MP를 가득 채우고 지친 상태를 푼다 (묶음 14 #102).
+  /// 레벨 업 창을 띄울 때 한 번 부른다(여러 레벨이 한꺼번에 올라도 한 번).
+  /// 전투 중에는 부르지 않는다: 창은 전투·결과 화면을 닫은 뒤에 뜬다.
+  /// 채우기 전 값을 돌려준다 (막대가 차오르는 연출용).
+  Future<({int hp, int maxHp, int mp, int mpMax})> levelUpHeal() async {
+    final before = (hp: hp, maxHp: maxHp, mp: mp, mpMax: mpMax);
+    _vitals = Vitals(
+      hp: null,
+      lastMaxHp: maxHp,
+      mp: null,
+      mpAt: _clock(),
+      stepsDay: _vitals.stepsDay,
+      stepsCounted: _vitals.stepsCounted,
+      restStartedAt: _vitals.restStartedAt,
+      expeditions: _vitals.expeditions,
+      compassReady: _vitals.compassReady,
+    );
+    await store.saveVitals(_vitals);
+    if (_tiredUntil != null) await _setTired(null);
+    notifyListeners();
+    return before;
+  }
+
   /// 레벨업 연출을 닫았을 때
   Future<void> acknowledgeLevelUp() async {
     await updateProfile(_profile.copyWith(lastSeenLevel: player.level.level));

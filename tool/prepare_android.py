@@ -129,4 +129,36 @@ if styles.exists():
                         '    <style name="SnapAppCompat" parent="Theme.AppCompat.NoActionBar">\n    </style>\n</resources>')
         styles.write_text(st)
 
+# 11-12 #60: camerakit_flutter 가 compileSdk 33 으로 되어 있어 새 androidx 와 맞지 않는다 → 36 으로 올린다
+root_gradle = root / "android" / "build.gradle.kts"
+if root_gradle.exists():
+    g = root_gradle.read_text()
+    if "camerakit_flutter" not in g:
+        g = """subprojects {
+    afterEvaluate {
+        if (project.name == "camerakit_flutter") {
+            project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
+                ?.compileSdk = 36
+        }
+    }
+}
+
+""" + g
+        root_gradle.write_text(g)
+else:
+    root_groovy = root / "android" / "build.gradle"
+    if root_groovy.exists():
+        g = root_groovy.read_text()
+        if "camerakit_flutter" not in g:
+            g = """subprojects {
+    afterEvaluate { p ->
+        if (p.name == "camerakit_flutter" && p.hasProperty("android")) {
+            p.android.compileSdkVersion 36
+        }
+    }
+}
+
+""" + g
+            root_groovy.write_text(g)
+
 print("android/ 준비 완료")

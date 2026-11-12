@@ -67,6 +67,15 @@ podfile = ios / "Podfile"
 if podfile.exists():
     p = podfile.read_text()
     p = re.sub(r"#?\s*platform :ios, '[\d.]+'", "platform :ios, '15.5'", p)
+    # 11-12 #60: Snap Camera Kit 화면 모듈이 iOS 15.5 이상이라 모든 라이브러리를 15.5 로 맞춘다
+    if "IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'" not in p:
+        p = p.replace(
+            "flutter_additional_ios_build_settings(target)",
+            "flutter_additional_ios_build_settings(target)\n"
+            "    target.build_configurations.each do |config|\n"
+            "      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'\n"
+            "    end",
+            1)
     podfile.write_text(p)
 
 # 3. 앱 아이콘 (assets/branding/app_icon.png → 크기별, 투명 없이)

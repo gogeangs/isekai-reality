@@ -135,6 +135,8 @@ if root_gradle.exists():
     g = root_gradle.read_text()
     if "camerakit_flutter" not in g:
         g = """subprojects {
+    // camerakit_flutter 가 가져오는 옛 Kotlin 때문에 출시 전 lint 검사가 다른 플러그인에서 멈춘다 → lintVital 끔
+    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }
     afterEvaluate {
         if (project.name == "camerakit_flutter") {
             project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
@@ -151,6 +153,7 @@ else:
         g = root_groovy.read_text()
         if "camerakit_flutter" not in g:
             g = """subprojects {
+    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }
     afterEvaluate { p ->
         if (p.name == "camerakit_flutter" && p.hasProperty("android")) {
             p.android.compileSdkVersion 36

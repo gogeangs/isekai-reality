@@ -117,6 +117,9 @@ void main() {
     await c.init();
     await tester.pump();
     await tester.pump();
+    // 묶음 16 #126: 켜면 지도. 상태창은 눌러서
+    await tester.tap(find.text('상태'));
+    await tester.pumpAndSettle();
 
     await _shot(tester, '01_상태창');
 

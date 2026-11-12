@@ -40,10 +40,7 @@ class StatusScreen extends StatelessWidget {
     this.onSlot,
     this.restLeft,
     this.spiritAway,
-    this.onOpenBag,
-    this.onOpenDungeon,
     this.onOpenInn,
-    this.onOpenShop,
     this.equippedTitle,
     this.look = HeroLook.male,
     this.season,
@@ -84,15 +81,8 @@ class StatusScreen extends StatelessWidget {
   /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
   final String? spiritAway;
 
-  /// 가방 열기 (없으면 버튼을 그리지 않음)
-  final VoidCallback? onOpenBag;
-
-  /// '던전 열기' 버튼 (없으면 버튼을 그리지 않음)
-  final VoidCallback? onOpenDungeon;
-
   /// 앱 안 시설 (없으면 마을 줄을 그리지 않음)
   final VoidCallback? onOpenInn;
-  final VoidCallback? onOpenShop;
 
   /// 대표 칭호 (없으면 '새내기 각성자')
   final TitleId? equippedTitle;
@@ -652,7 +642,7 @@ class _StatsSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(children: [
           Stack(clipBehavior: Clip.none, children: [
-            const GameIcon('spirit', size: 20),
+            const GameIcon('medal', size: 20),
             if (unspent > 0)
               const Positioned(
                 right: -3,
@@ -679,7 +669,7 @@ class _StatsSection extends StatelessWidget {
                   Text('${stats.of(k)}',
                       style: const TextStyle(
                           color: AppColors.text,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700)),
                   if (k != StatKind.values.last) const SizedBox(width: 7),
                 ],
@@ -695,7 +685,7 @@ class _StatsSection extends StatelessWidget {
                     size: 15, color: AppColors.textMuted),
                 SizedBox(width: 2),
                 Text('Lv.2',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
               ]),
             )
           else if (unspent > 0)
@@ -709,7 +699,7 @@ class _StatsSection extends StatelessWidget {
               child: Text('+$unspent',
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800)),
             ),
           if (!locked)

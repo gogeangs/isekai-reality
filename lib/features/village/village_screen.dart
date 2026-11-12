@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../core/format.dart';
+import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/inn_screen.dart';
 import '../town/shop_screen.dart';
@@ -51,7 +53,10 @@ class VillageScreen extends StatelessWidget {
 
   void _enter(BuildContext context, FacilityInfo f) {
     if (!f.open) {
-      return; // 잠긴 곳은 자물쇠만 (묶음 15 #112)
+      // 묶음 16 #137: 잠긴 곳을 누르면 위쪽 띠로 「곧 열려요」
+      showTopNotice(context, '${josa(f.name, '은/는')} 곧 열려요',
+          icon: Icons.lock_outline_rounded);
+      return;
     }
     final Widget page = switch (f.facility) {
       Facility.inn => InnScreen(controller: controller),

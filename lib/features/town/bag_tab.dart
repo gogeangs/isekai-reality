@@ -155,7 +155,7 @@ class _BagTabState extends State<BagTab> {
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           GoldButton(
             key: const Key('bagExpandOk'),
-            label: '${comma(cost)}으로 열기',
+            label: '${josa(comma(cost), '으로/로')} 열기',
             height: 54,
             fontSize: 19,
             leading: const GameIcon('gold', size: 22),

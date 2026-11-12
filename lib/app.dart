@@ -98,14 +98,54 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  int _tab = 0;
+  // 묶음 16 #126: 아래 메뉴 상태 · 가방 · 지도(가운데) · 마을 · 도감, 켜면 지도
+  static const tStatus = 0, tBag = 1, tMap = 2, tVillage = 3, tCodex = 4;
+  int _tab = tMap;
+
+  // #130 빨간 점: 탭을 열면 사라지고, 새로 생기면 다시
+  int _seenPoints = 0;
+  int _seenRewards = 0;
+
+  void _openTab(int i) {
+    final c = widget.controller;
+    if (i == tStatus) _seenPoints = c.unspentPoints;
+    if (i == tVillage) _seenRewards = c.questRewardsReady;
+    _tab = i;
+  }
   bool _levelUpShowing = false;
+
+  /// 묶음 16 #131: 창은 한 번에 하나. 순서 레벨업 → 칭호 → 원정 → 편지(그 밖)
+  bool get _popupBusy =>
+      _levelUpShowing ||
+      _titleShowing ||
+      _noticeShowing ||
+      _petNewsShowing ||
+      _walkShowing ||
+      _farewellShowing;
+
+  /// 창 하나를 닫은 뒤 다음 차례 창을 볼 수 있게 다시 그린다
+  void _kick() {
+    if (mounted) setState(() {});
+  }
+
+  /// 앞 순서의 창이 기다리고 있으면 true ([rank] 0 레벨업, 1 칭호, 2 원정, 3 편지)
+  bool _ahead(int rank) {
+    final c = widget.controller;
+    if (rank > 0 && c.pendingLevelUp != null) return true;
+    if (rank > 1 && c.newTitle != null) return true;
+    if (rank > 2 &&
+        _tab != tMap &&
+        c.finishedExpeditions.isNotEmpty) {
+      return true;
+    }
+    return false;
+  }
 
   /// 확인하지 않은 레벨업이 있으면 화면이 그려진 뒤 연출을 띄운다
   void _maybeShowLevelUp() {
     final pending = widget.controller.pendingLevelUp;
     // 묶음 14 B6: 전투·던전 결과 화면을 닫은 뒤에 띄운다 (결과 글자와 겹치지 않게)
-    if (pending == null || _levelUpShowing || widget.controller.holdNotices) {
+    if (pending == null || _popupBusy || widget.controller.holdNotices) {
       return;
     }
     _levelUpShowing = true;
@@ -129,6 +169,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       );
       await widget.controller.acknowledgeLevelUp();
       _levelUpShowing = false;
+      _kick();
     });
   }
 
@@ -163,36 +204,24 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 휴식이 끝났거나 정령이 돌아왔으면 한 번 알려 준다
   void _maybeShowNotices() {
     final c = widget.controller;
-    if (_noticeShowing || _levelUpShowing) return;
+    if (_popupBusy || _ahead(2)) return;
     final done = c.finishedExpeditions;
     // 지도에서는 원정 띠가 반짝이고, 눌러야 결과 카드를 연다 (11-11 #78)
-    final onMap = _tab == 1;
+    final onMap = _tab == tMap;
     if (!c.justRested && (done.isEmpty || onMap)) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       if (c.justRested) {
-        await showDialog<void>(
-          context: context,
-          builder: (context) => GameAlert(
-            title: Text('푹 쉬었어요', style: AppText.title(20)),
-            content: Text(
-                'HP와 정령 MP가 가득 찼어요. 오늘 휴식 보너스 경험치 '
-                '+${RuleConstants.restBonusExp}!',
-                style: const TextStyle(color: AppColors.text, height: 1.4)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('좋아요'),
-              ),
-            ],
-          ),
-        );
+        // 가벼운 알림은 위쪽 띠로만 (#131)
+        showTopNotice(context,
+            '푹 쉬었어요 · HP·MP 가득, 휴식 보너스 경험치 +${RuleConstants.restBonusExp}');
         c.clearJustRested();
       } else {
         await _showExpeditionResults(done);
       }
       _noticeShowing = false;
+      _kick();
     });
   }
 
@@ -259,11 +288,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// Lv.11: 정령의 이별과 첫 펫 (11-11 #37). 레벨업·알림이 끝난 뒤에.
   void _maybeShowFarewell() {
     final c = widget.controller;
-    if (!c.farewellPending ||
-        _farewellShowing ||
-        _levelUpShowing ||
-        _noticeShowing ||
-        c.pendingLevelUp != null) {
+    if (!c.farewellPending || _popupBusy || _ahead(3)) {
       return;
     }
     _farewellShowing = true;
@@ -273,6 +298,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           fullscreenDialog: true,
           builder: (_) => FarewellScreen(controller: c)));
       _farewellShowing = false;
+      _kick();
     });
   }
 
@@ -284,7 +310,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 알을 주웠을 때 · 정령 편지가 왔을 때 · 품은 알이 다 됐을 때
   void _maybeShowPetNews() {
     final c = widget.controller;
-    if (_petNewsShowing || _levelUpShowing || _farewellShowing) return;
+    if (_popupBusy || _ahead(3)) return;
     final letter = c.pendingLetter;
     var ready = c.farewellDone ? c.readyEgg : null;
     if (ready != null && _promptedEggs.contains(ready.id)) ready = null;
@@ -335,6 +361,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         await showHatchSheet(context, c, ready);
       }
       _petNewsShowing = false;
+      _kick();
     });
   }
 
@@ -345,9 +372,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 걸음 주머니 · 길가의 발견 · 떠돌이 상인 (11-11 #59)
   void _maybeShowWalkNews() {
     final c = widget.controller;
-    if (_walkShowing || _levelUpShowing || _farewellShowing || _noticeShowing) {
-      return;
-    }
+    if (_popupBusy || _ahead(3)) return;
     if (c.takeNewPouch()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -384,6 +409,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           }
         }
         _walkShowing = false;
+        _kick();
       });
       return;
     }
@@ -394,7 +420,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (!mounted) return;
         c.markPetCodexAnnounced();
         showTopNotice(context, '새 도감이 열렸어요', icon: Icons.menu_book_rounded,
-            onTap: () => setState(() => _tab = 4));
+            onTap: () => setState(() => _openTab(tCodex)));
       });
     }
     // 떠돌이 상인 (11-11 #84): 창을 저절로 띄우지 않고 위쪽 띠만.
@@ -408,7 +434,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             icon: Icons.storefront_rounded, onTap: () {
           final at = c.merchantPoint;
           if (at == null) return;
-          setState(() => _tab = 1);
+          setState(() => _openTab(tMap));
           c.requestMapFocus(at);
         });
       });
@@ -423,11 +449,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void _maybeShowTitle() {
     final c = widget.controller;
     final t = c.newTitle;
-    if (t == null || _titleShowing || _levelUpShowing || c.holdNotices) return;
+    if (t == null || _popupBusy || _ahead(1) || c.holdNotices) return;
     _titleShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
         _titleShowing = false;
+        _kick();
         return;
       }
       if (c.quietTitles) {
@@ -438,6 +465,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       }
       await c.acknowledgeTitle(t);
       _titleShowing = false;
+      _kick();
       if (mounted) _maybeShowTitle();
     });
   }
@@ -528,7 +556,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               body: NightBackground(child: AgeBlockedView()));
         }
         if (controller.needsAwakening) {
-          _tab = 0; // 기록을 지운 뒤 다시 시작하면 상태창부터
+          _tab = tMap; // 기록을 지운 뒤 다시 시작하면 지도부터
           return AwakeningScreen(
             onTooYoung: controller.blockForAge,
             now: () => controller.now,
@@ -547,7 +575,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowWalkNews();
         void push(Widget page) => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => page));
-        // 11-10 #25: 하단 메뉴 상태 · 지도 · 마을 · 가방 · 도감
+        // 하단 메뉴 상태 · 가방 · 지도 · 마을 · 도감 (묶음 16 #126)
         final pages = <Widget>[
           StatusScreen(
             player: controller.player,
@@ -563,25 +591,25 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onSlot: (slot) => showEquipPicker(context, controller, slot),
             restLeft: controller.resting ? controller.restLeft : null,
             spiritAway: _spiritAway(controller),
-            onOpenDungeon: () => push(DungeonScreen(controller: controller)),
             equippedTitle: controller.equippedTitle,
             onOpenInn: () => push(InnScreen(controller: controller)),
             look: controller.profile.look,
             season: SeasonRules.of(controller.now),
           ),
+          NightBackground(header: true, child: BagTab(controller: controller)),
           MapScreen(
               controller: controller,
-              onOpenBag: () => setState(() => _tab = 3),
+              onOpenBag: () => setState(() => _openTab(tBag)),
               onOpenDungeon: () => push(DungeonScreen(controller: controller)),
               onShowExpeditionResults: () async {
                 if (_noticeShowing) return;
                 _noticeShowing = true;
                 await _showExpeditionResults(controller.finishedExpeditions);
                 _noticeShowing = false;
+                _kick();
               }),
           NightBackground(
               header: true, child: VillageScreen(controller: controller)),
-          NightBackground(header: true, child: BagTab(controller: controller)),
           NightBackground(
             header: true,
             child: CodexScreen(
@@ -648,10 +676,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           backgroundColor: const Color(0xFF0F1233),
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
+            dots: {
+              if (_tab != tStatus &&
+                  controller.unspentPoints > 0 &&
+                  controller.unspentPoints != _seenPoints)
+                tStatus,
+              if (_tab != tVillage &&
+                  controller.questRewardsReady > 0 &&
+                  controller.questRewardsReady != _seenRewards)
+                tVillage,
+            },
             onTap: (i) {
               hideKeyboard(); // 탭을 옮기면 키보드 닫기 (11-11 #73)
-              if (i == 3) controller.tutorialBagSeen(); // 튜토리얼: 가방 보기
-              setState(() => _tab = i);
+              if (i == tBag) controller.tutorialBagSeen(); // 튜토리얼: 가방 보기
+              setState(() => _openTab(i));
             },
           ),
         );
@@ -671,18 +709,32 @@ String? _spiritAway(AppController c) {
 
 /// 하단 메뉴: 금테 막대, 고른 메뉴는 금색 상자 (목업 구도)
 class OrnateNavBar extends StatelessWidget {
-  const OrnateNavBar({super.key, required this.index, required this.onTap});
+  const OrnateNavBar(
+      {super.key,
+      required this.index,
+      required this.onTap,
+      this.dots = const {},
+      this.dimmed = const {}});
 
   final int index;
   final ValueChanged<int> onTap;
+
+  /// 빨간 점을 찍을 메뉴 (묶음 16 #130)
+  final Set<int> dots;
+
+  /// 튜토리얼 동안 흐리게 막아 둔 메뉴 (묶음 16 #125)
+  final Set<int> dimmed;
+
+  /// 가운데 지도 메뉴 자리
+  static const mapIndex = 2;
 
   /// (그림, 이름). 마을·가방 전용 메뉴 그림(nav_village, nav_bag)이 오기 전에는
   /// 여관·가방 아이콘으로 대신한다.
   static const items = [
     ('nav_status', '상태'),
+    ('nav_bag', '가방'),
     ('nav_map', '지도'),
     ('nav_village', '마을'),
-    ('nav_bag', '가방'),
     ('nav_codex', '도감'),
   ];
 
@@ -709,14 +761,19 @@ class OrnateNavBar extends StatelessWidget {
               children: [
                 for (var i = 0; i < items.length; i++)
                   Expanded(
+                    // 가운데 지도는 조금 넓고 그림도 조금 크게
+                    flex: i == mapIndex ? 6 : 5,
                     child: Semantics(
                       selected: i == index,
                       button: true,
-                      child: InkWell(
-                        onTap: () => onTap(i),
+                      child: Opacity(
+                       opacity: dimmed.contains(i) ? 0.3 : 1,
+                       child: InkWell(
+                        key: Key('nav_$i'),
+                        onTap: dimmed.contains(i) ? null : () => onTap(i),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          height: 54,
+                          height: i == mapIndex ? 58 : 54,
                           decoration: i == index
                               ? BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
@@ -741,20 +798,38 @@ class OrnateNavBar extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Opacity(
-                                opacity: i == index ? 1 : 0.7,
-                                child: Image.asset(
-                                    'assets/images/${items[i].$1}.png',
-                                    width: 30,
-                                    height: 30,
-                                    errorBuilder: (_, __, ___) => Image.asset(
-                                        'assets/images/${_fallback[items[i].$1] ?? 'icon_quest'}.png',
-                                        width: 30,
-                                        height: 30,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(Icons.circle_outlined,
-                                                color: AppColors.text))),
-                              ),
+                              Stack(clipBehavior: Clip.none, children: [
+                                Opacity(
+                                  opacity: i == index || i == mapIndex ? 1 : 0.7,
+                                  child: Image.asset(
+                                      'assets/images/${items[i].$1}.png',
+                                      width: i == mapIndex ? 36 : 30,
+                                      height: i == mapIndex ? 36 : 30,
+                                      errorBuilder: (_, __, ___) => Image.asset(
+                                          'assets/images/${_fallback[items[i].$1] ?? 'icon_quest'}.png',
+                                          width: 30,
+                                          height: 30,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(Icons.circle_outlined,
+                                                  color: AppColors.text))),
+                                ),
+                                if (dots.contains(i))
+                                  Positioned(
+                                    key: Key('navDot_$i'),
+                                    right: -3,
+                                    top: -2,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE53935),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color: Colors.white, width: 1.2),
+                                      ),
+                                    ),
+                                  ),
+                              ]),
                               const SizedBox(height: 2),
                               Text(items[i].$2,
                                   style: TextStyle(
@@ -769,6 +844,7 @@ class OrnateNavBar extends StatelessWidget {
                             ],
                           ),
                         ),
+                       ),
                       ),
                     ),
                   ),

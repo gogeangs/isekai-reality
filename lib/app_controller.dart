@@ -3759,6 +3759,25 @@ class AppController extends ChangeNotifier {
     await _saveBoard(b.copyWith(slots: slots));
   }
 
+  /// 받을 수 있는 의뢰 보상 수 (묶음 16 #130 마을 탭 빨간 점)
+  int get questRewardsReady {
+    var n = 0;
+    final b = board;
+    for (var i = 0; i < b.slots.length; i++) {
+      final s = b.slots[i];
+      final t = BoardRules.template(s.templateId);
+      if (t != null && s.accepted && errandProgress(i) >= t.target) n++;
+    }
+    final u = urgent;
+    if (u != null &&
+        b.urgentAccepted &&
+        !b.urgentDone &&
+        urgentProgress >= u.quest.target) {
+      n++;
+    }
+    return n;
+  }
+
   /// 다 한 수시 의뢰의 보상을 받는다. 2시간 뒤 새 의뢰가 올라온다.
   Future<bool> claimErrand(int slot) async {
     final b = board;

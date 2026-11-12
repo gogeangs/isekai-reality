@@ -16,6 +16,7 @@ import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
 import '../harvest/harvest_sheet.dart';
 import '../town/bag_tab.dart' show showMerchantSheet;
@@ -128,6 +129,13 @@ class _MapScreenState extends State<MapScreen> {
               onOpenBag: widget.onOpenBag,
             ),
           ),
+        // 묶음 16 #126: 상태 화면의 정령 한마디를 지도 구석에도 작게
+        if (!controller.inTutorial && controller.player.today != null)
+          Positioned(
+            left: 10,
+            top: coverTop + 2,
+            child: _SpiritCorner(controller: controller),
+          ),
         // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
         if (buffs.isNotEmpty || controller.tired)
           Positioned(
@@ -180,6 +188,72 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 지도 구석 정령 말풍선 (묶음 16 #126). 말이 바뀌면 다시 나오고, 잠시 뒤 접힌다.
+/// 누르면 바로 접는다.
+class _SpiritCorner extends StatefulWidget {
+  const _SpiritCorner({required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<_SpiritCorner> createState() => _SpiritCornerState();
+}
+
+class _SpiritCornerState extends State<_SpiritCorner> {
+  String? _line;
+  bool _open = false;
+  Timer? _hide;
+
+  String _current() {
+    final c = widget.controller;
+    final p = c.player;
+    return c.statusLifeLine ??
+        BulssiLines.forStatus(
+          today: p.today!,
+          gauge: p.gauge,
+          now: c.now,
+          hpRatio: c.maxHp == 0 ? 1 : c.hp / c.maxHp,
+          mpRatio: c.mpMax == 0 ? 1 : c.mp / c.mpMax,
+          resting: c.resting,
+          spiritAway: c.expedition != null && !c.expedition!.finished,
+        );
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final line = _current();
+    if (line != _line) {
+      _line = line;
+      _open = true;
+      _hide?.cancel();
+      _hide = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _open = false);
+      });
+    }
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: _open
+          ? GestureDetector(
+              key: const Key('mapSpiritLine'),
+              onTap: () => setState(() => _open = false),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: math.min(
+                        250, MediaQuery.sizeOf(context).width - 90)),
+                child: BulssiBubble(line: line, size: 34),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

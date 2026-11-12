@@ -161,3 +161,13 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | tool_pickaxe_<stone·iron·silver·mithril> | 곡괭이 4등급 (256×256) |
 | tool_axe_<stone·iron·silver·mithril> | 도끼 4등급 (256×256) |
 | tool_rod_<stone·iron·silver·mithril>, tool_brush_<stone·iron·silver·mithril> | 낚싯대·붓 4등급 (256×256) |
+| bg_field_sea | 필드 전투 배경: 바다 (1024×1024 jpg) |
+| title_boss<Warden·FireKing·FrostWolf·Treant·BatQueen·Griffin>, title_relicHunter | 보스·유물 칭호 배지 7종 (256×256, 시트 한 장에서 잘라 냄) |
+| title_el<Fire·Water·Wind·Earth·Light·Dark·Ice·Thunder·Metal·Poison> | 속성 칭호 배지 10종 (256×256, 시트 한 장에서 잘라 냄) |
+| map_harvest_<mushroom·flower·gem·relic> | 채집 지도 아이콘 4종 (256×256, 임시 그림을 교체, 시트에서 잘라 냄) |
+| equip_warden<Weapon·Head·Body·Hands·Feet·Acc> | 보스 장비 문지기 세트 6종 (512×512, 시트에서 잘라 냄, 뿌연 빛무리 지움) |
+| 2026-11-13 | equip_flame{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 불꽃 왕 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_frost{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 서리 늑대 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_grove{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 고목 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_night{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 밤날개 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_storm{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 천둥 세트 (시트에서 잘라 냄, 512) |

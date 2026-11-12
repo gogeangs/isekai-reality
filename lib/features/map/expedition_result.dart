@@ -286,7 +286,7 @@ class _AdRewardsState extends State<_AdRewards> {
                       if (ok) {
                         setState(() => _doubled = true);
                       } else {
-                        showTopNotice(context, '광고를 불러오지 못했어요.');
+                        showTopNotice(this.context, '광고를 불러오지 못했어요.');
                       }
                     },
             ),

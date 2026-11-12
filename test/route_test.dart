@@ -17,7 +17,7 @@ import 'package:isekai_reality/core/models/vitals.dart';
     cells[r * RouteTiles.cells + 300] = RouteTiles.walk;
   }
   final grid = RouteGrid({RouteTiles.keyOf(tr, tc): cells});
-  final r0 = tr * RouteTiles.cells, c0 = tc * RouteTiles.cells;
+  const r0 = tr * RouteTiles.cells, c0 = tc * RouteTiles.cells;
   return (
     grid: grid,
     a: RouteTiles.pointOf(r0 + 100, c0 + 100),
@@ -72,7 +72,7 @@ void main() {
         cells[r * RouteTiles.cells + 300] = RouteTiles.walk;
       }
       final grid = RouteGrid({RouteTiles.keyOf(tr, tc): cells});
-      final r0 = tr * RouteTiles.cells, c0 = tc * RouteTiles.cells;
+      const r0 = tr * RouteTiles.cells, c0 = tc * RouteTiles.cells;
       final a = RouteTiles.pointOf(r0 + 100, c0 + 100);
       final b = RouteTiles.pointOf(r0 + 110, c0 + 100);
       expect(RouteFinder.find(grid, a, b).followsRoads, isFalse);

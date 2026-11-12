@@ -210,13 +210,6 @@ class BossGearRules {
 
   static BossSetInfo info(BossSet s) => sets.firstWhere((x) => x.id == s);
 
-  static BossSetInfo? ofBoss(MonsterId boss) {
-    for (final s in sets) {
-      if (s.boss == boss) return s;
-    }
-    return null;
-  }
-
   /// 이 장비가 속한 세트 (일반 장비면 null)
   static BossSet? setOf(EquipBase base) {
     for (final s in sets) {
@@ -263,15 +256,6 @@ class BossGearRules {
           asset: 'equip_${s.parts[i].$1.name}',
         ),
   ];
-
-  static String partText(EquipBase base) {
-    for (final s in sets) {
-      for (final p in s.parts) {
-        if (p.$1 == base) return p.$3;
-      }
-    }
-    return '';
-  }
 
   // ───────────── 만들기 (대장간 NPC, 숫자는 제안값)
 

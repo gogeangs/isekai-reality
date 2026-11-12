@@ -191,12 +191,6 @@ class AppController extends ChangeNotifier {
     if (!on) Future<void>.microtask(notifyListeners);
   }
 
-  Future<void> acknowledgeTitles() async {
-    _seenTitles = {..._seenTitles, ...player.titles};
-    await _saveSeenTitles();
-    notifyListeners();
-  }
-
   Future<void> _saveSeenTitles() => store.saveJson(
       _titlesKey, {'seen': [for (final t in _seenTitles) t.name]});
 
@@ -1339,7 +1333,7 @@ class AppController extends ChangeNotifier {
       NotifyId.rest,
       _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 ${companionName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      'HP와 $companionName의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));
     await refreshVitals();
     return true;
@@ -2002,12 +1996,6 @@ class AppController extends ChangeNotifier {
   }
 
   bool _newNote = false;
-  bool takeNewNote() {
-    final v = _newNote;
-    _newNote = false;
-    return v;
-  }
-
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
   List<PotionId> get knownRecipes => [
         for (final p in AlchemyRules.all)
@@ -3766,16 +3754,6 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
-  /// 속성 부여 (11-11 #63). 11-11 #74부터는 [smith] 의 입히기·바꾸기.
-  Future<bool> imbue(String uid, Element e) async {
-    final item = _armory.byUid(uid);
-    if (item == null) return false;
-    final r = await smith(uid,
-        item.element == null ? SmithAction.apply : SmithAction.change,
-        to: e);
-    return r == SmithResult.ok;
-  }
-
   /// 대장간 장비 속성 작업 (11-11 #74, NPC 도르군).
   /// 실패하면 금화만 잃고 빛나는 속성 코어는 돌려받는다. 장비와 원래 속성은 그대로.
   Future<SmithResult> smith(String uid, SmithAction act, {Element? to}) async {
@@ -4224,7 +4202,7 @@ class AppController extends ChangeNotifier {
       NotifyId.rest,
       now.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 ${companionName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      'HP와 $companionName의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));
     notifyListeners();
     return true;

@@ -13,10 +13,10 @@ import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
 
 /// 마을 시설
-enum Facility { inn, shop, board, smithy, alchemy, market, post }
+enum Facility { inn, shop, board, smithy, alchemy, market }
 
 class FacilityInfo {
-  const FacilityInfo(this.facility, this.name, this.icon, this.subtitle,
+  const FacilityInfo(this.facility, this.name, this.icon,
       {this.open = true, this.inArt = true});
 
   /// 마을 그림에 건물이 그려져 있는지 (없으면 그림 위에 아이콘을 놓는다)
@@ -27,7 +27,6 @@ class FacilityInfo {
 
   /// assets/images/<icon>.png
   final String icon;
-  final String subtitle;
 
   /// false 면 '곧 열려요'
   final bool open;
@@ -42,13 +41,13 @@ class VillageScreen extends StatelessWidget {
   final AppController controller;
 
   static const facilities = [
-    FacilityInfo(Facility.inn, '여관', 'map_inn', '쉬면 HP·MP가 가득'),
-    FacilityInfo(Facility.shop, '잡화상', 'map_store', '물약과 물건'),
-    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
-    FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
-    FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy', '물약 끓이기·레시피·재료 가공'),
+    FacilityInfo(Facility.inn, '여관', 'map_inn'),
+    FacilityInfo(Facility.shop, '잡화상', 'map_store'),
+    FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board'),
+    FacilityInfo(Facility.smithy, '대장간', 'icon_smithy'),
+    FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy'),
     // 묶음 15 #113: 우체국은 빼고 우편은 위쪽 우편함 아이콘으로만
-    FacilityInfo(Facility.market, '거래소', 'icon_lock', '', open: false),
+    FacilityInfo(Facility.market, '거래소', 'icon_lock', open: false),
   ];
 
   /// 레벨이 모자라 잠긴 시설이면 그 레벨 (묶음 16 #141 #142)
@@ -65,7 +64,7 @@ class VillageScreen extends StatelessWidget {
         for (final f in facilities)
           _lockLevel(f.facility) == null
               ? f
-              : FacilityInfo(f.facility, f.name, f.icon, f.subtitle,
+              : FacilityInfo(f.facility, f.name, f.icon,
                   open: false, inArt: f.inArt),
       ];
 

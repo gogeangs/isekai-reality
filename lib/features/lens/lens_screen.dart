@@ -720,5 +720,3 @@ class _AppraisePainter extends CustomPainter {
 Future<void> openLens(NavigatorState nav, AppController c) =>
     nav.push(MaterialPageRoute<void>(builder: (_) => LensScreen(controller: c)));
 
-/// 종족 이름 + 조사 (도감 등에서 쓴다)
-String raceWithJosa(Race r, String pair) => josa(LensRules.info(r).name, pair);

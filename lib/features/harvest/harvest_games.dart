@@ -596,7 +596,7 @@ class _MushroomPainter extends CustomPainter {
     // 독버섯은 흰 점박이
     if (poison) {
       final dot = Paint()..color = Colors.white;
-      for (final o in [Offset(-0.45, -0.25), Offset(0.1, -0.55), Offset(0.5, -0.15)]) {
+      for (final o in [const Offset(-0.45, -0.25), const Offset(0.1, -0.55), const Offset(0.5, -0.15)]) {
         canvas.drawCircle(c + Offset(o.dx * r, o.dy * r), r * 0.14, dot);
       }
     }

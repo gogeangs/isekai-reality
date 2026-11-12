@@ -143,7 +143,7 @@ class RigMotions {
   RigMotions._();
 
   static RigPose _p(Map<String, double> m) => RigPose.from(m);
-  static final RigPose _s = RigPose.stand;
+  static const RigPose _s = RigPose.stand;
 
   static final Map<String, List<(double, RigPose)>> keys = {
     // 검: 뒤로 젖혔다가 옆으로 베기

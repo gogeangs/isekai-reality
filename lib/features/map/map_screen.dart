@@ -90,7 +90,7 @@ class _MapScreenState extends State<MapScreen> {
         : _expOpen && actives.isNotEmpty
             ? MapScreen.expCardH * actives.length + 8
             : MapScreen.expStripH;
-    final expBottom = MapScreen.stripH + 2;
+    const expBottom = MapScreen.stripH + 2;
     final cardBottom = expBottom + (away ? expH + 6 : 0);
     final card = controller.lastDiscovery != null || spawn != null;
     final coverBottom = cardBottom + (card ? 150 : 0) + 4;
@@ -394,7 +394,7 @@ class DungeonStrip extends StatelessWidget {
                 EdgeInsets.symmetric(horizontal: 14)),
             textStyle: const WidgetStatePropertyAll(TextStyle(
                 fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 14)),
-            shadowColor: WidgetStatePropertyAll(AppColors.gold),
+            shadowColor: const WidgetStatePropertyAll(AppColors.gold),
             elevation: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.disabled) ? 0 : 6),
           ),

@@ -401,7 +401,7 @@ class AlchemyRules {
   // ───────────── 물약 목록
 
   static final List<PotionInfo> all = [
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.healSmall,
       name: '작은 회복 물약',
       kind: PotionKind.heal,
@@ -413,7 +413,7 @@ class AlchemyRules {
       shopItem: ShopItem.healSmall,
       hpRatio: 0.2,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.manaSmall,
       name: '작은 마나 물약',
       kind: PotionKind.mana,
@@ -425,7 +425,7 @@ class AlchemyRules {
       shopItem: ShopItem.manaSmall,
       mpRatio: 0.2,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.heal,
       name: '회복 물약',
       kind: PotionKind.heal,
@@ -442,7 +442,7 @@ class AlchemyRules {
       shopItem: ShopItem.heal,
       hpRatio: 0.4,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.mana,
       name: '마나 물약',
       kind: PotionKind.mana,
@@ -458,7 +458,7 @@ class AlchemyRules {
       shopItem: ShopItem.mana,
       mpRatio: 0.4,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.spiritPotion,
       name: '정령 물약',
       kind: PotionKind.special,
@@ -467,7 +467,7 @@ class AlchemyRules {
       minutes: 30,
       shopItem: ShopItem.bulssiPotion,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.healBig,
       name: '큰 회복 물약',
       kind: PotionKind.heal,
@@ -476,7 +476,7 @@ class AlchemyRules {
       minutes: 60,
       hpRatio: 0.7,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.antidote,
       name: '해독제',
       kind: PotionKind.care,
@@ -485,7 +485,7 @@ class AlchemyRules {
       minutes: 20,
       yields: 2,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.burnSalve,
       name: '화상 연고',
       kind: PotionKind.care,
@@ -499,7 +499,7 @@ class AlchemyRules {
       minutes: 20,
       yields: 2,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.clearEye,
       name: '맑은 눈 물약',
       kind: PotionKind.care,
@@ -508,7 +508,7 @@ class AlchemyRules {
       minutes: 20,
       yields: 2,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.strength,
       name: '힘의 물약',
       kind: PotionKind.buff,
@@ -523,7 +523,7 @@ class AlchemyRules {
       stat: StatKind.strength,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.agility,
       name: '민첩의 물약',
       kind: PotionKind.buff,
@@ -533,7 +533,7 @@ class AlchemyRules {
       stat: StatKind.agility,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.intellect,
       name: '지능의 물약',
       kind: PotionKind.buff,
@@ -547,7 +547,7 @@ class AlchemyRules {
       stat: StatKind.intellect,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.vitality,
       name: '체력의 물약',
       kind: PotionKind.buff,
@@ -562,7 +562,7 @@ class AlchemyRules {
       stat: StatKind.vitality,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.luck,
       name: '행운의 물약',
       kind: PotionKind.buff,
@@ -572,7 +572,7 @@ class AlchemyRules {
       stat: StatKind.luck,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistFire,
       name: '불꽃 저항 물약',
       kind: PotionKind.resist,
@@ -587,7 +587,7 @@ class AlchemyRules {
       element: Element.fire,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistWater,
       name: '물 저항 물약',
       kind: PotionKind.resist,
@@ -602,7 +602,7 @@ class AlchemyRules {
       element: Element.water,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistWind,
       name: '바람 저항 물약',
       kind: PotionKind.resist,
@@ -617,7 +617,7 @@ class AlchemyRules {
       element: Element.wind,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistEarth,
       name: '대지 저항 물약',
       kind: PotionKind.resist,
@@ -632,7 +632,7 @@ class AlchemyRules {
       element: Element.earth,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistLight,
       name: '빛 저항 물약',
       kind: PotionKind.resist,
@@ -647,7 +647,7 @@ class AlchemyRules {
       element: Element.light,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistDark,
       name: '어둠 저항 물약',
       kind: PotionKind.resist,
@@ -662,7 +662,7 @@ class AlchemyRules {
       element: Element.dark,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistIce,
       name: '얼음 저항 물약',
       kind: PotionKind.resist,
@@ -677,7 +677,7 @@ class AlchemyRules {
       element: Element.ice,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistThunder,
       name: '번개 저항 물약',
       kind: PotionKind.resist,
@@ -692,7 +692,7 @@ class AlchemyRules {
       element: Element.thunder,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistMetal,
       name: '금속 저항 물약',
       kind: PotionKind.resist,
@@ -707,7 +707,7 @@ class AlchemyRules {
       element: Element.metal,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.resistPoison,
       name: '독 저항 물약',
       kind: PotionKind.resist,
@@ -722,7 +722,7 @@ class AlchemyRules {
       element: Element.poison,
       battles: battleCount,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.callMonsters,
       name: '유인 물약',
       kind: PotionKind.special,
@@ -737,7 +737,7 @@ class AlchemyRules {
       minutes: 60,
       duration: exploreDuration,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.callModified,
       name: '수식어 부르는 물약',
       kind: PotionKind.special,
@@ -745,7 +745,7 @@ class AlchemyRules {
       recipe: [MaterialId.shadowCore, MaterialId.sleepPowder, MaterialId.essence],
       minutes: 60,
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.plenty,
       name: '풍요의 물약',
       kind: PotionKind.special,
@@ -772,7 +772,7 @@ class AlchemyRules {
         element: e,
         battles: battleCount,
       ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.steps,
       name: '걸음 물약',
       kind: PotionKind.special,
@@ -787,7 +787,7 @@ class AlchemyRules {
       steps: stepCap,
     ),
     // ───────────── 11-11 C1 회복·MP 물약 3~5등급 (잡화상·던전 보상에는 없음)
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.heal3,
       name: '치유의 물약',
       kind: PotionKind.heal,
@@ -803,7 +803,7 @@ class AlchemyRules {
       hpRatio: 0.55,
       icon: 'potion_heal_3',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.heal4,
       name: '생명의 물약',
       kind: PotionKind.heal,
@@ -818,7 +818,7 @@ class AlchemyRules {
       hpRatio: 0.85,
       icon: 'potion_heal_4',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.heal5,
       name: '여명의 물약',
       kind: PotionKind.heal,
@@ -834,7 +834,7 @@ class AlchemyRules {
       hpRatio: 1.0,
       icon: 'potion_heal_5',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.mana3,
       name: '맑은 마나 물약',
       kind: PotionKind.mana,
@@ -850,7 +850,7 @@ class AlchemyRules {
       mpRatio: 0.55,
       icon: 'potion_mana_3',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.mana4,
       name: '깊은 마나 물약',
       kind: PotionKind.mana,
@@ -865,7 +865,7 @@ class AlchemyRules {
       mpRatio: 0.85,
       icon: 'potion_mana_4',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.mana5,
       name: '여명의 마나 물약',
       kind: PotionKind.mana,
@@ -881,7 +881,7 @@ class AlchemyRules {
       mpRatio: 1.0,
       icon: 'potion_mana_5',
     ),
-    PotionInfo(
+    const PotionInfo(
       id: PotionId.thaw,
       name: '녹이는 물약',
       kind: PotionKind.care,

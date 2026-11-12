@@ -119,7 +119,7 @@ class _FoldingQuestPanelState extends State<FoldingQuestPanel> {
 
 /// 보상 표시 (아이콘 + 수량). [icon] 이 없으면 경험치 아이콘.
 class RewardChip extends StatelessWidget {
-  const RewardChip({required this.text, this.done = false, this.icon});
+  const RewardChip({super.key, required this.text, this.done = false, this.icon});
 
   final String text;
   final bool done;
@@ -153,7 +153,7 @@ class RewardChip extends StatelessWidget {
 }
 
 class QuestRowView extends StatelessWidget {
-  const QuestRowView({required this.quest, this.rewardExp, this.extra = const []});
+  const QuestRowView({super.key, required this.quest, this.rewardExp, this.extra = const []});
 
   final QuestProgress quest;
 
@@ -247,7 +247,7 @@ class QuestRowView extends StatelessWidget {
 
 /// 3개 모두 완료 보너스 + 연속 달성 일수 (11-10 C2)
 class AllDoneRow extends StatelessWidget {
-  const AllDoneRow({required this.done, required this.streak});
+  const AllDoneRow({super.key, required this.done, required this.streak});
 
   final bool done;
   final int streak;

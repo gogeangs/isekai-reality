@@ -857,7 +857,7 @@ void main() {
         (p.name, PotionIcon(potion: p.id, size: 52)),
       ('수상한 물약', const PotionIcon(suspicious: true, size: 52)),
     ]);
-    final mats = Materials.all;
+    const mats = Materials.all;
     final half = (mats.length / 2).ceil();
     await show('91_그림확인_재료1', '재료 1 (MaterialIcon)', [
       for (final m in mats.take(half)) (m.name, MaterialIcon(m.id, size: 52)),

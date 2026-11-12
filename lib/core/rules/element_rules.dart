@@ -146,17 +146,4 @@ class ElementRules {
     return null;
   }
 
-  /// 속성 칭호 이름 (주 속성 점수 100)
-  static String titleName(Element e) => switch (e) {
-        Element.fire => '불꽃을 닮은 자',
-        Element.water => '물결을 닮은 자',
-        Element.ice => '서리를 닮은 자',
-        Element.wind => '바람을 닮은 자',
-        Element.thunder => '번개를 닮은 자',
-        Element.earth => '대지를 닮은 자',
-        Element.metal => '강철을 닮은 자',
-        Element.poison => '독초를 닮은 자',
-        Element.light => '빛을 닮은 자',
-        Element.dark => '어둠을 닮은 자',
-      };
 }

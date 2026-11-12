@@ -86,13 +86,13 @@ class Stats {
   }
 
   @override
-  bool operator ==(Object o) =>
-      o is Stats &&
-      o.strength == strength &&
-      o.agility == agility &&
-      o.intellect == intellect &&
-      o.vitality == vitality &&
-      o.luck == luck;
+  bool operator ==(Object other) =>
+      other is Stats &&
+      other.strength == strength &&
+      other.agility == agility &&
+      other.intellect == intellect &&
+      other.vitality == vitality &&
+      other.luck == luck;
 
   @override
   int get hashCode => Object.hash(strength, agility, intellect, vitality, luck);

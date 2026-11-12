@@ -473,7 +473,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
+          const Text.rich(
               const TextSpan(children: [
                 TextSpan(
                     text: '(필수) ',

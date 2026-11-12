@@ -39,12 +39,11 @@ class _StatScreenState extends State<StatScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => GameAlert(
-        title: Text('포인트를 되돌릴까요?',
+        title: Text(
+            cost == 0 ? '무료로 되돌릴까요?' : '금화 $cost으로 되돌릴까요?',
             style: AppText.title(18, color: AppColors.text)),
-        content: KText(
-            '포인트로 올린 스탯만 되돌려서 다시 나눌 수 있어요. '
-            '${cost == 0 ? '이번은 무료예요.' : '금화 $cost이 들어요.'}',
-            style: const TextStyle(color: AppColors.text)),
+        content: const KText('포인트로 올린 스탯만 되돌려 다시 나눌 수 있어요.',
+            style: TextStyle(color: AppColors.text)),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(d).pop(false),
@@ -75,7 +74,8 @@ class _StatScreenState extends State<StatScreen> {
             final left = c.unspentPoints - _draft.total;
             final shown = c.shownStats;
             final alloc = c.allocatedStats;
-            final cost = c.statResetCost;
+            // 묶음 15 #110·#111: −·+ 와 「고르게 나누기」「확정」은 나눌 때만
+            final dividing = c.unspentPoints > 0 || _draft.total > 0;
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
               children: [
@@ -108,9 +108,9 @@ class _StatScreenState extends State<StatScreen> {
                           kind: k,
                           icon: icon(k),
                           total: shown.of(k) + _draft.of(k),
-                          fromPoints: alloc.of(k) + _draft.of(k),
                           adding: _draft.of(k),
                           canAdd: left > 0,
+                          dividing: dividing,
                           flash: _flash.contains(k),
                           flashTick: _flashTick,
                           onAdd: () => setState(
@@ -123,6 +123,7 @@ class _StatScreenState extends State<StatScreen> {
                     ],
                   ),
                 ),
+                if (dividing) ...[
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(
@@ -161,26 +162,19 @@ class _StatScreenState extends State<StatScreen> {
                     ),
                   ),
                 ]),
+                ],
                 const SizedBox(height: 16),
-                OrnatePanel(
-                  child: Row(children: [
-                    Expanded(
-                      child: KText(
-                          '포인트로 올린 스탯만 되돌려 다시 나눌 수 있어요. '
-                          '${cost == 0 ? '처음 1번은 무료예요.' : '이번에는 금화 $cost이 들어요.'}',
-                          style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 12.5)),
+                // 되돌리기: 버튼만. 비용은 누르면 뜨는 확인 창에서
+                Center(
+                  child: SizedBox(
+                    width: 160,
+                    child: FrameButton(
+                      key: const Key('statReset'),
+                      label: '되돌리기',
+                      height: 40,
+                      onPressed: alloc.total > 0 ? _reset : null,
                     ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 128,
-                      child: FrameButton(
-                        label: '되돌리기',
-                        height: 40,
-                        onPressed: alloc.total > 0 ? _reset : null,
-                      ),
-                    ),
-                  ]),
+                  ),
                 ),
               ],
             );
@@ -196,10 +190,10 @@ class _StatRow extends StatelessWidget {
     required this.kind,
     required this.icon,
     required this.total,
-    required this.fromPoints,
     required this.adding,
     required this.canAdd,
     required this.onAdd,
+    required this.dividing,
     this.onRemove,
     this.flash = false,
     this.flashTick = 0,
@@ -211,82 +205,79 @@ class _StatRow extends StatelessWidget {
   final StatKind kind;
   final IconData icon;
   final int total;
-  final int fromPoints;
   final int adding;
   final bool canAdd;
+  final bool dividing;
   final VoidCallback onAdd;
   final VoidCallback? onRemove;
 
+  /// 메달 크기 (묶음 15 #109: 줄 높이에 꽉 차게, 예전의 약 2배)
+  static const double medal = 52;
+
   @override
   Widget build(BuildContext context) {
+    final number = flash
+        ? TweenAnimationBuilder<double>(
+            key: ValueKey('flash_$flashTick'),
+            tween: Tween(begin: 1, end: 0),
+            duration: const Duration(milliseconds: 1100),
+            builder: (_, v, __) => Transform.scale(
+              scale: 1 + 0.25 * v,
+              child: Text('$total',
+                  style: AppText.title(22,
+                          color: Color.lerp(
+                              AppColors.text, AppColors.goldBright, v)!)
+                      .copyWith(shadows: [
+                    Shadow(
+                        color: AppColors.gold.withValues(alpha: v),
+                        blurRadius: 14 * v),
+                  ])),
+            ),
+          )
+        : Text('$total',
+            key: Key('statValue_${kind.name}'),
+            style: AppText.title(22,
+                color: adding > 0 ? AppColors.goldBright : AppColors.text));
     return Container(
       margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+      padding: const EdgeInsets.fromLTRB(6, 4, 4, 4),
       decoration: BoxDecoration(
         color: const Color(0x66101333),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        StatIcon(kind, size: 26, color: AppColors.goldBright),
-        const SizedBox(width: 8),
+        // 스탯이 하는 일은 메달을 누르면 작은 말풍선으로
+        Tooltip(
+          key: Key('statMedal_${kind.name}'),
+          message: kind.role,
+          triggerMode: TooltipTriggerMode.tap,
+          showDuration: const Duration(seconds: 3),
+          child: StatIcon(kind, size: medal, color: AppColors.goldBright),
+        ),
+        const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(kind.label, style: AppText.title(16, color: AppColors.text)),
-              // 다섯 칸 높이를 같게: 설명은 한 줄
-              Text(kind.role,
-                  maxLines: 1,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
-                  style:
-                      const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-            ],
+          child: Text(kind.label, style: AppText.title(18, color: AppColors.text)),
+        ),
+        if (dividing) ...[
+          IconButton(
+            tooltip: '${kind.label} 빼기',
+            onPressed: onRemove,
+            icon: const Icon(Icons.remove_circle_outline_rounded),
+            color: AppColors.gold,
           ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (flash)
-              TweenAnimationBuilder<double>(
-                key: ValueKey('flash_$flashTick'),
-                tween: Tween(begin: 1, end: 0),
-                duration: const Duration(milliseconds: 1100),
-                builder: (_, v, __) => Transform.scale(
-                  scale: 1 + 0.25 * v,
-                  child: Text('$total',
-                      style: AppText.title(20,
-                              color: Color.lerp(AppColors.text,
-                                  AppColors.goldBright, v)!)
-                          .copyWith(shadows: [
-                        Shadow(
-                            color: AppColors.gold.withValues(alpha: v),
-                            blurRadius: 14 * v),
-                      ])),
-                ),
-              )
-            else
-              Text('$total',
-                  style: AppText.title(20,
-                      color: adding > 0 ? AppColors.goldBright : AppColors.text)),
-            Text('포인트 +$fromPoints',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-          ],
-        ),
-        const SizedBox(width: 6),
-        IconButton(
-          tooltip: '${kind.label} 빼기',
-          onPressed: onRemove,
-          icon: const Icon(Icons.remove_circle_outline_rounded),
-          color: AppColors.gold,
-        ),
-        IconButton(
-          tooltip: '${kind.label} 올리기',
-          onPressed: canAdd ? onAdd : null,
-          icon: const Icon(Icons.add_circle_rounded),
-          color: AppColors.goldBright,
-        ),
+          SizedBox(width: 44, child: Center(child: number)),
+          IconButton(
+            tooltip: '${kind.label} 올리기',
+            onPressed: canAdd ? onAdd : null,
+            icon: const Icon(Icons.add_circle_rounded),
+            color: AppColors.goldBright,
+          ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: number,
+          ),
       ]),
     );
   }

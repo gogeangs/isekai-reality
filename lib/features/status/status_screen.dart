@@ -164,6 +164,7 @@ class StatusScreen extends StatelessWidget {
                     left: 10,
                     top: top + 168,
                     child: _SlotColumn(
+                      fit: gearSlotFit(heroH - top - 168 - 10),
                       slots: const [
                         EquipSlot.weapon,
                         EquipSlot.hands,
@@ -177,6 +178,7 @@ class StatusScreen extends StatelessWidget {
                     right: 10,
                     top: top + 168,
                     child: _SlotColumn(
+                      fit: gearSlotFit(heroH - top - 168 - 10),
                       slots: const [
                         EquipSlot.head,
                         EquipSlot.body,
@@ -230,6 +232,7 @@ class StatusScreen extends StatelessWidget {
                   hp: curHp,
                   mp: curMp,
                   spiritAway: spiritAway,
+                  resting: restLeft != null,
                 ),
                 const SizedBox(height: 12),
                 _StatsSection(
@@ -367,21 +370,37 @@ class _HeroArt extends StatelessWidget {
   }
 }
 
+/// 장비 칸 3개가 [room] 높이 안에 들어가게 (묶음 15 #108):
+/// 모자라면 간격을 먼저 줄이고(8 → 3), 그래도 모자라면 칸을 조금 줄인다(50 → 36).
+({double size, double gap}) gearSlotFit(double room) {
+  const full = 50.0, gapMax = 8.0, gapMin = 3.0, sizeMin = 36.0;
+  if (room >= full * 3 + gapMax * 2) return (size: full, gap: gapMax);
+  final gap = ((room - full * 3) / 2).clamp(gapMin, gapMax);
+  if (full * 3 + gap * 2 <= room) return (size: full, gap: gap);
+  final size = ((room - gapMin * 2) / 3).clamp(sizeMin, full);
+  return (size: size, gap: gapMin);
+}
+
 /// 장비 칸 3개 세로 줄
 class _SlotColumn extends StatelessWidget {
   const _SlotColumn(
-      {required this.slots, required this.armory, required this.onTap});
+      {required this.slots,
+      required this.armory,
+      required this.onTap,
+      this.fit = (size: 50.0, gap: 8.0)});
 
   final List<EquipSlot> slots;
   final Armory armory;
   final ValueChanged<EquipSlot>? onTap;
+  final ({double size, double gap}) fit;
 
   @override
   Widget build(BuildContext context) => Column(children: [
-        for (final slot in slots)
+        for (final (i, slot) in slots.indexed)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: i == slots.length - 1 ? 0 : fit.gap),
             child: _GearSlot(
+              size: fit.size,
               slot: slot,
               item: armory.wornIn(slot),
               onTap: onTap == null ? null : () => onTap!(slot),
@@ -391,13 +410,13 @@ class _SlotColumn extends StatelessWidget {
 }
 
 class _GearSlot extends StatelessWidget {
-  const _GearSlot({required this.slot, this.item, this.onTap});
+  const _GearSlot(
+      {required this.slot, this.item, this.onTap, this.size = 50});
 
   final EquipSlot slot;
   final EquipItem? item;
   final VoidCallback? onTap;
-
-  static const double size = 50;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -434,12 +453,12 @@ class _GearSlot extends StatelessWidget {
               child: it == null
                   ? SlotGlyph(slot,
                       color: AppColors.textMuted.withValues(alpha: 0.7),
-                      size: 24)
+                      size: size * 0.48)
                   : Image.asset('assets/images/${it.info.asset}.png',
                       width: size - 10,
                       height: size - 10,
                       errorBuilder: (_, __, ___) =>
-                          SlotGlyph(slot, color: color, size: 26)),
+                          SlotGlyph(slot, color: color, size: size * 0.52)),
             ),
             if (it?.element != null)
               Positioned(
@@ -508,8 +527,11 @@ class _StatusPanel extends StatelessWidget {
     required this.hp,
     required this.mp,
     this.spiritAway,
+    this.resting = false,
   });
 
+  /// 여관에서 쉬는 중: 막대가 천천히 차오르며 살짝 빛난다 (묶음 15 #107)
+  final bool resting;
   final PlayerState player;
   final int maxHp;
   final int hp;
@@ -528,6 +550,7 @@ class _StatusPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: _Gauge(
+                  filling: resting,
                   icon: 'vitality',
                   label: hp <= 0 ? 'HP · 쉬어야 해요' : 'HP',
                   ratio: maxHp == 0 ? 0 : hp / maxHp,
@@ -538,6 +561,7 @@ class _StatusPanel extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: _Gauge(
+                  filling: resting,
                   icon: 'mp',
                   label: spiritAway == null
                       ? mpLabel(context)
@@ -639,7 +663,7 @@ class _StatsSection extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Row(children: [
                 for (final k in StatKind.values) ...[
-                  StatIcon(k, size: 20, color: AppColors.textMuted),
+                  StatIcon(k, size: 26, color: AppColors.textMuted),
                   const SizedBox(width: 2),
                   Text('${stats.of(k)}',
                       style: const TextStyle(
@@ -694,8 +718,10 @@ class _Gauge extends StatelessWidget {
     required this.colors,
     required this.value,
     required this.icon,
+    this.filling = false,
   });
 
+  final bool filling;
   final String label;
   final double ratio;
   final List<Color> colors;
@@ -717,7 +743,13 @@ class _Gauge extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 6),
-        GlowBar(ratio: ratio, colors: colors),
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: ratio.isNaN ? 0.0 : ratio),
+          duration: Duration(milliseconds: filling ? 1600 : 300),
+          curve: Curves.easeOut,
+          builder: (_, r, __) =>
+              GlowBar(ratio: r, colors: colors, glow: filling),
+        ),
         const SizedBox(height: 4),
         Text(value,
             textAlign: TextAlign.right,

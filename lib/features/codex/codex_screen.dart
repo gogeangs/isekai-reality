@@ -125,7 +125,7 @@ class _CodexScreenState extends State<CodexScreen> {
           const OrnateTopBar(title: '도감'),
           const SizedBox(height: 6),
           BulssiLine(
-              line: tab == 1
+              line: tab == 1 && widget.petsOpen
                   ? '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'
                   : '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'),
           const SizedBox(height: 8),
@@ -470,10 +470,6 @@ class _PetCodex extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
-              const KText('희귀·전설 펫은 앞으로 이곳에 더해져요.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
         ),

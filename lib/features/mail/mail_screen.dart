@@ -8,7 +8,7 @@ import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 
 /// 우편함 (11-11 #65, #100): 선물과 편지를 한 목록으로. 물건이 든 편지는 30일 안에 받기,
-/// 받은 뒤 편지는 계속 보관. 필터: 전체 / 받을 물건 있음 / 공지
+/// 받은 뒤 편지는 계속 보관. 필터: 전체 / 공지 (묶음 15 #117: 물건 든 편지는 선물 상자 표시로)
 class MailScreen extends StatefulWidget {
   const MailScreen({super.key, required this.controller});
 
@@ -19,7 +19,7 @@ class MailScreen extends StatefulWidget {
 }
 
 class _MailScreenState extends State<MailScreen> {
-  /// 0 전체 · 1 받을 물건 있음 · 2 공지
+  /// 0 전체 · 1 공지
   int _tab = 0;
 
   AppController get c => widget.controller;
@@ -106,8 +106,7 @@ class _MailScreenState extends State<MailScreen> {
             final gifts = c.giftMails;
             final all = c.allMails;
             final list = switch (_tab) {
-              1 => gifts,
-              2 => [for (final m in all) if (m.kind == MailKind.notice) m],
+              1 => [for (final m in all) if (m.kind == MailKind.notice) m],
               _ => all,
             };
             return ListView(
@@ -118,8 +117,7 @@ class _MailScreenState extends State<MailScreen> {
                 Wrap(spacing: 6, children: [
                   for (final (i, label) in [
                     (0, '전체'),
-                    (1, '받을 물건 ${gifts.length}'),
-                    (2, '공지'),
+                    (1, '공지'),
                   ])
                     ChoiceChip(
                       key: Key('mailFilter_$i'),
@@ -156,8 +154,7 @@ class _MailScreenState extends State<MailScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 30),
                     child: KText(
                         switch (_tab) {
-                          1 => '받을 물건이 없어요.',
-                          2 => '공지가 없어요.',
+                          1 => '공지가 없어요.',
                           _ => '아직 편지가 없어요.',
                         },
                         textAlign: TextAlign.center,

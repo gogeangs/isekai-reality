@@ -244,9 +244,15 @@ class Vitals {
     this.stepsDay,
     this.stepsCounted = 0,
     this.restStartedAt,
+    this.restHp0,
+    this.restMp0,
     this.expeditions = const [],
     this.compassReady = false,
   });
+
+  /// 휴식을 시작할 때의 HP·MP (묶음 15 #107: 쉬는 동안 여기서부터 고르게 차오른다)
+  final int? restHp0;
+  final int? restMp0;
 
   /// 지금 HP. null 이면 가득.
   final int? hp;
@@ -284,6 +290,8 @@ class Vitals {
     String? stepsDay,
     int? stepsCounted,
     DateTime? restStartedAt,
+    int? restHp0,
+    int? restMp0,
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
@@ -298,6 +306,8 @@ class Vitals {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
+        restHp0: clearRest ? null : (restHp0 ?? this.restHp0),
+        restMp0: clearRest ? null : (restMp0 ?? this.restMp0),
         expeditions: expeditions ??
             (clearExpedition
                 ? const []
@@ -315,6 +325,8 @@ class Vitals {
         'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
+        'restHp0': restHp0,
+        'restMp0': restMp0,
         'expeditions': [for (final e in expeditions) e.toJson()],
         'compassReady': compassReady,
       };
@@ -329,6 +341,8 @@ class Vitals {
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
+        restHp0: j['restHp0'] as int?,
+        restMp0: j['restMp0'] as int?,
         // 예전 저장본은 원정 하나 ('expedition')
         expeditions: [
           for (final e in (j['expeditions'] as List?) ??

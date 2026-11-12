@@ -82,7 +82,7 @@ class LevelUpDialog extends StatelessWidget {
                 // 11-11 #95: 받은 스탯 포인트 + 다섯 스탯 메달
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   for (final k in StatKind.values) ...[
-                    StatIcon(k, size: 26),
+                    StatIcon(k, size: 32),
                     const SizedBox(width: 4),
                   ],
                   const SizedBox(width: 4),

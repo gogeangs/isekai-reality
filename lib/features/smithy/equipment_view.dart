@@ -273,7 +273,7 @@ class ItemStats extends StatelessWidget {
             child: Wrap(spacing: 8, runSpacing: 2, children: [
               for (final k in kinds)
                 Row(mainAxisSize: MainAxisSize.min, children: [
-                  StatIcon(k, size: fontSize + 4, color: AppColors.goldBright),
+                  StatIcon(k, size: fontSize + 8, color: AppColors.goldBright),
                   const SizedBox(width: 2),
                   Text('+${mine[k] ?? 0}',
                       style: TextStyle(

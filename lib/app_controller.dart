@@ -3596,6 +3596,11 @@ class AppController extends ChangeNotifier {
   DateTime? get restStartedAt => _vitals.restStartedAt;
   bool get resting => _vitals.restStartedAt != null;
 
+  /// 휴식이 얼마나 지났는지 (0 → 1)
+  double get restProgress => resting
+      ? TownRules.restProgress(_vitals.restStartedAt!, _clock())
+      : 0;
+
   /// 휴식이 끝나기까지 남은 시간
   Duration get restLeft => resting
       ? TownRules.restLeft(_vitals.restStartedAt!, _clock())
@@ -3687,8 +3692,26 @@ class AppController extends ChangeNotifier {
       changed = true;
     }
 
-    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
+    // 쉬는 동안: 시작할 때 HP·MP에서 가득까지 시간에 맞춰 고르게 (묶음 15 #107)
     final restAt = v.restStartedAt;
+    if (restAt != null && !TownRules.restDone(restAt, now)) {
+      final f = TownRules.restProgress(restAt, now);
+      final hp0 = v.restHp0 ?? curHp;
+      final mp0 = v.restMp0 ?? (v.mp ?? mpMax);
+      final hpNow = math.max(curHp, TownRules.restFill(hp0, max, f));
+      final mpNow = math.max(v.mp ?? mpMax, TownRules.restFill(mp0, mpMax, f));
+      if (hpNow != curHp ||
+          mpNow != (v.mp ?? mpMax) ||
+          v.restHp0 == null ||
+          v.restMp0 == null) {
+        curHp = hpNow;
+        v = v.copyWith(
+            hp: hpNow, mp: mpNow, mpAt: now, restHp0: hp0, restMp0: mp0);
+        changed = true;
+      }
+    }
+
+    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
     if (restAt != null && TownRules.restDone(restAt, now)) {
       v = v.copyWith(
           hp: max, mp: mpMax, mpAt: now, clearRest: true);
@@ -3733,7 +3756,8 @@ class AppController extends ChangeNotifier {
     if (resting) return false;
     await refreshVitals();
     final now = _clock();
-    _vitals = _vitals.copyWith(restStartedAt: now);
+    _vitals = _vitals.copyWith(
+        restStartedAt: now, restHp0: hp, restMp0: mp);
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
@@ -3747,8 +3771,10 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
-  /// 휴식을 그만둔다 (보상 없이)
+  /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·MP는 그대로 (묶음 15 #107)
   Future<void> stopResting() async {
+    if (!resting) return;
+    await refreshVitals();
     if (!resting) return;
     _stopResting();
     await store.saveVitals(_vitals);
@@ -3765,9 +3791,9 @@ class AppController extends ChangeNotifier {
   bool _petCodexSeen = false;
   bool _petCodexAnnounced = false;
 
-  /// 도감 펫 탭이 열렸는지 (11-11 #96): 첫 알을 받은 뒤부터
-  bool get petCodexOpen =>
-      _pets.firstEggFound || _pets.eggs.isNotEmpty || _pets.pets.isNotEmpty;
+  /// 도감 펫 탭이 열렸는지 (묶음 15 #116): 정령과 이별한 뒤(알 부화가 가능해진 뒤)에만.
+  /// 그 전에는 알이 있어도 숨긴다 (펫이 드러나지 않게)
+  bool get petCodexOpen => _pets.farewellDone;
 
   /// 펫 탭에 새 표시 (아직 열어 보지 않았으면)
   bool get petCodexNew => petCodexOpen && !_petCodexSeen;
@@ -3857,7 +3883,16 @@ class AppController extends ChangeNotifier {
   }
 
   void _stopResting() {
-    if (_vitals.restStartedAt != null) {
+    final restAt = _vitals.restStartedAt;
+    if (restAt != null) {
+      // 그때까지 찬 만큼은 그대로 가지고 간다 (묶음 15 #107)
+      final f = TownRules.restProgress(restAt, _clock());
+      final hp0 = _vitals.restHp0 ?? hp;
+      final mp0 = _vitals.restMp0 ?? mp;
+      _vitals = _vitals.copyWith(
+          hp: math.max(hp, TownRules.restFill(hp0, maxHp, f)),
+          mp: math.max(mp, TownRules.restFill(mp0, mpMax, f)),
+          mpAt: _clock());
       _vitals = _vitals.copyWith(clearRest: true);
       unawaited(store.saveVitals(_vitals));
       unawaited(notifier?.cancel(NotifyId.rest));

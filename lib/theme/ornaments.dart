@@ -561,11 +561,15 @@ class GlowBar extends StatelessWidget {
     required this.ratio,
     required this.colors,
     this.height = 10,
+    this.glow = false,
   });
 
   final double ratio;
   final List<Color> colors;
   final double height;
+
+  /// 차오르는 중: 조금 더 밝게 빛난다
+  final bool glow;
 
   @override
   Widget build(BuildContext context) {
@@ -588,7 +592,9 @@ class GlowBar extends StatelessWidget {
               gradient: LinearGradient(colors: colors),
               boxShadow: [
                 BoxShadow(
-                    color: colors.last.withValues(alpha: 0.6), blurRadius: 8),
+                    color: colors.last.withValues(alpha: glow ? 0.95 : 0.6),
+                    blurRadius: glow ? 14 : 8,
+                    spreadRadius: glow ? 1 : 0),
               ],
             ),
           ),

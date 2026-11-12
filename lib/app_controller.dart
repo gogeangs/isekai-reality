@@ -244,6 +244,10 @@ class AppController extends ChangeNotifier {
     );
     _vitals = const Vitals(); // 처음 각성은 HP·MP 가득
     await store.saveProfile(_profile);
+    // 묶음 15 #104: 새로 시작하는 사람만 Lv.1~2 튜토리얼 (기존 사용자는 그대로)
+    if (player.level.level < 2 && player.history.every((d) => d.fieldMonstersPurified == 0)) {
+      await _setTutorial(TutorialStep.hunt);
+    }
     _needsAwakening = false;
     await _startPlaying();
   }
@@ -290,6 +294,8 @@ class AppController extends ChangeNotifier {
     _poisonTipSeen = feel['poisonTip'] == true;
     _petCodexSeen = feel['petCodex'] == true;
     _petCodexAnnounced = feel['petCodexNotice'] == true;
+    final tut = await store.loadJson(_tutorialKey);
+    _tutorial = (tut?['step'] as int?) ?? 0;
     final tired = await store.loadJson(_tiredKey);
     _tiredUntil = DateTime.tryParse('${tired?['until'] ?? ''}');
     final board = await store.loadJson(_boardKey);
@@ -667,8 +673,80 @@ class AppController extends ChangeNotifier {
             favored: ElementRules.challengers(mainElement),
             land: lands?.kindAt)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
+        .followedBy(_tutorialSpawns(center))
         .where((s) => !done.contains(s.id))
         .toList();
+  }
+
+  // ───────────── 튜토리얼 (묶음 15 #104, Lv.1~2)
+
+  static const _tutorialKey = 'tutorial';
+  int _tutorial = 0;
+
+  /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])
+  TutorialStep get tutorialStep => TutorialStep.values[
+      _tutorial.clamp(0, TutorialStep.values.length - 1)];
+
+  bool get inTutorial => tutorialStep != TutorialStep.done;
+
+  Future<void> _setTutorial(TutorialStep step) async {
+    _tutorial = step.index;
+    await store.saveJson(_tutorialKey, {'step': _tutorial});
+    notifyListeners();
+  }
+
+  /// 튜토리얼 건너뛰기 (진행·물건은 그대로)
+  Future<void> skipTutorial() => _setTutorial(TutorialStep.done);
+
+  /// 가방을 열어 받은 것을 봤을 때
+  Future<void> tutorialBagSeen() async {
+    if (tutorialStep == TutorialStep.bag) {
+      await _setTutorial(TutorialStep.expedition);
+    }
+  }
+
+  static const tutorialHuntId = 'tutorial#1';
+  static const tutorialExpeditionId = 'tutorial#2';
+  static bool isTutorialSpawn(String id) => id.startsWith('tutorial#');
+
+  /// 튜토리얼 몬스터: 첫째는 바로 옆(걸어갈 필요 없음), 둘째는 조금 떨어진 곳(정령 원정)
+  List<FieldSpawn> _tutorialSpawns(GeoPoint center) => switch (tutorialStep) {
+        TutorialStep.hunt => [
+            FieldSpawn(
+                id: tutorialHuntId,
+                monster: MonsterId.ashSlime,
+                point: _lastFix?.point ?? center),
+          ],
+        TutorialStep.expedition => [
+            FieldSpawn(
+                id: tutorialExpeditionId,
+                monster: MonsterId.ashSlime,
+                point: GeoPoint(center.lat + 0.0018, center.lng + 0.0012)),
+          ],
+        _ => const [],
+      };
+
+  /// 튜토리얼 첫 몬스터 (지금 단계가 아니면 null)
+  FieldSpawn? get tutorialSpawn {
+    for (final s in todaySpawns) {
+      if (isTutorialSpawn(s.id)) return s;
+    }
+    return null;
+  }
+
+  /// 튜토리얼 몬스터를 잡았을 때: 첫째 → 가방 보기, 둘째 → Lv.2 (두 마리째에 딱 오르게)
+  Future<void> _tutorialPurified(String spawnId) async {
+    if (spawnId == tutorialHuntId && tutorialStep == TutorialStep.hunt) {
+      await _setTutorial(TutorialStep.bag);
+    } else if (spawnId == tutorialExpeditionId) {
+      final need = LevelRules.totalExpToReach(2) - player.totalExp;
+      if (need > 0) {
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+            gains: {...today.gains, 'exp': (today.gains['exp'] ?? 0) + need}));
+      }
+      await _setTutorial(TutorialStep.done);
+    }
   }
 
   /// 지금 위치에서 만난 필드 몬스터 (없으면 null)
@@ -752,6 +830,24 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
+    if (isTutorialSpawn(spawnId)) {
+      final got = await _recordFieldPurifyInner(spawnId, monster, point,
+          mods: mods, count: count, today: today);
+      await _tutorialPurified(spawnId);
+      return got;
+    }
+    return _recordFieldPurifyInner(spawnId, monster, point,
+        mods: mods, count: count, today: today);
+  }
+
+  Future<int> _recordFieldPurifyInner(
+    String spawnId,
+    MonsterId monster,
+    GeoPoint point, {
+    required List<ModifierId> mods,
+    required int count,
+    required DailyRecord today,
+  }) async {
     // 11-11 #69: 하루 5마리 뒤에도 사냥은 되고 경험치·마석만 줄어든다 (숨은 규칙)
     const paid = true;
     final n = today.fieldMonstersPurified;
@@ -3974,6 +4070,18 @@ class AppController extends ChangeNotifier {
   /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
   /// [petUid] 는 보낼 펫 (정령이 떠난 뒤, 없으면 동행 펫).
   ExpeditionPlan planExpedition(FieldSpawn spawn, {String? petUid}) {
+    // 튜토리얼 원정: 짧게, MP 걱정 없이 (묶음 15 #104)
+    if (isTutorialSpawn(spawn.id)) {
+      return ExpeditionPlan(
+          activeExpeditions.any((e) => e.spawnId == spawn.id)
+              ? ExpeditionCheck.busy
+              : ExpeditionCheck.ok,
+          distanceM: 250,
+          mpCost: 0,
+          oneWay: const Duration(seconds: 10),
+          followsRoads: false,
+          routeReady: true);
+    }
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
     final pet = farewellDone
@@ -4024,7 +4132,9 @@ class AppController extends ChangeNotifier {
   /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
   Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
     await refreshVitals();
-    final route = await prepareRoute(spawn);
+    final route = isTutorialSpawn(spawn.id)
+        ? ExpeditionRoute.straight(_lastFix?.point ?? spawn.point, spawn.point)
+        : await prepareRoute(spawn);
     final plan = planExpedition(spawn, petUid: petUid);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
@@ -4148,8 +4258,11 @@ class AppController extends ChangeNotifier {
       weaponPotion: weaponPotionElement,
     ).runToEnd(useSkills: true);
     await _consumeBattlePotions(battle);
-    final cleared = battle.phase == BattlePhase.cleared;
-    final escaped = battle.phase == BattlePhase.escaped;
+    // 튜토리얼 원정은 실패하지 않는다
+    final cleared =
+        battle.phase == BattlePhase.cleared || isTutorialSpawn(ex.spawnId);
+    final escaped =
+        battle.phase == BattlePhase.escaped && !isTutorialSpawn(ex.spawnId);
     if (escaped) {
       final today = await _todayRecord();
       await _save(
@@ -4348,6 +4461,11 @@ class BrewResult {
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
+
+/// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
+/// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·
+/// bag: 결과·가방 보기 · expedition: 정령 원정으로 두 번째 몬스터
+enum TutorialStep { done, hunt, bag, expedition }
 
 class ExpeditionPlan {
   const ExpeditionPlan(

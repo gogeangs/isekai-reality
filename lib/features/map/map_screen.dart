@@ -12,6 +12,8 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
+import '../battle/dungeon_screen.dart' show confirmStopResting;
+import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
@@ -36,9 +38,13 @@ class MapScreen extends StatefulWidget {
     required this.controller,
     this.onOpenDungeon,
     this.onShowExpeditionResults,
+    this.onOpenBag,
   });
 
   final AppController controller;
+
+  /// 가방 탭으로 (튜토리얼: 받은 것 보기)
+  final VoidCallback? onOpenBag;
 
   /// 던전 열기 (11-11 #68: 상태 화면에서 지도 아래 띠로 옮겼다)
   final VoidCallback? onOpenDungeon;
@@ -111,6 +117,17 @@ class _MapScreenState extends State<MapScreen> {
             child: ColoredBox(color: Color(0xE60B0D26)),
           ),
         ),
+        // Lv.1~2 튜토리얼 (묶음 15 #104): 위쪽에 정령 안내 한 장
+        if (controller.inTutorial)
+          Positioned(
+            left: 12,
+            right: 12,
+            top: coverTop + 4,
+            child: TutorialCard(
+              controller: controller,
+              onOpenBag: widget.onOpenBag,
+            ),
+          ),
         // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
         if (buffs.isNotEmpty || controller.tired)
           Positioned(
@@ -1211,6 +1228,112 @@ class _ExpeditionList extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+/// Lv.1~2 튜토리얼 안내 (묶음 15 #104): 정령 한 줄 + 할 일 버튼 하나 + 건너뛰기.
+/// 누를 곳(버튼)만 밝게, 글은 짧게. 펫·직업은 말하지 않는다.
+class TutorialCard extends StatelessWidget {
+  const TutorialCard({super.key, required this.controller, this.onOpenBag});
+
+  final AppController controller;
+  final VoidCallback? onOpenBag;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final step = c.tutorialStep;
+    final spawn = c.tutorialSpawn;
+    final away = c.activeExpeditions
+        .any((e) => AppController.isTutorialSpawn(e.spawnId));
+    final back = c.finishedExpeditions
+        .any((e) => AppController.isTutorialSpawn(e.spawnId));
+    final (String line, String? action, Future<void> Function()? run) =
+        switch (step) {
+      TutorialStep.hunt => (
+          '바로 옆에 몬스터가 나타났어! 싸워 보자. 강한 공격이 오면 화면을 눌러 막아!',
+          '싸우기',
+          spawn == null
+              ? null
+              : () async {
+                  if (c.resting) {
+                    final ok = await confirmStopResting(context);
+                    if (!ok || !context.mounted) return;
+                  }
+                  await Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) =>
+                          FieldBattleScreen(controller: c, spawn: spawn)));
+                },
+        ),
+      TutorialStep.bag => (
+          '잘했어! 받은 물건은 가방에 들어가. 열어 볼래?',
+          '가방 보기',
+          () async {
+            await c.tutorialBagSeen();
+            onOpenBag?.call();
+          },
+        ),
+      TutorialStep.expedition when back => (
+          '돌아왔어! 아래 띠를 눌러 결과를 받아 줘.',
+          null,
+          null,
+        ),
+      TutorialStep.expedition when away => (
+          '다녀오는 중이야. 금방 돌아올게!',
+          null,
+          null,
+        ),
+      TutorialStep.expedition => (
+          '저 몬스터는 조금 멀어. 이번엔 내가 다녀올게!',
+          '${c.companionName} 보내기',
+          spawn == null
+              ? null
+              : () async {
+                  await c.sendSpirit(spawn);
+                },
+        ),
+      TutorialStep.done => ('', null, null),
+    };
+    return Container(
+      key: const Key('tutorialCard'),
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xF0101333),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.goldBright, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), blurRadius: 16),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BulssiLine(line: line),
+          const SizedBox(height: 6),
+          Row(children: [
+            TextButton(
+              key: const Key('tutorialSkip'),
+              onPressed: c.skipTutorial,
+              child: const Text('건너뛰기',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            ),
+            const Spacer(),
+            if (action != null)
+              SizedBox(
+                width: 150,
+                child: GoldButton(
+                  key: const Key('tutorialAction'),
+                  label: action,
+                  height: 40,
+                  onPressed: run,
+                ),
+              ),
+          ]),
+        ],
       ),
     );
   }

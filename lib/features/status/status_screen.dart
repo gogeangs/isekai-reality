@@ -9,6 +9,7 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
@@ -238,7 +239,12 @@ class StatusScreen extends StatelessWidget {
                 _StatsSection(
                     stats: stats ?? player.stats,
                     unspent: unspentPoints,
-                    onOpen: onOpenStats),
+                    // 묶음 15 #104: 스탯 분배는 Lv.2에 열린다
+                    locked: player.level.level < 2,
+                    onOpen: player.level.level < 2
+                        ? () => showTopNotice(context, '스탯 분배는 Lv.2에 열려요',
+                            icon: Icons.lock_outline_rounded)
+                        : onOpenStats),
               ],
             ),
           ),
@@ -626,8 +632,13 @@ class _LevelLine extends StatelessWidget {
 /// 스탯 5종 한 줄 (11-11 #50). 누르면 포인트 분배 화면.
 /// 나눌 포인트가 있으면 알림 점. 숫자는 합계만 보여 준다.
 class _StatsSection extends StatelessWidget {
-  const _StatsSection({required this.stats, this.unspent = 0, this.onOpen});
+  const _StatsSection(
+      {required this.stats,
+      this.unspent = 0,
+      this.onOpen,
+      this.locked = false});
 
+  final bool locked;
   final Stats stats;
   final int unspent;
   final VoidCallback? onOpen;
@@ -675,7 +686,19 @@ class _StatsSection extends StatelessWidget {
               ]),
             ),
           ),
-          if (unspent > 0)
+          if (locked)
+            const Padding(
+              key: Key('statLocked'),
+              padding: EdgeInsets.only(left: 4),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 15, color: AppColors.textMuted),
+                SizedBox(width: 2),
+                Text('Lv.2',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              ]),
+            )
+          else if (unspent > 0)
             Container(
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -689,7 +712,9 @@ class _StatsSection extends StatelessWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w800)),
             ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.goldBright),
+          if (!locked)
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.goldBright),
         ]),
       ),
     );

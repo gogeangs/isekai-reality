@@ -480,6 +480,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
           MapScreen(
               controller: controller,
+              onOpenBag: () => setState(() => _tab = 3),
               onOpenDungeon: () => push(DungeonScreen(controller: controller)),
               onShowExpeditionResults: () async {
                 if (_noticeShowing) return;
@@ -558,6 +559,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             index: _tab,
             onTap: (i) {
               hideKeyboard(); // 탭을 옮기면 키보드 닫기 (11-11 #73)
+              if (i == 3) controller.tutorialBagSeen(); // 튜토리얼: 가방 보기
               setState(() => _tab = i);
             },
           ),

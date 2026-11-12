@@ -796,7 +796,9 @@ void main() {
     await tester.tap(find.byKey(const Key('drivePassenger')));
     await tester.pumpAndSettle();
     await _shot(tester, '56_승객_모드');
-    // 우편함
+    // 우편함 (위쪽 알림 띠가 지나간 뒤에)
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('mailButton')));
     await tester.pumpAndSettle();
     await _shot(tester, '57_우편함');

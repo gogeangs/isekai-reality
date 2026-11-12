@@ -54,6 +54,29 @@ jobs:
 
       - uses: actions/checkout@v5
         if: steps.check.outputs.ready == 'true'
+        with:
+          fetch-depth: 0
+
+      # 그림은 wip/images 브랜치에 모아 두고, 개발 빌드가 돌 때 함께 main 에 합친다.
+      # (GITHUB_TOKEN 으로 올린 커밋은 빌드를 다시 부르지 않는다)
+      - name: 모아 둔 그림 합치기 (wip/images)
+        if: steps.check.outputs.ready == 'true' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git fetch --no-tags origin wip/images 2>/dev/null; then
+            echo "wip/images 브랜치가 없어 건너뜁니다."; exit 0
+          fi
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then
+            echo "새로 모아 둔 그림이 없습니다."; exit 0
+          fi
+          if git merge --no-edit -m "모아 둔 그림 합치기 (wip/images)" FETCH_HEAD; then
+            git push origin HEAD:main || echo "main 이 그새 바뀌어 올리지 못했어요. 이번 빌드에는 그림이 들어갑니다."
+          else
+            git merge --abort || true
+            echo "::warning::그림 합치기 충돌. 이번 빌드는 그림 없이 진행합니다."
+          fi
 
       - uses: subosito/flutter-action@v2
         if: steps.check.outputs.ready == 'true'

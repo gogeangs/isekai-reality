@@ -264,13 +264,23 @@ class _BagTabState extends State<BagTab> {
               OrnatePanel(
                 child: Wrap(spacing: 12, runSpacing: 4, children: [
                   for (final t in HarvestTool.values)
-                    Text(
-                        '${c.toolTier(t).label} ${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${c.toolMaxOf(t)}',
-                        style: TextStyle(
-                            color: c.toolDurability(t) > 0
-                                ? AppColors.text
-                                : const Color(0xFFE57373),
-                            fontSize: 12.5)),
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      // 도구 등급 그림 (묶음 14 E: 가방에도). 없으면 글자만
+                      Image.asset(
+                          'assets/images/tool_${t.name}_${c.toolTier(t).name}.png',
+                          key: Key('bagTool_${t.name}'),
+                          width: 22,
+                          height: 22,
+                          errorBuilder: (_, __, ___) => const SizedBox()),
+                      const SizedBox(width: 3),
+                      Text(
+                          '${c.toolTier(t).label} ${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${c.toolMaxOf(t)}',
+                          style: TextStyle(
+                              color: c.toolDurability(t) > 0
+                                  ? AppColors.text
+                                  : const Color(0xFFE57373),
+                              fontSize: 12.5)),
+                    ]),
                 ]),
               ),
             ],

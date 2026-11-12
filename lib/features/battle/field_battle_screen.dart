@@ -8,6 +8,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/material_view.dart';
 import 'battle_view.dart';
+import 'hero_rig.dart';
 import 'modifier_view.dart';
 
 /// 지도에서 만난 필드 몬스터를 정화하는 짧은 전투 (한 마리)
@@ -125,6 +126,9 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 vibrate: widget.controller.vibrate,
                 sound: widget.controller.sound,
                 hour: widget.controller.now.hour,
+                season: SeasonRules.of(widget.controller.now),
+                weapon: weaponKindOf(
+                    widget.controller.armory.wornIn(EquipSlot.weapon)?.base),
                 background: fieldBackground(
                     widget.controller.landAt(widget.spawn.point)),
                 fast: widget.controller.fastBattle,
@@ -213,7 +217,9 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
 /// 필드 전투 배경 (묶음 13 C7): 몬스터 자리의 장소 종류에 맞춰. 모르면 마을.
 String fieldBackground(LandKind? land) => switch (land) {
       LandKind.park || LandKind.forest => 'assets/images/bg_field_forest.jpg',
-      LandKind.water || LandKind.sea => 'assets/images/bg_field_water.jpg',
+      LandKind.water => 'assets/images/bg_field_water.jpg',
+      // 바다 그림이 오기 전에는 물가 그림 (backgroundFallback)
+      LandKind.sea => 'assets/images/bg_field_sea.jpg',
       LandKind.city => 'assets/images/bg_field_city.jpg',
       LandKind.mountain => 'assets/images/bg_field_mountain.jpg',
       LandKind.village || null => 'assets/images/bg_field_village.jpg',

@@ -201,10 +201,14 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         _phase = _Phase.shot;
       }
     });
+    // 묶음 14 A1: 시험 빌드에서만 여는 시간을 보여 준다
+    final timing = SnapLens.testBuild ? SnapLens.instance.timingLine : null;
     if (png == null) {
-      _snack('렌즈 사진을 받지 못했어요. 지금 장식으로 계속할게요.');
+      _snack('렌즈 사진을 받지 못했어요. 지금 장식으로 계속할게요.'
+          '${timing == null ? '' : '\n$timing'}');
       return;
     }
+    if (timing != null) _snack(timing);
     final id = _result?.albumId;
     if (id != null) {
       final file = await AlbumFiles.writer(id, png);

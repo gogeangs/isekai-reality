@@ -2,17 +2,19 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/storage/record_store.dart';
 import '../../core/rules/pet_rules.dart';
+import '../../core/rules/season_rules.dart';
 import '../pets/pet_art.dart';
 import 'spirit_art.dart';
 
 
-/// 불씨의 빛 색: 맑음 황금, 비 하늘색, 밤 보라, 눈 흰색
-enum BulssiMood { gold, sky, night, snow }
+/// 불씨의 빛 색 (묶음 14 A4: 날씨 대신 계절): 여름 황금, 봄 분홍, 가을 주황, 겨울 흰색, 밤 보라
+enum BulssiMood { gold, spring, night, snow, autumn }
 
 extension BulssiMoodColor on BulssiMood {
   Color get color => switch (this) {
         BulssiMood.gold => const Color(0xFFF5C451),
-        BulssiMood.sky => const Color(0xFF7FC8F5),
+        BulssiMood.spring => const Color(0xFFF7A8C8),
+        BulssiMood.autumn => const Color(0xFFF0A050),
         BulssiMood.night => const Color(0xFFB08CF0),
         BulssiMood.snow => const Color(0xFFF4F7FF),
       };
@@ -25,7 +27,13 @@ class BulssiMoods {
   /// (날씨 기능은 묶음 13에서 뺐다).
   static BulssiMood of({required DateTime now}) {
     final night = now.hour >= 20 || now.hour < 6;
-    return night ? BulssiMood.night : BulssiMood.gold;
+    if (night) return BulssiMood.night;
+    return switch (SeasonRules.of(now)) {
+      Season.spring => BulssiMood.spring,
+      Season.summer => BulssiMood.gold,
+      Season.autumn => BulssiMood.autumn,
+      Season.winter => BulssiMood.snow,
+    };
   }
 }
 

@@ -24,6 +24,9 @@ class SnapLens implements CameraKitFlutterEvents {
   /// 엘프 렌즈 id (저장소 변수 SNAP_ELF_LENS_ID). 없으면 그룹 안 렌즈를 모두 보여 준다(시험용).
   static const String elfLensId = String.fromEnvironment('SNAP_ELF_LENS_ID');
 
+  /// 시험 빌드인지 (시험용 Staging 토큰으로 만든 빌드). 렌즈 여는 시간을 화면에 보여 준다
+  static const bool testBuild = String.fromEnvironment('SNAP_STAGE') != 'production';
+
   /// 렌즈가 있는 종족 (결과가 좋으면 하나씩 늘린다)
   static const Set<Race> races = {Race.elf};
 
@@ -58,10 +61,26 @@ class SnapLens implements CameraKitFlutterEvents {
       if (!w.isCompleted) w.complete(null);
     }
     // 카메라를 닫기만 하면 결과가 오지 않는다: 3분 뒤에는 포기
-    return w.future.timeout(const Duration(minutes: 3), onTimeout: () => null);
+    final out = await w.future
+        .timeout(const Duration(minutes: 3), onTimeout: () => null);
+    lastTotalMs = DateTime.now().difference(started).inMilliseconds;
+    return out;
   }
 
+  /// 버튼을 누른 뒤 Snap 카메라 화면이 열리기까지 (ms)
   int? lastOpenMs;
+
+  /// 버튼을 누른 뒤 사진을 받기까지 (ms, 렌즈를 처음 받는 시간·고르는 시간 포함)
+  int? lastTotalMs;
+
+  /// 시험 빌드에서 보여 줄 한 줄
+  String? get timingLine {
+    final open = lastOpenMs, total = lastTotalMs;
+    if (open == null) return null;
+    String s(int ms) => (ms / 1000).toStringAsFixed(1);
+    return '[시험] 렌즈 열기 ${s(open)}초'
+        '${total == null ? '' : ' · 사진까지 ${s(total)}초'}';
+  }
 
   @override
   void onCameraKitResult(Map<dynamic, dynamic> result) {

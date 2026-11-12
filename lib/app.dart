@@ -103,16 +103,24 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 확인하지 않은 레벨업이 있으면 화면이 그려진 뒤 연출을 띄운다
   void _maybeShowLevelUp() {
     final pending = widget.controller.pendingLevelUp;
-    if (pending == null || _levelUpShowing) return;
+    // 묶음 14 B6: 전투·던전 결과 화면을 닫은 뒤에 띄운다 (결과 글자와 겹치지 않게)
+    if (pending == null || _levelUpShowing || widget.controller.holdNotices) {
+      return;
+    }
     _levelUpShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      // #102 레벨 업하면 HP·MP 가득 (창과 함께 한 번)
+      final before = await widget.controller.levelUpHeal();
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
+        barrierColor: const Color(0xD9000000),
         builder: (_) => LevelUpDialog(
           from: pending.from,
           to: pending.to,
+          healedFrom: before,
           title: widget.controller.equippedTitle == null
               ? null
               : TitleRules.info(widget.controller.equippedTitle!).name,
@@ -468,6 +476,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             equippedTitle: controller.equippedTitle,
             onOpenInn: () => push(InnScreen(controller: controller)),
             look: controller.profile.look,
+            season: SeasonRules.of(controller.now),
           ),
           MapScreen(
               controller: controller,

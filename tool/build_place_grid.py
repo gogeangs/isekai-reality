@@ -32,6 +32,7 @@ CELL_M = 100.0
 TILE = 64
 
 VILLAGE, PARK, FOREST, WATER, SEA, MOUNTAIN, CITY = range(7)
+SQUARE = 100  # 그리는 동안만 쓰는 표시 (최종은 도심)
 KINDS = ['village', 'park', 'forest', 'water', 'sea', 'mountain', 'city']
 
 MID = math.radians((NORTH + SOUTH) / 2)
@@ -49,9 +50,16 @@ def xy(lng, lat):
     return ((lng - WEST) / LNG_STEP, (NORTH - lat) / LAT_STEP)
 
 
+# 묶음 14 A3: 1만㎡ 미만 공원·놀이터는 마을로 (칸 하나 = 100m × 100m = 1만㎡)
+PARK_MIN_M2 = 10_000
+
+
 def kind_of(tags):
     """면(area) 태그 → 종류 (None = 쓰지 않음)"""
     g = tags.get
+    # 광장(포장된 광장·역전 광장)은 도심. 공원 태그가 함께 있어도 광장이 이긴다
+    if g('place') == 'square' or (g('highway') == 'pedestrian' and g('area') == 'yes'):
+        return SQUARE
     if g('natural') == 'water' or g('waterway') == 'riverbank' or \
             g('landuse') in ('reservoir', 'basin'):
         return WATER
@@ -90,7 +98,8 @@ def collect(pbf):
             super().__init__()
             # 종류마다 바로 칠한다 (전국 숲 다각형을 모두 들고 있으면 메모리가 모자라다)
             self.layers = {k: Image.new('L', (COLS, ROWS), 0)
-                           for k in (WATER, PARK, FOREST, CITY)}
+                           for k in (WATER, PARK, FOREST, CITY, SQUARE)}
+            self.small_parks = 0
             self.draws = {k: ImageDraw.Draw(v) for k, v in self.layers.items()}
             self.count = {k: 0 for k in self.layers}
             self.rivers = 0
@@ -104,6 +113,9 @@ def collect(pbf):
                 for outer in a.outer_rings():
                     ring = [xy(n.lon, n.lat) for n in outer]
                     if len(ring) >= 3:
+                        if k == PARK and area_m2(ring) < PARK_MIN_M2:
+                            self.small_parks += 1
+                            continue
                         self.draws[k].polygon(ring, fill=1)
                         self.count[k] += 1
             except Exception:  # noqa: BLE001  깨진 다각형은 건너뛴다
@@ -131,9 +143,20 @@ def collect(pbf):
     h = H()
     h.apply_file(pbf, locations=True, idx='flex_mem')
     for k, v in h.count.items():
-        print(f'{KINDS[k]} 면 {v}개', flush=True)
-    print(f'강 줄기 {h.rivers}개, 봉우리 {len(h.peaks)}개', flush=True)
+        print(f"{'square' if k == SQUARE else KINDS[k]} 면 {v}개", flush=True)
+    print(f'강 줄기 {h.rivers}개, 봉우리 {len(h.peaks)}개, 작은 공원(마을로) {h.small_parks}개',
+          flush=True)
     return h
+
+
+def area_m2(ring):
+    """격자 좌표(칸 = CELL_M) 다각형 넓이 (㎡)"""
+    s = 0.0
+    for i in range(len(ring)):
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % len(ring)]
+        s += x1 * y2 - x2 * y1
+    return abs(s) / 2 * CELL_M * CELL_M
 
 
 def rle_tile(a):
@@ -192,6 +215,8 @@ def main(pbf, land_shp, out_path):
         lay = np.array(h.layers[k], dtype=bool)
         grid[lay & land] = k
     grid[np.array(h.layers[WATER], dtype=bool)] = WATER
+    # 광장은 공원 위에도 도심으로
+    grid[np.array(h.layers[SQUARE], dtype=bool) & land] = CITY
     # 산: 봉우리 둘레의 숲
     mask = Image.new('1', (COLS, ROWS), 0)
     md = ImageDraw.Draw(mask)

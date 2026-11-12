@@ -71,7 +71,8 @@ jobs:
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
             --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
-            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" 2>&1 | tee build-output.txt
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt
           status=${PIPESTATUS[0]}
           [ $status -eq 0 ] && cp build/app/outputs/flutter-apk/app-release.apk isekai-reality.apk
           exit $status

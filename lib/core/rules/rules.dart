@@ -26,6 +26,7 @@ export 'process_rules.dart';
 export 'quest_rules.dart';
 export 'place_grid.dart';
 export 'road_mask.dart';
+export 'season_rules.dart';
 export 'exclusion_index.dart';
 export 'rule_constants.dart';
 export 'stat_rules.dart';

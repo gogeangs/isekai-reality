@@ -11,10 +11,12 @@ import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import 'auto_use_window.dart';
+import 'season_painter.dart';
 import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
+import 'hero_rig.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -37,15 +39,23 @@ class BattleView extends StatefulWidget {
     this.onPoisonTipShown,
     this.aura,
     this.hour,
+    this.season,
     this.background,
     this.backgroundOf,
+    this.weapon,
   });
+
+  /// 입은 무기 종류 (#81 2단계: 부위 애니메이션 손에 든 무기·공격 동작). 없으면 맨손
+  final WeaponKind? weapon;
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
   final Color? aura;
 
   /// 지금 시각 (낮·노을·밤 색감, 11-11 #81). 없으면 낮.
   final int? hour;
+
+  /// 계절 (봄 꽃잎·여름 반딧불·가을 낙엽·겨울 눈송이, 묶음 14 A4). 없으면 계절 입자 없음
+  final Season? season;
 
   /// 전투 배경 그림 (묶음 13 C7: 필드는 장소 종류에 맞춰). 없으면 기본
   final String? background;
@@ -442,6 +452,7 @@ class _BattleViewState extends State<BattleView> {
                 skill: _b.lastWasSkill || _b.lastBash,
                 petDash: _b.lastWasSkill,
                 look: widget.look,
+                weapon: widget.weapon,
                 beat: _beat,
                 beatDuration: _interval * 0.85,
                 warning: warning ? (_b.strongLabel ?? '강한 공격!') : null,
@@ -460,6 +471,7 @@ class _BattleViewState extends State<BattleView> {
                 heroTint: _heroTint,
                 foeTint: _foeTint,
                 hour: widget.hour,
+                season: widget.season,
                 background: widget.backgroundOf?.call(_b.floor, _b.foe) ??
                     widget.background,
               ),
@@ -825,9 +837,12 @@ class _Scene extends StatefulWidget {
     this.heroTint,
     this.foeTint,
     this.hour,
+    this.season,
     this.background,
+    this.weapon,
   });
 
+  final WeaponKind? weapon;
   final Color? aura;
   final bool crit;
   final bool superHit;
@@ -841,6 +856,7 @@ class _Scene extends StatefulWidget {
   final Color? heroTint;
   final Color? foeTint;
   final int? hour;
+  final Season? season;
   final String? background;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
@@ -957,6 +973,34 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                   ? math.sin(hit * math.pi * 8) * (1 - hit) * 6
                   : 0.0;
 
+              // 부위 애니메이션 동작 (6가지)
+              final reduced =
+                  MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+              final guarding = !idle &&
+                  (widget.guard != null || widget.stance) &&
+                  t >= 0.45 &&
+                  t < 0.9;
+              final RigAction rigAction;
+              final double rigT;
+              if (cleared) {
+                rigAction = RigAction.victory;
+                rigT = 0;
+              } else if (widget.defeated) {
+                rigAction = RigAction.tired;
+                rigT = 0;
+              } else if (swinging) {
+                rigAction = RigAction.attack;
+                rigT = _seg(t, 0, 0.5);
+              } else if (guarding) {
+                rigAction = RigAction.guard;
+                rigT = _seg(t, 0.45, 0.9);
+              } else if (hurt > 0) {
+                rigAction = RigAction.hit;
+                rigT = _seg(t, 0.6, 0.85);
+              } else {
+                rigAction = RigAction.idle;
+                rigT = 0;
+              }
               final heroW = w * 0.5;
               final monSize = w * 0.38;
               final monLeft = w - monSize - w * 0.05 + shake - counter * w * 0.07;
@@ -983,8 +1027,12 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       child: Image.asset(
                           widget.background ?? 'assets/images/bg_battle.jpg',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const ColoredBox(color: Color(0xFF1B1840))),
+                          // 그림이 아직 없으면 비슷한 배경 → 기본 배경 → 색
+                          errorBuilder: (_, __, ___) => Image.asset(
+                              backgroundFallback(widget.background),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const ColoredBox(color: Color(0xFF1B1840)))),
                     ),
                     const Positioned.fill(
                       child: DecoratedBox(
@@ -1004,6 +1052,14 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       child: IgnorePointer(
                         child: CustomPaint(
                           key: const Key('battleAmbient'),
+                          foregroundPainter: widget.season == null
+                              ? null
+                              : SeasonPainter(
+                                  season: widget.season!,
+                                  t: ((widget.beat + t) * 0.06) % 1.0,
+                                  few: MediaQuery.maybeDisableAnimationsOf(
+                                          context) ??
+                                      false),
                           painter: _AmbientPainter(
                             t: ((widget.beat + t) * 0.11) % 1.0,
                             element: foe.info.element,
@@ -1118,15 +1174,24 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                               alignment: Alignment.bottomCenter,
                               child: _tinted(
                                   widget.heroTint,
-                                  HeroSprite(
-                                      look: widget.look,
-                                      pose: cleared
-                                          ? HeroPose.victory
-                                          : widget.defeated
-                                              ? HeroPose.tired
-                                              : swinging
-                                                  ? HeroPose.attack
-                                                  : HeroPose.idle)),
+                                  // #81 2단계: 부위 애니메이션 (그림이 없으면 지금 통 그림)
+                                  HeroRig(
+                                    look: widget.look,
+                                    weapon: widget.weapon,
+                                    reduced: reduced,
+                                    action: rigAction,
+                                    t: rigT,
+                                    breath: t,
+                                    fallback: HeroSprite(
+                                        look: widget.look,
+                                        pose: cleared
+                                            ? HeroPose.victory
+                                            : widget.defeated
+                                                ? HeroPose.tired
+                                                : swinging
+                                                    ? HeroPose.attack
+                                                    : HeroPose.idle),
+                                  )),
                             ),
                           ),
                         ),
@@ -1825,6 +1890,12 @@ class _SkillOrb extends StatelessWidget {
     );
   }
 }
+
+/// 배경 그림이 없을 때 대신 쓸 그림 (바다 → 물가, 나머지 → 기본)
+String backgroundFallback(String? bg) => switch (bg) {
+      'assets/images/bg_field_sea.jpg' => 'assets/images/bg_field_water.jpg',
+      _ => 'assets/images/bg_battle.jpg',
+    };
 
 /// tired: HP 0으로 싸울 수 없을 때 (11-10)
 enum HeroPose { idle, attack, victory, tired }

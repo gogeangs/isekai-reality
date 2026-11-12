@@ -11,10 +11,17 @@ import '../bulssi/spirit_art.dart';
 /// 레벨업 연출 (목업 확정본 기준). [from] → [to] 로 여러 레벨이 한 번에 오를 수도 있다.
 class LevelUpDialog extends StatelessWidget {
   const LevelUpDialog(
-      {super.key, required this.from, required this.to, this.title});
+      {super.key,
+      required this.from,
+      required this.to,
+      this.title,
+      this.healedFrom});
 
   final int from;
   final int to;
+
+  /// 레벨 업으로 채우기 전 HP·MP (묶음 14 #102). 있으면 막대가 가득 차오른다.
+  final ({int hp, int maxHp, int mp, int mpMax})? healedFrom;
 
   /// 대표 칭호 (월계관 배지 리본에 쓴다)
   final String? title;
@@ -22,6 +29,15 @@ class LevelUpDialog extends StatelessWidget {
   /// 불씨 대사 36~39
   String get _line {
     if (from < 10 && to >= 10) return 'Lv.10이야! 이제 진짜 각성자다운걸?';
+    // #102: HP·MP가 가득 찼다는 대사
+    if (healedFrom != null) {
+      const healed = [
+        '레벨 업! 힘이 가득 차올랐어.',
+        '레벨 업! 몸도 마음도 개운해졌지?',
+        '레벨 업! 지친 것도 싹 날아갔어.',
+      ];
+      return healed[to % healed.length];
+    }
     const lines = [
       '레벨 업! 네 불꽃이 한층 더 밝아졌어.',
       '이세계 어딘가가 조금 더 환해졌을 거야.',
@@ -66,7 +82,7 @@ class LevelUpDialog extends StatelessWidget {
                 // 11-11 #95: 받은 스탯 포인트 + 다섯 스탯 메달
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   for (final k in StatKind.values) ...[
-                    StatIcon(k, size: 22),
+                    StatIcon(k, size: 26),
                     const SizedBox(width: 4),
                   ],
                   const SizedBox(width: 4),
@@ -75,6 +91,10 @@ class LevelUpDialog extends StatelessWidget {
                           color: AppColors.goldBright,
                           fontWeight: FontWeight.w700)),
                 ]),
+                if (healedFrom case final h?) ...[
+                  const SizedBox(height: 12),
+                  _RefillBars(from: h),
+                ],
                 const SizedBox(height: 16),
                 BulssiBubble(line: _line, mood: SpiritMood.cheer),
                 const SizedBox(height: 18),
@@ -108,5 +128,53 @@ class LaurelRow extends StatelessWidget {
         Diamond(size: 6),
       ]),
     );
+  }
+}
+
+/// HP·MP 막대가 가득 차오르는 짧은 연출 (#102)
+class _RefillBars extends StatelessWidget {
+  const _RefillBars({required this.from});
+
+  final ({int hp, int maxHp, int mp, int mpMax}) from;
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final hp0 = from.maxHp == 0 ? 1.0 : from.hp / from.maxHp;
+    final mp0 = from.mpMax == 0 ? 1.0 : from.mp / from.mpMax;
+    return Column(key: const Key('levelUpRefill'), children: [
+      const Text('HP·MP가 가득 찼어요',
+          style: TextStyle(
+              color: AppColors.goldBright, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      TweenAnimationBuilder<double>(
+        tween: Tween(begin: still ? 1 : 0, end: 1),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        builder: (_, t, __) => Column(children: [
+          Row(children: [
+            const SizedBox(
+                width: 34,
+                child: Text('HP',
+                    style: TextStyle(color: AppColors.text, fontSize: 12))),
+            Expanded(
+                child: GlowBar(
+                    ratio: hp0 + (1 - hp0) * t, colors: BarColors.hp, height: 8)),
+          ]),
+          const SizedBox(height: 4),
+          Row(children: [
+            const SizedBox(
+                width: 34,
+                child: Text('MP',
+                    style: TextStyle(color: AppColors.text, fontSize: 12))),
+            Expanded(
+                child: GlowBar(
+                    ratio: mp0 + (1 - mp0) * t,
+                    colors: BarColors.mana,
+                    height: 8)),
+          ]),
+        ]),
+      ),
+    ]);
   }
 }

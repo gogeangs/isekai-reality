@@ -48,7 +48,7 @@ jobs:
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
             --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
             --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
-          flutter build apk --release --target-platform android-arm64 \
+          flutter build apk --release --target-platform android-arm64 --split-per-abi \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
             --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
@@ -65,7 +65,7 @@ jobs:
             --output=app.apks --device-spec=spec.json
           java -jar bundletool.jar get-size total --apks=app.apks --device-spec=spec.json | tee size.csv
           AAB=$(stat -c %s build/app/outputs/bundle/release/app-release.aab)
-          APK=$(stat -c %s build/app/outputs/flutter-apk/app-release.apk)
+          APK=$(stat -c %s build/app/outputs/flutter-apk/app-arm64-v8a-release.apk)
           ASSETS=$(du -sb assets/images | cut -f1)
           {
             echo "## Android"
@@ -76,7 +76,7 @@ jobs:
             echo '```'; cat size.csv; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "AAB=$AAB APK=$APK ASSETS=$ASSETS"
-          unzip -l build/app/outputs/flutter-apk/app-release.apk | sort -k1 -n -r | head -25 || true
+          unzip -l build/app/outputs/flutter-apk/app-arm64-v8a-release.apk | sort -k1 -n -r | head -25 || true
 
   ios:
     runs-on: macos-latest

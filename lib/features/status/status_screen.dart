@@ -374,7 +374,7 @@ double statusScale(double h) =>
     h.isFinite ? (h / statusRefHeight).clamp(0.82, 1.18) : 1;
 
 /// 아이폰 13 (390×844) 에서 상태 탭이 차지하는 높이
-const statusRefHeight = 726.0;
+const statusRefHeight = 682.0;
 
 /// 장비 칸 3개가 [room] 높이 안에 들어가게 (묶음 15 #108):
 /// 모자라면 간격을 먼저 줄이고(8 → 3), 그래도 모자라면 칸을 조금 줄인다(50 → 36).

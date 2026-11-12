@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'core/format.dart';
 import 'core/models/vitals.dart' show Expedition;
 import 'app_controller.dart';
+import 'data/ads/rewarded_ads.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
@@ -138,6 +139,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 묶음 15 #103: 보상형 광고 (광고가 켜진 빌드만). 맞춤형은 허용한 사람만
+    if (RewardedAds.enabled) {
+      widget.controller.watchAd = (placement) async {
+        final personal = await _adConsent();
+        return RewardedAds.instance.show(personalized: personal);
+      };
+    }
     // 여관 휴식·정령 원정은 시간이 지나면 끝난다. 30초마다 확인한다.
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       final c = widget.controller;
@@ -188,12 +196,43 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
+  /// 처음 광고를 볼 때 한 번 묻는다: 내 관심사에 맞춘 광고를 볼지 (설정에서 바꿀 수 있다)
+  Future<bool> _adConsent() async {
+    final c = widget.controller;
+    final known = c.adPersonal;
+    if (known != null || !mounted) return known ?? false;
+    final yes = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (d) => GameAlert(
+        key: const Key('adConsent'),
+        title: const Text('광고를 보고 보상을 받아요'),
+        content: const KText(
+            '내 관심사에 맞춘 광고를 볼까요? 허용하지 않아도 광고 보상은 똑같이 받아요. '
+            '설정에서 언제든 바꿀 수 있어요.',
+            style: TextStyle(color: AppColors.text)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('허용 안 함')),
+          TextButton(
+              key: const Key('adConsentYes'),
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('맞춤 광고 허용')),
+        ],
+      ),
+    );
+    await c.setAdPersonal(yes ?? false);
+    return yes ?? false;
+  }
+
   /// 원정 결과 금테 카드 (11-11 #51). 여러 마리가 함께 돌아오면 차례로
   Future<void> _showExpeditionResults(List<Expedition> done) async {
     final c = widget.controller;
     for (final ex in done) {
       if (!mounted) break;
       await showExpeditionResult(context, ex, ex.petName ?? c.firstSpiritName,
+          controller: c,
           more: done.length > 1
               ? '${done.indexOf(ex) + 1} / ${done.length}'
               : null);
@@ -480,6 +519,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
           MapScreen(
               controller: controller,
+              onOpenBag: () => setState(() => _tab = 3),
               onOpenDungeon: () => push(DungeonScreen(controller: controller)),
               onShowExpeditionResults: () async {
                 if (_noticeShowing) return;
@@ -558,6 +598,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             index: _tab,
             onTap: (i) {
               hideKeyboard(); // 탭을 옮기면 키보드 닫기 (11-11 #73)
+              if (i == 3) controller.tutorialBagSeen(); // 튜토리얼: 가방 보기
               setState(() => _tab = i);
             },
           ),

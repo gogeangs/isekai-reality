@@ -12,13 +12,15 @@ import 'package:isekai_reality/features/map/korea_area.dart';
 
 void main() {
   group('가방 규칙 (11-11 #48)', () {
-    test('20칸에서 시작, 5칸씩, 100칸까지. 값은 200·400·700·1,000·2,000…', () {
+    test('20칸에서 시작, 예전 5칸 묶음은 그대로, 이제 한 칸씩 80·100·130·170…', () {
       expect(BagRules.capacity(), 20);
       expect(BagRules.capacity(goldExpansions: 2), 30);
       expect(BagRules.capacity(goldExpansions: 30), 100);
       expect(BagRules.capacity(goldExpansions: 1, extraSlots: 3), 28);
-      expect([for (var i = 0; i < 6; i++) BagRules.expansionCost(i)],
-          [200, 400, 700, 1000, 2000, 3000]);
+      expect(BagRules.capacity(goldExpansions: 1, singleSlots: 2), 27);
+      expect([for (var i = 0; i < 6; i++) BagRules.slotCost(i)],
+          [80, 100, 130, 170, 220, 280]);
+      expect(BagRules.slotCost(100), 2000);
     });
 
     test('99개마다 한 칸, 입은 장비는 칸을 쓰지 않는다', () {
@@ -89,13 +91,16 @@ void main() {
       expect(c.player.materials.length, 25);
       expect(c.canBuy(ShopItem.healSmall), PurchaseCheck.bagFull);
 
-      expect(await c.expandBag(), isTrue);
+      for (var i = 0; i < 5; i++) {
+        expect(await c.expandBag(), isTrue);
+      }
       expect(c.bagCapacity, 25);
-      expect(c.player.gold, 800);
+      expect(c.player.gold, 1000 - (80 + 100 + 130 + 170 + 220));
       expect(await c.expandBag(), isTrue);
-      expect(c.bagCapacity, 30);
-      expect(c.player.gold, 400);
+      expect(c.bagCapacity, 26);
       expect(c.canBuy(ShopItem.healSmall), PurchaseCheck.ok);
+      // 광고가 없는 빌드에서는 광고로 열 수 없다
+      expect(await c.expandBag(byAd: true), isFalse);
     });
 
     test('잡화상에서 재료를 팔고, 버리면 사라진다', () async {

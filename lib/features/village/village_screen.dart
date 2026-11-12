@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -10,8 +9,6 @@ import '../town/shop_screen.dart';
 import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
-import '../mail/mail_screen.dart';
-import '../../theme/top_notice.dart';
 
 /// 마을 시설
 enum Facility { inn, shop, board, smithy, alchemy, market, post }
@@ -48,23 +45,19 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board', '일일·주간·수시·긴급 의뢰'),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy', '장비 만들기·강화·수리'),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy', '물약 끓이기·레시피·재료 가공'),
-    FacilityInfo(Facility.post, '우체국', 'icon_post', '편지·선물·공지 (11-11 #65)',
-        inArt: false),
-    FacilityInfo(Facility.market, '거래소', 'icon_lock', '나중에 열려요',
-        open: false),
+    // 묶음 15 #113: 우체국은 빼고 우편은 위쪽 우편함 아이콘으로만
+    FacilityInfo(Facility.market, '거래소', 'icon_lock', '', open: false),
   ];
 
   void _enter(BuildContext context, FacilityInfo f) {
     if (!f.open) {
-      showTopNotice(context, '${josa(f.name, '은/는')} 곧 열려요');
-      return;
+      return; // 잠긴 곳은 자물쇠만 (묶음 15 #112)
     }
     final Widget page = switch (f.facility) {
       Facility.inn => InnScreen(controller: controller),
       Facility.shop => ShopScreen(controller: controller),
       Facility.smithy => SmithyScreen(controller: controller),
       Facility.alchemy => AlchemyScreen(controller: controller),
-      Facility.post => MailScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -73,21 +66,31 @@ class VillageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return ListView(
-      padding: EdgeInsets.fromLTRB(14, top + 6, 14, 24),
-      children: [
+    // 묶음 15 #115: 위쪽(제목·대사)은 고정하고 아래만 스크롤 → 마을 그림이
+    // 위쪽 우편함·설정 버튼 밑으로 올라가 이름표가 가려지지 않게
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
+      child: Column(children: [
         const OrnateTopBar(title: '마을'),
         const SizedBox(height: 6),
         const BulssiLine(line: '어서 와! 마을에서 쉬고, 사고, 의뢰를 받을 수 있어.'),
         const SizedBox(height: 10),
-        _VillageArt(onTap: (f) => _enter(context, f)),
-        const SizedBox(height: 12),
-        for (final f in facilities)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _FacilityCard(info: f, onTap: () => _enter(context, f)),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              _VillageArt(onTap: (f) => _enter(context, f)),
+              const SizedBox(height: 12),
+              for (final f in facilities)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _FacilityCard(
+                      info: f, onTap: () => _enter(context, f)),
+                ),
+            ],
           ),
-      ],
+        ),
+      ]),
     );
   }
 }
@@ -106,9 +109,7 @@ class _VillageArt extends StatelessWidget {
     Facility.shop: Rect.fromLTWH(0.35, 0.45, 0.36, 0.44),
     Facility.board: Rect.fromLTWH(0.75, 0.47, 0.22, 0.24),
     Facility.alchemy: Rect.fromLTWH(0.44, 0.22, 0.23, 0.18),
-    Facility.market: Rect.fromLTWH(0.72, 0.21, 0.26, 0.17),
-    // 우체국은 그림에 없어서 왼쪽 아래 빈 자리에 아이콘으로 (그림을 다시 그리면 옮긴다)
-    Facility.post: Rect.fromLTWH(0.02, 0.70, 0.22, 0.28),
+    Facility.market: Rect.fromLTWH(0.70, 0.24, 0.24, 0.19),
   };
 
   @override
@@ -156,12 +157,6 @@ class _VillageArt extends StatelessWidget {
                 ),
               ),
             ),
-            for (final f in VillageScreen.facilities)
-              if (!f.inArt)
-                Positioned.fromRect(
-                  rect: at(f.facility),
-                  child: Center(child: _BuildingIcon(icon: f.icon, size: 46)),
-                ),
             for (final f in VillageScreen.facilities)
               Positioned.fromRect(
                 rect: at(f.facility),
@@ -267,16 +262,10 @@ class _FacilityCard extends StatelessWidget {
           child: Row(children: [
             _BuildingIcon(icon: info.icon, size: 42),
             const SizedBox(width: 10),
+            // 묶음 15 #112: 아이콘 · 이름 · > 만 (설명글 없음)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(info.name, style: AppText.title(17, color: AppColors.text)),
-                  Text(info.open ? info.subtitle : '곧 열려요',
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 12)),
-                ],
-              ),
+              child: Text(info.name,
+                  style: AppText.title(17, color: AppColors.text)),
             ),
             Icon(
                 info.open

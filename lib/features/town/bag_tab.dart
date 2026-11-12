@@ -140,19 +140,18 @@ class _BagTabState extends State<BagTab> {
 
   AppController get c => widget.controller;
 
+  /// 묶음 15 #106: 한 칸씩 열기. 첫째·둘째 칸은 금화 또는 광고 중 고르는 창
   Future<void> _expand() async {
     final cost = c.bagExpandCost;
     if (cost == null) return;
     final short = cost - c.player.gold;
-    final ok = await showDialog<bool>(
+    final byAd = c.bagSlotByAd && c.adsReady;
+    final choice = await showDialog<String>(
       context: context,
       builder: (d) => GameAlert(
         key: const Key('bagExpandAlert'),
-        title: const Text('가방 늘리기'),
+        title: const Text('가방 한 칸 열기'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          KText('가방을 ${BagRules.slotsPerExpansion}칸 늘릴까요?',
-              textAlign: TextAlign.center),
-          const SizedBox(height: 8),
           Row(mainAxisSize: MainAxisSize.min, children: [
             const GameIcon('gold', size: 20),
             const SizedBox(width: 4),
@@ -168,17 +167,22 @@ class _BagTabState extends State<BagTab> {
         ]),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(d, false),
+              onPressed: () => Navigator.pop(d),
               child: const Text('그만둘래요')),
+          if (byAd)
+            TextButton(
+                key: const Key('bagExpandAd'),
+                onPressed: () => Navigator.pop(d, 'ad'),
+                child: const Text('광고 보고 열기')),
           TextButton(
               key: const Key('bagExpandOk'),
-              onPressed: short > 0 ? null : () => Navigator.pop(d, true),
-              child: const Text('늘리기')),
+              onPressed: short > 0 ? null : () => Navigator.pop(d, 'gold'),
+              child: const Text('금화로 열기')),
         ],
       ),
     );
-    if (ok != true || !mounted) return;
-    final done = await c.expandBag();
+    if (choice == null || !mounted) return;
+    final done = await c.expandBag(byAd: choice == 'ad');
     if (!mounted) return;
     if (done) showTopNotice(context, '가방이 ${c.bagCapacity}칸이 됐어요!');
   }
@@ -371,12 +375,15 @@ class _BagTabState extends State<BagTab> {
                         for (var i = 0; i < empty; i++) const BagSlot(),
                         for (var i = 0; i < locks; i++)
                           BagSlot(
-                              key: i == locks - 1
+                              key: i == 0
                                   ? const Key('bagExpandSlot')
                                   : null,
                               locked: true,
-                              lockLabel: i == locks - 1 && cost != null
-                                  ? '+${BagRules.slotsPerExpansion}칸 · 금화 ${comma(cost)}'
+                              // 바로 다음 한 칸에만 가격 (처음 두 칸은 금화 / 광고)
+                              lockLabel: i == 0 && cost != null
+                                  ? c.bagSlotByAd && c.adsReady
+                                      ? '금화 ${comma(cost)} · 광고'
+                                      : '금화 ${comma(cost)}'
                                   : null,
                               onTap: _expand),
                       ],

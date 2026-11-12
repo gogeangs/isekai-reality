@@ -82,7 +82,7 @@ class LevelUpDialog extends StatelessWidget {
                 // 11-11 #95: 받은 스탯 포인트 + 다섯 스탯 메달
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   for (final k in StatKind.values) ...[
-                    StatIcon(k, size: 26),
+                    StatIcon(k, size: 28),
                     const SizedBox(width: 4),
                   ],
                   const SizedBox(width: 4),
@@ -91,6 +91,14 @@ class LevelUpDialog extends StatelessWidget {
                           color: AppColors.goldBright,
                           fontWeight: FontWeight.w700)),
                 ]),
+                // 묶음 15 #104: Lv.2가 되는 순간 스탯 분배가 열린다
+                if (from < 2 && to >= 2) ...[
+                  const SizedBox(height: 10),
+                  const ChipBadge(
+                      key: Key('statUnlocked'),
+                      text: '스탯 분배가 열렸어요',
+                      icon: Icons.lock_open_rounded),
+                ],
                 if (healedFrom case final h?) ...[
                   const SizedBox(height: 12),
                   _RefillBars(from: h),

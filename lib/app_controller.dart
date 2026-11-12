@@ -244,6 +244,10 @@ class AppController extends ChangeNotifier {
     );
     _vitals = const Vitals(); // 처음 각성은 HP·MP 가득
     await store.saveProfile(_profile);
+    // 묶음 15 #104: 새로 시작하는 사람만 Lv.1~2 튜토리얼 (기존 사용자는 그대로)
+    if (player.level.level < 2 && player.history.every((d) => d.fieldMonstersPurified == 0)) {
+      await _setTutorial(TutorialStep.hunt);
+    }
     _needsAwakening = false;
     await _startPlaying();
   }
@@ -290,6 +294,9 @@ class AppController extends ChangeNotifier {
     _poisonTipSeen = feel['poisonTip'] == true;
     _petCodexSeen = feel['petCodex'] == true;
     _petCodexAnnounced = feel['petCodexNotice'] == true;
+    _adPersonal = feel['adPersonal'] as bool?;
+    final tut = await store.loadJson(_tutorialKey);
+    _tutorial = (tut?['step'] as int?) ?? 0;
     final tired = await store.loadJson(_tiredKey);
     _tiredUntil = DateTime.tryParse('${tired?['until'] ?? ''}');
     final board = await store.loadJson(_boardKey);
@@ -667,8 +674,80 @@ class AppController extends ChangeNotifier {
             favored: ElementRules.challengers(mainElement),
             land: lands?.kindAt)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
+        .followedBy(_tutorialSpawns(center))
         .where((s) => !done.contains(s.id))
         .toList();
+  }
+
+  // ───────────── 튜토리얼 (묶음 15 #104, Lv.1~2)
+
+  static const _tutorialKey = 'tutorial';
+  int _tutorial = 0;
+
+  /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])
+  TutorialStep get tutorialStep => TutorialStep.values[
+      _tutorial.clamp(0, TutorialStep.values.length - 1)];
+
+  bool get inTutorial => tutorialStep != TutorialStep.done;
+
+  Future<void> _setTutorial(TutorialStep step) async {
+    _tutorial = step.index;
+    await store.saveJson(_tutorialKey, {'step': _tutorial});
+    notifyListeners();
+  }
+
+  /// 튜토리얼 건너뛰기 (진행·물건은 그대로)
+  Future<void> skipTutorial() => _setTutorial(TutorialStep.done);
+
+  /// 가방을 열어 받은 것을 봤을 때
+  Future<void> tutorialBagSeen() async {
+    if (tutorialStep == TutorialStep.bag) {
+      await _setTutorial(TutorialStep.expedition);
+    }
+  }
+
+  static const tutorialHuntId = 'tutorial-1';
+  static const tutorialExpeditionId = 'tutorial-2';
+  static bool isTutorialSpawn(String id) => id.startsWith('tutorial-');
+
+  /// 튜토리얼 몬스터: 첫째는 바로 옆(걸어갈 필요 없음), 둘째는 조금 떨어진 곳(정령 원정)
+  List<FieldSpawn> _tutorialSpawns(GeoPoint center) => switch (tutorialStep) {
+        TutorialStep.hunt => [
+            FieldSpawn(
+                id: tutorialHuntId,
+                monster: MonsterId.ashSlime,
+                point: _lastFix?.point ?? center),
+          ],
+        TutorialStep.expedition => [
+            FieldSpawn(
+                id: tutorialExpeditionId,
+                monster: MonsterId.ashSlime,
+                point: GeoPoint(center.lat + 0.0018, center.lng + 0.0012)),
+          ],
+        _ => const [],
+      };
+
+  /// 튜토리얼 첫 몬스터 (지금 단계가 아니면 null)
+  FieldSpawn? get tutorialSpawn {
+    for (final s in todaySpawns) {
+      if (isTutorialSpawn(s.id)) return s;
+    }
+    return null;
+  }
+
+  /// 튜토리얼 몬스터를 잡았을 때: 첫째 → 가방 보기, 둘째 → Lv.2 (두 마리째에 딱 오르게)
+  Future<void> _tutorialPurified(String spawnId) async {
+    if (spawnId == tutorialHuntId && tutorialStep == TutorialStep.hunt) {
+      await _setTutorial(TutorialStep.bag);
+    } else if (spawnId == tutorialExpeditionId) {
+      final need = LevelRules.totalExpToReach(2) - player.totalExp;
+      if (need > 0) {
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+            gains: {...today.gains, 'exp': (today.gains['exp'] ?? 0) + need}));
+      }
+      await _setTutorial(TutorialStep.done);
+    }
   }
 
   /// 지금 위치에서 만난 필드 몬스터 (없으면 null)
@@ -752,6 +831,24 @@ class AppController extends ChangeNotifier {
     final today = await _todayRecord();
     _lastReward = const HuntReward();
     if (today.purifiedSpawnIds.contains(spawnId)) return 0;
+    if (isTutorialSpawn(spawnId)) {
+      final got = await _recordFieldPurifyInner(spawnId, monster, point,
+          mods: mods, count: count, today: today);
+      await _tutorialPurified(spawnId);
+      return got;
+    }
+    return _recordFieldPurifyInner(spawnId, monster, point,
+        mods: mods, count: count, today: today);
+  }
+
+  Future<int> _recordFieldPurifyInner(
+    String spawnId,
+    MonsterId monster,
+    GeoPoint point, {
+    required List<ModifierId> mods,
+    required int count,
+    required DailyRecord today,
+  }) async {
     // 11-11 #69: 하루 5마리 뒤에도 사냥은 되고 경험치·마석만 줄어든다 (숨은 규칙)
     const paid = true;
     final n = today.fieldMonstersPurified;
@@ -923,7 +1020,9 @@ class AppController extends ChangeNotifier {
 
   /// 가방 칸 수
   int get bagCapacity => BagRules.capacity(
-      goldExpansions: _bag.goldExpansions, extraSlots: _bag.extraSlots);
+      goldExpansions: _bag.goldExpansions,
+      extraSlots: _bag.extraSlots,
+      singleSlots: _bag.singleSlots);
 
   /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
   int get bagUsed => BagRules.usedSlots(
@@ -940,21 +1039,178 @@ class AppController extends ChangeNotifier {
   /// 빈칸 (넘치면 0)
   int get bagFree => math.max(0, bagCapacity - bagUsed);
 
-  /// 다음 확장 가격 (더 늘릴 수 없으면 null)
+  /// 다음 한 칸 가격 (더 늘릴 수 없으면 null). 묶음 15 #106: 한 칸씩, 열수록 오른다
   int? get bagExpandCost => bagCapacity >= BagRules.maxSlots
       ? null
-      : BagRules.expansionCost(_bag.goldExpansions);
+      : BagRules.slotCost(_bag.singleSlots);
 
-  /// 금화로 가방을 5칸 늘린다
-  Future<bool> expandBag() async {
+  /// 다음 칸을 광고로도 열 수 있는지 (한 칸씩 연 것 중 첫째·둘째 칸)
+  bool get bagSlotByAd =>
+      bagExpandCost != null && _bag.singleSlots < BagRules.adSlots;
+
+  /// 가방을 한 칸 늘린다. [byAd] 면 광고를 끝까지 본 뒤 (첫째·둘째 칸만)
+  Future<bool> expandBag({bool byAd = false}) async {
     final cost = bagExpandCost;
-    if (cost == null || player.gold < cost) return false;
-    final today = await _todayRecord();
-    await _save(today.copyWith(
-        spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
-    _bag = _bag.copyWith(goldExpansions: _bag.goldExpansions + 1);
+    if (cost == null) return false;
+    if (byAd) {
+      if (!bagSlotByAd || !await _watchAd('bag_slot')) return false;
+    } else {
+      if (player.gold < cost) return false;
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    }
+    _bag = _bag.copyWith(singleSlots: _bag.singleSlots + 1);
     await store.saveJson(_bagKey, _bag.toJson());
     notifyListeners();
+    return true;
+  }
+
+  // ───────────── 보상형 광고 (묶음 15 #103). 숫자 규칙은 화면에 보이지 않는다
+
+  /// 광고를 끝까지 보면 true. 앱이 채워 넣는다 (테스트·광고 없는 빌드는 null)
+  Future<bool> Function(String placement)? watchAd;
+
+  bool get adsReady => watchAd != null;
+
+  Future<bool> _watchAd(String placement) async {
+    final w = watchAd;
+    if (w == null) return false;
+    try {
+      return await w(placement);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 원정 시간 절반 (남은 시간의 절반). 튜토리얼 원정에는 없다
+  bool canHalveExpedition(Expedition ex) =>
+      adsReady &&
+      !ex.finished &&
+      !isTutorialSpawn(ex.spawnId) &&
+      !ex.adUsed.contains('half') &&
+      ex.returnAt.isAfter(_clock());
+
+  Future<bool> adHalveExpedition(Expedition ex) async {
+    if (!canHalveExpedition(ex) || !await _watchAd('expedition_half')) {
+      return false;
+    }
+    final now = _clock();
+    final left = ex.returnAt.difference(now);
+    final done = ex.shortened(left ~/ 2, now, ad: 'half');
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid ? done : e,
+    ]);
+    await store.saveVitals(_vitals);
+    final who = ex.petName ?? _profile.spiritName;
+    unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), done.returnAt,
+        '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
+    await refreshVitals();
+    return true;
+  }
+
+  /// 원정 보상 두 배 (기본 보상만, 펫이 더 가져온 것은 빼고)
+  bool canDoubleExpedition(Expedition ex) =>
+      adsReady &&
+      ex.cleared == true &&
+      !isTutorialSpawn(ex.spawnId) &&
+      ex.baseReward.isNotEmpty &&
+      !ex.adUsed.contains('double');
+
+  Future<bool> adDoubleExpedition(Expedition ex) async {
+    if (!canDoubleExpedition(ex) || !await _watchAd('expedition_double')) {
+      return false;
+    }
+    final b = ex.baseReward;
+    final mats = <MaterialId, int>{
+      for (final e in b.entries)
+        if (Materials.byName(e.key) case final m?) m: e.value,
+    };
+    await _grant(b[Wallet.gold] ?? 0, b[Wallet.manaStone] ?? 0, mats);
+    final exp = b['exp'] ?? 0;
+    if (exp > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          gains: {...today.gains, 'exp': (today.gains['exp'] ?? 0) + exp}));
+    }
+    _markAd(ex, 'double');
+    await store.saveVitals(_vitals);
+    notifyListeners();
+    return true;
+  }
+
+  /// 원정 한 번 더: 같은 몬스터 자리로 다시 보낸다 (MP 없이, 걸리는 시간은 같게)
+  bool canExpeditionAgain(Expedition ex) =>
+      adsReady &&
+      ex.finished &&
+      !isTutorialSpawn(ex.spawnId) &&
+      !ex.adUsed.contains('again');
+
+  Future<bool> adExpeditionAgain(Expedition ex) async {
+    if (!canExpeditionAgain(ex) || !await _watchAd('expedition_again')) {
+      return false;
+    }
+    final now = _clock();
+    final oneWay = ex.arriveAt.difference(ex.startedAt);
+    final again = Expedition(
+      spawnId: '${ex.spawnId}~${now.millisecondsSinceEpoch}',
+      monster: ex.monster,
+      mods: ex.mods,
+      lat: ex.lat,
+      lng: ex.lng,
+      fromLat: ex.fromLat,
+      fromLng: ex.fromLng,
+      distanceM: ex.distanceM,
+      mpCost: 0,
+      startedAt: now,
+      arriveAt: now.add(oneWay),
+      returnAt: now.add(oneWay * 2),
+      route: ex.route,
+      petUid: ex.petUid,
+      petName: ex.petName,
+      adUsed: const {'again'},
+    );
+    // 결과를 받은 것으로 하고 새 원정을 보낸다
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        if (!(e.spawnId == ex.spawnId && e.petUid == ex.petUid)) e,
+      again,
+    ]);
+    await store.saveVitals(_vitals);
+    final who = ex.petName ?? _profile.spiritName;
+    unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), again.returnAt,
+        '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
+    notifyListeners();
+    return true;
+  }
+
+  void _markAd(Expedition ex, String ad) {
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid
+            ? e.copy(adUsed: {...e.adUsed, ad})
+            : e,
+    ]);
+  }
+
+  /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·MP가 바로 더 찬다)
+  bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
+
+  Future<bool> adShortenRest() async {
+    if (!canShortenRest || !await _watchAd('rest_shorten')) return false;
+    final at = _vitals.restStartedAt;
+    if (at == null) return false;
+    _vitals = _vitals.copyWith(
+        restStartedAt: at.subtract(const Duration(hours: 1)));
+    await store.saveVitals(_vitals);
+    unawaited(notifier?.schedule(
+      NotifyId.rest,
+      _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
+      '푹 쉬었어요',
+      'HP와 ${companionName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+    ));
+    await refreshVitals();
     return true;
   }
 
@@ -3596,6 +3852,11 @@ class AppController extends ChangeNotifier {
   DateTime? get restStartedAt => _vitals.restStartedAt;
   bool get resting => _vitals.restStartedAt != null;
 
+  /// 휴식이 얼마나 지났는지 (0 → 1)
+  double get restProgress => resting
+      ? TownRules.restProgress(_vitals.restStartedAt!, _clock())
+      : 0;
+
   /// 휴식이 끝나기까지 남은 시간
   Duration get restLeft => resting
       ? TownRules.restLeft(_vitals.restStartedAt!, _clock())
@@ -3687,8 +3948,26 @@ class AppController extends ChangeNotifier {
       changed = true;
     }
 
-    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
+    // 쉬는 동안: 시작할 때 HP·MP에서 가득까지 시간에 맞춰 고르게 (묶음 15 #107)
     final restAt = v.restStartedAt;
+    if (restAt != null && !TownRules.restDone(restAt, now)) {
+      final f = TownRules.restProgress(restAt, now);
+      final hp0 = v.restHp0 ?? curHp;
+      final mp0 = v.restMp0 ?? (v.mp ?? mpMax);
+      final hpNow = math.max(curHp, TownRules.restFill(hp0, max, f));
+      final mpNow = math.max(v.mp ?? mpMax, TownRules.restFill(mp0, mpMax, f));
+      if (hpNow != curHp ||
+          mpNow != (v.mp ?? mpMax) ||
+          v.restHp0 == null ||
+          v.restMp0 == null) {
+        curHp = hpNow;
+        v = v.copyWith(
+            hp: hpNow, mp: mpNow, mpAt: now, restHp0: hp0, restMp0: mp0);
+        changed = true;
+      }
+    }
+
+    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
     if (restAt != null && TownRules.restDone(restAt, now)) {
       v = v.copyWith(
           hp: max, mp: mpMax, mpAt: now, clearRest: true);
@@ -3733,7 +4012,8 @@ class AppController extends ChangeNotifier {
     if (resting) return false;
     await refreshVitals();
     final now = _clock();
-    _vitals = _vitals.copyWith(restStartedAt: now);
+    _vitals = _vitals.copyWith(
+        restStartedAt: now, restHp0: hp, restMp0: mp);
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
@@ -3747,8 +4027,10 @@ class AppController extends ChangeNotifier {
     return true;
   }
 
-  /// 휴식을 그만둔다 (보상 없이)
+  /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·MP는 그대로 (묶음 15 #107)
   Future<void> stopResting() async {
+    if (!resting) return;
+    await refreshVitals();
     if (!resting) return;
     _stopResting();
     await store.saveVitals(_vitals);
@@ -3765,9 +4047,9 @@ class AppController extends ChangeNotifier {
   bool _petCodexSeen = false;
   bool _petCodexAnnounced = false;
 
-  /// 도감 펫 탭이 열렸는지 (11-11 #96): 첫 알을 받은 뒤부터
-  bool get petCodexOpen =>
-      _pets.firstEggFound || _pets.eggs.isNotEmpty || _pets.pets.isNotEmpty;
+  /// 도감 펫 탭이 열렸는지 (묶음 15 #116): 정령과 이별한 뒤(알 부화가 가능해진 뒤)에만.
+  /// 그 전에는 알이 있어도 숨긴다 (펫이 드러나지 않게)
+  bool get petCodexOpen => _pets.farewellDone;
 
   /// 펫 탭에 새 표시 (아직 열어 보지 않았으면)
   bool get petCodexNew => petCodexOpen && !_petCodexSeen;
@@ -3802,7 +4084,18 @@ class AppController extends ChangeNotifier {
       'poisonTip': _poisonTipSeen,
       'petCodex': _petCodexSeen,
       'petCodexNotice': _petCodexAnnounced,
+      'adPersonal': _adPersonal,
     });
+    notifyListeners();
+  }
+
+  /// 맞춤형 광고 허용 (묶음 15 #103). null = 아직 묻지 않음 → 처음 광고 볼 때 묻는다
+  bool? _adPersonal;
+  bool? get adPersonal => _adPersonal;
+
+  Future<void> setAdPersonal(bool on) async {
+    _adPersonal = on;
+    await _saveFeel();
     notifyListeners();
   }
 
@@ -3857,7 +4150,16 @@ class AppController extends ChangeNotifier {
   }
 
   void _stopResting() {
-    if (_vitals.restStartedAt != null) {
+    final restAt = _vitals.restStartedAt;
+    if (restAt != null) {
+      // 그때까지 찬 만큼은 그대로 가지고 간다 (묶음 15 #107)
+      final f = TownRules.restProgress(restAt, _clock());
+      final hp0 = _vitals.restHp0 ?? hp;
+      final mp0 = _vitals.restMp0 ?? mp;
+      _vitals = _vitals.copyWith(
+          hp: math.max(hp, TownRules.restFill(hp0, maxHp, f)),
+          mp: math.max(mp, TownRules.restFill(mp0, mpMax, f)),
+          mpAt: _clock());
       _vitals = _vitals.copyWith(clearRest: true);
       unawaited(store.saveVitals(_vitals));
       unawaited(notifier?.cancel(NotifyId.rest));
@@ -3939,6 +4241,18 @@ class AppController extends ChangeNotifier {
   /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
   /// [petUid] 는 보낼 펫 (정령이 떠난 뒤, 없으면 동행 펫).
   ExpeditionPlan planExpedition(FieldSpawn spawn, {String? petUid}) {
+    // 튜토리얼 원정: 짧게, MP 걱정 없이 (묶음 15 #104)
+    if (isTutorialSpawn(spawn.id)) {
+      return ExpeditionPlan(
+          activeExpeditions.any((e) => e.spawnId == spawn.id)
+              ? ExpeditionCheck.busy
+              : ExpeditionCheck.ok,
+          distanceM: 250,
+          mpCost: 0,
+          oneWay: const Duration(seconds: 10),
+          followsRoads: false,
+          routeReady: true);
+    }
     final from = _lastFix?.point;
     if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
     final pet = farewellDone
@@ -3989,7 +4303,9 @@ class AppController extends ChangeNotifier {
   /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
   Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
     await refreshVitals();
-    final route = await prepareRoute(spawn);
+    final route = isTutorialSpawn(spawn.id)
+        ? ExpeditionRoute.straight(_lastFix?.point ?? spawn.point, spawn.point)
+        : await prepareRoute(spawn);
     final plan = planExpedition(spawn, petUid: petUid);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
@@ -4113,8 +4429,11 @@ class AppController extends ChangeNotifier {
       weaponPotion: weaponPotionElement,
     ).runToEnd(useSkills: true);
     await _consumeBattlePotions(battle);
-    final cleared = battle.phase == BattlePhase.cleared;
-    final escaped = battle.phase == BattlePhase.escaped;
+    // 튜토리얼 원정은 실패하지 않는다
+    final cleared =
+        battle.phase == BattlePhase.cleared || isTutorialSpawn(ex.spawnId);
+    final escaped =
+        battle.phase == BattlePhase.escaped && !isTutorialSpawn(ex.spawnId);
     if (escaped) {
       final today = await _todayRecord();
       await _save(
@@ -4127,6 +4446,7 @@ class AppController extends ChangeNotifier {
             mods: mods, count: battle.floors.length)
         : 0;
     var r = _lastReward;
+    final base = r; // 광고 두 배는 기본 보상만 (펫이 더 가져온 것 제외)
     if (cleared && pet != null) {
       // 호문쿨루스: 재료를 더 가져온다
       final extra = PetRules.extraMaterials(pet.species, _random,
@@ -4154,6 +4474,14 @@ class AppController extends ChangeNotifier {
                     if (r.manaStones > 0) Wallet.manaStone: r.manaStones,
                     if (r.gold > 0) Wallet.gold: r.gold,
                     for (final e in r.materials.entries) e.key.name: e.value,
+                  }
+                : const {},
+            baseReward: cleared
+                ? {
+                    if (base.exp > 0) 'exp': base.exp,
+                    if (base.manaStones > 0) Wallet.manaStone: base.manaStones,
+                    if (base.gold > 0) Wallet.gold: base.gold,
+                    for (final e in base.materials.entries) e.key.name: e.value,
                   }
                 : const {});
     _vitals = _vitals.copyWith(expeditions: [
@@ -4313,6 +4641,11 @@ class BrewResult {
 
 /// 정령 원정을 보낼 수 있는지
 enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
+
+/// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
+/// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·
+/// bag: 결과·가방 보기 · expedition: 정령 원정으로 두 번째 몬스터
+enum TutorialStep { done, hunt, bag, expedition }
 
 class ExpeditionPlan {
   const ExpeditionPlan(

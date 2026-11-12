@@ -367,6 +367,18 @@ class ExpeditionCard extends StatelessWidget {
             ],
           ),
         ),
+        // 묶음 15 #103: 광고 보고 남은 시간 절반 (튜토리얼 원정에는 없음)
+        if (controller.canHalveExpedition(ex))
+          AdChip(
+            key: Key('adHalf_${ex.spawnId}'),
+            label: '시간 절반',
+            onTap: () async {
+              final ok = await controller.adHalveExpedition(ex);
+              if (!ok && context.mounted) {
+                showTopNotice(context, '광고를 불러오지 못했어요. 잠시 뒤 다시 눌러 주세요.');
+              }
+            },
+          ),
       ]),
     );
   }
@@ -524,4 +536,39 @@ class ExpeditionStrip extends StatelessWidget {
 class MapScreenSizes {
   MapScreenSizes._();
   static const double expStripH = 44;
+}
+
+
+/// 광고 보고 받는 작은 버튼 (묶음 15 #103): ▶ 아이콘 + 짧은 글
+class AdChip extends StatelessWidget {
+  const AdChip({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: '광고 보고 $label',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.only(left: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: kGoldGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.smart_display_rounded,
+                  size: 18, color: Color(0xFF3A2208)),
+              Text(label,
+                  style: const TextStyle(
+                      color: Color(0xFF3A2208),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ),
+      );
 }

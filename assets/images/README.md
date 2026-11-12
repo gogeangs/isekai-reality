@@ -156,3 +156,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | slot_<weapon·hands·accessory·head·body·feet> | 장비 빈 칸 아이콘 6종 (256×256, 흰색 한 가지, 뿌연 둘레를 지움) |
 | monster_parts_<giantRat·hornRabbit·babyBoar·labyrinthBat> | 몬스터 부위 시트 4종 (2048×2048, 개발이 잘라서 씀) |
 | monster_parts_<shadowButterfly·labyrinthWarden·fireSlimeKing> | 몬스터 부위 시트 3종 (2048×2048, 개발이 잘라서 씀) |
+| monster_parts_<frostWolfKing·ancientTreant·shadowBatQueen·thunderGriffin> | 보스 부위 시트 4종 (2048×2048, 개발이 잘라서 씀) |

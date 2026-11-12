@@ -231,10 +231,11 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('상태'));
     await tester.pump();
-    final h = tester.getSize(find.byType(StatusScreen)).height;
-    // ignore: avoid_print
-    print('status height on iPhone 13: $h');
-    expect((h - statusRefHeight).abs(), lessThan(4));
-    expect(statusScale(h), closeTo(1, 0.01));
+    final h = MediaQuery.sizeOf(tester.element(find.byType(StatusScreen))).height;
+    expect(h, statusRefHeight);
+    expect(statusScale(h), 1);
+    // 작은 화면은 줄이고 큰 화면은 늘린다 (한도 안에서)
+    expect(statusScale(667), lessThan(1));
+    expect(statusScale(932), greaterThan(1));
   });
 }

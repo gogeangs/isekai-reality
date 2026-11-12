@@ -120,7 +120,7 @@ class StatusScreen extends StatelessWidget {
       statusScrim: false,
       child: LayoutBuilder(builder: (context, box) {
         // 묶음 16 #134: 화면 높이 비율로 (아이폰 13 높이를 1로 두고 지금과 같게)
-        final k = statusScale(box.maxHeight);
+        final k = statusScale(MediaQuery.sizeOf(context).height);
         // 아래 정보(레벨·HP·MP·스탯)가 차지하는 높이 (대략)
         final below = 300.0 * k + (restLeft != null ? 48 : 0);
         final slotTop = top + 168 * k;
@@ -369,12 +369,12 @@ class _HeroArt extends StatelessWidget {
   }
 }
 
-/// 상태 화면 배치 비율 (묶음 16 #134): 아이폰 13 의 화면 높이일 때 1
+/// 상태 화면 배치 비율 (묶음 16 #134): 화면 높이가 아이폰 13 과 같으면 1
 double statusScale(double h) =>
-    h.isFinite ? (h / statusRefHeight).clamp(0.82, 1.18) : 1;
+    h.isFinite && h > 0 ? (h / statusRefHeight).clamp(0.82, 1.18) : 1;
 
-/// 아이폰 13 (390×844) 에서 상태 탭이 차지하는 높이
-const statusRefHeight = 682.0;
+/// 아이폰 13 (390×844) 화면 높이
+const statusRefHeight = 844.0;
 
 /// 장비 칸 3개가 [room] 높이 안에 들어가게 (묶음 15 #108):
 /// 모자라면 간격을 먼저 줄이고(8 → 3), 그래도 모자라면 칸을 조금 줄인다(50 → 36).

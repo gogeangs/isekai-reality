@@ -152,3 +152,10 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | fx_hit_<fire·water·wind·earth·light·dark·ice·thunder·metal·poison> | 속성 타격 효과 10종 (512×512, 붉은·자홍 테두리를 지워서 넣음) |
 | monster_parts_slime | 슬라임 공용 부위 시트 (2048×2048, 개발이 잘라서 씀) |
 | stat_<strength·agility·intellect·vitality·luck> | 스탯 메달 5종 (512×512, 크기를 맞춤) |
+| pet_map_<crow·blackCat·toad·owl·lizard·homunculus> | 원정 지도용 펫 메달 6종 (256×256) |
+| slot_<weapon·hands·accessory·head·body·feet> | 장비 빈 칸 아이콘 6종 (256×256, 흰색 한 가지, 뿌연 둘레를 지움) |
+| monster_parts_<giantRat·hornRabbit·babyBoar·labyrinthBat> | 몬스터 부위 시트 4종 (2048×2048, 개발이 잘라서 씀) |
+| monster_parts_<shadowButterfly·labyrinthWarden·fireSlimeKing> | 몬스터 부위 시트 3종 (2048×2048, 개발이 잘라서 씀) |
+| monster_parts_<frostWolfKing·ancientTreant·shadowBatQueen·thunderGriffin> | 보스 부위 시트 4종 (2048×2048, 개발이 잘라서 씀) |
+| tool_sickle_<stone·iron·silver·mithril> | 약초 낫 4등급 (256×256) |
+| tool_pickaxe_<stone·iron·silver·mithril> | 곡괭이 4등급 (256×256) |

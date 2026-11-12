@@ -167,3 +167,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | map_harvest_<mushroom·flower·gem·relic> | 채집 지도 아이콘 4종 (256×256, 임시 그림을 교체, 시트에서 잘라 냄) |
 | equip_warden<Weapon·Head·Body·Hands·Feet·Acc> | 보스 장비 문지기 세트 6종 (512×512, 시트에서 잘라 냄, 뿌연 빛무리 지움) |
 | 2026-11-13 | equip_flame{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 불꽃 왕 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_frost{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 서리 늑대 세트 (시트에서 잘라 냄, 512) |

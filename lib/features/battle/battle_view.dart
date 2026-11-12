@@ -1027,8 +1027,12 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       child: Image.asset(
                           widget.background ?? 'assets/images/bg_battle.jpg',
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const ColoredBox(color: Color(0xFF1B1840))),
+                          // 그림이 아직 없으면 비슷한 배경 → 기본 배경 → 색
+                          errorBuilder: (_, __, ___) => Image.asset(
+                              backgroundFallback(widget.background),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const ColoredBox(color: Color(0xFF1B1840)))),
                     ),
                     const Positioned.fill(
                       child: DecoratedBox(
@@ -1886,6 +1890,12 @@ class _SkillOrb extends StatelessWidget {
     );
   }
 }
+
+/// 배경 그림이 없을 때 대신 쓸 그림 (바다 → 물가, 나머지 → 기본)
+String backgroundFallback(String? bg) => switch (bg) {
+      'assets/images/bg_field_sea.jpg' => 'assets/images/bg_field_water.jpg',
+      _ => 'assets/images/bg_battle.jpg',
+    };
 
 /// tired: HP 0으로 싸울 수 없을 때 (11-10)
 enum HeroPose { idle, attack, victory, tired }

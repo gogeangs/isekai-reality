@@ -170,3 +170,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-13 | equip_frost{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 서리 늑대 세트 (시트에서 잘라 냄, 512) |
 | 2026-11-13 | equip_grove{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 고목 세트 (시트에서 잘라 냄, 512) |
 | 2026-11-13 | equip_night{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 밤날개 세트 (시트에서 잘라 냄, 512) |
+| 2026-11-13 | equip_storm{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 천둥 세트 (시트에서 잘라 냄, 512) |

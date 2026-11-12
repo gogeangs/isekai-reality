@@ -60,6 +60,12 @@ class DemoFilterEngine implements RaceFilterEngine {
   }
 
   @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> resume() async {}
+
+  @override
   Future<void> dispose() async => _faces.dispose();
 }
 

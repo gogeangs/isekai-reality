@@ -287,6 +287,23 @@ class CameraStickerEngine implements RaceFilterEngine {
   }
 
   @override
+  Future<void> pause() async {
+    final ctrl = _ctrl;
+    _ctrl = null;
+    if (ctrl == null) return;
+    try {
+      if (ctrl.value.isStreamingImages) await ctrl.stopImageStream();
+    } catch (_) {}
+    await ctrl.dispose();
+  }
+
+  @override
+  Future<void> resume() async {
+    if (_disposed || _ctrl != null || _cameras.isEmpty) return;
+    await _open();
+  }
+
+  @override
   Future<void> dispose() async {
     _disposed = true;
     final ctrl = _ctrl;

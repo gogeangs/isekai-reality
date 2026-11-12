@@ -49,5 +49,9 @@ abstract class RaceFilterEngine {
   /// 지금 화면을 장식까지 입힌 사진으로 찍는다 (휴대폰 안에서만 만든다)
   Future<ui.Image?> capture(List<Race> races);
 
+  /// 다른 카메라(Snap 렌즈)를 여는 동안 카메라를 잠깐 놓는다 / 다시 켠다
+  Future<void> pause();
+  Future<void> resume();
+
   Future<void> dispose();
 }

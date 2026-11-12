@@ -106,4 +106,27 @@ if icon.exists():
         out.parent.mkdir(parents=True, exist_ok=True)
         src.resize((px, px), Image.LANCZOS).save(out)
 
+
+# 11-12 #60 Snap Camera Kit: 앱 ID·API 토큰(저장소 비밀 값)과 AppCompat 테마(Snap 카메라 화면이 요구)
+import os
+snap_id = os.environ.get("SNAP_APP_ID", "")
+snap_token = os.environ.get("SNAP_API_TOKEN", "")
+manifest = app / "src" / "main" / "AndroidManifest.xml"
+s = manifest.read_text()
+if "com.snap.camerakit.app.id" not in s:
+    meta = f"""
+        <meta-data android:name="com.snap.camerakit.app.id" android:value="{snap_id}" />
+        <meta-data android:name="com.snap.camerakit.api.token" android:value="{snap_token}" />"""
+    s = re.sub(r"(<application[^>]*>)", lambda m: m.group(1) + meta, s, count=1)
+if 'android:theme="@style/SnapAppCompat"' not in s:
+    s = re.sub(r"<application", '<application android:theme="@style/SnapAppCompat"', s, count=1)
+manifest.write_text(s)
+styles = app / "src" / "main" / "res" / "values" / "styles.xml"
+if styles.exists():
+    st = styles.read_text()
+    if "SnapAppCompat" not in st:
+        st = st.replace("</resources>",
+                        '    <style name="SnapAppCompat" parent="Theme.AppCompat.NoActionBar">\n    </style>\n</resources>')
+        styles.write_text(st)
+
 print("android/ 준비 완료")

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -13,6 +14,7 @@ import '../../theme/ornaments.dart';
 import 'album_files.dart';
 import 'album_screen.dart';
 import 'consent_note.dart';
+import 'snap_lens.dart';
 import 'camera_sticker_engine.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
@@ -170,6 +172,44 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       }
     }
     if (png == null) _snack('사진을 찍지 못했어요. 다시 해 볼까요?');
+  }
+
+  /// #60 Snap 렌즈로 찍기. 못 열거나 닫으면 지금 장식 그대로.
+  Future<void> _snapShoot() async {
+    final races = _races;
+    if (races == null || _working) return;
+    setState(() => _working = true);
+    Uint8List? png;
+    try {
+      await _engine.pause(); // Snap 카메라가 카메라를 쓰게 잠깐 놓는다
+      final shot = await SnapLens.instance.shoot();
+      if (shot != null) {
+        final codec = await ui.instantiateImageCodec(shot);
+        final frame = await codec.getNextFrame();
+        png = await PhotoFrame.compose(frame.image, races);
+        frame.image.dispose();
+      }
+    } catch (_) {
+      png = null;
+    }
+    await _engine.resume();
+    if (!mounted) return;
+    setState(() {
+      _working = false;
+      if (png != null) {
+        _png = png;
+        _phase = _Phase.shot;
+      }
+    });
+    if (png == null) {
+      _snack('렌즈 사진을 받지 못했어요. 지금 장식으로 계속할게요.');
+      return;
+    }
+    final id = _result?.albumId;
+    if (id != null) {
+      final file = await AlbumFiles.writer(id, png);
+      if (file != null) await c.attachAlbumFile(id, file);
+    }
   }
 
   Future<void> _save() async {
@@ -395,7 +435,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
           onPressed: () => setState(() => _phase = _Phase.filter),
         );
       case _Phase.filter:
-        return Row(children: [
+        final snap = SnapLens.supports(_races ?? const []);
+        final row = Row(children: [
           Expanded(
             child: FrameButton(
               label: '새 감정',
@@ -418,6 +459,19 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                 maxLines: 2,
                 style: AppText.title(15)),
           ),
+        ]);
+        if (!snap) return row;
+        // #60 Snap 시험 렌즈: 렌즈가 있는 종족(지금은 엘프)만
+        return Column(mainAxisSize: MainAxisSize.min, children: [
+          FrameButton(
+            key: const Key('snapLens'),
+            label: '엘프 렌즈로 찍기 (시험)',
+            icon: Icons.auto_awesome_rounded,
+            height: 42,
+            onPressed: _working ? null : _snapShoot,
+          ),
+          const SizedBox(height: 8),
+          row,
         ]);
       case _Phase.shot:
         return Column(mainAxisSize: MainAxisSize.min, children: [

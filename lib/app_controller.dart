@@ -294,6 +294,7 @@ class AppController extends ChangeNotifier {
     _poisonTipSeen = feel['poisonTip'] == true;
     _petCodexSeen = feel['petCodex'] == true;
     _petCodexAnnounced = feel['petCodexNotice'] == true;
+    _adPersonal = feel['adPersonal'] as bool?;
     final tut = await store.loadJson(_tutorialKey);
     _tutorial = (tut?['step'] as int?) ?? 0;
     final tired = await store.loadJson(_tiredKey);
@@ -705,9 +706,9 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static const tutorialHuntId = 'tutorial#1';
-  static const tutorialExpeditionId = 'tutorial#2';
-  static bool isTutorialSpawn(String id) => id.startsWith('tutorial#');
+  static const tutorialHuntId = 'tutorial-1';
+  static const tutorialExpeditionId = 'tutorial-2';
+  static bool isTutorialSpawn(String id) => id.startsWith('tutorial-');
 
   /// 튜토리얼 몬스터: 첫째는 바로 옆(걸어갈 필요 없음), 둘째는 조금 떨어진 곳(정령 원정)
   List<FieldSpawn> _tutorialSpawns(GeoPoint center) => switch (tutorialStep) {
@@ -1019,7 +1020,9 @@ class AppController extends ChangeNotifier {
 
   /// 가방 칸 수
   int get bagCapacity => BagRules.capacity(
-      goldExpansions: _bag.goldExpansions, extraSlots: _bag.extraSlots);
+      goldExpansions: _bag.goldExpansions,
+      extraSlots: _bag.extraSlots,
+      singleSlots: _bag.singleSlots);
 
   /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
   int get bagUsed => BagRules.usedSlots(
@@ -1036,21 +1039,178 @@ class AppController extends ChangeNotifier {
   /// 빈칸 (넘치면 0)
   int get bagFree => math.max(0, bagCapacity - bagUsed);
 
-  /// 다음 확장 가격 (더 늘릴 수 없으면 null)
+  /// 다음 한 칸 가격 (더 늘릴 수 없으면 null). 묶음 15 #106: 한 칸씩, 열수록 오른다
   int? get bagExpandCost => bagCapacity >= BagRules.maxSlots
       ? null
-      : BagRules.expansionCost(_bag.goldExpansions);
+      : BagRules.slotCost(_bag.singleSlots);
 
-  /// 금화로 가방을 5칸 늘린다
-  Future<bool> expandBag() async {
+  /// 다음 칸을 광고로도 열 수 있는지 (한 칸씩 연 것 중 첫째·둘째 칸)
+  bool get bagSlotByAd =>
+      bagExpandCost != null && _bag.singleSlots < BagRules.adSlots;
+
+  /// 가방을 한 칸 늘린다. [byAd] 면 광고를 끝까지 본 뒤 (첫째·둘째 칸만)
+  Future<bool> expandBag({bool byAd = false}) async {
     final cost = bagExpandCost;
-    if (cost == null || player.gold < cost) return false;
-    final today = await _todayRecord();
-    await _save(today.copyWith(
-        spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
-    _bag = _bag.copyWith(goldExpansions: _bag.goldExpansions + 1);
+    if (cost == null) return false;
+    if (byAd) {
+      if (!bagSlotByAd || !await _watchAd('bag_slot')) return false;
+    } else {
+      if (player.gold < cost) return false;
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
+    }
+    _bag = _bag.copyWith(singleSlots: _bag.singleSlots + 1);
     await store.saveJson(_bagKey, _bag.toJson());
     notifyListeners();
+    return true;
+  }
+
+  // ───────────── 보상형 광고 (묶음 15 #103). 숫자 규칙은 화면에 보이지 않는다
+
+  /// 광고를 끝까지 보면 true. 앱이 채워 넣는다 (테스트·광고 없는 빌드는 null)
+  Future<bool> Function(String placement)? watchAd;
+
+  bool get adsReady => watchAd != null;
+
+  Future<bool> _watchAd(String placement) async {
+    final w = watchAd;
+    if (w == null) return false;
+    try {
+      return await w(placement);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 원정 시간 절반 (남은 시간의 절반). 튜토리얼 원정에는 없다
+  bool canHalveExpedition(Expedition ex) =>
+      adsReady &&
+      !ex.finished &&
+      !isTutorialSpawn(ex.spawnId) &&
+      !ex.adUsed.contains('half') &&
+      ex.returnAt.isAfter(_clock());
+
+  Future<bool> adHalveExpedition(Expedition ex) async {
+    if (!canHalveExpedition(ex) || !await _watchAd('expedition_half')) {
+      return false;
+    }
+    final now = _clock();
+    final left = ex.returnAt.difference(now);
+    final done = ex.shortened(left ~/ 2, now, ad: 'half');
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid ? done : e,
+    ]);
+    await store.saveVitals(_vitals);
+    final who = ex.petName ?? _profile.spiritName;
+    unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), done.returnAt,
+        '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
+    await refreshVitals();
+    return true;
+  }
+
+  /// 원정 보상 두 배 (기본 보상만, 펫이 더 가져온 것은 빼고)
+  bool canDoubleExpedition(Expedition ex) =>
+      adsReady &&
+      ex.cleared == true &&
+      !isTutorialSpawn(ex.spawnId) &&
+      ex.baseReward.isNotEmpty &&
+      !ex.adUsed.contains('double');
+
+  Future<bool> adDoubleExpedition(Expedition ex) async {
+    if (!canDoubleExpedition(ex) || !await _watchAd('expedition_double')) {
+      return false;
+    }
+    final b = ex.baseReward;
+    final mats = <MaterialId, int>{
+      for (final e in b.entries)
+        if (Materials.byName(e.key) case final m?) m: e.value,
+    };
+    await _grant(b[Wallet.gold] ?? 0, b[Wallet.manaStone] ?? 0, mats);
+    final exp = b['exp'] ?? 0;
+    if (exp > 0) {
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          gains: {...today.gains, 'exp': (today.gains['exp'] ?? 0) + exp}));
+    }
+    _markAd(ex, 'double');
+    await store.saveVitals(_vitals);
+    notifyListeners();
+    return true;
+  }
+
+  /// 원정 한 번 더: 같은 몬스터 자리로 다시 보낸다 (MP 없이, 걸리는 시간은 같게)
+  bool canExpeditionAgain(Expedition ex) =>
+      adsReady &&
+      ex.finished &&
+      !isTutorialSpawn(ex.spawnId) &&
+      !ex.adUsed.contains('again');
+
+  Future<bool> adExpeditionAgain(Expedition ex) async {
+    if (!canExpeditionAgain(ex) || !await _watchAd('expedition_again')) {
+      return false;
+    }
+    final now = _clock();
+    final oneWay = ex.arriveAt.difference(ex.startedAt);
+    final again = Expedition(
+      spawnId: '${ex.spawnId}~${now.millisecondsSinceEpoch}',
+      monster: ex.monster,
+      mods: ex.mods,
+      lat: ex.lat,
+      lng: ex.lng,
+      fromLat: ex.fromLat,
+      fromLng: ex.fromLng,
+      distanceM: ex.distanceM,
+      mpCost: 0,
+      startedAt: now,
+      arriveAt: now.add(oneWay),
+      returnAt: now.add(oneWay * 2),
+      route: ex.route,
+      petUid: ex.petUid,
+      petName: ex.petName,
+      adUsed: const {'again'},
+    );
+    // 결과를 받은 것으로 하고 새 원정을 보낸다
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        if (!(e.spawnId == ex.spawnId && e.petUid == ex.petUid)) e,
+      again,
+    ]);
+    await store.saveVitals(_vitals);
+    final who = ex.petName ?? _profile.spiritName;
+    unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), again.returnAt,
+        '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
+    notifyListeners();
+    return true;
+  }
+
+  void _markAd(Expedition ex, String ad) {
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid
+            ? e.copy(adUsed: {...e.adUsed, ad})
+            : e,
+    ]);
+  }
+
+  /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·MP가 바로 더 찬다)
+  bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
+
+  Future<bool> adShortenRest() async {
+    if (!canShortenRest || !await _watchAd('rest_shorten')) return false;
+    final at = _vitals.restStartedAt;
+    if (at == null) return false;
+    _vitals = _vitals.copyWith(
+        restStartedAt: at.subtract(const Duration(hours: 1)));
+    await store.saveVitals(_vitals);
+    unawaited(notifier?.schedule(
+      NotifyId.rest,
+      _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
+      '푹 쉬었어요',
+      'HP와 ${companionName}의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+    ));
+    await refreshVitals();
     return true;
   }
 
@@ -3924,7 +4084,18 @@ class AppController extends ChangeNotifier {
       'poisonTip': _poisonTipSeen,
       'petCodex': _petCodexSeen,
       'petCodexNotice': _petCodexAnnounced,
+      'adPersonal': _adPersonal,
     });
+    notifyListeners();
+  }
+
+  /// 맞춤형 광고 허용 (묶음 15 #103). null = 아직 묻지 않음 → 처음 광고 볼 때 묻는다
+  bool? _adPersonal;
+  bool? get adPersonal => _adPersonal;
+
+  Future<void> setAdPersonal(bool on) async {
+    _adPersonal = on;
+    await _saveFeel();
     notifyListeners();
   }
 
@@ -4275,6 +4446,7 @@ class AppController extends ChangeNotifier {
             mods: mods, count: battle.floors.length)
         : 0;
     var r = _lastReward;
+    final base = r; // 광고 두 배는 기본 보상만 (펫이 더 가져온 것 제외)
     if (cleared && pet != null) {
       // 호문쿨루스: 재료를 더 가져온다
       final extra = PetRules.extraMaterials(pet.species, _random,
@@ -4302,6 +4474,14 @@ class AppController extends ChangeNotifier {
                     if (r.manaStones > 0) Wallet.manaStone: r.manaStones,
                     if (r.gold > 0) Wallet.gold: r.gold,
                     for (final e in r.materials.entries) e.key.name: e.value,
+                  }
+                : const {},
+            baseReward: cleared
+                ? {
+                    if (base.exp > 0) 'exp': base.exp,
+                    if (base.manaStones > 0) Wallet.manaStone: base.manaStones,
+                    if (base.gold > 0) Wallet.gold: base.gold,
+                    for (final e in base.materials.entries) e.key.name: e.value,
                   }
                 : const {});
     _vitals = _vitals.copyWith(expeditions: [

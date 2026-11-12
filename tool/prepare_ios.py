@@ -43,6 +43,12 @@ if os.environ.get("SNAP_APP_ID") and os.environ.get("SNAP_API_TOKEN"):
     info["NSMicrophoneUsageDescription"] = (
         "마법 돋보기의 렌즈 카메라에서 동영상을 찍을 때만 소리를 담아요. 소리를 따로 보내지 않아요.")
 
+# 묶음 15 #103 보상형 광고 (AdMob): 앱 ID 가 없으면 광고 SDK 가 앱을 멈추므로 언제나 넣는다.
+# 저장소 변수 ADMOB_APP_ID_IOS 가 없으면 Google 시험 앱 ID
+info["GADApplicationIdentifier"] = os.environ.get(
+    "ADMOB_APP_ID_IOS") or "ca-app-pub-3940256099942544~1458002511"
+info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"}]
+
 info_path.write_bytes(plistlib.dumps(info))
 
 # 2. HealthKit 권한 (entitlements)

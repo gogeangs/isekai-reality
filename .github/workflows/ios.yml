@@ -46,6 +46,11 @@ jobs:
       SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
       SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
       SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID }}
+      # 묶음 15 #103 AdMob (저장소 변수, 없으면 Google 시험 광고)
+      ADMOB_APP_ID_IOS: ${{ vars.ADMOB_APP_ID_IOS }}
+      ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
+      ADMOB_REWARDED_IOS: ${{ vars.ADMOB_REWARDED_IOS }}
+      ADMOB_REWARDED_ANDROID: ${{ vars.ADMOB_REWARDED_ANDROID }}
     steps:
       - name: 비밀값 확인
         id: check
@@ -114,6 +119,9 @@ jobs:
             --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
             --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
+            --dart-define=ADS_ON=1 \
+            --dart-define=ADMOB_REWARDED_IOS="${ADMOB_REWARDED_IOS:-ca-app-pub-3940256099942544/1712485313}" \
+            --dart-define=ADMOB_REWARDED_ANDROID="${ADMOB_REWARDED_ANDROID:-ca-app-pub-3940256099942544/5224354917}" \
             --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt
           exit ${PIPESTATUS[0]}
 

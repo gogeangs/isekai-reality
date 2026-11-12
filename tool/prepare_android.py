@@ -120,6 +120,11 @@ if "com.snap.camerakit.app.id" not in s:
     s = re.sub(r"(<application[^>]*>)", lambda m: m.group(1) + meta, s, count=1)
 if 'android:theme="@style/SnapAppCompat"' not in s:
     s = re.sub(r"<application", '<application android:theme="@style/SnapAppCompat"', s, count=1)
+# 묶음 15 #103 보상형 광고 (AdMob): 앱 ID 가 없으면 광고 SDK 가 앱을 멈추므로 언제나 넣는다
+admob_id = os.environ.get("ADMOB_APP_ID_ANDROID") or "ca-app-pub-3940256099942544~3347511713"
+if "com.google.android.gms.ads.APPLICATION_ID" not in s:
+    s = re.sub(r"(<application[^>]*>)", lambda m: m.group(1) + f"""
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="{admob_id}" />""", s, count=1)
 manifest.write_text(s)
 styles = app / "src" / "main" / "res" / "values" / "styles.xml"
 if styles.exists():

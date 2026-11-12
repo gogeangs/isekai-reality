@@ -23,10 +23,23 @@ class BagRules {
         _ => 1000 * (done - 2),
       };
 
-  /// 칸 수 (금화로 늘린 칸 + 나중에 다른 방법으로 늘린 칸)
-  static int capacity({int goldExpansions = 0, int extraSlots = 0}) =>
-      math.min(maxSlots,
-          baseSlots + goldExpansions * slotsPerExpansion + extraSlots);
+  /// 한 칸씩 열기 (묶음 15 #106): [opened] 칸 연 뒤 다음 한 칸 가격.
+  /// 80 → 100 → 130 → 170 → 220 → 280 … (오름폭이 10씩 커진다), 최대 2,000
+  static int slotCost(int opened) =>
+      math.min(2000, 80 + 5 * opened * opened + 15 * opened);
+
+  /// 광고로도 열 수 있는 칸 (한 칸씩 연 것 중 첫째·둘째)
+  static const int adSlots = 2;
+
+  /// 칸 수 (예전 5칸 묶음 + 한 칸씩 연 칸 + 다른 방법으로 늘린 칸)
+  static int capacity(
+          {int goldExpansions = 0, int extraSlots = 0, int singleSlots = 0}) =>
+      math.min(
+          maxSlots,
+          baseSlots +
+              goldExpansions * slotsPerExpansion +
+              extraSlots +
+              singleSlots);
 
   static int stacks(int n) => n <= 0 ? 0 : (n + stackMax - 1) ~/ stackMax;
 

@@ -112,6 +112,19 @@ class SettingsScreen extends StatelessWidget {
                         style: TextStyle(
                             color: AppColors.textMuted, fontSize: 12)),
                   ),
+                  // 묶음 15 #103: 맞춤형 광고 (광고가 켜진 빌드만)
+                  if (controller.adsReady)
+                    SwitchListTile(
+                      key: const Key('adPersonal'),
+                      contentPadding: EdgeInsets.zero,
+                      value: controller.adPersonal ?? false,
+                      onChanged: controller.setAdPersonal,
+                      title: const Text('맞춤형 광고',
+                          style: TextStyle(color: AppColors.text, fontSize: 14)),
+                      subtitle: const Text('내 관심사에 맞춘 광고를 보여 줘요',
+                          style: TextStyle(
+                              color: AppColors.textMuted, fontSize: 12)),
+                    ),
                   SwitchListTile(
                     key: const Key('feelSound'),
                     contentPadding: EdgeInsets.zero,

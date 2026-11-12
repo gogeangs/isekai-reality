@@ -661,8 +661,8 @@ Future<bool> confirmStopResting(BuildContext context) async {
     builder: (context) => GameAlert(
       title: Text('휴식을 멈출까요?', style: AppText.title(19)),
       content: const Text(
-        '여관에서 쉬는 중이에요. 지금 싸우면 휴식이 끝나고, '
-        '휴식 보상(HP·MP 가득, 보너스)은 받지 못해요.',
+        '여관에서 쉬는 중이에요. 지금 일어나면 그때까지 찬 HP·MP는 그대로 가지고 가고, '
+        '휴식 보너스는 받지 못해요.',
         style: TextStyle(color: AppColors.text, height: 1.4),
       ),
       actions: [

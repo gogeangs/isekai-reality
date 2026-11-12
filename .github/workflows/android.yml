@@ -47,6 +47,10 @@ jobs:
         run: flutter create --platforms android --org kr.itso --project-name isekai_reality .
 
       - name: 게임에 필요한 설정 넣기
+        env:
+          # #60 Snap Camera Kit: 출시용 승인 전까지는 시험용(Staging) 토큰
+          SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
+          SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
         run: |
           python3 -m pip install --quiet pillow
           python3 tool/prepare_android.py
@@ -54,6 +58,9 @@ jobs:
       - name: APK 만들기
         env:
           NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
+          SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
+          SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
+          SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID }}
         shell: bash
         run: |
           # 요즘 Android 휴대폰(64비트 ARM)용만 만들어 파일 크기를 줄인다
@@ -61,7 +68,10 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define=APP_BUILD=${{ github.run_number }} \
             --dart-define=APP_COMMIT=${{ github.sha }} \
-            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" 2>&1 | tee build-output.txt
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
+            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
+            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" 2>&1 | tee build-output.txt
           status=${PIPESTATUS[0]}
           [ $status -eq 0 ] && cp build/app/outputs/flutter-apk/app-release.apk isekai-reality.apk
           exit $status

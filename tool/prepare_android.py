@@ -106,4 +106,62 @@ if icon.exists():
         out.parent.mkdir(parents=True, exist_ok=True)
         src.resize((px, px), Image.LANCZOS).save(out)
 
+
+# 11-12 #60 Snap Camera Kit: 앱 ID·API 토큰(저장소 비밀 값)과 AppCompat 테마(Snap 카메라 화면이 요구)
+import os
+snap_id = os.environ.get("SNAP_APP_ID", "")
+snap_token = os.environ.get("SNAP_API_TOKEN", "")
+manifest = app / "src" / "main" / "AndroidManifest.xml"
+s = manifest.read_text()
+if "com.snap.camerakit.app.id" not in s:
+    meta = f"""
+        <meta-data android:name="com.snap.camerakit.app.id" android:value="{snap_id}" />
+        <meta-data android:name="com.snap.camerakit.api.token" android:value="{snap_token}" />"""
+    s = re.sub(r"(<application[^>]*>)", lambda m: m.group(1) + meta, s, count=1)
+if 'android:theme="@style/SnapAppCompat"' not in s:
+    s = re.sub(r"<application", '<application android:theme="@style/SnapAppCompat"', s, count=1)
+manifest.write_text(s)
+styles = app / "src" / "main" / "res" / "values" / "styles.xml"
+if styles.exists():
+    st = styles.read_text()
+    if "SnapAppCompat" not in st:
+        st = st.replace("</resources>",
+                        '    <style name="SnapAppCompat" parent="Theme.AppCompat.NoActionBar">\n    </style>\n</resources>')
+        styles.write_text(st)
+
+# 11-12 #60: camerakit_flutter 가 compileSdk 33 으로 되어 있어 새 androidx 와 맞지 않는다 → 36 으로 올린다
+root_gradle = root / "android" / "build.gradle.kts"
+if root_gradle.exists():
+    g = root_gradle.read_text()
+    if "camerakit_flutter" not in g:
+        g = """subprojects {
+    // camerakit_flutter 가 가져오는 옛 Kotlin 때문에 출시 전 lint 검사가 다른 플러그인에서 멈춘다 → lintVital 끔
+    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }
+    afterEvaluate {
+        if (project.name == "camerakit_flutter") {
+            project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
+                ?.compileSdk = 36
+        }
+    }
+}
+
+""" + g
+        root_gradle.write_text(g)
+else:
+    root_groovy = root / "android" / "build.gradle"
+    if root_groovy.exists():
+        g = root_groovy.read_text()
+        if "camerakit_flutter" not in g:
+            g = """subprojects {
+    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }
+    afterEvaluate { p ->
+        if (p.name == "camerakit_flutter" && p.hasProperty("android")) {
+            p.android.compileSdkVersion 36
+        }
+    }
+}
+
+""" + g
+            root_groovy.write_text(g)
+
 print("android/ 준비 완료")

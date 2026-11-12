@@ -41,6 +41,11 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
+      # #60 Snap Camera Kit: 출시용(Production)이 승인되기 전까지는 시험용(Staging, 워터마크)
+      SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
+      SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
+      SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
+      SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID }}
     steps:
       - name: 비밀값 확인
         id: check
@@ -105,7 +110,10 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define=APP_BUILD=${{ github.run_number }} \
             --dart-define=APP_COMMIT=${{ github.sha }} \
-            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" 2>&1 | tee build-output.txt
+            --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
+            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
+            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
+            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" 2>&1 | tee build-output.txt
           exit ${PIPESTATUS[0]}
 
       - name: 서명하고 TestFlight 로 올리기

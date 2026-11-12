@@ -10,6 +10,7 @@ import '../bulssi/spirit_art.dart';
 import '../town/bag_tab.dart' show openBag, BagFilter;
 import '../town/material_view.dart';
 import 'battle_view.dart';
+import 'hero_rig.dart';
 
 enum _Stage { entry, battle, result }
 
@@ -112,6 +113,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     sound: _c.sound,
                     hour: _c.now.hour,
                 season: SeasonRules.of(_c.now),
+                weapon: weaponKindOf(
+                    _c.armory.wornIn(EquipSlot.weapon)?.base),
                     fast: _c.fastBattle,
                     onFastChanged: _c.setFastBattle,
                     onAutoChanged: (hp, cure) =>

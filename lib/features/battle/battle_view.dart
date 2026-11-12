@@ -16,6 +16,7 @@ import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
+import 'hero_rig.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -41,7 +42,11 @@ class BattleView extends StatefulWidget {
     this.season,
     this.background,
     this.backgroundOf,
+    this.weapon,
   });
+
+  /// 입은 무기 종류 (#81 2단계: 부위 애니메이션 손에 든 무기·공격 동작). 없으면 맨손
+  final WeaponKind? weapon;
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
   final Color? aura;
@@ -447,6 +452,7 @@ class _BattleViewState extends State<BattleView> {
                 skill: _b.lastWasSkill || _b.lastBash,
                 petDash: _b.lastWasSkill,
                 look: widget.look,
+                weapon: widget.weapon,
                 beat: _beat,
                 beatDuration: _interval * 0.85,
                 warning: warning ? (_b.strongLabel ?? '강한 공격!') : null,
@@ -833,8 +839,10 @@ class _Scene extends StatefulWidget {
     this.hour,
     this.season,
     this.background,
+    this.weapon,
   });
 
+  final WeaponKind? weapon;
   final Color? aura;
   final bool crit;
   final bool superHit;
@@ -965,6 +973,34 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                   ? math.sin(hit * math.pi * 8) * (1 - hit) * 6
                   : 0.0;
 
+              // 부위 애니메이션 동작 (6가지)
+              final reduced =
+                  MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+              final guarding = !idle &&
+                  (widget.guard != null || widget.stance) &&
+                  t >= 0.45 &&
+                  t < 0.9;
+              final RigAction rigAction;
+              final double rigT;
+              if (cleared) {
+                rigAction = RigAction.victory;
+                rigT = 0;
+              } else if (widget.defeated) {
+                rigAction = RigAction.tired;
+                rigT = 0;
+              } else if (swinging) {
+                rigAction = RigAction.attack;
+                rigT = _seg(t, 0, 0.5);
+              } else if (guarding) {
+                rigAction = RigAction.guard;
+                rigT = _seg(t, 0.45, 0.9);
+              } else if (hurt > 0) {
+                rigAction = RigAction.hit;
+                rigT = _seg(t, 0.6, 0.85);
+              } else {
+                rigAction = RigAction.idle;
+                rigT = 0;
+              }
               final heroW = w * 0.5;
               final monSize = w * 0.38;
               final monLeft = w - monSize - w * 0.05 + shake - counter * w * 0.07;
@@ -1134,15 +1170,24 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                               alignment: Alignment.bottomCenter,
                               child: _tinted(
                                   widget.heroTint,
-                                  HeroSprite(
-                                      look: widget.look,
-                                      pose: cleared
-                                          ? HeroPose.victory
-                                          : widget.defeated
-                                              ? HeroPose.tired
-                                              : swinging
-                                                  ? HeroPose.attack
-                                                  : HeroPose.idle)),
+                                  // #81 2단계: 부위 애니메이션 (그림이 없으면 지금 통 그림)
+                                  HeroRig(
+                                    look: widget.look,
+                                    weapon: widget.weapon,
+                                    reduced: reduced,
+                                    action: rigAction,
+                                    t: rigT,
+                                    breath: t,
+                                    fallback: HeroSprite(
+                                        look: widget.look,
+                                        pose: cleared
+                                            ? HeroPose.victory
+                                            : widget.defeated
+                                                ? HeroPose.tired
+                                                : swinging
+                                                    ? HeroPose.attack
+                                                    : HeroPose.idle),
+                                  )),
                             ),
                           ),
                         ),

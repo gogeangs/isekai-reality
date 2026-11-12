@@ -13,6 +13,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
 import '../smithy/equipment_view.dart';
+import '../battle/hero_rig.dart';
 import '../battle/season_painter.dart';
 import 'stat_icon.dart';
 import '../battle/element_view.dart';
@@ -335,7 +336,10 @@ class _HeroArt extends StatelessWidget {
           right: 0,
           top: floorY - heroH,
           height: heroH,
-          child: Stack(alignment: Alignment.bottomCenter, children: [
+          // #81 2단계: 상태 화면은 서기(숨쉬기)만. 동작 줄이기면 멈춘 그림
+          child: BreathingHero(
+            enabled: !tired,
+            child: Stack(alignment: Alignment.bottomCenter, children: [
             ImageFiltered(
               imageFilter: ImageFilter.blur(
                   sigmaX: aura == null ? 6 : 12, sigmaY: aura == null ? 6 : 12),
@@ -356,6 +360,7 @@ class _HeroArt extends StatelessWidget {
                 semanticLabel: '기본 각성자',
                 errorBuilder: (_, __, ___) => const SizedBox()),
           ]),
+          ),
         ),
       ]);
     });

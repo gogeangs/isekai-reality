@@ -8,6 +8,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/material_view.dart';
 import 'battle_view.dart';
+import 'hero_rig.dart';
 import 'modifier_view.dart';
 
 /// 지도에서 만난 필드 몬스터를 정화하는 짧은 전투 (한 마리)
@@ -126,6 +127,8 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 sound: widget.controller.sound,
                 hour: widget.controller.now.hour,
                 season: SeasonRules.of(widget.controller.now),
+                weapon: weaponKindOf(
+                    widget.controller.armory.wornIn(EquipSlot.weapon)?.base),
                 background: fieldBackground(
                     widget.controller.landAt(widget.spawn.point)),
                 fast: widget.controller.fastBattle,

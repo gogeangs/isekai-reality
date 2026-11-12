@@ -76,7 +76,7 @@ jobs:
             echo '```'; cat size.csv; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "AAB=$AAB APK=$APK ASSETS=$ASSETS"
-          unzip -l build/app/outputs/flutter-apk/app-release.apk | sort -k1 -n -r | head -25
+          unzip -l build/app/outputs/flutter-apk/app-release.apk | sort -k1 -n -r | head -25 || true
 
   ios:
     runs-on: macos-latest
@@ -114,4 +114,5 @@ jobs:
             echo "- 압축했을 때(다운로드 크기에 가까움): $((ZIP/1000000)) MB"
             echo '```'; du -sk "$APP"/Frameworks/* "$APP"/Frameworks/App.framework/flutter_assets 2>/dev/null | sort -n -r | head -15; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          du -sk "$APP"/Frameworks/* | sort -n -r | head -20
+          echo "RUNNER_APP_KB=$SIZE ZIP_BYTES=$ZIP ASSETS_KB=$(du -sk "$APP"/Frameworks/App.framework/flutter_assets | cut -f1)"
+          du -sk "$APP"/Frameworks/* | sort -n -r | head -20 || true

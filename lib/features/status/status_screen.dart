@@ -610,7 +610,7 @@ class _StatsSection extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Row(children: [
                 for (final k in StatKind.values) ...[
-                  StatIcon(k, size: 15, color: AppColors.textMuted),
+                  StatIcon(k, size: 20, color: AppColors.textMuted),
                   const SizedBox(width: 2),
                   Text('${stats.of(k)}',
                       style: const TextStyle(

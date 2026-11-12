@@ -173,4 +173,47 @@ void main() {
     expect(find.byKey(const Key('levelUpArrow')), findsOneWidget);
     expect(find.text('Lv.2'), findsNothing); // 중복 Lv 명판 없음
   });
+
+  group('#141~#144 레벨에 따라 여는 기능', () {
+    test('새로 시작: Lv.1 에는 대장간·게시판·채집·돋보기 잠김, 튜토리얼은 연출부터', () async {
+      final store = InMemoryRecordStore();
+      final c = make(store);
+      await c.init();
+      await c.awaken(name: '하루', look: HeroLook.female);
+      expect(c.tutorialStep, TutorialStep.intro);
+      for (final f in Feature.values) {
+        expect(c.featureOpen(f), isFalse, reason: f.name);
+      }
+      expect(c.harvestSpots, isEmpty);
+      expect(c.shopItems.any((i) => i.item == ShopItem.raceLens), isFalse);
+      await c.finishIntro();
+      expect(c.tutorialStep, TutorialStep.hunt);
+    });
+
+    test('기존 사용자: 아무것도 잠그지 않고 안내도 띄우지 않는다', () async {
+      final store =
+          InMemoryRecordStore(profile: const PlayerProfile(name: '하루'));
+      final c = make(store);
+      await c.init();
+      for (final f in Feature.values) {
+        expect(c.featureOpen(f), isTrue, reason: f.name);
+      }
+      expect(c.pendingFeatureIntro, isNull);
+      expect(c.firstWeaponFree, isFalse);
+      expect(c.takeHpTip(), isFalse);
+    });
+
+    test('튜토리얼 동안 걸음 경험치는 모아 두고 Lv.1 에 머문다', () async {
+      final store = InMemoryRecordStore();
+      final c = make(store,
+          health: FakeHealthSource(stepsByDay: {'2026-11-13': 30000}));
+      await c.init();
+      await c.awaken(name: '하루', look: HeroLook.male);
+      expect(c.inTutorial, isTrue);
+      expect(c.player.level.level, 1);
+      final held = c.player.totalExp;
+      await c.skipTutorial();
+      expect(c.player.totalExp, greaterThanOrEqualTo(held));
+    });
+  });
 }

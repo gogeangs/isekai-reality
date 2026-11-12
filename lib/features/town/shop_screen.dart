@@ -58,7 +58,7 @@ class ShopScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -94,7 +94,7 @@ class ShopScreen extends StatelessWidget {
                       '${mpLabel(context)} ${controller.mp} / ${controller.mpMax}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: AppColors.text, fontSize: 13),
+                          color: AppColors.text, fontSize: 14),
                     ),
                   ]),
                 ),
@@ -233,11 +233,11 @@ class _ItemCard extends StatelessWidget {
                 Text(name ?? info.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.title(18, color: AppColors.text)),
+                    style: AppText.title(19, color: AppColors.text)),
                 const SizedBox(height: 3),
                 Text(description ?? info.description,
                     style: const TextStyle(
-                        color: AppColors.text, fontSize: 13, height: 1.35)),
+                        color: AppColors.text, fontSize: 14, height: 1.35)),
                 const SizedBox(height: 4),
                 Row(children: [
                   Container(
@@ -250,7 +250,7 @@ class _ItemCard extends StatelessWidget {
                     ),
                     child: Text(info.limitLabel,
                         style: const TextStyle(
-                            color: AppColors.gold, fontSize: 10)),
+                            color: AppColors.gold, fontSize: 12)),
                   ),
                   if (!ok) ...[
                     const SizedBox(width: 6),
@@ -275,7 +275,7 @@ class _ItemCard extends StatelessWidget {
               child: GoldButton(
                 label: '${info.price}',
                 height: 44,
-                fontSize: 17,
+                fontSize: 16,
                 onPressed: ok ? onBuy : null,
               ),
             ),
@@ -284,7 +284,7 @@ class _ItemCard extends StatelessWidget {
               GameIcon('gold', size: 14, fallback: Icons.monetization_on_rounded),
               SizedBox(width: 2),
               Text('금화',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ]),
           ]),
         ],
@@ -323,7 +323,7 @@ class _SellPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('마석 팔기',
-                      style: AppText.title(17, color: AppColors.text)),
+                      style: AppText.title(16, color: AppColors.text)),
                   const KText(
                       '1개에 금화 ${RuleConstants.goldPerManaStone}. '
                       '대장간에서도 쓰니 조금 남겨 두세요.',

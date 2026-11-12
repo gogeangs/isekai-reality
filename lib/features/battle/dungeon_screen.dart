@@ -80,7 +80,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       // 입장 화면의 '던전 열기'는 스크롤과 상관없이 화면 아래에 늘 보이게 고정한다
       bottomNavigationBar: _stage == _Stage.entry ? _entryButton() : null,
       body: NightBackground(
@@ -237,7 +237,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                       : '다음 열쇠 ${comma(gauge.stepsIntoNextKey)} / '
                           '${comma(gauge.stepsPerKey)}보',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.text, fontSize: 13),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14),
                 ),
               ),
               Text('전투력 ${comma(power)}',
@@ -251,7 +251,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
               const GameIcon('vitality', size: 18),
               const SizedBox(width: 6),
               Text('HP ${comma(hp)} / ${comma(maxHp)}',
-                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
               const SizedBox(width: 8),
               Expanded(
                 child: GlowBar(
@@ -321,7 +321,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
             const SizedBox(height: 4),
             Text(
               '보상: 클리어 $reward · 실패 ${RuleConstants.dungeonFailExp} 경험치',
-              style: const TextStyle(color: AppColors.goldBright, fontSize: 13),
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 14),
             ),
             Text(
               '오늘 연 던전 ${player.today?.dungeonRuns.length ?? 0} / '
@@ -343,7 +343,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x000F1233), Color(0xFF0F1233)],
+          colors: [Color(0x000F1233), AppColors.deepNight],
           stops: [0, 0.35],
         ),
       ),
@@ -505,7 +505,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     ? '도감에 새로 등록'
                     : '사냥한 몬스터',
                 textAlign: TextAlign.center,
-                style: AppText.title(17),
+                style: AppText.title(16),
               ),
               const SizedBox(height: 10),
               Row(
@@ -635,8 +635,8 @@ class _MonsterCard extends StatelessWidget {
             ),
             child: const Text('NEW',
                 style: TextStyle(
-                    color: Color(0xFF3A2208),
-                    fontSize: 10,
+                    color: AppColors.goldInk,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900)),
           )
         else
@@ -647,7 +647,7 @@ class _MonsterCard extends StatelessWidget {
             maxLines: 2,
             style: const TextStyle(
                 color: AppColors.text,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w700)),
       ]),
     );

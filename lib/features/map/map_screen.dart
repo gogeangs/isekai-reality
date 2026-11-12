@@ -304,7 +304,7 @@ class _BuffBar extends StatelessWidget {
                   Text(controller.buffLeftLabel(b).replaceAll(' 남음', ''),
                       style: const TextStyle(
                           color: AppColors.text,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700)),
                 ]),
               ),
@@ -336,7 +336,7 @@ class TiredBadge extends StatelessWidget {
             Text('지친 상태',
                 style: TextStyle(
                     color: Color(0xFFF7D2D2),
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700)),
           ]),
         ),
@@ -366,7 +366,7 @@ class DungeonStrip extends StatelessWidget {
         Text('열쇠 $keys',
             key: const Key('stripKeys'),
             style: const TextStyle(
-                color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
+                color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -380,7 +380,7 @@ class DungeonStrip extends StatelessWidget {
                       ? '오늘은 다 모았어요'
                       : '${comma(gauge.stepsIntoNextKey)} / ${comma(gauge.stepsPerKey)}보',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
         ),
@@ -393,7 +393,7 @@ class DungeonStrip extends StatelessWidget {
             padding: const WidgetStatePropertyAll(
                 EdgeInsets.symmetric(horizontal: 14)),
             textStyle: const WidgetStatePropertyAll(TextStyle(
-                fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 15)),
+                fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 14)),
             shadowColor: WidgetStatePropertyAll(AppColors.gold),
             elevation: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.disabled) ? 0 : 6),
@@ -437,7 +437,7 @@ class _DiscoveryCard extends StatelessWidget {
             KText('새 장소 발견! · ${place.name}',
                 style: const TextStyle(
                     color: AppColors.goldBright,
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             KText('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
@@ -500,7 +500,7 @@ class _MonsterCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w700)),
                 const KText('멈춰 선 다음 사냥해 주세요',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
               ],
             ),
           ),
@@ -543,12 +543,12 @@ class _ExploreSummary extends StatelessWidget {
             KText(
               '현재 위치 ${fix.point.lat.toStringAsFixed(4)}, '
               '${fix.point.lng.toStringAsFixed(4)}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
           KText(
             '오늘 남은 몬스터 ${controller.todaySpawns.length}마리 · '
             '가까이(${RuleConstants.fieldEncounterRadiusM.round()}m) 가면 만날 수 있어요',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
           ),
           const SizedBox(height: 12),
           _ExpeditionList(controller: controller),
@@ -739,7 +739,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             text: '원정 목표',
             textSize: 11,
             color: AppColors.goldBright,
-            haloColor: Color(0xFF0B0D26),
+            haloColor: AppColors.abyss,
           ),
         )..setOnTapListener((_) => _targetTapped(actives[i])),
       ],
@@ -779,7 +779,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           caption: NOverlayCaption(
             text: '떠돌이 상인 · ${c.merchantMinutesLeft}분',
             color: AppColors.goldBright,
-            haloColor: const Color(0xFF0B0D26),
+            haloColor: AppColors.abyss,
           ),
         )..setOnTapListener((_) {
             if (mounted) showMerchantSheet(context, c);
@@ -1008,7 +1008,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
                   .map((m) => ModifierRules.info(m).name)
                   .join(' '),
               color: modGradeColor(spawn.grade),
-              haloColor: const Color(0xFF0B0D26),
+              haloColor: AppColors.abyss,
             ),
     )..setOnTapListener((_) {
         if (mounted) showSpawnSheet(context, c, spawn);
@@ -1045,7 +1045,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         text: '●' * n,
         textSize: 12 * scale,
         color: AppColors.goldBright,
-        haloColor: const Color(0xFF0B0D26),
+        haloColor: AppColors.abyss,
       );
 
   /// 지금 줌에 맞춰 몬스터·채집 아이콘 크기를 바꾼다
@@ -1273,14 +1273,14 @@ class _ExpeditionList extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             KText('${c.farewellDone ? '펫' : '정령'} 원정 · MP ${c.mp} / ${c.mpMax}',
-                style: AppText.title(17)),
+                style: AppText.title(16)),
             const SizedBox(height: 4),
             Text(
               reachable.isEmpty
                   ? '근처에 남은 몬스터가 없어요.'
                   : '근처 몬스터 ${reachable.length}마리 · 가까운 곳부터 보여 드려요. '
                       '100m마다 MP ${RuleConstants.expeditionMpPer100m}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
             for (final s in reachable.take(5))
               ListTile(
@@ -1405,7 +1405,7 @@ class TutorialCard extends StatelessWidget {
               key: const Key('tutorialSkip'),
               onPressed: c.skipTutorial,
               child: const Text('건너뛰기',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ),
             const Spacer(),
             if (action != null)
@@ -1480,7 +1480,7 @@ class _IsekaiIntroState extends State<IsekaiIntro>
                       key: const Key('introNext'),
                       label: '어? 바로 옆에 뭔가 있어!',
                       height: 52,
-                      fontSize: 18,
+                      fontSize: 19,
                       onPressed:
                           textIn < 1 ? null : widget.controller.finishIntro,
                     ),

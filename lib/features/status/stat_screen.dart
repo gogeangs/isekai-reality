@@ -41,7 +41,7 @@ class _StatScreenState extends State<StatScreen> {
       builder: (d) => GameAlert(
         title: Text(
             cost == 0 ? '무료로 되돌릴까요?' : '금화 $cost으로 되돌릴까요?',
-            style: AppText.title(18, color: AppColors.text)),
+            style: AppText.title(19, color: AppColors.text)),
         content: const KText('포인트로 올린 스탯만 되돌려 다시 나눌 수 있어요.',
             style: TextStyle(color: AppColors.text)),
         actions: [
@@ -65,7 +65,7 @@ class _StatScreenState extends State<StatScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -94,10 +94,10 @@ class _StatScreenState extends State<StatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(children: [
-                        Text('남은 포인트', style: AppText.title(17)),
+                        Text('남은 포인트', style: AppText.title(16)),
                         const Spacer(),
                         Text('$left',
-                            style: AppText.title(24,
+                            style: AppText.title(22,
                                 color: left > 0
                                     ? AppColors.goldBright
                                     : AppColors.textMuted)),
@@ -257,7 +257,7 @@ class _StatRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(kind.label, style: AppText.title(18, color: AppColors.text)),
+          child: Text(kind.label, style: AppText.title(19, color: AppColors.text)),
         ),
         if (dividing) ...[
           IconButton(

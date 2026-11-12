@@ -198,7 +198,7 @@ class ConvertPanel extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
             children: [
               Text('${Materials.info(from).name} ${ConvertRules.exchangeCount}개를 무엇으로?',
-                  style: AppText.title(18)),
+                  style: AppText.title(19)),
               const SizedBox(height: 8),
               for (final to in targets)
                 if (ConvertRules.exchange(from, to) case final p?)
@@ -241,12 +241,12 @@ class _JobCard extends StatelessWidget {
           Row(children: [
             const GameIcon('convert_table', size: 36, fallback: Icons.science_rounded),
             const SizedBox(width: 8),
-            Text('변환대', style: AppText.title(17)),
+            Text('변환대', style: AppText.title(16)),
           ]),
           const SizedBox(height: 6),
           if (job == null)
             const KText('비어 있어요. 아래에서 변환을 골라 올려요. 한 번에 하나씩 해요.',
-                style: TextStyle(color: AppColors.text, fontSize: 13))
+                style: TextStyle(color: AppColors.text, fontSize: 14))
           else ...[
             KText(
                 '${ConvertKind.values.firstWhere((k) => k.name == job.kind, orElse: () => ConvertKind.upgrade).label} · '
@@ -255,7 +255,7 @@ class _JobCard extends StatelessWidget {
                     if (Materials.byName(e.key) case final m?)
                       '${Materials.info(m).name} ${e.value}',
                 ].join(' · ')}',
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 6),
             GlowBar(
               ratio: () {
@@ -312,7 +312,7 @@ class _Section extends StatelessWidget {
               childrenPadding: EdgeInsets.zero,
               iconColor: AppColors.goldBright,
               collapsedIconColor: AppColors.goldBright,
-              title: Text(title, style: AppText.title(17)),
+              title: Text(title, style: AppText.title(16)),
               subtitle: KText(note,
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
               children: children,
@@ -350,7 +350,7 @@ class _PlanRow extends StatelessWidget {
               children: [
                 Text(title, style: AppText.title(14, color: AppColors.text)),
                 KText(sub,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
             ),
           ),
@@ -361,7 +361,7 @@ class _PlanRow extends StatelessWidget {
               padding: const WidgetStatePropertyAll(
                   EdgeInsets.symmetric(horizontal: 10)),
               textStyle: const WidgetStatePropertyAll(TextStyle(
-                  fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 13)),
+                  fontFamily: 'Title', fontWeight: FontWeight.w700, fontSize: 14)),
             ),
             onPressed: onPressed,
             child: Text(label),
@@ -418,7 +418,7 @@ class LockedJobPanel extends StatelessWidget {
               const SizedBox(height: 4),
               for (final l in lines)
                 KText('· $l',
-                    style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+                    style: const TextStyle(color: AppColors.text, fontSize: 12)),
             ],
           ),
         ),

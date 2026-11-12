@@ -78,7 +78,7 @@ class _GlyphPainter extends CustomPainter {
       ..isAntiAlias = true
       ..style = PaintingStyle.stroke
       ..strokeWidth = s * 0.06
-      ..color = const Color(0xFF3A2208).withValues(alpha: dim ? 0.3 : 0.55);
+      ..color = AppColors.goldInk.withValues(alpha: dim ? 0.3 : 0.55);
     final line = Paint()
       ..isAntiAlias = true
       ..style = PaintingStyle.stroke
@@ -118,7 +118,7 @@ class _GlyphPainter extends CustomPainter {
           ..lineTo(s * 0.74, s * 0.5)
           ..lineTo(s * 0.38, s * 0.72)
           ..close();
-        canvas.drawPath(p, Paint()..color = const Color(0xFF3A2208));
+        canvas.drawPath(p, Paint()..color = AppColors.goldInk);
       case Glyph.warn:
         final p = Path()
           ..moveTo(s * 0.5, s * 0.06)
@@ -129,13 +129,13 @@ class _GlyphPainter extends CustomPainter {
           ..drawPath(p, fill)
           ..drawPath(p, edge);
         final ink = Paint()
-          ..color = const Color(0xFF3A2208)
+          ..color = AppColors.goldInk
           ..strokeWidth = s * 0.12
           ..strokeCap = StrokeCap.round;
         canvas
           ..drawLine(Offset(s * 0.5, s * 0.36), Offset(s * 0.5, s * 0.6), ink)
           ..drawCircle(Offset(s * 0.5, s * 0.76), s * 0.06,
-              Paint()..color = const Color(0xFF3A2208));
+              Paint()..color = AppColors.goldInk);
       case Glyph.sparkle:
         final c = Offset(s / 2, s / 2);
         final p = Path();

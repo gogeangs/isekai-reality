@@ -57,7 +57,12 @@ class IsekaiRealityApp extends StatelessWidget {
       ),
       // 정령 종류·이름·빛 색은 모든 화면(밀어 올린 화면 포함)에서 같아야 해서
       // 내비게이터 바깥에서 한 번 감싼다
-      builder: (context, child) => ListenableBuilder(
+      // 묶음 16 #132: 휴대폰 글자 크기 설정은 1.3배까지만 따른다
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+            textScaler: MediaQuery.textScalerOf(context)
+                .clamp(minScaleFactor: 1, maxScaleFactor: 1.3)),
+        child: ListenableBuilder(
         listenable: controller,
         builder: (context, _) => BulssiScope(
           mood: controller.bulssiMood,
@@ -84,6 +89,7 @@ class IsekaiRealityApp extends StatelessWidget {
           ]),
           ),
         ),
+      ),
       ),
       home: HomeShell(controller: controller),
     );
@@ -337,7 +343,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           context: context,
           builder: (d) => GameAlert(
             title: Text('${c.firstSpiritName}의 편지 · ${letter.title}',
-                style: AppText.title(18)),
+                style: AppText.title(19)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               // 정령의 편지 그림 (없으면 글만)
               Image.asset('assets/images/letter_spirit.png',
@@ -393,7 +399,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         final open = await showDialog<bool>(
           context: context,
           builder: (d) => GameAlert(
-            title: Text('길가에서 반짝이는 것을 발견했어!', style: AppText.title(18)),
+            title: Text('길가에서 반짝이는 것을 발견했어!', style: AppText.title(19)),
             content: const KText('30분 안에 열어 보면 받을 수 있어요.',
                 style: TextStyle(color: AppColors.text)),
             actions: [
@@ -590,7 +596,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         if (!controller.ready) {
           // 시작 화면 (불러오는 동안)
           return Scaffold(
-            backgroundColor: const Color(0xFF0F1233),
+            backgroundColor: AppColors.deepNight,
             body: Stack(fit: StackFit.expand, children: [
               Image.asset('assets/images/splash.jpg',
                   fit: BoxFit.cover,
@@ -752,7 +758,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               right: 12,
               child: SettingsButton(
                 onTap: () => push(Scaffold(
-                  backgroundColor: const Color(0xFF0F1233),
+                  backgroundColor: AppColors.deepNight,
                   body: NightBackground(
                     header: true,
                     child: Builder(
@@ -766,7 +772,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               ),
             ),
           ]),
-          backgroundColor: const Color(0xFF0F1233),
+          backgroundColor: AppColors.deepNight,
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
             // 튜토리얼 동안 다른 탭은 어둡게, 단계마다 하나씩 (묶음 16 #125)
@@ -849,7 +855,7 @@ class OrnateNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF0F1233),
+        color: AppColors.deepNight,
       ),
       child: SafeArea(
         top: false,

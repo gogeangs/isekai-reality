@@ -128,7 +128,7 @@ class MaterialIcon extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0xFF1E2250),
+          color: AppColors.chipBg,
           border: Border.all(
               color: info.rare ? AppColors.goldBright : AppColors.gold,
               width: info.rare ? 2 : 1),
@@ -205,7 +205,7 @@ class MaterialGrid extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 12),
         child: KText('아직 재료가 없어요. 몬스터를 사냥하면 떨어뜨려요.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
       );
     }
     final ids = [
@@ -231,12 +231,12 @@ class MaterialGrid extends StatelessWidget {
                         color: Materials.info(id).rare
                             ? AppColors.goldBright
                             : AppColors.text,
-                        fontSize: 11,
+                        fontSize: 12,
                         height: 1.2)),
                 Text('× ${materials[id]}',
                     style: const TextStyle(
                         color: AppColors.textMuted,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700)),
               ]),
             ),
@@ -302,7 +302,7 @@ class RewardItems extends StatelessWidget {
                 height: 52,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161A44),
+                  color: AppColors.slotBg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                       color: rare
@@ -318,7 +318,7 @@ class RewardItems extends StatelessWidget {
                     child: Text(count,
                         style: const TextStyle(
                             color: AppColors.text,
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             shadows: [Shadow(blurRadius: 3)])),
                   ),
@@ -330,7 +330,7 @@ class RewardItems extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 11)),
+                      color: AppColors.textMuted, fontSize: 12)),
             ]),
           ),
       ],

@@ -41,7 +41,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -190,7 +190,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
             const SizedBox(height: 10),
             EquipName(item, size: 18),
             const SizedBox(height: 4),
-            ItemStats(item, fontSize: 13),
+            ItemStats(item, fontSize: 14),
             const SizedBox(height: 6),
             const KText('가방에서 입을 수 있어요.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -242,14 +242,14 @@ class _SmithyScreenState extends State<SmithyScreen> {
         child: KText(
             '+${item.enhance} → +$to · 성공 $chance%\n'
             '마석 ${cost.manaStones} · 금화 ${cost.gold}',
-            style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+            style: const TextStyle(color: AppColors.text, fontSize: 12)),
       ),
       SizedBox(
         width: 96,
         child: GoldButton(
           label: '강화',
           height: 40,
-          fontSize: 15,
+          fontSize: 14,
           onPressed: check == CraftCheck.ok
               ? () async {
                   final ok = await c.enhance(item.uid);
@@ -378,7 +378,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                               style: const TextStyle(color: AppColors.text)),
                           subtitle: Text(cost(a, e),
                               style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 11.5)),
+                                  color: AppColors.textMuted, fontSize: 12)),
                           trailing: TextButton(
                             key: Key('smith_${a.name}_${e.name}'),
                             onPressed: can(a, e) ? () => run(a, to: e) : null,
@@ -427,10 +427,10 @@ class _SmithyScreenState extends State<SmithyScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(SmithAction.upgrade.label, style: AppText.title(15)),
+                                Text(SmithAction.upgrade.label, style: AppText.title(14)),
                                 KText(cost(SmithAction.upgrade, el),
                                     style: const TextStyle(
-                                        color: AppColors.textMuted, fontSize: 11.5)),
+                                        color: AppColors.textMuted, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -449,11 +449,11 @@ class _SmithyScreenState extends State<SmithyScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(SmithAction.extract.label, style: AppText.title(15)),
+                                Text(SmithAction.extract.label, style: AppText.title(14)),
                                 KText(
                                     '${cost(SmithAction.extract, el)} · 빛나는 코어 1개를 돌려받고 무속성이 돼요 (강화한 빛은 사라져요)',
                                     style: const TextStyle(
-                                        color: AppColors.textMuted, fontSize: 11.5)),
+                                        color: AppColors.textMuted, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -496,7 +496,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
       context: context,
       builder: (d) => GameAlert(
         title: Text('${josa(item.name, '을/를')} 분해할까요?',
-            style: AppText.title(18, color: AppColors.text)),
+            style: AppText.title(19, color: AppColors.text)),
         content: KText('돌려받는 것: $list\n분해한 장비는 되돌릴 수 없어요.',
             style: const TextStyle(color: AppColors.text)),
         actions: [
@@ -541,7 +541,7 @@ class _TabButton extends StatelessWidget {
             child: Text(label,
                 maxLines: 1,
                 style: TextStyle(
-                    color: selected ? const Color(0xFF3A2208) : AppColors.text,
+                    color: selected ? AppColors.goldInk : AppColors.text,
                     fontWeight: FontWeight.w800,
                     fontSize: 14)),
           ),
@@ -598,7 +598,7 @@ class _RecipeCard extends StatelessWidget {
             Text('$name $have/$n',
                 style: TextStyle(
                     color: have >= n ? AppColors.text : const Color(0xFFE5A0A0),
-                    fontSize: 11.5,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600)),
           ]),
         );
@@ -613,7 +613,7 @@ class _RecipeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(info.name, style: AppText.title(17, color: AppColors.text)),
+                  Text(info.name, style: AppText.title(16, color: AppColors.text)),
                   Text(
                       '${EquipmentRules.slotLabel(info.slot)} · ${info.statLabel}'
                       '${info.job == null ? '' : ' · 어울리는 직업 ${info.job}'}',
@@ -650,7 +650,7 @@ class _RecipeCard extends StatelessWidget {
               child: GoldButton(
                 label: '만들기',
                 height: 40,
-                fontSize: 15,
+                fontSize: 14,
                 onPressed: check == CraftCheck.ok ? onCraft : null,
               ),
             ),
@@ -693,7 +693,7 @@ class _ItemCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         const Text('입는 중',
                             style: TextStyle(
-                                color: AppColors.goldBright, fontSize: 11)),
+                                color: AppColors.goldBright, fontSize: 12)),
                       ],
                     ]),
                     ItemStats(item, fontSize: 12),

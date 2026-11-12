@@ -16,4 +16,14 @@ class AppColors {
   static const Color gauge = Color(0xFFF0A93B); // 던전 게이지
   static const Color mana = Color(0xFF5FA8F0); // MP · 수면
   static const Color track = Color(0xFF2C3360);
+  // 묶음 16 #135: 여러 화면에서 같이 쓰던 색 (모양은 그대로)
+  static const Color deepNight = Color(0xFF0F1233);
+  static const Color goldInk = Color(0xFF3A2208);
+  static const Color abyss = Color(0xFF0B0D26);
+  static const Color chipBg = Color(0xFF1E2250);
+  static const Color danger = Color(0xFFE57373);
+  static const Color alert = Color(0xFFE5484D);
+  static const Color slotBg = Color(0xFF161A44);
+  static const Color cardBg = Color(0xCC12153A);
+
 }

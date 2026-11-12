@@ -165,7 +165,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       spiritName: _spiritName,
       kind: _spirit,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F1233),
+        backgroundColor: AppColors.deepNight,
         body: switch (_stage) {
           _Stage.intro => _buildIntro(),
           _Stage.spirit => _buildSpiritPick(),
@@ -269,7 +269,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               color: AppColors.text,
-                              fontSize: 15,
+                              fontSize: 14,
                               height: 1.45)),
                     ]),
                 ],
@@ -368,7 +368,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       controller: controller,
       maxLength: max,
       onChanged: (_) => setState(() {}),
-      style: const TextStyle(color: AppColors.text, fontSize: 18),
+      style: const TextStyle(color: AppColors.text, fontSize: 19),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: AppColors.textMuted),
@@ -444,7 +444,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFF0B0D26), Color(0xFF0B0D26), Color(0x000B0D26)],
+                  colors: [AppColors.abyss, AppColors.abyss, Color(0x000B0D26)],
                   stops: [0, 0.4, 1],
                 ),
               ),
@@ -518,13 +518,13 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           if (ask) ...[
             const SizedBox(height: 8),
             const Text('올해 생일이 지났나요?',
-                style: TextStyle(color: AppColors.text, fontSize: 13.5)),
+                style: TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 4),
             Wrap(spacing: 8, children: [chip('지났어요', true), chip('아직이에요', false)]),
           ],
           const SizedBox(height: 4),
           const Text('태어난 해는 나이 확인에만 쓰고 저장하지 않아요.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ],
       ),
     );
@@ -583,7 +583,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                           child: Text('${doc.title} 보기 ›',
                               style: const TextStyle(
                                   color: AppColors.gold,
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   decoration: TextDecoration.underline,
                                   decorationColor: AppColors.gold)),
@@ -695,7 +695,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                       Text('각성자', style: AppText.title(22)),
                       const Text('당신의 진짜 모습이 곧 깨어날 거예요…',
                           style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 13)),
+                              color: AppColors.textMuted, fontSize: 14)),
                     ]),
                   ),
                 ),
@@ -817,7 +817,7 @@ class _LookCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(label,
-                  style: AppText.title(20,
+                  style: AppText.title(19,
                       color: selected ? AppColors.goldBright : AppColors.text)),
             ]),
           ),
@@ -962,7 +962,7 @@ class _DialogBox extends StatelessWidget {
         children: [
           if (!monologue) ...[
             Text(speaker!,
-                style: AppText.title(15, color: AppColors.goldBright)),
+                style: AppText.title(14, color: AppColors.goldBright)),
             const SizedBox(height: 4),
           ],
           // 한 글자씩
@@ -1042,7 +1042,7 @@ class AgeBlockedView extends StatelessWidget {
                   size: 48, color: AppColors.goldBright),
               const SizedBox(height: 10),
               Text(AgeRules.blockedLine,
-                  textAlign: TextAlign.center, style: AppText.title(20)),
+                  textAlign: TextAlign.center, style: AppText.title(19)),
               const SizedBox(height: 8),
               const Text('「이세계가 현실이라면?」은 만 14세 이상만 이용할 수 있어요.\n'
                   '조금 더 자란 뒤에 다시 만나요!',

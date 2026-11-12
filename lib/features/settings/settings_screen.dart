@@ -91,7 +91,7 @@ class SettingsScreen extends StatelessWidget {
                           selected: controller.fastBattle == fast,
                           onSelected: (_) => controller.setFastBattle(fast),
                           selectedColor: AppColors.gold,
-                          backgroundColor: const Color(0xFF1E2250),
+                          backgroundColor: AppColors.chipBg,
                           labelStyle: TextStyle(
                               color: controller.fastBattle == fast
                                   ? AppColors.night
@@ -285,7 +285,7 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFE57373)),
+                foregroundColor: AppColors.danger),
             child: const Text('모두 지우기'),
           ),
         ],
@@ -316,7 +316,7 @@ class _Section extends StatelessWidget {
        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: AppText.title(18)),
+          Text(title, style: AppText.title(19)),
           const SizedBox(height: 10),
           ...children,
         ],
@@ -335,7 +335,7 @@ class _Note extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 2),
         child: Text(keepAll(text),
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
       );
 }
 
@@ -362,7 +362,7 @@ class _Row extends StatelessWidget {
           Expanded(
             child: Text(label,
                 style: TextStyle(
-                    color: danger ? const Color(0xFFE57373) : AppColors.text)),
+                    color: danger ? AppColors.danger : AppColors.text)),
           ),
           Text(value, style: const TextStyle(color: AppColors.textMuted)),
           if (onTap != null)

@@ -251,7 +251,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0D26),
+      backgroundColor: AppColors.abyss,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: c,
@@ -276,7 +276,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.text),
           ),
-          Text('마법 돋보기', style: AppText.title(20)),
+          Text('마법 돋보기', style: AppText.title(19)),
           const Spacer(),
           // 11-11 #97: 도감 「종족」 대신 감정 앨범
           TextButton.icon(
@@ -291,7 +291,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E2250),
+              color: AppColors.chipBg,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
             ),
@@ -338,7 +338,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             const SizedBox(height: 12),
             KText(_error ?? '카메라를 켜지 못했어요.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.text, fontSize: 15)),
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 14),
             FrameButton(
                 label: '휴대폰 설정 열기',
@@ -418,7 +418,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                   '얼굴 인식은 휴대폰 안에서만 해요 · 오늘 보상 남은 횟수 ${c.lensRewardsLeft}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 11.5)),
+                      color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 10),
               GoldButton(
                 key: const Key('appraise'),
@@ -431,7 +431,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         );
       case _Phase.appraising:
         return Text('감정 중…',
-            textAlign: TextAlign.center, style: AppText.title(20));
+            textAlign: TextAlign.center, style: AppText.title(19));
       case _Phase.reveal:
         return GoldButton(
           key: const Key('lensToFilter'),
@@ -461,7 +461,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             child: Text(PhotoFrame.raceLine(_races ?? const []),
                 textAlign: TextAlign.center,
                 maxLines: 2,
-                style: AppText.title(15)),
+                style: AppText.title(14)),
           ),
         ]);
         if (!snap) return row;
@@ -509,7 +509,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
           ),
           const Text('감정 사진은 이 휴대폰 안 「감정 앨범」에만 남아요. 앱을 지우면 사라질 수 있어요.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]);
     }
   }
@@ -607,13 +607,13 @@ class _RevealPanel extends StatelessWidget {
                       KText(LensRules.info(race).line,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              color: AppColors.text, fontSize: 13.5)),
+                              color: AppColors.text, fontSize: 14)),
                       const SizedBox(height: 8),
                     ],
                     for (final line in rewards)
                       KText('· $line',
                           style: const TextStyle(
-                              color: AppColors.goldBright, fontSize: 12.5)),
+                              color: AppColors.goldBright, fontSize: 12)),
                   ],
                 ),
               ),
@@ -667,7 +667,7 @@ class _AppraisePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size,
-        Paint()..color = const Color(0xFF0B0D26).withValues(alpha: 0.25 * t));
+        Paint()..color = AppColors.abyss.withValues(alpha: 0.25 * t));
     const gold = AppColors.goldBright;
     for (final f in faces) {
       final c = Offset(f.box.center.dx * size.width, f.box.center.dy * size.height);

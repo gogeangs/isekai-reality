@@ -295,7 +295,7 @@ class _BattleViewState extends State<BattleView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text('물약 (${_b.potionsDrunk} / ${AlchemyRules.perBattle})',
-                      style: AppText.title(18)),
+                      style: AppText.title(19)),
                   for (final p in _b.potions.values)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -523,7 +523,7 @@ class _BattleViewState extends State<BattleView> {
                                     color: _autoOn
                                         ? AppColors.goldBright
                                         : AppColors.textMuted,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700)),
                           ),
                         ),
@@ -604,7 +604,7 @@ class _BattleViewState extends State<BattleView> {
                             Flexible(
                               child: Text(
                                   '${_b.purified.length} / ${_b.floors.length}',
-                                  style: AppText.title(20,
+                                  style: AppText.title(19,
                                       color: AppColors.text)),
                             ),
                           ]),
@@ -636,7 +636,7 @@ class _BattleViewState extends State<BattleView> {
                                             color: _fast
                                                 ? AppColors.goldBright
                                                 : AppColors.textMuted,
-                                            fontSize: 13,
+                                            fontSize: 14,
                                             fontWeight: FontWeight.w700)),
                                   ]),
                             ),
@@ -698,7 +698,7 @@ class _BattleViewState extends State<BattleView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('중독됐어요!', style: AppText.title(18)),
+                Text('중독됐어요!', style: AppText.title(19)),
                 const SizedBox(height: 6),
                 Text(
                     a != null
@@ -807,7 +807,7 @@ class _MiniSkill extends StatelessWidget {
                 softWrap: false,
                 style: TextStyle(
                     color: lit ? AppColors.goldBright : AppColors.textMuted,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700)),
           ],
         ),
@@ -1546,7 +1546,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                       style: AppText.title(14,
                                           color: const Color(0xFFFF8A65))),
                                   Text(foe.name,
-                                      style: AppText.title(24,
+                                      style: AppText.title(22,
                                           color: AppColors.goldBright)),
                                 ]),
                               ),
@@ -1573,7 +1573,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                     : AppColors.gold.withValues(alpha: 0.8)),
                           ),
                           child: Text(widget.floorLabel,
-                              style: AppText.title(17,
+                              style: AppText.title(16,
                                   color: foe.isBoss
                                       ? AppColors.gauge
                                       : AppColors.goldBright)),
@@ -1794,14 +1794,14 @@ class _HpColumn extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: nameColor,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700)),
             ),
             if (note != null) ...[
               const SizedBox(width: 6),
               Text(note!,
                   style:
-                      const TextStyle(color: Color(0xFFE57373), fontSize: 12)),
+                      const TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
           ],
         ),
@@ -1810,7 +1810,7 @@ class _HpColumn extends StatelessWidget {
             ratio: maxHp == 0 ? 0 : hp / maxHp, colors: colors, height: 11),
         const SizedBox(height: 3),
         Text('HP ${comma(hp)} / ${comma(maxHp)}',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
       ],
     );
   }
@@ -1900,7 +1900,7 @@ class _SkillOrb extends StatelessWidget {
                   : ready
                       ? skillLabel(context)
                       : '충전 중',
-              style: AppText.title(15,
+              style: AppText.title(14,
                   color: ready ? AppColors.goldBright : AppColors.textMuted)),
         ),
       ],

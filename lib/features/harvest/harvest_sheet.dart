@@ -81,12 +81,12 @@ class HarvestSheet extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(info.name, style: AppText.title(20)),
+                          Text(info.name, style: AppText.title(19)),
                           const SizedBox(height: 2),
                           Row(children: [
                             const Text('남은 횟수 ',
                                 style: TextStyle(
-                                    color: AppColors.goldBright, fontSize: 13)),
+                                    color: AppColors.goldBright, fontSize: 14)),
                             GlyphDots(
                                 filled: charges,
                                 total: HarvestRules.maxCharges,
@@ -97,7 +97,7 @@ class HarvestSheet extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                         color: AppColors.goldBright,
-                                        fontSize: 13)),
+                                        fontSize: 14)),
                               ),
                           ]),
                           Text(
@@ -125,7 +125,7 @@ class HarvestSheet extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(harvestReason(quick),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     ),
                   const SizedBox(height: 10),
                   Opacity(
@@ -151,7 +151,7 @@ class HarvestSheet extends StatelessWidget {
                           ? '${c.toolTier(info.tool).label} ${info.toolName} 내구도 $dur / ${c.toolMaxOf(info.tool)} · 잘하면 더 많이, 귀한 재료도 잘 나와요'
                           : harvestReason(game),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 ],
               ),
             ),
@@ -178,14 +178,14 @@ class ToolRepairPanel extends StatelessWidget {
       context: context,
       builder: (d) => GameAlert(
         title: Text('${HarvestRules.toolName(t)}에 속성 입히기',
-            style: AppText.title(18)),
+            style: AppText.title(19)),
         content: options.isEmpty
             ? const KText('빛나는 속성 코어가 있어야 해요. 공방 「가공」에서 만들 수 있어요.',
                 style: TextStyle(color: AppColors.text))
             : Column(mainAxisSize: MainAxisSize.min, children: [
                 const KText(
                     '빛나는 속성 코어 1개 + 금화 ${EquipmentRules.imbueGold}. 그 속성의 귀한 재료가 더 잘 나와요.',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 8),
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   for (final e in options)

@@ -70,7 +70,7 @@ class _AutoUseWindowState extends State<_AutoUseWindow> {
                 selected: _hp == v,
                 onSelected: (_) => _set(hp: v),
                 selectedColor: AppColors.gold,
-                backgroundColor: const Color(0xFF1E2250),
+                backgroundColor: AppColors.chipBg,
                 labelStyle: TextStyle(
                     color: _hp == v ? AppColors.night : AppColors.text,
                     fontWeight: FontWeight.w700),

@@ -86,7 +86,7 @@ class SellSheet extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('가방 물건 팔기', style: AppText.title(20)),
+                  Text('가방 물건 팔기', style: AppText.title(19)),
                   const SizedBox(height: 2),
                   const KText('입고 있는 장비는 팔 수 없어요.',
                       style:
@@ -122,7 +122,7 @@ class SellSheet extends StatelessWidget {
                                       _ => Text(bagEntryName(e, controller),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: AppText.title(15,
+                                          style: AppText.title(14,
                                               color: AppColors.text)),
                                     },
                                     Text(

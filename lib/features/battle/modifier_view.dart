@@ -62,7 +62,7 @@ class _ModRow extends StatelessWidget {
           ),
           child: Text(ModifierRules.gradeLabel(info.grade),
               style: TextStyle(
-                  color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+                  color: color, fontSize: 12, fontWeight: FontWeight.w700)),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -76,7 +76,7 @@ class _ModRow extends StatelessWidget {
                       fontWeight: FontWeight.w800)),
               TextSpan(
                   text: info.behavior,
-                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
             ]),
           ),
         ),

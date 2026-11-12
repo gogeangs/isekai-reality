@@ -29,7 +29,7 @@ class LegalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         child: FutureBuilder<String>(
           future: rootBundle.loadString(doc.asset),

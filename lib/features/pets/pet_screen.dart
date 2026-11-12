@@ -21,7 +21,7 @@ class PetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -40,7 +40,7 @@ class PetScreen extends StatelessWidget {
                     '펫 ${pets.length} / ${PetRules.maxPets} · '
                     '공용 MP ${c.mp} / ${c.mpMax} (시간당 +${c.mpRegenPerHour})'
                     '${c.pets.eggs.isEmpty ? '' : ' · 가방에 알 ${c.pets.eggs.length}개'}',
-                    style: const TextStyle(color: AppColors.text, fontSize: 13.5),
+                    style: const TextStyle(color: AppColors.text, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -167,7 +167,7 @@ class _PetCard extends StatelessWidget {
                       '${info.name} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
                       '${companion ? ' · 동행' : ''}${away ? ' · 원정 중' : ''}',
                       style: const TextStyle(
-                          color: AppColors.goldBright, fontSize: 12.5)),
+                          color: AppColors.goldBright, fontSize: 12)),
                   const SizedBox(height: 4),
                   GlowBar(
                       ratio: maxed ? 1 : (into / need).clamp(0.0, 1.0),
@@ -179,7 +179,7 @@ class _PetCard extends StatelessWidget {
                           ? '최고 레벨'
                           : '경험치 $into / $need · 친밀도 ${pet.bond}${pet.bond >= PetRules.maxBond ? ' (단짝)' : ''}',
                       style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 11.5)),
+                          color: AppColors.textMuted, fontSize: 12)),
                 ],
               ),
             ),
@@ -189,7 +189,7 @@ class _PetCard extends StatelessWidget {
               '원정 특기 · ${pet.adult ? info.specialAdult : info.special}\n'
               '던전 스킬 · ${info.skillName}: ${pet.adult ? info.skillTextAdult : info.skillText}'
               '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요.'}',
-              style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+              style: const TextStyle(color: AppColors.text, fontSize: 12)),
           const SizedBox(height: 8),
           Row(children: [
             if (!companion)
@@ -276,7 +276,7 @@ Future<void> _showFeed(BuildContext context, AppController c, Pet pet) =>
                               ? '경험치 +${PetRules.expRareFood}'
                               : '경험치 +${PetRules.expCommonFood}',
                           style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 11.5)),
+                              color: AppColors.textMuted, fontSize: 12)),
                       trailing: TextButton(
                         onPressed: () => c.feedMaterial(pet.uid, e.key),
                         child: const Text('주기'),

@@ -429,7 +429,7 @@ class _GearSlot extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: const Color(0xCC12153A),
+            color: AppColors.cardBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
                 color: color.withValues(alpha: it == null ? 0.45 : 0.95),
@@ -486,7 +486,7 @@ class _RestLine extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: const Color(0xCC12153A),
+          color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
         ),
@@ -497,7 +497,7 @@ class _RestLine extends StatelessWidget {
             child: Text(text,
                 style: const TextStyle(
                     color: AppColors.text,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600)),
           ),
         ]),
@@ -602,7 +602,7 @@ class _LevelLine extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: AppColors.text,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600)),
         ),
         const SizedBox(width: 10),
@@ -669,7 +669,7 @@ class _StatsSection extends StatelessWidget {
                   Text('${stats.of(k)}',
                       style: const TextStyle(
                           color: AppColors.text,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700)),
                   if (k != StatKind.values.last) const SizedBox(width: 7),
                 ],
@@ -685,7 +685,7 @@ class _StatsSection extends StatelessWidget {
                     size: 15, color: AppColors.textMuted),
                 SizedBox(width: 2),
                 Text('Lv.2',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
               ]),
             )
           else if (unspent > 0)
@@ -693,13 +693,13 @@ class _StatsSection extends StatelessWidget {
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5484D),
+                color: AppColors.alert,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text('+$unspent',
                   style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800)),
             ),
           if (!locked)
@@ -719,7 +719,7 @@ class _Dot extends StatelessWidget {
         width: 9,
         height: 9,
         decoration: BoxDecoration(
-          color: const Color(0xFFE5484D),
+          color: AppColors.alert,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 1.2),
         ),
@@ -754,7 +754,7 @@ class _Gauge extends StatelessWidget {
           Flexible(
             child: Text(label,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
           ),
         ]),
         const SizedBox(height: 6),

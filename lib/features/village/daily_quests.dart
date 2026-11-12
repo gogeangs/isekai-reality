@@ -34,7 +34,7 @@ class DailyQuestPanel extends StatelessWidget {
           Row(children: [
             const GameIcon('quest', size: 26),
             const SizedBox(width: 8),
-            Text('일일 퀘스트', style: AppText.title(18)),
+            Text('일일 퀘스트', style: AppText.title(19)),
             const SizedBox(width: 8),
             Expanded(
               child: Container(
@@ -95,7 +95,7 @@ class _FoldingQuestPanelState extends State<FoldingQuestPanel> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
         decoration: BoxDecoration(
-          color: const Color(0xCC12153A),
+          color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xAA6FE3B0)),
         ),
@@ -107,7 +107,7 @@ class _FoldingQuestPanelState extends State<FoldingQuestPanel> {
             child: KText(widget.foldedText,
                 style: const TextStyle(
                     color: AppColors.text,
-                    fontSize: 13.5,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700)),
           ),
           const Icon(Icons.expand_more_rounded, color: AppColors.textMuted),
@@ -190,7 +190,7 @@ class QuestRowView extends StatelessWidget {
           ),
           child: quest.completed
               ? const Icon(Icons.check_rounded,
-                  size: 18, color: Color(0xFF3A2208))
+                  size: 18, color: AppColors.goldInk)
               : null,
         ),
         const SizedBox(width: 10),
@@ -200,10 +200,10 @@ class QuestRowView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(keepAll(quest.title),
-                  style: const TextStyle(color: AppColors.text, fontSize: 15)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
               const SizedBox(height: 4),
               if (quest.completed)
-                Text('완료', style: AppText.title(13))
+                Text('완료', style: AppText.title(14))
               else
                 Row(children: [
                   SizedBox(
@@ -222,7 +222,7 @@ class QuestRowView extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
+                            color: AppColors.textMuted, fontSize: 13)),
                   ),
                 ]),
             ],

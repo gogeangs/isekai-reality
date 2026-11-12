@@ -141,7 +141,7 @@ class _TopNoticeHostState extends State<TopNoticeHost> {
                           child: Text(n.text,
                               style: const TextStyle(
                                   color: AppColors.text,
-                                  fontSize: 13.5,
+                                  fontSize: 14,
                                   height: 1.35,
                                   fontWeight: FontWeight.w600)),
                         ),

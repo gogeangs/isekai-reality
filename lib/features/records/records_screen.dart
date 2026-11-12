@@ -174,7 +174,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 value: '$newTitles'),
           ]),
           const SizedBox(height: 16),
-          Text('하루별 기록', style: AppText.title(18)),
+          Text('하루별 기록', style: AppText.title(19)),
           const SizedBox(height: 8),
           for (var i = 6; i >= 0; i--)
             if (records[i] != null)
@@ -213,8 +213,8 @@ class _WeekToggle extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Title',
                   fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: selected ? const Color(0xFF3A2208) : AppColors.text,
+                  fontSize: 14,
+                  color: selected ? AppColors.goldInk : AppColors.text,
                 )),
           ),
         );
@@ -266,7 +266,7 @@ class _ChartPanel extends StatelessWidget {
           Row(children: [
             GameIcon(icon, size: 24),
             const SizedBox(width: 6),
-            Text(title, style: AppText.title(17)),
+            Text(title, style: AppText.title(16)),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.only(right: 14),
@@ -303,7 +303,7 @@ class _ChartPanel extends StatelessWidget {
                               height: labelH,
                               child: Text(format(values[i]),
                                   style: const TextStyle(
-                                      color: AppColors.text, fontSize: 10)),
+                                      color: AppColors.text, fontSize: 12)),
                             ),
                             Container(
                               width: 20,
@@ -333,7 +333,7 @@ class _ChartPanel extends StatelessWidget {
                                     RecordsScreen.week[days[i].weekday - 1],
                                     style: const TextStyle(
                                         color: AppColors.textMuted,
-                                        fontSize: 11)),
+                                        fontSize: 12)),
                               ),
                             ),
                           ],
@@ -436,7 +436,7 @@ class _DayRow extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(parts.join(' · '),
-              style: const TextStyle(color: AppColors.text, fontSize: 12)),
+              style: const TextStyle(color: AppColors.text, fontSize: 13)),
         ],
       ),
     );

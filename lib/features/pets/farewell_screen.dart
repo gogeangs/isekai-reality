@@ -116,11 +116,11 @@ class _FarewellScreenState extends State<FarewellScreen>
         const SizedBox(height: 10),
         Text('${josa(info.name, '이/가')} 태어났어요!',
             textAlign: TextAlign.center,
-            style: AppText.title(24, color: AppColors.goldBright)),
+            style: AppText.title(22, color: AppColors.goldBright)),
         const SizedBox(height: 6),
         KText('원정 특기: ${info.special}\n던전 스킬: ${info.skillName} (${info.skillText})',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
         const SizedBox(height: 16),
         _Bubble(
             name: spiritName,
@@ -131,7 +131,7 @@ class _FarewellScreenState extends State<FarewellScreen>
           controller: _name,
           maxLength: 8,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.text, fontSize: 18),
+          style: const TextStyle(color: AppColors.text, fontSize: 19),
           decoration: InputDecoration(
             hintText: info.name,
             hintStyle: const TextStyle(color: AppColors.textMuted),
@@ -171,7 +171,7 @@ class _FarewellScreenState extends State<FarewellScreen>
             '$spiritName${josa(spiritName, '은/는').substring(spiritName.length)} '
             '여명의 탑으로 돌아갔어요. 프로필에 「처음 함께한 정령」으로 남아요.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
         const SizedBox(height: 22),
         GoldButton(
           label: '${pet.name}${josa(pet.name, '와/과').substring(pet.name.length)} 함께 가기',
@@ -182,7 +182,7 @@ class _FarewellScreenState extends State<FarewellScreen>
     return PopScope(
       canPop: _page >= 4,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F1233),
+        backgroundColor: AppColors.deepNight,
         body: NightBackground(
           child: SafeArea(
             child: Center(
@@ -212,7 +212,7 @@ class _Bubble extends StatelessWidget {
             Text(name,
                 style: const TextStyle(
                     color: AppColors.goldBright,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             KText(line,
@@ -248,7 +248,7 @@ Future<void> showHatchSheet(
                 const SizedBox(height: 8),
                 Text('알이 깨어나려 해요!',
                     textAlign: TextAlign.center,
-                    style: AppText.title(20, color: AppColors.goldBright)),
+                    style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 10),
                 if (c.pets.pets.length >= PetRules.maxPets)
                   const KText(
@@ -261,7 +261,7 @@ Future<void> showHatchSheet(
                     controller: name,
                     maxLength: 8,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.text, fontSize: 18),
+                    style: const TextStyle(color: AppColors.text, fontSize: 19),
                     decoration: const InputDecoration(
                       hintText: '태어날 아이의 이름',
                       hintStyle: TextStyle(color: AppColors.textMuted),
@@ -281,7 +281,7 @@ Future<void> showHatchSheet(
                 const SizedBox(height: 8),
                 Text('${born!.info.name} ${born!.name}${josa(born!.name, '이/가').substring(born!.name.length)} 태어났어요!',
                     textAlign: TextAlign.center,
-                    style: AppText.title(20, color: AppColors.goldBright)),
+                    style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 6),
                 KText('원정 특기: ${born!.info.special}',
                     textAlign: TextAlign.center,

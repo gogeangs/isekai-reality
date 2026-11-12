@@ -21,7 +21,7 @@ class BoardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -80,7 +80,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) => Row(children: [
         Icon(icon, color: AppColors.goldBright, size: 24),
         const SizedBox(width: 8),
-        Text(title, style: AppText.title(18)),
+        Text(title, style: AppText.title(19)),
         const SizedBox(width: 8),
         Expanded(
           child: Container(height: 1, color: AppColors.gold.withValues(alpha: 0.4)),
@@ -201,7 +201,7 @@ class _ErrandCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(text,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           ),
         ]),
       );
@@ -249,7 +249,7 @@ class _ErrandCard extends StatelessWidget {
                         ? '보상 받기'
                         : '진행 중',
                 height: 40,
-                fontSize: 15,
+                fontSize: 14,
                 onPressed: !s.accepted
                     ? () => c.acceptErrand(slot)
                     : done
@@ -308,13 +308,13 @@ class _UrgentPanel extends StatelessWidget {
           Row(children: [
             const Icon(Icons.campaign_rounded, color: Color(0xFFFF8A7A)),
             const SizedBox(width: 6),
-            Text('긴급 의뢰', style: AppText.title(18, color: const Color(0xFFFFB0A4))),
+            Text('긴급 의뢰', style: AppText.title(19, color: const Color(0xFFFFB0A4))),
             const Spacer(),
             const Text('오늘 자정까지',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ]),
           const SizedBox(height: 6),
-          Text(u.quest.title, style: AppText.title(17, color: AppColors.text)),
+          Text(u.quest.title, style: AppText.title(16, color: AppColors.text)),
           const SizedBox(height: 2),
           const SizedBox(height: 4),
           Wrap(spacing: 6, runSpacing: 4, children: [
@@ -336,7 +336,7 @@ class _UrgentPanel extends StatelessWidget {
             const SizedBox(height: 2),
             Text('${comma(progress)} / ${comma(u.quest.target)}${u.quest.unit}',
                 textAlign: TextAlign.end,
-                style: const TextStyle(color: AppColors.text, fontSize: 12)),
+                style: const TextStyle(color: AppColors.text, fontSize: 13)),
           ],
           const SizedBox(height: 8),
           Align(
@@ -352,7 +352,7 @@ class _UrgentPanel extends StatelessWidget {
                             ? '보상 받기'
                             : '진행 중',
                 height: 40,
-                fontSize: 15,
+                fontSize: 14,
                 onPressed: b.urgentDone
                     ? null
                     : !b.urgentAccepted

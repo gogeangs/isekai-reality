@@ -40,7 +40,7 @@ class InnScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -84,7 +84,7 @@ class InnScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('오늘 하루', style: AppText.title(18)),
+                        Text('오늘 하루', style: AppText.title(19)),
                         const SizedBox(height: 10),
                         _Row(
                             icon: 'steps',
@@ -144,7 +144,7 @@ class InnScreen extends StatelessWidget {
                           const GameIcon('streak', size: 32),
                           const SizedBox(width: 8),
                           KText('연속 휴식 $streak일',
-                              style: AppText.title(18,
+                              style: AppText.title(19,
                                   color: AppColors.goldBright)),
                         ]),
                         const SizedBox(height: 8),
@@ -155,7 +155,7 @@ class InnScreen extends StatelessWidget {
                             '${next.daysLeft}일 더 쉬면 경험치 +${next.exp}'
                             '${next.crystals > 0 ? ', 마석 +${next.crystals}' : ''}',
                             style: const TextStyle(
-                                color: AppColors.text, fontSize: 13),
+                                color: AppColors.text, fontSize: 14),
                           ),
                       ],
                     ),
@@ -174,7 +174,7 @@ class InnScreen extends StatelessWidget {
                           '하루 첫 휴식은 경험치 +${RuleConstants.restBonusExp}, '
                           '며칠 이어서 쉬면 보너스가 커져요.',
                           style: TextStyle(
-                              color: AppColors.text, fontSize: 13, height: 1.4),
+                              color: AppColors.text, fontSize: 14, height: 1.4),
                         ),
                       ),
                     ]),
@@ -291,7 +291,7 @@ class _Row extends StatelessWidget {
         ],
         Text(value,
             style: strong
-                ? AppText.title(17, color: AppColors.goldBright)
+                ? AppText.title(16, color: AppColors.goldBright)
                 : const TextStyle(
                     color: AppColors.text,
                     fontSize: 14,

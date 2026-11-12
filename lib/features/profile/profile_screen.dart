@@ -78,7 +78,7 @@ class ProfileCard extends StatelessWidget {
                 Flexible(
                   child: Text(name,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.title(20, color: AppColors.text)),
+                      style: AppText.title(19, color: AppColors.text)),
                 ),
                 if (onEditName != null)
                   IconButton(
@@ -96,7 +96,7 @@ class ProfileCard extends StatelessWidget {
               Text(title ?? '새내기 각성자',
                   style: const TextStyle(
                       color: AppColors.goldBright,
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700)),
               Text('직업 · $job',
                   style:
@@ -120,7 +120,7 @@ class ProfileCard extends StatelessWidget {
                   Flexible(
                     child: KText('처음 함께한 정령 · $spiritName',
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 11.5)),
+                            color: AppColors.textMuted, fontSize: 12)),
                   ),
                 ]),
               ] else
@@ -197,7 +197,7 @@ class ProfileButton extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 5, vertical: 0.5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B0D26),
+                  color: AppColors.abyss,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.gold, width: 1),
                 ),
@@ -253,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final top = MediaQuery.paddingOf(context).top;
     final c = widget.controller;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -291,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         key: const Key('huntToday'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12.5)),
+                            color: AppColors.textMuted, fontSize: 12)),
                   ),
                   // 지친 상태 (11-11 #75): 정령(펫)의 한마디
                   if (c.tired)
@@ -309,7 +309,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 '지친 상태 · 「${AppController.tiredLine}」',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                    color: Color(0xFFF7D2D2), fontSize: 12.5)),
+                                    color: Color(0xFFF7D2D2), fontSize: 12)),
                           ),
                         ],
                       ),
@@ -381,7 +381,7 @@ class _InfoTab extends StatelessWidget {
         _Section(title: '칭호', children: [
           KText('얻은 칭호를 누르면 대표 칭호로 걸어요. '
               '${player.titles.length} / ${TitleRules.visible(player.titles).length}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 6),
           for (final t in TitleRules.visible(player.titles))
             _TitleRow(
@@ -445,11 +445,11 @@ class _TitleRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(earned ? info.name : '???',
-                        style: AppText.title(15,
+                        style: AppText.title(14,
                             color: earned ? AppColors.text : AppColors.textMuted)),
                     KText(earned ? info.hint : '얻는 방법: ${info.hint}',
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 11.5)),
+                            color: AppColors.textMuted, fontSize: 12)),
                   ],
                 ),
               ),
@@ -528,7 +528,7 @@ class _RenameDialogState extends State<RenameDialog> {
     return GameAlert(
       alignment: Alignment.bottomCenter,
       title: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('이름 바꾸기', maxLines: 1, style: AppText.title(20)),
+        Text('이름 바꾸기', maxLines: 1, style: AppText.title(19)),
         const SizedBox(height: 8),
         Container(
           key: const Key('renameCost'),
@@ -540,8 +540,8 @@ class _RenameDialogState extends State<RenameDialog> {
           child: Text(
             widget.cost == 0 ? '처음 한 번은 무료' : '금화 ${comma(widget.cost)}',
             style: const TextStyle(
-                color: Color(0xFF3A2208),
-                fontSize: 13,
+                color: AppColors.goldInk,
+                fontSize: 14,
                 fontWeight: FontWeight.w800),
           ),
         ),
@@ -553,7 +553,7 @@ class _RenameDialogState extends State<RenameDialog> {
         maxLength: widget.maxLength,
         onChanged: (_) => setState(() {}),
         onSubmitted: (_) => canSave ? _close(_text.text) : null,
-        style: const TextStyle(color: AppColors.text, fontSize: 17),
+        style: const TextStyle(color: AppColors.text, fontSize: 16),
         cursorColor: AppColors.goldBright,
         decoration: InputDecoration(
           isDense: true,
@@ -566,7 +566,7 @@ class _RenameDialogState extends State<RenameDialog> {
             padding: const EdgeInsets.only(right: 12),
             child: Text('${_text.text.characters.length}/${widget.maxLength}',
                 style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 13)),
+                    color: AppColors.textMuted, fontSize: 14)),
           ),
           suffixIconConstraints:
               const BoxConstraints(minWidth: 0, minHeight: 0),
@@ -619,7 +619,7 @@ class _Section extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(title, style: AppText.title(17)),
+              Text(title, style: AppText.title(16)),
               const SizedBox(height: 8),
               ...children,
             ],
@@ -639,7 +639,7 @@ class _Tabs extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: const Color(0xCC12153A),
+          color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.55)),
         ),
@@ -668,7 +668,7 @@ class _Tabs extends StatelessWidget {
                           color: i == index
                               ? const Color(0xFFFFF3C8)
                               : AppColors.textMuted,
-                          fontSize: 15,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700)),
                 ),
               ),
@@ -693,7 +693,7 @@ Future<void> _showLetters(BuildContext context, AppController c) =>
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
             children: [
-              Text('${c.firstSpiritName}의 편지', style: AppText.title(20)),
+              Text('${c.firstSpiritName}의 편지', style: AppText.title(19)),
               const SizedBox(height: 10),
               for (final l in c.receivedLetters.reversed) ...[
                 OrnatePanel(

@@ -23,7 +23,7 @@ class HarvestGameScreen extends StatelessWidget {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F1233),
+        backgroundColor: AppColors.deepNight,
         body: NightBackground(
           child: SafeArea(
             child: Padding(
@@ -32,11 +32,11 @@ class HarvestGameScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text('${info.name} · ${info.game}',
-                      textAlign: TextAlign.center, style: AppText.title(21)),
+                      textAlign: TextAlign.center, style: AppText.title(22)),
                   const SizedBox(height: 6),
                   KText(info.gameHint,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
                   const SizedBox(height: 14),
                   Expanded(
                     child: switch (kind) {
@@ -161,7 +161,7 @@ class _BarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10));
-    canvas.drawRRect(r, Paint()..color = const Color(0xFF1E2250));
+    canvas.drawRRect(r, Paint()..color = AppColors.chipBg);
     canvas.drawRect(
         Rect.fromLTRB(size.width * lo, 0, size.width * hi, size.height),
         Paint()..color = const Color(0xAA7FD48B));
@@ -338,7 +338,7 @@ class _HoldGameState extends State<_HoldGame>
               borderRadius: BorderRadius.circular(32),
               border: Border.all(color: AppColors.goldBright, width: 2),
             ),
-            child: Text('누르고 있다가 떼기', style: AppText.title(18)),
+            child: Text('누르고 있다가 떼기', style: AppText.title(19)),
           ),
         ),
       ]);
@@ -423,7 +423,7 @@ class _FishingGameState extends State<_FishingGame> with _Finish {
               1 => '지금이에요!',
               _ => '줄이 끊기지 않게 눌러 잡아요',
             },
-            style: AppText.title(20)),
+            style: AppText.title(19)),
         const SizedBox(height: 14),
         if (phase == 2)
           SizedBox(
@@ -462,7 +462,7 @@ class _FishingGameState extends State<_FishingGame> with _Finish {
               borderRadius: BorderRadius.circular(32),
               border: Border.all(color: AppColors.goldBright, width: 2),
             ),
-            child: Text(phase < 2 ? '당기기!' : '눌러 잡기', style: AppText.title(18)),
+            child: Text(phase < 2 ? '당기기!' : '눌러 잡기', style: AppText.title(19)),
           ),
         ),
       ]);
@@ -559,7 +559,7 @@ class _MushroomGameState extends State<_MushroomGame> with _Finish {
                       ),
                       child: _picked.contains(i)
                           ? Icon(_poison[i] ? Icons.close_rounded : Icons.check_rounded,
-                              color: _poison[i] ? const Color(0xFFE57373) : AppColors.goldBright,
+                              color: _poison[i] ? AppColors.danger : AppColors.goldBright,
                               size: 36)
                           : CustomPaint(painter: _MushroomPainter(_poison[i])),
                     ),

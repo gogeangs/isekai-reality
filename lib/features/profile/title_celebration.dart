@@ -99,7 +99,7 @@ class _TitleCelebrationState extends State<_TitleCelebration>
                       size: 64, color: AppColors.goldBright),
                   const SizedBox(height: 4),
                   Text('새 칭호',
-                      style: AppText.title(15, color: AppColors.textMuted)),
+                      style: AppText.title(14, color: AppColors.textMuted)),
                   const SizedBox(height: 6),
                   KText('「${info.name}」',
                       textAlign: TextAlign.center,
@@ -108,7 +108,7 @@ class _TitleCelebrationState extends State<_TitleCelebration>
                   KText(TitleRules.earnedLine(widget.title),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          color: AppColors.text, fontSize: 14.5, height: 1.4)),
+                          color: AppColors.text, fontSize: 14, height: 1.4)),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(

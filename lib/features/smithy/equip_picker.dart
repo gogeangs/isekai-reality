@@ -36,7 +36,7 @@ Future<void> showEquipPicker(
                 Row(children: [
                   SlotGlyph(slot, color: AppColors.goldBright),
                   const SizedBox(width: 6),
-                  Text(EquipmentRules.slotLabel(slot), style: AppText.title(20)),
+                  Text(EquipmentRules.slotLabel(slot), style: AppText.title(19)),
                 ]),
                 const SizedBox(height: 8),
                 if (items.isEmpty)
@@ -100,7 +100,7 @@ class _PickRow extends StatelessWidget {
                     const SizedBox(width: 6),
                     const Text('입는 중',
                         style: TextStyle(
-                            color: AppColors.goldBright, fontSize: 11)),
+                            color: AppColors.goldBright, fontSize: 12)),
                   ],
                 ]),
                 ItemStats(item, compare: current),

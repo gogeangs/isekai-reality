@@ -111,7 +111,7 @@ class DurabilityBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = value / EquipmentRules.maxDurability;
     final color = value <= 0
-        ? const Color(0xFFE57373)
+        ? AppColors.danger
         : r < 0.3
             ? const Color(0xFFF0B04B)
             : const Color(0xFF7BE08A);
@@ -129,7 +129,7 @@ class DurabilityBar extends StatelessWidget {
       ),
       const SizedBox(width: 6),
       Text(value <= 0 ? '내구도 0 · 능력 절반' : '내구도 $value',
-          style: TextStyle(color: color, fontSize: 11)),
+          style: TextStyle(color: color, fontSize: 12)),
     ]);
   }
 }
@@ -213,7 +213,7 @@ class _SlotTile extends StatelessWidget {
                     color: it == null
                         ? AppColors.textMuted
                         : equipGradeColor(it.grade),
-                    fontSize: 10.5)),
+                    fontSize: 12)),
           ],
         ),
       ),
@@ -247,7 +247,7 @@ class ItemStats extends StatelessWidget {
   final double fontSize;
 
   static const _up = Color(0xFF7BE08A);
-  static const _down = Color(0xFFE57373);
+  static const _down = AppColors.danger;
 
   @override
   Widget build(BuildContext context) {

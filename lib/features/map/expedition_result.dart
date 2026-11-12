@@ -219,7 +219,7 @@ class ExpeditionResultCard extends StatelessWidget {
           KText(line,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                  color: AppColors.text, fontSize: 15, height: 1.4)),
+                  color: AppColors.text, fontSize: 14, height: 1.4)),
           if (!reward.isEmpty) ...[
             const SizedBox(height: 12),
             RewardItems(reward: reward, showExp: true),

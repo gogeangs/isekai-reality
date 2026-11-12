@@ -56,7 +56,7 @@ class PetArt extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF1E2250),
+            color: AppColors.chipBg,
             border: Border.all(color: petColor(species), width: adult ? 2 : 1.2),
           ),
           child: Icon(petIcon(species),

@@ -109,7 +109,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(spawn.name,
-                            style: AppText.title(20,
+                            style: AppText.title(19,
                                 color: modGradeColor(spawn.grade))),
                       ),
                     ]),
@@ -163,7 +163,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: KText('$spiritName 원정 보내기',
-                            style: AppText.title(17)),
+                            style: AppText.title(16)),
                       ),
                     ]),
                     if (c.farewellDone && c.pets.pets.length > 1) ...[
@@ -179,12 +179,12 @@ class _SpawnSheetState extends State<SpawnSheet> {
                                 ? null
                                 : (_) => setState(() => _petUid = p.uid),
                             selectedColor: AppColors.gold,
-                            backgroundColor: const Color(0xFF1E2250),
+                            backgroundColor: AppColors.chipBg,
                             labelStyle: TextStyle(
                                 color: p.uid == chosen
                                     ? AppColors.night
                                     : AppColors.text,
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700),
                             showCheckmark: false,
                           ),
@@ -228,7 +228,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                       Text(expeditionReason(plan.check),
                           style: const TextStyle(
                               color: AppColors.goldBright,
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700)),
                     ],
                     // 11-11 #64: 가방에 마나 물약이 있으면 그 자리에서 마시기
@@ -306,11 +306,11 @@ class _InfoRow extends StatelessWidget {
             width: 44,
             child: Text(label,
                 style:
-                    const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                    const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
           ),
         ]),
       );
@@ -452,12 +452,12 @@ class ExpeditionStrip extends StatelessWidget {
                     : '원정 ${returned.length}마리가 돌아왔어요! 결과 보기',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    color: Color(0xFF3A2208),
+                    color: AppColors.goldInk,
                     fontSize: 14,
                     fontWeight: FontWeight.w800),
               ),
             ),
-            const Icon(Icons.auto_awesome_rounded, color: Color(0xFF3A2208), size: 20),
+            const Icon(Icons.auto_awesome_rounded, color: AppColors.goldInk, size: 20),
           ]),
         ),
       );
@@ -508,7 +508,7 @@ class ExpeditionStrip extends StatelessWidget {
                   : '원정 ${actives.length}마리',
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700),
+                  color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(width: 8),
@@ -561,11 +561,11 @@ class AdChip extends StatelessWidget {
             ),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.smart_display_rounded,
-                  size: 18, color: Color(0xFF3A2208)),
+                  size: 18, color: AppColors.goldInk),
               Text(label,
                   style: const TextStyle(
-                      color: Color(0xFF3A2208),
-                      fontSize: 11,
+                      color: AppColors.goldInk,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800)),
             ]),
           ),

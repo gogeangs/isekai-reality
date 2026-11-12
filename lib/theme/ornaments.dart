@@ -425,7 +425,7 @@ class GoldButton extends StatelessWidget {
         fontWeight: FontWeight.w700,
         fontSize: fontSize,
         letterSpacing: 0,
-        color: enabled ? const Color(0xFF3A2208) : AppColors.textMuted,
+        color: enabled ? AppColors.goldInk : AppColors.textMuted,
       ),
     );
     return _ArtButton(
@@ -522,7 +522,7 @@ class FrameButton extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Title',
                   fontWeight: FontWeight.w700,
-                  fontSize: 17,
+                  fontSize: 16,
                   color: color,
                 ),
               ),
@@ -693,8 +693,8 @@ class LaurelBadge extends StatelessWidget {
                       style: const TextStyle(
                         fontFamily: 'Title',
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: Color(0xFF3A2208),
+                        fontSize: 14,
+                        color: AppColors.goldInk,
                       )),
                 ),
               ]),
@@ -850,7 +850,7 @@ class ChipBadge extends StatelessWidget {
           const SizedBox(width: 5),
         ],
         Text(text,
-            style: const TextStyle(color: AppColors.text, fontSize: 13)),
+            style: const TextStyle(color: AppColors.text, fontSize: 14)),
       ]),
     );
   }
@@ -916,7 +916,7 @@ class NightBackground extends StatelessWidget {
         gradient: RadialGradient(
           center: Alignment(0, -0.6),
           radius: 1.3,
-          colors: [Color(0xFF2E2A6A), Color(0xFF181B45), Color(0xFF0F1233)],
+          colors: [Color(0xFF2E2A6A), Color(0xFF181B45), AppColors.deepNight],
           stops: [0, 0.55, 1],
         ),
       ),
@@ -1067,7 +1067,7 @@ ButtonStyle gameButtonStyle({required bool gold}) => ButtonStyle(
       }),
       foregroundColor: WidgetStateProperty.resolveWith((s) {
         final off = s.contains(WidgetState.disabled);
-        if (gold) return off ? const Color(0xFF8C8370) : const Color(0xFF3A2208);
+        if (gold) return off ? const Color(0xFF8C8370) : AppColors.goldInk;
         return off ? AppColors.textMuted : AppColors.goldBright;
       }),
       side: WidgetStateProperty.resolveWith((s) {
@@ -1139,7 +1139,7 @@ class GameAlert extends StatelessWidget {
                       physics: const ClampingScrollPhysics(),
                       child: DefaultTextStyle.merge(
                         style: const TextStyle(
-                            color: AppColors.text, fontSize: 15, height: 1.4),
+                            color: AppColors.text, fontSize: 14, height: 1.4),
                         child: content!,
                       ),
                     ),

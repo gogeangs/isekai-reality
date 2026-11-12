@@ -66,7 +66,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
     final nameColor = modGradeColor(spawn.grade);
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         child: ListView(
           padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -110,7 +110,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
             if (battle != null && !_done && spawn.modifiers.isNotEmpty) ...[
               Text(spawn.name,
                   textAlign: TextAlign.center,
-                  style: AppText.title(20, color: nameColor)),
+                  style: AppText.title(19, color: nameColor)),
               const SizedBox(height: 6),
               ModifierPanel(
                   mods: spawn.modifiers, foeCount: battle.floors.length),
@@ -183,11 +183,11 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                   child: Column(children: [
                     Text(spawn.name,
                         textAlign: TextAlign.center,
-                        style: AppText.title(20, color: nameColor)),
+                        style: AppText.title(19, color: nameColor)),
                     if (battle!.floors.length > 1)
                       Text('${battle.floors.length}마리',
                           style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 13)),
+                              color: AppColors.textMuted, fontSize: 14)),
                     const SizedBox(height: 6),
                     Text(_exp > 0 ? '경험치 +$_exp' : '오늘 보상은 다 받았어요',
                         textAlign: TextAlign.center,

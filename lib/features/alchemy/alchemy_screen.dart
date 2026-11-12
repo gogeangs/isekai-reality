@@ -32,7 +32,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -62,11 +62,11 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                       selected: _tab == i,
                       onSelected: (_) => setState(() => _tab = i),
                       selectedColor: AppColors.gold,
-                      backgroundColor: const Color(0xFF1E2250),
+                      backgroundColor: AppColors.chipBg,
                       labelStyle: TextStyle(
                           color: _tab == i ? AppColors.night : AppColors.text,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13),
+                          fontSize: 14),
                       showCheckmark: false,
                     ),
                   ),
@@ -155,7 +155,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                       Icons.menu_book_rounded,
                       color: AppColors.goldBright)),
               const SizedBox(width: 8),
-              Text('알아낸 레시피 ${known.length}', style: AppText.title(18)),
+              Text('알아낸 레시피 ${known.length}', style: AppText.title(19)),
             ]),
             const SizedBox(height: 2),
             const KText('모르는 물약은 이름도 보이지 않아요. 재료를 자유롭게 넣어 끓여 보세요.',
@@ -192,7 +192,7 @@ class _RecipeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${info.name}${made ? '' : ' (쪽지)'}',
-                  style: AppText.title(15, color: AppColors.text)),
+                  style: AppText.title(14, color: AppColors.text)),
               KText(
                   '${[for (final e in counts) '${Materials.info(e.key).name} ${e.value}'].join(' · ')}'
                   ' · ${info.minutes}분 · ${info.yields}개',
@@ -215,7 +215,7 @@ class PotionIcon extends StatelessWidget {
   final bool suspicious;
 
   static Color colorOf(PotionId? p) => switch (p == null ? null : AlchemyRules.info(p).kind) {
-        PotionKind.heal => const Color(0xFFE57373),
+        PotionKind.heal => AppColors.danger,
         PotionKind.mana => const Color(0xFF5FA8F0),
         PotionKind.care => const Color(0xFF7FD0A0),
         PotionKind.buff => const Color(0xFFF0A93B),
@@ -280,7 +280,7 @@ class _CauldronCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const KText('비어 있어요. 재료를 최대 5개까지 순서대로 넣어 끓여요.',
-              style: TextStyle(color: AppColors.text, fontSize: 13)),
+              style: TextStyle(color: AppColors.text, fontSize: 14)),
           const SizedBox(height: 8),
           GoldButton(
             label: '재료 넣기',
@@ -337,7 +337,7 @@ class _CauldronCard extends StatelessWidget {
                 errorBuilder: (_, __, ___) => const Icon(Icons.soup_kitchen_rounded,
                     size: 36, color: AppColors.goldBright)),
             const SizedBox(width: 8),
-            Text('가마솥 ${slot + 1}', style: AppText.title(17)),
+            Text('가마솥 ${slot + 1}', style: AppText.title(16)),
           ]),
           const SizedBox(height: 8),
           body,
@@ -417,7 +417,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                     height: 56,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF161A44),
+                      color: AppColors.slotBg,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
                     ),
@@ -440,7 +440,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                   ),
                   const SizedBox(height: 4),
                   const KText('넣은 재료를 누르면 빠져요. 왼쪽부터 넣은 순서예요.',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   const SizedBox(height: 8),
                   Flexible(
                     child: mats.isEmpty
@@ -464,7 +464,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                                     opacity: left(m) > 0 ? 1 : 0.35,
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF161A44),
+                                        color: AppColors.slotBg,
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
                                             color: AppColors.gold
@@ -478,7 +478,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                                           child: Text('${left(m)}',
                                               style: const TextStyle(
                                                   color: AppColors.text,
-                                                  fontSize: 11,
+                                                  fontSize: 13,
                                                   fontWeight: FontWeight.w800,
                                                   shadows: [Shadow(blurRadius: 3)])),
                                         ),
@@ -533,7 +533,7 @@ class ProcessPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(smithy ? '대장간 가공' : '공방 가공', style: AppText.title(18)),
+          Text(smithy ? '대장간 가공' : '공방 가공', style: AppText.title(19)),
           const SizedBox(height: 6),
           for (final r in list)
             Padding(
@@ -546,7 +546,7 @@ class ProcessPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(Materials.info(r.output).name,
-                          style: AppText.title(15, color: AppColors.text)),
+                          style: AppText.title(14, color: AppColors.text)),
                       KText(r.label,
                           style: const TextStyle(
                               color: AppColors.textMuted, fontSize: 12)),

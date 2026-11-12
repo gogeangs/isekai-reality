@@ -85,7 +85,7 @@ class _CodexScreenState extends State<CodexScreen> {
                 Text('${huntCounts[m.id] ?? 0}마리 사냥 · ${m.habitat}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 12.5)),
+                        color: AppColors.textMuted, fontSize: 12)),
                 const SizedBox(height: 12),
                 if (m.description.isNotEmpty)
                   KText(m.description,
@@ -149,7 +149,7 @@ class _CodexScreenState extends State<CodexScreen> {
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                    color: Color(0xFFE5484D),
+                                    color: AppColors.alert,
                                     shape: BoxShape.circle),
                               ),
                             ],
@@ -160,7 +160,7 @@ class _CodexScreenState extends State<CodexScreen> {
                     if (i == 1) widget.onPetsTab?.call();
                   },
                   selectedColor: AppColors.gold,
-                  backgroundColor: const Color(0xFF1E2250),
+                  backgroundColor: AppColors.chipBg,
                   labelStyle: TextStyle(
                       color: tab == i ? AppColors.night : AppColors.text,
                       fontWeight: FontWeight.w700),
@@ -185,7 +185,7 @@ class _CodexScreenState extends State<CodexScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text('몬스터 도감 ${have.length} / ${all.length}',
-                          style: AppText.title(18)),
+                          style: AppText.title(19)),
                       const SizedBox(height: 10),
                       GridView.count(
                         crossAxisCount: 3,
@@ -215,7 +215,7 @@ class _CodexScreenState extends State<CodexScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('희귀·전설 사냥 기록', style: AppText.title(18)),
+                      Text('희귀·전설 사냥 기록', style: AppText.title(19)),
                       const SizedBox(height: 8),
                       if (records.isEmpty)
                         const Padding(
@@ -224,7 +224,7 @@ class _CodexScreenState extends State<CodexScreen> {
                               '아직 없어요. 지도에서 파란 이름이나 주황 이름의 몬스터를 찾아보세요.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 13)),
+                                  color: AppColors.textMuted, fontSize: 14)),
                         ),
                       for (final (monster, mods, n) in records)
                         Padding(
@@ -238,7 +238,7 @@ class _CodexScreenState extends State<CodexScreen> {
                                   style: TextStyle(
                                       color: modGradeColor(
                                           ModifierRules.gradeOf(mods)),
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w800)),
                             ),
                             Text('$n마리',
@@ -274,12 +274,12 @@ class _Fact extends StatelessWidget {
             child: Text(label,
                 style: const TextStyle(
                     color: AppColors.goldBright,
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700)),
           ),
           Expanded(
             child: KText(value,
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                style: const TextStyle(color: AppColors.text, fontSize: 14)),
           ),
         ]),
       );
@@ -329,7 +329,7 @@ class _MonsterTile extends StatelessWidget {
                   : ColorFiltered(
                       // 아직 사냥하지 않은 몬스터는 그림자로만 보인다
                       colorFilter: const ColorFilter.mode(
-                          Color(0xFF0B0D26), BlendMode.srcATop),
+                          AppColors.abyss, BlendMode.srcATop),
                       child: MonsterPicture(monster: info.id, size: 88),
                     ),
             ),
@@ -422,7 +422,7 @@ class _PetCodex extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('펫 도감 ${seen.length} / ${PetSpecies.values.length}',
-                  style: AppText.title(18)),
+                  style: AppText.title(19)),
               const SizedBox(height: 10),
               GridView.count(
                 crossAxisCount: 3,

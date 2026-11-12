@@ -73,7 +73,7 @@ class BulssiBubble extends StatelessWidget {
                   text: '$name\n',
                   style: const TextStyle(
                     color: Color(0xFFB27C1C),
-                    fontSize: 12.5,
+                    fontSize: 12,
                     height: 1.5,
                     fontWeight: FontWeight.w800,
                   ),
@@ -82,7 +82,7 @@ class BulssiBubble extends StatelessWidget {
               ]),
               style: const TextStyle(
                 color: AppColors.night,
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -144,7 +144,7 @@ class BulssiLine extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(6, 4, 12, 4),
       decoration: BoxDecoration(
-        color: const Color(0xCC12153A),
+        color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.55)),
       ),
@@ -169,7 +169,7 @@ class BulssiLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
                 color: AppColors.text,
-                fontSize: 13.5,
+                fontSize: 14,
                 height: 1.3,
                 fontWeight: FontWeight.w600),
           ),
@@ -216,7 +216,7 @@ class ArtSpirit extends StatelessWidget {
                     text: '$name\n',
                     style: const TextStyle(
                         color: Color(0xFFB27C1C),
-                        fontSize: 10.5,
+                        fontSize: 12,
                         height: 1.45,
                         fontWeight: FontWeight.w800),
                   ),

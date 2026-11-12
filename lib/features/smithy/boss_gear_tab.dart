@@ -31,7 +31,7 @@ class BossGearTab extends StatelessWidget {
               child: KText(
                   '보스 장비 조각 ${p.materialCount(MaterialId.bossShard)}개 · '
                   '던전 보스가 가끔 떨어뜨려요',
-                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
             ),
           ]),
         ),
@@ -66,7 +66,7 @@ class _HiddenSet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('??? 세트', style: AppText.title(17, color: AppColors.textMuted)),
+                Text('??? 세트', style: AppText.title(16, color: AppColors.textMuted)),
                 const KText('아직 만나지 못한 보스의 장비예요.',
                     style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
@@ -82,7 +82,7 @@ class _HiddenSet extends StatelessWidget {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0B0D26),
+                      color: AppColors.abyss,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFF2C3360)),
                     ),
@@ -114,10 +114,10 @@ class _SetCard extends StatelessWidget {
             ElementIcon(set.element, size: 22),
             const SizedBox(width: 6),
             Expanded(
-              child: Text(set.name, style: AppText.title(18, color: color)),
+              child: Text(set.name, style: AppText.title(19, color: color)),
             ),
             Text('$made / 6',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           ]),
           const SizedBox(height: 4),
           _Effects(set: set),
@@ -169,7 +169,7 @@ class _PartRow extends StatelessWidget {
                 ? '${EquipmentRules.gradeLabel(r.item!.grade)} 등급!'
                 : '만들지 못했어요',
             textAlign: TextAlign.center,
-            style: AppText.title(20,
+            style: AppText.title(19,
                 color: r.ok ? equipGradeColor(r.item!.grade) : AppColors.text)),
         content: r.ok
             ? Column(mainAxisSize: MainAxisSize.min, children: [
@@ -177,7 +177,7 @@ class _PartRow extends StatelessWidget {
                 const SizedBox(height: 8),
                 EquipName(r.item!, size: 17),
                 const SizedBox(height: 4),
-                ItemStats(r.item!, fontSize: 13),
+                ItemStats(r.item!, fontSize: 14),
               ])
             : KText(r.line ?? '', style: const TextStyle(color: AppColors.text)),
         actions: [
@@ -237,7 +237,7 @@ class _PartRow extends StatelessWidget {
                   '${need(p.materialCount(MaterialId.bossShard), cost.shards)} · '
                   '${Materials.info(set.material).name} '
                   '${need(p.materialCount(set.material), cost.mats)} · 금화 ${cost.gold}',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),
         ),

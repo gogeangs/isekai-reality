@@ -166,7 +166,7 @@ class _BagTabState extends State<BagTab> {
             const Text('금화가 모자라요',
                 key: Key('bagGoldShort'),
                 style: TextStyle(
-                    color: Color(0xFFE57373),
+                    color: AppColors.danger,
                     fontSize: 14,
                     fontWeight: FontWeight.w700)),
           ],
@@ -241,7 +241,7 @@ class _BagTabState extends State<BagTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('지금 걸린 물약', style: AppText.title(15)),
+                    Text('지금 걸린 물약', style: AppText.title(14)),
                     const SizedBox(height: 4),
                     for (final b in c.activeBuffs)
                       Padding(
@@ -255,7 +255,7 @@ class _BagTabState extends State<BagTab> {
                           Expanded(
                             child: Text(c.buffName(b),
                                 style: const TextStyle(
-                                    color: AppColors.text, fontSize: 13)),
+                                    color: AppColors.text, fontSize: 14)),
                           ),
                           Text(c.buffLeftLabel(b),
                               style: const TextStyle(
@@ -286,8 +286,8 @@ class _BagTabState extends State<BagTab> {
                           style: TextStyle(
                               color: c.toolDurability(t) > 0
                                   ? AppColors.text
-                                  : const Color(0xFFE57373),
-                              fontSize: 12.5)),
+                                  : AppColors.danger,
+                              fontSize: 12)),
                     ]),
                 ]),
               ),
@@ -300,12 +300,12 @@ class _BagTabState extends State<BagTab> {
                   Row(children: [
                     const GameIcon('bag', size: 28),
                     const SizedBox(width: 6),
-                    Text('가방', style: AppText.title(20)),
+                    Text('가방', style: AppText.title(19)),
                     const SizedBox(width: 8),
                     Text('$used / $cap칸',
                         style: TextStyle(
                             color: used >= cap
-                                ? const Color(0xFFE57373)
+                                ? AppColors.danger
                                 : AppColors.text,
                             fontSize: 14,
                             fontWeight: FontWeight.w700)),
@@ -342,7 +342,7 @@ class _BagTabState extends State<BagTab> {
                             selected: _filter == f,
                             onSelected: (_) => setState(() => _filter = f),
                             selectedColor: AppColors.gold,
-                            backgroundColor: const Color(0xFF1E2250),
+                            backgroundColor: AppColors.chipBg,
                             labelStyle: TextStyle(
                                 color: _filter == f
                                     ? AppColors.night
@@ -478,7 +478,7 @@ class BagSlot extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF161A44),
+          color: AppColors.slotBg,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: border, width: e is EquipEntry ? 2 : 1),
         ),
@@ -535,7 +535,7 @@ class BagSlot extends StatelessWidget {
                 child: Text('$count',
                     style: const TextStyle(
                         color: AppColors.text,
-                        fontSize: 10,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800)),
               ),
             ),
@@ -555,8 +555,8 @@ class BagSlot extends StatelessWidget {
                 ),
                 child: Text(AlchemyRules.parseKey(key)!.quality.label,
                     style: const TextStyle(
-                        color: Color(0xFF3A2208),
-                        fontSize: 9,
+                        color: AppColors.goldInk,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800)),
               ),
             ),
@@ -574,7 +574,7 @@ class BagSlot extends StatelessWidget {
               child: Text('+${item.enhance}',
                   style: const TextStyle(
                       color: AppColors.goldBright,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
                       shadows: [Shadow(blurRadius: 3)])),
             ),
@@ -763,12 +763,12 @@ class _EntrySheet extends StatelessWidget {
                     switch (e) {
                       EquipEntry(:final item) => EquipName(item),
                       _ => Text(bagEntryName(e, c),
-                          style: AppText.title(18, color: AppColors.text)),
+                          style: AppText.title(19, color: AppColors.text)),
                     },
                     if (e is! EquipEntry)
                       Text('$count개',
                           style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 13)),
+                              color: AppColors.textMuted, fontSize: 14)),
                   ],
                 ),
               ),
@@ -914,7 +914,7 @@ class EggSheet extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(c.farewellDone ? '펫 알' : '신비한 알',
                     textAlign: TextAlign.center,
-                    style: AppText.title(20, color: AppColors.goldBright)),
+                    style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 10),
                 ...children,
               ],
@@ -1012,12 +1012,12 @@ class _MerchantDialogState extends State<_MerchantDialog> {
               Text(name,
                   style: const TextStyle(
                       color: AppColors.text,
-                      fontSize: 14.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700)),
               KText(line,
                   maxLines: 2,
                   style: const TextStyle(
-                      color: AppColors.textMuted, fontSize: 11.5, height: 1.35)),
+                      color: AppColors.textMuted, fontSize: 12, height: 1.35)),
             ],
           ),
         ),
@@ -1046,7 +1046,7 @@ class _MerchantDialogState extends State<_MerchantDialog> {
                   if (short > 0)
                     Text('금화 ${comma(short)} 부족',
                         style: const TextStyle(
-                            color: Color(0xFFE88B8B), fontSize: 11)),
+                            color: Color(0xFFE88B8B), fontSize: 12)),
                 ]),
         ),
       ]),
@@ -1079,13 +1079,13 @@ class _MerchantDialogState extends State<_MerchantDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('떠돌이 상인', style: AppText.title(20)),
+                  Text('떠돌이 상인', style: AppText.title(19)),
                   Text(
                       c.merchantHere
                           ? '${c.merchantMinutesLeft}분 뒤 떠나요'
                           : '상인이 떠났어요',
                       style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 12.5)),
+                          color: AppColors.textMuted, fontSize: 12)),
                 ],
               ),
             ),

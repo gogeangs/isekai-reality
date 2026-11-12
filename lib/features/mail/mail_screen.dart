@@ -45,7 +45,7 @@ class _MailScreenState extends State<MailScreen> {
               shrinkWrap: true,
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
               children: [
-                Text(cur.title, style: AppText.title(20)),
+                Text(cur.title, style: AppText.title(19)),
                 const SizedBox(height: 2),
                 Text('${cur.from} · ${cur.sentAt.month}월 ${cur.sentAt.day}일',
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -68,7 +68,7 @@ class _MailScreenState extends State<MailScreen> {
                     child: KText(
                         '${cur.claimed ? '받은 선물' : '선물'}: ${giftLabel(c, cur.gifts)}'
                         '${cur.expiresAt != null && !cur.claimed ? '\n${MailRules.daysLeft(cur.expiresAt!, now)}일 뒤 사라져요' : ''}',
-                        style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+                        style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -97,7 +97,7 @@ class _MailScreenState extends State<MailScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1233),
+      backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
         child: ListenableBuilder(
@@ -125,7 +125,7 @@ class _MailScreenState extends State<MailScreen> {
                       selected: _tab == i,
                       onSelected: (_) => setState(() => _tab = i),
                       selectedColor: AppColors.gold,
-                      backgroundColor: const Color(0xFF1E2250),
+                      backgroundColor: AppColors.chipBg,
                       labelStyle: TextStyle(
                           color: _tab == i ? AppColors.night : AppColors.text,
                           fontWeight: FontWeight.w700),
@@ -146,7 +146,7 @@ class _MailScreenState extends State<MailScreen> {
                   const SizedBox(height: 4),
                   const Text('가방이 가득하면 넘치는 물건은 금화로 바꿔 받아요. 금화·마석은 언제나 받아요.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   const SizedBox(height: 8),
                 ],
                 if (list.isEmpty)
@@ -246,11 +246,11 @@ class _MailRow extends StatelessWidget {
                   style: TextStyle(
                       color: unread ? AppColors.text : AppColors.textMuted,
                       fontWeight: unread ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 14.5)),
+                      fontSize: 14)),
               Text(sub,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ]),
           ),
           if (m.hasGifts) ...[
@@ -260,7 +260,7 @@ class _MailRow extends StatelessWidget {
           ],
           const SizedBox(width: 6),
           Text(when(m.sentAt, controller.now),
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const Icon(Icons.chevron_right_rounded, color: AppColors.gold, size: 20),
         ]),
       ),
@@ -276,7 +276,7 @@ class _RedDot extends StatelessWidget {
         width: 10,
         height: 10,
         decoration: BoxDecoration(
-          color: const Color(0xFFE5484D),
+          color: AppColors.alert,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.night, width: 1.5),
         ),

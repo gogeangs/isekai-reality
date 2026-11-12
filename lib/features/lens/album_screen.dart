@@ -45,7 +45,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0D26),
+      backgroundColor: AppColors.abyss,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: c,
@@ -69,11 +69,11 @@ class _AlbumScreenState extends State<AlbumScreen> {
                 Text('사진 ${all.length}장',
                     key: const Key('albumCount'),
                     textAlign: TextAlign.center,
-                    style: AppText.title(18, color: AppColors.goldBright)),
+                    style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 4),
                 const Text('사진은 이 휴대폰 안에만 있어요. 앱을 지우면 사라질 수 있어요.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 if (races.length > 1) ...[
                   const SizedBox(height: 10),
                   SingleChildScrollView(
@@ -87,7 +87,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
                             selected: _race == r,
                             onSelected: (_) => setState(() => _race = r),
                             selectedColor: AppColors.gold,
-                            backgroundColor: const Color(0xFF1E2250),
+                            backgroundColor: AppColors.chipBg,
                             labelStyle: TextStyle(
                                 color: _race == r
                                     ? AppColors.night
@@ -211,7 +211,7 @@ class _PhotoTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF161A44),
+          color: AppColors.slotBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: photo.firsts.isNotEmpty
@@ -240,7 +240,7 @@ class _PhotoTile extends StatelessWidget {
                     child: const Text('처음 만난 종족!',
                         style: TextStyle(
                             color: AppColors.night,
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800)),
                   ),
                 ),
@@ -252,10 +252,10 @@ class _PhotoTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: AppColors.text,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700)),
           Text(_AlbumScreenState.dateLabel(photo.at),
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
       ),
     );
@@ -286,7 +286,7 @@ class _EmptyFrame extends StatelessWidget {
           const SizedBox(height: 8),
           const KText('다음 사진을 찍어 봐요',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
       ),
     );
@@ -382,7 +382,7 @@ class _PhotoViewState extends State<_PhotoView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0D26),
+      backgroundColor: AppColors.abyss,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),

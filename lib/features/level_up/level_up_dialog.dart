@@ -180,7 +180,7 @@ class _TitleRibbon extends StatelessWidget {
                 fontFamily: 'Title',
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
-                color: Color(0xFF3A2208),
+                color: AppColors.goldInk,
               )),
         ),
       ]),

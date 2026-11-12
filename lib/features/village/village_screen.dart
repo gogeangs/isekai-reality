@@ -237,7 +237,7 @@ class _NameTag extends StatelessWidget {
           Text(name,
               style: TextStyle(
                   color: open ? AppColors.text : AppColors.textMuted,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700)),
         ]),
       );
@@ -284,7 +284,7 @@ class _FacilityCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
           decoration: BoxDecoration(
-            color: const Color(0xCC12153A),
+            color: AppColors.cardBg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
                 color: AppColors.gold.withValues(alpha: info.open ? 0.7 : 0.3)),
@@ -295,7 +295,7 @@ class _FacilityCard extends StatelessWidget {
             // 묶음 15 #112: 아이콘 · 이름 · > 만 (설명글 없음)
             Expanded(
               child: Text(info.name,
-                  style: AppText.title(17, color: AppColors.text)),
+                  style: AppText.title(16, color: AppColors.text)),
             ),
             Icon(
                 info.open

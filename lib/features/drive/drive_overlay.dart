@@ -63,7 +63,7 @@ class _DriveOverlayState extends State<DriveOverlay> {
               Text(asking ? '운전 중이 아닌 승객인가요?' : '안전 운전하세요',
                   key: const Key('driveTitle'),
                   textAlign: TextAlign.center,
-                  style: AppText.title(24)),
+                  style: AppText.title(22)),
               const SizedBox(height: 10),
               KText(
                   asking
@@ -71,7 +71,7 @@ class _DriveOverlayState extends State<DriveOverlay> {
                           '걸음·이동 보상은 없고 사냥·채집 보상은 줄어들어요.'
                       : '차가 멈추면 다시 함께해요. 운전 중에는 휴대폰을 보지 마세요.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.text, fontSize: 14.5, height: 1.5)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.5)),
               const SizedBox(height: 22),
               if (asking) ...[
                 GoldButton(

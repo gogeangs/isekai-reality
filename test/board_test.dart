@@ -69,7 +69,7 @@ void main() {
               day: '2026-11-10',
               doneToday: 3,
               seq: 5,
-              slots: const [ErrandSlot(templateId: 'rat3'), ErrandSlot()]),
+              slots: [ErrandSlot(templateId: 'rat3'), ErrandSlot()]),
           now);
       expect(b.slots[1].empty, isTrue);
     });
@@ -78,7 +78,7 @@ void main() {
       var now = DateTime(2026, 11, 10, 9);
       final store = InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루'));
-      await store.saveJson('board', const BoardState(day: '2026-11-10', seq: 2, slots: const [
+      await store.saveJson('board', const BoardState(day: '2026-11-10', seq: 2, slots: [
         ErrandSlot(templateId: 'steps3000', accepted: true, baseline: 1000),
         ErrandSlot(templateId: 'rat3'),
       ]).toJson());

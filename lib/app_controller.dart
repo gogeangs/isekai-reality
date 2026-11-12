@@ -1992,10 +1992,8 @@ class AppController extends ChangeNotifier {
   Future<void> _maybeNote(double chance) async {
     if (_random.nextDouble() >= chance) return;
     await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
-    _newNote = true;
   }
 
-  bool _newNote = false;
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
   List<PotionId> get knownRecipes => [
         for (final p in AlchemyRules.all)

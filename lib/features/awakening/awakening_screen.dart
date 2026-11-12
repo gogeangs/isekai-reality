@@ -474,7 +474,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text.rich(
-              const TextSpan(children: [
+              TextSpan(children: [
                 TextSpan(
                     text: '(필수) ',
                     style: TextStyle(
@@ -482,7 +482,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                         fontWeight: FontWeight.w700)),
                 TextSpan(text: '만 14세 이상만 이용할 수 있어요. 태어난 해를 알려 주세요.'),
               ]),
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.text, fontSize: 14, height: 1.45)),
           const SizedBox(height: 6),
           Row(children: [

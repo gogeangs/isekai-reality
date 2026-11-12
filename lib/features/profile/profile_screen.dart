@@ -301,19 +301,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // 지친 상태 (11-11 #75): 정령(펫)의 한마디
                   if (c.tired)
                     const Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: const Row(
-                        key: const Key('tiredStatus'),
+                      padding: EdgeInsets.only(top: 6),
+                      child: Row(
+                        key: Key('tiredStatus'),
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          const Icon(Icons.bedtime_rounded,
+                        children: [
+                          Icon(Icons.bedtime_rounded,
                               size: 16, color: Color(0xFFF2B0B0)),
-                          const SizedBox(width: 4),
-                          const Flexible(
-                            child: const Text(
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
                                 '지친 상태 · 「${AppController.tiredLine}」',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: Color(0xFFF7D2D2), fontSize: 12)),
                           ),
                         ],

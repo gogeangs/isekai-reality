@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';

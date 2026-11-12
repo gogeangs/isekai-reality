@@ -150,3 +150,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | mat_shadeMushroom, mat_poisonMushroom, mat_moonMushroom, mat_springPetal, mat_summerPetal | 채집 재료: 버섯 3종, 벚꽃잎, 해바라기 꽃잎 (256×256) |
 | mat_<autumn·winter>Petal, mat_sunPollen, mat_breezeBloom, mat_roughGem, mat_gem<Fire·Water·Wind·Earth·Light·Dark·Ice·Thunder·Metal·Poison>, mat_ancientShard, mat_relicSeal | 채집 재료 17종 (256×256) |
 | fx_hit_<fire·water·wind·earth·light·dark·ice·thunder·metal·poison> | 속성 타격 효과 10종 (512×512, 붉은·자홍 테두리를 지워서 넣음) |
+| monster_parts_slime | 슬라임 공용 부위 시트 (2048×2048, 개발이 잘라서 씀) |

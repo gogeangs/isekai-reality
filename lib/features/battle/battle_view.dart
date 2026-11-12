@@ -11,6 +11,7 @@ import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import 'auto_use_window.dart';
+import 'season_painter.dart';
 import 'modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
@@ -37,6 +38,7 @@ class BattleView extends StatefulWidget {
     this.onPoisonTipShown,
     this.aura,
     this.hour,
+    this.season,
     this.background,
     this.backgroundOf,
   });
@@ -46,6 +48,9 @@ class BattleView extends StatefulWidget {
 
   /// 지금 시각 (낮·노을·밤 색감, 11-11 #81). 없으면 낮.
   final int? hour;
+
+  /// 계절 (봄 꽃잎·여름 반딧불·가을 낙엽·겨울 눈송이, 묶음 14 A4). 없으면 계절 입자 없음
+  final Season? season;
 
   /// 전투 배경 그림 (묶음 13 C7: 필드는 장소 종류에 맞춰). 없으면 기본
   final String? background;
@@ -460,6 +465,7 @@ class _BattleViewState extends State<BattleView> {
                 heroTint: _heroTint,
                 foeTint: _foeTint,
                 hour: widget.hour,
+                season: widget.season,
                 background: widget.backgroundOf?.call(_b.floor, _b.foe) ??
                     widget.background,
               ),
@@ -825,6 +831,7 @@ class _Scene extends StatefulWidget {
     this.heroTint,
     this.foeTint,
     this.hour,
+    this.season,
     this.background,
   });
 
@@ -841,6 +848,7 @@ class _Scene extends StatefulWidget {
   final Color? heroTint;
   final Color? foeTint;
   final int? hour;
+  final Season? season;
   final String? background;
 
   /// 정령(펫) 스킬: 펫이 몬스터 쪽으로 달려든다
@@ -1004,6 +1012,14 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       child: IgnorePointer(
                         child: CustomPaint(
                           key: const Key('battleAmbient'),
+                          foregroundPainter: widget.season == null
+                              ? null
+                              : SeasonPainter(
+                                  season: widget.season!,
+                                  t: ((widget.beat + t) * 0.06) % 1.0,
+                                  few: MediaQuery.maybeDisableAnimationsOf(
+                                          context) ??
+                                      false),
                           painter: _AmbientPainter(
                             t: ((widget.beat + t) * 0.11) % 1.0,
                             element: foe.info.element,

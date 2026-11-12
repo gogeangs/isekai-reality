@@ -13,6 +13,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';
 import '../smithy/equipment_view.dart';
+import '../battle/season_painter.dart';
 import 'stat_icon.dart';
 import '../battle/element_view.dart';
 import '../bulssi/bulssi_mood.dart';
@@ -43,7 +44,11 @@ class StatusScreen extends StatelessWidget {
     this.onOpenShop,
     this.equippedTitle,
     this.look = HeroLook.male,
+    this.season,
   });
+
+  /// 계절 (상태 화면 무대 위 계절 입자, 묶음 14 A4)
+  final Season? season;
 
   final PlayerState player;
 
@@ -142,6 +147,7 @@ class StatusScreen extends StatelessWidget {
                 _HeroArt(
                     look: look,
                     top: top,
+                    season: season,
                     tired: curHp <= 0,
                     // 보스 장비 6개 세트 외형 (11-11 #82): 그림 전에는 세트 빛깔
                     aura: switch (armory == null
@@ -246,9 +252,14 @@ class StatusScreen extends StatelessWidget {
 /// 은은한 테두리 빛과 발밑 그림자로 배경과 나눈다. 오른쪽 위 하늘은 정령 말풍선 자리.
 class _HeroArt extends StatelessWidget {
   const _HeroArt(
-      {required this.look, required this.top, this.tired = false, this.aura});
+      {required this.look,
+      required this.top,
+      this.tired = false,
+      this.aura,
+      this.season});
 
   final HeroLook look;
+  final Season? season;
 
   /// 보스 장비 6개 세트 빛 (없으면 보통 금빛 테두리)
   final Color? aura;
@@ -288,6 +299,19 @@ class _HeroArt extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox())),
         ),
+        // 계절 입자 (묶음 14 A4): 무대 위에 은은하게, 멈춘 그림으로
+        if (season != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.7,
+                child: CustomPaint(
+                    key: const Key('statusSeason'),
+                    painter: SeasonPainter(
+                        season: season!, t: 0.37, few: true, seed: 3)),
+              ),
+            ),
+          ),
         // 발밑 그림자
         Positioned(
           left: box.maxWidth / 2 - heroH * 0.22,

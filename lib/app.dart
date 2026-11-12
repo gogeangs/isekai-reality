@@ -476,6 +476,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             equippedTitle: controller.equippedTitle,
             onOpenInn: () => push(InnScreen(controller: controller)),
             look: controller.profile.look,
+            season: SeasonRules.of(controller.now),
           ),
           MapScreen(
               controller: controller,

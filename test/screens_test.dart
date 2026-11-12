@@ -10,8 +10,11 @@ import 'package:isekai_reality/features/bulssi/bulssi_mood.dart';
 
 void main() {
   group('불씨 색 (날씨 기능은 묶음 13에서 뺐다)', () {
-    test('낮에는 황금, 밤에는 보라 (기기 시간만)', () {
-      expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 13)), BulssiMood.gold);
+    test('낮에는 계절 색, 밤에는 보라 (기기 날짜·시간만)', () {
+      expect(BulssiMoods.of(now: DateTime(2026, 7, 8, 13)), BulssiMood.gold);
+      expect(BulssiMoods.of(now: DateTime(2026, 4, 8, 13)), BulssiMood.spring);
+      expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 13)), BulssiMood.autumn);
+      expect(BulssiMoods.of(now: DateTime(2026, 1, 8, 13)), BulssiMood.snow);
       expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 21)), BulssiMood.night);
       expect(BulssiMoods.of(now: DateTime(2026, 11, 8, 4)), BulssiMood.night);
     });

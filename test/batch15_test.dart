@@ -115,6 +115,9 @@ void main() {
       )..mailSources = const [];
       await c.init();
       await c.awaken(name: '하루', look: HeroLook.male);
+      // 묶음 16 #140: 이세계 연출 뒤 첫 몬스터
+      expect(c.tutorialStep, TutorialStep.intro);
+      await c.finishIntro();
       expect(c.tutorialStep, TutorialStep.hunt);
       expect(c.tutorialSpawn?.id, AppController.tutorialHuntId);
       await c.skipTutorial();
@@ -139,6 +142,7 @@ void main() {
       )..mailSources = const [];
       await c.init();
       await c.awaken(name: '하루', look: HeroLook.male);
+      await c.finishIntro();
       final first = c.tutorialSpawn!;
       final battle = c.startFieldBattle(first)!;
       battle.runToEnd(useSkills: true);

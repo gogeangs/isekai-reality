@@ -664,7 +664,8 @@ class AppController extends ChangeNotifier {
             exclusions: exclusions,
             level: player.level.level,
             luckBonus: StatRules.modifierBonus(combatStats),
-            favored: ElementRules.challengers(mainElement))
+            favored: ElementRules.challengers(mainElement),
+            land: lands?.kindAt)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .where((s) => !done.contains(s.id))
         .toList();

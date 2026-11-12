@@ -6,6 +6,7 @@ import 'exclusion_index.dart';
 import 'exploration_rules.dart';
 import 'modifier_rules.dart';
 import 'monsters.dart';
+import 'place_grid.dart';
 import 'road_mask.dart';
 import 'rule_constants.dart';
 
@@ -57,6 +58,7 @@ class FieldMonsterRules {
     int level = 1,
     double luckBonus = 0,
     Set<Element> favored = const {},
+    LandKind? Function(GeoPoint)? land,
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -150,7 +152,9 @@ class FieldMonsterRules {
         final monster = night && butterflyRoll < nightButterflyShare
             ? MonsterId.shadowButterfly
             : pickCommon(kindRoll, elementRoll,
-                night: night, favored: favored);
+                night: night,
+                favored: favored,
+                landFavored: landElements(land?.call(p)));
         spawns.add(FieldSpawn(
           id: id,
           monster: monster,
@@ -187,14 +191,37 @@ class FieldMonsterRules {
     (MonsterId.darkSlime, 0.02, 0.06),
   ];
 
+  /// 장소 종류에 어울리는 속성 (묶음 14 A3, 숨은 규칙). 마을은 고르게.
+  static Set<Element> landElements(LandKind? land) => switch (land) {
+        LandKind.water || LandKind.sea => const {Element.water, Element.ice},
+        LandKind.park || LandKind.forest => const {
+            Element.earth,
+            Element.wind,
+            Element.poison
+          },
+        LandKind.mountain => const {Element.earth, Element.metal, Element.wind},
+        LandKind.city => const {Element.metal, Element.thunder, Element.dark},
+        LandKind.village || null => const {},
+      };
+
+  /// 장소에 맞는 속성 몬스터가 조금 더 자주 (숨김)
+  static const double landWeight = 1.4;
+
   /// [kindRoll]·[elementRoll] 은 0~1 난수
   /// [favored]: 내 주 속성에 강한 속성 (11-11 #63). 그 속성 몬스터가 1.5배 자주.
+  /// [landFavored]: 장소에 어울리는 속성 (묶음 14). 둘 다 맞아도 곱하지 않고 큰 쪽만
+  /// (어느 한쪽이 너무 커지지 않게).
   static MonsterId pickCommon(double kindRoll, double elementRoll,
-      {bool night = false, Set<Element> favored = const {}}) {
-    double w(MonsterId m, double base) =>
-        favored.contains(Monsters.info(m).element)
-            ? base * ElementRules.challengeWeight
-            : base;
+      {bool night = false,
+      Set<Element> favored = const {},
+      Set<Element> landFavored = const {}}) {
+    double w(MonsterId m, double base) {
+      final e = Monsters.info(m).element;
+      var f = 1.0;
+      if (favored.contains(e)) f = ElementRules.challengeWeight;
+      if (landFavored.contains(e) && landWeight > f) f = landWeight;
+      return base * f;
+    }
     final kinds = [for (final (m, b) in commonWeights) (m, w(m, b))];
     final kindTotal = kinds.fold(0.0, (a, e) => a + e.$2);
     var acc = 0.0;

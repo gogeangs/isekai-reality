@@ -247,8 +247,9 @@ void main() {
       expect(find.byKey(const Key('firstWeaponPicker')), findsOneWidget);
       expect(line(tester), contains('하나 골라 봐'));
 
-      await tester.tap(find.byKey(const Key('firstWeapon_ironSpear')),
-          warnIfMissed: false);
+      await tester.ensureVisible(find.byKey(const Key('firstWeapon_ironSpear')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('firstWeapon_ironSpear')));
       await settle(tester);
       expect(line(tester), contains('만들어 보자'));
       expect(find.text('길게 먼저 찔러요'), findsWidgets);

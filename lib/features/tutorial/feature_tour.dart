@@ -634,7 +634,10 @@ class _TourView extends StatelessWidget {
     // 밝힌 곳이 아래쪽이면 말풍선은 위로, 아니면 아래로 (가리지 않게)
     final bubbleTop = h != null && h.center.dy > size.height * 0.55;
     final bubble = Column(mainAxisSize: MainAxisSize.min, children: [
-      BulssiBubble(key: const Key('tourLine'), line: step.line, size: 52),
+      // 말풍선은 아래 버튼을 막지 않는다 (말풍선 버튼만 눌린다)
+      IgnorePointer(
+          child: BulssiBubble(
+              key: const Key('tourLine'), line: step.line, size: 52)),
       if (step.button != null) ...[
         const SizedBox(height: 8),
         GoldButtonLite(

@@ -75,13 +75,18 @@ extension ShopBagOps on AppController {
       bagExpandCost != null && _bag.singleSlots < BagRules.adSlots;
 
   /// 가방을 한 칸 늘린다. [byAd] 면 광고를 끝까지 본 뒤 (첫째·둘째 칸만)
-  Future<bool> expandBag({bool byAd = false}) =>
-      _serial(() async {
+  Future<bool> expandBag({bool byAd = false}) async {
+    // 광고는 잠금 밖에서 본다 (보는 동안 다른 저장을 막지 않게)
+    if (byAd &&
+        (bagExpandCost == null ||
+            !bagSlotByAd ||
+            !await _watchAd('bag_slot'))) {
+      return false;
+    }
+    return _serial(() async {
     final cost = bagExpandCost;
     if (cost == null) return false;
-    if (byAd) {
-      if (!bagSlotByAd || !await _watchAd('bag_slot')) return false;
-    } else {
+    if (!byAd) {
       if (player.gold < cost) return false;
       final today = await _todayRecord();
       await _save(today.copyWith(
@@ -92,4 +97,5 @@ extension ShopBagOps on AppController {
     _notify();
     return true;
   });
+  }
 }

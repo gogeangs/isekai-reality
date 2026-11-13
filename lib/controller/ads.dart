@@ -23,11 +23,11 @@ extension AdsOps on AppController {
       !ex.adUsed.contains('half') &&
       ex.returnAt.isAfter(_clock());
 
-  Future<bool> adHalveExpedition(Expedition ex) =>
-      _serial(() async {
+  Future<bool> adHalveExpedition(Expedition ex) async {
     if (!canHalveExpedition(ex) || !await _watchAd('expedition_half')) {
       return false;
     }
+    return _serial(() async {
     final now = _clock();
     final cur = _latestExpedition(ex); // 묶음 23 #172: 사이에 도착했을 수 있다
     final left = cur.returnAt.difference(now);
@@ -43,4 +43,5 @@ extension AdsOps on AppController {
     await refreshVitals();
     return true;
   });
+  }
 }

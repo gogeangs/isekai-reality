@@ -22,12 +22,14 @@ extension ExpeditionOps on AppController {
       !ex.adUsed.contains('rush');
 
   /// 마석(또는 광고)으로 지금 바로 돌아오게 한다. 성공하면 true
-  Future<bool> rushExpedition(Expedition ex, {bool byAd = false}) =>
-      _serial(() async {
-    if (!canRush(ex)) return false;
-    if (byAd) {
-      if (!canRushByAd(ex) || !await _watchAd('expedition_rush')) return false;
-    } else {
+  Future<bool> rushExpedition(Expedition ex, {bool byAd = false}) async {
+    // 광고는 잠금 밖에서 본다 (묶음 23 #167)
+    if (byAd && (!canRushByAd(ex) || !await _watchAd('expedition_rush'))) {
+      return false;
+    }
+    return _serial(() async {
+    if (!canRush(_latestExpedition(ex))) return false;
+    if (!byAd) {
       final cost = rushCost(ex);
       if (player.manaStones < cost) return false;
       final today = await _todayRecord();
@@ -50,6 +52,7 @@ extension ExpeditionOps on AppController {
     _notify();
     return true;
   });
+  }
 
   /// 원정 보상 두 배 (기본 보상만, 펫이 더 가져온 것은 빼고)
   bool canDoubleExpedition(Expedition ex) =>
@@ -59,11 +62,12 @@ extension ExpeditionOps on AppController {
       ex.baseReward.isNotEmpty &&
       !ex.adUsed.contains('double');
 
-  Future<bool> adDoubleExpedition(Expedition ex) =>
-      _serial(() async {
+  Future<bool> adDoubleExpedition(Expedition ex) async {
     if (!canDoubleExpedition(ex) || !await _watchAd('expedition_double')) {
       return false;
     }
+    return _serial(() async {
+    if (_latestExpedition(ex).adUsed.contains('double')) return false;
     final b = ex.baseReward;
     final mats = <MaterialId, int>{
       for (final e in b.entries)
@@ -81,6 +85,7 @@ extension ExpeditionOps on AppController {
     _notify();
     return true;
   });
+  }
 
   /// 저장된 지금 원정 (화면이 들고 있던 것은 오래됐을 수 있다)
   Expedition _latestExpedition(Expedition ex) {
@@ -102,9 +107,9 @@ extension ExpeditionOps on AppController {
   /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·MP가 바로 더 찬다)
   bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
 
-  Future<bool> adShortenRest() =>
-      _serial(() async {
+  Future<bool> adShortenRest() async {
     if (!canShortenRest || !await _watchAd('rest_shorten')) return false;
+    return _serial(() async {
     final at = _vitals.restStartedAt;
     if (at == null) return false;
     _vitals = _vitals.copyWith(
@@ -119,6 +124,7 @@ extension ExpeditionOps on AppController {
     await refreshVitals();
     return true;
   });
+  }
 
   /// 가방이 가득 차 금화로 바꾼 값 (알림을 띄우고 0으로)
   int takeBagOverflow() {
@@ -416,12 +422,13 @@ extension ExpeditionOps on AppController {
   }
 
   /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
-  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) =>
-      _serial(() async {
-    await refreshVitals();
+  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
+    // 길 찾기(인터넷)는 잠금 밖에서
     final route = AppController.isTutorialSpawn(spawn.id)
         ? ExpeditionRoute.straight(_lastFix?.point ?? spawn.point, spawn.point)
         : await prepareRoute(spawn);
+    return _serial(() async {
+    await refreshVitals();
     final plan = planExpedition(spawn, petUid: petUid);
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
@@ -471,6 +478,7 @@ extension ExpeditionOps on AppController {
     _notify();
     return ExpeditionCheck.ok;
   });
+  }
 
   /// 원정 알림 id: 정령은 원래 id, 펫은 펫마다
   int _notifyIdFor(String? petUid) {

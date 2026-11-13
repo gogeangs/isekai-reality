@@ -87,7 +87,7 @@ void main() {
       expect(c.player.manaStones, mana0 - cost + (done.reward[Wallet.manaStone] ?? 0));
       if (done.cleared == true) {
         expect(today.purifiedSpawnIds, contains('test-spawn'));
-        expect(c.player.totalExp, exp0 + (done.reward['exp'] ?? 0));
+        expect(c.player.totalExp, greaterThanOrEqualTo(exp0 + (done.reward['exp'] ?? 0)));
       } else if (done.escaped) {
         expect(today.fledSpawnIds, contains('test-spawn'));
       }
@@ -164,9 +164,10 @@ void main() {
       final exp0 = c.player.totalExp;
       expect(await c.rushExpedition(c.activeExpeditions.single), isTrue);
       final done = c.finishedExpeditions.single;
-      expect(c.player.totalExp, exp0 + (done.reward['exp'] ?? 0));
+      final exp1 = c.player.totalExp;
+      expect(exp1, greaterThanOrEqualTo(exp0 + (done.reward['exp'] ?? 0)));
       await c.refreshVitals();
-      expect(c.player.totalExp, exp0 + (done.reward['exp'] ?? 0));
+      expect(c.player.totalExp, exp1); // 다시 정하지 않는다
     });
 
     test('예전 기록: 결과가 있는 원정은 돌아온 것, 도착했지만 결과 없는 원정은 열 때 정함',

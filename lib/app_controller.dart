@@ -316,8 +316,7 @@ class AppController extends ChangeNotifier {
     required HeroLook look,
     SpiritKind spirit = SpiritKind.fire,
     String? spiritName,
-  }) =>
-      _serial(() async {
+  }) async {
     final sn = spiritName?.trim();
     _profile = PlayerProfile(
       name: name.trim(),
@@ -338,7 +337,7 @@ class AppController extends ChangeNotifier {
     }
     _needsAwakening = false;
     await _startPlaying();
-  });
+  }
 
   /// 레벨 업하면 HP·정령(펫) MP를 가득 채우고 지친 상태를 푼다 (묶음 14 #102).
   /// 레벨 업 창을 띄울 때 한 번 부른다(여러 레벨이 한꺼번에 올라도 한 번).
@@ -543,7 +542,9 @@ class AppController extends ChangeNotifier {
     final prev = _lockTail;
     final done = Completer<void>();
     _lockTail = done.future;
+    // 앞의 일이 오래 걸려도(멈춰도) 앱이 굳지 않게 15초 뒤에는 이어 간다
     return prev
+        .timeout(const Duration(seconds: 15), onTimeout: () {})
         .then((_) => runZoned(job, zoneValues: {_lockZoneKey: this}))
         .whenComplete(done.complete);
   }

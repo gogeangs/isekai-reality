@@ -24,7 +24,18 @@ class Expedition {
     this.petName,
     this.baseReward = const {},
     this.adUsed = const {},
-  });
+    bool? back,
+  }) : back = back ?? cleared != null;
+
+  /// 돌아왔는지 (묶음 23 #172: 싸움 결과는 도착할 때 정하고, 결과 카드는 돌아온 뒤).
+  /// 예전 기록은 결과가 있으면 돌아온 것으로 본다
+  final bool back;
+
+  /// 싸움 결과를 정했는지 (도착한 뒤)
+  bool get decided => cleared != null;
+
+  /// 돌아온 것으로 표시
+  Expedition returned() => copy(back: true);
 
   /// 기본 보상 (펫 특기로 더 가져온 것 빼고). 광고 보고 두 배는 이것만 (묶음 15 #103)
   final Map<String, int> baseReward;
@@ -46,6 +57,7 @@ class Expedition {
     DateTime? arriveAt,
     DateTime? returnAt,
     Set<String>? adUsed,
+    bool? back,
   }) =>
       Expedition(
         spawnId: spawnId,
@@ -69,6 +81,7 @@ class Expedition {
         petName: petName,
         baseReward: baseReward,
         adUsed: adUsed ?? this.adUsed,
+        back: back ?? this.back,
       );
 
   /// 원정을 간 펫 (null 이면 정령)
@@ -107,10 +120,11 @@ class Expedition {
   final DateTime arriveAt;
   final DateTime returnAt;
 
-  /// 결과. 돌아오기 전에는 null.
+  /// 싸움 결과 (이김). 도착하기 전에는 null.
   final bool? cleared;
 
-  bool get finished => cleared != null;
+  /// 돌아와서 결과 카드를 볼 차례인지
+  bool get finished => cleared != null && back;
 
   /// 가는 길 점들 (출발 → 몬스터). 끝은 언제나 몬스터 자리에 정확히 닿는다 (11-11 #90)
   List<(double, double)> get path {
@@ -229,6 +243,7 @@ class Expedition {
         petName: petName,
         baseReward: baseReward ?? reward,
         adUsed: adUsed,
+        back: false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -253,6 +268,7 @@ class Expedition {
         if (petName != null) 'petName': petName,
         if (baseReward.isNotEmpty) 'baseReward': baseReward,
         if (adUsed.isNotEmpty) 'adUsed': adUsed.toList(),
+        'back': back,
       };
 
   factory Expedition.fromJson(Map<String, dynamic> j) => Expedition(
@@ -288,6 +304,7 @@ class Expedition {
           for (final p in (j['route'] as List?) ?? const [])
             (((p as List)[0] as num).toDouble(), (p[1] as num).toDouble()),
         ],
+        back: j['back'] as bool?,
       );
 }
 

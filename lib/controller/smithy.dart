@@ -51,7 +51,8 @@ extension SmithyOps on AppController {
   }
 
   /// 대장간에서 장비를 만든다. 만든 장비를 돌려준다 (못 만들면 null).
-  Future<EquipItem?> craft(EquipBase base, {MaterialId? rare}) async {
+  Future<EquipItem?> craft(EquipBase base, {MaterialId? rare}) =>
+      _serial(() async {
     if (canCraft(base, rare: rare) != CraftCheck.ok) return null;
     final info = EquipmentRules.info(base);
     final free = _isFreeCraft(base, rare);
@@ -88,7 +89,7 @@ extension SmithyOps on AppController {
       nextId: a.nextId + 1,
     ));
     return item;
-  }
+  });
 
   // ───────────── 보스 장비 만들기 (11-11 #82)
 
@@ -120,7 +121,8 @@ extension SmithyOps on AppController {
 
   /// 보스 장비를 만든다. 실패하면 금화 절반과 조각 일부를 잃고 전용 재료는 돌려받는다.
   /// 처음부터 그 보스 속성이 입혀져 있다 (일반 장비처럼 바꾸기·추출·강화 가능).
-  Future<BossCraftResult?> craftBoss(EquipBase base) async {
+  Future<BossCraftResult?> craftBoss(EquipBase base) =>
+      _serial(() async {
     if (canCraftBoss(base) != CraftCheck.ok) return null;
     final set = BossGearRules.info(BossGearRules.setOf(base)!);
     final slot = EquipmentRules.info(base).slot;
@@ -161,7 +163,7 @@ extension SmithyOps on AppController {
       nextId: a.nextId + 1,
     ));
     return BossCraftResult(item: item);
-  }
+  });
 
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
@@ -174,7 +176,8 @@ extension SmithyOps on AppController {
   }
 
   /// 강화한다. 성공하면 true. 실패해도 장비는 그대로 (비용만 쓴다).
-  Future<bool?> enhance(String uid) async {
+  Future<bool?> enhance(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null || canEnhance(item) != CraftCheck.ok) return null;
     final to = item.enhance + 1;
@@ -190,10 +193,11 @@ extension SmithyOps on AppController {
       enhanceManaSpent: item.enhanceManaSpent + cost.manaStones,
     )));
     return ok;
-  }
+  });
 
   /// 내구도를 다 고친다
-  Future<bool> repair(String uid) async {
+  Future<bool> repair(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return false;
     final cost = EquipmentRules.repairCost(item);
@@ -205,11 +209,12 @@ extension SmithyOps on AppController {
     await _saveArmory(_armory.replace(
         item.copyWith(durability: EquipmentRules.maxDurability)));
     return true;
-  }
+  });
 
   /// 대장간 장비 속성 작업 (11-11 #74, NPC 도르군).
   /// 실패하면 금화만 잃고 빛나는 속성 코어는 돌려받는다. 장비와 원래 속성은 그대로.
-  Future<SmithResult> smith(String uid, SmithAction act, {Element? to}) async {
+  Future<SmithResult> smith(String uid, SmithAction act, {Element? to}) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return SmithResult.cannot;
     final el = item.element;
@@ -253,10 +258,11 @@ extension SmithyOps on AppController {
             item.copyWith(elementLevel: item.elementLevel + 1)));
     }
     return SmithResult.ok;
-  }
+  });
 
   /// 분해한다 (재료 절반과 마석 1, 강화 마석 절반을 돌려받는다)
-  Future<bool> disassemble(String uid) async {
+  Future<bool> disassemble(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return false;
     final back = EquipmentRules.salvage(item);
@@ -270,22 +276,24 @@ extension SmithyOps on AppController {
       },
     ));
     return true;
-  }
+  });
 
   /// 입는다 (같은 부위의 장비는 벗는다)
-  Future<void> equip(String uid) async {
+  Future<void> equip(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return;
     await _saveArmory(
         _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
-  }
+  });
 
-  Future<void> unequip(EquipSlot slot) async {
+  Future<void> unequip(EquipSlot slot) =>
+      _serial(() async {
     await _saveArmory(_armory.copyWith(equipped: {
       for (final e in _armory.equipped.entries)
         if (e.key != slot) e.key: e.value,
     }));
-  }
+  });
 
   /// 싸울 때마다 입은 장비의 내구도가 준다
   Future<void> _wear(int n) async {

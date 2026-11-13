@@ -21,7 +21,8 @@ extension BoardOps on AppController {
     return BoardRules.progress(t, today, s.baseline);
   }
 
-  Future<void> acceptErrand(int slot) async {
+  Future<void> acceptErrand(int slot) =>
+      _serial(() async {
     final b = board;
     final s = b.slots[slot];
     final t = BoardRules.template(s.templateId);
@@ -34,7 +35,7 @@ extension BoardOps on AppController {
       baseline: BoardRules.counterValue(today, t.counter),
     );
     await _saveBoard(b.copyWith(slots: slots));
-  }
+  });
 
   /// 받을 수 있는 의뢰 보상 수 (묶음 16 #130 마을 탭 빨간 점)
   int get questRewardsReady {
@@ -56,7 +57,8 @@ extension BoardOps on AppController {
   }
 
   /// 다 한 수시 의뢰의 보상을 받는다. 2시간 뒤 새 의뢰가 올라온다.
-  Future<bool> claimErrand(int slot) async {
+  Future<bool> claimErrand(int slot) =>
+      _serial(() async {
     final b = board;
     final s = b.slots[slot];
     final t = BoardRules.template(s.templateId);
@@ -71,7 +73,7 @@ extension BoardOps on AppController {
         ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
     await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
     return true;
-  }
+  });
 
   /// 수시 의뢰를 포기한다 (보상 없이, 2시간 뒤 새 의뢰)
   Future<void> abandonErrand(int slot) async {
@@ -89,7 +91,8 @@ extension BoardOps on AppController {
     return BoardRules.progress(u.quest, today, board.urgentBaseline);
   }
 
-  Future<void> acceptUrgent() async {
+  Future<void> acceptUrgent() =>
+      _serial(() async {
     final u = urgent;
     if (u == null || board.urgentAccepted) return;
     final today = await _todayRecord();
@@ -97,9 +100,10 @@ extension BoardOps on AppController {
       urgentAccepted: true,
       urgentBaseline: BoardRules.counterValue(today, u.quest.counter),
     ));
-  }
+  });
 
-  Future<bool> claimUrgent() async {
+  Future<bool> claimUrgent() =>
+      _serial(() async {
     final u = urgent;
     final b = board;
     if (u == null || !b.urgentAccepted || b.urgentDone) return false;
@@ -116,7 +120,7 @@ extension BoardOps on AppController {
     await _maybeNote(AlchemyRules.noteFromErrand);
     await _saveBoard(b.copyWith(urgentDone: true));
     return true;
-  }
+  });
 
   /// 오늘 기록의 수 하나를 늘린다 (생활 보너스·의뢰용)
   Future<void> _count(String key, [int n = 1]) async {

@@ -360,10 +360,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           NightBackground(
             header: true,
             child: CodexScreen(
-              // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다
+              // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
-                  if (!Monsters.info(m).retired) m,
+                  if (Monsters.inCodex(m)) m,
               },
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,

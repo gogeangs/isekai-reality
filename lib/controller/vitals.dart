@@ -70,7 +70,8 @@ extension VitalsOps on AppController {
 
   /// 시간·걸음에 따라 HP·MP를 채우고, 끝난 휴식과 원정을 마무리한다.
   /// 앱을 열 때, 화면을 볼 때 부른다.
-  Future<void> refreshVitals() async {
+  Future<void> refreshVitals() =>
+      _serial(() async {
     if (_refreshing) return;
     _refreshing = true;
     try {
@@ -81,7 +82,7 @@ extension VitalsOps on AppController {
     } finally {
       _refreshing = false;
     }
-  }
+  });
 
   Future<void> _refreshVitals() async {
     final now = _clock();
@@ -161,10 +162,35 @@ extension VitalsOps on AppController {
     _vitals = v;
     if (changed) await store.saveVitals(v);
 
-    // 돌아온 원정 마무리 (여러 마리가 한꺼번에 돌아올 수 있다)
+    // 묶음 23 #172: 도착하면 싸움 결과를 정하고(기록·보상 저장), 돌아오면 결과 카드.
+    // 바로 돌아오기 등으로 둘이 한꺼번에 지나도 결과는 한 번만 정한다
     for (final ex in [...v.expeditions]) {
-      if (!ex.finished && !now.isBefore(ex.returnAt)) {
+      if (!ex.decided && !now.isBefore(ex.arriveAt)) {
         await _resolveExpedition(ex);
+      }
+    }
+    var backNow = false;
+    final arrived = <Expedition>[];
+    for (final ex in [..._vitals.expeditions]) {
+      if (ex.decided && !ex.back && !now.isBefore(ex.returnAt)) {
+        backNow = true;
+        arrived.add(ex);
+      }
+    }
+    if (backNow) {
+      _vitals = _vitals.copyWith(expeditions: [
+        for (final e in _vitals.expeditions)
+          arrived.any((a) => a.spawnId == e.spawnId && a.petUid == e.petUid)
+              ? e.returned()
+              : e,
+      ]);
+      await store.saveVitals(_vitals);
+      // 튜토리얼 원정은 돌아왔을 때 Lv.2
+      for (final ex in arrived) {
+        if (ex.spawnId == AppController.tutorialExpeditionId &&
+            ex.cleared == true) {
+          await _tutorialPurified(ex.spawnId);
+        }
       }
     }
     await _mailExpiredBoard();
@@ -184,7 +210,8 @@ extension VitalsOps on AppController {
   }
 
   /// 여관에 체크인한다. 언제든, 하루 여러 번. 이미 쉬는 중이면 false.
-  Future<bool> restAtInn() async {
+  Future<bool> restAtInn() =>
+      _serial(() async {
     if (resting) return false;
     await refreshVitals();
     final now = _clock();
@@ -201,15 +228,16 @@ extension VitalsOps on AppController {
     ));
     _notify();
     return true;
-  }
+  });
 
   /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·MP는 그대로 (묶음 15 #107)
-  Future<void> stopResting() async {
+  Future<void> stopResting() =>
+      _serial(() async {
     if (!resting) return;
     await refreshVitals();
     if (!resting) return;
     _stopResting();
     await store.saveVitals(_vitals);
     _notify();
-  }
+  });
 }

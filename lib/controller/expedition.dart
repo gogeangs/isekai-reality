@@ -22,7 +22,8 @@ extension ExpeditionOps on AppController {
       !ex.adUsed.contains('rush');
 
   /// 마석(또는 광고)으로 지금 바로 돌아오게 한다. 성공하면 true
-  Future<bool> rushExpedition(Expedition ex, {bool byAd = false}) async {
+  Future<bool> rushExpedition(Expedition ex, {bool byAd = false}) =>
+      _serial(() async {
     if (!canRush(ex)) return false;
     if (byAd) {
       if (!canRushByAd(ex) || !await _watchAd('expedition_rush')) return false;
@@ -35,7 +36,9 @@ extension ExpeditionOps on AppController {
               today.spends, {Wallet.manaStone: cost})));
     }
     final now = _clock();
-    final done = ex.shortened(ex.returnAt.difference(now), now,
+    // 묶음 23 #172: 광고를 보는 사이 도착해 결과가 정해졌을 수 있다 → 지금 기록으로
+    final cur = _latestExpedition(ex);
+    final done = cur.shortened(cur.returnAt.difference(now), now,
         ad: byAd ? 'rush' : null);
     _vitals = _vitals.copyWith(expeditions: [
       for (final e in _vitals.expeditions)
@@ -46,7 +49,7 @@ extension ExpeditionOps on AppController {
     await refreshVitals();
     _notify();
     return true;
-  }
+  });
 
   /// 원정 보상 두 배 (기본 보상만, 펫이 더 가져온 것은 빼고)
   bool canDoubleExpedition(Expedition ex) =>
@@ -56,7 +59,8 @@ extension ExpeditionOps on AppController {
       ex.baseReward.isNotEmpty &&
       !ex.adUsed.contains('double');
 
-  Future<bool> adDoubleExpedition(Expedition ex) async {
+  Future<bool> adDoubleExpedition(Expedition ex) =>
+      _serial(() async {
     if (!canDoubleExpedition(ex) || !await _watchAd('expedition_double')) {
       return false;
     }
@@ -76,6 +80,14 @@ extension ExpeditionOps on AppController {
     await store.saveVitals(_vitals);
     _notify();
     return true;
+  });
+
+  /// 저장된 지금 원정 (화면이 들고 있던 것은 오래됐을 수 있다)
+  Expedition _latestExpedition(Expedition ex) {
+    for (final e in _vitals.expeditions) {
+      if (e.spawnId == ex.spawnId && e.petUid == ex.petUid) return e;
+    }
+    return ex;
   }
 
   void _markAd(Expedition ex, String ad) {
@@ -90,7 +102,8 @@ extension ExpeditionOps on AppController {
   /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·MP가 바로 더 찬다)
   bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
 
-  Future<bool> adShortenRest() async {
+  Future<bool> adShortenRest() =>
+      _serial(() async {
     if (!canShortenRest || !await _watchAd('rest_shorten')) return false;
     final at = _vitals.restStartedAt;
     if (at == null) return false;
@@ -105,7 +118,7 @@ extension ExpeditionOps on AppController {
     ));
     await refreshVitals();
     return true;
-  }
+  });
 
   /// 가방이 가득 차 금화로 바꾼 값 (알림을 띄우고 0으로)
   int takeBagOverflow() {
@@ -126,32 +139,36 @@ extension ExpeditionOps on AppController {
   }
 
   /// 재료를 버린다
-  Future<bool> discardMaterial(MaterialId m, int n) async {
+  Future<bool> discardMaterial(MaterialId m, int n) =>
+      _serial(() async {
     if (n <= 0 || player.materialCount(m) < n) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {m.name: n})));
     return true;
-  }
+  });
 
   /// 가방 물건을 버린다
-  Future<bool> discardItem(ShopItem item, int n) async {
+  Future<bool> discardItem(ShopItem item, int n) =>
+      _serial(() async {
     if (n <= 0 || bagCount(item) < n) return false;
     await _count(TownRules.dropKey(item), n);
     return true;
-  }
+  });
 
   /// 입지 않은 장비를 버린다
-  Future<bool> discardEquip(String uid) async {
+  Future<bool> discardEquip(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null || _armory.isWorn(item)) return false;
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
     return true;
-  }
+  });
 
   /// 잡화상에서 재료를 판다
-  Future<bool> sellMaterial(MaterialId m, int n) async {
+  Future<bool> sellMaterial(MaterialId m, int n) =>
+      _serial(() async {
     if (n <= 0 || player.materialCount(m) < n) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
@@ -160,10 +177,11 @@ extension ExpeditionOps on AppController {
           today.gains, {Wallet.gold: n * BagRules.materialPrice(m)}),
     ));
     return true;
-  }
+  });
 
   /// 잡화상에서 가방 물건을 판다 (산 값의 절반)
-  Future<bool> sellItem(ShopItem item, int n) async {
+  Future<bool> sellItem(ShopItem item, int n) =>
+      _serial(() async {
     if (n <= 0 || bagCount(item) < n) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
@@ -173,10 +191,11 @@ extension ExpeditionOps on AppController {
           today.gains, {Wallet.gold: n * BagRules.itemPrice(item)}),
     ));
     return true;
-  }
+  });
 
   /// 잡화상에서 입지 않은 장비를 판다
-  Future<bool> sellEquip(String uid) async {
+  Future<bool> sellEquip(String uid) =>
+      _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null || _armory.isWorn(item)) return false;
     final today = await _todayRecord();
@@ -187,10 +206,11 @@ extension ExpeditionOps on AppController {
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
     return true;
-  }
+  });
 
   /// 마석 [count] 개를 금화로 판다 (1개에 금화 10). 모자라면 false.
-  Future<bool> sellManaStones(int count) async {
+  Future<bool> sellManaStones(int count) =>
+      _serial(() async {
     final today = await _todayRecord();
     if (!TownRules.canSell(_history, count)) return false;
     await _save(today.copyWith(
@@ -199,7 +219,7 @@ extension ExpeditionOps on AppController {
           {Wallet.gold: count * RuleConstants.goldPerManaStone}),
     ));
     return true;
-  }
+  });
 
   /// 가방에 든 개수
   int bagCount(ShopItem item) => TownRules.bagCount(_history, item);
@@ -232,7 +252,8 @@ extension ExpeditionOps on AppController {
   bool get compassReady => _vitals.compassReady;
 
   /// 가방에서 물약을 꺼내 마신다
-  Future<UseCheck> useItem(ShopItem item) async {
+  Future<UseCheck> useItem(ShopItem item) =>
+      _serial(() async {
     await refreshVitals();
     final check = canUse(item);
     if (check != UseCheck.ok) return check;
@@ -260,7 +281,7 @@ extension ExpeditionOps on AppController {
     final today = await _todayRecord();
     await _save(today.copyWith(itemsUsed: [...today.itemsUsed, item.name]));
     return UseCheck.ok;
-  }
+  });
 
   /// 게임 시계 (테스트에서는 고정 시각)
   DateTime get now => _clock();
@@ -395,7 +416,8 @@ extension ExpeditionOps on AppController {
   }
 
   /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
-  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
+  Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) =>
+      _serial(() async {
     await refreshVitals();
     final route = AppController.isTutorialSpawn(spawn.id)
         ? ExpeditionRoute.straight(_lastFix?.point ?? spawn.point, spawn.point)
@@ -448,7 +470,7 @@ extension ExpeditionOps on AppController {
     ));
     _notify();
     return ExpeditionCheck.ok;
-  }
+  });
 
   /// 원정 알림 id: 정령은 원래 id, 펫은 펫마다
   int _notifyIdFor(String? petUid) {

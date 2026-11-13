@@ -60,6 +60,40 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   /// 앱에 들어 있는 그림 목록 (지도는 없는 그림을 못 그려서 먼저 확인한다)
   static Set<String>? _assets;
 
+  /// 빛을 이미 보여 준 이긴 원정
+  final Set<String> _burstShown = {};
+
+  /// 묶음 23 #172: 정령이 도착해 이기면 몬스터 자리에서 빛이 잠깐(1초쯤) 흩어진다
+  Future<void> _burstWins(
+      NaverMapController map, List<Expedition> actives, DateTime now) async {
+    for (final ex in actives) {
+      final key = '${ex.spawnId}|${ex.petUid}';
+      if (ex.cleared != true || _burstShown.contains(key)) continue;
+      _burstShown.add(key);
+      // 앱을 연 지 한참 지난 도착은 건너뛴다 (방금 일어난 일만)
+      if (now.difference(ex.arriveAt) > const Duration(seconds: 20)) continue;
+      final id = 'burst_${ex.spawnId}';
+      try {
+        await map.addOverlay(NMarker(
+          id: id,
+          position: NLatLng(ex.lat, ex.lng),
+          icon: const NOverlayImage.fromAssetImage(
+              'assets/images/fx_hit_light.webp'),
+          size: const Size(84, 84),
+          anchor: const NPoint(0.5, 0.5),
+        ));
+      } catch (_) {
+        continue;
+      }
+      Timer(const Duration(milliseconds: 1100), () {
+        try {
+          map.deleteOverlay(
+              NOverlayInfo(type: NOverlayType.marker, id: id));
+        } catch (_) {}
+      });
+    }
+  }
+
   /// 원정 간 펫 지도 그림 (묶음 13 D): 지도용 pet_map_<종류>.png → 펫 그림 → 원정 아이콘
   String _petMapAsset(AppController c, Expedition ex) {
     Pet? pet;
@@ -94,11 +128,15 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final spawns = c.todaySpawns;
     final actives = c.activeExpeditions;
     final positions = [for (final e in actives) e.positionAt(c.now)];
+    // 묶음 23 #172: 이긴 원정은 도착하면 목표 표시를 지운다 → 결과가 바뀌면 다시 그림
     final spiritKey = positions.isEmpty
         ? null
-        : positions
-            .map((p) => '${p.$1.toStringAsFixed(4)},${p.$2.toStringAsFixed(4)}')
-            .join('|');
+        : [
+            for (var i = 0; i < positions.length; i++)
+              '${positions[i].$1.toStringAsFixed(4)},'
+                  '${positions[i].$2.toStringAsFixed(4)}'
+                  '${actives[i].cleared == true ? 'W' : ''}',
+          ].join('|');
     final merchantAt = c.merchantPoint;
     final merchantKey =
         merchantAt == null ? null : '${c.merchantMinutesLeft}';
@@ -145,7 +183,9 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           _harvest(c, h),
       // 원정 목표 (11-11 #90): 원정 동안 그대로 보이고 깃발 + 금빛 고리.
       // 직접 사냥은 못 하고, 누르면 「이슬이 가는 중이에요 · 9분」
-      for (var i = 0; i < actives.length; i++) ...[
+      for (var i = 0; i < actives.length; i++)
+        // 이긴 원정(도착해서 결과가 정해짐)은 몬스터·고리·글자 없이
+        if (actives[i].cleared != true) ...[
         NMarker(
           id: 'target_ring_$i',
           position: NLatLng(actives[i].lat, actives[i].lng),
@@ -227,6 +267,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
 
     await map.clearOverlays();
     await map.addOverlayAll(overlays);
+    await _burstWins(map, actives, c.now);
     _scale = -1;
     await _resize();
     await _findHidden();
@@ -419,8 +460,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         final phase = (ms / (moving ? 1300 : 2600)) * 2 * math.pi + i * 1.7;
         final lift = (moving ? 0.10 : 0.06) * (1 + math.sin(phase)) / 2;
         m.setAnchor(NPoint(0.5, 1 + lift));
-        // 묶음 19 #153: 돌리지 않고 똑바로 선 채, 방향은 좌우 뒤집기로만.
-        // 가는 쪽으로 살짝 기우는 것은 ±10° 안
+        // 묶음 19 #153: 돌리지 않고 똑바로 선 채, 방향은 좌우 뒤집기로만
         if (moving && dx.abs() > 1e-7) {
           final left = dx < 0;
           if (_facingLeft[i] != left) {
@@ -429,9 +469,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             m.setIcon(NOverlayImage.fromAssetImage(left ? _flipped(base) : base));
           }
         }
-        final tilt = !moving ? 0.0 : (dx > 0 ? 6.0 : (dx < 0 ? -6.0 : 0.0));
-        m.setAngle((tilt + (moving ? 2 * math.sin(phase / 2) : 0))
-            .clamp(-10.0, 10.0));
+        // 묶음 23 #169: 기울이지 않는다 (각도는 늘 0)
       }
       // 발자국 흐르기 (0.6초마다 한 칸의 1/3)
       if (!_still && ms ~/ 600 != _frame) {

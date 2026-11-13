@@ -6,7 +6,8 @@ extension ShopBagOps on AppController {
   // ───────────────────────────────────────────── 여관 · 잡화상 (앱 안 시설)
 
   /// 잡화상에서 물건을 산다. 사지 못하면 그 이유를 돌려준다.
-  Future<PurchaseCheck> buy(ShopItem item) async {
+  Future<PurchaseCheck> buy(ShopItem item) =>
+      _serial(() async {
     final today = await _todayRecord();
     final fix = _lastFix;
     await refreshVitals();
@@ -17,7 +18,7 @@ extension ShopBagOps on AppController {
       goldPurchases: [...today.goldPurchases, item.name],
     ));
     return PurchaseCheck.ok;
-  }
+  });
 
   /// 살 수 있는지 (가방 칸까지 본다)
   /// 잡화상에 보이는 물건 (묶음 16 #144: 감정 돋보기는 Lv.6에 열린다)
@@ -74,7 +75,8 @@ extension ShopBagOps on AppController {
       bagExpandCost != null && _bag.singleSlots < BagRules.adSlots;
 
   /// 가방을 한 칸 늘린다. [byAd] 면 광고를 끝까지 본 뒤 (첫째·둘째 칸만)
-  Future<bool> expandBag({bool byAd = false}) async {
+  Future<bool> expandBag({bool byAd = false}) =>
+      _serial(() async {
     final cost = bagExpandCost;
     if (cost == null) return false;
     if (byAd) {
@@ -89,5 +91,5 @@ extension ShopBagOps on AppController {
     await store.saveJson(AppController._bagKey, _bag.toJson());
     _notify();
     return true;
-  }
+  });
 }

@@ -50,7 +50,8 @@ extension MailOps on AppController {
 
   /// 우편 선물을 받는다. 받은 것 글을 돌려준다 (못 받으면 null).
   /// 가방이 가득하면 넘치는 물건은 금화로, 금화·마석·경험치는 늘 받는다.
-  Future<String?> claimMail(String id) async {
+  Future<String?> claimMail(String id) =>
+      _serial(() async {
     final i = _mail.mails.indexWhere((m) => m.id == id);
     if (i < 0 || !_mail.mails[i].hasGifts) return null;
     final m = _mail.mails[i];
@@ -137,16 +138,17 @@ extension MailOps on AppController {
         if (x.id != id) x else x.copyWith(claimed: true, read: true),
     ]));
     return got.join(', ');
-  }
+  });
 
   /// 모두 받기
-  Future<int> claimAllMail() async {
+  Future<int> claimAllMail() =>
+      _serial(() async {
     var n = 0;
     for (final m in giftMails) {
       if (await claimMail(m.id) != null) n++;
     }
     return n;
-  }
+  });
 
   /// 우편 보내기·정리 (앱을 열 때·화면을 볼 때)
   Future<void> _checkMail() async {

@@ -316,7 +316,8 @@ class AppController extends ChangeNotifier {
     required HeroLook look,
     SpiritKind spirit = SpiritKind.fire,
     String? spiritName,
-  }) async {
+  }) =>
+      _serial(() async {
     final sn = spiritName?.trim();
     _profile = PlayerProfile(
       name: name.trim(),
@@ -337,7 +338,7 @@ class AppController extends ChangeNotifier {
     }
     _needsAwakening = false;
     await _startPlaying();
-  }
+  });
 
   /// 레벨 업하면 HP·정령(펫) MP를 가득 채우고 지친 상태를 푼다 (묶음 14 #102).
   /// 레벨 업 창을 띄울 때 한 번 부른다(여러 레벨이 한꺼번에 올라도 한 번).
@@ -484,28 +485,67 @@ class AppController extends ChangeNotifier {
     final yesterday = today.subtract(const Duration(days: 1));
     _history = await store.loadHistory();
 
-    // 어제 기록이 있으면 하루 전체 걸음으로 마감한다 (밤에 앱을 안 열었을 때 대비)
+    // 묶음 23 #167: 건강 앱은 잠금 밖에서 기다리고, 받은 걸음만 최신 기록에 합친다.
+    // (기다리는 사이 원정 보상 등이 저장돼도 덮어쓰지 않게)
     final y = _find(yesterday);
+    DailyRecord? yHealth;
     if (_healthGranted && y != null) {
-      final closed = await _withHealth(y, yesterday, today)
-          .catchError((_) => y)
-          .timeout(const Duration(seconds: 8), onTimeout: () => y);
-      await store.upsert(_withQuests(closed));
+      yHealth = await _withHealth(y, yesterday, today)
+          .then<DailyRecord?>((r) => r)
+          .catchError((_) => null)
+          .timeout(const Duration(seconds: 8), onTimeout: () => null);
     }
-
-    var todayRecord =
-        _find(today) ?? DailyRecord(date: today, stepGoal: stepGoal);
+    final base = _find(today) ?? DailyRecord(date: today, stepGoal: stepGoal);
+    DailyRecord? tHealth;
     if (_healthGranted) {
-      final base = todayRecord;
-      todayRecord = await _withHealth(base, today, now)
-          .catchError((_) => base)
-          .timeout(const Duration(seconds: 8), onTimeout: () => base);
+      tHealth = await _withHealth(base, today, now)
+          .then<DailyRecord?>((r) => r)
+          .catchError((_) => null)
+          .timeout(const Duration(seconds: 8), onTimeout: () => null);
     }
-    await store.upsert(_withQuests(todayRecord.copyWith(openedApp: true)));
 
-    _history = await store.loadHistory();
-    await refreshVitals();
+    await _serial(() async {
+      _history = await store.loadHistory();
+      final yNow = _find(yesterday);
+      if (yNow != null && yHealth != null) {
+        await store.upsert(_withQuests(_healthOnto(yNow, yHealth)));
+      }
+      final tNow =
+          _find(today) ?? DailyRecord(date: today, stepGoal: stepGoal);
+      final merged = tHealth == null ? tNow : _healthOnto(tNow, tHealth);
+      await store.upsert(_withQuests(merged.copyWith(openedApp: true)));
+      _history = await store.loadHistory();
+      await refreshVitals();
+    });
     notifyListeners();
+  }
+
+  /// 건강 앱에서 읽은 칸(걸음·밤 걸음·아침 걸음·걸음 물약 게이지)만 [latest] 에 합친다
+  DailyRecord _healthOnto(DailyRecord latest, DailyRecord health) {
+    var out = latest.copyWith(
+        steps: health.steps,
+        stepsAfter8pm: health.stepsAfter8pm,
+        stepsMorning: health.stepsMorning);
+    final bonus = health.counters['gaugeBonus'];
+    if (bonus != null && bonus > (out.counters['gaugeBonus'] ?? 0)) {
+      out = out.copyWith(counters: {...out.counters, 'gaugeBonus': bonus});
+    }
+    return out;
+  }
+
+  // ───────────── 오늘 기록 쓰기 줄 세우기 (묶음 23 #167)
+  // 읽고-고치고-저장하는 일은 한 번에 하나씩. 안에서 다시 부르면 그대로 이어서 한다.
+  static final Object _lockZoneKey = Object();
+  Future<void> _lockTail = Future<void>.value();
+
+  Future<T> _serial<T>(Future<T> Function() job) {
+    if (Zone.current[_lockZoneKey] == this) return job();
+    final prev = _lockTail;
+    final done = Completer<void>();
+    _lockTail = done.future;
+    return prev
+        .then((_) => runZoned(job, zoneValues: {_lockZoneKey: this}))
+        .whenComplete(done.complete);
   }
 
   // ───────────────────────────────────────────── 설정

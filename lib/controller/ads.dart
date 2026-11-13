@@ -23,13 +23,15 @@ extension AdsOps on AppController {
       !ex.adUsed.contains('half') &&
       ex.returnAt.isAfter(_clock());
 
-  Future<bool> adHalveExpedition(Expedition ex) async {
+  Future<bool> adHalveExpedition(Expedition ex) =>
+      _serial(() async {
     if (!canHalveExpedition(ex) || !await _watchAd('expedition_half')) {
       return false;
     }
     final now = _clock();
-    final left = ex.returnAt.difference(now);
-    final done = ex.shortened(left ~/ 2, now, ad: 'half');
+    final cur = _latestExpedition(ex); // 묶음 23 #172: 사이에 도착했을 수 있다
+    final left = cur.returnAt.difference(now);
+    final done = cur.shortened(left ~/ 2, now, ad: 'half');
     _vitals = _vitals.copyWith(expeditions: [
       for (final e in _vitals.expeditions)
         e.spawnId == ex.spawnId && e.petUid == ex.petUid ? done : e,
@@ -40,5 +42,5 @@ extension AdsOps on AppController {
         '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
     await refreshVitals();
     return true;
-  }
+  });
 }

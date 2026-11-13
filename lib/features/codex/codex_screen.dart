@@ -107,7 +107,7 @@ class _CodexScreenState extends State<CodexScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     final tab = widget.petsOpen ? _tab : 0;
-    final all = Monsters.all;
+    final all = Monsters.codex;
     final have = [for (final m in all) if (purifiedMonsters.contains(m.id)) m];
     final records = [
       for (final e in modHunts.entries)

@@ -22,7 +22,8 @@ extension StatsOps on AppController {
   int get statResets => _alloc.resets;
 
   /// 포인트를 나눈다. [add] 의 합이 남은 포인트보다 많으면 false.
-  Future<bool> allocateStats(Stats add) async {
+  Future<bool> allocateStats(Stats add) =>
+      _serial(() async {
     if (add.total <= 0 || add.total > unspentPoints) return false;
     for (final k in StatKind.values) {
       if (add.of(k) < 0) return false;
@@ -32,10 +33,11 @@ extension StatsOps on AppController {
     await refreshVitals();
     _notify();
     return true;
-  }
+  });
 
   /// 포인트로 올린 값만 되돌린다 (생활 보너스는 그대로). 금화가 모자라면 false.
-  Future<bool> resetStats() async {
+  Future<bool> resetStats() =>
+      _serial(() async {
     if (_alloc.allocated.total == 0) return false;
     final cost = statResetCost;
     if (player.gold < cost) return false;
@@ -49,7 +51,7 @@ extension StatsOps on AppController {
     await refreshVitals();
     _notify();
     return true;
-  }
+  });
 
   /// 생활 보너스가 올라서 정령이 할 한 줄 (이유는 말하지 않는다). 없으면 null.
   String? get lifeBonusLine {

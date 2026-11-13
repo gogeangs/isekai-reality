@@ -137,7 +137,8 @@ extension PetsOps on AppController {
       : PetRules.hatchGoldCost(e.incubatedAt!, _clock());
 
   /// 마석이나 금화로 바로 깨운다
-  Future<bool> hatchNow(String eggId, {required bool useMana}) async {
+  Future<bool> hatchNow(String eggId, {required bool useMana}) =>
+      _serial(() async {
     PetEgg? egg;
     for (final e in _pets.eggs) {
       if (e.id == eggId) egg = e;
@@ -157,7 +158,7 @@ extension PetsOps on AppController {
     ]));
     unawaited(notifier?.cancel(NotifyId.hatch));
     return true;
-  }
+  });
 
   /// 다 된 알에서 펫이 태어난다. 펫이 6마리면 null.
   Future<Pet?> hatch(String eggId, String name, {PetSpecies? species}) async {
@@ -266,7 +267,8 @@ extension PetsOps on AppController {
   }
 
   /// 재료를 먹이로 준다 (일반 +3, 귀한 +15, 친밀도 +1)
-  Future<bool> feedMaterial(String uid, MaterialId m) async {
+  Future<bool> feedMaterial(String uid, MaterialId m) =>
+      _serial(() async {
     final pet = _pets.byUid(uid);
     if (pet == null || player.materialCount(m) <= 0) return false;
     final today = await _todayRecord();
@@ -280,10 +282,11 @@ extension PetsOps on AppController {
         uid, same ? (base * PetRules.sameElementFood).round() : base,
         bond: PetRules.bondPerFood);
     return true;
-  }
+  });
 
   /// 펫 간식을 준다 (동행 펫이 아니어도)
-  Future<bool> feedSnack(String uid) async {
+  Future<bool> feedSnack(String uid) =>
+      _serial(() async {
     final pet = _pets.byUid(uid);
     if (pet == null || bagCount(ShopItem.bulssiPotion) <= 0) return false;
     final today = await _todayRecord();
@@ -291,11 +294,12 @@ extension PetsOps on AppController {
         itemsUsed: [...today.itemsUsed, ShopItem.bulssiPotion.name]));
     await _givePetExp(uid, PetRules.expSnack, bond: PetRules.bondPerSnack);
     return true;
-  }
+  });
 
   /// 자연으로 돌려보낸다: 마석 (5 + 레벨 × 2) + 좋아하던 재료 3개.
   /// 마지막 한 마리와 원정 중인 펫은 돌려보낼 수 없다.
-  Future<bool> releasePet(String uid) async {
+  Future<bool> releasePet(String uid) =>
+      _serial(() async {
     final pet = _pets.byUid(uid);
     if (pet == null || _pets.pets.length <= 1 || isAway(uid)) return false;
     await _grant(0, PetRules.releaseMana(pet.level),
@@ -307,7 +311,7 @@ extension PetsOps on AppController {
       'companion': _pets.companion == uid ? rest.first.uid : _pets.companion,
     }));
     return true;
-  }
+  });
 
   // ───────────── 정령 편지
 

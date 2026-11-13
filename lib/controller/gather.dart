@@ -139,27 +139,30 @@ extension GatherOps on AppController {
   }
 
   /// 걸음 주머니를 연다
-  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openPouch() async {
+  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openPouch() =>
+      _serial(() async {
     if (_gather.pouches <= 0) return null;
     final r = GatherRules.openPouch(_random);
     await _saveGather(_gather.copyWith(pouches: _gather.pouches - 1));
     await _grant(r.gold, 0, r.mats);
     if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     return r;
-  }
+  });
 
   /// 길가의 발견을 연다 (30분이 지나면 null)
-  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openFind() async {
+  Future<({Map<MaterialId, int> mats, int gold, bool note})?> openFind() =>
+      _serial(() async {
     if (!findOpen) return null;
     final r = GatherRules.openFind(_random);
     await _saveGather(_gather.copyWith(clearFind: true));
     await _grant(r.gold, 0, r.mats);
     if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     return r;
-  }
+  });
 
   /// 떠돌이 상인에게서 산다 ([m] 이 null 이면 레시피 쪽지)
-  Future<bool> buyFromMerchant(MaterialId? m) async {
+  Future<bool> buyFromMerchant(MaterialId? m) =>
+      _serial(() async {
     if (!merchantHere) return false;
     final price = m == null
         ? (_gather.noteOffer ? GatherRules.notePrice : null)
@@ -177,7 +180,7 @@ extension GatherOps on AppController {
     await _saveGather(
         _gather.copyWith(sold: [..._gather.sold, m?.name ?? 'note']));
     return true;
-  }
+  });
 
   /// 걸을 때 알림 켜고 끄기 (설정)
   Future<void> setWalkNotify(bool on) => _saveGather(_gather.copyWith(notify: on));

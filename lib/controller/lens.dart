@@ -27,7 +27,8 @@ extension LensOps on AppController {
 
   /// 감정을 끝낸다: 마법 돋보기 1개를 쓰고 보상을 준다. 돋보기가 없으면 null.
   /// 처음 본 종족은 도감에 남고 경험치 +20, 하루 3번까지 30% 재료·5% 레시피 쪽지.
-  Future<AppraiseResult?> appraise(List<Race> races) async {
+  Future<AppraiseResult?> appraise(List<Race> races) =>
+      _serial(() async {
     if (races.isEmpty || !canAppraise) return null;
     // 묶음 19 #154: 매일 첫 감정은 돋보기를 쓰지 않는다
     final free = lensFreeToday;
@@ -87,7 +88,7 @@ extension LensOps on AppController {
         material: mat,
         note: note,
         albumId: photo.id);
-  }
+  });
 
   /// 감정 앨범 (11-11 #97)
   List<AlbumPhoto> get album => _lens.album;

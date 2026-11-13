@@ -66,15 +66,17 @@ extension BattleOps on AppController {
   }
 
   /// 전투가 끝났거나 중간에 나왔을 때 남은 HP를 저장한다
-  Future<void> keepBattleHp(Battle battle) async {
+  Future<void> keepBattleHp(Battle battle) =>
+      _serial(() async {
     await _consumeBattlePotions(battle);
     _vitals = _vitals.copyWith(hp: battle.playerHp, lastMaxHp: maxHp);
     await store.saveVitals(_vitals);
     _notify();
-  }
+  });
 
   /// 던전이 끝났을 때 결과를 기록한다. 받은 경험치를 돌려준다.
-  Future<int> finishDungeon(Battle battle, {required bool atGate}) async {
+  Future<int> finishDungeon(Battle battle, {required bool atGate}) =>
+      _serial(() async {
     if (!battle.isOver) return 0;
     await keepBattleHp(battle);
     await _wear(EquipmentRules.dungeonWear);
@@ -130,7 +132,7 @@ extension BattleOps on AppController {
       materials: mats,
     );
     return exp;
-  }
+  });
 
   /// 방금 끝난 사냥·던전의 보상 (결과 화면에 보여 준다)
   HuntReward get lastReward => _lastReward;

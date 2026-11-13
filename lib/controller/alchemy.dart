@@ -56,7 +56,8 @@ extension AlchemyOps on AppController {
   int? get cauldronGold => AlchemyRules.cauldronGold(_alc.cauldrons);
   int get cauldronStone => AlchemyRules.cauldronStone(_alc.cauldrons);
 
-  Future<bool> buyCauldron() async {
+  Future<bool> buyCauldron() =>
+      _serial(() async {
     final gold = cauldronGold;
     final stone = cauldronStone;
     if (gold == null || player.gold < gold) return false;
@@ -69,10 +70,11 @@ extension AlchemyOps on AppController {
     })));
     await _saveAlc(_alc.copyWith(cauldrons: _alc.cauldrons + 1));
     return true;
-  }
+  });
 
   /// 가마솥 [slot] 에 재료를 넣고 끓인다 (넣은 순서가 중요)
-  Future<bool> startBrew(int slot, List<MaterialId> put) async {
+  Future<bool> startBrew(int slot, List<MaterialId> put) =>
+      _serial(() async {
     if (slot < 0 || slot >= _alc.cauldrons || _alc.brews.containsKey(slot)) {
       return false;
     }
@@ -101,7 +103,7 @@ extension AlchemyOps on AppController {
     unawaited(notifier?.schedule(
         200 + slot, ready, '물약이 다 끓었어요', '연금술 공방에서 가마솥을 확인해 보세요!'));
     return true;
-  }
+  });
 
   bool brewReady(int slot) {
     final b = _alc.brews[slot];
@@ -109,7 +111,8 @@ extension AlchemyOps on AppController {
   }
 
   /// 다 끓은 물약을 꺼낸다
-  Future<BrewResult?> collectBrew(int slot) async {
+  Future<BrewResult?> collectBrew(int slot) =>
+      _serial(() async {
     final b = _alc.brews[slot];
     if (b == null || !brewReady(slot)) return null;
     final put = [
@@ -152,7 +155,7 @@ extension AlchemyOps on AppController {
     }
     await _saveAlc(a);
     return result;
-  }
+  });
 
   // ───────────── 물약 이름·효과
 
@@ -215,10 +218,11 @@ extension AlchemyOps on AppController {
   }
 
   /// [o] 를 한 병 마신다
-  Future<bool> drinkMana(ManaOption o) async {
+  Future<bool> drinkMana(ManaOption o) =>
+      _serial(() async {
     if (o.item != null) return await useItem(o.item!) == UseCheck.ok;
     return await drinkPotion(o.key!) == null;
-  }
+  });
 
   PotionInfo? _infoOf(String key) {
     final k = AlchemyRules.parseKey(key);
@@ -286,7 +290,8 @@ extension AlchemyOps on AppController {
     await _saveAlc(a);
   }
 
-  Future<String?> drinkPotion(String key) async {
+  Future<String?> drinkPotion(String key) =>
+      _serial(() async {
     drinkNote = null;
     if (_alc.count(key) <= 0) return '가방에 없어요';
     final now = _clock();
@@ -414,7 +419,7 @@ extension AlchemyOps on AppController {
     }
     await _saveAlc(a.add(key, -1));
     return null;
-  }
+  });
 
   /// 물약 효과가 아직 남았는지 (전투 수 · 걸음 · 시간)
   bool _buffActive(ActiveBuff b, [DateTime? at]) {
@@ -579,7 +584,8 @@ extension AlchemyOps on AppController {
   }
 
   /// 변환을 시작한다. 분해는 바로 끝난다.
-  Future<bool> startConvert(ConvertPlan p) async {
+  Future<bool> startConvert(ConvertPlan p) =>
+      _serial(() async {
     if (!canConvert(p)) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
@@ -611,10 +617,11 @@ extension AlchemyOps on AppController {
     unawaited(notifier?.schedule(
         260, ready, '변환이 끝났어요', '연금술 공방 변환대에서 꺼내 가세요!'));
     return true;
-  }
+  });
 
   /// 다 된 변환을 꺼낸다
-  Future<ConvertJob?> collectConvert() async {
+  Future<ConvertJob?> collectConvert() =>
+      _serial(() async {
     final j = _alc.convert;
     if (j == null || !convertReady) return null;
     await _saveAlc(_alc.copyWith(clearConvert: true));
@@ -623,7 +630,7 @@ extension AlchemyOps on AppController {
         if (Materials.byName(e.key) case final m?) m: e.value,
     });
     return j;
-  }
+  });
 
   // ───────────── 재료 가공 (11-11 #59)
 
@@ -631,7 +638,8 @@ extension AlchemyOps on AppController {
       player.gold >= r.gold && ProcessRules.use(r, player.materials) != null;
 
   /// 하위 재료를 상위 재료로 바꾼다 (바로 끝남)
-  Future<bool> process(ProcessRecipe r) async {
+  Future<bool> process(ProcessRecipe r) =>
+      _serial(() async {
     final use = ProcessRules.use(r, player.materials);
     if (use == null || player.gold < r.gold) return false;
     final today = await _todayRecord();
@@ -643,7 +651,7 @@ extension AlchemyOps on AppController {
       gains: DailyRecord.addCounts(today.gains, {r.output.name: r.count}),
     ));
     return true;
-  }
+  });
 
   /// 공방 물약을 버린다
   Future<bool> discardPotion(String key, int n) async {

@@ -87,6 +87,7 @@ class MonsterInfo {
     this.expBonus = 0,
     this.isBoss = false,
     this.retired = false,
+    this.codexOnly = false,
     this.slimeKind = false,
     this.tint,
     this.element,
@@ -122,6 +123,9 @@ class MonsterInfo {
   /// 더 나오지 않는 몬스터 (예전 기록에만 남음, 도감에서 숨김)
   final bool retired;
 
+  /// 지도에는 나오지 않지만 도감에는 있는 몬스터 (묶음 23 #168: 튜토리얼 하늘 슬라임)
+  final bool codexOnly;
+
   /// 속성 슬라임 (칭호 '도감의 현자' 조건에서 뺀다)
   final bool slimeKind;
 
@@ -145,6 +149,19 @@ class Monsters {
   /// 지금 나오는 몬스터 (도감 순서)
   static List<MonsterInfo> get all =>
       [for (final m in _all) if (!m.retired) m];
+
+  /// 도감 칸 (묶음 23 #168): 하늘 슬라임이 맨 앞, 그 뒤 지금 나오는 몬스터.
+  /// 도감 완성 칭호는 [all] 로 세어 하늘 슬라임은 넣지 않는다
+  static List<MonsterInfo> get codex => [
+        for (final m in _all) if (m.codexOnly) m,
+        ...all,
+      ];
+
+  /// 도감에 보이는 몬스터인지
+  static bool inCodex(MonsterId id) {
+    final m = info(id);
+    return !m.retired || m.codexOnly;
+  }
 
   /// 속성 슬라임 (무속성 슬라임 포함, 나오는 비율 순)
   static const slimes = [
@@ -437,7 +454,8 @@ class Monsters {
       description: '처음 각성한 사람 곁에 나타나는 순한 슬라임.',
       traitText: '기본형',
       hp: 0.8,
-      retired: true,
+      retired: true, // 지도에는 안 나옴
+      codexOnly: true, // 도감에는 맨 앞 칸
     ),
     MonsterInfo(
       id: MonsterId.roughWaterSpirit,

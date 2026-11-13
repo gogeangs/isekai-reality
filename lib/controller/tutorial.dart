@@ -270,7 +270,8 @@ extension TutorialOps on AppController {
   }
 
   /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
-  Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) async {
+  Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) =>
+      _serial(() async {
     await keepBattleHp(battle);
     if (battle.ticks > 0) {
       await _wear(EquipmentRules.fieldWear);
@@ -295,7 +296,7 @@ extension TutorialOps on AppController {
     if (battle.phase != BattlePhase.cleared) return 0;
     return _recordFieldPurify(spawn.id, spawn.monster, spawn.point,
         mods: spawn.modifiers, count: battle.floors.length);
-  }
+  });
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
   /// 하루 5마리까지만 경험치·마석·재료를 준다.
@@ -315,7 +316,10 @@ extension TutorialOps on AppController {
     if (AppController.isTutorialSpawn(spawnId)) {
       final got = await _recordFieldPurifyInner(spawnId, monster, point,
           mods: mods, count: count, today: today);
-      await _tutorialPurified(spawnId);
+      // 튜토리얼 원정은 도착할 때 기록하고, 다음 단계(Lv.2)는 돌아왔을 때 (#172)
+      if (spawnId != AppController.tutorialExpeditionId) {
+        await _tutorialPurified(spawnId);
+      }
       return got;
     }
     return _recordFieldPurifyInner(spawnId, monster, point,

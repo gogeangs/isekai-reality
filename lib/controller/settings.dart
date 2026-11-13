@@ -25,7 +25,8 @@ extension SettingsOps on AppController {
   }
 
   /// 내 이름을 바꾼다. 빈 이름·같은 이름이면 그대로, 금화가 모자라면 false.
-  Future<bool> renameHero(String name) async {
+  Future<bool> renameHero(String name) =>
+      _serial(() async {
     final n = name.trim();
     if (n.isEmpty || n == _profile.name || nameTaken(n)) return false;
     final cost = renameCost;
@@ -38,7 +39,7 @@ extension SettingsOps on AppController {
     await updateProfile(
         _profile.copyWith(name: n, renames: _profile.renames + 1));
     return true;
-  }
+  });
 
   // 정령 이름·종류는 각성 때 정하면 바꿀 수 없다 (11-11 #53)
 

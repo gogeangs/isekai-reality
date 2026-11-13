@@ -109,7 +109,8 @@ extension HarvestOps on AppController {
     return CraftCheck.ok;
   }
 
-  Future<bool> upgradeTool(HarvestTool t) async {
+  Future<bool> upgradeTool(HarvestTool t) =>
+      _serial(() async {
     if (canUpgradeTool(t) != CraftCheck.ok) return false;
     final tier = _harvest.tierOf(t);
     final cost = HarvestRules.upgradeCost(tier)!;
@@ -126,11 +127,12 @@ extension HarvestOps on AppController {
       tools: {..._harvest.tools, t.name: HarvestRules.toolMaxFor(next)},
     ));
     return true;
-  }
+  });
 
   /// 도구에 속성을 입힌다: 빛나는 속성 코어 1개 + 금화 100 (11-11 #83, #63과 같다).
   /// 그 속성의 귀한 재료가 더 잘 나온다 (숨김).
-  Future<bool> imbueTool(HarvestTool t, Element e) async {
+  Future<bool> imbueTool(HarvestTool t, Element e) =>
+      _serial(() async {
     final core = EquipmentRules.imbueCore(e);
     if (player.materialCount(core) < 1 || player.gold < EquipmentRules.imbueGold) {
       return false;
@@ -142,7 +144,7 @@ extension HarvestOps on AppController {
     await _saveHarvest(
         _harvest.copyWith(elements: {..._harvest.elements, t.name: e.name}));
     return true;
-  }
+  });
 
   HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
     final fix = _lastFix;
@@ -160,7 +162,8 @@ extension HarvestOps on AppController {
   }
 
   /// 채집한다. [grade] 가 quick 이면 빠른 채집, 아니면 미니게임 결과.
-  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) async {
+  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) =>
+      _serial(() async {
     final minigame = grade != HarvestGrade.quick;
     if (canHarvest(s, minigame: minigame) != HarvestCheck.ok) return null;
     if (s.id == 'tutorial-harvest') {
@@ -217,13 +220,14 @@ extension HarvestOps on AppController {
           counters: DailyRecord.addCounts(today.counters, {'relicDug': 1})));
     }
     return mats;
-  }
+  });
 
   /// 방금 캔 고대 유물의 이야기 (없으면 null)
   String? get lastRelicLore => _lastRelicLore;
 
   /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대·붓은 공방)
-  Future<bool> repairTool(HarvestTool t) async {
+  Future<bool> repairTool(HarvestTool t) =>
+      _serial(() async {
     if (!_harvest.granted || _harvest.durability(t) >= toolMaxOf(t)) {
       return false;
     }
@@ -238,5 +242,5 @@ extension HarvestOps on AppController {
     await _saveHarvest(_harvest.copyWith(
         tools: {..._harvest.tools, t.name: toolMaxOf(t)}));
     return true;
-  }
+  });
 }

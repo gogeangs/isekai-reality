@@ -29,7 +29,8 @@ extension ExploreOps on AppController {
   }
 
   /// 위치가 바뀔 때: 가까운 장소를 방문으로 기록한다 (안개는 11-10에 없앴다)
-  Future<void> handleFix(LocationFix fix) async {
+  Future<void> handleFix(LocationFix fix) =>
+      _serial(() async {
     _lastFix = fix;
     await _watchSpeed(fix);
     if (ExplorationRules.countsAsExploring(fix)) {
@@ -38,7 +39,7 @@ extension ExploreOps on AppController {
       }
     }
     _notify();
-  }
+  });
 
   void clearDiscovery() {
     _lastDiscovery = null;

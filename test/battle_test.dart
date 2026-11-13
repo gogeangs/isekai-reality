@@ -349,7 +349,9 @@ void main() {
 
       final b = c.startFieldBattle(spawn)!..runToEnd();
       final stones = c.player.manaStones;
-      expect(await c.finishFieldBattle(spawn, b), RuleConstants.fieldMonsterExp);
+      final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
+      expect(await c.finishFieldBattle(spawn, b),
+          RuleConstants.fieldMonsterExp * x2);
       expect(c.history.last.fieldMonstersPurified, 1);
       // 마석 1개와 그 몬스터 재료 1개 (11-10)
       expect(c.player.manaStones, stones + 1);

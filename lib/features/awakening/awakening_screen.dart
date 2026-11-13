@@ -1256,8 +1256,10 @@ class FinaleLayout {
     final hero = Rect.fromLTWH(c.dx - heroW / 2, c.dy - heroH, heroW, heroH);
     final size = heroH * 0.26;
     final shoulderY = c.dy - heroH * 0.80;
+    // 오른쪽 어깨 옆 (좁은 화면에서도 화면 밖으로 나가지 않게)
+    final sx = (c.dx + heroW * 0.58).clamp(0.0, screen.width - size / 2 - 6);
     final spirit = Rect.fromCenter(
-        center: Offset(c.dx + heroW * 0.58, shoulderY),
+        center: Offset(sx, shoulderY),
         width: size,
         height: size);
     return FinaleLayout(c, hero, spirit);

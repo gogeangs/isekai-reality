@@ -428,8 +428,9 @@ void main() {
       expect(c.canUse(ShopItem.purifyIncense), UseCheck.none);
       final spawn = c.todaySpawns.first;
       final b = c.startFieldBattle(spawn)!..runToEnd();
+      final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
       expect(await c.finishFieldBattle(spawn, b),
-          (RuleConstants.fieldMonsterExp * 1.5).round());
+          (RuleConstants.fieldMonsterExp * 1.5).round() * x2);
       expect(c.player.dailyExp.last.fieldMonster,
           (RuleConstants.fieldMonsterExp * 1.5).round());
     });

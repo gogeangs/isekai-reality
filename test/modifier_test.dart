@@ -195,8 +195,9 @@ void main() {
       expect(b.phase, BattlePhase.cleared);
       final n = b.floors.length;
       final stones = c.player.manaStones;
+      final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
       final exp = await c.finishFieldBattle(spawn, b);
-      expect(exp, RuleConstants.fieldMonsterExp * n);
+      expect(exp, RuleConstants.fieldMonsterExp * n * x2);
       expect(c.player.manaStones, stones + n);
       expect(c.history.last.fieldMonstersPurified, 1); // 하루 제한에는 1마리
       expect(c.huntTotals[MonsterId.giantRat], n);

@@ -339,7 +339,12 @@ extension TutorialOps on AppController {
     // 11-11 #69: 하루 5마리 뒤에도 사냥은 되고 경험치·마석만 줄어든다 (숨은 규칙)
     const paid = true;
     final n = today.fieldMonstersPurified;
-    final factor = RuleConstants.fieldFactor(n + 1);
+    // 묶음 25 #171: 튜토리얼 몬스터는 하루 5마리 경험치 셈에 넣지 않는다
+    // (튜토리얼 뒤 몬스터 5마리로 Lv.3)
+    final tutorialToday =
+        today.purifiedSpawnIds.where(AppController.isTutorialSpawn).length;
+    final factor =
+        RuleConstants.fieldFactor((n - tutorialToday).clamp(0, n) + 1);
     final incense = TownRules.incenseActive(today)
         ? RuleConstants.incenseExpMultiplier
         : 1;

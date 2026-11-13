@@ -440,7 +440,7 @@ final ValueNotifier<int> spiritTabVisits = ValueNotifier<int>(0);
 /// 마을·가방·도감 위쪽 정령 (묶음 22, #159 확장): 지도·상태 화면과 같은 금테 배지 +
 /// 오른쪽 말풍선. 칸에 들어올 때 한 번 말하고 접힌다. 말풍선은 아래 내용 위로 겹쳐
 /// 열리고(내용이 밀리지 않게), 접히면 배지 한 줄만 남는다.
-class SpiritBadgeRow extends StatelessWidget {
+class SpiritBadgeRow extends StatefulWidget {
   const SpiritBadgeRow(
       {super.key, required this.line, this.mood = SpiritMood.normal});
 
@@ -448,22 +448,45 @@ class SpiritBadgeRow extends StatelessWidget {
   final SpiritMood mood;
 
   @override
+  State<SpiritBadgeRow> createState() => _SpiritBadgeRowState();
+}
+
+class _SpiritBadgeRowState extends State<SpiritBadgeRow> {
+  // 말풍선이 아래 내용(마을 그림 등)에 가리지 않게 화면 맨 위 겹(Overlay)에 그린다.
+  // 자리는 이 줄을 따라가고, 칸이 숨거나 다른 화면이 덮으면 함께 숨는다.
+  final _link = LayerLink();
+  final _portal = OverlayPortalController();
+
+  @override
+  void initState() {
+    super.initState();
+    _portal.show();
+  }
+
+  @override
   Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, box) => SizedBox(
-          height: 44,
-          width: double.infinity,
-          child: Stack(clipBehavior: Clip.none, children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              child: SpiritTalkBadge(
-                line: line,
-                mood: mood,
-                retalk: spiritTabVisits,
-                maxBubbleWidth: (box.maxWidth - 46 - 8).clamp(140.0, 420.0),
+        builder: (context, box) {
+          final maxW = (box.maxWidth - 46 - 8).clamp(140.0, 420.0);
+          return CompositedTransformTarget(
+            link: _link,
+            child: OverlayPortal(
+              controller: _portal,
+              overlayChildBuilder: (_) => CompositedTransformFollower(
+                link: _link,
+                showWhenUnlinked: false,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: SpiritTalkBadge(
+                    line: widget.line,
+                    mood: widget.mood,
+                    retalk: spiritTabVisits,
+                    maxBubbleWidth: maxW,
+                  ),
+                ),
               ),
+              child: const SizedBox(height: 44, width: double.infinity),
             ),
-          ]),
-        ),
+          );
+        },
       );
 }

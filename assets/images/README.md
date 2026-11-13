@@ -173,3 +173,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-13 | equip_storm{Weapon,Head,Body,Hands,Feet,Acc} | 보스 장비 천둥 세트 (시트에서 잘라 냄, 512) |
 | 2026-11-13 | rig/hero_male_{arm_front_raised,arm_back_upper,hand_grip} | 주인공 남자 전투 부위 3 (시트에서 잘라 냄, 기존 부위와 같은 비율로 줄임; arm_back_upper 는 교체) |
 | 2026-11-13 | rig/hero_female_{arm_front_raised,arm_back_upper,hand_grip} | 주인공 여자 전투 부위 3 (시트에서 잘라 냄, 기존 부위와 같은 비율; 손 아래 구멍 투명하게; arm_back_upper 는 교체) |
+| 2026-11-13 | monster_slime | 하늘 슬라임 (임시 그림 교체, 512) |

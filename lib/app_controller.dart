@@ -307,6 +307,7 @@ class AppController extends ChangeNotifier {
     if (player.level.level < 2 && player.history.every((d) => d.fieldMonstersPurified == 0)) {
       // 묶음 16 #140: 지도가 이세계로 물드는 연출부터
       await _setTutorial(TutorialStep.intro);
+      _justAwakened = true;
       // 묶음 16 #141~#144: 새로 시작하는 사람만 레벨에 따라 기능이 열린다
       await store.saveJson(_gatesKey, {'legacy': false, 'seen': <String>[]});
     }
@@ -377,7 +378,7 @@ class AppController extends ChangeNotifier {
     _tutorial = await _load(
         _tutorialKey, (j) => (j['step'] as num?)?.toInt() ?? 0, 0);
     // 묶음 18 #150: 연출 단계에서 앱을 껐다 켜면 첫 전투부터 이어서
-    if (_tutorial == TutorialStep.intro.index) {
+    if (_tutorial == TutorialStep.intro.index && !_justAwakened) {
       _tutorial = TutorialStep.hunt.index;
       await store.saveJson(_tutorialKey, {'step': _tutorial});
     }
@@ -808,6 +809,9 @@ class AppController extends ChangeNotifier {
   // ───────────── 튜토리얼 (묶음 15 #104, Lv.1~2)
 
   static const _tutorialKey = 'tutorial';
+
+  /// 방금 각성했는지 (연출은 이때만 보여 준다)
+  bool _justAwakened = false;
   int _tutorial = 0;
 
   /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])

@@ -55,9 +55,7 @@ class _TutorialLayerState extends State<TutorialLayer> {
   void initState() {
     super.initState();
     tutorialMonsterRect.addListener(_changed);
-    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && c.inTutorial) setState(() {});
-    });
+
   }
 
   @override
@@ -77,7 +75,14 @@ class _TutorialLayerState extends State<TutorialLayer> {
       _waitSince = null;
       return false;
     }
-    _waitSince ??= DateTime.now();
+    if (_waitSince == null) {
+      _waitSince = DateTime.now();
+      // 12초 뒤 다시 그려 「위치를 켜 주세요」로
+      _tick?.cancel();
+      _tick = Timer(const Duration(seconds: 12), () {
+        if (mounted) setState(() {});
+      });
+    }
     return DateTime.now().difference(_waitSince!) < const Duration(seconds: 12);
   }
 

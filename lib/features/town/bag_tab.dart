@@ -1170,13 +1170,13 @@ class _TutorialGlowState extends State<TutorialGlow>
   @override
   void initState() {
     super.initState();
-    if (widget.on) _a.repeat(reverse: true);
+    if (widget.on) _a.repeat(reverse: true, count: 8);
   }
 
   @override
   void didUpdateWidget(TutorialGlow old) {
     super.didUpdateWidget(old);
-    if (widget.on && !_a.isAnimating) _a.repeat(reverse: true);
+    if (widget.on && !old.on) _a.repeat(reverse: true, count: 8);
     if (!widget.on && _a.isAnimating) _a.stop();
   }
 

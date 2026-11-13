@@ -2060,7 +2060,7 @@ class _PurifiedMonsterState extends State<PurifiedMonster>
     with SingleTickerProviderStateMixin {
   late final AnimationController _a = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 2400))
-    ..repeat(reverse: true);
+    ..repeat(reverse: true, count: 4);
 
   @override
   void dispose() {

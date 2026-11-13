@@ -6,6 +6,7 @@ import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
+import 'package:isekai_reality/features/bulssi/bulssi_bubble.dart';
 import 'package:isekai_reality/features/tutorial/tutorial_layer.dart';
 
 void main() {
@@ -57,10 +58,11 @@ void main() {
       var done = 0;
       await tester.pumpWidget(MaterialApp(
           home: Scaffold(body: IsekaiIntro(onDone: () async => done++))));
-      expect(find.text('어? 바로 옆에 뭔가 있어!'), findsNothing);
+      String line() => tester.widget<BulssiBubble>(find.byType(BulssiBubble)).line;
+      expect(line(), isNot(contains('바로 옆')));
       await tester.pump(const Duration(seconds: 5));
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.textContaining('바로 옆에 뭔가 있어'), findsOneWidget);
+      expect(line(), contains('바로 옆에 뭔가 있어'));
       expect(find.byType(ElevatedButton), findsNothing);
       await tester.pump(const Duration(seconds: 3));
       expect(done, 1);
@@ -91,9 +93,8 @@ void main() {
       final ex = c.activeExpeditions.single;
       expect(c.rushCost(ex), 1);
       expect(c.canRushByAd(ex), isFalse); // 튜토리얼은 마석만
-      final mana = c.player.manaStones;
       expect(await c.rushExpedition(ex), isTrue);
-      expect(c.player.manaStones, mana - 1);
+      expect(c.player.today!.spends[Wallet.manaStone], 1);
       expect(c.activeExpeditions, isEmpty);
       expect(c.player.level.level, 2);
       expect(c.inTutorial, isFalse);
@@ -129,13 +130,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(TutorialLayer), findsOneWidget);
-    expect(find.textContaining('바로 옆에 뭔가 있어! 눌러 봐!'), findsOneWidget);
+    String line() =>
+        tester.widget<BulssiBubble>(find.byKey(const Key('tutorialLine'))).line;
+    expect(line(), '바로 옆에 뭔가 있어! 눌러 봐!');
     expect(find.byKey(const Key('spotlightHole')), findsOneWidget);
     expect(find.byKey(const Key('fingerHint')), findsOneWidget);
     // 아래 메뉴는 눌리지 않는다
     await tester.tap(find.text('마을'), warnIfMissed: false);
     await tester.pump();
-    expect(find.textContaining('바로 옆에 뭔가 있어! 눌러 봐!'), findsOneWidget);
+    expect(line(), '바로 옆에 뭔가 있어! 눌러 봐!');
     await tester.tap(find.byKey(const Key('spotlightHole')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
@@ -157,12 +160,14 @@ void main() {
     await tester.pumpWidget(IsekaiRealityApp(controller: c));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('나를 누르면 서두를 수 있어'), findsOneWidget);
+    expect(
+        tester.widget<BulssiBubble>(find.byKey(const Key('tutorialLine'))).line,
+        contains('나를 누르면 서두를 수 있어'));
     await tester.tap(find.byKey(const Key('spotlightHole')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const Key('rushSheet')), findsOneWidget);
-    expect(find.text('1개로 바로 돌아오기'), findsOneWidget);
+    expect(find.byKey(const Key('rushMana')), findsOneWidget);
     expect(find.byKey(const Key('rushAd')), findsNothing);
   });
 }

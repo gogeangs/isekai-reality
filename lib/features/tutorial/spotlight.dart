@@ -115,7 +115,7 @@ class _FingerHintState extends State<FingerHint>
     with SingleTickerProviderStateMixin {
   late final AnimationController _a = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
+    ..repeat(reverse: true, count: 14);
 
   @override
   void dispose() {

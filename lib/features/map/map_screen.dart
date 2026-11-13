@@ -157,9 +157,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         // 묶음 18 #148: 튜토리얼 중에는 아래 몬스터 카드·발견 카드·던전 띠를 숨긴다
-        if (tut)
-          const SizedBox.shrink()
-        else if (controller.lastDiscovery != null)
+        if (!tut && controller.lastDiscovery != null)
           Positioned(
             left: 16,
             right: 16,
@@ -169,7 +167,7 @@ class _MapScreenState extends State<MapScreen> {
               onClose: controller.clearDiscovery,
             ),
           )
-        else if (spawn != null)
+        else if (!tut && spawn != null)
           Positioned(
             left: 16,
             right: 16,

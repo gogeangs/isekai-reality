@@ -89,13 +89,26 @@ extension TutorialOps on AppController {
 
   /// 첫 채집 도구 만들기 (무료): 모든 기본 도구를 새것으로
   Future<bool> makeFirstTools() async {
-    if (_harvest.granted) return false;
+    if (_harvest.granted || gotGift(Gift.firstTools)) return false;
     await _saveHarvest(_harvest.copyWith(granted: true, tools: {
       for (final t in HarvestTool.values) t.name: toolMaxOf(t),
     }));
+    await _markGift(Gift.firstTools);
     _notify();
     return true;
   }
+
+  /// 한 번만 주는 선물을 이미 받았는지 (묶음 23)
+  bool gotGift(String id) => _gifts.contains(id);
+
+  Future<void> _markGift(String id) async {
+    if (_gifts.contains(id)) return;
+    _gifts = {..._gifts, id};
+    await _saveGifts();
+  }
+
+  Future<void> _saveGifts() =>
+      store.saveJson(AppController._giftsKey, {'got': _gifts.toList()});
 
   /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])
   TutorialStep get tutorialStep => TutorialStep.values[

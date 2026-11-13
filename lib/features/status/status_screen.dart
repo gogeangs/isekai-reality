@@ -46,10 +46,14 @@ class StatusScreen extends StatelessWidget {
     this.equippedTitle,
     this.look = HeroLook.male,
     this.season,
+    this.now,
   });
 
   /// 계절 (상태 화면 무대 위 계절 입자, 묶음 14 A4)
   final Season? season;
+
+  /// 게임 시계 (정령 대사 시간대, 묶음 23). 없으면 휴대폰 시계
+  final DateTime? now;
 
   final PlayerState player;
 
@@ -101,7 +105,7 @@ class StatusScreen extends StatelessWidget {
     final line = lifeLine ?? BulssiLines.forStatus(
       today: today,
       gauge: player.gauge,
-      now: DateTime.now(),
+      now: now ?? DateTime.now(),
       hpRatio: curHp / topHp,
       mpRatio: curMp / mpMax,
       resting: restLeft != null,

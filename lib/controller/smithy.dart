@@ -21,7 +21,7 @@ extension SmithyOps on AppController {
   bool get firstWeaponFree =>
       !_legacyGates &&
       featureOpen(Feature.smithy) &&
-      !_introsSeen.contains('freeWeapon') &&
+      !gotGift(Gift.firstWeapon) &&
       !_armory.items.any(
           (i) => EquipmentRules.info(i.base).slot == EquipSlot.weapon);
 
@@ -62,8 +62,7 @@ extension SmithyOps on AppController {
             if (rare != null) rare.name: (info.recipe[rare] ?? 0) + 1,
           };
     if (free) {
-      _introsSeen = {..._introsSeen, 'freeWeapon'};
-      await _saveGates();
+      await _markGift(Gift.firstWeapon);
     } else {
       final today = await _todayRecord();
       await _save(today.copyWith(

@@ -80,9 +80,9 @@ extension HarvestOps on AppController {
       _harvest.spots[s.id]?.untilNext(_clock());
 
   /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
-  int toolDurability(HarvestTool t) => _harvest.granted
-      ? _harvest.durability(t)
-      : HarvestRules.toolMaxFor(_harvest.tierOf(t));
+  /// 묶음 23: 도구를 가지고 있을 때만 센다 (없으면 0, 「도구 필요」 규칙)
+  int toolDurability(HarvestTool t) =>
+      _harvest.granted ? _harvest.durability(t) : 0;
 
   /// 도구 최대 내구도 (등급에 따라)
   int toolMaxOf(HarvestTool t) => HarvestRules.toolMaxFor(_harvest.tierOf(t));

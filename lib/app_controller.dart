@@ -437,6 +437,17 @@ class AppController extends ChangeNotifier {
       };
       _hpTipShown = gates['hpTip'] == true || _legacyGates;
     }
+    // 묶음 23: 한 번만 주는 선물은 안내 기록과 따로. 예전 기록은 받은 것으로 옮긴다
+    final gifts = await _load(_giftsKey, (j) => j, null);
+    if (gifts == null) {
+      _gifts = {
+        if (_introsSeen.contains('freeWeapon')) Gift.firstWeapon,
+        if (_harvest.granted) Gift.firstTools,
+      };
+      await _saveGifts();
+    } else {
+      _gifts = {for (final x in (gifts['got'] as List?) ?? const []) '$x'};
+    }
     _lens = await _load(_lensKey, LensState.fromJson, const LensState());
     await sync();
     final titles = await store.loadJson(_titlesKey);
@@ -532,6 +543,10 @@ class AppController extends ChangeNotifier {
   /// 이번 묶음 전부터 하던 사람: 열린 기능은 그대로 (잠그지 않음)
   bool _legacyGates = true;
   Set<String> _introsSeen = {};
+
+  /// 한 번만 주는 선물을 받았는지 (묶음 23: 안내 기록과 따로, [Gift])
+  static const _giftsKey = 'gifts';
+  Set<String> _gifts = {};
   bool _hpTipShown = true;
 
   static const featureLevel = {
@@ -855,3 +870,14 @@ class ManaOption {
 
 /// 채집할 수 있는지 (11-11 #56)
 enum HarvestCheck { ok, far, empty, moving, noTool, passenger }
+
+/// 한 번만 주는 선물 (묶음 23). 저장 이름이라 바꾸지 않는다
+class Gift {
+  Gift._();
+
+  /// 대장간 첫 무기 무료 (Lv.3)
+  static const firstWeapon = 'firstWeapon';
+
+  /// 채집 도구 한 벌 (대장간 무료 칸 · 기존 사용자 우편, 둘 중 하나만)
+  static const firstTools = 'firstTools';
+}

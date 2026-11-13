@@ -168,7 +168,7 @@ extension MailOps on AppController {
     }
     await _checkNpcLetters();
     // 묶음 22: 도구가 없는 기존 사용자에게 채집 도구 한 벌 (한 번만)
-    if (_legacyGates && !_harvest.granted) {
+    if (_legacyGates && !_harvest.granted && !gotGift(Gift.firstTools)) {
       await _sendMail(MailItem(
         id: 'toolsGift',
         kind: MailKind.letter,

@@ -255,7 +255,7 @@ void main() {
       await tester.tap(find.byKey(const Key('firstWeapon_ironSpear')));
       await settle(tester);
       expect(line(tester), contains('만들어 보자'));
-      expect(find.text('길게 먼저 찔러요'), findsWidgets);
+      expect(find.byKey(const Key('firstWeaponPreview')), findsOneWidget);
 
       Scrollable.ensureVisible(
           tester.element(find.byKey(const Key('firstWeaponCraft'))),

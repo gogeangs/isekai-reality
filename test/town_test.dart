@@ -432,7 +432,7 @@ void main() {
       expect(await c.finishFieldBattle(spawn, b),
           (RuleConstants.fieldMonsterExp * 1.5).round() * x2);
       expect(c.player.dailyExp.last.fieldMonster,
-          (RuleConstants.fieldMonsterExp * 1.5).round());
+          (RuleConstants.fieldMonsterExp * 1.5).round() * x2);
     });
 
     test('원정 나침반: 쓰면 다음 원정 하나만 이동 시간 절반', () async {

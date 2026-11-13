@@ -195,7 +195,9 @@ class _TutorialLayerState extends State<TutorialLayer> {
             center: Offset(size.width / 2, size.height * 0.42),
             width: math.min(320, size.width - 40),
             height: 210);
-        extra = Positioned.fromRect(rect: card, child: _SendCard(spawn: spawn));
+        extra = Positioned.fromRect(
+            rect: card,
+            child: _SendCard(spawn: spawn, onSend: () => _send(spawn)));
         hole = Rect.fromLTWH(card.left + 24, card.bottom - 70, card.width - 48, 54);
         round = false;
         onTap = () => _send(spawn);
@@ -288,9 +290,10 @@ class _TutorialLayerState extends State<TutorialLayer> {
 
 /// 둘째 몬스터에게 정령 보내기 (튜토리얼): 보내기 버튼만
 class _SendCard extends StatelessWidget {
-  const _SendCard({required this.spawn});
+  const _SendCard({required this.spawn, required this.onSend});
 
   final FieldSpawn spawn;
+  final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +313,7 @@ class _SendCard extends StatelessWidget {
           key: const Key('tutorialSend'),
           label: '보내기',
           height: 50,
-          onPressed: () {},
+          onPressed: onSend,
         ),
       ]),
     );

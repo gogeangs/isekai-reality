@@ -723,7 +723,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('감정 결과'), findsOneWidget);
     await _shot(tester, '49_돋보기_감정결과');
-    expect(c.bagCount(ShopItem.raceLens), 0);
+    // 묶음 19 #154: 오늘 첫 감정은 무료라 돋보기는 그대로
+    expect(c.bagCount(ShopItem.raceLens), 1);
     expect(c.racesSeen, isNotEmpty);
     await tester.tap(find.byKey(const Key('lensToFilter')));
     await tester.pumpAndSettle();

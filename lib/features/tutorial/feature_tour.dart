@@ -80,6 +80,9 @@ class TourBridge extends ChangeNotifier {
   void popToRoot() =>
       navKey.currentState?.popUntil((r) => r.isFirst);
 
+  /// 화면이 굴러가는 등 자리가 바뀌었을 때 다시 찾게
+  void poke() => _later();
+
   bool _scheduled = false;
   void _later() {
     if (_scheduled) return;
@@ -234,7 +237,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   }
 
   void _changed() {
-    if (mounted) setState(() {});
+    if (mounted) _queue();
   }
 
   void _openTab(int t) => b.openTab?.call(t);
@@ -518,8 +521,66 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _tries++;
     _retry?.cancel();
     _retry = Timer(const Duration(milliseconds: 350), () {
-      if (mounted) setState(() {});
+      if (mounted) _queue();
     });
+  }
+
+  // 단계는 그린 뒤에 정한다 (그리는 중에는 화면 위 자리를 찾을 수 없다)
+  TourStep? _shown;
+  Feature? _shownFeature;
+  bool _queued = false;
+
+  void _queue() {
+    if (_queued) return;
+    _queued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _queued = false;
+      if (mounted) _compute();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  static bool _same(TourStep? a, TourStep? b) {
+    if (a == null || b == null) return a == b;
+    return a.line == b.line &&
+        a.hole == b.hole &&
+        a.round == b.round &&
+        a.label == b.label &&
+        a.button?.$1 == b.button?.$1 &&
+        (a.onTap == null) == (b.onTap == null);
+  }
+
+  void _compute() {
+    final f = c.pendingFeatureIntro;
+    TourStep? step;
+    if (f == null) {
+      if (tourGlowSlot.value != null) tourGlowSlot.value = null;
+    } else if (!b.paused && !c.holdNotices && c.ready) {
+      step = _step(f);
+      if (step != null && step.wait) {
+        _scheduleRetry('${f.name}:${step.line}');
+      }
+      final key = step?.scrollTo;
+      final h = step?.hole;
+      final size = MediaQuery.sizeOf(context);
+      if (key != null &&
+          h != null &&
+          (h.bottom > size.height - 70 || h.top < 40)) {
+        final e = elementOfKey(key);
+        if (e != null && e.mounted) {
+          Scrollable.ensureVisible(e,
+              alignment: 0.4, duration: const Duration(milliseconds: 250));
+          _scheduleRetry('${f.name}:scroll');
+        }
+      }
+      if (step != null && step.line.isEmpty) step = null;
+    }
+    if (!_same(step, _shown) || f != _shownFeature) {
+      setState(() {
+        _shown = step;
+        _shownFeature = f;
+      });
+    }
   }
 
   @override
@@ -527,33 +588,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     return ListenableBuilder(
       listenable: c,
       builder: (context, _) {
-        final f = c.pendingFeatureIntro;
-        if (f == null || b.paused || c.holdNotices || !c.ready) {
-          if (f == null && tourGlowSlot.value != null) _guide(clearGlow: true);
+        _queue();
+        final step = _shown;
+        final f = _shownFeature;
+        if (step == null || f == null || c.pendingFeatureIntro != f) {
           return const SizedBox.shrink();
-        }
-        final step = _step(f);
-        if (step == null || step.line.isEmpty) {
-          if (step != null && step.wait) _scheduleRetry('${f.name}:wait');
-          return const SizedBox.shrink();
-        }
-        if (step.wait) _scheduleRetry('${f.name}:${step.line}');
-        final key = step.scrollTo;
-        final size = MediaQuery.sizeOf(context);
-        final h = step.hole;
-        if (key != null && h != null &&
-            (h.bottom > size.height - 70 || h.top < 40)) {
-          final e = elementOfKey(key);
-          if (e != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (e.mounted) {
-                Scrollable.ensureVisible(e,
-                    alignment: 0.4,
-                    duration: const Duration(milliseconds: 250));
-              }
-            });
-            _scheduleRetry('${f.name}:scroll');
-          }
         }
         return Material(
           type: MaterialType.transparency,

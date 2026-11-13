@@ -78,8 +78,14 @@ class IsekaiRealityApp extends StatelessWidget {
           child: TopNoticeHost(
             child: Stack(children: [
             Positioned.fill(
-                child: TapOutsideToHideKeyboard(
-                    child: child ?? const SizedBox())),
+                child: NotificationListener<ScrollEndNotification>(
+                    // 묶음 19 #4-2: 굴린 뒤 안내가 밝힐 자리를 다시 찾는다
+                    onNotification: (_) {
+                      tourBridge.poke();
+                      return false;
+                    },
+                    child: TapOutsideToHideKeyboard(
+                        child: child ?? const SizedBox()))),
             // 묶음 19 #4-2: Lv.3~6 기능 안내 (밀어 올린 화면 위까지)
             Positioned.fill(child: FeatureTourLayer(controller: controller)),
             if (controller.passengerMode)

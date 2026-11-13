@@ -233,7 +233,7 @@ class BossGearRules {
 
   static ({double attack, double reduce, double maxHp}) baseStat(EquipSlot s) =>
       switch (s) {
-        EquipSlot.weapon => (attack: 0.10, reduce: 0.0, maxHp: 0.0),
+        EquipSlot.weapon => (attack: 0.12, reduce: 0.0, maxHp: 0.0), // 묶음 19: 도끼(+10%)보다 조금 위
         EquipSlot.head => (attack: 0.0, reduce: 0.035, maxHp: 0.0),
         EquipSlot.body => (attack: 0.0, reduce: 0.08, maxHp: 0.0),
         EquipSlot.hands => (attack: 0.0, reduce: 0.025, maxHp: 0.0),

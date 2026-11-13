@@ -277,22 +277,24 @@ void main() {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)));
       await settle(tester);
-      expect(c.pendingFeatureIntro, isNull);
-      expect(find.byKey(const Key('tourLine')), findsNothing);
+      expect(c.pendingFeatureIntro, isNot(Feature.smithy));
+      expect(c.armory.wornIn(EquipSlot.weapon), isNotNull);
     });
 
-    testWidgets('건너뛰기: 언제든 끝, 다시 나오지 않는다', (tester) async {
+    testWidgets('건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다', (tester) async {
       phone(tester);
+      final store = grown(2);
       late AppController c;
-      await tester.runAsync(() async => c = await start(grown(2)));
+      await tester.runAsync(() async => c = await start(store));
       await tester.pumpWidget(IsekaiRealityApp(controller: c));
       await settle(tester);
       await tester.tap(find.byKey(const Key('tourSkip')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)));
       await settle(tester);
-      expect(c.pendingFeatureIntro, isNull);
-      expect(find.byKey(const Key('tourLine')), findsNothing);
+      expect(c.pendingFeatureIntro, isNot(Feature.smithy));
+      final again = await tester.runAsync(() => start(store));
+      expect(again!.pendingFeatureIntro, isNot(Feature.smithy));
     });
 
     testWidgets('Lv.5 채집 · 위치 거부: 도구 뒤 「위치를 켜면」 안내로 끝', (tester) async {

@@ -97,6 +97,23 @@ class HeroRigData {
   static const double weaponScale = 0.32;
   static const Offset weaponAttach = Offset(72, 55);
 
+  /// 묶음 19 #152: 상황에 따라 바꿔 그리는 부위 (없으면 원래 그림)
+  /// - 무기를 들면 앞손 → 무기 쥔 손 (구멍으로 무기가 지나감)
+  /// - 앞팔을 머리 위로 들면 앞팔 위쪽 → 들어 올린 앞팔
+  static const List<String> extraImages = ['hand_grip', 'arm_front_raised'];
+
+  /// 무기 쥔 손: 손목(회전축)과 주먹 가운데(무기 자리), 그림 px
+  static const Map<HeroLook, (Offset, Offset)> grip2 = {
+    HeroLook.male: (Offset(20, 69), Offset(79, 56)),
+    HeroLook.female: (Offset(18, 61), Offset(64, 51)),
+  };
+
+  /// 들어 올린 앞팔: 어깨(아래 둥근 끝)와 팔꿈치(위 둥근 끝), 그림 px
+  static const Map<HeroLook, (Offset, Offset)> raised = {
+    HeroLook.male: (Offset(40, 182), Offset(56, 25)),
+    HeroLook.female: (Offset(46, 182), Offset(49, 25)),
+  };
+
   static String partAsset(HeroLook look, String image) =>
       'assets/images/rig/hero_${look.name}_$image.webp';
   static String weaponAsset(WeaponKind k) => 'assets/images/weapon_${k.name}.webp';
@@ -293,6 +310,10 @@ class HeroRigImages {
           if (img == null) return null;
           out[name] = img;
         }
+        for (final name in HeroRigData.extraImages) {
+          final img = await _load(HeroRigData.partAsset(look, name));
+          if (img != null) out[name] = img;
+        }
         return out;
       }();
 
@@ -371,6 +392,7 @@ class _HeroRigState extends State<HeroRig> {
       child: CustomPaint(
         key: const Key('heroRig'),
         painter: HeroRigPainter(
+            look: widget.look,
             images: img.parts,
             weapon: img.weapon,
             weaponKind: widget.weapon,
@@ -384,12 +406,14 @@ class _HeroRigState extends State<HeroRig> {
 /// 뼈대대로 부위를 그린다: 세계 = 부모 × 붙는 자리 이동 × 회전 × (−회전축) 이동
 class HeroRigPainter extends CustomPainter {
   HeroRigPainter({
+    this.look = HeroLook.male,
     required this.images,
     required this.pose,
     this.weapon,
     this.weaponKind,
   });
 
+  final HeroLook look;
   final Map<String, ui.Image> images;
   final ui.Image? weapon;
   final WeaponKind? weaponKind;
@@ -422,8 +446,16 @@ class HeroRigPainter extends CustomPainter {
     }
 
     final paint = Paint()..filterQuality = FilterQuality.medium;
+    final raisedUp = pose['arm_f_up'] < HeroRigData.raisedArm;
+    // 무기를 쥐고 있으면 쥔 손 그림 (무기 자리도 주먹 가운데로)
+    final gripImg = weapon != null && weaponKind != null ? images['hand_grip'] : null;
+    final g2 = HeroRigData.grip2[look]!;
+    final handPivot = HeroRigData.byName['hand_f']!.pivot;
+    final attach = gripImg == null
+        ? HeroRigData.weaponAttach
+        : handPivot + (g2.$2 - g2.$1);
     var order = HeroRigData.order;
-    if (pose['arm_f_up'] < HeroRigData.raisedArm) {
+    if (raisedUp) {
       // 팔을 들면 앞팔·무기·앞손을 머리 뒤로
       const front = ['arm_f_up', 'arm_f_fo', 'weapon', 'hand_f'];
       final rest = [for (final n in order) if (!front.contains(n)) n];
@@ -438,7 +470,7 @@ class HeroRigPainter extends CustomPainter {
         // 무기 각도 W 는 몸통 기준 각도: 손까지 돈 만큼 빼서 손에 붙인다
         final chain = pose['arm_f_up'] + pose['arm_f_fo'] + pose['hand_f'];
         final m = worldOf('hand_f') *
-            _Aff.t(HeroRigData.weaponAttach.dx, HeroRigData.weaponAttach.dy) *
+            _Aff.t(attach.dx, attach.dy) *
             _Aff.r((pose['W'] - chain) * _deg) *
             _Aff.s(HeroRigData.weaponScale) *
             _Aff.t(-g.dx, -g.dy);
@@ -449,6 +481,36 @@ class HeroRigPainter extends CustomPainter {
         continue;
       }
       final b = HeroRigData.byName[n]!;
+      if (n == 'hand_f' && gripImg != null) {
+        // 손목을 같은 자리에 맞춰 쥔 손을 그린다
+        final m = worldOf(n) *
+            _Aff.t(handPivot.dx, handPivot.dy) *
+            _Aff.t(-g2.$1.dx, -g2.$1.dy);
+        canvas.save();
+        canvas.transform(m.storage);
+        canvas.drawImage(gripImg, Offset.zero, paint);
+        canvas.restore();
+        continue;
+      }
+      final raisedImg = images['arm_front_raised'];
+      if (n == 'arm_f_up' && raisedUp && raisedImg != null) {
+        // 들어 올린 앞팔: 어깨→팔꿈치 방향·길이를 원래 앞팔 위쪽과 맞춘다
+        final r = HeroRigData.raised[look]!;
+        final up = HeroRigData.byName['arm_f_fo']!.attach - b.pivot;
+        final rv = r.$2 - r.$1;
+        final rot = math.atan2(up.dy, up.dx) - math.atan2(rv.dy, rv.dx);
+        final sc = (up.distance / rv.distance).clamp(0.7, 1.3);
+        final m = worldOf(n) *
+            _Aff.t(b.pivot.dx, b.pivot.dy) *
+            _Aff.r(rot) *
+            _Aff.s(sc) *
+            _Aff.t(-r.$1.dx, -r.$1.dy);
+        canvas.save();
+        canvas.transform(m.storage);
+        canvas.drawImage(raisedImg, Offset.zero, paint);
+        canvas.restore();
+        continue;
+      }
       final img = images[b.image];
       if (img == null) continue;
       canvas.save();
@@ -461,7 +523,10 @@ class HeroRigPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant HeroRigPainter old) =>
-      old.pose != pose || old.weapon != weapon || old.images != images;
+      old.pose != pose ||
+      old.weapon != weapon ||
+      old.images != images ||
+      old.look != look;
 }
 
 /// 2D 아핀 변환 [a b c; d e f] (뼈대 계산용)

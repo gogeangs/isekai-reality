@@ -679,6 +679,7 @@ class _StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: const Key('statsOpen'),
       borderRadius: BorderRadius.circular(12),
       onTap: onOpen,
       child: Padding(

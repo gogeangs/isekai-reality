@@ -1,4 +1,6 @@
+import '../../core/format.dart';
 import '../../core/models/daily_record.dart';
+import '../../core/models/vitals.dart';
 import '../../core/rules/rules.dart';
 
 /// 메인 화면에서 불씨가 할 말을 고른다.
@@ -7,6 +9,36 @@ import '../../core/rules/rules.dart';
 /// 원칙: 혼내지 않는다, 무리하게 부추기지 않는다.
 class BulssiLines {
   BulssiLines._();
+
+  /// 묶음 25 #166: 원정 중 정령 대사 (단계별). 원정이 없거나 펫이 다 다녀왔으면 null.
+  /// 펫 원정이면 정령 대신 「○○이 원정 중이야」
+  static String? expedition(Expedition? ex,
+      {required String playerName, required DateTime now}) {
+    if (ex == null) return null;
+    final pet = ex.petName;
+    if (ex.petUid != null) {
+      if (ex.finished || pet == null) return null;
+      return '${josa(pet, '이/가')} 원정 중이야';
+    }
+    if (ex.finished) return '다녀왔어! 결과를 확인해 볼래?';
+    if (ex.decided) {
+      return ex.cleared == true
+          ? '정화했어! 지금 돌아가는 중이야.'
+          : '이번엔 놓쳤어… 돌아가서 다시 준비하자.';
+    }
+    if (now.difference(ex.startedAt) < const Duration(minutes: 1)) {
+      return '${playerName.isEmpty ? '너' : playerName} 대신 내가 원정을 다녀올게. 돌아오면 알려 줄게!';
+    }
+    final id = Monsters.byName(ex.monster);
+    final name = id == null
+        ? '몬스터'
+        : ModifierRules.displayName(id, [
+            for (final m in ex.mods)
+              for (final v in ModifierId.values)
+                if (v.name == m) v,
+          ]);
+    return '$name에게 가는 중이야. 조금만 기다려 줘!';
+  }
 
   static String forStatus({
     required DailyRecord today,
@@ -50,7 +82,7 @@ class BulssiLines {
     }
 
     if (spiritAway) {
-      return '나 대신 원정을 다녀올게. 돌아오면 알려 줄게!';
+      return '원정을 다녀올게. 돌아오면 알려 줄게!';
     }
 
     // 걸음과 열쇠

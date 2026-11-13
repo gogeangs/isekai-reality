@@ -9,6 +9,7 @@ import '../../core/rules/rules.dart'
     show BoardRules, EquipSlot, EquipmentRules;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../status/stat_screen.dart' show statDraftLeft;
 import 'spotlight.dart';
 import 'targets.dart';
 
@@ -323,6 +324,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
 
   TourStep? _step(Feature f) {
     switch (f) {
+      case Feature.stats:
+        return _stats(f);
       case Feature.smithy:
         return _smithy(f);
       case Feature.board:
@@ -332,6 +335,28 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       case Feature.lens:
         return _lens(f);
     }
+  }
+
+  // ───────────── Lv.2 능력치 나누기 (묶음 25 #165): 상태 탭 → 스탯 → + → 확정
+
+  TourStep? _stats(Feature f) {
+    if (c.unspentPoints <= 0) {
+      _doOnce('end', () => _finish(f));
+      return null;
+    }
+    if (b.top == 'stats') {
+      if (b.topIsPopup) return null;
+      final left = statDraftLeft.value;
+      if (left != null && left <= 0) {
+        return _here(const Key('statConfirm'), '다 나눴으면 확정을 눌러 줘!');
+      }
+      final r = rectOfKey(const Key('statPanel'));
+      return TourStep('원하는 능력에 나눠 줘. 되돌리기도 할 수 있어.',
+          hole: r?.inflate(4), wait: r == null, label: '나눠 보세요');
+    }
+    if (b.top == null || b.topIsPopup) return null;
+    return _homeTarget(FeatureTourLayer.tStatus, const Key('statsOpen'),
+        '레벨이 올라서 힘이 생겼어! 상태에서 나눠 보자.', '여기 스탯을 눌러 봐!');
   }
 
   // ───────────── Lv.3 대장간: 첫 무기 고르기 → 만들기 → 입기 → 상태 무기 칸
@@ -572,6 +597,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
 
   TourStep _openedStep(Feature f) {
     final (name, icon, line) = switch (f) {
+      Feature.stats => ('스탯', 'medal', ''),
       Feature.smithy => ('대장간', 'icon_smithy', '대장간이 열렸어! 첫 무기는 내가 낼게.'),
       Feature.board => ('의뢰 게시판', 'icon_board', '의뢰 게시판이 열렸어! 쉬운 의뢰부터 해 보자.'),
       Feature.harvest => ('채집', 'map_harvest_flower', '이제 꽃이랑 버섯을 딸 수 있어!'),
@@ -591,7 +617,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     } else if (!b.paused && !c.holdNotices && c.ready) {
       step = _step(f);
       // 묶음 20 #157: 안내 앞에 「새로 열렸어요」 한 번
-      if (step != null && step.line.isNotEmpty && !c.featureAnnounced(f)) {
+      // (능력치 안내는 튜토리얼처럼 바로 시작)
+      if (step != null &&
+          step.line.isNotEmpty &&
+          f != Feature.stats &&
+          !c.featureAnnounced(f)) {
         step = _openedStep(f);
       }
       if (step != null && step.wait) {

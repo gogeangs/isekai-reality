@@ -137,6 +137,47 @@ extension BattleOps on AppController {
   /// 방금 끝난 사냥·던전의 보상 (결과 화면에 보여 준다)
   HuntReward get lastReward => _lastReward;
 
+  /// 초반 내 둘레 몬스터를 보여 줄 때인지 (Lv.2~5, 튜토리얼 밖)
+  bool get _nearOn {
+    final lv = player.level.level;
+    return !inTutorial && lv >= 2 && lv <= 5;
+  }
+
+  /// 묶음 25 #171: 나에게만 보이는 초반 몬스터 하루 3마리
+  List<FieldSpawn> _nearSpawns() {
+    final day = DailyRecord.dayKeyOf(_clock());
+    if (!_nearOn) return const [];
+    if (_nearDay != day) {
+      // 아직 오늘 기준 자리가 없으면 지금 자리로 (튜토리얼이 막 끝났을 때 등)
+      final here = _lastFix?.point;
+      if (here == null) return const [];
+      unawaited(_anchorNear(here));
+    }
+    final anchor = _nearAnchor;
+    if (anchor == null || _nearDay != day) return const [];
+    return FieldMonsterRules.nearSpawns(area,
+        dayKey: day,
+        anchor: anchor,
+        roads: roads,
+        exclusions: exclusions,
+        level: player.level.level,
+        luckBonus: StatRules.modifierBonus(combatStats),
+        night: FieldMonsterRules.isNight(_clock()),
+        favored: ElementRules.challengers(mainElement),
+        land: lands?.kindAt);
+  }
+
+  /// 그날 처음 위치를 잡은 곳을 기준 자리로 (하루 동안 고정)
+  Future<void> _anchorNear(GeoPoint p) async {
+    if (!_nearOn) return;
+    final day = DailyRecord.dayKeyOf(_clock());
+    if (_nearDay == day) return;
+    _nearDay = day;
+    _nearAnchor = p;
+    await store.saveJson(AppController._nearKey,
+        {'day': day, 'lat': p.lat, 'lng': p.lng});
+  }
+
   /// 오늘 아직 사냥하지 않은 필드 몬스터 (11-11 #69: 5마리 뒤에도 계속 나온다)
   List<FieldSpawn> get todaySpawns {
     final today = player.today;
@@ -164,6 +205,7 @@ extension BattleOps on AppController {
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .followedBy(_tutorialSpawns(center))
         .followedBy([if (guideSpawn != null) guideSpawn!])
+        .followedBy(_nearSpawns())
         .where((s) => !done.contains(s.id))
         .toList();
   }

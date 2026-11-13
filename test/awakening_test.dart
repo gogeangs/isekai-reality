@@ -120,7 +120,9 @@ void main() {
     await tester.tap(checks.at(0));
     await tester.tap(checks.at(1));
     // 이용 연령 (11-11 #86): 출생 연도만
-    await tester.enterText(find.byKey(const Key('birthYear')), '1995');
+    await tester.ensureVisible(find.byKey(const Key('birthYear')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('birthYear_2000')));
     await tester.pump();
     await tester.scrollUntilVisible(find.text('동의하고 다음'), 200,
         scrollable: find.byType(Scrollable).first);

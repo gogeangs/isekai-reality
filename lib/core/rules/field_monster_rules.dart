@@ -166,6 +166,61 @@ class FieldMonsterRules {
     return spawns;
   }
 
+  /// 초반(Lv.2~5) 나에게만 보이는 몬스터 (묶음 25 #171).
+  /// 그날 처음 위치를 잡은 곳([anchor]) 둘레 150~400m에 [count]마리.
+  /// 큰길·제외 구역·물 위는 피하고, 종류는 보통 비율, 수식어 규칙 그대로.
+  static List<FieldSpawn> nearSpawns(
+    ExploreArea area, {
+    required String dayKey,
+    required GeoPoint anchor,
+    int count = 3,
+    RoadMask? roads,
+    ExclusionIndex? exclusions,
+    int level = 1,
+    double luckBonus = 0,
+    bool night = false,
+    Set<Element> favored = const {},
+    LandKind? Function(GeoPoint)? land,
+  }) {
+    bool allowed(GeoPoint p) {
+      final l = land?.call(p);
+      return area.bounds.contains(p) &&
+          !area.isExcluded(p) &&
+          !(exclusions?.contains(p) ?? false) &&
+          !(roads?.isRoad(p) ?? false) &&
+          l != LandKind.water &&
+          l != LandKind.sea;
+    }
+
+    final out = <FieldSpawn>[];
+    for (var i = 0; i < count; i++) {
+      final rng = math.Random(_stableHash('$dayKey|near|$i'));
+      final kindRoll = rng.nextDouble();
+      final elementRoll = rng.nextDouble();
+      GeoPoint? p;
+      for (var attempt = 0; attempt < 12 && p == null; attempt++) {
+        // 셋이 고르게 퍼지도록 방향을 120°씩 나누고 그 안에서 흔든다
+        final bearing =
+            (i + rng.nextDouble()) * 2 * math.pi / count;
+        final c = _offset(anchor, 150 + rng.nextDouble() * 250, bearing);
+        if (allowed(c)) p = c;
+      }
+      if (p == null) continue;
+      final id = 'near-$dayKey-$i';
+      final monster = pickCommon(kindRoll, elementRoll,
+          night: night,
+          favored: favored,
+          landFavored: landElements(land?.call(p)));
+      out.add(FieldSpawn(
+        id: id,
+        monster: monster,
+        point: p,
+        modifiers: ModifierRules.roll(id, monster, level, bonus: luckBonus),
+      ));
+    }
+    return out;
+  }
+
   /// 블록 몬스터 비율 (11-11)
   static const List<(MonsterId, double)> commonWeights = [
     (MonsterId.ashSlime, 0.30),

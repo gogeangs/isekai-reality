@@ -18,6 +18,10 @@ class _SpiritCornerState extends State<_SpiritCorner> {
   String _current() {
     final c = widget.controller;
     final p = c.player;
+    // 묶음 25 #166: 원정 중이면 원정 대사가 먼저 (HP 30% 아래 경고만 그보다 앞)
+    final low = c.maxHp > 0 && c.hp / c.maxHp < 0.3;
+    final away = low ? null : c.expeditionTalk;
+    if (away != null) return away;
     return c.statusLifeLine ??
         BulssiLines.forStatus(
           today: p.today!,
@@ -26,7 +30,7 @@ class _SpiritCornerState extends State<_SpiritCorner> {
           hpRatio: c.maxHp == 0 ? 1 : c.hp / c.maxHp,
           mpRatio: c.mpMax == 0 ? 1 : c.mp / c.mpMax,
           resting: c.resting,
-          spiritAway: c.expedition != null && !c.expedition!.finished,
+          spiritAway: false,
         );
   }
 
@@ -34,9 +38,13 @@ class _SpiritCornerState extends State<_SpiritCorner> {
   Widget build(BuildContext context) {
     // 묶음 20 #158: 금테 배지 + 오른쪽 말풍선 (꼬리는 배지 쪽). 폭은 우편·설정 버튼 앞까지
     final w = MediaQuery.sizeOf(context).width;
+    final c = widget.controller;
+    final rush = c.rushableExpedition;
     return SpiritTalkBadge(
       line: _current(),
       bubbleKey: const Key('mapSpiritLine'),
+      actionLabel: rush == null ? null : '서두를까?',
+      onAction: rush == null ? null : () => showRushSheet(context, c, rush),
       maxBubbleWidth: math.max(140, w - 14 - 44 - 2 - 118),
     );
   }

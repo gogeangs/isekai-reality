@@ -27,6 +27,7 @@ import 'data/mail/mail_source.dart';
 import 'data/notify/notifier.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/storage/record_store.dart';
+import 'features/bulssi/bulssi_lines.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/map/ansan_area.dart';
 import 'features/map/korea_area.dart';
@@ -449,6 +450,16 @@ class AppController extends ChangeNotifier {
       _gifts = {for (final x in (gifts['got'] as List?) ?? const []) '$x'};
     }
     _lens = await _load(_lensKey, LensState.fromJson, const LensState());
+    // 묶음 25 #171: 초반 내 둘레 몬스터의 그날 기준 자리
+    final near = await _load(_nearKey, (j) => j, null);
+    if (near != null &&
+        near['day'] is String &&
+        near['lat'] is num &&
+        near['lng'] is num) {
+      _nearDay = near['day'] as String;
+      _nearAnchor = GeoPoint(
+          (near['lat'] as num).toDouble(), (near['lng'] as num).toDouble());
+    }
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -585,12 +596,18 @@ class AppController extends ChangeNotifier {
   bool _legacyGates = true;
   Set<String> _introsSeen = {};
 
+  /// 초반(Lv.2~5) 내 둘레 몬스터 (묶음 25 #171): 그날 처음 위치를 잡은 곳
+  static const _nearKey = 'nearAnchor';
+  String? _nearDay;
+  GeoPoint? _nearAnchor;
+
   /// 한 번만 주는 선물을 받았는지 (묶음 23: 안내 기록과 따로, [Gift])
   static const _giftsKey = 'gifts';
   Set<String> _gifts = {};
   bool _hpTipShown = true;
 
   static const featureLevel = {
+    Feature.stats: 2,
     Feature.smithy: 3,
     Feature.board: 4,
     Feature.harvest: 5,
@@ -829,7 +846,8 @@ enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
 enum TutorialStep { done, hunt, bag, expedition, intro }
 
 /// 레벨에 따라 여는 기능 (묶음 16)
-enum Feature { smithy, board, harvest, lens }
+/// 레벨로 열리는 기능과 그 안내. stats 는 Lv.2 능력치 나누기 안내 (묶음 25 #165)
+enum Feature { stats, smithy, board, harvest, lens }
 
 class ExpeditionPlan {
   const ExpeditionPlan(

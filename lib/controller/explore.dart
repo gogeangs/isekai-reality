@@ -32,6 +32,7 @@ extension ExploreOps on AppController {
   Future<void> handleFix(LocationFix fix) {
     _lastFix = fix; // 위치는 바로 (기록 저장만 줄 세운다)
     return _serial(() async {
+    await _anchorNear(fix.point);
     await _watchSpeed(fix);
     if (ExplorationRules.countsAsExploring(fix)) {
       for (final place in ExplorationRules.placesInReach(area, fix.point)) {

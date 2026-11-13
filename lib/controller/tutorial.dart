@@ -176,6 +176,8 @@ extension TutorialOps on AppController {
   Feature? get pendingFeatureIntro {
     if (_legacyGates || inTutorial || pendingLevelUp != null) return null;
     for (final f in Feature.values) {
+      // 묶음 25 #165: 능력치 안내는 Lv.2 에서만 시작한다 (이미 Lv.3 이상이면 넘김)
+      if (f == Feature.stats && player.level.level >= 3) continue;
       if (featureOpen(f) && !_introsSeen.contains(f.name)) return f;
     }
     return null;
@@ -360,6 +362,8 @@ extension TutorialOps on AppController {
     final tiredNow = tired;
     final tiredExp = tiredNow ? exp - _tiredCut(exp) : 0;
     exp -= tiredExp;
+    // 묶음 25 #171: Lv.5까지(잡는 순간 레벨) 필드 몬스터 경험치 두 배 (숨은 규칙)
+    if (player.level.level <= 5) exp *= 2;
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;

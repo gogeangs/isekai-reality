@@ -7,6 +7,11 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../../theme/top_notice.dart';
 import 'stat_icon.dart';
+import '../tutorial/feature_tour.dart' show TourScreenMark;
+
+/// 스탯 화면에서 아직 나누지 않은 포인트 (확정 전 포함). 화면이 없으면 null.
+/// 능력치 안내(묶음 25 #165)가 「확정」을 가리킬 때를 안다
+final ValueNotifier<int?> statDraftLeft = ValueNotifier<int?>(null);
 
 /// 스탯 포인트 분배 (11-11 #50).
 /// 합계와 '포인트로 올린 값'만 보여 준다. 생활 활동으로 오른 값은 따로 보여 주지 않는다.
@@ -28,6 +33,12 @@ class _StatScreenState extends State<StatScreen> {
   int _flashTick = 0;
 
   AppController get c => widget.controller;
+
+  @override
+  void dispose() {
+    statDraftLeft.value = null;
+    super.dispose();
+  }
 
   static IconData icon(StatKind k) => StatIcon.fallback(k);
 
@@ -64,7 +75,7 @@ class _StatScreenState extends State<StatScreen> {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return Scaffold(
+    return TourScreenMark(name: 'stats', child: Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
@@ -72,6 +83,11 @@ class _StatScreenState extends State<StatScreen> {
           listenable: c,
           builder: (context, _) {
             final left = c.unspentPoints - _draft.total;
+            if (statDraftLeft.value != left) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) statDraftLeft.value = left;
+              });
+            }
             final shown = c.shownStats;
             final alloc = c.allocatedStats;
             // 묶음 15 #110·#111: −·+ 와 「고르게 나누기」「확정」은 나눌 때만
@@ -90,6 +106,7 @@ class _StatScreenState extends State<StatScreen> {
                         : '포인트를 다 나눴어! 레벨이 오르면 또 생겨.'),
                 const SizedBox(height: 10),
                 OrnatePanel(
+                  key: const Key('statPanel'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -139,6 +156,7 @@ class _StatScreenState extends State<StatScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: GoldButton(
+                      key: const Key('statConfirm'),
                       label: '확정',
                       height: 44,
                       // 정령 말풍선이 알려 주므로 알림 띠는 띄우지 않는다
@@ -181,7 +199,7 @@ class _StatScreenState extends State<StatScreen> {
           },
         ),
       ),
-    );
+    ));
   }
 }
 

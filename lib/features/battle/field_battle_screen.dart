@@ -152,23 +152,27 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                           : '이번엔 물러났어요',
                   textAlign: TextAlign.center, style: AppText.title(30)),
               const SizedBox(height: 12),
-              SizedBox(
-                height: 220,
-                child: Stack(alignment: Alignment.center, children: [
-                  Container(
-                    width: 220,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: [
-                        AppColors.gold.withValues(alpha: cleared ? 0.4 : 0.1),
-                        Colors.transparent,
-                      ]),
+              // 묶음 18 #149: 잡은 몬스터는 흐리지 않고 또렷하게, 정화 빛과 함께
+              if (cleared)
+                Center(child: PurifiedMonster(monster: info.id, size: 130))
+              else
+                SizedBox(
+                  height: 180,
+                  child: Stack(alignment: Alignment.center, children: [
+                    Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(colors: [
+                          AppColors.gold.withValues(alpha: 0.1),
+                          Colors.transparent,
+                        ]),
+                      ),
                     ),
-                  ),
-                  MonsterPicture(monster: info.id, size: 190, defeated: cleared),
-                ]),
-              ),
+                    MonsterPicture(monster: info.id, size: 150),
+                  ]),
+                ),
               if (!cleared && !escaped)
                 const Padding(
                   key: Key('tiredLine'),

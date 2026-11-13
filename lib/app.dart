@@ -20,6 +20,8 @@ import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
+import 'features/tutorial/targets.dart';
+import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
 import 'features/pets/pet_screen.dart';
 import 'features/smithy/equip_picker.dart';
@@ -217,7 +219,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (_popupBusy || _ahead(2)) return;
     final done = c.finishedExpeditions;
     // 지도에서는 원정 띠가 반짝이고, 눌러야 결과 카드를 연다 (11-11 #78)
-    final onMap = _tab == tMap;
+    // 튜토리얼 원정은 지도에 있어도 바로 결과 카드 (#151)
+    final onMap = _tab == tMap &&
+        !done.any((e) => AppController.isTutorialSpawn(e.spawnId));
     if (!c.justRested && (done.isEmpty || onMap)) return;
     _noticeShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -731,7 +735,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         ];
 
         final topInset = MediaQuery.paddingOf(context).top;
-        return Scaffold(
+        final scaffold = Scaffold(
           body: Stack(children: [
             Positioned.fill(child: IndexedStack(index: _tab, children: pages)),
             // 묶음 16 #133: 지도 위 공통 위쪽 띠는 비치게 (상태 탭은 그대로)
@@ -795,15 +799,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           backgroundColor: AppColors.deepNight,
           bottomNavigationBar: OrnateNavBar(
             index: _tab,
-            // 튜토리얼 동안 다른 탭은 어둡게, 단계마다 하나씩 (묶음 16 #125)
-            dimmed: controller.inTutorial
-                ? {
-                    tStatus,
-                    if (controller.tutorialStep != TutorialStep.bag) tBag,
-                    tVillage,
-                    tCodex,
-                  }
-                : const {},
             dots: {
               if (_tab != tStatus &&
                   controller.unspentPoints > 0 &&
@@ -816,13 +811,34 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             },
             onTap: (i) {
               hideKeyboard(); // 탭을 옮기면 키보드 닫기 (11-11 #73)
-              if (i == tBag) controller.tutorialBagSeen(); // 튜토리얼: 가방 보기
               setState(() => _openTab(i));
             },
           ),
         );
+        if (!controller.inTutorial) return scaffold;
+        // 묶음 18 #150·#148: 튜토리얼은 아래 메뉴까지 덮는 한 겹에서 (누를 곳 하나만)
+        return Stack(children: [
+          Positioned.fill(child: scaffold),
+          Positioned.fill(
+            child: TutorialLayer(
+              controller: controller,
+              tab: _tab,
+              openTab: (i) => setState(() => _openTab(i)),
+              showResults: _showResultsNow,
+            ),
+          ),
+        ]);
       },
     );
+  }
+
+  /// 돌아온 원정 결과 카드 (지도 띠·튜토리얼에서)
+  Future<void> _showResultsNow() async {
+    if (_noticeShowing) return;
+    _noticeShowing = true;
+    await _showExpeditionResults(widget.controller.finishedExpeditions);
+    _noticeShowing = false;
+    _kick();
   }
 }
 
@@ -891,7 +907,9 @@ class OrnateNavBar extends StatelessWidget {
                   Expanded(
                     // 가운데 지도는 조금 넓고 그림도 조금 크게
                     flex: i == mapIndex ? 6 : 5,
-                    child: Semantics(
+                    child: KeyedSubtree(
+                     key: tutorialNavKeys[i],
+                     child: Semantics(
                       selected: i == index,
                       button: true,
                       child: Opacity(
@@ -974,6 +992,7 @@ class OrnateNavBar extends StatelessWidget {
                         ),
                        ),
                       ),
+                     ),
                     ),
                   ),
               ],

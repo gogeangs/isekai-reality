@@ -28,6 +28,7 @@ import '../../core/models/pet_state.dart' show Pet;
 import '../../core/models/vitals.dart' show Expedition;
 import 'map_config.dart';
 import '../../theme/top_notice.dart';
+import '../tutorial/targets.dart';
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 ///
@@ -71,6 +72,12 @@ class _MapScreenState extends State<MapScreen> {
 
   AppController get controller => widget.controller;
 
+  /// 원정 하나를 바로 돌아오게 할지 묻는다 (묶음 18 #151). 돌아오면 결과 카드
+  Future<void> _rush(Expedition ex) async {
+    final done = await showRushSheet(context, controller, ex);
+    if (done && mounted) widget.onShowExpeditionResults?.call();
+  }
+
   void _closeExp() {
     if (_expOpen && mounted) setState(() => _expOpen = false);
   }
@@ -96,6 +103,7 @@ class _MapScreenState extends State<MapScreen> {
     final coverBottom = cardBottom + (card ? 150 : 0) + 4;
     // 위쪽: 프로필·설정 버튼 줄 (+ 걸린 물약이 있으면 작은 줄)
     final coverTop = top + 58 + (buffs.isEmpty ? 0 : 34);
+    final tut = controller.inTutorial;
     return Stack(
       children: [
         Positioned.fill(
@@ -105,6 +113,7 @@ class _MapScreenState extends State<MapScreen> {
                   safeTop: coverTop,
                   safeBottom: coverBottom,
                   onUserMove: _closeExp,
+                  onRush: _rush,
                 )
               : _ExploreSummary(controller: controller),
         ),
@@ -118,26 +127,6 @@ class _MapScreenState extends State<MapScreen> {
             child: ColoredBox(color: Color(0xE60B0D26)),
           ),
         ),
-        // 튜토리얼 동안은 누를 곳(안내 카드·띠)만 밝게 (묶음 16 #125)
-        if (controller.inTutorial &&
-            controller.tutorialStep != TutorialStep.intro)
-          const Positioned.fill(
-            child: IgnorePointer(
-              child: ColoredBox(color: Color(0x66000000)),
-            ),
-          ),
-        // Lv.1~2 튜토리얼 (묶음 15 #104): 위쪽에 정령 안내 한 장
-        if (controller.inTutorial &&
-            controller.tutorialStep != TutorialStep.intro)
-          Positioned(
-            left: 12,
-            right: 12,
-            top: coverTop + 4,
-            child: TutorialCard(
-              controller: controller,
-              onOpenBag: widget.onOpenBag,
-            ),
-          ),
         // 묶음 16 #126: 상태 화면의 정령 한마디를 지도 구석에도 작게
         if (!controller.inTutorial && controller.player.today != null)
           Positioned(
@@ -146,7 +135,7 @@ class _MapScreenState extends State<MapScreen> {
             child: _SpiritCorner(controller: controller),
           ),
         // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
-        if (buffs.isNotEmpty || controller.tired)
+        if (!tut && (buffs.isNotEmpty || controller.tired))
           Positioned(
             left: 70,
             right: 70,
@@ -158,14 +147,21 @@ class _MapScreenState extends State<MapScreen> {
             left: 12,
             right: 12,
             bottom: expBottom,
-            child: ExpeditionStrip(
-              controller: controller,
-              open: _expOpen,
-              onToggle: () => setState(() => _expOpen = !_expOpen),
-              onShowResults: widget.onShowExpeditionResults,
+            child: KeyedSubtree(
+              key: tutorialStripKey,
+              child: ExpeditionStrip(
+                controller: controller,
+                open: _expOpen,
+                onToggle: () => setState(() => _expOpen = !_expOpen),
+                onRush: _rush,
+                onShowResults: widget.onShowExpeditionResults,
+              ),
             ),
           ),
-        if (controller.lastDiscovery != null)
+        // 묶음 18 #148: 튜토리얼 중에는 아래 몬스터 카드·발견 카드·던전 띠를 숨긴다
+        if (tut)
+          const SizedBox.shrink()
+        else if (controller.lastDiscovery != null)
           Positioned(
             left: 16,
             right: 16,
@@ -186,6 +182,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         // 던전 게이지·열쇠·던전 열기 (11-11 #68): 아래 메뉴 바로 위 얇은 띠
+        if (!tut)
         Positioned(
           left: 10,
           right: 10,
@@ -196,9 +193,6 @@ class _MapScreenState extends State<MapScreen> {
             onOpen: widget.onOpenDungeon,
           ),
         ),
-        // 묶음 16 #140: 각성 직후 평범한 지도가 이세계로 물든다
-        if (controller.tutorialStep == TutorialStep.intro)
-          Positioned.fill(child: IsekaiIntro(controller: controller)),
       ],
     );
   }
@@ -586,12 +580,16 @@ class _NaverMapLayer extends StatefulWidget {
     this.safeTop = 0,
     this.safeBottom = 0,
     this.onUserMove,
+    this.onRush,
   });
 
   final AppController controller;
 
   /// 사용자가 지도를 움직이거나 눌렀을 때 (원정 띠 접기, 11-11 #78)
   final VoidCallback? onUserMove;
+
+  /// 원정 중인 정령·펫을 눌렀을 때 (묶음 18 #151 바로 돌아오기)
+  final void Function(Expedition ex)? onRush;
 
   /// 위 패널·아래 카드가 덮는 높이. 그 뒤에 숨은 몬스터는 가장자리 표시로 알린다.
   final double safeTop;
@@ -768,7 +766,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           size: const Size(42, 46),
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
-        ),
+        )..setOnTapListener((_) => widget.onRush?.call(actives[i])),
       // 떠돌이 상인 (11-11 #84): 누르면 거리와 상관없이 바로 상점
       if (merchantAt != null)
         NMarker(
@@ -801,10 +799,87 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     _scale = -1;
     await _resize();
     await _findHidden();
+    await _tutorialCamera();
     if (_anim == null && actives.isNotEmpty && mounted) {
       await _updateScale();
       _startAnim();
     }
+  }
+
+  // ───────────── 튜토리얼 (묶음 18 #148): 나와 튜토리얼 몬스터가 화면 위쪽 절반에
+  // 함께 보이게 지도를 맞추고, 몬스터 자리를 밝게 비출 곳으로 알린다
+
+  String? _fittedFor;
+  bool _movedToFix = false;
+
+  Future<void> _tutorialCamera() async {
+    final map = _map;
+    final c = widget.controller;
+    final fix = c.lastFix;
+    if (map == null || fix == null) return;
+    // 위치를 처음 받으면 내 자리로 (위치 전 기본 자리를 계속 보여 주지 않게)
+    if (!_movedToFix && !c.inTutorial) {
+      _movedToFix = true;
+      try {
+        await map.updateCamera(
+            NCameraUpdate.scrollAndZoomTo(target: _ll(fix.point), zoom: 15));
+      } catch (_) {}
+      return;
+    }
+    final spawn = c.inTutorial ? c.tutorialSpawn : null;
+    if (spawn == null) {
+      tutorialMonsterRect.value = null;
+      return;
+    }
+    _movedToFix = true;
+    final key = '${spawn.id}@${spawn.point.lat.toStringAsFixed(5)}';
+    if (key == _fittedFor) return;
+    _fittedFor = key;
+    final h = _size.height <= 0 ? 800.0 : _size.height;
+    final dist = spawn.point.distanceTo(fix.point).clamp(20.0, 2000.0);
+    // 나와 몬스터 사이가 화면 높이의 약 1/5(첫째)·1/4(둘째)가 되게
+    final frac = dist < 100 ? 0.2 : 0.26;
+    final mPerDp = dist / (frac * h);
+    final zoom = (math.log(156543.03 * math.cos(fix.point.lat * math.pi / 180) /
+                mPerDp) /
+            math.ln2)
+        .clamp(13.5, 18.0);
+    // 내 자리가 화면 가운데보다 조금 위(몬스터는 그 위)에 오도록 남쪽으로 조금 비킨다
+    final realMPerDp =
+        156543.03 * math.cos(fix.point.lat * math.pi / 180) / math.pow(2, zoom);
+    final shiftM = (0.04 * h) * realMPerDp;
+    final target =
+        GeoPoint(fix.point.lat - shiftM / 111320, fix.point.lng);
+    try {
+      await map.updateCamera(
+          NCameraUpdate.scrollAndZoomTo(target: _ll(target), zoom: zoom));
+    } catch (_) {}
+    await _publishTutorialTarget();
+  }
+
+  Future<void> _publishTutorialTarget() async {
+    final map = _map;
+    final c = widget.controller;
+    final spawn = c.inTutorial ? c.tutorialSpawn : null;
+    if (map == null || spawn == null || c.lastFix == null) {
+      if (tutorialMonsterRect.value != null) tutorialMonsterRect.value = null;
+      return;
+    }
+    try {
+      final pt = await map.latLngToScreenLocation(_ll(spawn.point));
+      if (!mounted) return;
+      final box = context.findRenderObject();
+      if (box is! RenderBox || !box.hasSize) return;
+      final at = box.localToGlobal(Offset(pt.x, pt.y));
+      // 화면 밖이면 알리지 않는다 (가운데 그림으로 대신)
+      final size = MediaQuery.sizeOf(context);
+      if (at.dx < 30 || at.dx > size.width - 30 || at.dy < 60 ||
+          at.dy > size.height - 120) {
+        tutorialMonsterRect.value = null;
+        return;
+      }
+      tutorialMonsterRect.value = Rect.fromCenter(center: at, width: 96, height: 96);
+    } catch (_) {}
   }
 
   // ───────────── 원정: 목표·발자국·펫 움직임·말풍선 (11-11 #89·#90·#92)
@@ -1172,6 +1247,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
               await _updateScale();
               await _resize();
               await _findHidden();
+              await _publishTutorialTarget();
             },
           ),
         ),
@@ -1317,234 +1393,4 @@ class _ExpeditionList extends StatelessWidget {
       ),
     );
   }
-}
-
-
-/// Lv.1~2 튜토리얼 안내 (묶음 15 #104): 정령 한 줄 + 할 일 버튼 하나 + 건너뛰기.
-/// 누를 곳(버튼)만 밝게, 글은 짧게. 펫·직업은 말하지 않는다.
-class TutorialCard extends StatelessWidget {
-  const TutorialCard({super.key, required this.controller, this.onOpenBag});
-
-  final AppController controller;
-  final VoidCallback? onOpenBag;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    final step = c.tutorialStep;
-    final spawn = c.tutorialSpawn;
-    final away = c.activeExpeditions
-        .any((e) => AppController.isTutorialSpawn(e.spawnId));
-    final back = c.finishedExpeditions
-        .any((e) => AppController.isTutorialSpawn(e.spawnId));
-    final (String line, String? action, Future<void> Function()? run) =
-        switch (step) {
-      TutorialStep.hunt => (
-          '바로 옆에 몬스터가 나타났어! 싸워 보자. 강한 공격이 오면 화면을 눌러 막아!',
-          '싸우기',
-          spawn == null
-              ? null
-              : () async {
-                  if (c.resting) {
-                    final ok = await confirmStopResting(context);
-                    if (!ok || !context.mounted) return;
-                  }
-                  await Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) =>
-                          FieldBattleScreen(controller: c, spawn: spawn)));
-                },
-        ),
-      TutorialStep.bag => (
-          '잘했어! 받은 물건은 가방에 들어가. 열어 볼래?',
-          '가방 보기',
-          () async {
-            await c.tutorialBagSeen();
-            onOpenBag?.call();
-          },
-        ),
-      TutorialStep.expedition when back => (
-          '돌아왔어! 아래 띠를 눌러 결과를 받아 줘.',
-          null,
-          null,
-        ),
-      TutorialStep.expedition when away => (
-          '다녀오는 중이야. 금방 돌아올게!',
-          null,
-          null,
-        ),
-      TutorialStep.expedition => (
-          '저 몬스터는 조금 멀어. 이번엔 내가 다녀올게!',
-          '${c.companionName} 보내기',
-          spawn == null
-              ? null
-              : () async {
-                  await c.sendSpirit(spawn);
-                },
-        ),
-      TutorialStep.done || TutorialStep.intro => ('', null, null),
-    };
-    return Container(
-      key: const Key('tutorialCard'),
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: const Color(0xF0101333),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.goldBright, width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Color(0x99000000), blurRadius: 16),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          BulssiLine(line: line),
-          const SizedBox(height: 6),
-          Row(children: [
-            TextButton(
-              key: const Key('tutorialSkip'),
-              onPressed: c.skipTutorial,
-              child: const Text('건너뛰기',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            ),
-            const Spacer(),
-            if (action != null)
-              SizedBox(
-                width: 150,
-                child: GoldButton(
-                  key: const Key('tutorialAction'),
-                  label: action,
-                  height: 40,
-                  onPressed: run,
-                ),
-              ),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-
-/// 각성 직후 연출 (묶음 16 #140): 빛이 가운데서 퍼지며 지도가 이세계 색으로
-/// 물들고, 정령이 한두 마디 한 뒤 「어? 바로 옆에 뭔가 있어!」로 첫 전투.
-class IsekaiIntro extends StatefulWidget {
-  const IsekaiIntro({super.key, required this.controller});
-
-  final AppController controller;
-
-  @override
-  State<IsekaiIntro> createState() => _IsekaiIntroState();
-}
-
-class _IsekaiIntroState extends State<IsekaiIntro>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _a = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 2400))
-    ..forward();
-
-  @override
-  void dispose() {
-    _a.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (still) _a.value = 1;
-    return AnimatedBuilder(
-      key: const Key('isekaiIntro'),
-      animation: _a,
-      builder: (context, _) {
-        final t = Curves.easeOutCubic.transform(_a.value);
-        final textIn = ((_a.value - 0.55) / 0.45).clamp(0.0, 1.0);
-        return Stack(fit: StackFit.expand, children: [
-          // 빛 번짐: 가운데서 바깥으로 금빛 → 보랏빛 물들이기
-          IgnorePointer(
-            child: CustomPaint(painter: _IntroGlowPainter(t)),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: const Alignment(0, 0.55),
-              child: Opacity(
-                opacity: textIn,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const BulssiLine(
-                        line: '여기가 네가 사는 동네야. 그런데 봐, '
-                            '세상이 조금 다르게 빛나지?'),
-                    const SizedBox(height: 14),
-                    GoldButton(
-                      key: const Key('introNext'),
-                      label: '어? 바로 옆에 뭔가 있어!',
-                      height: 52,
-                      fontSize: 19,
-                      onPressed:
-                          textIn < 1 ? null : widget.controller.finishIntro,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        key: const Key('introSkip'),
-                        onPressed: widget.controller.finishIntro,
-                        child: const Text('건너뛰기',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 12)),
-                      ),
-                    ),
-                  ]),
-                ),
-              ),
-            ),
-          ),
-        ]);
-      },
-    );
-  }
-}
-
-class _IntroGlowPainter extends CustomPainter {
-  _IntroGlowPainter(this.t);
-
-  final double t;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.longestSide * (0.15 + 0.9 * t);
-    // 바깥은 밤빛 보라로 덮고, 가운데 빛 고리가 퍼진다
-    canvas.drawRect(
-        Offset.zero & size,
-        Paint()
-          ..color = Color.lerp(const Color(0xEE0B0D26),
-              const Color(0x553A1E6E), t)!);
-    canvas.drawCircle(
-        c,
-        r,
-        Paint()
-          ..shader = RadialGradient(colors: [
-            const Color(0xFFFFE9A8).withValues(alpha: 0.55 * (1 - t * 0.6)),
-            const Color(0xFFB98330).withValues(alpha: 0.25 * (1 - t * 0.5)),
-            const Color(0x00000000),
-          ], stops: const [0, 0.55, 1])
-              .createShader(Rect.fromCircle(center: c, radius: r)));
-    // 반짝이 몇 개
-    final rnd = math.Random(7);
-    for (var i = 0; i < 24; i++) {
-      final a = rnd.nextDouble() * math.pi * 2;
-      final d = r * (0.3 + rnd.nextDouble() * 0.7);
-      final p = c + Offset(math.cos(a) * d, math.sin(a) * d);
-      canvas.drawCircle(
-          p,
-          1.2 + rnd.nextDouble() * 1.8,
-          Paint()
-            ..color = const Color(0xFFFFF3C4)
-                .withValues(alpha: (0.8 * t) * (1 - (d / r) * 0.5)));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_IntroGlowPainter old) => old.t != t;
 }

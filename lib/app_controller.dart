@@ -376,6 +376,11 @@ class AppController extends ChangeNotifier {
     _adPersonal = feel['adPersonal'] is bool ? feel['adPersonal'] as bool : null;
     _tutorial = await _load(
         _tutorialKey, (j) => (j['step'] as num?)?.toInt() ?? 0, 0);
+    // 묶음 18 #150: 연출 단계에서 앱을 껐다 켜면 첫 전투부터 이어서
+    if (_tutorial == TutorialStep.intro.index) {
+      _tutorial = TutorialStep.hunt.index;
+      await store.saveJson(_tutorialKey, {'step': _tutorial});
+    }
     _tiredUntil = await _load(_tiredKey,
         (j) => DateTime.tryParse('${j['until'] ?? ''}'), null);
     _board = await _load(_boardKey, BoardState.fromJson, const BoardState());
@@ -567,10 +572,29 @@ class AppController extends ChangeNotifier {
 
   // ───────────────────────────────────────────── 탐험
 
+  /// 위치 권한을 물어봤는지 (묶음 18 #148)
+  bool _locationAsked = false;
+
+  /// 위치를 받았는지
+  bool get hasLocation => _lastFix != null;
+
+  /// 위치를 쓸 수 없는 상태 (권한 거부 등). 위치 기능이 없는 기기(시험)는 false
+  bool get locationDenied =>
+      location != null && _locationAsked && !_locationGranted;
+
+  /// 「다시 시도」: 위치 권한을 다시 묻고 위치를 받는다
+  Future<void> retryLocation() async {
+    try {
+      await _startExploring().timeout(const Duration(seconds: 10));
+    } catch (_) {}
+    notifyListeners();
+  }
+
   Future<void> _startExploring() async {
     final source = location;
     if (source == null) return;
     _locationGranted = await source.requestPermission();
+    _locationAsked = true;
     if (!_locationGranted) return;
     await _locationSub?.cancel();
     _locationSub = source.fixes().listen(handleFix);
@@ -758,6 +782,13 @@ class AppController extends ChangeNotifier {
     for (final away in activeExpeditions) {
       done.add(away.spawnId);
     }
+    // 묶음 18 #150: 튜토리얼 중에는 튜토리얼 몬스터만
+    if (inTutorial) {
+      return _tutorialSpawns(
+              _lastFix?.point ?? fallbackCenter ?? area.bounds.center)
+          .where((s) => !done.contains(s.id))
+          .toList();
+    }
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     return FieldMonsterRules.spawnsFor(area, _clock(),
@@ -806,18 +837,21 @@ class AppController extends ChangeNotifier {
   static bool isTutorialSpawn(String id) => id.startsWith('tutorial-');
 
   /// 튜토리얼 몬스터: 첫째는 바로 옆(걸어갈 필요 없음), 둘째는 조금 떨어진 곳(정령 원정)
+  /// 묶음 18 #148: 첫째는 내 위치 바로 위쪽(약 30m), 둘째는 걸어가기엔 조금 먼
+  /// 위쪽(약 250m). 둘 다 화면 위쪽 절반에 오도록 북쪽에 둔다. #149 하늘 슬라임
   List<FieldSpawn> _tutorialSpawns(GeoPoint center) => switch (tutorialStep) {
-        TutorialStep.hunt || TutorialStep.intro => [
-            FieldSpawn(
-                id: tutorialHuntId,
-                monster: MonsterId.ashSlime,
-                point: _lastFix?.point ?? center),
+        TutorialStep.hunt || TutorialStep.intro || TutorialStep.bag => [
+            if (tutorialStep != TutorialStep.bag)
+              FieldSpawn(
+                  id: tutorialHuntId,
+                  monster: MonsterId.slime,
+                  point: GeoPoint(center.lat + 0.00027, center.lng)),
           ],
         TutorialStep.expedition => [
             FieldSpawn(
                 id: tutorialExpeditionId,
-                monster: MonsterId.ashSlime,
-                point: GeoPoint(center.lat + 0.0018, center.lng + 0.0012)),
+                monster: MonsterId.slime,
+                point: GeoPoint(center.lat + 0.0021, center.lng + 0.0008)),
           ],
         _ => const [],
       };
@@ -901,6 +935,8 @@ class AppController extends ChangeNotifier {
   /// 튜토리얼 몬스터를 잡았을 때: 첫째 → 가방 보기, 둘째 → Lv.2 (두 마리째에 딱 오르게)
   Future<void> _tutorialPurified(String spawnId) async {
     if (spawnId == tutorialHuntId && tutorialStep == TutorialStep.hunt) {
+      // 묶음 18 #151: 원정에서 바로 돌아오기에 쓸 마석 1개는 꼭 받는다
+      if (player.manaStones < 1) await _grant(0, 1, const {});
       await _setTutorial(TutorialStep.bag);
     } else if (spawnId == tutorialExpeditionId) {
       final need = LevelRules.totalExpToReach(2) - _fullExp;
@@ -1277,6 +1313,51 @@ class AppController extends ChangeNotifier {
     unawaited(notifier?.schedule(_notifyIdFor(ex.petUid), done.returnAt,
         '${josa(who, '이/가')} 돌아왔어요', '원정 결과를 확인해 보세요!'));
     await refreshVitals();
+    return true;
+  }
+
+  // ───────────── 바로 돌아오기 (묶음 18 #151)
+
+  /// 마석 개수: 남은 시간 10분마다 1개(시작한 10분도 1개), 최대 6개. 튜토리얼은 1개
+  int rushCost(Expedition ex) {
+    if (isTutorialSpawn(ex.spawnId)) return 1;
+    final left = ex.returnAt.difference(_clock()).inSeconds;
+    return VitalRules.rushCost(left);
+  }
+
+  bool canRush(Expedition ex) =>
+      !ex.finished && ex.returnAt.isAfter(_clock());
+
+  bool canRushByAd(Expedition ex) =>
+      adsReady &&
+      canRush(ex) &&
+      !isTutorialSpawn(ex.spawnId) &&
+      !ex.adUsed.contains('rush');
+
+  /// 마석(또는 광고)으로 지금 바로 돌아오게 한다. 성공하면 true
+  Future<bool> rushExpedition(Expedition ex, {bool byAd = false}) async {
+    if (!canRush(ex)) return false;
+    if (byAd) {
+      if (!canRushByAd(ex) || !await _watchAd('expedition_rush')) return false;
+    } else {
+      final cost = rushCost(ex);
+      if (player.manaStones < cost) return false;
+      final today = await _todayRecord();
+      await _save(today.copyWith(
+          spends: DailyRecord.addCounts(
+              today.spends, {Wallet.manaStone: cost})));
+    }
+    final now = _clock();
+    final done = ex.shortened(ex.returnAt.difference(now), now,
+        ad: byAd ? 'rush' : null);
+    _vitals = _vitals.copyWith(expeditions: [
+      for (final e in _vitals.expeditions)
+        e.spawnId == ex.spawnId && e.petUid == ex.petUid ? done : e,
+    ]);
+    await store.saveVitals(_vitals);
+    unawaited(notifier?.cancel(_notifyIdFor(ex.petUid)));
+    await refreshVitals();
+    notifyListeners();
     return true;
   }
 
@@ -2751,7 +2832,9 @@ class AppController extends ChangeNotifier {
 
   /// 떠돌이 상인이 있는지
   bool get merchantHere =>
-      _gather.merchantUntil != null && _gather.merchantUntil!.isAfter(_clock());
+      !inTutorial && // 묶음 18 #150
+      _gather.merchantUntil != null &&
+      _gather.merchantUntil!.isAfter(_clock());
 
   static GeoPoint _merchantSpot(GeoPoint from, double meters, double angle) {
     const mPerDegLat = 111320.0;
@@ -3189,6 +3272,7 @@ class AppController extends ChangeNotifier {
 
   /// 지도에 보이는 채집 자리 (지금 위치 둘레 3km)
   List<HarvestSpot> get harvestSpots {
+    if (inTutorial) return const []; // 묶음 18 #150
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     final lure = lureActive;

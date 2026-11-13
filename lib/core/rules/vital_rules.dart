@@ -6,6 +6,11 @@ import 'rule_constants.dart';
 class VitalRules {
   VitalRules._();
 
+  /// 원정 바로 돌아오기 마석 (묶음 18 #151, 숫자 계산은 화면에 보이지 않음):
+  /// 남은 시간 10분마다 1개 (시작한 10분도 1개), 최소 1 · 최대 6
+  static int rushCost(int secondsLeft) =>
+      ((math.max(0, secondsLeft) + 599) ~/ 600).clamp(1, 6);
+
   // ───────────────────────── MP
 
   /// [mpAt] 부터 [now] 까지 저절로 찬 MP. (새 MP, 새 기준 시각)

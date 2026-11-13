@@ -14,6 +14,8 @@ import '../bulssi/bulssi_mood.dart';
 import '../pets/pet_art.dart';
 import '../battle/element_view.dart';
 import '../../theme/top_notice.dart';
+import '../bulssi/bulssi_bubble.dart';
+import '../tutorial/spotlight.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
@@ -44,6 +46,91 @@ Future<void> showSpawnSheet(
     ),
     builder: (sheetContext) => SpawnSheet(controller: c, spawn: spawn),
   );
+}
+
+/// 원정 중 「바로 돌아오기」 (묶음 18 #151). 돌아왔으면 true.
+/// 마석 개수만 보여 주고 계산은 숨긴다. 튜토리얼은 마석 버튼만(손가락 안내).
+Future<bool> showRushSheet(
+    BuildContext context, AppController c, Expedition ex) async {
+  final done = await showModalBottomSheet<bool>(
+    context: context,
+    backgroundColor: AppColors.night,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (d) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+        child: ListenableBuilder(
+          listenable: c,
+          builder: (d, _) {
+            final tut = AppController.isTutorialSpawn(ex.spawnId);
+            final cost = c.rushCost(ex);
+            final short = c.player.manaStones < cost;
+            Future<void> go({bool byAd = false}) async {
+              final ok = await c.rushExpedition(ex, byAd: byAd);
+              if (!d.mounted) return;
+              if (ok) {
+                Navigator.pop(d, true);
+              } else if (byAd) {
+                showTopNotice(d, '광고를 불러오지 못했어요.');
+              }
+            }
+
+            return Column(
+              key: const Key('rushSheet'),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const BulssiLine(line: '서두를까? 조금만 도와주면 금방 다녀올게!'),
+                const SizedBox(height: 14),
+                Stack(clipBehavior: Clip.none, children: [
+                  GoldButton(
+                    key: const Key('rushMana'),
+                    label: '$cost개로 바로 돌아오기',
+                    height: 54,
+                    fontSize: 19,
+                    leading: const GameIcon('mana_stone', size: 24),
+                    onPressed: short || !c.canRush(ex) ? null : () => go(),
+                  ),
+                  if (tut && !short)
+                    const Positioned(
+                        right: 6,
+                        bottom: -40,
+                        child: IgnorePointer(child: FingerHint())),
+                ]),
+                if (short) ...[
+                  const SizedBox(height: 4),
+                  const Text('마석이 모자라요',
+                      key: Key('rushShort'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ],
+                // 튜토리얼에서는 광고(추적 허용 창이 함께 뜬다)를 뒤로 미룬다
+                if (!tut && c.canRushByAd(ex)) ...[
+                  const SizedBox(height: 8),
+                  AdButton(
+                      key: const Key('rushAd'),
+                      label: '광고 보고 바로 돌아오기',
+                      onPressed: () => go(byAd: true)),
+                ],
+                SizedBox(height: tut ? 40 : 4),
+                TextButton(
+                  key: const Key('rushWait'),
+                  onPressed: () => Navigator.pop(d, false),
+                  child: const Text('기다릴게', style: TextStyle(fontSize: 14)),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
+  return done ?? false;
 }
 
 class SpawnSheet extends StatefulWidget {
@@ -393,12 +480,16 @@ class ExpeditionStrip extends StatelessWidget {
     required this.open,
     required this.onToggle,
     this.onShowResults,
+    this.onRush,
   });
 
   final AppController controller;
   final bool open;
   final VoidCallback onToggle;
   final VoidCallback? onShowResults;
+
+  /// 원정 하나를 눌렀을 때: 바로 돌아오기 창 (묶음 18 #151)
+  final void Function(Expedition ex)? onRush;
 
   Widget _face(Expedition ex, double size) {
     final pet = ex.petUid == null ? null : controller.pets.byUid(ex.petUid!);
@@ -471,7 +562,10 @@ class ExpeditionStrip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final ex in actives) ...[
-              ExpeditionCard(controller: c, ex: ex),
+              GestureDetector(
+                onTap: onRush == null ? null : () => onRush!(ex),
+                child: ExpeditionCard(controller: c, ex: ex),
+              ),
               const SizedBox(height: 4),
             ],
           ],
@@ -487,7 +581,10 @@ class ExpeditionStrip extends StatelessWidget {
     final name = id == null ? '몬스터' : Monsters.info(id).name;
     return GestureDetector(
       key: const Key('expeditionStrip'),
-      onTap: onToggle,
+      // 하나면 바로 돌아오기 창, 여럿이면 펼쳐서 고르기
+      onTap: actives.length == 1 && onRush != null
+          ? () => onRush!(first)
+          : onToggle,
       child: Container(
         height: MapScreenSizes.expStripH,
         padding: const EdgeInsets.symmetric(horizontal: 10),

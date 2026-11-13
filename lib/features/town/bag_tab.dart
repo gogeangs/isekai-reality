@@ -223,8 +223,12 @@ class _BagTabState extends State<BagTab> {
             child: Column(children: [
               OrnateTopBar(title: '가방', onBack: widget.onBack),
               const SizedBox(height: 10),
-              OrnatePanel(
-                child: WalletRow(manaStones: p.manaStones, gold: p.gold),
+              // 묶음 18 #148 튜토리얼: 방금 얻은 마석·젤리가 반짝
+              TutorialGlow(
+                on: c.tutorialStep == TutorialStep.bag,
+                child: OrnatePanel(
+                  child: WalletRow(manaStones: p.manaStones, gold: p.gold),
+                ),
               ),
             ]),
           ),
@@ -371,10 +375,16 @@ class _BagTabState extends State<BagTab> {
                       crossAxisSpacing: 6,
                       children: [
                         for (final e in shown)
-                          BagSlot(
-                            entry: e,
-                            controller: c,
-                            onTap: () => showBagEntry(context, c, e),
+                          TutorialGlow(
+                            on: c.tutorialStep == TutorialStep.bag &&
+                                e is MaterialEntry &&
+                                (e.id == MaterialId.slimeJelly ||
+                                    e.id == MaterialId.slimeCore),
+                            child: BagSlot(
+                              entry: e,
+                              controller: c,
+                              onTap: () => showBagEntry(context, c, e),
+                            ),
                           ),
                         for (var i = 0; i < empty; i++) const BagSlot(),
                         for (var i = 0; i < locks; i++)
@@ -1137,6 +1147,64 @@ class _MerchantDialogState extends State<_MerchantDialog> {
           ],
         );
       },
+    );
+  }
+}
+
+/// 튜토리얼에서 볼 곳이 은은하게 반짝 (묶음 18 #148)
+class TutorialGlow extends StatefulWidget {
+  const TutorialGlow({super.key, required this.on, required this.child});
+
+  final bool on;
+  final Widget child;
+
+  @override
+  State<TutorialGlow> createState() => _TutorialGlowState();
+}
+
+class _TutorialGlowState extends State<TutorialGlow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.on) _a.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(TutorialGlow old) {
+    super.didUpdateWidget(old);
+    if (widget.on && !_a.isAnimating) _a.repeat(reverse: true);
+    if (!widget.on && _a.isAnimating) _a.stop();
+  }
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.on) return widget.child;
+    return AnimatedBuilder(
+      animation: _a,
+      child: widget.child,
+      builder: (context, child) => DecoratedBox(
+        key: const Key('tutorialGlow'),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.goldBright
+                    .withValues(alpha: 0.35 + 0.45 * _a.value),
+                blurRadius: 10 + 10 * _a.value),
+          ],
+        ),
+        child: child,
+      ),
     );
   }
 }

@@ -34,6 +34,8 @@ enum MonsterId {
   ancientTreant,
   shadowBatQueen,
   thunderGriffin,
+  // 묶음 18 #149: 첫 튜토리얼 전용 하늘색 슬라임 (도감·지도에는 나오지 않음)
+  slime,
 }
 
 /// 전투 성향 (도감 설명)
@@ -426,6 +428,16 @@ class Monsters {
       description: '번개를 몰고 다니는 하늘의 사냥꾼. 토요일 던전의 주인.',
       traitText: '보스: 큰 공격을 예고하고, 체력이 절반 아래면 분노해요',
       isBoss: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.slime,
+      name: '하늘 슬라임',
+      habitat: '처음 만나는 곳',
+      huntLine: '하늘 슬라임을 잡았어! 말랑한 젤리가 남았네.',
+      description: '처음 각성한 사람 곁에 나타나는 순한 슬라임.',
+      traitText: '기본형',
+      hp: 0.8,
+      retired: true,
     ),
     MonsterInfo(
       id: MonsterId.roughWaterSpirit,

@@ -1128,13 +1128,17 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                       ),
                                     ),
                                   )
-                                : _tinted(
-                                    widget.foeTint,
-                                    MonsterPicture(
-                                      monster: foe.monster,
-                                      size: monSize,
-                                      defeated: cleared,
-                                    )),
+                                : cleared
+                                    // 묶음 18 #149: 정화된 몬스터는 또렷하게
+                                    ? PurifiedMonster(
+                                        monster: foe.monster,
+                                        size: monSize * 0.66)
+                                    : _tinted(
+                                        widget.foeTint,
+                                        MonsterPicture(
+                                          monster: foe.monster,
+                                          size: monSize,
+                                        )),
                           ),
                         ),
                       ),
@@ -1973,7 +1977,7 @@ class MonsterPicture extends StatelessWidget {
   }
 
   static IconData iconOf(MonsterId id) => switch (id) {
-        MonsterId.ashSlime => Icons.water_drop_rounded,
+        MonsterId.ashSlime || MonsterId.slime => Icons.water_drop_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
@@ -2035,6 +2039,70 @@ class MonsterPicture extends StatelessWidget {
       child: Transform.translate(
         offset: Offset(0, size * 0.12),
         child: Transform.rotate(angle: 0.5, child: picture),
+      ),
+    );
+  }
+}
+
+/// 사냥 결과의 몬스터 (묶음 18 #149): 흐리지 않고 원래 색 그대로, 뒤로 따뜻한
+/// 정화 빛이 번지고 천천히 숨 쉬듯 움직인다 (편안해진 느낌). 모든 몬스터에 쓴다.
+class PurifiedMonster extends StatefulWidget {
+  const PurifiedMonster({super.key, required this.monster, this.size = 140});
+
+  final MonsterId monster;
+  final double size;
+
+  @override
+  State<PurifiedMonster> createState() => _PurifiedMonsterState();
+}
+
+class _PurifiedMonsterState extends State<PurifiedMonster>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2400))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final s = widget.size;
+    return SizedBox(
+      key: const Key('purifiedMonster'),
+      width: s * 1.5,
+      height: s * 1.25,
+      child: AnimatedBuilder(
+        animation: _a,
+        builder: (context, _) {
+          final t = still ? 0.5 : Curves.easeInOut.transform(_a.value);
+          return Stack(alignment: Alignment.center, children: [
+            // 따뜻한 정화 빛
+            Container(
+              width: s * (1.35 + 0.08 * t),
+              height: s * (1.35 + 0.08 * t),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  const Color(0xFFFFF4D2).withValues(alpha: 0.75),
+                  const Color(0xFFFFC96B).withValues(alpha: 0.35),
+                  const Color(0x00FFC96B),
+                ], stops: const [0, 0.5, 1]),
+              ),
+            ),
+            Transform.translate(
+              offset: Offset(0, -3 * t),
+              child: Transform.scale(
+                scale: 1 + 0.025 * t,
+                child: MonsterPicture(monster: widget.monster, size: s),
+              ),
+            ),
+          ]);
+        },
       ),
     );
   }

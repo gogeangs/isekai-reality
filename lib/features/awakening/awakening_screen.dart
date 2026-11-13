@@ -392,10 +392,10 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   Widget _buildFinale() {
     return Stack(fit: StackFit.expand, children: [
+      // 묶음 18 #147: 공통 무대 배경 1장 + 투명 배경 각성자. 남·여를 바꾸면
+      // 각성자만 짧게 빛나며 바뀐다 (배경·정령·말풍선은 그대로)
       IllustratedScene(
-        image: _look == HeroLook.female
-            ? 'assets/images/intro_08_awaken_female.webp'
-            : 'assets/images/intro_08_awaken_male.webp',
+        image: 'assets/images/bg_status_stage.webp',
         speaker: _spiritName,
         line: '준비됐어, ${_nameController.text.trim()}? 아르카의 빛을 되찾으러 가자!',
         lineKey: 'finale',
@@ -403,6 +403,13 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         // 어깨 옆 빈자리에 고른 정령
         decoration: LayoutBuilder(builder: (context, box) {
           return Stack(children: [
+            Positioned(
+              left: box.maxWidth * 0.04,
+              width: box.maxWidth * 0.52,
+              top: box.maxHeight * 0.12,
+              height: box.maxHeight * 0.58,
+              child: _AwakenHero(look: _look),
+            ),
             Positioned(
               left: box.maxWidth * 0.46,
               top: box.maxHeight * 0.24,
@@ -1053,4 +1060,45 @@ class AgeBlockedView extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// 각성 장면의 각성자 (묶음 18 #147): 남·여를 바꾸면 짧게 빛나며 바뀐다
+class _AwakenHero extends StatelessWidget {
+  const _AwakenHero({required this.look});
+
+  final HeroLook look;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = look == HeroLook.female
+        ? 'assets/images/hero_stand_female.webp'
+        : 'assets/images/hero_stand_male.webp';
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 450),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: anim,
+        child: AnimatedBuilder(
+          animation: anim,
+          child: child,
+          builder: (context, child) {
+            // 바뀌는 순간 하얗게 빛났다가 원래 색으로
+            final glow = (1 - (anim.value - 0.5).abs() * 2).clamp(0.0, 1.0);
+            return ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                  Colors.white.withValues(alpha: 0.55 * glow),
+                  BlendMode.srcATop),
+              child: child,
+            );
+          },
+        ),
+      ),
+      child: Image.asset(
+        asset,
+        key: ValueKey(asset),
+        fit: BoxFit.contain,
+        alignment: Alignment.bottomCenter,
+        errorBuilder: (_, __, ___) => const SizedBox(),
+      ),
+    );
+  }
 }

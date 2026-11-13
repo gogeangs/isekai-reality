@@ -435,7 +435,7 @@ class LootRules {
   static ({List<MaterialId> common, MaterialId rare, double chance}) dropsOf(
           MonsterId m) =>
       switch (m) {
-        MonsterId.ashSlime =>
+        MonsterId.ashSlime || MonsterId.slime =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
         MonsterId.fireSlime =>
           (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance),

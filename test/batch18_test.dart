@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
+import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
@@ -169,5 +171,51 @@ void main() {
     expect(find.byKey(const Key('rushSheet')), findsOneWidget);
     expect(find.byKey(const Key('rushMana')), findsOneWidget);
     expect(find.byKey(const Key('rushAd')), findsNothing);
+  });
+
+  group('#148 위치', () {
+    Future<AppController> withLocation(FakeLocationSource loc) async {
+      final c = AppController(
+        store: InMemoryRecordStore(),
+        health: FakeHealthSource(stepsByDay: const {}),
+        location: loc,
+        clock: () => t0,
+      )..mailSources = const [];
+      await c.init();
+      await c.awaken(name: '하루', look: HeroLook.male);
+      await c.finishIntro();
+      return c;
+    }
+
+    testWidgets('허용: 위치를 찾는 동안 기다리고, 받으면 바로 옆 몬스터', (tester) async {
+      final loc = FakeLocationSource();
+      late AppController c;
+      await tester.runAsync(() async => c = await withLocation(loc));
+      await tester.pumpWidget(IsekaiRealityApp(controller: c));
+      await tester.pump();
+      String line() =>
+          tester.widget<BulssiBubble>(find.byKey(const Key('tutorialLine'))).line;
+      expect(line(), contains('어디 있는지 찾고 있어'));
+      expect(find.byKey(const Key('spotlightHole')), findsNothing);
+      const here = GeoPoint(37.3219, 126.8309);
+      await tester.runAsync(() => c.handleFix(const LocationFix(point: here)));
+      await tester.pump();
+      expect(line(), '바로 옆에 뭔가 있어! 눌러 봐!');
+      final d = c.tutorialSpawn!.point.distanceTo(here);
+      expect(d, inInclusiveRange(15, 60));
+      expect(c.tutorialSpawn!.point.lat, greaterThan(here.lat)); // 위쪽
+    });
+
+    testWidgets('거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행', (tester) async {
+      late AppController c;
+      await tester.runAsync(
+          () async => c = await withLocation(FakeLocationSource(granted: false)));
+      expect(c.locationDenied, isTrue);
+      expect(c.tutorialSpawn, isNotNull);
+      await tester.pumpWidget(IsekaiRealityApp(controller: c));
+      await tester.pump();
+      expect(find.byKey(const Key('tutorialRetryLocation')), findsOneWidget);
+      expect(find.byKey(const Key('spotlightHole')), findsOneWidget);
+    });
   });
 }

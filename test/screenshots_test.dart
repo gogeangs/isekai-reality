@@ -883,4 +883,56 @@ void main() {
         ),
     ]);
   });
+
+  testWidgets('화면 미리보기: 첫 튜토리얼 (묶음 18)', (tester) async {
+    _phone(tester);
+    final t0 = DateTime(2026, 11, 13, 10);
+    final c = AppController(
+      store: InMemoryRecordStore(),
+      health: FakeHealthSource(stepsByDay: const {}),
+      clock: () => t0,
+    )..mailSources = const [];
+    await tester.runAsync(() async {
+      await c.init();
+      await c.awaken(name: '하루', look: HeroLook.female);
+    });
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await tester.pump(const Duration(milliseconds: 1500));
+    await _shot(tester, 'T1_각성_연출');
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, 'T1b_각성_연출_대사');
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T2_첫전투_안내');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    for (var i = 0;
+        i < 80 && find.text('사냥 성공!').evaluate().isEmpty;
+        i++) {
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T3_사냥_결과');
+    Navigator.of(tester.element(find.byType(FieldBattleScreen))).pop();
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T4_가방_안내');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T5_가방_반짝');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T6_원정_안내');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T7_원정_보내기');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T8_원정_중_서두르기');
+    await tester.tap(find.byKey(const Key('spotlightHole')));
+    await tester.pumpAndSettle();
+    await _shot(tester, 'T9_바로_돌아오기');
+  });
 }

@@ -276,7 +276,12 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.text),
           ),
-          Text('마법 돋보기', style: AppText.title(19)),
+          Flexible(
+            child: Text('마법 돋보기',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.title(19)),
+          ),
           const Spacer(),
           // 11-11 #97: 도감 「종족」 대신 감정 앨범
           TextButton.icon(

@@ -72,24 +72,29 @@ void main() {
     test('돋보기를 쓰고, 처음 본 종족은 도감과 경험치', () async {
       final c = make();
       await c.init();
-      expect(await c.appraise([Race.elf]), isNull); // 돋보기가 없다
-      expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
-      expect(c.bagCount(ShopItem.raceLens), 1);
+      // 묶음 19 #154: 매일 첫 감정은 무료 (돋보기를 쓰지 않는다)
+      expect(c.lensFreeToday, isTrue);
       final exp0 = c.player.totalExp;
       final r = (await c.appraise([Race.elf, Race.elf, Race.dwarf]))!;
       expect(r.firsts, [Race.elf, Race.dwarf]);
       expect(r.exp, 2 * LensRules.firstExp);
       expect(c.player.totalExp - exp0, 2 * LensRules.firstExp);
+      expect(c.lensFreeToday, isFalse);
+      expect(await c.appraise([Race.elf]), isNull); // 무료는 썼고 돋보기가 없다
+      expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
+      expect(c.bagCount(ShopItem.raceLens), 1);
+      expect(await c.appraise([Race.elf]), isNotNull);
       expect(c.bagCount(ShopItem.raceLens), 0);
       expect(c.racesSeen, {Race.elf, Race.dwarf});
-      expect(c.lens.counts['elf'], 2);
-      expect(c.lensRewardsLeft, LensRules.rewardedPerDay - 1);
+      expect(c.lens.counts['elf'], 3);
+      expect(c.lensRewardsLeft, LensRules.rewardedPerDay - 2);
 
       // 다시 열어도 남아 있다
       final again = make();
       await again.init();
       expect(again.racesSeen, {Race.elf, Race.dwarf});
-      expect(again.lensRewardsLeft, LensRules.rewardedPerDay - 1);
+      expect(again.lensRewardsLeft, LensRules.rewardedPerDay - 2);
+      expect(again.lensFreeToday, isFalse);
     });
 
     test('하루 3개까지 사고, 보상은 하루 3번, 다음 날 다시', () async {
@@ -99,14 +104,17 @@ void main() {
         expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
       }
       expect(await c.buy(ShopItem.raceLens), PurchaseCheck.limitReached);
-      for (var i = 0; i < 3; i++) {
+      // 무료 1번 + 돋보기 3개
+      for (var i = 0; i < 4; i++) {
         expect(await c.appraise([Race.mermaid]), isNotNull);
       }
       expect(c.lensRewardsLeft, 0);
-      final second = await c.appraise([Race.mermaid]);
-      expect(second, isNull);
+      expect(c.bagCount(ShopItem.raceLens), 0);
+      final more = await c.appraise([Race.mermaid]);
+      expect(more, isNull);
       now = DateTime(2026, 11, 12, 9);
       expect(c.lensRewardsLeft, LensRules.rewardedPerDay);
+      expect(c.lensFreeToday, isTrue); // 자정에 다시
     });
   });
 }

@@ -113,7 +113,7 @@ void main() {
     });
   });
 
-  testWidgets('공용 팝업: 마지막 버튼은 금색 (#72)', (t) async {
+  testWidgets('공용 팝업: 되돌릴 수 없는 버리기는 붉은 테 (#72 → 묶음 19 6-1)', (t) async {
     await t.pumpWidget(MaterialApp(
       home: Scaffold(
         body: GameAlert(
@@ -131,6 +131,9 @@ void main() {
     final m = t.widget<Material>(find.descendant(
         of: find.widgetWithText(TextButton, '버리기'),
         matching: find.byType(Material)));
-    expect(m.color, gold);
+    expect(m.color, isNot(gold));
+    final shape = m.shape;
+    expect(shape, isA<OutlinedBorder>());
+    expect((shape! as OutlinedBorder).side.color, const Color(0xFFE5484D));
   });
 }

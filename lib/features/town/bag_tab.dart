@@ -18,6 +18,7 @@ import '../pets/pet_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
 import '../../theme/top_notice.dart';
+import '../bulssi/bulssi_bubble.dart';
 
 /// 가방 칸 거르기
 enum BagFilter {
@@ -222,7 +223,18 @@ class _BagTabState extends State<BagTab> {
             padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
             child: Column(children: [
               OrnateTopBar(title: '가방', onBack: widget.onBack),
-              const SizedBox(height: 10),
+              // 묶음 22: 다른 칸과 같은 정령 배지 (프로필 아래). 뒤로 가기 줄이 있는
+              // 밀어 올린 가방에는 넣지 않는다
+              if (widget.onBack == null && !c.inTutorial) ...[
+              const SizedBox(height: 6),
+              SpiritBadgeRow(
+                  key: const Key('bagSpirit'),
+                  line: c.bagFree <= 0
+                      ? '가방이 가득 찼어! 안 쓰는 건 팔거나 정리하자.'
+                      : '얻은 건 다 여기 있어. 물약은 눌러서 바로 쓸 수 있어.'),
+              const SizedBox(height: 8),
+              ] else
+                const SizedBox(height: 10),
               // 묶음 18 #148 튜토리얼: 방금 얻은 마석·젤리가 반짝
               TutorialGlow(
                 on: c.tutorialStep == TutorialStep.bag,

@@ -71,6 +71,7 @@ void main() {
     test('빠른 채집·미니게임·도구 내구도', () async {
       final c = make();
       await c.init();
+      await c.makeFirstTools(); // 묶음 22: 도구가 있어야 채집
       final spot = c.harvestSpots.first;
       expect(c.canHarvest(spot), HarvestCheck.far);
       await c.handleFix(LocationFix(point: spot.point));
@@ -98,6 +99,7 @@ void main() {
     test('시속 20km 10초면 묻고, 승객이면 보상 제한, 멈추면 끝', () async {
       final c = make();
       await c.init();
+      await c.makeFirstTools(); // 묶음 22: 도구가 있어야 채집
       const p = GeoPoint(37.3219, 126.8309);
       await c.handleFix(const LocationFix(point: p, speedMps: 8));
       now = now.add(const Duration(seconds: 11));

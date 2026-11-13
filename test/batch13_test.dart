@@ -96,7 +96,8 @@ void main() {
         clock: () => now,
       )..mailSources = const [];
       await c.init();
-      expect(c.giftMails.length, 2);
+      // 묶음 22: 도구가 없는 기존 사용자는 채집 도구 우편도 받는다
+      expect(c.giftMails.where((m) => m.id != 'toolsGift').length, 2);
       expect(await c.claimMail('r1'), isNotNull);
       expect(c.allMails.any((m) => m.id == 'r1' && m.claimed), isTrue);
       now = now.add(const Duration(days: 31));

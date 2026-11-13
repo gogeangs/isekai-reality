@@ -124,7 +124,7 @@ class _CodexScreenState extends State<CodexScreen> {
         children: [
           const OrnateTopBar(title: '도감'),
           const SizedBox(height: 6),
-          BulssiLine(
+          SpiritBadgeRow(
               line: tab == 1 && widget.petsOpen
                   ? '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'
                   : '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'),

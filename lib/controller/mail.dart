@@ -56,6 +56,7 @@ extension MailOps on AppController {
     final m = _mail.mails[i];
     final got = <String>[];
     var gold = 0, mana = 0, exp = 0, notes = 0, eggs = 0;
+    var tools = false;
     final mats = <MaterialId, int>{};
     final items = <ShopItem, int>{};
     m.gifts.forEach((k, v) {
@@ -69,6 +70,8 @@ extension MailOps on AppController {
         notes += v;
       } else if (k == 'egg') {
         eggs += v;
+      } else if (k == 'tools') {
+        tools = true;
       } else if (k.startsWith('item:')) {
         for (final it in ShopItem.values) {
           if (it.name == k.substring(5)) items[it] = (items[it] ?? 0) + v;
@@ -121,6 +124,10 @@ extension MailOps on AppController {
     for (final e in mats.entries) {
       got.add('${Materials.info(e.key).name} ${e.value}');
     }
+    if (tools) {
+      await makeFirstTools(); // 이미 있으면 그대로
+      got.add('채집 도구 한 벌');
+    }
     if (notes > 0) got.add('레시피 쪽지 $notes');
     if (eggs > 0) got.add('알 $eggs');
     if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
@@ -160,6 +167,19 @@ extension MailOps on AppController {
       }
     }
     await _checkNpcLetters();
+    // 묶음 22: 도구가 없는 기존 사용자에게 채집 도구 한 벌 (한 번만)
+    if (_legacyGates && !_harvest.granted) {
+      await _sendMail(MailItem(
+        id: 'toolsGift',
+        kind: MailKind.letter,
+        from: MailRules.hart,
+        title: '채집 도구 한 벌',
+        body: '이제 채집에는 도구가 있어야 해요. 낫·곡괭이·도끼·낚싯대·붓을 한 벌 보내요. '
+            '받으면 바로 꽃과 버섯을 딸 수 있어요.',
+        gifts: const {'tools': 1},
+        sentAt: now,
+      ));
+    }
   }
 
   Future<void> _npc(NpcLetter l) => _sendMail(MailItem(

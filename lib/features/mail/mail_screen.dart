@@ -291,6 +291,7 @@ String giftLabel(AppController c, Map<String, int> gifts) => [
           Wallet.manaStone => '마석 ${e.value}',
           Wallet.exp => '경험치 ${e.value}',
           'note' => '레시피 쪽지 ${e.value}',
+          'tools' => '채집 도구 한 벌',
           'egg' => '알 ${e.value}',
           final k when k.startsWith('item:') => () {
               for (final it in ShopItem.values) {

@@ -166,9 +166,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
       ),
       const SizedBox(height: 10),
       // 묶음 19 #4-2: 채집이 열리면 첫 채집 도구는 무료
-      if (c.newGates &&
-          c.featureOpen(Feature.harvest) &&
-          !c.harvestToolsReady) ...[
+      if (c.featureOpen(Feature.harvest) && !c.harvestToolsReady) ...[
         _FirstToolPanel(onMake: () async {
           if (await c.makeFirstTools() && mounted) {
             _snack('채집 도구를 만들었어요! 지도에서 꽃과 버섯을 딸 수 있어요.');

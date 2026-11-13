@@ -257,7 +257,11 @@ class SpiritTalkBadge extends StatefulWidget {
     this.size = 44,
     this.hideAfter = const Duration(seconds: 8),
     this.bubbleKey = const Key('spiritBubble'),
+    this.retalk,
   });
+
+  /// 바뀔 때마다 다시 말한다 (아래 메뉴 칸에 들어올 때, 묶음 22)
+  final Listenable? retalk;
 
   final String line;
   final double maxBubbleWidth;
@@ -278,6 +282,16 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
   bool _open = false;
   Timer? _hide;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.retalk?.addListener(_again);
+  }
+
+  void _again() {
+    if (mounted) setState(_talk);
+  }
+
   void _talk() {
     _open = true;
     _hop
@@ -291,6 +305,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
 
   @override
   void dispose() {
+    widget.retalk?.removeListener(_again);
     _hide?.cancel();
     _hop.dispose();
     super.dispose();
@@ -417,4 +432,38 @@ class _LeftTailBubble extends CustomPainter {
 
   @override
   bool shouldRepaint(_LeftTailBubble old) => old.tailY != tailY;
+}
+
+/// 아래 메뉴 칸에 들어올 때마다 늘어나는 수 (마을·가방·도감 정령이 다시 말한다)
+final ValueNotifier<int> spiritTabVisits = ValueNotifier<int>(0);
+
+/// 마을·가방·도감 위쪽 정령 (묶음 22, #159 확장): 지도·상태 화면과 같은 금테 배지 +
+/// 오른쪽 말풍선. 칸에 들어올 때 한 번 말하고 접힌다. 말풍선은 아래 내용 위로 겹쳐
+/// 열리고(내용이 밀리지 않게), 접히면 배지 한 줄만 남는다.
+class SpiritBadgeRow extends StatelessWidget {
+  const SpiritBadgeRow(
+      {super.key, required this.line, this.mood = SpiritMood.normal});
+
+  final String line;
+  final SpiritMood mood;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, box) => SizedBox(
+          height: 44,
+          width: double.infinity,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              child: SpiritTalkBadge(
+                line: line,
+                mood: mood,
+                retalk: spiritTabVisits,
+                maxBubbleWidth: (box.maxWidth - 46 - 8).clamp(140.0, 420.0),
+              ),
+            ),
+          ]),
+        ),
+      );
 }

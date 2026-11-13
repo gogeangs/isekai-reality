@@ -71,7 +71,18 @@ extension TutorialOps on AppController {
   bool get harvestToolsReady => _harvest.granted;
 
   /// 도구가 없어 채집할 수 없는지 (묶음 20: 새로 시작한 사람만. 기존 사용자는 그대로)
-  bool get harvestNeedsTool => !_legacyGates && !_harvest.granted;
+  /// 묶음 22: 모두 같은 규칙 (기존 사용자는 우편으로 한 벌을 받는다)
+  bool get harvestNeedsTool => !_harvest.granted;
+
+  /// 「새로 열렸어요」 카드를 이미 보여 줬는지 (한 번만, 묶음 22)
+  bool featureAnnounced(Feature f) => _introsSeen.contains('opened:${f.name}');
+
+  Future<void> markFeatureAnnounced(Feature f) async {
+    if (featureAnnounced(f)) return;
+    _introsSeen = {..._introsSeen, 'opened:${f.name}'};
+    await _saveGates();
+    _notify();
+  }
 
   /// 지금까지 채집한 횟수
   int get harvestTotal => _harvest.total;

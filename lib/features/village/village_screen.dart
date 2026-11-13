@@ -63,13 +63,16 @@ class VillageScreen extends StatelessWidget {
   /// 잠긴 곳·준비 중인 거래소)을 아예 숨긴다. 그림 속 건물은 배경으로만.
   /// 기존 사용자는 예전처럼 자물쇠로 보인다.
   List<FacilityInfo> get _shown => [
+        // 묶음 22: 거래소는 기존 사용자에게도 숨김 (서버 #49 만들 때 연다)
         for (final f in facilities)
-          if (!controller.newGates)
+          if (!f.open)
+            ...[]
+          else if (!controller.newGates)
             _lockLevel(f.facility) == null
                 ? f
                 : FacilityInfo(f.facility, f.name, f.icon,
                     open: false, inArt: f.inArt)
-          else if (_lockLevel(f.facility) == null && f.open)
+          else if (_lockLevel(f.facility) == null)
             f,
       ];
 
@@ -114,7 +117,7 @@ class VillageScreen extends StatelessWidget {
       child: Column(children: [
         const OrnateTopBar(title: '마을'),
         const SizedBox(height: 6),
-        BulssiLine(key: const Key('villageGreeting'), line: _greeting),
+        SpiritBadgeRow(key: const Key('villageGreeting'), line: _greeting),
         const SizedBox(height: 10),
         Expanded(
           child: ListView(

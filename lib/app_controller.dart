@@ -81,7 +81,11 @@ class AppController extends ChangeNotifier {
         // 예시 모드는 처음부터 레벨업 연출이 뜨지 않도록 확인한 레벨을 비워 둔다
         history: DemoData.twoWeeks(today: now),
         // 예시 모드는 Lv.14라 정령과 이미 헤어지고 부엉이와 함께한다 (11-11 #37)
-        json: {'pets': DemoData.pets(today: now).toJson()},
+        json: {
+          'pets': DemoData.pets(today: now).toJson(),
+          // 예시 모드는 채집 도구를 이미 가졌다 (묶음 22)
+          'harvest': {'granted': true},
+        },
       ),
       health: FakeHealthSource(granted: false),
       stepGoal: 8000, // 예시 기록과 같은 목표

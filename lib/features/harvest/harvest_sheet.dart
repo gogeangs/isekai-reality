@@ -222,7 +222,7 @@ class ToolRepairPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // 묶음 20 #157: 채집이 열리기 전(새로 시작한 사람은 첫 도구를 만들기 전)에는 숨김
     if (!controller.featureOpen(Feature.harvest) ||
-        (controller.newGates && !controller.harvestToolsReady)) {
+        !controller.harvestToolsReady) {
       return const SizedBox.shrink();
     }
     final c = controller;

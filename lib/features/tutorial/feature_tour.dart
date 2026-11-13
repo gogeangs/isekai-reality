@@ -569,7 +569,6 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         (a.onTap == null) == (b.onTap == null);
   }
 
-  final Set<Feature> _announced = {};
 
   TourStep _openedStep(Feature f) {
     final (name, icon, line) = switch (f) {
@@ -579,8 +578,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       Feature.lens => ('마법 돋보기', 'icon_lens', '마법 돋보기가 생겼어! 숨은 이세계 종족을 볼 수 있어.'),
     };
     return TourStep(line, opened: (name, icon), button: ('가 보기', () {
-      _announced.add(f);
-      _queue();
+      // 묶음 22: 한 번만 (껐다 켜면 남은 안내 단계부터)
+      c.markFeatureAnnounced(f).then((_) => _queue());
     }));
   }
 
@@ -592,7 +591,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     } else if (!b.paused && !c.holdNotices && c.ready) {
       step = _step(f);
       // 묶음 20 #157: 안내 앞에 「새로 열렸어요」 한 번
-      if (step != null && step.line.isNotEmpty && !_announced.contains(f)) {
+      if (step != null && step.line.isNotEmpty && !c.featureAnnounced(f)) {
         step = _openedStep(f);
       }
       if (step != null && step.wait) {

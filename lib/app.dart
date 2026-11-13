@@ -35,6 +35,7 @@ import 'theme/ornaments.dart';
 import 'theme/top_notice.dart';
 import 'features/profile/title_celebration.dart';
 import 'features/tutorial/feature_tour.dart';
+import 'features/bulssi/bulssi_bubble.dart' show spiritTabVisits;
 
 part 'shell/home_popups.dart';
 part 'shell/nav_bar.dart';
@@ -137,6 +138,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (i == tStatus) _seenPoints = c.unspentPoints;
     if (i == tVillage) _seenRewards = c.questRewardsReady;
+    if (_tab != i) spiritTabVisits.value++;
     _tab = i;
     tourBridge.tab = i;
   }

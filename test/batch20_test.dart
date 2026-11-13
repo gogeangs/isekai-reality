@@ -181,7 +181,8 @@ void main() {
       await village(tester, c);
       expect(find.byKey(const Key('facility_smithy')), findsOneWidget);
       expect(find.byKey(const Key('facility_board')), findsOneWidget);
-      expect(find.byKey(const Key('facility_market')), findsOneWidget);
+      // 묶음 22: 거래소는 기존 사용자에게도 숨김
+      expect(find.byKey(const Key('facility_market')), findsNothing);
     });
 
     test('기능이 열리는 레벨: 대장간 3 · 게시판 4 · 채집 5 · 돋보기 6', () async {
@@ -210,7 +211,7 @@ void main() {
       expect(DungeonClues.chapters[4][1], contains('문지기 빛'));
     });
 
-    test('새 사용자는 채집 도구가 없으면 채집 못 함, 만들면 됨. 기존 사용자는 그대로', () async {
+    test('채집 도구가 없으면 채집 못 함, 만들면 됨', () async {
       final loc = FakeLocationSource();
       final c = await start(
           grown(5, seen: const ['smithy', 'freeWeapon', 'board']),
@@ -227,8 +228,10 @@ void main() {
 
       final old = await start(
           InMemoryRecordStore(profile: const PlayerProfile(name: '하루')));
+      // 묶음 22: 기존 사용자도 같은 규칙, 대신 우편으로 한 벌
       expect(old.harvestToolsReady, isFalse);
-      expect(old.harvestNeedsTool, isFalse);
+      expect(old.harvestNeedsTool, isTrue);
+      expect(old.allMails.any((m) => m.id == 'toolsGift'), isTrue);
     });
   });
 }

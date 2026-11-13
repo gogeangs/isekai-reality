@@ -170,7 +170,8 @@ void main() {
         clock: () => now,
       )..mailSources = const [];
       await c2.init();
-      expect(c2.giftMails.single.id, 'r1');
+      // 묶음 22: 도구가 없는 기존 사용자는 채집 도구 우편도 받는다
+      expect(c2.giftMails.where((m) => m.id != 'toolsGift').single.id, 'r1');
       now = now.add(const Duration(days: 31));
       await c2.refreshVitals();
       expect(c2.giftMails.where((m) => m.id == 'r1'), isEmpty);

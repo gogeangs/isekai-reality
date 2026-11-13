@@ -142,6 +142,9 @@ void main() {
   });
 
   testWidgets('4 거래소는 기존 사용자에게도 숨김', (tester) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     late AppController c;
     await tester.runAsync(() async => c = await start(
         InMemoryRecordStore(profile: const PlayerProfile(name: '하루'))));

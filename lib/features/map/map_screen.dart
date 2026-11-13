@@ -12,8 +12,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
-import '../battle/dungeon_screen.dart' show confirmStopResting;
-import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';

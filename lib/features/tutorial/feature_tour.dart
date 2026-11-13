@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
@@ -226,10 +227,23 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     super.initState();
     b.addListener(_changed);
     tutorialMonsterRect.addListener(_changed);
+    // 화면이 바뀐 뒤(카드를 고르는 등)마다 다시 본다. 바뀐 게 없으면 다시 그리지 않는다
+    SchedulerBinding.instance.addPersistentFrameCallback((_) {
+      if (!_alive || _queued) return;
+      if (_shownFeature == null && c.pendingFeatureIntro == null) return;
+      _queued = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _queued = false;
+        if (_alive && mounted) _compute();
+      });
+    });
   }
+
+  bool _alive = true;
 
   @override
   void dispose() {
+    _alive = false;
     b.removeListener(_changed);
     tutorialMonsterRect.removeListener(_changed);
     _retry?.cancel();

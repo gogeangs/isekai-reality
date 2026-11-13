@@ -12,6 +12,7 @@ import 'album_files.dart';
 import 'consent_note.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
+import '../tutorial/feature_tour.dart';
 
 /// 감정 앨범 (11-11 #97): 감정할 때마다 사진 한 장이 쌓인다.
 /// 위에는 「사진 N장」만. 아직 못 찾은 종족은 이름·개수·실루엣 모두 숨긴다.
@@ -44,7 +45,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TourScreenMark(name: 'album', child: Scaffold(
       backgroundColor: AppColors.abyss,
       body: SafeArea(
         child: ListenableBuilder(
@@ -125,7 +126,7 @@ class _AlbumScreenState extends State<AlbumScreen> {
           },
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _open(AlbumPhoto p) => Navigator.of(context).push(

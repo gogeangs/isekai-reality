@@ -17,6 +17,8 @@ import '../smithy/equipment_view.dart';
 import '../battle/hero_rig.dart';
 import '../battle/season_painter.dart';
 import 'stat_icon.dart';
+import '../tutorial/feature_tour.dart';
+import '../smithy/set_aura.dart';
 import '../battle/element_view.dart';
 import '../bulssi/bulssi_mood.dart';
 
@@ -361,6 +363,9 @@ class _HeroArt extends StatelessWidget {
                 fit: BoxFit.contain,
                 semanticLabel: '기본 각성자',
                 errorBuilder: (_, __, ___) => const SizedBox()),
+            // 묶음 19 6-3: 세트마다 다른 무늬·반짝임
+            if (SetAuraPattern.ofAura(aura) case final set?)
+              Positioned.fill(child: SetAuraPattern(set: set)),
           ]),
           ),
         ),
@@ -406,6 +411,7 @@ class _SlotColumn extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(bottom: i == slots.length - 1 ? 0 : fit.gap),
             child: _GearSlot(
+              key: Key('gearSlot_${slot.name}'),
               size: fit.size,
               slot: slot,
               item: armory.wornIn(slot),
@@ -417,7 +423,8 @@ class _SlotColumn extends StatelessWidget {
 
 class _GearSlot extends StatelessWidget {
   const _GearSlot(
-      {required this.slot, this.item, this.onTap, this.size = 50});
+      {super.key,
+      required this.slot, this.item, this.onTap, this.size = 50});
 
   final EquipSlot slot;
   final EquipItem? item;
@@ -430,7 +437,23 @@ class _GearSlot extends StatelessWidget {
     // 11-11 #98: 등급색 테두리, 강화는 빛 세기로(숫자 숨김), 속성은 구석에 작은 아이콘
     final color = it == null ? AppColors.gold : wornBorderColor(it);
     final glow = it == null ? 0.0 : enhanceGlow(it.enhance);
-    return Semantics(
+    // 묶음 19 #4-2: 안내가 가리키는 칸은 금빛으로 빛난다
+    return ValueListenableBuilder<EquipSlot?>(
+      valueListenable: tourGlowSlot,
+      builder: (context, lit, child) => lit != slot
+          ? child!
+          : DecoratedBox(
+              key: const Key('gearSlotGlow'),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0xCCFFD86B), blurRadius: 16, spreadRadius: 3),
+                ],
+              ),
+              child: child,
+            ),
+      child: Semantics(
       button: true,
       label: '${EquipmentRules.slotLabel(slot)} 칸${it == null ? ', 비어 있음' : ', ${it.name}'}',
       child: GestureDetector(
@@ -475,6 +498,7 @@ class _GearSlot extends StatelessWidget {
           ]),
         ),
       ),
+    ),
     );
   }
 }

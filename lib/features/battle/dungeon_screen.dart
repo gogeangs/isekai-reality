@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
+import '../../core/story/dungeon_clues.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -30,6 +31,7 @@ class DungeonScreen extends StatefulWidget {
 }
 
 class _DungeonScreenState extends State<DungeonScreen> {
+  int _clueFloor = 0;
   _Stage _stage = _Stage.entry;
   Battle? _battle;
   bool _atGate = false;
@@ -62,6 +64,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
     setState(() {
       _atGate = atGate;
       _battle = battle;
+      _clueFloor = 0;
       _knownBefore = _c.purifiedEver;
       _stage = _Stage.battle;
     });
@@ -102,8 +105,23 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ...switch (_stage) {
               _Stage.entry => _entry(),
               _Stage.battle => [
+                  // 묶음 19 #7: 층마다 정령의 이야기 단서 한 마디 (이별 전까지)
+                  if (DungeonClues.lineFor(
+                          level: _c.player.level.level,
+                          floor: _clueFloor,
+                          floors: _battle!.floors.length,
+                          farewellDone: _c.farewellDone)
+                      case final clue?) ...[
+                    BulssiLine(key: const Key('dungeonClue'), line: clue),
+                    const SizedBox(height: 6),
+                  ],
                   BattleView(
                     battle: _battle!,
+                    onFloor: (f) {
+                      if (mounted && f != _clueFloor) {
+                        setState(() => _clueFloor = f);
+                      }
+                    },
                     backgroundOf: dungeonBackground,
                     onFinished: _finish,
                     tickInterval: widget.tickInterval,

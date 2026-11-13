@@ -113,6 +113,7 @@ class VillageScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: _FacilityCard(
+                      key: Key('facility_${f.facility.name}'),
                       info: f, onTap: () => _enter(context, f)),
                 ),
             ],
@@ -268,7 +269,7 @@ class _BuildingIcon extends StatelessWidget {
 }
 
 class _FacilityCard extends StatelessWidget {
-  const _FacilityCard({required this.info, required this.onTap});
+  const _FacilityCard({super.key, required this.info, required this.onTap});
 
   final FacilityInfo info;
   final VoidCallback onTap;

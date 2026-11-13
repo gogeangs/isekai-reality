@@ -323,7 +323,8 @@ class Battle {
       playerEvade: math.min(0.4, StatRules.evade(all) + gear.evade),
       // 같은 레벨 기준 각성자보다 빠르면 1보다 크다 (몬스터 속도와 비교)
       playerSpeed: StatRules.speed(all) /
-          StatRules.speed(BattleRules.expectedStats(level)),
+          StatRules.speed(BattleRules.expectedStats(level)) *
+          (1 + gear.speed),
     );
   }
 

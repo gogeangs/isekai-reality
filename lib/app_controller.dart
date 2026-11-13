@@ -802,8 +802,94 @@ class AppController extends ChangeNotifier {
             land: lands?.kindAt)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .followedBy(_tutorialSpawns(center))
+        .followedBy([if (guideSpawn != null) guideSpawn!])
         .where((s) => !done.contains(s.id))
         .toList();
+  }
+
+  // ───────────── Lv.3~6 기능 안내 (묶음 19 #4-2)
+
+  static const guideHuntId = 'guide-hunt';
+  bool _guideHunt = false;
+
+  /// 게시판 안내 중 「지도에서 깨기」: 바로 옆에 몬스터 하나
+  FieldSpawn? get guideSpawn {
+    if (!_guideHunt || inTutorial) return null;
+    final center = _lastFix?.point ?? fallbackCenter;
+    if (center == null) return null;
+    final today = player.today;
+    if (today?.purifiedSpawnIds.contains(guideHuntId) ?? false) return null;
+    return FieldSpawn(
+        id: guideHuntId,
+        monster: MonsterId.slime,
+        point: GeoPoint(center.lat + 0.00027, center.lng));
+  }
+
+  set guideHunt(bool on) {
+    if (_guideHunt == on) return;
+    _guideHunt = on;
+    final s = guideSpawn;
+    if (on && s != null) requestMapFocus(s.point);
+    notifyListeners();
+  }
+
+  /// 채집 안내 중: 바로 옆 꽃 자리 (위치가 없으면 null)
+  HarvestSpot? get guideHarvestSpot {
+    for (final s in harvestSpots) {
+      if (s.id == 'tutorial-harvest') return s;
+    }
+    return null;
+  }
+
+  set guideHarvest(bool on) {
+    if (_harvestTutorial == on) return;
+    _harvestTutorial = on;
+    _spotsKey = null;
+    final s = on ? guideHarvestSpot : null;
+    if (s != null) requestMapFocus(s.point);
+    notifyListeners();
+  }
+
+  /// 안내가 비출 지도 위 자리 (튜토리얼 몬스터 · 안내 몬스터 · 안내 꽃)
+  ({String id, GeoPoint point})? get guideMapTarget {
+    if (inTutorial) {
+      final s = tutorialSpawn;
+      return s == null ? null : (id: s.id, point: s.point);
+    }
+    final g = guideSpawn;
+    if (g != null) return (id: g.id, point: g.point);
+    if (_harvestTutorial) {
+      final h = guideHarvestSpot;
+      if (h != null) return (id: h.id, point: h.point);
+    }
+    return null;
+  }
+
+  /// 게시판 안내: 받은 의뢰가 없으면 첫 칸에 쉬운 의뢰를 붙인다
+  Future<void> prepareGuideErrand() async {
+    final b = board;
+    if (b.doneToday > 0 || b.slots.any((s) => s.accepted)) return;
+    if (b.slots.any((s) => s.templateId == BoardRules.guideErrand.id)) return;
+    final slots = [...b.slots];
+    if (slots.isEmpty) return;
+    slots[0] = ErrandSlot(templateId: BoardRules.guideErrand.id);
+    await _saveBoard(b.copyWith(slots: slots));
+  }
+
+  /// 채집 도구를 받았는지 (첫 채집 도구는 대장간에서 무료)
+  bool get harvestToolsReady => _harvest.granted;
+
+  /// 지금까지 채집한 횟수
+  int get harvestTotal => _harvest.total;
+
+  /// 첫 채집 도구 만들기 (무료): 모든 기본 도구를 새것으로
+  Future<bool> makeFirstTools() async {
+    if (_harvest.granted) return false;
+    await _saveHarvest(_harvest.copyWith(granted: true, tools: {
+      for (final t in HarvestTool.values) t.name: toolMaxOf(t),
+    }));
+    notifyListeners();
+    return true;
   }
 
   // ───────────── 튜토리얼 (묶음 15 #104, Lv.1~2)
@@ -883,6 +969,9 @@ class AppController extends ChangeNotifier {
     Feature.lens: 6,
   };
 
+  /// 이번 묶음(16) 뒤에 새로 시작한 사람 (레벨 잠금·기능 안내를 받는 사람)
+  bool get newGates => !_legacyGates;
+
   bool featureOpen(Feature f) =>
       _legacyGates || player.level.level >= featureLevel[f]!;
 
@@ -906,7 +995,8 @@ class AppController extends ChangeNotifier {
 
   Future<void> markFeatureIntro(Feature f) async {
     _introsSeen = {..._introsSeen, f.name};
-    _harvestTutorial = f == Feature.harvest;
+    _harvestTutorial = false;
+    _guideHunt = false;
     _spotsKey = null;
     await _saveGates();
     notifyListeners();

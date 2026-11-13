@@ -37,6 +37,7 @@ import 'theme/app_colors.dart';
 import 'theme/ornaments.dart';
 import 'theme/top_notice.dart';
 import 'features/profile/title_celebration.dart';
+import 'features/tutorial/feature_tour.dart';
 
 class IsekaiRealityApp extends StatelessWidget {
   const IsekaiRealityApp({super.key, required this.controller});
@@ -49,7 +50,8 @@ class IsekaiRealityApp extends StatelessWidget {
       title: '이세계가 현실이라면?',
       debugShowCheckedModeBanner: false,
       // 화면을 옮기면 키보드 닫기 (11-11 #73)
-      navigatorObservers: [KeyboardCloser()],
+      navigatorObservers: [KeyboardCloser(), TourObserver()],
+      navigatorKey: tourBridge.navKey,
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColors.night,
@@ -81,6 +83,8 @@ class IsekaiRealityApp extends StatelessWidget {
             Positioned.fill(
                 child: TapOutsideToHideKeyboard(
                     child: child ?? const SizedBox())),
+            // 묶음 19 #4-2: Lv.3~6 기능 안내 (밀어 올린 화면 위까지)
+            Positioned.fill(child: FeatureTourLayer(controller: controller)),
             if (controller.passengerMode)
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 52,
@@ -124,6 +128,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (i == tStatus) _seenPoints = c.unspentPoints;
     if (i == tVillage) _seenRewards = c.questRewardsReady;
     _tab = i;
+    tourBridge.tab = i;
   }
   bool _levelUpShowing = false;
 
@@ -134,8 +139,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _noticeShowing ||
       _petNewsShowing ||
       _walkShowing ||
-      _farewellShowing ||
-      _introShowing;
+      _farewellShowing;
 
   /// 창 하나를 닫은 뒤 다음 차례 창을 볼 수 있게 다시 그린다
   void _kick() {
@@ -194,6 +198,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    tourBridge.openTab = (i) {
+      if (mounted) setState(() => _openTab(i));
+    };
+    tourBridge.tab = _tab;
     // 묶음 19 6-2: 알림을 눌러 들어오면 그 화면으로
     final n = widget.controller.notifier;
     if (n != null) {
@@ -468,7 +476,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   bool _titleShowing = false;
   bool _petCodexNoticed = false;
-  bool _introShowing = false;
 
   /// 처음 HP가 절반 아래로 내려가면 회복 팁 한 번 (묶음 16 #141). 위쪽 띠로만
   void _maybeShowHpTip() {
@@ -481,87 +488,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     });
   }
 
-  /// 레벨이 올라 새 기능이 열리면 정령이 안내한다 (묶음 16 #141~#144)
-  void _maybeShowFeatureIntro() {
-    final c = widget.controller;
-    final f = c.pendingFeatureIntro;
-    if (f == null || _popupBusy || _ahead(3) || c.holdNotices) {
-      return;
-    }
-    _introShowing = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final (line, go) = switch (f) {
-        Feature.smithy => (
-            '대장간이 열렸어! 첫 무기는 내가 낼게. 하나 골라 만들어 볼래?',
-            '대장간 가기'
-          ),
-        Feature.board => (
-            '의뢰 게시판이 열렸어! 쉬운 의뢰 하나 받아서 해 보자.',
-            '게시판 가기'
-          ),
-        Feature.harvest => (
-            '이제 꽃이랑 버섯을 딸 수 있어! 바로 옆에 꽃이 피었어. 가 볼까?',
-            '지도 보기'
-          ),
-        Feature.lens => (
-            '잡화상에 마법 돋보기가 들어왔어! 사람을 비추면 이세계 종족이 보여.',
-            '잡화상 가기'
-          ),
-      };
-      final ok = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (d) => GameAlert(
-          key: const Key('featureIntro'),
-          title: Text(c.firstSpiritName),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            KText(line, style: const TextStyle(color: AppColors.text)),
-            const SizedBox(height: 10),
-            // 묶음 18 #148: 이후 안내도 누를 곳 하나 + 손가락
-            const Align(
-                alignment: Alignment.centerRight,
-                child: FingerHint(label: '아래를 눌러 보세요')),
-          ]),
-          actions: [
-            TextButton(
-                key: const Key('featureIntroLater'),
-                onPressed: () => Navigator.pop(d, false),
-                child: const Text('나중에')),
-            TextButton(
-                key: const Key('featureIntroGo'),
-                onPressed: () => Navigator.pop(d, true),
-                child: Text(go)),
-          ],
-        ),
-      );
-      await c.markFeatureIntro(f);
-      _introShowing = false;
-      if (!mounted) return;
-      if (ok == true) {
-        void push(Widget page) => Navigator.of(context)
-            .push(MaterialPageRoute<void>(builder: (_) => page));
-        switch (f) {
-          case Feature.smithy:
-            setState(() => _openTab(tVillage));
-            push(SmithyScreen(controller: c));
-          case Feature.board:
-            setState(() => _openTab(tVillage));
-            push(BoardScreen(controller: c));
-          case Feature.harvest:
-            setState(() => _openTab(tMap));
-            final spot = c.harvestSpots
-                .where((h) => h.id == 'tutorial-harvest')
-                .firstOrNull;
-            if (spot != null) c.requestMapFocus(spot.point);
-          case Feature.lens:
-            setState(() => _openTab(tVillage));
-            push(ShopScreen(controller: c));
-        }
-      }
-      _kick();
-    });
-  }
+
 
   /// 칭호를 새로 얻으면 화면 가운데 축하 연출 (11-11 #85).
   /// 전투 중에는 전투 결과를 닫은 뒤에, 여러 개면 하나씩 차례로.
@@ -692,7 +619,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowNotices();
         _maybeShowPetNews();
         _maybeShowWalkNews();
-        _maybeShowFeatureIntro();
+        tourBridge.paused = _popupBusy;
         _maybeShowHpTip();
         void push(Widget page) => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => page));

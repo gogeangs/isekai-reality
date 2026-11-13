@@ -34,6 +34,8 @@ enum EquipBase {
   groveWeapon, groveHead, groveBody, groveHands, groveFeet, groveAcc,
   nightWeapon, nightHead, nightBody, nightHands, nightFeet, nightAcc,
   stormWeapon, stormHead, stormBody, stormHands, stormFeet, stormAcc,
+  // 묶음 19 첫 무기 5종: 검·도끼·창 기본형 (단검·지팡이와 함께)
+  ironSword, woodAxe, ironSpear,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -50,9 +52,17 @@ class EquipBaseInfo {
     this.skillFaster = 0,
     this.crit = 0,
     this.evade = 0,
+    this.speed = 0,
+    this.trait,
     this.job,
     required this.asset,
   });
+
+  /// 먼저 치기 (빠르기 비율, 숨김)
+  final double speed;
+
+  /// 첫 무기 고르기에서 보여 주는 성격 한 줄 (수치 대신)
+  final String? trait;
 
   final EquipBase id;
   final String name;
@@ -87,6 +97,8 @@ class EquipBaseInfo {
         if (skillFaster > 0) '일격 충전 하나 빨리',
         if (crit > 0) '치명타 +${_pct(crit)}%p',
         if (evade > 0) '회피 +${_pct(evade)}%p',
+        if (crit < 0) '치명타 조금 낮음',
+        if (speed > 0) '먼저 침',
       ].join(', ');
 }
 
@@ -104,6 +116,7 @@ class GearBonus {
     this.skillFaster = 0,
     this.crit = 0,
     this.evade = 0,
+    this.speed = 0,
     this.stats = Stats.zero,
     this.attackElement,
     this.guardElements = const {},
@@ -132,6 +145,9 @@ class GearBonus {
   final double crit;
   final double evade;
 
+  /// 먼저 치기 (빠르기 비율)
+  final double speed;
+
   /// 추가 능력 (힘·민첩·지능·체력·행운)
   final Stats stats;
 
@@ -150,6 +166,7 @@ class EquipmentRules {
       recipe: {MaterialId.ironShard: 3, MaterialId.ratHide: 1},
       manaStones: 3,
       attack: 0.08,
+      trait: '가볍고 날렵하게 찔러요',
       job: '기사',
       asset: 'equip_dagger',
     ),
@@ -161,8 +178,45 @@ class EquipmentRules {
       manaStones: 3,
       attack: 0.06,
       skillFaster: 1,
+      trait: '정령의 일격이 빨리 차올라요',
       job: '현자',
       asset: 'equip_staff',
+    ),
+    // 묶음 19 첫 무기: 장비 아이콘이 오기 전에는 전투용 무기 그림으로
+    EquipBaseInfo(
+      id: EquipBase.ironSword,
+      name: '철 검',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.ironShard: 3, MaterialId.ratHide: 1},
+      manaStones: 3,
+      attack: 0.08,
+      trait: '고르게 잘 베어요',
+      job: '기사',
+      asset: 'equip_sword',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.woodAxe,
+      name: '나무꾼 도끼',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.ironShard: 2, MaterialId.twig: 2},
+      manaStones: 3,
+      attack: 0.10,
+      crit: -0.03,
+      trait: '느리지만 한 방이 세요',
+      job: '기사',
+      asset: 'equip_axe',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.ironSpear,
+      name: '철 창',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.ironShard: 2, MaterialId.twig: 1, MaterialId.ratHide: 1},
+      manaStones: 3,
+      attack: 0.07,
+      speed: 0.15,
+      trait: '길게 먼저 찔러요',
+      job: '기사',
+      asset: 'equip_spear',
     ),
     EquipBaseInfo(
       id: EquipBase.cap,
@@ -436,7 +490,7 @@ class EquipmentRules {
 
   /// 입은 장비 모두의 힘
   static GearBonus bonusOf(Iterable<EquipItem> worn) {
-    var atk = 0.0, red = 0.0, hp = 0.0, crit = 0.0, eva = 0.0;
+    var atk = 0.0, red = 0.0, hp = 0.0, crit = 0.0, eva = 0.0, spd = 0.0;
     var faster = 0;
     var extra = Stats.zero;
     Element? atkEl;
@@ -462,6 +516,7 @@ class EquipmentRules {
       faster += base.skillFaster;
       crit += base.crit * p;
       eva += base.evade * p;
+      spd += base.speed;
       final half = item.durability <= 0;
       item.extras.forEach((key, n) {
         final k = StatKindInfo.parse(key);
@@ -475,6 +530,7 @@ class EquipmentRules {
       skillFaster: faster,
       crit: crit,
       evade: eva,
+      speed: spd,
       stats: extra,
       attackElement: atkEl,
       guardElements: guards,

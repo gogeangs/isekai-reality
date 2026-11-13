@@ -12,6 +12,8 @@ import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import '../alchemy/convert_panel.dart' show LockedJobPanel;
 import 'boss_gear_tab.dart';
 import 'equipment_view.dart';
+import 'first_weapon_picker.dart';
+import '../tutorial/feature_tour.dart';
 import '../battle/element_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import '../../theme/top_notice.dart';
@@ -40,7 +42,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return Scaffold(
+    return TourScreenMark(name: 'smithy', child: Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
@@ -104,7 +106,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
           },
         ),
       ),
-    );
+    ));
   }
 
   // ───────────────────────── 만들기
@@ -163,6 +165,28 @@ class _SmithyScreenState extends State<SmithyScreen> {
         ),
       ),
       const SizedBox(height: 10),
+      // 묶음 19 #4-2: 채집이 열리면 첫 채집 도구는 무료
+      if (c.newGates &&
+          c.featureOpen(Feature.harvest) &&
+          !c.harvestToolsReady) ...[
+        _FirstToolPanel(onMake: () async {
+          if (await c.makeFirstTools() && mounted) {
+            _snack('채집 도구를 만들었어요! 지도에서 꽃과 버섯을 딸 수 있어요.');
+          }
+        }),
+        const SizedBox(height: 10),
+      ],
+      if (c.firstWeaponFree) ...[
+        FirstWeaponPicker(
+          controller: c,
+          onCraft: (base) async {
+            final item = await c.craft(base);
+            if (!mounted || item == null) return;
+            await _showMade(item);
+          },
+        ),
+        const SizedBox(height: 10),
+      ],
       for (final info in EquipmentRules.all) ...[
         _RecipeCard(
           info: info,
@@ -197,6 +221,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
           ]),
           actions: [
             TextButton(
+              key: const Key('equipNow'),
               onPressed: () async {
                 await c.equip(item.uid);
                 if (d.mounted) Navigator.of(d).pop();
@@ -707,6 +732,34 @@ class _ItemCard extends StatelessWidget {
             ],
             const SizedBox(height: 6),
             bottom,
+          ],
+        ),
+      );
+}
+
+/// 첫 채집 도구 (Lv.5, 무료)
+class _FirstToolPanel extends StatelessWidget {
+  const _FirstToolPanel({required this.onMake});
+
+  final VoidCallback onMake;
+
+  @override
+  Widget build(BuildContext context) => OrnatePanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('첫 채집 도구', style: AppText.title(17)),
+            const SizedBox(height: 4),
+            const KText('낫·곡괭이·도끼·낚싯대·붓을 한 벌 만들어요. 처음 한 번은 무료예요.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            const SizedBox(height: 10),
+            GoldButton(
+              key: const Key('firstToolMake'),
+              label: '만들기 (무료)',
+              height: 46,
+              fontSize: 16,
+              onPressed: onMake,
+            ),
           ],
         ),
       );

@@ -835,7 +835,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       } catch (_) {}
       return;
     }
-    final spawn = c.inTutorial ? c.tutorialSpawn : null;
+    // 묶음 19: Lv.3~6 안내(안내 몬스터·꽃)도 같은 방식으로
+    final spawn = c.guideMapTarget;
     if (spawn == null) {
       tutorialMonsterRect.value = null;
       return;
@@ -869,7 +870,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   Future<void> _publishTutorialTarget() async {
     final map = _map;
     final c = widget.controller;
-    final spawn = c.inTutorial ? c.tutorialSpawn : null;
+    final spawn = c.guideMapTarget;
     if (map == null || spawn == null || c.lastFix == null) {
       if (tutorialMonsterRect.value != null) tutorialMonsterRect.value = null;
       return;

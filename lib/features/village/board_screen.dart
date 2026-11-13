@@ -9,6 +9,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import 'daily_quests.dart';
 import '../../theme/top_notice.dart';
+import '../tutorial/feature_tour.dart';
 
 /// 마을 의뢰 게시판 (11-10 #26): 일일 · 주간 · 수시 · 긴급.
 /// 경험치는 일일·주간만, 수시·긴급은 금화·재료만 준다.
@@ -20,7 +21,7 @@ class BoardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return Scaffold(
+    return TourScreenMark(name: 'board', child: Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
@@ -65,7 +66,7 @@ class BoardScreen extends StatelessWidget {
           },
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -243,6 +244,11 @@ class _ErrandCard extends StatelessWidget {
             SizedBox(
               width: 130,
               child: GoldButton(
+                key: Key(!s.accepted
+                    ? 'errandAccept_$slot'
+                    : done
+                        ? 'errandClaim_$slot'
+                        : 'errandWait_$slot'),
                 label: !s.accepted
                     ? '수락'
                     : done

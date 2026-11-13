@@ -179,8 +179,17 @@ class BoardRules {
         gold: urgentGold),
   ];
 
+  /// 게시판 안내(Lv.4)에서만 붙는 쉬운 의뢰 (묶음 19 #4-2). 무작위로는 안 나온다
+  static const guideErrand = ErrandTemplate(
+      id: 'guideHunt1',
+      title: '몬스터 1마리 사냥',
+      counter: 'huntAll',
+      target: 1,
+      unit: '마리',
+      gold: 30);
+
   static ErrandTemplate? template(String? id) {
-    for (final t in [...errands, ...urgents]) {
+    for (final t in [...errands, ...urgents, guideErrand]) {
       if (t.id == id) return t;
     }
     return null;
@@ -216,6 +225,7 @@ class BoardRules {
       return today.huntCounts[counter.substring(5)] ?? 0;
     }
     return switch (counter) {
+      'huntAll' => today.huntCounts.values.fold(0, (a, b) => a + b),
       'dungeonClear' => today.dungeonRuns.where((r) => r.cleared).length,
       'steps' => today.steps,
       _ => today.counters[counter] ?? 0,

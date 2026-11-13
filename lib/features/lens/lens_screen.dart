@@ -19,6 +19,7 @@ import 'lens_output.dart';
 import 'photo_frame.dart';
 import 'race_filter_engine.dart';
 import '../../theme/top_notice.dart';
+import '../tutorial/feature_tour.dart';
 
 /// 마법 돋보기 「감정」 (11-11 #60): 카메라 → 감정 연출 → 종족 필터 → 사진(틀) → 저장·공유.
 /// 얼굴 인식은 휴대폰 안에서만 하고, 게임은 사진을 남기지 않는다.
@@ -249,7 +250,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TourScreenMark(name: 'lens', child: Scaffold(
       backgroundColor: AppColors.abyss,
       body: SafeArea(
         child: ListenableBuilder(
@@ -264,7 +265,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
           ]),
         ),
       ),
-    );
+    ));
   }
 
   Widget _topBar(BuildContext context) => Padding(

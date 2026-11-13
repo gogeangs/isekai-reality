@@ -14,7 +14,10 @@ class Spotlight extends StatelessWidget {
     this.label = '눌러 보세요',
     this.round = true,
     this.dim = 0.7,
+    this.showFinger = true,
   });
+
+  final bool showFinger;
 
   /// 어둡기 (0~1)
   final double dim;
@@ -47,6 +50,7 @@ class Spotlight extends StatelessWidget {
             child: const SizedBox.expand(),
           ),
         ),
+        if (showFinger)
         Positioned(
           left: _fingerX(context, h),
           top: h.bottom - 6,

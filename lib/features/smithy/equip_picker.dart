@@ -114,6 +114,7 @@ class _PickRow extends StatelessWidget {
             child: worn
                 ? FrameButton(label: '벗기', height: 38, onPressed: onPressed)
                 : GoldButton(
+                    key: Key('pick_${item.uid}'),
                     label: '입기', height: 38, fontSize: 14, onPressed: onPressed),
           ),
         ]),

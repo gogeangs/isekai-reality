@@ -17,6 +17,7 @@ import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
 import 'hero_rig.dart';
+import '../smithy/set_aura.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -43,10 +44,14 @@ class BattleView extends StatefulWidget {
     this.background,
     this.backgroundOf,
     this.weapon,
+    this.onFloor,
   });
 
   /// 입은 무기 종류 (#81 2단계: 부위 애니메이션 손에 든 무기·공격 동작). 없으면 맨손
   final WeaponKind? weapon;
+
+  /// 층이 바뀔 때 (던전 층별 단서, 묶음 19 #7)
+  final ValueChanged<int>? onFloor;
 
   /// 보스 장비 6개 세트 외형 빛 (11-11 #82)
   final Color? aura;
@@ -429,9 +434,18 @@ class _BattleViewState extends State<BattleView> {
         : '${_b.floor + 1}층 / ${_b.floors.length - 1}층';
   }
 
+  int _shownFloor = -1;
+
   @override
   Widget build(BuildContext context) {
     final foe = _b.foe;
+    if (_b.floor != _shownFloor && widget.onFloor != null) {
+      _shownFloor = _b.floor;
+      final f = _b.floor;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onFloor!(f);
+      });
+    }
     final cleared = _b.phase == BattlePhase.floorCleared ||
         _b.phase == BattlePhase.cleared;
     final warning = _warning && _b.strongNext && !_b.isOver;
@@ -1152,15 +1166,21 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         width: heroW * 1.2,
                         height: h * 0.62,
                         child: IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: RadialGradient(colors: [
-                                widget.aura!.withValues(
-                                    alpha: 0.45 + 0.15 * math.sin(t * math.pi)),
-                                widget.aura!.withValues(alpha: 0),
-                              ]),
+                          child: Stack(fit: StackFit.expand, children: [
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: RadialGradient(colors: [
+                                  widget.aura!.withValues(
+                                      alpha: 0.45 + 0.15 * math.sin(t * math.pi)),
+                                  widget.aura!.withValues(alpha: 0),
+                                ]),
+                              ),
                             ),
-                          ),
+                            // 묶음 19 6-3: 세트마다 다른 무늬·반짝임
+                            if (SetAuraPattern.ofAura(widget.aura)
+                                case final set?)
+                              SetAuraPattern(set: set),
+                          ]),
                         ),
                       ),
                     // 각성자 (달려들고, 맞으면 붉게 번쩍)

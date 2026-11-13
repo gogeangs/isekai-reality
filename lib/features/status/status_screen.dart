@@ -10,7 +10,6 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_lines.dart';
 import '../bulssi/spirit_art.dart';

@@ -49,6 +49,7 @@ class _TutorialLayerState extends State<TutorialLayer> {
   DateTime? _waitSince;
   Timer? _tick;
   bool _sendOpen = false;
+  int _retries = 0;
   bool _busy = false;
 
   @override
@@ -209,6 +210,16 @@ class _TutorialLayerState extends State<TutorialLayer> {
       }
     } else {
       line = '잠깐, 네가 어디 있는지 찾고 있어…';
+    }
+
+    // 메뉴 칸·원정 띠 자리는 그려진 뒤에 알 수 있다: 아직이면 다음 화면에서 다시
+    if (hole == null && onTap != null && _retries < 30) {
+      _retries++;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    } else if (hole != null) {
+      _retries = 0;
     }
 
     // 위치를 못 받으면: 위치를 켜 달라고 하고, 그래도 가운데 슬라임으로 진행

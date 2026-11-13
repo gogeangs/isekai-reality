@@ -239,23 +239,28 @@ void main() {
       await settle(tester);
       expect(line(tester), '대장간을 눌러 봐!');
 
-      await tester.ensureVisible(find.byKey(const Key('facility_smithy')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('facility_smithy')),
-          warnIfMissed: false);
+      Scrollable.ensureVisible(
+          tester.element(find.byKey(const Key('facility_smithy'))),
+          alignment: 0.5);
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('facility_smithy')));
       await settle(tester);
       expect(find.byKey(const Key('firstWeaponPicker')), findsOneWidget);
       expect(line(tester), contains('하나 골라 봐'));
 
-      await tester.ensureVisible(find.byKey(const Key('firstWeapon_ironSpear')));
+      Scrollable.ensureVisible(
+          tester.element(find.byKey(const Key('firstWeapon_ironSpear'))),
+          alignment: 0.5);
       await settle(tester);
       await tester.tap(find.byKey(const Key('firstWeapon_ironSpear')));
       await settle(tester);
       expect(line(tester), contains('만들어 보자'));
       expect(find.text('길게 먼저 찔러요'), findsWidgets);
 
-      await tester.ensureVisible(find.byKey(const Key('firstWeaponCraft')));
-      await tester.pump();
+      Scrollable.ensureVisible(
+          tester.element(find.byKey(const Key('firstWeaponCraft'))),
+          alignment: 0.5);
+      await settle(tester);
       await tester.tap(find.byKey(const Key('firstWeaponCraft')),
             warnIfMissed: false);
       await tester.runAsync(
@@ -264,7 +269,7 @@ void main() {
       expect(find.byKey(const Key('equipNow')), findsOneWidget);
       expect(line(tester), contains('바로 입어 보자'));
 
-      await tester.tap(find.byKey(const Key('equipNow')), warnIfMissed: false);
+      await tester.tap(find.byKey(const Key('equipNow')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)));
       await settle(tester);

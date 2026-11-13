@@ -579,7 +579,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       final size = MediaQuery.sizeOf(context);
       if (key != null &&
           h != null &&
-          (h.bottom > size.height - 70 || h.top < 40)) {
+          // 누를 곳이 거의 다 화면 밖일 때만 굴린다 (큰 칸은 그대로)
+          (h.top > size.height - 120 || h.bottom < 90)) {
         final e = elementOfKey(key);
         if (e != null && e.mounted) {
           Scrollable.ensureVisible(e,

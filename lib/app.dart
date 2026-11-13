@@ -6,6 +6,7 @@ import 'core/format.dart';
 import 'core/models/vitals.dart' show Expedition;
 import 'app_controller.dart';
 import 'data/ads/rewarded_ads.dart';
+import 'data/notify/notifier.dart';
 import 'core/rules/rules.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
@@ -193,6 +194,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // 묶음 19 6-2: 알림을 눌러 들어오면 그 화면으로
+    final n = widget.controller.notifier;
+    if (n != null) {
+      _tapSub = n.taps.listen(_openFromNotice);
+      n.takeLaunchId().then((id) {
+        if (id != null) _openFromNotice(id);
+      });
+    }
     // 묶음 15 #103: 보상형 광고 (광고가 켜진 빌드만). 맞춤형은 허용한 사람만
     if (RewardedAds.enabled) {
       widget.controller.watchAd = (placement) async {
@@ -210,6 +219,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     _tick?.cancel();
+    _tapSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -841,6 +851,39 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         ]);
       },
     );
+  }
+
+  StreamSubscription<int>? _tapSub;
+
+  /// 알림 하나를 눌렀을 때: 원정 → 지도 결과 카드, 휴식 → 상태, 알 → 가방,
+  /// 편지 → 우편함, 의뢰 → 마을 의뢰 게시판, 그 밖 → 지도
+  Future<void> _openFromNotice(int id) async {
+    final c = widget.controller;
+    // 시작 화면(불러오는 중)이면 다 켜진 뒤에
+    for (var i = 0; i < 40 && !c.ready && mounted; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    if (!mounted || !c.ready || c.needsAwakening) return;
+    void push(Widget page) => Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => page));
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    switch (NotifyId.targetOf(id)) {
+      case NotifyTarget.expedition:
+        setState(() => _openTab(tMap));
+        await c.refreshVitals();
+        if (mounted && c.finishedExpeditions.isNotEmpty) await _showResultsNow();
+      case NotifyTarget.status:
+        setState(() => _openTab(tStatus));
+      case NotifyTarget.bag:
+        setState(() => _openTab(tBag));
+      case NotifyTarget.mail:
+        push(MailScreen(controller: c));
+      case NotifyTarget.board:
+        setState(() => _openTab(tVillage));
+        push(BoardScreen(controller: c));
+      case NotifyTarget.map:
+        setState(() => _openTab(tMap));
+    }
   }
 
   /// 돌아온 원정 결과 카드 (지도 띠·튜토리얼에서)

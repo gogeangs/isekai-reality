@@ -1082,6 +1082,21 @@ ButtonStyle gameButtonStyle({required bool gold}) => ButtonStyle(
           (gold ? Colors.white : AppColors.gold).withValues(alpha: 0.12)),
     );
 
+/// 되돌릴 수 없는 행동 (버리기·분해·팔기): 어두운 바탕 + 붉은 테두리
+ButtonStyle dangerButtonStyle() => gameButtonStyle(gold: false).copyWith(
+      foregroundColor: const WidgetStatePropertyAll(Color(0xFFFFB0A4)),
+      side: const WidgetStatePropertyAll(
+          BorderSide(color: Color(0xFFE5484D), width: 1.6)),
+    );
+
+/// 취소: 작은 글자 버튼
+ButtonStyle smallButtonStyle() => ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(64, 36)),
+      textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      foregroundColor: const WidgetStatePropertyAll(AppColors.textMuted),
+    );
+
 /// 금테 공용 팝업 (11-11 #72). AlertDialog 와 같은 모양으로 쓴다.
 /// 마지막 버튼은 금색, 나머지는 어두운 버튼. 닫히면 키보드도 닫는다 (#73).
 class GameAlert extends StatelessWidget {
@@ -1099,6 +1114,63 @@ class GameAlert extends StatelessWidget {
 
   /// 창 자리. 입력 창은 아래(키보드 바로 위)에 붙인다.
   final AlignmentGeometry? alignment;
+
+  /// 묶음 19 6-1: 확인 창 버튼 규칙. 기본 행동은 금빛(크게), 되돌릴 수 없는
+  /// 행동(버리기·분해·팔기·지우기)은 붉은 테두리, 취소는 아래에 작은 글자.
+  /// 버튼 글자는 언제나 한 줄.
+  static const _cancelWords = {
+    '그만둘래요', '그만두기', '취소', '닫기', '나중에', '아니요', '허용 안 함',
+    '다시 고를래요', '계속 쉬기', '기다릴게',
+  };
+  static const _dangerWords = ['버리기', '분해', '팔기', '판매', '지우기', '삭제', '포기'];
+
+  static String? labelOf(Widget w) {
+    Widget? child = w;
+    if (w is ButtonStyleButton) child = w.child;
+    if (child is Text) return child.data ?? child.textSpan?.toPlainText();
+    if (child is FittedBox) return labelOf(child.child ?? const SizedBox());
+    return null;
+  }
+
+  static List<Widget> _actionColumn(List<Widget> acts) {
+    final kinds = [
+      for (final a in acts)
+        switch (labelOf(a)) {
+          final t? when _cancelWords.contains(t.trim()) => 0,
+          final t? when _dangerWords.any(t.contains) => 2,
+          _ => 1,
+        },
+    ];
+    final main = [
+      for (var i = 0; i < acts.length; i++)
+        if (kinds[i] != 0) i,
+    ];
+    // 금빛은 기본 행동 중 마지막 하나 (나머지는 어두운 버튼)
+    final gold = main.lastWhere((i) => kinds[i] == 1, orElse: () => -1);
+    return [
+      for (final i in main) ...[
+        if (i != main.first) const SizedBox(height: 8),
+        TextButtonTheme(
+          data: TextButtonThemeData(
+              style: kinds[i] == 2
+                  ? dangerButtonStyle()
+                  : gameButtonStyle(gold: i == gold)),
+          child: _oneLine(acts[i]),
+        ),
+      ],
+      for (var i = 0; i < acts.length; i++)
+        if (kinds[i] == 0) ...[
+          SizedBox(height: main.isEmpty ? 0 : 4),
+          TextButtonTheme(
+            data: TextButtonThemeData(style: smallButtonStyle()),
+            child: Center(child: _oneLine(acts[i])),
+          ),
+        ],
+    ];
+  }
+
+  /// 버튼 글자가 줄바꿈되지 않게
+  static Widget _oneLine(Widget w) => w;
 
   @override
   Widget build(BuildContext context) {
@@ -1146,21 +1218,7 @@ class GameAlert extends StatelessWidget {
                   ),
                 if (acts.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      for (var i = 0; i < acts.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 10),
-                        Expanded(
-                          child: TextButtonTheme(
-                            data: TextButtonThemeData(
-                                style: gameButtonStyle(
-                                    gold: i == acts.length - 1)),
-                            child: acts[i],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  ..._actionColumn(acts),
                 ],
               ],
             ),

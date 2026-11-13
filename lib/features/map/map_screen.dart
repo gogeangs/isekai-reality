@@ -27,6 +27,7 @@ import '../../core/models/vitals.dart' show Expedition;
 import 'map_config.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/targets.dart';
+import '../lens/lens_screen.dart' show openLens;
 
 /// 지도: 내 둘레의 필드 몬스터 · 정령 · 내 위치 (11-10 전국, 안개 없음)
 ///
@@ -175,6 +176,16 @@ class _MapScreenState extends State<MapScreen> {
             child: _MonsterCard(
               spawn: spawn,
               onPurify: () => showSpawnSheet(context, controller, spawn),
+            ),
+          ),
+        // 묶음 19 #154: 돋보기 (Lv.6부터, 내 위치 버튼 반대편 오른쪽 아래)
+        if (!tut && controller.featureOpen(Feature.lens))
+          Positioned(
+            right: 12,
+            bottom: (card ? cardBottom + 150 : cardBottom) + 8,
+            child: KeyedSubtree(
+              key: tutorialLensKey,
+              child: _LensButton(controller: controller),
             ),
           ),
         // 던전 게이지·열쇠·던전 열기 (11-11 #68): 아래 메뉴 바로 위 얇은 띠
@@ -686,6 +697,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     _sized.clear();
     _routes.clear();
     _petMarkers.clear();
+    _facingLeft.clear();
     _talkOpen = null;
     final overlays = <NAddableOverlay>{
       for (final place in area.places)
@@ -756,10 +768,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         _petMarkers[i] = NMarker(
           id: 'spirit_$i',
           position: NLatLng(positions[i].$1, positions[i].$2),
-          icon: NOverlayImage.fromAssetImage(actives[i].petUid == null
-              ? spiritAsset(c.profile.spiritKind)
-              : _petMapAsset(c, actives[i])),
+          icon: NOverlayImage.fromAssetImage(_walkerAsset(c, actives[i])),
           size: const Size(42, 46),
+          // 묶음 19 #153: 지도를 기울여도 눕지 않게 (언제나 화면 기준으로 서 있기)
+          isFlat: false,
+          isIconPerspectiveEnabled: false,
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
         )..setOnTapListener((_) => widget.onRush?.call(actives[i])),
@@ -936,6 +949,20 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         going ? '$who 가는 중이에요 · $m분' : '$who 돌아오는 중이에요 · $m분');
   }
 
+  /// 원정 가는 정령·펫 그림 (오른쪽을 보는 그림)
+  String _walkerAsset(AppController c, Expedition ex) => ex.petUid == null
+      ? spiritAsset(c.profile.spiritKind)
+      : _petMapAsset(c, ex);
+
+  /// 왼쪽으로 갈 때 쓰는 좌우 뒤집은 그림 (없으면 그대로)
+  String _flipped(String asset) {
+    final f = asset.replaceFirst('.webp', '_flip.webp');
+    return (_assets ?? const <String>{}).contains(f) ? f : asset;
+  }
+
+  /// 마리마다 지금 왼쪽을 보고 있는지
+  final Map<int, bool> _facingLeft = {};
+
   void _startAnim() {
     _anim?.cancel();
     _anim = Timer.periodic(const Duration(milliseconds: 200), (_) => _animate());
@@ -969,8 +996,19 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         final phase = (ms / (moving ? 1300 : 2600)) * 2 * math.pi + i * 1.7;
         final lift = (moving ? 0.10 : 0.06) * (1 + math.sin(phase)) / 2;
         m.setAnchor(NPoint(0.5, 1 + lift));
-        final tilt = !moving ? 0.0 : (dx > 0 ? 8.0 : (dx < 0 ? -8.0 : 0.0));
-        m.setAngle(tilt + (moving ? 2 * math.sin(phase / 2) : 0));
+        // 묶음 19 #153: 돌리지 않고 똑바로 선 채, 방향은 좌우 뒤집기로만.
+        // 가는 쪽으로 살짝 기우는 것은 ±10° 안
+        if (moving && dx.abs() > 1e-7) {
+          final left = dx < 0;
+          if (_facingLeft[i] != left) {
+            _facingLeft[i] = left;
+            final base = _walkerAsset(c, ex);
+            m.setIcon(NOverlayImage.fromAssetImage(left ? _flipped(base) : base));
+          }
+        }
+        final tilt = !moving ? 0.0 : (dx > 0 ? 6.0 : (dx < 0 ? -6.0 : 0.0));
+        m.setAngle((tilt + (moving ? 2 * math.sin(phase / 2) : 0))
+            .clamp(-10.0, 10.0));
       }
       // 발자국 흐르기 (0.6초마다 한 칸의 1/3)
       if (!_still && ms ~/ 600 != _frame) {
@@ -1386,6 +1424,70 @@ class _ExpeditionList extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 지도 돋보기 버튼 (묶음 19 #154): 오늘 무료 감정이 남아 있으면 금빛 점
+class _LensButton extends StatelessWidget {
+  const _LensButton({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final free = c.lensFreeToday;
+    return Semantics(
+      button: true,
+      label: '마법 돋보기',
+      child: GestureDetector(
+        key: const Key('mapLens'),
+        onTap: () {
+          if (!c.canAppraise) {
+            showTopNotice(context, '잡화상에서 살 수 있어요',
+                icon: Icons.storefront_rounded);
+            return;
+          }
+          openLens(Navigator.of(context), c);
+        },
+        child: Stack(clipBehavior: Clip.none, children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xE6141638),
+              border: Border.all(
+                  color: free ? AppColors.goldBright : AppColors.gold,
+                  width: free ? 2 : 1.3),
+              boxShadow: free
+                  ? [
+                      BoxShadow(
+                          color: AppColors.goldBright.withValues(alpha: 0.6),
+                          blurRadius: 12),
+                    ]
+                  : null,
+            ),
+            child: const Center(child: GameIcon('lens', size: 32)),
+          ),
+          if (free)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                key: const Key('mapLensFree'),
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.goldBright,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.abyss, width: 1.5),
+                ),
+              ),
+            ),
+        ]),
       ),
     );
   }

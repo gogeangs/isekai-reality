@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -9,6 +11,12 @@ abstract class Notifier {
   Future<void> schedule(int id, DateTime at, String title, String body);
 
   Future<void> cancel(int id);
+
+  /// 알림을 눌러 앱을 열었으면 그 알림 id (한 번만). 묶음 19 6-2
+  Future<int?> takeLaunchId() async => null;
+
+  /// 앱이 켜져 있을 때 알림을 누르면 그 id
+  Stream<int> get taps => const Stream.empty();
 }
 
 /// 알림 id
@@ -19,7 +27,22 @@ class NotifyId {
   static const int hatch = 3;
   static const int find = 4;
   static const int merchant = 5;
+  static const int letter = 6;
+  static const int quest = 7;
+
+  /// 알림을 누르면 갈 곳
+  static NotifyTarget targetOf(int id) => switch (id) {
+        expedition || >= 100 && < 200 => NotifyTarget.expedition,
+        rest => NotifyTarget.status,
+        hatch => NotifyTarget.bag,
+        letter => NotifyTarget.mail,
+        quest => NotifyTarget.board,
+        _ => NotifyTarget.map,
+      };
 }
+
+/// 알림을 눌렀을 때 열 화면
+enum NotifyTarget { map, expedition, status, bag, mail, board }
 
 /// 테스트용: 예약한 알림을 기억만 한다
 class FakeNotifier implements Notifier {
@@ -32,13 +55,43 @@ class FakeNotifier implements Notifier {
 
   @override
   Future<void> cancel(int id) async => scheduled.remove(id);
+
+  int? launchId;
+  final tapsController = StreamController<int>.broadcast();
+
+  @override
+  Future<int?> takeLaunchId() async {
+    final id = launchId;
+    launchId = null;
+    return id;
+  }
+
+  @override
+  Stream<int> get taps => tapsController.stream;
 }
 
 /// 실제 휴대폰 알림 (flutter_local_notifications).
 /// 처음 예약할 때 알림 권한을 묻는다.
 class DeviceNotifier implements Notifier {
   final _plugin = FlutterLocalNotificationsPlugin();
+  final _taps = StreamController<int>.broadcast();
   bool _ready = false;
+
+  @override
+  Stream<int> get taps => _taps.stream;
+
+  @override
+  Future<int?> takeLaunchId() async {
+    try {
+      await _init();
+      final d = await _plugin.getNotificationAppLaunchDetails();
+      if (d?.didNotificationLaunchApp != true) return null;
+      final r = d!.notificationResponse;
+      return int.tryParse(r?.payload ?? '') ?? r?.id;
+    } catch (_) {
+      return null;
+    }
+  }
   bool _asked = false;
 
   static const _channel = AndroidNotificationDetails(
@@ -59,7 +112,10 @@ class DeviceNotifier implements Notifier {
         requestBadgePermission: false,
         requestSoundPermission: false,
       ),
-    ));
+    ), onDidReceiveNotificationResponse: (r) {
+      final id = int.tryParse(r.payload ?? '') ?? r.id;
+      if (id != null) _taps.add(id);
+    });
     _ready = true;
   }
 
@@ -92,6 +148,7 @@ class DeviceNotifier implements Notifier {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: '$id',
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );

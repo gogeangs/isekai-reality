@@ -5,6 +5,9 @@ import 'package:flutter/widgets.dart';
 /// 지도 아래 원정 띠
 final GlobalKey tutorialStripKey = GlobalKey(debugLabel: 'tutorialStrip');
 
+/// 지도 돋보기 버튼 (Lv.6 튜토리얼)
+final GlobalKey tutorialLensKey = GlobalKey(debugLabel: 'tutorialLens');
+
 /// 아래 메뉴 칸 (상태·가방·지도·마을·도감)
 final List<GlobalKey> tutorialNavKeys =
     List.generate(5, (i) => GlobalKey(debugLabel: 'nav$i'));

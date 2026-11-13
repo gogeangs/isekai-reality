@@ -84,7 +84,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _snack('얼굴이 보이지 않아요. 얼굴을 화면 가운데에 비춰 주세요.');
       return;
     }
-    if (_lenses <= 0) {
+    if (!c.canAppraise) {
       _snack('마법 돋보기가 없어요. 잡화상에서 살 수 있어요.');
       return;
     }
@@ -301,7 +301,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                   errorBuilder: (_, __, ___) => const Icon(Icons.search_rounded,
                       size: 16, color: AppColors.goldBright)),
               const SizedBox(width: 4),
-              Text('$_lenses',
+              // 묶음 19 #154: 지금 쓰게 될 것
+              Text(c.lensFreeToday ? '오늘 무료 1번' : '돋보기 $_lenses개',
                   key: const Key('lensCount'),
                   style: const TextStyle(
                       color: AppColors.text, fontWeight: FontWeight.w700)),
@@ -401,7 +402,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               KText(
-                  _lenses <= 0
+                  !c.canAppraise
                       ? '마법 돋보기가 없어요. 잡화상에서 하루 ${LensRules.perDay}개까지 살 수 있어요.'
                       : faces.isEmpty
                           ? '얼굴을 비추면 숨은 이세계 종족을 감정해요.'
@@ -421,9 +422,9 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
               const SizedBox(height: 10),
               GoldButton(
                 key: const Key('appraise'),
-                label: '감정하기 (돋보기 1개)',
+                label: c.lensFreeToday ? '감정하기 (오늘 무료)' : '감정하기 (돋보기 1개)',
                 onPressed:
-                    faces.isNotEmpty && _lenses > 0 ? _appraise : null,
+                    faces.isNotEmpty && c.canAppraise ? _appraise : null,
               ),
             ],
           ),
@@ -444,7 +445,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             child: FrameButton(
               label: '새 감정',
               height: 48,
-              onPressed: _lenses > 0
+              onPressed: c.canAppraise
                   ? () => setState(() {
                         _races = null;
                         _result = null;

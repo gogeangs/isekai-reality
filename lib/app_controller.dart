@@ -3544,10 +3544,19 @@ class AppController extends ChangeNotifier {
     return math.max(0, LensRules.rewardedPerDay - used);
   }
 
+  /// 오늘 무료 감정이 남았는지 (자정에 다시 채움)
+  bool get lensFreeToday =>
+      _lens.freeDay != DailyRecord.dayKeyOf(_clock());
+
+  /// 지금 감정할 수 있는지 (무료 또는 가방 돋보기)
+  bool get canAppraise => lensFreeToday || bagCount(ShopItem.raceLens) > 0;
+
   /// 감정을 끝낸다: 마법 돋보기 1개를 쓰고 보상을 준다. 돋보기가 없으면 null.
   /// 처음 본 종족은 도감에 남고 경험치 +20, 하루 3번까지 30% 재료·5% 레시피 쪽지.
   Future<AppraiseResult?> appraise(List<Race> races) async {
-    if (races.isEmpty || bagCount(ShopItem.raceLens) <= 0) return null;
+    if (races.isEmpty || !canAppraise) return null;
+    // 묶음 19 #154: 매일 첫 감정은 돋보기를 쓰지 않는다
+    final free = lensFreeToday;
     final today = await _todayRecord();
     final firsts = <Race>[
       for (final r in {...races})
@@ -3564,7 +3573,9 @@ class AppController extends ChangeNotifier {
       note = _random.nextDouble() < LensRules.noteChance;
     }
     await _save(today.copyWith(
-      itemsUsed: [...today.itemsUsed, ShopItem.raceLens.name],
+      itemsUsed: free
+          ? today.itemsUsed
+          : [...today.itemsUsed, ShopItem.raceLens.name],
       gains: exp > 0
           ? DailyRecord.addCounts(today.gains, {Wallet.exp: exp})
           : today.gains,
@@ -3587,6 +3598,7 @@ class AppController extends ChangeNotifier {
               races.where((x) => x == r).length,
       },
       day: day,
+      freeDay: free ? day : null,
       rewardedToday:
           (_lens.day == day ? _lens.rewardedToday : 0) + (rewarded ? 1 : 0),
     );
@@ -4516,7 +4528,7 @@ class AppController extends ChangeNotifier {
               : ExpeditionCheck.ok,
           distanceM: 250,
           mpCost: 0,
-          oneWay: const Duration(seconds: 10),
+          oneWay: const Duration(minutes: 2), // 묶음 19 4-1: 서두르기를 보여 주려고 2분
           followsRoads: false,
           routeReady: true);
     }

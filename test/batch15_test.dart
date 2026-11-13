@@ -153,7 +153,7 @@ void main() {
       expect(c.tutorialStep, TutorialStep.expedition);
       final second = c.tutorialSpawn!;
       expect(await c.sendSpirit(second), ExpeditionCheck.ok);
-      now = now.add(const Duration(minutes: 1));
+      now = now.add(const Duration(minutes: 5));
       await c.refreshVitals();
       expect(c.player.level.level, 2);
       expect(c.inTutorial, isFalse);

@@ -51,7 +51,11 @@ class LensState {
     this.day,
     this.rewardedToday = 0,
     this.album = const [],
+    this.freeDay,
   });
+
+  /// 오늘 무료 감정을 쓴 날 ('yyyy-mm-dd', 묶음 19 #154). 예전 기록엔 없음
+  final String? freeDay;
 
   /// 감정 앨범 (찍은 차례대로)
   final List<AlbumPhoto> album;
@@ -74,6 +78,7 @@ class LensState {
     String? day,
     int? rewardedToday,
     List<AlbumPhoto>? album,
+    String? freeDay,
   }) =>
       LensState(
         seen: seen ?? this.seen,
@@ -81,6 +86,7 @@ class LensState {
         day: day ?? this.day,
         rewardedToday: rewardedToday ?? this.rewardedToday,
         album: album ?? this.album,
+        freeDay: freeDay ?? this.freeDay,
       );
 
   Map<String, dynamic> toJson() => {
@@ -89,6 +95,7 @@ class LensState {
         'day': day,
         'rewardedToday': rewardedToday,
         'album': [for (final p in album) p.toJson()],
+        if (freeDay != null) 'freeDay': freeDay,
       };
 
   factory LensState.fromJson(Map<String, dynamic> j) {
@@ -112,6 +119,7 @@ class LensState {
         },
         day: j['day'] as String?,
         rewardedToday: (j['rewardedToday'] as num?)?.toInt() ?? 0,
+        freeDay: j['freeDay'] as String?,
       );
   }
 }

@@ -20,6 +20,7 @@ import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
+import 'features/tutorial/spotlight.dart';
 import 'features/tutorial/targets.dart';
 import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
@@ -504,7 +505,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         builder: (d) => GameAlert(
           key: const Key('featureIntro'),
           title: Text(c.firstSpiritName),
-          content: KText(line, style: const TextStyle(color: AppColors.text)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            KText(line, style: const TextStyle(color: AppColors.text)),
+            const SizedBox(height: 10),
+            // 묶음 18 #148: 이후 안내도 누를 곳 하나 + 손가락
+            const Align(
+                alignment: Alignment.centerRight,
+                child: FingerHint(label: '아래를 눌러 보세요')),
+          ]),
           actions: [
             TextButton(
                 key: const Key('featureIntroLater'),

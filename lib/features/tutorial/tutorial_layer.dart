@@ -238,7 +238,12 @@ class _TutorialLayerState extends State<TutorialLayer> {
       Positioned(
         left: 14,
         right: 14,
-        bottom: bottomPad + 96,
+        // 밝힌 곳이 아래쪽(원정 띠)이면 말풍선은 그 위로
+        bottom: hole != null &&
+                hole.top > size.height * 0.6 &&
+                hole.bottom < size.height - bottomPad - 80
+            ? size.height - hole.top + 16
+            : bottomPad + 96,
         child: IgnorePointer(
           ignoring: !askLocation,
           child: Column(mainAxisSize: MainAxisSize.min, children: [

@@ -15,6 +15,10 @@ on:
         description: "테스터에게 올리기 (끄면 빌드만 확인)"
         type: boolean
         default: true
+      real_ads:
+        description: "실제 광고 단위 쓰기 (출시 빌드만 켜기. 끄면 Google 시험 광고)"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -126,6 +130,7 @@ jobs:
             --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
             --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
             --dart-define=ADS_ON=1 \
+            --dart-define=ADS_REAL=${{ inputs.real_ads == true && '1' || '0' }} \
             --dart-define=ADMOB_REWARDED_IOS="${ADMOB_REWARDED_IOS:-ca-app-pub-3940256099942544/1712485313}" \
             --dart-define=ADMOB_REWARDED_ANDROID="${ADMOB_REWARDED_ANDROID:-ca-app-pub-3940256099942544/5224354917}" \
             --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt

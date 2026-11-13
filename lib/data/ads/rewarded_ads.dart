@@ -22,7 +22,16 @@ class RewardedAds {
   static const _iosUnit = String.fromEnvironment('ADMOB_REWARDED_IOS',
       defaultValue: 'ca-app-pub-3940256099942544/1712485313');
 
-  static String get unitId => Platform.isIOS ? _iosUnit : _androidUnit;
+  /// 출시 빌드만 실제 광고 단위 (묶음 19: 같은 AdMob 계정을 쓰는 다른 게임까지
+  /// 정지되지 않게, 테스트 빌드는 언제나 Google 시험 광고). 빌드에 ADS_REAL=1 일 때만
+  static const bool realAds = String.fromEnvironment('ADS_REAL') == '1';
+
+  static const _testAndroid = 'ca-app-pub-3940256099942544/5224354917';
+  static const _testIos = 'ca-app-pub-3940256099942544/1712485313';
+
+  static String get unitId => !realAds
+      ? (Platform.isIOS ? _testIos : _testAndroid)
+      : (Platform.isIOS ? _iosUnit : _androidUnit);
 
   /// 아이폰이면 애플 추적 허용 창(ATT)을 띄운다. 허용이면 true,
   /// 거부·제한이면 false, 아이폰이 아니면 null (안드로이드는 앱 안 선택으로)

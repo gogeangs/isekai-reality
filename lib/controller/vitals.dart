@@ -51,6 +51,18 @@ extension VitalsOps on AppController {
     return null;
   }
 
+  /// 묶음 25 #166: 지도·상태 정령 배지의 원정 대사 (원정 중이 아니면 null)
+  String? get expeditionTalk => BulssiLines.expedition(expedition,
+      playerName: _profile.name.trim(), now: now);
+
+  /// 배지를 눌러 「서두를까?」로 바로 돌아오기를 열 원정 (정령 원정, 돌아오는 중까지)
+  Expedition? get rushableExpedition {
+    if (inTutorial) return null;
+    final ex = expedition;
+    if (ex == null || ex.finished || ex.petUid != null) return null;
+    return ex;
+  }
+
   /// 아직 돌아오지 않은 원정
   List<Expedition> get activeExpeditions =>
       [for (final e in _vitals.expeditions) if (!e.finished) e];

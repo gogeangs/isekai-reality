@@ -36,13 +36,22 @@ class AwakeningScreen extends StatefulWidget {
 /// 도입 장면 하나: 일러스트 + 대사 몇 줄
 class IntroScene {
   const IntroScene(this.image, this.lines,
-      {this.speaker, this.dialogTop = false});
+      {this.speaker, this.dialogTop = false, this.speakers});
 
   final String image;
   final List<String> lines;
 
   /// 말하는 이 (없으면 주인공의 혼잣말)
   final String? speaker;
+
+  /// 줄마다 말하는 이가 다를 때 (묶음 25 #164). null 칸은 주인공
+  final List<String?>? speakers;
+
+  String? speakerOf(int line) {
+    final s = speakers;
+    if (s != null && line < s.length) return s[line];
+    return speaker;
+  }
 
   /// 대사창을 위에 띄울지 (그림의 중요한 것이 아래에 있을 때)
   final bool dialogTop;
@@ -64,13 +73,14 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         dialogTop: true),
     IntroScene('assets/images/intro_05_lights.webp',
         ['안개를 헤치고 작은 빛 셋이 날아온다!', '찾았다! 탑이 고른 각성자!'],
-        dialogTop: true),
+        dialogTop: true,
+        speakers: [null, '정령들']),
     IntroScene(
       'assets/images/intro_06_spirits.webp',
       [
         '여명의 탑 아르카의 불꽃이 깨져 버렸어.',
-        '그래서 우리 세계가 네 세계 위에 겹쳐 버렸지.',
-        '넘어온 몬스터를 사냥해 줘. 방법은 간단해, 걷는 거야!',
+        '그 틈으로 우리 세계가 네 세계 위에 겹쳐 버렸지.',
+        '왜 겹쳤는지 우리랑 같이 알아내 줘. 넘어온 몬스터를 정화하면 단서가 모일 거야. 방법은 간단해, 걷는 거야!',
         '그리고… 우리 중 누구와 함께 갈래?',
       ],
       speaker: '정령들',
@@ -104,8 +114,11 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   // 동의 (필수 3개 + 선택 1개)
   bool _agreeHealth = false;
   bool _agreeLocation = false;
-  // 이용 연령 (11-11 #86): 출생 연도만
-  final _yearField = TextEditingController();
+  // 이용 연령 (11-11 #86): 출생 연도만. 묶음 25 #162: 굴려서 고르는 휠
+  static const _firstYear = 1920;
+  static const _defaultYear = 2000;
+  late final _yearWheel =
+      FixedExtentScrollController(initialItem: _defaultYear - _firstYear);
   int? _birthYear;
   bool? _birthdayPassed;
 
@@ -132,7 +145,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   void dispose() {
     _nameController.dispose();
     _spiritNameController.dispose();
-    _yearField.dispose();
+    _yearWheel.dispose();
     super.dispose();
   }
 
@@ -183,10 +196,14 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   Widget _buildIntro() {
     final scene = scenes[_scene];
+    final speaker = scene.speakerOf(_line);
     return IllustratedScene(
       key: ValueKey('scene$_scene'),
       image: scene.image,
-      speaker: scene.speaker,
+      speaker: speaker,
+      // 묶음 25 #164: 꼬리는 말하는 쪽으로. 주인공(그림을 보는 나)은 화면 아래,
+      // 정령들은 그림 가운데 (대사창이 위면 아래쪽, 아래면 위쪽)
+      tailUp: speaker != null && !scene.dialogTop,
       line: scene.lines[_line],
       lineKey: '$_scene-$_line',
       dialogTop: scene.dialogTop,
@@ -390,36 +407,45 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   // ───────────────────────────────────────────── 각성 장면
 
+  /// 묶음 25 #163: 무대 그림(1122×1402)에서 마법진 가운데 자리 (그림 비율)
+  static const _stageW = 1122.0, _stageH = 1402.0;
+  static const _circleX = 0.504, _circleY = 0.72;
+
   Widget _buildFinale() {
-    return Stack(fit: StackFit.expand, children: [
-      // 묶음 18 #147: 공통 무대 배경 1장 + 투명 배경 각성자. 남·여를 바꾸면
-      // 각성자만 짧게 빛나며 바뀐다 (배경·정령·말풍선은 그대로)
-      IllustratedScene(
-        image: 'assets/images/bg_status_stage.webp',
-        speaker: _spiritName,
-        line: '준비됐어, ${_nameController.text.trim()}? 아르카의 빛을 되찾으러 가자!',
-        lineKey: 'finale',
-        onNext: _awaken,
-        // 어깨 옆 빈자리에 고른 정령
-        decoration: LayoutBuilder(builder: (context, box) {
-          return Stack(children: [
-            Positioned(
-              left: box.maxWidth * 0.04,
-              width: box.maxWidth * 0.52,
-              top: box.maxHeight * 0.12,
-              height: box.maxHeight * 0.58,
+    return LayoutBuilder(builder: (context, box) {
+      final g = FinaleLayout.of(box.biggest);
+      return Stack(fit: StackFit.expand, children: [
+        // 묶음 18 #147: 공통 무대 배경 1장 + 투명 배경 각성자. 남·여를 바꾸면
+        // 각성자만 짧게 빛나며 바뀐다 (배경·정령·말풍선은 그대로)
+        IllustratedScene(
+          image: 'assets/images/bg_status_stage.webp',
+          speaker: _spiritName,
+          line: '준비됐어, ${_nameController.text.trim()}? 아르카의 빛을 되찾으러 가자!',
+          lineKey: 'finale',
+          onNext: _awaken,
+          // 그림 위에 사람을 세우므로 당겨 보이지 않는다 (자리가 어긋나지 않게)
+          zoom: false,
+          // 꼬리는 위의 정령 쪽으로
+          tailUp: true,
+          tailX: ((g.spirit.center.dx - 14) / (box.maxWidth - 28))
+              .clamp(0.1, 0.9),
+          // 마법진 한가운데 각성자, 어깨 옆에 고른 정령
+          decoration: Stack(children: [
+            Positioned.fromRect(
+              key: const Key('finaleHero'),
+              rect: g.hero,
               child: _AwakenHero(look: _look),
             ),
-            Positioned(
-              left: box.maxWidth * 0.46,
-              top: box.maxHeight * 0.24,
-              child: _FloatingSpirit(kind: _spirit, size: box.maxWidth * 0.2),
+            Positioned.fromRect(
+              key: const Key('finaleSpirit'),
+              rect: g.spirit,
+              child: _FloatingSpirit(kind: _spirit, size: g.spirit.width),
             ),
-          ]);
-        }),
-        nextLabel: _submitting ? null : '깨어나기',
-      ),
-    ]);
+          ]),
+          nextLabel: _submitting ? null : '깨어나기',
+        ),
+      ]);
+    });
   }
 
   /// 위쪽 그림 (노을 속 각성자)
@@ -465,6 +491,97 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   // ───────────────────────────────────────────── 동의
 
+  void _pickYear(int y) {
+    if (_birthYear == y) return;
+    setState(() {
+      _birthYear = y;
+      _birthdayPassed = null;
+    });
+  }
+
+  /// 묶음 25 #162: 「태어난 해」 + 고른 해를 크게, 옆에 위아래로 굴리는 휠.
+  /// 키보드는 뜨지 않는다. 처음엔 2000년에 놓여 있고, 굴리거나 누르면 고른 것
+  Widget _yearPicker() {
+    final last = _now.year;
+    final y = _birthYear;
+    return Row(children: [
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('태어난 해',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          const SizedBox(height: 2),
+          Text(
+            y == null ? '골라 주세요' : '$y년',
+            key: const Key('birthYearValue'),
+            style: TextStyle(
+              color: y == null ? AppColors.textMuted : AppColors.goldBright,
+              fontSize: y == null ? 16 : 26,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ]),
+      ),
+      Container(
+        key: const Key('birthYear'),
+        width: 120,
+        height: 132,
+        decoration: BoxDecoration(
+          color: const Color(0x33000000),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+        ),
+        child: Stack(children: [
+          // 가운데 고르는 줄
+          Center(
+            child: Container(
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          ListWheelScrollView.useDelegate(
+            controller: _yearWheel,
+            itemExtent: 34,
+            diameterRatio: 1.6,
+            perspective: 0.003,
+            physics: const FixedExtentScrollPhysics(),
+            onSelectedItemChanged: (i) => _pickYear(_firstYear + i),
+            childDelegate: ListWheelChildBuilderDelegate(
+              childCount: last - _firstYear + 1,
+              builder: (context, i) {
+                final year = _firstYear + i;
+                return GestureDetector(
+                  key: Key('birthYear_$year'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _pickYear(year);
+                    _yearWheel.animateToItem(i,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOut);
+                  },
+                  child: Center(
+                    child: Text('$year',
+                        style: TextStyle(
+                          color: year == y
+                              ? AppColors.goldBright
+                              : AppColors.text,
+                          fontSize: 18,
+                          fontWeight:
+                              year == y ? FontWeight.w800 : FontWeight.w500,
+                        )),
+                  ),
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
   /// 출생 연도 (필수). 올해 14살이 되는 해면 생일이 지났는지 한 번 더 묻는다.
   Widget _ageRow() {
     final y = _birthYear;
@@ -487,41 +604,12 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                     style: TextStyle(
                         color: AppColors.goldBright,
                         fontWeight: FontWeight.w700)),
-                TextSpan(text: '만 14세 이상만 이용할 수 있어요. 태어난 해를 알려 주세요.'),
+                TextSpan(text: '만 14세 이상만 이용할 수 있어요. 태어난 해를 골라 주세요.'),
               ]),
               style: TextStyle(
                   color: AppColors.text, fontSize: 14, height: 1.45)),
           const SizedBox(height: 6),
-          Row(children: [
-            SizedBox(
-              width: 120,
-              child: TextField(
-                key: const Key('birthYear'),
-                controller: _yearField,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                style: const TextStyle(color: AppColors.text, fontSize: 16),
-                decoration: const InputDecoration(
-                  hintText: '예: 1995',
-                  counterText: '',
-                  isDense: true,
-                ),
-                onChanged: (v) => setState(() {
-                  _birthYear = int.tryParse(v);
-                  _birthdayPassed = null;
-                }),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text('년생',
-                style: TextStyle(color: AppColors.text, fontSize: 14)),
-          ]),
-          if (_yearField.text.length == 4 && !AgeRules.validYear(y, _now))
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text('태어난 해를 네 자리로 적어 주세요.',
-                  style: TextStyle(color: Color(0xFFE88B8B), fontSize: 12)),
-            ),
+          _yearPicker(),
           if (ask) ...[
             const SizedBox(height: 8),
             const Text('올해 생일이 지났나요?',
@@ -848,7 +936,19 @@ class IllustratedScene extends StatelessWidget {
     this.onSkip,
     this.decoration,
     this.nextLabel,
+    this.tailUp = false,
+    this.tailX = 0.5,
+    this.zoom = true,
   });
+
+  /// 말풍선 꼬리: true 면 위쪽(말하는 이가 대사창 위), false 면 아래쪽
+  final bool tailUp;
+
+  /// 꼬리 자리 (대사창 너비 비율, 0 왼쪽 ~ 1 오른쪽). 이름표도 그쪽에
+  final double tailX;
+
+  /// 그림을 천천히 당겨 보이기 (각성 장면처럼 그림 위에 사람을 올릴 때는 끈다)
+  final bool zoom;
 
   final String image;
   final String line;
@@ -874,6 +974,8 @@ class IllustratedScene extends StatelessWidget {
       line: line,
       lineKey: lineKey,
       showTapHint: nextLabel == null,
+      tailUp: tailUp,
+      tailX: tailX,
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -882,7 +984,7 @@ class IllustratedScene extends StatelessWidget {
         ClipRect(
           child: TweenAnimationBuilder<double>(
             key: ValueKey(image),
-            tween: Tween(begin: 1.0, end: 1.06),
+            tween: Tween(begin: 1.0, end: zoom ? 1.06 : 1.0),
             duration: const Duration(seconds: 8),
             curve: Curves.easeOut,
             builder: (context, scale, child) =>
@@ -943,20 +1045,27 @@ class _DialogBox extends StatelessWidget {
     required this.line,
     required this.lineKey,
     required this.showTapHint,
+    this.tailUp = false,
+    this.tailX = 0.5,
   });
 
   final String? speaker;
   final String line;
   final String lineKey;
   final bool showTapHint;
+  final bool tailUp;
+  final double tailX;
+
+  static const _fill = Color(0xF0121541);
 
   @override
   Widget build(BuildContext context) {
     final monologue = speaker == null;
-    return Container(
+    final box = Container(
+      key: const Key('dialogBox'),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
       decoration: BoxDecoration(
-        color: const Color(0xE6121541),
+        color: _fill,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.goldBright, width: 1.6),
         boxShadow: const [
@@ -964,27 +1073,34 @@ class _DialogBox extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: tailX > 0.6
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!monologue) ...[
+            // 이름표는 말하는 쪽 위에
             Text(speaker!,
+                key: const Key('dialogSpeaker'),
                 style: AppText.title(14, color: AppColors.goldBright)),
             const SizedBox(height: 4),
           ],
           // 한 글자씩
-          TweenAnimationBuilder<int>(
-            key: ValueKey(lineKey),
-            tween: IntTween(begin: 0, end: line.characters.length),
-            duration: Duration(milliseconds: 35 * line.characters.length),
-            builder: (context, n, _) => Text(
-              line.characters.take(n).toString(),
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: monologue ? 16 : 17,
-                fontStyle: monologue ? FontStyle.italic : FontStyle.normal,
-                height: 1.45,
-                fontWeight: FontWeight.w600,
+          SizedBox(
+            width: double.infinity,
+            child: TweenAnimationBuilder<int>(
+              key: ValueKey(lineKey),
+              tween: IntTween(begin: 0, end: line.characters.length),
+              duration: Duration(milliseconds: 35 * line.characters.length),
+              builder: (context, n, _) => Text(
+                line.characters.take(n).toString(),
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: monologue ? 16 : 17,
+                  fontStyle: monologue ? FontStyle.italic : FontStyle.normal,
+                  height: 1.45,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -997,7 +1113,56 @@ class _DialogBox extends StatelessWidget {
         ],
       ),
     );
+    // 묶음 25 #164: 꼬리가 말하는 쪽을 가리킨다
+    return Stack(clipBehavior: Clip.none, children: [
+      box,
+      Positioned.fill(
+        child: IgnorePointer(
+          child: CustomPaint(
+            key: Key(tailUp ? 'dialogTailUp' : 'dialogTailDown'),
+            painter: _TailPainter(up: tailUp, x: tailX, fill: _fill),
+          ),
+        ),
+      ),
+    ]);
   }
+}
+
+/// 대사창 위나 아래로 튀어나온 작은 꼬리
+class _TailPainter extends CustomPainter {
+  _TailPainter({required this.up, required this.x, required this.fill});
+
+  final bool up;
+  final double x;
+  final Color fill;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const w = 18.0, h = 11.0;
+    final cx = (size.width * x).clamp(28.0, size.width - 28);
+    final edge = up ? 0.8 : size.height - 0.8;
+    final tip = up ? -h : size.height + h;
+    final path = Path()
+      ..moveTo(cx - w / 2, edge)
+      ..lineTo(cx, tip)
+      ..lineTo(cx + w / 2, edge)
+      ..close();
+    canvas.drawPath(path, Paint()..color = fill);
+    canvas.drawPath(
+        Path()
+          ..moveTo(cx - w / 2, edge)
+          ..lineTo(cx, tip)
+          ..lineTo(cx + w / 2, edge),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..strokeJoin = StrokeJoin.round
+          ..color = AppColors.goldBright);
+  }
+
+  @override
+  bool shouldRepaint(_TailPainter old) =>
+      old.up != up || old.x != x || old.fill != fill;
 }
 
 /// 각성 장면에서 어깨 옆에 둥실 떠 있는 정령
@@ -1060,6 +1225,45 @@ class AgeBlockedView extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// 묶음 25 #163: 각성 장면 자리 계산. 무대 그림은 화면을 꽉 채우게(cover)
+/// 놓이므로, 그림 속 마법진 가운데가 화면 어디에 오는지 구해 그 위에 세운다.
+/// 크기도 그림 배율을 따라가서 어느 화면에서나 같은 자리·같은 비율.
+class FinaleLayout {
+  const FinaleLayout(this.circle, this.hero, this.spirit);
+
+  /// 마법진 가운데 (화면 좌표)
+  final Offset circle;
+
+  /// 각성자 그림 칸 (아래쪽 가운데가 마법진 가운데)
+  final Rect hero;
+
+  /// 정령 칸 (각성자 오른쪽 어깨 높이)
+  final Rect spirit;
+
+  static FinaleLayout of(Size screen) {
+    const w = _AwakeningScreenState._stageW, h = _AwakeningScreenState._stageH;
+    final scale =
+        screen.width / w > screen.height / h ? screen.width / w : screen.height / h;
+    final rw = w * scale, rh = h * scale;
+    final left = (screen.width - rw) / 2, top = (screen.height - rh) / 2;
+    final c = Offset(left + rw * _AwakeningScreenState._circleX,
+        top + rh * _AwakeningScreenState._circleY);
+    // 각성자 키: 그림 높이의 0.44 (그림 비율 460×705)
+    final heroH = rh * 0.44;
+    final heroW = heroH * 460 / 705;
+    final hero = Rect.fromLTWH(c.dx - heroW / 2, c.dy - heroH, heroW, heroH);
+    final size = heroH * 0.26;
+    final shoulderY = c.dy - heroH * 0.80;
+    // 오른쪽 어깨 옆 (좁은 화면에서도 화면 밖으로 나가지 않게)
+    final sx = (c.dx + heroW * 0.58).clamp(0.0, screen.width - size / 2 - 6);
+    final spirit = Rect.fromCenter(
+        center: Offset(sx, shoulderY),
+        width: size,
+        height: size);
+    return FinaleLayout(c, hero, spirit);
+  }
 }
 
 /// 각성 장면의 각성자 (묶음 18 #147): 남·여를 바꾸면 짧게 빛나며 바뀐다

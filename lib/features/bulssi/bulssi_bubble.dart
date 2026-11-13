@@ -258,7 +258,14 @@ class SpiritTalkBadge extends StatefulWidget {
     this.hideAfter = const Duration(seconds: 8),
     this.bubbleKey = const Key('spiritBubble'),
     this.retalk,
+    this.actionLabel,
+    this.onAction,
   });
+
+  /// 묶음 25 #166: 배지를 눌렀을 때 대사 끝에 붙는 한마디 (예: 「서두를까?」).
+  /// 누르면 [onAction]
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   /// 바뀔 때마다 다시 말한다 (아래 메뉴 칸에 들어올 때, 묶음 22)
   final Listenable? retalk;
@@ -280,6 +287,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
       vsync: this, duration: const Duration(milliseconds: 180));
   String? _said;
   bool _open = false;
+  bool _withAction = false;
   Timer? _hide;
 
   @override
@@ -315,15 +323,22 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
   Widget build(BuildContext context) {
     if (widget.line != _said) {
       _said = widget.line;
+      _withAction = false;
       _talk();
     }
+    final action = _withAction && widget.onAction != null
+        ? widget.actionLabel
+        : null;
     final s = widget.size;
     final scope = BulssiScope.maybeOf(context);
     final kind = scope?.kind ?? SpiritKind.fire;
     final name = scope?.spiritName ?? kind.defaultName;
     final badge = GestureDetector(
       key: const Key('spiritBadge'),
-      onTap: () => setState(_talk),
+      onTap: () => setState(() {
+        _talk();
+        _withAction = widget.actionLabel != null && widget.onAction != null;
+      }),
       child: AnimatedBuilder(
         animation: _hop,
         builder: (context, child) => Transform.translate(
@@ -365,7 +380,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
                       constraints:
                           BoxConstraints(maxWidth: widget.maxBubbleWidth),
                       child: CustomPaint(
-                        painter: _LeftTailBubble(tailY: s / 2),
+                        painter: TailBubblePainter(side: TailSide.left, at: s / 2),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(18, 7, 10, 8),
                           child: Text.rich(
@@ -380,6 +395,30 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
                                 ),
                               ),
                               TextSpan(text: keepAll(widget.line)),
+                              if (action != null) ...[
+                                const TextSpan(text: ' '),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: GestureDetector(
+                                    key: const Key('spiritAction'),
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      setState(() {
+                                        _open = false;
+                                        _withAction = false;
+                                      });
+                                      widget.onAction?.call();
+                                    },
+                                    child: Text(action,
+                                        style: const TextStyle(
+                                          color: Color(0xFFB27C1C),
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                          decoration: TextDecoration.underline,
+                                        )),
+                                  ),
+                                ),
+                              ],
                             ]),
                             style: const TextStyle(
                               color: AppColors.night,
@@ -399,28 +438,57 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
   }
 }
 
-/// 꼬리가 왼쪽(배지 쪽)을 가리키는 말풍선 바탕
-class _LeftTailBubble extends CustomPainter {
-  _LeftTailBubble({required this.tailY});
+/// 말풍선 꼬리가 나오는 쪽 (묶음 25 #164)
+enum TailSide { left, right, down }
 
-  final double tailY;
-  static const double _tail = 8;
+/// 꼬리가 말하는 쪽(왼쪽·오른쪽·아래)을 가리키는 말풍선 바탕.
+/// [at] 은 꼬리 자리: 왼쪽·오른쪽이면 위에서부터, 아래면 왼쪽에서부터 (논리 픽셀)
+class TailBubblePainter extends CustomPainter {
+  TailBubblePainter({required this.side, required this.at});
+
+  final TailSide side;
+  final double at;
+  static const double tail = 8;
 
   @override
   void paint(Canvas canvas, Size size) {
     final body = RRect.fromRectAndRadius(
-        Rect.fromLTWH(_tail, 0, size.width - _tail, size.height),
+        switch (side) {
+          TailSide.left =>
+            Rect.fromLTWH(tail, 0, size.width - tail, size.height),
+          TailSide.right => Rect.fromLTWH(0, 0, size.width - tail, size.height),
+          TailSide.down => Rect.fromLTWH(0, 0, size.width, size.height - tail),
+        },
         const Radius.circular(12));
-    final ty = tailY.clamp(12.0, size.height - 12);
-    final path = Path()
-      ..addRRect(body)
-      ..moveTo(_tail + 1, ty - 7)
-      ..lineTo(0, ty)
-      ..lineTo(_tail + 1, ty + 7)
-      ..close();
-    final shape = Path.combine(PathOperation.union, Path()..addRRect(body),
-        Path()..moveTo(_tail + 1, ty - 7)..lineTo(0, ty)..lineTo(_tail + 1, ty + 7)..close());
-    canvas.drawShadow(path, const Color(0xAA000000), 3, false);
+    final Path tip;
+    switch (side) {
+      case TailSide.left:
+        final ty = at.clamp(12.0, size.height - 12);
+        tip = Path()
+          ..moveTo(tail + 1, ty - 7)
+          ..lineTo(0, ty)
+          ..lineTo(tail + 1, ty + 7)
+          ..close();
+      case TailSide.right:
+        final ty = at.clamp(12.0, size.height - 12);
+        final x = size.width - tail;
+        tip = Path()
+          ..moveTo(x - 1, ty - 7)
+          ..lineTo(size.width, ty)
+          ..lineTo(x - 1, ty + 7)
+          ..close();
+      case TailSide.down:
+        final tx = at.clamp(14.0, size.width - 14);
+        final y = size.height - tail;
+        tip = Path()
+          ..moveTo(tx - 7, y - 1)
+          ..lineTo(tx, size.height)
+          ..lineTo(tx + 7, y - 1)
+          ..close();
+    }
+    final shape =
+        Path.combine(PathOperation.union, Path()..addRRect(body), tip);
+    canvas.drawShadow(shape, const Color(0xAA000000), 3, false);
     canvas.drawPath(shape, Paint()..color = const Color(0xFFFFF6E0));
     canvas.drawPath(
         shape,
@@ -431,7 +499,8 @@ class _LeftTailBubble extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LeftTailBubble old) => old.tailY != tailY;
+  bool shouldRepaint(TailBubblePainter old) =>
+      old.side != side || old.at != at;
 }
 
 /// 아래 메뉴 칸에 들어올 때마다 늘어나는 수 (마을·가방·도감 정령이 다시 말한다)

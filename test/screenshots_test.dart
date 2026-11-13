@@ -415,7 +415,9 @@ void main() {
     for (final i in [0, 1]) {
       await tester.tap(checks.at(i));
     }
-    await tester.enterText(find.byKey(const Key('birthYear')), '1995');
+    await tester.ensureVisible(find.byKey(const Key('birthYear')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('birthYear_2000')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('동의하고 다음'), 200,
         scrollable: find.byType(Scrollable).first);
@@ -435,6 +437,67 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '16c_식물_정령_상태창');
   });
+
+  // 묶음 25 #163: 각성 장면은 화면 크기마다 같은 자리 (작은 iPhone · 큰 iPhone)
+  for (final (label, size, dpr) in const [
+    ('작은화면', Size(750, 1334), 2.0),
+    ('큰화면', Size(1290, 2796), 3.0),
+  ]) {
+    testWidgets('화면 미리보기: 각성 장면 $label', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = dpr;
+      addTearDown(tester.view.reset);
+      final c = AppController(
+        store: InMemoryRecordStore(),
+        health: FakeHealthSource(granted: false),
+        clock: () => DateTime(2026, 11, 8, 14),
+      );
+      await tester.pumpWidget(
+          RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+      await c.init();
+      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('건너뛰기 ›'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('이 정령과 함께하기'), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.text('이 정령과 함께하기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('확정'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('이 이름으로'), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.text('이 이름으로'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('확정'));
+      await tester.pumpAndSettle();
+      final checks = find.byType(Checkbox);
+      for (final i in [0, 1]) {
+        await tester.ensureVisible(checks.at(i));
+        await tester.pumpAndSettle();
+        await tester.tap(checks.at(i));
+      }
+      await tester.ensureVisible(find.byKey(const Key('birthYear')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('birthYear_2000')));
+      await tester.pumpAndSettle();
+      await _shot(tester, '16a_각성_동의_연도_$label');
+      await tester.scrollUntilVisible(find.text('동의하고 다음'), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.text('동의하고 다음'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '하루');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('다음'), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('다음'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('finaleHero')), findsOneWidget);
+      await _shot(tester, '16b_각성_장면_$label');
+    });
+  }
 
   testWidgets('화면 미리보기: 지친 각성자와 정령 표정', (tester) async {
     _phone(tester);

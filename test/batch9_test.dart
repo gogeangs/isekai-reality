@@ -225,8 +225,10 @@ void main() {
           .firstWhere((s) => s.modifiers.isEmpty && s.id != spawn.id);
       final b = c.startFieldBattle(other)!..runToEnd();
       final before = c.player.totalExp;
+      // 묶음 25 #171: Lv.5까지는 두 배
+      final x2 = c.player.level.level <= 5 ? 2 : 1;
       final exp = await c.finishFieldBattle(other, b);
-      expect(exp, lessThan(RuleConstants.fieldMonsterExp));
+      expect(exp, lessThan(RuleConstants.fieldMonsterExp * x2));
       expect(c.player.totalExp - before, greaterThanOrEqualTo(exp));
 
       now = now.add(const Duration(minutes: 2));

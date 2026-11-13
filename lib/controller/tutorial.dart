@@ -176,6 +176,8 @@ extension TutorialOps on AppController {
   Feature? get pendingFeatureIntro {
     if (_legacyGates || inTutorial || pendingLevelUp != null) return null;
     for (final f in Feature.values) {
+      // 묶음 25 #165: 능력치 안내는 Lv.2 에서만 시작한다 (이미 Lv.3 이상이면 넘김)
+      if (f == Feature.stats && player.level.level >= 3) continue;
       if (featureOpen(f) && !_introsSeen.contains(f.name)) return f;
     }
     return null;
@@ -337,7 +339,12 @@ extension TutorialOps on AppController {
     // 11-11 #69: 하루 5마리 뒤에도 사냥은 되고 경험치·마석만 줄어든다 (숨은 규칙)
     const paid = true;
     final n = today.fieldMonstersPurified;
-    final factor = RuleConstants.fieldFactor(n + 1);
+    // 묶음 25 #171: 튜토리얼 몬스터는 하루 5마리 경험치 셈에 넣지 않는다
+    // (튜토리얼 뒤 몬스터 5마리로 Lv.3)
+    final tutorialToday =
+        today.purifiedSpawnIds.where(AppController.isTutorialSpawn).length;
+    final factor =
+        RuleConstants.fieldFactor((n - tutorialToday).clamp(0, n) + 1);
     final incense = TownRules.incenseActive(today)
         ? RuleConstants.incenseExpMultiplier
         : 1;
@@ -360,6 +367,8 @@ extension TutorialOps on AppController {
     final tiredNow = tired;
     final tiredExp = tiredNow ? exp - _tiredCut(exp) : 0;
     exp -= tiredExp;
+    // 묶음 25 #171: Lv.5까지(잡는 순간 레벨) 필드 몬스터 경험치 두 배 (숨은 규칙)
+    if (player.level.level <= 5) exp *= 2;
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;

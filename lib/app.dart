@@ -332,7 +332,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             stats: controller.shownStats,
             unspentPoints: controller.unspentPoints,
             onOpenStats: () => push(StatScreen(controller: controller)),
-            lifeLine: controller.statusLifeLine,
+            // 묶음 25 #166: 원정 중이면 원정 대사 먼저 (HP 30% 아래만 그보다 앞)
+            lifeLine: (controller.maxHp > 0 &&
+                        controller.hp / controller.maxHp < 0.3
+                    ? null
+                    : controller.expeditionTalk) ??
+                controller.statusLifeLine,
             armory: controller.armory,
             onSlot: (slot) => showEquipPicker(context, controller, slot),
             restLeft: controller.resting ? controller.restLeft : null,

@@ -820,11 +820,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         return Stack(children: [
           Positioned.fill(child: scaffold),
           Positioned.fill(
-            child: TutorialLayer(
+            child: Material(
+             type: MaterialType.transparency,
+             child: TutorialLayer(
               controller: controller,
               tab: _tab,
               openTab: (i) => setState(() => _openTab(i)),
               showResults: _showResultsNow,
+             ),
             ),
           ),
         ]);

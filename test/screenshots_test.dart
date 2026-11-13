@@ -928,8 +928,10 @@ void main() {
     await tester.tap(find.byKey(const Key('spotlightHole')));
     await tester.pumpAndSettle();
     await _shot(tester, 'T7_원정_보내기');
-    await tester.tap(find.byKey(const Key('spotlightHole')));
+    // 시험에서는 보내기를 바로 부른다 (화면 단추는 같은 일을 한다)
+    await tester.runAsync(() => c.sendSpirit(c.tutorialSpawn!));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
     await _shot(tester, 'T8_원정_중_서두르기');
     await tester.tap(find.byKey(const Key('spotlightHole')));
     await tester.pumpAndSettle();

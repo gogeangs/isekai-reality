@@ -266,7 +266,7 @@ class _TutorialLayerState extends State<TutorialLayer> {
       // 막히면 언제든 빠져나올 수 있게
       Positioned(
         right: 10,
-        top: MediaQuery.paddingOf(context).top + 4,
+        top: MediaQuery.paddingOf(context).top + 56,
         child: TextButton(
           key: const Key('tutorialSkip'),
           onPressed: c.skipTutorial,

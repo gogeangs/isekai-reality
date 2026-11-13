@@ -7,6 +7,7 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/battle/field_battle_screen.dart';
 import 'package:isekai_reality/features/bulssi/bulssi_bubble.dart';
+import 'package:isekai_reality/features/tutorial/targets.dart';
 import 'package:isekai_reality/features/tutorial/tutorial_layer.dart';
 
 void main() {
@@ -163,6 +164,11 @@ void main() {
     expect(
         tester.widget<BulssiBubble>(find.byKey(const Key('tutorialLine'))).line,
         contains('나를 누르면 서두를 수 있어'));
+    await tester.pump();
+    await tester.pump();
+    // ignore: avoid_print
+    print('strip=${find.byKey(const Key('expeditionStrip')).evaluate().length} '
+        'rect=${rectOf(tutorialStripKey)} ctx=${tutorialStripKey.currentContext}');
     await tester.tap(find.byKey(const Key('spotlightHole')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));

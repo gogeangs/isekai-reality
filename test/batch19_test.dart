@@ -223,6 +223,14 @@ void main() {
       }
     }
 
+    /// 묶음 20 #157: 안내 앞 「새로 열렸어요」 → 「가 보기」
+    Future<void> opened(WidgetTester tester) async {
+      expect(find.byKey(const Key('featureOpened')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tourButton')));
+      await settle(tester);
+      expect(find.byKey(const Key('featureOpened')), findsNothing);
+    }
+
     testWidgets('Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남',
         (tester) async {
       phone(tester);
@@ -231,6 +239,7 @@ void main() {
       expect(c.pendingFeatureIntro, Feature.smithy);
       await tester.pumpWidget(IsekaiRealityApp(controller: c));
       await settle(tester);
+      await opened(tester);
       expect(line(tester), contains('마을로 가 보자'));
       expect(find.byKey(const Key('tourSkip')), findsOneWidget);
 
@@ -314,12 +323,14 @@ void main() {
       expect(c.pendingFeatureIntro, Feature.harvest);
       await tester.pumpWidget(IsekaiRealityApp(controller: c));
       await settle(tester);
+      await opened(tester);
       expect(line(tester), contains('위치를 켜면'));
       await tester.tap(find.byKey(const Key('tourButton')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)));
       await settle(tester);
       expect(c.pendingFeatureIntro, Feature.lens);
+      await opened(tester);
       // Lv.6 돋보기: 지도에서 돋보기 버튼을 비춘다
       expect(line(tester), contains('눌러 봐'));
       expect(find.byKey(const Key('mapLens')), findsOneWidget);

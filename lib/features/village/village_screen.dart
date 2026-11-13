@@ -59,14 +59,27 @@ class VillageScreen extends StatelessWidget {
         _ => null,
       };
 
-  /// 지금 보여 줄 시설 (레벨로 잠긴 곳은 자물쇠)
+  /// 지금 보여 줄 시설. 묶음 20 #157: 새로 시작한 사람은 아직 못 쓰는 곳(레벨로
+  /// 잠긴 곳·준비 중인 거래소)을 아예 숨긴다. 그림 속 건물은 배경으로만.
+  /// 기존 사용자는 예전처럼 자물쇠로 보인다.
   List<FacilityInfo> get _shown => [
         for (final f in facilities)
-          _lockLevel(f.facility) == null
-              ? f
-              : FacilityInfo(f.facility, f.name, f.icon,
-                  open: false, inArt: f.inArt),
+          if (!controller.newGates)
+            _lockLevel(f.facility) == null
+                ? f
+                : FacilityInfo(f.facility, f.name, f.icon,
+                    open: false, inArt: f.inArt)
+          else if (_lockLevel(f.facility) == null && f.open)
+            f,
       ];
+
+  /// 정령 인사: 열린 시설만 말한다
+  String get _greeting {
+    if (!controller.featureOpen(Feature.board)) {
+      return '어서 와! 마을에서 쉬고, 물건을 살 수 있어.';
+    }
+    return '어서 와! 마을에서 쉬고, 사고, 의뢰를 받을 수 있어.';
+  }
 
   void _enter(BuildContext context, FacilityInfo f) {
     final lv = _lockLevel(f.facility);
@@ -101,7 +114,7 @@ class VillageScreen extends StatelessWidget {
       child: Column(children: [
         const OrnateTopBar(title: '마을'),
         const SizedBox(height: 6),
-        const BulssiLine(line: '어서 와! 마을에서 쉬고, 사고, 의뢰를 받을 수 있어.'),
+        BulssiLine(key: const Key('villageGreeting'), line: _greeting),
         const SizedBox(height: 10),
         Expanded(
           child: ListView(

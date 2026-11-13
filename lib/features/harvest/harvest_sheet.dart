@@ -7,6 +7,7 @@ import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'harvest_games.dart';
 import '../../theme/top_notice.dart';
+import '../../core/format.dart';
 
 String harvestReason(HarvestCheck c) => switch (c) {
       HarvestCheck.ok => '',
@@ -22,8 +23,15 @@ String _left(Duration d) =>
 
 /// 지도에서 채집 자리를 눌렀을 때 (11-11 #56)
 Future<void> showHarvestSheet(
-    BuildContext context, AppController c, HarvestSpot spot) =>
-    showModalBottomSheet<void>(
+    BuildContext context, AppController c, HarvestSpot spot) async {
+  // 묶음 20 #4: 새로 시작한 사람은 채집 도구를 만들어야 채집할 수 있다
+  if (c.harvestNeedsTool) {
+    final name = HarvestRules.toolName(spot.info.tool);
+    showTopNotice(context, '${josa(name, '이/가')} 필요해요. 대장간에서 만들 수 있어요',
+        icon: Icons.handyman_rounded);
+    return;
+  }
+  return showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.night,
       isScrollControlled: true,
@@ -31,6 +39,7 @@ Future<void> showHarvestSheet(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheet) => HarvestSheet(controller: c, spot: spot),
     );
+}
 
 class HarvestSheet extends StatelessWidget {
   const HarvestSheet({super.key, required this.controller, required this.spot});
@@ -211,6 +220,11 @@ class ToolRepairPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 묶음 20 #157: 채집이 열리기 전(새로 시작한 사람은 첫 도구를 만들기 전)에는 숨김
+    if (!controller.featureOpen(Feature.harvest) ||
+        (controller.newGates && !controller.harvestToolsReady)) {
+      return const SizedBox.shrink();
+    }
     final c = controller;
     final tools = [
       for (final t in HarvestTool.values)

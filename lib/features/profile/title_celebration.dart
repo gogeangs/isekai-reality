@@ -17,7 +17,10 @@ Future<void> showTitleCelebration(
     barrierLabel: '닫기',
     barrierColor: const Color(0xCC05060F),
     transitionDuration: const Duration(milliseconds: 380),
-    pageBuilder: (d, _, __) => _TitleCelebration(controller: c, title: t),
+    // 묶음 20 #160: 글자 밑줄이 생기지 않게 Material 바탕 위에
+    pageBuilder: (d, _, __) => Material(
+        type: MaterialType.transparency,
+        child: _TitleCelebration(controller: c, title: t)),
     transitionBuilder: (_, a, __, child) => FadeTransition(
       opacity: a,
       child: ScaleTransition(
@@ -95,8 +98,17 @@ class _TitleCelebrationState extends State<_TitleCelebration>
                   ],
                 ),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.military_tech_rounded,
-                      size: 64, color: AppColors.goldBright),
+                  // 그 칭호의 배지 그림, 없으면 공통 금빛 배지
+                  SizedBox(
+                    width: 96,
+                    height: 96,
+                    child: Image.asset(
+                        'assets/images/title_${widget.title.name}.webp',
+                        key: const Key('titleBadge'),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) =>
+                            const GoldTitleBadge(key: Key('titleBadgeCommon'))),
+                  ),
                   const SizedBox(height: 4),
                   Text('새 칭호',
                       style: AppText.title(14, color: AppColors.textMuted)),
@@ -110,33 +122,37 @@ class _TitleCelebrationState extends State<_TitleCelebration>
                       style: const TextStyle(
                           color: AppColors.text, fontSize: 14, height: 1.4)),
                   const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(
-                      child: TextButton(
-                        key: const Key('titleClose'),
-                        style: gameButtonStyle(gold: false),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('닫기'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
+                  // #136 규칙: 기본 행동은 금빛 한 줄, 닫기는 작게. 이미 대표면 닫기 하나만 금빛
+                  if (!already) ...[
+                    SizedBox(
+                      width: double.infinity,
                       child: TextButton(
                         key: const Key('titleEquip'),
                         style: gameButtonStyle(gold: true),
-                        onPressed: already
-                            ? null
-                            : () async {
-                                await c.setEquippedTitle(widget.title);
-                                if (context.mounted) Navigator.of(context).pop();
-                              },
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(already ? '대표 칭호예요' : '대표 칭호로 걸기'),
-                        ),
+                        onPressed: () async {
+                          await c.setEquippedTitle(widget.title);
+                          if (context.mounted) Navigator.of(context).pop();
+                        },
+                        child: const Text('대표로 하기', maxLines: 1),
                       ),
                     ),
-                  ]),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      key: const Key('titleClose'),
+                      style: smallButtonStyle(),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('닫기'),
+                    ),
+                  ] else
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        key: const Key('titleClose'),
+                        style: gameButtonStyle(gold: true),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('닫기', maxLines: 1),
+                      ),
+                    ),
                 ]),
               ),
             ),
@@ -163,7 +179,7 @@ class _Sparkles extends CustomPainter {
       final y = size.height * (1 - ((t * speed + phase) % 1.0));
       final r = 1.2 + rng.nextDouble() * 2.6;
       final a = (math.sin((t + phase) * math.pi * 2) * 0.5 + 0.5) * 0.85;
-      p.color = (i.isEven ? AppColors.goldBright : Colors.white)
+      p.color = (i.isEven ? AppColors.goldBright : AppColors.gold)
           .withValues(alpha: a);
       canvas.drawCircle(Offset(x, y), r, p);
     }
@@ -171,4 +187,82 @@ class _Sparkles extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _Sparkles old) => old.t != t;
+}
+
+/// 그림이 없는 칭호의 공통 금빛 배지 (묶음 20 #160): 리본 위 둥근 금메달과 별
+class GoldTitleBadge extends StatelessWidget {
+  const GoldTitleBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(painter: _BadgePainter(), size: Size.infinite);
+}
+
+class _BadgePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = math.min(size.width, size.height);
+    final c = Offset(size.width / 2, size.height * 0.42);
+    final r = s * 0.32;
+    // 리본 두 갈래
+    final ribbon = Paint()..color = const Color(0xFF7A3FB8);
+    for (final dir in [-1.0, 1.0]) {
+      final path = Path()
+        ..moveTo(c.dx + dir * r * 0.25, c.dy + r * 0.6)
+        ..lineTo(c.dx + dir * r * 0.85, c.dy + r * 1.75)
+        ..lineTo(c.dx + dir * r * 0.5, c.dy + r * 1.55)
+        ..lineTo(c.dx + dir * r * 0.3, c.dy + r * 1.85)
+        ..lineTo(c.dx - dir * r * 0.15, c.dy + r * 0.7)
+        ..close();
+      canvas.drawPath(path, ribbon);
+    }
+    // 금메달
+    canvas.drawCircle(
+        c,
+        r * 1.08,
+        Paint()
+          ..color = const Color(0x88FFD86B)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..shader = const RadialGradient(
+                  colors: [Color(0xFFFFF0B3), Color(0xFFE8B04A), Color(0xFFA9781F)],
+                  stops: [0, 0.6, 1])
+              .createShader(Rect.fromCircle(center: c, radius: r)));
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.025
+          ..color = const Color(0xFF6B4A12));
+    canvas.drawCircle(
+        c,
+        r * 0.78,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.012
+          ..color = const Color(0xAA6B4A12));
+    // 가운데 별
+    final star = Path();
+    for (var i = 0; i < 10; i++) {
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final rr = i.isEven ? r * 0.55 : r * 0.24;
+      final p = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+    }
+    star.close();
+    canvas.drawPath(star, Paint()..color = const Color(0xFFFFF7D6));
+    canvas.drawPath(
+        star,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.012
+          ..color = const Color(0xFF8A6418));
+  }
+
+  @override
+  bool shouldRepaint(_BadgePainter old) => false;
 }

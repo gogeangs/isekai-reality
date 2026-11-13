@@ -54,7 +54,7 @@ class LevelUpDialog extends StatelessWidget {
       return healed[to % healed.length];
     }
     const lines = [
-      '레벨 업! 네 불꽃이 한층 더 밝아졌어.',
+      '레벨 업! 네 빛이 한층 더 밝아졌어.',
       '이세계 어딘가가 조금 더 환해졌을 거야.',
       '또 성장했네! 매일매일 강해지고 있어.',
     ];

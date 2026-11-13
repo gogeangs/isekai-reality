@@ -101,7 +101,8 @@ class _MapScreenState extends State<MapScreen> {
     final card = controller.lastDiscovery != null || spawn != null;
     final coverBottom = cardBottom + (card ? 150 : 0) + 4;
     // 위쪽: 프로필·설정 버튼 줄 (+ 걸린 물약이 있으면 작은 줄)
-    final coverTop = top + 58 + (buffs.isEmpty ? 0 : 34);
+    // 묶음 20 #158: 프로필·정령 배지·우편·설정 아래까지 (그 뒤에 몬스터·채집이 숨지 않게)
+    final coverTop = top + 112 + (buffs.isEmpty ? 0 : 34);
     final tut = controller.inTutorial;
     return Stack(
       children: [
@@ -129,8 +130,8 @@ class _MapScreenState extends State<MapScreen> {
         // 묶음 16 #126: 상태 화면의 정령 한마디를 지도 구석에도 작게
         if (!controller.inTutorial && controller.player.today != null)
           Positioned(
-            left: 10,
-            top: coverTop + 2,
+            left: 14, // 프로필 동그라미와 같은 줄
+            top: top + 64,
             child: _SpiritCorner(controller: controller),
           ),
         // 걸린 물약만 작게 (11-11 #76). 없으면 아무것도 띄우지 않는다
@@ -138,7 +139,7 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             left: 70,
             right: 70,
-            top: top + 62,
+            top: top + 114,
             child: _BuffBar(controller: controller, buffs: buffs),
           ),
         if (away)
@@ -217,10 +218,6 @@ class _SpiritCorner extends StatefulWidget {
 }
 
 class _SpiritCornerState extends State<_SpiritCorner> {
-  String? _line;
-  bool _open = false;
-  Timer? _hide;
-
   String _current() {
     final c = widget.controller;
     final p = c.player;
@@ -237,36 +234,13 @@ class _SpiritCornerState extends State<_SpiritCorner> {
   }
 
   @override
-  void dispose() {
-    _hide?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final line = _current();
-    if (line != _line) {
-      _line = line;
-      _open = true;
-      _hide?.cancel();
-      _hide = Timer(const Duration(seconds: 8), () {
-        if (mounted) setState(() => _open = false);
-      });
-    }
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 250),
-      child: _open
-          ? GestureDetector(
-              key: const Key('mapSpiritLine'),
-              onTap: () => setState(() => _open = false),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: math.min(
-                        250, MediaQuery.sizeOf(context).width - 90)),
-                child: BulssiBubble(line: line, size: 34),
-              ),
-            )
-          : const SizedBox.shrink(),
+    // 묶음 20 #158: 금테 배지 + 오른쪽 말풍선 (꼬리는 배지 쪽). 폭은 우편·설정 버튼 앞까지
+    final w = MediaQuery.sizeOf(context).width;
+    return SpiritTalkBadge(
+      line: _current(),
+      bubbleKey: const Key('mapSpiritLine'),
+      maxBubbleWidth: math.max(140, w - 14 - 44 - 2 - 118),
     );
   }
 }

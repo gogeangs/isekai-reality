@@ -183,7 +183,8 @@ class AppController extends ChangeNotifier {
   }
 
   /// 전투 화면이 열려 있는 동안 칭호 축하 같은 큰 연출을 미룬다 (11-11 #85)
-  bool get holdNotices => _holdNotices > 0;
+  /// 묶음 20 #160: 튜토리얼 중에도 모아 두었다가 끝난 뒤 #131 순서로
+  bool get holdNotices => _holdNotices > 0 || inTutorial;
   int _holdNotices = 0;
   void holdNoticesWhile(bool on) {
     _holdNotices = (_holdNotices + (on ? 1 : -1)).clamp(0, 99);
@@ -878,6 +879,9 @@ class AppController extends ChangeNotifier {
 
   /// 채집 도구를 받았는지 (첫 채집 도구는 대장간에서 무료)
   bool get harvestToolsReady => _harvest.granted;
+
+  /// 도구가 없어 채집할 수 없는지 (묶음 20: 새로 시작한 사람만. 기존 사용자는 그대로)
+  bool get harvestNeedsTool => !_legacyGates && !_harvest.granted;
 
   /// 지금까지 채집한 횟수
   int get harvestTotal => _harvest.total;
@@ -3504,6 +3508,7 @@ class AppController extends ChangeNotifier {
     }
     if (driveBlocked) return HarvestCheck.passenger;
     if (harvestCharges(s) <= 0) return HarvestCheck.empty;
+    if (harvestNeedsTool) return HarvestCheck.noTool;
     if (!minigame) return HarvestCheck.ok;
     if (passengerMode) return HarvestCheck.passenger;
     if (!standingStill) return HarvestCheck.moving;

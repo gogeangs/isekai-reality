@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
@@ -240,4 +242,179 @@ class ArtSpirit extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 정령 배지 + 말풍선 (묶음 20 #158·#159): 프로필 바로 아래 같은 크기의 금테 원형
+/// 배지(진한 남색 바탕) 안에 정령(이별 뒤엔 함께하는 펫). 말풍선은 배지 오른쪽,
+/// 배지와 같은 높이에서 시작하고 꼬리는 배지 쪽(왼쪽). 말이 바뀌면 배지가 살짝
+/// 톡톡 튀며 말풍선이 열리고, 잠시 뒤 접힌다. 배지를 누르면 다시 말한다.
+class SpiritTalkBadge extends StatefulWidget {
+  const SpiritTalkBadge({
+    super.key,
+    required this.line,
+    required this.maxBubbleWidth,
+    this.mood = SpiritMood.normal,
+    this.size = 44,
+    this.hideAfter = const Duration(seconds: 8),
+    this.bubbleKey = const Key('spiritBubble'),
+  });
+
+  final String line;
+  final double maxBubbleWidth;
+  final SpiritMood mood;
+  final double size;
+  final Duration hideAfter;
+  final Key bubbleKey;
+
+  @override
+  State<SpiritTalkBadge> createState() => _SpiritTalkBadgeState();
+}
+
+class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hop = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 180));
+  String? _said;
+  bool _open = false;
+  Timer? _hide;
+
+  void _talk() {
+    _open = true;
+    _hop
+      ..reset()
+      ..repeat(reverse: true, count: 2);
+    _hide?.cancel();
+    _hide = Timer(widget.hideAfter, () {
+      if (mounted) setState(() => _open = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    _hop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.line != _said) {
+      _said = widget.line;
+      _talk();
+    }
+    final s = widget.size;
+    final scope = BulssiScope.maybeOf(context);
+    final kind = scope?.kind ?? SpiritKind.fire;
+    final name = scope?.spiritName ?? kind.defaultName;
+    final badge = GestureDetector(
+      key: const Key('spiritBadge'),
+      onTap: () => setState(_talk),
+      child: AnimatedBuilder(
+        animation: _hop,
+        builder: (context, child) => Transform.translate(
+            offset: Offset(0, -3 * Curves.easeOut.transform(_hop.value)),
+            child: child),
+        child: Container(
+          width: s,
+          height: s,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF141638),
+            border: Border.all(color: AppColors.goldBright, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                  color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 8),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          alignment: Alignment.center,
+          child: CompanionArt(size: s * 0.82, mood: widget.mood),
+        ),
+      ),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        badge,
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: !_open
+              ? const SizedBox.shrink()
+              : GestureDetector(
+                  key: widget.bubbleKey,
+                  onTap: () => setState(() => _open = false),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(maxWidth: widget.maxBubbleWidth),
+                      child: CustomPaint(
+                        painter: _LeftTailBubble(tailY: s / 2),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 7, 10, 8),
+                          child: Text.rich(
+                            TextSpan(children: [
+                              TextSpan(
+                                text: '$name\n',
+                                style: const TextStyle(
+                                  color: Color(0xFFB27C1C),
+                                  fontSize: 11,
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              TextSpan(text: keepAll(widget.line)),
+                            ]),
+                            style: const TextStyle(
+                              color: AppColors.night,
+                              fontSize: 13.5,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 꼬리가 왼쪽(배지 쪽)을 가리키는 말풍선 바탕
+class _LeftTailBubble extends CustomPainter {
+  _LeftTailBubble({required this.tailY});
+
+  final double tailY;
+  static const double _tail = 8;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final body = RRect.fromRectAndRadius(
+        Rect.fromLTWH(_tail, 0, size.width - _tail, size.height),
+        const Radius.circular(12));
+    final ty = tailY.clamp(12.0, size.height - 12);
+    final path = Path()
+      ..addRRect(body)
+      ..moveTo(_tail + 1, ty - 7)
+      ..lineTo(0, ty)
+      ..lineTo(_tail + 1, ty + 7)
+      ..close();
+    final shape = Path.combine(PathOperation.union, Path()..addRRect(body),
+        Path()..moveTo(_tail + 1, ty - 7)..lineTo(0, ty)..lineTo(_tail + 1, ty + 7)..close());
+    canvas.drawShadow(path, const Color(0xAA000000), 3, false);
+    canvas.drawPath(shape, Paint()..color = const Color(0xFFFFF6E0));
+    canvas.drawPath(
+        shape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..color = const Color(0xFFC9A24A));
+  }
+
+  @override
+  bool shouldRepaint(_LeftTailBubble old) => old.tailY != tailY;
 }

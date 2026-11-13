@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -185,14 +186,21 @@ class StatusScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                // 정령은 오른쪽 위 빈자리: 각성자 얼굴·손·지도를 가리지 않게
+                // 묶음 20 #159: 지도와 같은 자리·모양의 정령 배지(프로필 아래) +
+                // 오른쪽 말풍선. 폭은 오른쪽 장비 칸 앞까지
                 Positioned(
-                  top: top + 58, // 위쪽 설정 버튼 아래
-                  right: 8,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                        maxWidth: MediaQuery.sizeOf(context).width * 0.5),
-                    child: ArtSpirit(line: line, mood: mood, size: 44),
+                  top: top + 64,
+                  left: 14,
+                  child: SpiritTalkBadge(
+                    key: const Key('statusSpirit'),
+                    line: line,
+                    mood: mood,
+                    hideAfter: const Duration(seconds: 12),
+                    maxBubbleWidth: math.max(
+                        140,
+                        MediaQuery.sizeOf(context).width -
+                            14 - 44 - 2 -
+                            (10 + gearSlotFit(heroH - slotTop - 10).size + 8)),
                   ),
                 ),
               ],
@@ -236,10 +244,8 @@ class StatusScreen extends StatelessWidget {
                     unspent: unspentPoints,
                     // 묶음 15 #104: 스탯 분배는 Lv.2에 열린다
                     locked: player.level.level < 2,
-                    onOpen: player.level.level < 2
-                        ? () => showTopNotice(context, '스탯 분배는 Lv.2에 열려요',
-                            icon: Icons.lock_outline_rounded)
-                        : onOpenStats),
+                    // 묶음 20 #157: 열리기 전에는 숫자만 (누를 곳·자물쇠 없음)
+                    onOpen: player.level.level < 2 ? null : onOpenStats),
               ],
             ),
           ),
@@ -711,17 +717,7 @@ class _StatsSection extends StatelessWidget {
             ),
           ),
           if (locked)
-            const Padding(
-              key: Key('statLocked'),
-              padding: EdgeInsets.only(left: 4),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.lock_outline_rounded,
-                    size: 15, color: AppColors.textMuted),
-                SizedBox(width: 2),
-                Text('Lv.2',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
-              ]),
-            )
+            const SizedBox(key: Key('statLocked'))
           else if (unspent > 0)
             Container(
               margin: const EdgeInsets.only(left: 4),

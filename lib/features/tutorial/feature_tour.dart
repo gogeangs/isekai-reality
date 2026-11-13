@@ -175,9 +175,13 @@ class TourStep {
     this.button,
     this.scrollTo,
     this.wait = false,
+    this.opened,
   });
 
   final String line;
+
+  /// 「새로 열렸어요」 연출 (기능 이름, 그림 이름)
+  final (String, String)? opened;
 
   /// 밝게 비출 곳. null 이면 어둡게 하지 않고 말풍선만
   final Rect? hole;
@@ -561,7 +565,23 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         a.round == b.round &&
         a.label == b.label &&
         a.button?.$1 == b.button?.$1 &&
+        a.opened == b.opened &&
         (a.onTap == null) == (b.onTap == null);
+  }
+
+  final Set<Feature> _announced = {};
+
+  TourStep _openedStep(Feature f) {
+    final (name, icon, line) = switch (f) {
+      Feature.smithy => ('대장간', 'icon_smithy', '대장간이 열렸어! 첫 무기는 내가 낼게.'),
+      Feature.board => ('의뢰 게시판', 'icon_board', '의뢰 게시판이 열렸어! 쉬운 의뢰부터 해 보자.'),
+      Feature.harvest => ('채집', 'map_harvest_flower', '이제 꽃이랑 버섯을 딸 수 있어!'),
+      Feature.lens => ('마법 돋보기', 'icon_lens', '마법 돋보기가 생겼어! 숨은 이세계 종족을 볼 수 있어.'),
+    };
+    return TourStep(line, opened: (name, icon), button: ('가 보기', () {
+      _announced.add(f);
+      _queue();
+    }));
   }
 
   void _compute() {
@@ -571,6 +591,10 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
       step = _step(f);
+      // 묶음 20 #157: 안내 앞에 「새로 열렸어요」 한 번
+      if (step != null && step.line.isNotEmpty && !_announced.contains(f)) {
+        step = _openedStep(f);
+      }
       if (step != null && step.wait) {
         _scheduleRetry('${f.name}:${step.line}');
       }
@@ -648,7 +672,12 @@ class _TourView extends StatelessWidget {
         ),
       ],
     ]);
+    final opened = step.opened;
     return Stack(fit: StackFit.expand, children: [
+      if (opened != null) ...[
+        const Spotlight(hole: null, onTap: null, dim: 0.72),
+        Center(child: _OpenedCard(name: opened.$1, icon: opened.$2)),
+      ],
       if (h != null)
         step.onTap == null
             ? HoleSpotlight(hole: h, round: step.round, label: step.label)
@@ -774,5 +803,74 @@ class _RenderHoleBlocker extends RenderProxyBox {
     if (_inHole(global)) return false; // 아래 버튼으로 그대로
     result.add(BoxHitTestEntry(this, position));
     return true; // 나머지는 막는다
+  }
+}
+
+/// 「새로 열렸어요」 (묶음 20 #157)
+class _OpenedCard extends StatefulWidget {
+  const _OpenedCard({required this.name, required this.icon});
+
+  final String name;
+  final String icon;
+
+  @override
+  State<_OpenedCard> createState() => _OpenedCardState();
+}
+
+class _OpenedCardState extends State<_OpenedCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 520))
+    ..forward();
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: CurvedAnimation(parent: _a, curve: Curves.easeOutBack),
+      child: Container(
+        key: const Key('featureOpened'),
+        width: 240,
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2B2459), Color(0xFF141638)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.goldBright, width: 2),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.gold.withValues(alpha: 0.5),
+                blurRadius: 32,
+                spreadRadius: 2),
+          ],
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Image.asset('assets/images/${widget.icon}.webp',
+              width: 84,
+              height: 84,
+              errorBuilder: (_, __, ___) => const SizedBox(height: 84)),
+          const SizedBox(height: 6),
+          const Text('새로 열렸어요',
+              style: TextStyle(
+                  color: AppColors.goldBright,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text(widget.name,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800)),
+        ]),
+      ),
+    );
   }
 }

@@ -76,6 +76,9 @@ class IsekaiRealityApp extends StatelessWidget {
           // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
           // 앱 안 알림은 모두 위쪽 금테 띠로 (11-11 #85)
           child: TopNoticeHost(
+            // 묶음 20 #160: 내비게이터 바깥 띠·안내·덮개도 글자 밑줄 없이
+            child: Material(
+            type: MaterialType.transparency,
             child: Stack(children: [
             Positioned.fill(
                 child: NotificationListener<ScrollEndNotification>(
@@ -98,6 +101,7 @@ class IsekaiRealityApp extends StatelessWidget {
             if (controller.driveBlocked)
               Positioned.fill(child: DriveOverlay(controller: controller)),
           ]),
+          ),
           ),
         ),
       ),
@@ -240,6 +244,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (_popupBusy || _ahead(2)) return;
     final done = c.finishedExpeditions;
+    // 묶음 20 #160: 튜토리얼 중에는 튜토리얼 원정 결과만 (나머지는 끝난 뒤)
+    if (c.inTutorial &&
+        !done.any((e) => AppController.isTutorialSpawn(e.spawnId))) {
+      return;
+    }
     // 지도에서는 원정 띠가 반짝이고, 눌러야 결과 카드를 연다 (11-11 #78)
     // 튜토리얼 원정은 지도에 있어도 바로 결과 카드 (#151)
     final onMap = _tab == tMap &&
@@ -324,7 +333,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// Lv.11: 정령의 이별과 첫 펫 (11-11 #37). 레벨업·알림이 끝난 뒤에.
   void _maybeShowFarewell() {
     final c = widget.controller;
-    if (!c.farewellPending || _popupBusy || _ahead(3)) {
+    if (!c.farewellPending || _popupBusy || _ahead(3) || c.inTutorial) {
       return;
     }
     _farewellShowing = true;
@@ -346,7 +355,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 알을 주웠을 때 · 정령 편지가 왔을 때 · 품은 알이 다 됐을 때
   void _maybeShowPetNews() {
     final c = widget.controller;
-    if (_popupBusy || _ahead(3)) return;
+    if (_popupBusy || _ahead(3) || c.inTutorial) return;
     final letter = c.pendingLetter;
     var ready = c.farewellDone ? c.readyEgg : null;
     if (ready != null && _promptedEggs.contains(ready.id)) ready = null;
@@ -408,7 +417,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   /// 걸음 주머니 · 길가의 발견 · 떠돌이 상인 (11-11 #59)
   void _maybeShowWalkNews() {
     final c = widget.controller;
-    if (_popupBusy || _ahead(3)) return;
+    if (_popupBusy || _ahead(3) || c.inTutorial) return;
     if (c.takeNewPouch()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -693,7 +702,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 left: 0,
                 right: 0,
                 top: 0,
-                height: topInset + 62,
+                // 묶음 20 #158: 정령 배지까지 덮는 공통 위쪽 띠
+                height: topInset + 116,
                 child: const IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(

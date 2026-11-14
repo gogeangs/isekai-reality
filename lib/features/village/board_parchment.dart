@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 
 /// 판타지 의뢰 게시판 (묶음 26 #180): 나무 게시판 위에 핀으로 꽂은 양피지 쪽지.

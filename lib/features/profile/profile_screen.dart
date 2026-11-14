@@ -99,7 +99,7 @@ class ProfileCard extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w700)),
               // 묶음 26 #178: 직업이 없으면(직업 각성 전) 줄을 보이지 않는다
-              if (job != null && job != kNoJobLabel)
+              if (job != kNoJobLabel)
                 Text('직업 · $job',
                     style: const TextStyle(
                         color: AppColors.textMuted, fontSize: 12)),

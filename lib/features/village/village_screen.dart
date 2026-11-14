@@ -120,19 +120,24 @@ class VillageScreen extends StatelessWidget {
         SpiritBadgeRow(key: const Key('villageGreeting'), line: _greeting),
         const SizedBox(height: 10),
         Expanded(
-          child: ListView(
+          // 묶음 26 #173: 칸이 몇 개 안 되니 한꺼번에 그려 둔다 (안내가 화면 밖 시설도
+          // 찾아 굴려 보일 수 있게)
+          child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              _VillageArt(list: _shown, onTap: (f) => _enter(context, f)),
-              const SizedBox(height: 12),
-              for (final f in _shown)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _FacilityCard(
-                      key: Key('facility_${f.facility.name}'),
-                      info: f, onTap: () => _enter(context, f)),
-                ),
-            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _VillageArt(list: _shown, onTap: (f) => _enter(context, f)),
+                const SizedBox(height: 12),
+                for (final f in _shown)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _FacilityCard(
+                        key: Key('facility_${f.facility.name}'),
+                        info: f, onTap: () => _enter(context, f)),
+                  ),
+              ],
+            ),
           ),
         ),
       ]),

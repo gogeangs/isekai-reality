@@ -41,8 +41,13 @@ extension HarvestOps on AppController {
                   HarvestSpot(
                       id: 'tutorial-harvest',
                       kind: HarvestKind.flower,
-                      point: GeoPoint(_lastFix!.point.lat + 0.00008,
-                          _lastFix!.point.lng + 0.00006)),
+                      // 묶음 26 #179: 처음 정한 자리에 고정
+                      point: _pinned(
+                              'tutorial-harvest',
+                              (h) => GeoPoint(
+                                  h.lat + 0.00008, h.lng + 0.00006)) ??
+                          GeoPoint(_lastFix!.point.lat + 0.00008,
+                              _lastFix!.point.lng + 0.00006)),
                 for (final x in _spotsCache)
                   if (lv >= 7 ||
                       x.kind == HarvestKind.flower ||

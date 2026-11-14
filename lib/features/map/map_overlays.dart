@@ -281,6 +281,7 @@ class _MonsterCard extends StatelessWidget {
             ),
           ),
           FilledButton(
+            key: const Key('monsterCardHunt'),
             onPressed: onPurify,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.gauge,

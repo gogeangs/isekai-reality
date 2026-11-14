@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show Drag;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -449,6 +450,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         _doOnce('toMap', () => _goHome(FeatureTourLayer.tMap));
         return const TourStep('', wait: true);
       }
+      // 묶음 26 #179: 만남 카드가 뜨면 카드의 「사냥하기」를 가리킨다
+      final hunt = rectOfKey(const Key('monsterCardHunt'));
+      if (hunt != null) {
+        return TourStep('나타났어! 「사냥하기」를 눌러 봐.',
+            hole: hunt.inflate(4), label: '사냥하기');
+      }
       final r = tutorialMonsterRect.value;
       return TourStep(
           r == null
@@ -555,6 +562,45 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         round: true);
   }
 
+  // 묶음 26 #173: 가리키는 곳이 화면 안에 다 들어올 때까지 굴린다.
+  // 굴린 뒤 자리를 다시 재고, 아직 덜 보이면 몇 번 더 (손으로 굴리는 것과 싸우지 않게
+  // 한 단계에 6번까지, 0.4초 간격)
+  String _scrollSig = '';
+  int _scrollTries = 0;
+  DateTime? _scrollAt;
+
+  void _scrollIntoView(Feature f, TourStep? step) {
+    final key = step?.scrollTo;
+    final h = step?.hole;
+    if (step == null || key == null || h == null) return;
+    final size = MediaQuery.sizeOf(context);
+    final pad = MediaQuery.paddingOf(context);
+    final top = pad.top + 56; // 위쪽 제목·건너뛰기 줄
+    final bottom = size.height - pad.bottom - 12;
+    // 다 보이면 끝. 화면보다 큰 칸은 굴려도 다 들어오지 않으니 그대로
+    if (h.top >= top && h.bottom <= bottom) return;
+    if (h.height > bottom - top) return;
+    final sig = '${f.name}:${step.line}';
+    if (sig != _scrollSig) {
+      _scrollSig = sig;
+      _scrollTries = 0;
+      _scrollAt = null;
+    }
+    final now = DateTime.now();
+    if (_scrollTries >= 6 ||
+        (_scrollAt != null &&
+            now.difference(_scrollAt!) < const Duration(milliseconds: 400))) {
+      return;
+    }
+    final e = elementOfKey(key);
+    if (e == null || !e.mounted) return;
+    _scrollTries++;
+    _scrollAt = now;
+    Scrollable.ensureVisible(e,
+        alignment: 0.45, duration: const Duration(milliseconds: 250));
+    _scheduleRetry('$sig:scroll$_scrollTries');
+  }
+
   void _scheduleRetry(String sig) {
     if (sig != _lastSig) {
       _lastSig = sig;
@@ -627,20 +673,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       if (step != null && step.wait) {
         _scheduleRetry('${f.name}:${step.line}');
       }
-      final key = step?.scrollTo;
-      final h = step?.hole;
-      final size = MediaQuery.sizeOf(context);
-      if (key != null &&
-          h != null &&
-          // 누를 곳이 거의 다 화면 밖일 때만 굴린다 (큰 칸은 그대로)
-          (h.top > size.height - 120 || h.bottom < 90)) {
-        final e = elementOfKey(key);
-        if (e != null && e.mounted) {
-          Scrollable.ensureVisible(e,
-              alignment: 0.4, duration: const Duration(milliseconds: 250));
-          _scheduleRetry('${f.name}:scroll');
-        }
-      }
+      _scrollIntoView(f, step);
       if (step != null && step.line.isEmpty) step = null;
     }
     if (!_same(step, _shown) || f != _shownFeature) {
@@ -710,12 +743,14 @@ class _TourView extends StatelessWidget {
       if (h != null)
         step.onTap == null
             ? HoleSpotlight(hole: h, round: step.round, label: step.label)
-            : Spotlight(
-                hole: h,
-                onTap: step.onTap,
-                round: step.round,
-                label: step.label,
-                dim: 0.6),
+            : DragThrough(
+                child: Spotlight(
+                    hole: h,
+                    onTap: step.onTap,
+                    round: step.round,
+                    label: step.label,
+                    dim: 0.6),
+              ),
       Positioned(
         left: 14,
         right: 14,
@@ -777,15 +812,20 @@ class HoleSpotlight extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
     return Stack(fit: StackFit.expand, children: [
-      _HoleBlocker(
-        hole: hole,
-        round: round,
-        child: Spotlight(hole: hole, onTap: null, round: round, dim: 0.6,
-            showFinger: false),
+      // 묶음 26 #173: 어둠막 위 위아래 끌기는 아래 화면 스크롤로 넘긴다 (누르기는 구멍만)
+      DragThrough(
+        child: _HoleBlocker(
+          hole: hole,
+          round: round,
+          child: Spotlight(hole: hole, onTap: null, round: round, dim: 0.6,
+              showFinger: false),
+        ),
       ),
+      // 묶음 26 #179: 둥근 곳(지도 몬스터)은 손가락이 몬스터를 가리지 않게 원 아래 옆에서
       Positioned(
-        left: (hole.center.dx - 10).clamp(8.0, w - 150),
-        top: hole.bottom - 6,
+        left: (round ? hole.center.dx + hole.width * 0.22 : hole.center.dx - 10)
+            .clamp(8.0, w - 150),
+        top: round ? hole.bottom - hole.height * 0.12 : hole.bottom - 6,
         child: IgnorePointer(
             child: FingerHint(key: const Key('tourFinger'), label: label)),
       ),
@@ -833,6 +873,66 @@ class _RenderHoleBlocker extends RenderProxyBox {
     result.add(BoxHitTestEntry(this, position));
     return true; // 나머지는 막는다
   }
+}
+
+/// 맨 위 화면에서 [global] 자리를 덮는 세로 스크롤 (가장 안쪽)
+ScrollableState? scrollableAt(Offset global) {
+  ScrollableState? found;
+  void visit(Element e) {
+    if (e is StatefulElement && e.state is ScrollableState) {
+      final s = e.state as ScrollableState;
+      final route = ModalRoute.of(e);
+      final box = e.renderObject;
+      if ((route == null || route.isCurrent) &&
+          axisDirectionToAxis(s.axisDirection) == Axis.vertical &&
+          box is RenderBox &&
+          box.attached &&
+          box.hasSize &&
+          (box.localToGlobal(Offset.zero) & box.size).contains(global)) {
+        found = s; // 더 안쪽이 나오면 바꾼다
+      }
+    }
+    e.visitChildElements(visit);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildElements(visit);
+  return found;
+}
+
+/// 안내 어둠막 위에서 위아래로 끌면 아래 화면을 굴린다 (묶음 26 #173)
+class DragThrough extends StatefulWidget {
+  const DragThrough({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<DragThrough> createState() => _DragThroughState();
+}
+
+class _DragThroughState extends State<DragThrough> {
+  Drag? _drag;
+
+  void _start(DragStartDetails d) {
+    final s = scrollableAt(d.globalPosition);
+    if (s == null) return;
+    _drag = s.position.drag(d, () => _drag = null);
+  }
+
+  @override
+  void dispose() {
+    _drag?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        key: const Key('tourDrag'),
+        onVerticalDragStart: _start,
+        onVerticalDragUpdate: (d) => _drag?.update(d),
+        onVerticalDragEnd: (d) => _drag?.end(d),
+        onVerticalDragCancel: () => _drag?.cancel(),
+        child: widget.child,
+      );
 }
 
 /// 「새로 열렸어요」 (묶음 20 #157)

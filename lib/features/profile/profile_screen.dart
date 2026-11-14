@@ -98,9 +98,11 @@ class ProfileCard extends StatelessWidget {
                       color: AppColors.goldBright,
                       fontSize: 14,
                       fontWeight: FontWeight.w700)),
-              Text('직업 · $job',
-                  style:
-                      const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              // 묶음 26 #178: 직업이 없으면(직업 각성 전) 줄을 보이지 않는다
+              if (job != null && job != kNoJobLabel)
+                Text('직업 · $job',
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 4),
               if (pet != null) ...[
                 Row(children: [
@@ -383,45 +385,112 @@ class _InfoTab extends StatelessWidget {
           ),
           const SizedBox(height: 10),
         ],
+        // 묶음 26 #177: 얻은 칭호만, 새로 얻은 것이 맨 위. 전체 개수·얻는 방법은 숨김
         _Section(title: '칭호', children: [
-          KText('얻은 칭호를 누르면 대표 칭호로 걸어요. '
-              '${player.titles.length} / ${TitleRules.visible(player.titles).length}',
+          KText(
+              key: const Key('titleCount'),
+              '얻은 칭호를 누르면 대표 칭호로 걸어요. '
+              '얻은 칭호 ${player.titles.length}개',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 6),
-          for (final t in TitleRules.visible(player.titles))
-            _TitleRow(
-              info: t,
-              earned: player.titles.contains(t.id),
-              equipped: t.id == equipped,
-              onTap: player.titles.contains(t.id)
-                  ? () => c.setEquippedTitle(t.id)
-                  : null,
-            ),
+          _TitleList(controller: c, equipped: equipped),
         ]),
       ],
     );
   }
 }
 
-/// 칭호 한 줄: 얻은 칭호는 이름, 얻지 못한 칭호는 흐리게 + 얻는 방법
+/// 얻은 칭호 목록. 처음 보는 칭호는 한 번 살짝 빛난다 (묶음 26 #177)
+class _TitleList extends StatefulWidget {
+  const _TitleList({required this.controller, this.equipped});
+
+  final AppController controller;
+  final TitleId? equipped;
+
+  @override
+  State<_TitleList> createState() => _TitleListState();
+}
+
+class _TitleListState extends State<_TitleList> {
+  /// 이번에 처음 보여 주는 칭호 (이 화면에 있는 동안만 빛남)
+  final Set<TitleId> _fresh = {};
+
+  void _markFresh() {
+    final c = widget.controller;
+    final fresh = [
+      for (final t in c.player.titles)
+        if (c.titleIsNewInList(t)) t
+    ];
+    if (fresh.isEmpty) return;
+    _fresh.addAll(fresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) c.markTitlesListed();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.controller;
+    _markFresh();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final id in c.titlesNewestFirst)
+          _TitleRow(
+            key: Key('title_${id.name}'),
+            info: TitleRules.info(id),
+            earned: true,
+            equipped: id == widget.equipped,
+            glow: _fresh.contains(id),
+            onTap: () => c.setEquippedTitle(id),
+          ),
+      ],
+    );
+  }
+}
+
+/// 칭호 한 줄: 이름 + 어떻게 얻었는지. 처음 보면 금빛으로 한 번 빛난다
 class _TitleRow extends StatelessWidget {
   const _TitleRow({
+    super.key,
     required this.info,
     required this.earned,
     required this.equipped,
+    this.glow = false,
     this.onTap,
   });
 
   final TitleInfo info;
   final bool earned;
   final bool equipped;
+  final bool glow;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Opacity(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: glow ? 1 : 0, end: 0),
+          duration: const Duration(milliseconds: 1800),
+          curve: Curves.easeOut,
+          builder: (context, g, child) => g <= 0
+              ? child!
+              : DecoratedBox(
+                  key: const Key('titleGlow'),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppColors.goldBright
+                              .withValues(alpha: 0.7 * g),
+                          blurRadius: 14 * g,
+                          spreadRadius: 1.5 * g),
+                    ],
+                  ),
+                  child: child,
+                ),
+          child: Opacity(
           opacity: earned ? 1 : 0.55,
           child: Container(
             margin: const EdgeInsets.only(top: 6),
@@ -466,6 +535,7 @@ class _TitleRow extends StatelessWidget {
                         fontWeight: FontWeight.w800)),
             ]),
           ),
+        ),
         ),
       );
 }

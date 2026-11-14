@@ -7,12 +7,14 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
+import 'board_parchment.dart';
 import 'daily_quests.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart';
 
-/// 마을 의뢰 게시판 (11-10 #26): 일일 · 주간 · 수시 · 긴급.
-/// 경험치는 일일·주간만, 수시·긴급은 금화·재료만 준다.
+/// 마을 의뢰 게시판 (11-10 #26): 오늘의 의뢰 · 주간 · 길드 · 긴급.
+/// 경험치는 오늘의·주간 의뢰만, 길드·긴급 의뢰는 금화·재료만 준다.
+/// 묶음 26 #180: 나무 게시판에 핀으로 꽂은 양피지 쪽지 모양
 class BoardScreen extends StatelessWidget {
   const BoardScreen({super.key, required this.controller});
 
@@ -30,7 +32,7 @@ class BoardScreen extends StatelessWidget {
           builder: (context, _) {
             final p = controller.player;
             final today = p.today!;
-            // 묶음 16 #142: 막 열린 게시판(Lv.4)은 일일·수시 의뢰만
+            // 묶음 16 #142: 막 열린 게시판(Lv.4)은 오늘의·길드 의뢰만
             final full = controller.boardFull;
             final urgent = full ? controller.urgent : null;
             return ListView(
@@ -44,23 +46,30 @@ class BoardScreen extends StatelessWidget {
                 BulssiLine(
                     line: urgent != null && !controller.board.urgentDone
                         ? '긴급 의뢰가 붙었어! 오늘 자정까지야.'
-                        : '오늘의 의뢰야. 수시 의뢰는 수락해야 시작돼!'),
+                        : '오늘의 의뢰야. 길드 의뢰는 수락해야 시작돼!'),
                 const SizedBox(height: 12),
-                if (urgent != null) ...[
-                  _UrgentPanel(controller: controller),
-                  const SizedBox(height: 12),
-                ],
-                DailyQuestPanel(
-                  quests: QuestRules.forDay(today),
-                  allDone: QuestRules.allDone(today),
-                  streak: QuestRules.allDoneStreak(p.history),
+                WoodBoard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (urgent != null) ...[
+                        _UrgentPanel(controller: controller),
+                        const SizedBox(height: 14),
+                      ],
+                      DailyQuestPanel(
+                        quests: QuestRules.forDay(today),
+                        allDone: QuestRules.allDone(today),
+                        streak: QuestRules.allDoneStreak(p.history),
+                      ),
+                      if (full) ...[
+                        const SizedBox(height: 14),
+                        _WeeklyPanel(controller: controller),
+                      ],
+                      const SizedBox(height: 14),
+                      _ErrandPanel(controller: controller),
+                    ],
+                  ),
                 ),
-                if (full) ...[
-                  const SizedBox(height: 12),
-                  _WeeklyPanel(controller: controller),
-                ],
-                const SizedBox(height: 12),
-                _ErrandPanel(controller: controller),
               ],
             );
           },
@@ -68,30 +77,6 @@ class BoardScreen extends StatelessWidget {
       ),
     ));
   }
-}
-
-class _Header extends StatelessWidget {
-  const _Header(this.title, {this.icon = Icons.assignment_rounded, this.note});
-
-  final String title;
-  final IconData icon;
-  final String? note;
-
-  @override
-  Widget build(BuildContext context) => Row(children: [
-        Icon(icon, color: AppColors.goldBright, size: 24),
-        const SizedBox(width: 8),
-        Text(title, style: AppText.title(19)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(height: 1, color: AppColors.gold.withValues(alpha: 0.4)),
-        ),
-        if (note != null) ...[
-          const SizedBox(width: 8),
-          Text(note!,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-        ],
-      ]);
 }
 
 /// 주간 의뢰 3개 (월요일 시작, 자동)
@@ -112,34 +97,32 @@ class _WeeklyPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header('주간 의뢰',
-              icon: Icons.date_range_rounded, note: '$left일 남음'),
-          const SizedBox(height: 2),
-          for (final q in sortedQuests(quests))
+          BoardPlaque('주간 의뢰', note: '$left일 남음'),
+          const SizedBox(height: 4),
+          for (final (i, q) in sortedQuests(quests).indexed)
             QuestRowView(
               quest: q,
+              seed: i + 3,
               rewardExp: BoardRules.weeklyExp,
               extra: [
-                RewardChip(
-                  text: '금화 ${BoardRules.weeklyGold}',
-                  done: q.completed,
-                  icon: const GameIcon('gold',
-                      size: 16, fallback: Icons.monetization_on_rounded),
+                (
+                  const GameIcon('gold',
+                      size: 15, fallback: Icons.monetization_on_rounded),
+                  '금화 ${BoardRules.weeklyGold}'
                 ),
               ],
             ),
           const SizedBox(height: 6),
-          const KText(
+          const _BoardNote(
               '하나 마칠 때마다 경험치 +${BoardRules.weeklyExp}, '
-              '금화 +${BoardRules.weeklyGold}. 매주 월요일에 새로 시작해요.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              '금화 +${BoardRules.weeklyGold}. 매주 월요일에 새로 시작해요.'),
         ],
       ),
     );
   }
 }
 
-/// 수시 의뢰 2칸
+/// 길드 의뢰 2칸 (예전 「수시 의뢰」)
 class _ErrandPanel extends StatelessWidget {
   const _ErrandPanel({required this.controller});
 
@@ -150,35 +133,42 @@ class _ErrandPanel extends StatelessWidget {
     final b = controller.board;
     return FoldingQuestPanel(
       done: b.doneToday >= BoardRules.errandsPerDay,
-      foldedText: '수시 의뢰 오늘 모두 완료 · ${b.doneToday}개',
+      foldedText: '길드 의뢰 오늘 모두 완료 · ${b.doneToday}개',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header('수시 의뢰',
-              icon: Icons.push_pin_rounded,
+          BoardPlaque('길드 의뢰',
               note: '오늘 ${b.doneToday} / ${BoardRules.errandsPerDay}'),
-          const SizedBox(height: 6),
-          for (var i = 0; i < b.slots.length; i++) ...[
+          const SizedBox(height: 4),
+          for (var i = 0; i < b.slots.length; i++)
             _ErrandCard(controller: controller, slot: i),
-            if (i < b.slots.length - 1) const SizedBox(height: 8),
-          ],
           const SizedBox(height: 6),
-          const KText('수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const _BoardNote(
+              '수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.'),
         ],
       ),
     );
   }
 }
 
-class _ErrandCard extends StatelessWidget {
+class _ErrandCard extends StatefulWidget {
   const _ErrandCard({required this.controller, required this.slot});
 
   final AppController controller;
   final int slot;
 
   @override
+  State<_ErrandCard> createState() => _ErrandCardState();
+}
+
+class _ErrandCardState extends State<_ErrandCard> {
+  /// 이 화면을 보는 동안 수락했으면 도장이 「쿵」 찍힌다
+  bool? _wasAccepted;
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final slot = widget.slot;
     final c = controller;
     final b = c.board;
     final s = b.slots[slot];
@@ -187,7 +177,7 @@ class _ErrandCard extends StatelessWidget {
       final ready = s.readyAt;
       final String text;
       if (b.doneToday >= BoardRules.errandsPerDay) {
-        text = '오늘 수시 의뢰는 다 끝냈어요. 내일 또 와요!';
+        text = '오늘 길드 의뢰는 다 끝냈어요. 내일 또 와요!';
       } else if (ready != null && c.now.isBefore(ready)) {
         final left = ready.difference(c.now);
         text = '새 의뢰가 ${left.inHours > 0 ? '${left.inHours}시간 ' : ''}'
@@ -195,52 +185,35 @@ class _ErrandCard extends StatelessWidget {
       } else {
         text = '오늘은 더 붙지 않아요';
       }
-      return _CardBox(
+      _wasAccepted = null;
+      return ParchmentNote(
+        seed: slot + 7,
+        faded: true,
         child: Row(children: [
-          const Icon(Icons.hourglass_bottom_rounded,
-              color: AppColors.textMuted, size: 22),
+          const Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 22),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+                style: const TextStyle(color: kInkSoft, fontSize: 14)),
           ),
         ]),
       );
     }
     final progress = c.errandProgress(slot);
     final done = s.accepted && progress >= t.target;
-    return _CardBox(
-      highlight: done,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            Expanded(
-              child: Text(t.title,
-                  style: AppText.title(16, color: AppColors.text)),
-            ),
-            if (s.accepted)
-              Text('${comma(progress)} / ${comma(t.target)}${t.unit}',
-                  style: const TextStyle(
-                      color: AppColors.goldBright,
-                      fontWeight: FontWeight.w700)),
-          ]),
-          const SizedBox(height: 2),
-          const SizedBox(height: 4),
-          ErrandRewards(t: t),
-          if (s.accepted) ...[
-            const SizedBox(height: 6),
-            GlowBar(ratio: progress / t.target, colors: BarColors.exp),
-          ],
-          const SizedBox(height: 8),
-          Row(children: [
-            if (s.accepted && !done)
-              TextButton(
-                onPressed: () => c.abandonErrand(slot),
-                child: const Text('포기',
-                    style: TextStyle(color: AppColors.textMuted)),
-              ),
-            const Spacer(),
+    // 수락이 바뀌는 순간만 도장을 찍는 연출 (원래 수락돼 있던 쪽지는 그냥 찍혀 있다)
+    final stampIn = _wasAccepted == false && s.accepted;
+    _wasAccepted = s.accepted;
+    return ParchmentNote(
+      key: ValueKey('errandNote_${slot}_${s.templateId}'),
+      seed: slot + (s.templateId?.length ?? 0),
+      faded: done,
+      stamp: done
+          ? const DoneStamp()
+          : s.accepted
+              ? WaxSeal(key: ValueKey('seal_$slot'), stampIn: stampIn)
+              : null,
+      action: Row(children: [
             SizedBox(
               width: 130,
               child: GoldButton(
@@ -267,7 +240,30 @@ class _ErrandCard extends StatelessWidget {
                         : null,
               ),
             ),
+            if (s.accepted && !done)
+              TextButton(
+                onPressed: () => c.abandonErrand(slot),
+                child: const Text('포기', style: TextStyle(color: kInkSoft)),
+              ),
+            const Spacer(),
           ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(t.title, style: noteTitle(16)),
+          if (s.accepted) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(child: InkBar(ratio: progress / t.target)),
+              const SizedBox(width: 8),
+              Text('${comma(progress)} / ${comma(t.target)}${t.unit}',
+                  style: const TextStyle(
+                      color: kInkSoft,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ],
+          ErrandRewards(t: t),
         ],
       ),
     );
@@ -294,59 +290,21 @@ class _UrgentPanel extends StatelessWidget {
       return FoldingQuestPanel(
         done: true,
         foldedText: '긴급 의뢰 완료 · $prize · 금화 +${u.quest.gold}',
-        child: KText(u.quest.title,
-            style: AppText.title(16, color: AppColors.text)),
+        child: ParchmentNote(
+          seed: 2,
+          faded: true,
+          stamp: const DoneStamp(),
+          child: KText(u.quest.title, style: noteTitle(16)),
+        ),
       );
     }
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: const Color(0xDD2A1230),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFF6B5A), width: 1.6),
-        boxShadow: const [
-          BoxShadow(color: Color(0x55FF6B5A), blurRadius: 14),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            const Icon(Icons.campaign_rounded, color: Color(0xFFFF8A7A)),
-            const SizedBox(width: 6),
-            Text('긴급 의뢰', style: AppText.title(19, color: const Color(0xFFFFB0A4))),
-            const Spacer(),
-            const Text('오늘 자정까지',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-          const SizedBox(height: 6),
-          Text(u.quest.title, style: AppText.title(16, color: AppColors.text)),
-          const SizedBox(height: 2),
-          const SizedBox(height: 4),
-          Wrap(spacing: 6, runSpacing: 4, children: [
-            RewardChip(
-              text: prize,
-              icon: u.prize == UrgentPrize.key
-                  ? const GameIcon('key', size: 16)
-                  : MaterialIcon(u.rare, size: 16),
-            ),
-            RewardChip(
-              text: '금화 ${u.quest.gold}',
-              icon: const GameIcon('gold',
-                  size: 16, fallback: Icons.monetization_on_rounded),
-            ),
-          ]),
-          if (b.urgentAccepted && !b.urgentDone) ...[
-            const SizedBox(height: 6),
-            GlowBar(ratio: progress / u.quest.target, colors: BarColors.gauge),
-            const SizedBox(height: 2),
-            Text('${comma(progress)} / ${comma(u.quest.target)}${u.quest.unit}',
-                textAlign: TextAlign.end,
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
-          ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
+    // 긴급 의뢰: 빨간 테두리 쪽지
+    return ParchmentNote(
+      seed: 2,
+      edge: const Color(0xFFB8322A),
+      stamp: b.urgentAccepted ? const WaxSeal() : null,
+      action: Align(
+            alignment: Alignment.centerLeft,
             child: SizedBox(
               width: 130,
               child: GoldButton(
@@ -369,57 +327,87 @@ class _UrgentPanel extends StatelessWidget {
               ),
             ),
           ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.campaign_rounded, color: Color(0xFFB8322A)),
+            const SizedBox(width: 6),
+            Text('긴급 의뢰', style: noteTitle(18).copyWith(color: const Color(0xFF9E2A22))),
+            const Spacer(),
+            const Text('오늘 자정까지',
+                style: TextStyle(
+                    color: kInkSoft, fontSize: 12, fontWeight: FontWeight.w700)),
+          ]),
+          const SizedBox(height: 6),
+          Text(u.quest.title, style: noteTitle(16)),
+          if (b.urgentAccepted && !b.urgentDone) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(child: InkBar(ratio: progress / u.quest.target)),
+              const SizedBox(width: 8),
+              Text('${comma(progress)} / ${comma(u.quest.target)}${u.quest.unit}',
+                  style: const TextStyle(
+                      color: kInkSoft, fontSize: 13, fontWeight: FontWeight.w700)),
+            ]),
+          ],
+          NoteRewards(items: [
+            (
+              u.prize == UrgentPrize.key
+                  ? const GameIcon('key', size: 15)
+                  : MaterialIcon(u.rare, size: 15),
+              prize
+            ),
+            (
+              const GameIcon('gold',
+                  size: 15, fallback: Icons.monetization_on_rounded),
+              '금화 ${u.quest.gold}'
+            ),
+          ]),
         ],
       ),
     );
   }
 }
 
-class _CardBox extends StatelessWidget {
-  const _CardBox({required this.child, this.highlight = false});
+/// 게시판 아래 작은 설명 (나무 위 밝은 글씨)
+class _BoardNote extends StatelessWidget {
+  const _BoardNote(this.text);
 
-  final Widget child;
-  final bool highlight;
+  final String text;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        decoration: BoxDecoration(
-          color: const Color(0xAA12153A),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: highlight
-                  ? AppColors.goldBright
-                  : AppColors.gold.withValues(alpha: 0.35)),
-        ),
-        child: child,
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: KText(text,
+            style: const TextStyle(
+                color: Color(0xFFEBD7AE),
+                fontSize: 12,
+                shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)])),
       );
 }
 
-/// 수시 의뢰 보상 칸: 금화·마석·재료를 아이콘과 함께 (11-11 #46)
+/// 길드 의뢰 보상 띠: 금화·마석·재료를 아이콘과 함께 (11-11 #46)
 class ErrandRewards extends StatelessWidget {
   const ErrandRewards({super.key, required this.t});
 
   final ErrandTemplate t;
 
   @override
-  Widget build(BuildContext context) => Wrap(spacing: 6, runSpacing: 4, children: [
+  Widget build(BuildContext context) => NoteRewards(items: [
         if (t.gold > 0)
-          RewardChip(
-            text: '금화 ${t.gold}',
-            icon: const GameIcon('gold',
-                size: 16, fallback: Icons.monetization_on_rounded),
+          (
+            const GameIcon('gold',
+                size: 15, fallback: Icons.monetization_on_rounded),
+            '금화 ${t.gold}'
           ),
         if (t.manaStones > 0)
-          RewardChip(
-            text: '마석 ${t.manaStones}',
-            icon: const GameIcon('mana_stone',
-                size: 16, fallback: Icons.diamond_rounded),
+          (
+            const GameIcon('mana_stone',
+                size: 15, fallback: Icons.diamond_rounded),
+            '마석 ${t.manaStones}'
           ),
         for (final e in t.materials.entries)
-          RewardChip(
-            text: '${Materials.info(e.key).name} ${e.value}',
-            icon: MaterialIcon(e.key, size: 16),
-          ),
+          (MaterialIcon(e.key, size: 15), '${Materials.info(e.key).name} ${e.value}'),
       ]);
 }

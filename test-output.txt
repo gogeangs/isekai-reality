@@ -1,0 +1,497 @@
+00:00 +0: loading /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart
+00:00 +0: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: #102 레벨 업 회복 HP·MP 가득, 채우기 전 값을 돌려준다
+00:00 +1: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: A3 장소에 맞는 속성 장소별 속성 묶음, 마을은 고르게
+00:00 +2: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: A3 장소에 맞는 속성 장소·약점 가중은 곱하지 않는다
+00:00 +3: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: A4 계절 국내 계절
+00:00 +4: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: #81 2단계 부위 애니메이션 장비 → 무기 종류 (보스 무기는 가까운 종류, 무기 아니면 맨손)
+00:00 +5: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: #81 2단계 부위 애니메이션 공격은 서기에서 시작해 서기로 돌아온다, 동작 줄이기면 작게
+00:00 +6: /home/runner/work/isekai-reality/isekai-reality/test/batch14_test.dart: #81 2단계 부위 애니메이션 뼈대: 부모가 먼저 있고, 부위 그림 13장
+00:00 +7: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 막기 타이밍 예고 뒤 1.0초 안 = 막기, 끝 0.3초 = 완벽한 막기, 지나면 판정 없음
+00:00 +8: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 막기 타이밍 모든 몬스터가 4턴마다 힘을 모은다 (예고), 막기는 받는 피해 -60%
+00:00 +9: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 막기 타이밍 완벽한 막기: 피해 없음 + 내 보통 공격만큼 반격
+00:00 +10: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 막기 타이밍 원정 자동 전투(예고 없음)는 막기가 없다
+00:00 +11: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 내 스킬 강타: 6턴마다 보통 공격 ×2.5
+00:00 +12: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 내 스킬 방어 태세: 8턴마다, 3턴 동안 받는 피해 -40%
+00:00 +13: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 던전 보스 요일 보스: 월 문지기 … 토 그리폰, 미궁 입구는 늘 문지기
+00:00 +14: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 던전 보스 보스: 3턴마다 큰 공격 예고(×2), 체력 절반 아래 분노
+00:00 +15: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 던전 보스 보스 보상: 전용 재료 1개 확정
+00:00 +16: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 지면 지친 상태 1시간 (경험치 -20%), 여관에 들르면 바로 풀린다
+00:00 +17: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +18: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +19: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +20: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +21: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +22: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +23: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:01 +24: /home/runner/work/isekai-reality/isekai-reality/test/batch9_test.dart: #75 패배의 벌 · A4 첫 중독 안내 처음 중독되면 해독제 안내 (있으면 바로 쓰기)
+00:04 +25: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: #5 첫 무기 5종 5종 모두 무기이고 성격 한 줄이 있다 (숫자 없음)
+00:04 +26: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: #5 첫 무기 5종 창은 먼저 친다 (빠르기), 예전 장비 이름은 그대로 읽힌다
+00:04 +27: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: #5 첫 무기 5종 Lv.3 새 사용자: 고른 첫 무기는 무료
+00:05 +28: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: #154 돋보기 하루 1번 무료 예전 기록(무료 기록 없음)도 읽히고, 오늘 무료가 남아 있다
+00:05 +29: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-1 · 6-2 튜토리얼 둘째 몬스터 원정은 편도 2분, 마석 1개로 바로 돌아오기
+00:05 +30: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-1 · 6-2 알림 번호 → 열 화면
+00:05 +31: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 Lv.4~6 안내 (규칙) 게시판: 쉬운 의뢰를 붙이고, 아무 몬스터 하나로 깨고, 보상
+00:05 +32: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 Lv.4~6 안내 (규칙) 채집: 첫 도구는 무료, 위치가 있으면 바로 옆 꽃
+00:05 +33: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 Lv.4~6 안내 (규칙) 기존 사용자는 안내가 없고, 첫 도구 무료 칸도 없다
+00:05 +34: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: #7 던전 층별 단서: 장마다 4층, 레벨로 이어지고 이별 뒤엔 없다
+00:05 +35: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:05 +36: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +37: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +38: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +39: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +40: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +41: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +42: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +43: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +44: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:06 +45: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:07 +46: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:07 +47: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 Lv.3 대장간: 마을 → 대장간 → 고르기 → 만들기 → 입기 → 무기 칸 빛남
+00:08 +48: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 밸런스 보통으로 생활한 사람은 스킬 없이도 대부분 클리어한다
+00:08 +49: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +50: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +51: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +52: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +53: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +54: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +55: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +56: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +57: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +58: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +59: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +60: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +61: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +62: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +63: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +64: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +65: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +66: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +67: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +68: /home/runner/work/isekai-reality/isekai-reality/test/batch19_test.dart: 4-2 안내 화면 건너뛰기: 언제든 끝, 다시 켜도 나오지 않는다
+00:08 +69: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 던전 화면: 입장 → 전투 → 결과
+00:09 +70: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 던전 화면: 입장 → 전투 → 결과
+00:09 +71: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 던전 화면: 입장 → 전투 → 결과
+00:10 +72: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 던전 화면: 입장 → 전투 → 결과
+00:10 +73: /home/runner/work/isekai-reality/isekai-reality/test/battle_test.dart: 던전 화면: 입장 → 전투 → 결과
+00:11 +74: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 처음 실행이면 각성이 필요하고, 각성하면 프로필이 저장된다
+00:11 +75: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 레벨이 오르면 레벨업이 대기하고, 확인하면 사라진다
+00:11 +76: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 확인한 레벨이 없는 예전 저장본은 연출 없이 지금 레벨부터 센다
+00:11 +77: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +78: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +79: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +80: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +81: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +82: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +83: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +84: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +85: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +86: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:11 +87: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +88: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +89: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +90: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +91: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +92: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +93: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +94: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +95: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +96: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +97: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +98: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:12 +99: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:13 +100: /home/runner/work/isekai-reality/isekai-reality/test/awakening_test.dart: 각성 화면: 도입 → 정령 고르기 → 이름 → 각성 장면 → 상태창
+00:13 +101: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #114 화면 글에 개발 메모(#번호·날짜)가 없다
+00:13 +102: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #107 쉬는 동안 차오름 시간에 맞춰 고르게, 끝나면 가득
+00:13 +103: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #107 쉬는 동안 차오름 일어나면 찬 만큼은 그대로, 광고로 줄이면 바로 더 참
+00:13 +104: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #106 가방 한 칸씩 예전 묶음은 그대로, 첫째·둘째 칸은 광고로도
+00:13 +105: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #104 튜토리얼 새로 시작하면 바로 옆 몬스터, 건너뛰면 끝. 기존 사용자는 없음
+00:13 +106: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #104 튜토리얼 둘째 몬스터(정령 원정)를 잡으면 Lv.2
+00:13 +107: /home/runner/work/isekai-reality/isekai-reality/test/batch15_test.dart: #116 도감 펫 탭은 정령과 이별한 뒤에만
+00:14 +108: /home/runner/work/isekai-reality/isekai-reality/test/batch11_test.dart: #86 이용 연령 만 14세 이상만, 올해 14살이면 생일이 지났는지 묻는다
+00:14 +109: /home/runner/work/isekai-reality/isekai-reality/test/batch11_test.dart: #86 이용 연령 14세 미만이면 이용 불가 화면, 다시 켜도 그대로
+00:14 +110: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 밑줄 없이, 칭호 배지 그림, 「대표로 하기」 금빛 + 「닫기」 작게
+00:15 +111: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 밑줄 없이, 칭호 배지 그림, 「대표로 하기」 금빛 + 「닫기」 작게
+00:15 +112: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 이미 대표 칭호면 「닫기」 하나만
+00:15 +113: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 공통 금빛 배지는 그려진다
+00:15 +114: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 튜토리얼 중에는 칭호 창이 끼어들지 않고, 끝난 뒤에 남아 있다
+00:16 +115: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 튜토리얼 중에는 칭호 창이 끼어들지 않고, 끝난 뒤에 남아 있다
+00:16 +116: /home/runner/work/isekai-reality/isekai-reality/test/batch20_test.dart: #160 칭호 축하 창 튜토리얼 중에는 칭호 창이 끼어들지 않고, 끝난 뒤에 남아 있다
+00:16 +117: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +118: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +119: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +120: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +121: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +122: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +123: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #150 첫 장면에서 멈추지 않는다 연출은 버튼 없이 저절로 첫 전투로 넘어간다
+00:16 +124: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 마석 개수: 남은 10분마다 1개, 1~6개
+00:16 +125: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 튜토리얼: 첫 몬스터 마석 1개로 바로 돌아와 Lv.2
+00:16 +126: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 마석이 모자라면 돌아오지 않는다
+00:16 +127: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 튜토리얼: 누를 곳 하나만 밝게, 누르면 첫 전투
+00:17 +128: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 튜토리얼: 누를 곳 하나만 밝게, 누르면 첫 전투
+00:17 +129: /home/runner/work/isekai-reality/isekai-reality/test/batch25_test.dart: #171 첫날 안에 Lv.3 새로 설치 → Lv.2 → 몬스터 5마리로 Lv.3
+00:17 +130: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 창: 마석 버튼·모자라면 안내
+00:17 +131: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 창: 마석 버튼·모자라면 안내
+00:17 +132: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #151 바로 돌아오기 창: 마석 버튼·모자라면 안내
+00:17 +133: /home/runner/work/isekai-reality/isekai-reality/test/batch25_test.dart: #166 원정 대사 배지를 누르면 대사 끝에 「서두를까?」
+00:18 +134: /home/runner/work/isekai-reality/isekai-reality/test/batch25_test.dart: #166 원정 대사 배지를 누르면 대사 끝에 「서두를까?」
+00:18 +135: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +136: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +137: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +138: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +139: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +140: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +141: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:18 +142: /home/runner/work/isekai-reality/isekai-reality/test/batch18_test.dart: #148 위치 거부: 위치를 켜 달라고 하고, 가운데 슬라임으로 진행
+00:19 +143: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 예전 기록: 첫 무기를 받은 사람은 다시 못 받고, 안 받은 사람은 받는다
+00:19 +144: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 안내 기록을 지워도 첫 무기는 다시 주지 않는다
+00:19 +145: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 새로 설치: Lv.3 첫 무기 무료 한 번만, 다시 켜도 그대로
+00:19 +146: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 새로 설치: Lv.5 도구 한 벌 무료 한 번만
+00:19 +147: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 예전 기록: 도구를 가진 기존 사용자는 받은 것으로, 우편 없음
+00:19 +148: /home/runner/work/isekai-reality/isekai-reality/test/batch23_test.dart: 1 한 번만 주는 선물은 따로 저장 예전 기록: 도구가 없는 기존 사용자는 우편으로 한 번만
+00:19 +149: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:19 +150: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:19 +151: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:19 +152: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:19 +153: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:19 +154: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:20 +155: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:20 +156: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:20 +157: /home/runner/work/isekai-reality/isekai-reality/test/widget_test.dart: 예시 모드로 앱이 열리고 상태창에 레벨이 보인다
+00:20 +158: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +159: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +160: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +161: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +162: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +163: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +164: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +165: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:21 +166: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +167: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +168: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +169: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +170: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +171: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +172: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +173: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +174: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +175: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:22 +176: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +177: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +178: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +179: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +180: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +181: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +182: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +183: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +184: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +185: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +186: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +187: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +188: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +189: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +190: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +191: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +192: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +193: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +194: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +195: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +196: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +197: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +198: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +199: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +200: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +201: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +202: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +203: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +204: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +205: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +206: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:23 +207: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:25 +208: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:26 +209: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:26 +210: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:26 +211: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:26 +212: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:26 +213: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:28 +214: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #124 예전 기록으로 시작해도 켜진다 건강 데이터가 답하지 않아도 화면은 먼저 열린다
+00:28 +215: /home/runner/work/isekai-reality/isekai-reality/test/screens_test.dart: 화면 도감은 몬스터 한 화면, 칭호는 프로필에서
+00:28 +216: /home/runner/work/isekai-reality/isekai-reality/test/screens_test.dart: 화면 도감은 몬스터 한 화면, 칭호는 프로필에서
+00:28 +217: /home/runner/work/isekai-reality/isekai-reality/test/screens_test.dart: 화면 도감은 몬스터 한 화면, 칭호는 프로필에서
+00:28 +218: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #127 레벨업 창은 작은 휴대폰(칭호와 함께)에서도 한 화면, 버튼은 화면 안
+00:29 +219: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #127 레벨업 창은 작은 휴대폰(칭호와 함께)에서도 한 화면, 버튼은 화면 안
+00:29 +220: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #141~#144 레벨에 따라 여는 기능 새로 시작: Lv.1 에는 대장간·게시판·채집·돋보기 잠김, 튜토리얼은 연출부터
+00:29 +221: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #141~#144 레벨에 따라 여는 기능 기존 사용자: 아무것도 잠그지 않고 안내도 띄우지 않는다
+00:29 +222: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #141~#144 레벨에 따라 여는 기능 튜토리얼 동안 걸음 경험치는 모아 두고 Lv.1 에 머문다
+00:29 +223: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:30 +224: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:30 +225: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:30 +226: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:30 +227: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:30 +228: /home/runner/work/isekai-reality/isekai-reality/test/batch16_test.dart: #134 아이폰 13 에서 상태 탭 높이가 기준 높이와 같다
+00:31 +229: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #167 원정 보상이 걸음 읽기에 덮이지 않는다 걸음 읽기가 늦게 끝나는 사이 바로 돌아오기 → 마석·결과 기록이 남는다
+00:31 +230: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #167 원정 보상이 걸음 읽기에 덮이지 않는다 기록 쓰기는 한 줄로: 동시에 고쳐도 둘 다 남는다
+00:31 +231: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #172 결과는 도착할 때, 결과 카드는 돌아온 뒤 도착 → 결과·보상 저장(돌아오는 중), 돌아옴 → 결과 카드, 한 번만
+00:31 +232: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #172 결과는 도착할 때, 결과 카드는 돌아온 뒤 바로 돌아오기로 도착·돌아옴이 한꺼번에 지나도 한 번만
+00:31 +233: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #172 결과는 도착할 때, 결과 카드는 돌아온 뒤 예전 기록: 결과가 있는 원정은 돌아온 것, 도착했지만 결과 없는 원정은 열 때 정함
+00:31 +234: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #172 결과는 도착할 때, 결과 카드는 돌아온 뒤 튜토리얼 원정: 도착해도 튜토리얼은 돌아올 때 끝 (Lv.2)
+00:31 +235: /home/runner/work/isekai-reality/isekai-reality/test/batch24_test.dart: #168 하늘 슬라임은 도감 첫 칸, 칭호 개수는 그대로
+00:31 +236: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 하루 사냥 (11-11 #69) 1~5마리 그대로, 6~15 절반, 16부터 10%
+00:31 +237: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 마을 사람·정령 이름은 이미 쓰는 이름
+00:31 +238: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 처음은 무료 뱃지, 바꾸지 않으면 저장 흐림
+00:32 +239: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 처음은 무료 뱃지, 바꾸지 않으면 저장 흐림
+00:32 +240: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 처음은 무료 뱃지, 바꾸지 않으면 저장 흐림
+00:32 +241: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 처음은 무료 뱃지, 바꾸지 않으면 저장 흐림
+00:32 +242: /home/runner/work/isekai-reality/isekai-reality/test/batch6_test.dart: 이름 바꾸기 (11-11 #72) 처음은 무료 뱃지, 바꾸지 않으면 저장 흐림
+00:32 +243: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 1 마을·도감 정령 배지 마을: 위쪽 줄 대신 배지 + 말풍선, 접힌 뒤 배지를 누르면 다시
+00:32 +244: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 1 마을·도감 정령 배지 마을: 위쪽 줄 대신 배지 + 말풍선, 접힌 뒤 배지를 누르면 다시
+00:32 +245: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 1 마을·도감 정령 배지 마을: 위쪽 줄 대신 배지 + 말풍선, 접힌 뒤 배지를 누르면 다시
+00:32 +246: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 1 마을·도감 정령 배지 마을: 위쪽 줄 대신 배지 + 말풍선, 접힌 뒤 배지를 누르면 다시
+00:32 +247: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 1 마을·도감 정령 배지 도감도 배지
+00:33 +248: /home/runner/work/isekai-reality/isekai-reality/test/batch22_test.dart: 4 거래소는 기존 사용자에게도 숨김
+00:33 +249: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 확률 Lv.1은 없음 60 · 일반 25 · 희귀 12 · 전설 3
+00:33 +250: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 확률 레벨마다 희귀 +0.3%p, 전설 +0.1%p, 상한 49 · 25 · 20 · 6
+00:33 +251: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 확률 자리마다 같은 수식어, 실제 비율도 확률과 비슷하다
+00:33 +252: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 확률 던전 몬스터에는 붙지 않고, 전설은 둘까지 붙는다
+00:33 +253: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 확률 이름은 수식어를 앞에 붙이고, 색은 가장 높은 등급
+00:33 +254: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 전투 수식어가 없으면 예전과 같은 한 마리
+00:33 +255: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 전투 굶주린은 먼저 치고, 능력치는 배수만큼
+00:33 +256: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 전투 무리 지은은 2~3마리, 찍찍거리는은 두 마리
+00:33 +257: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 전투 황금빛은 3턴 안에 못 잡으면 도망친다
+00:33 +258: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 전투 독은 3턴 동안 최대 HP 2%씩
+00:33 +259: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 사냥 기록 희귀 수식어 몬스터는 도감 수식어 칸에, 무리는 마리 수만큼 보상
+00:33 +260: /home/runner/work/isekai-reality/isekai-reality/test/modifier_test.dart: 수식어 사냥 기록 황금빛이 도망치면 오늘은 다시 나오지 않는다
+00:33 +261: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 채집 (11-11 #56) 자리마다 3번, 2시간마다 하나씩 다시 찬다
+00:33 +262: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 채집 (11-11 #56) 채집 자리는 누구에게나 같고, 4종이 섞여 있다
+00:33 +263: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 채집 (11-11 #56) 기본 재료는 늘, 미니게임을 잘하면 더 많이
+00:33 +264: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 채집 (11-11 #56) 빠른 채집·미니게임·도구 내구도
+00:33 +265: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 승객 확인 (11-11 #61) 시속 20km 10초면 묻고, 승객이면 보상 제한, 멈추면 끝
+00:34 +266: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 우편 (11-11 #65) 의뢰 10건 감사 편지, 선물 받기, 편지 탭에 남음
+00:34 +267: /home/runner/work/isekai-reality/isekai-reality/test/batch5_test.dart: 우편 (11-11 #65) 보상 우편은 30일 뒤 사라지고, 가방이 가득하면 금화로
+00:34 +268: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #179 안내 몬스터 자리 안내가 시작될 때 한 번 정하고, 걸어도·다시 켜도 그대로 (25~40m)
+00:34 +269: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #179 안내 몬스터 자리 원정 목표와 겹치지 않는 쪽으로
+00:34 +270: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #179 안내 몬스터 자리 튜토리얼 첫 몬스터도 처음 자리에 고정
+00:34 +271: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +272: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +273: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +274: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +275: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +276: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +277: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +278: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +279: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +280: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +281: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +282: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +283: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +284: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:34 +285: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 어둠막 위에서 끌면 아래 목록이 굴러가고, 누르기는 막힌다
+00:35 +286: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:35 +286: /home/runner/work/isekai-reality/isekai-reality/test/balance_report_test.dart: 밸런스 점검 보고서
+# 밸런스 점검 (자동 계산)
+
+실제 게임 규칙 코드로 2주를 계산했습니다. 던전은 생긴 열쇠를 그날 모두 쓰고, 충전될 때마다 스킬을 쓴다고 가정했습니다. 매일 앱을 연다고 봅니다. HP는 전투 사이에 이어지고(2026-11-10), 쓰러지면 그날 던전은 그만둡니다.
+
+## 요약
+
+| 유형 | 7일째 | 14일째 | 하루 평균 경험치 | 던전 | 클리어 (스킬 씀) | 클리어 (스킬 안 씀) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 적게 걷는 사람 | Lv.7 | Lv.11 | 199 | 24회 | 14회 | 8회 |
+| 보통 | Lv.9 | Lv.13 | 270 | 36회 | 23회 | 10회 |
+| 많이 걷는 사람 | Lv.10 | Lv.15 | 319 | 42회 | 28회 | 14회 |
+
+기획 목표: 2주 뒤 Lv.10~13, 하루 보통 150~250 경험치.
+
+장비·수식어는 이 계산에 넣지 않았습니다 (장비를 입으면 던전 클리어가 늘어 레벨이 조금 더 오릅니다).
+
+### 주간 의뢰 경험치를 바꾸면 (14일째)
+
+| 유형 | 60 | 지금 (30) | 20 | 0 (금화만) |
+| --- | --- | --- | --- | --- |
+| 적게 걷는 사람 | Lv.12 | Lv.11 | Lv.11 | Lv.11 |
+| 보통 | Lv.14 | Lv.13 | Lv.13 | Lv.13 |
+| 많이 걷는 사람 | Lv.15 | Lv.15 | Lv.15 | Lv.14 |
+
+## 적게 걷는 사람
+
+목표 3,000보(모두 같음), 하루 2,800~4,500보, 새 안개 5~20칸, 여관은 일주일에 5번쯤, 필드 몬스터는 주로 정령 원정으로 하루 1~3마리
+
+경험치 출처: 던전 29% · 필드 몬스터 16% · 탐험 2% · 퀘스트 40% · 주간 의뢰 4% · 여관 휴식 9%
+
+14일째 스탯 (포인트를 고르게 나눔): 힘 20 · 민첩 20 · 지능 20 · 체력 21 · 행운 20 (같은 레벨 기준값 합계 100, 실제 합계 101) · 칭호 5개
+
+| 날 | 걸음 | 던전 | 클리어 | 스킬 없이 | 경험치 | 레벨 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 3,824 | 2 | 2 | 1 | 205 | Lv.2 |
+| 2 | 4,191 | 1 | 0 | 0 | 175 | Lv.3 |
+| 3 | 3,530 | 1 | 0 | 0 | 150 | Lv.4 |
+| 4 | 3,153 | 3 | 2 | 1 | 215 | Lv.5 |
+| 5 | 4,250 | 1 | 0 | 0 | 130 | Lv.5 |
+| 6 | 3,288 | 1 | 0 | 0 | 175 | Lv.6 |
+| 7 | 4,441 | 1 | 0 | 0 | 130 | Lv.7 |
+| 8 | 2,882 | 1 | 0 | 0 | 115 | Lv.7 |
+| 9 | 4,148 | 3 | 2 | 1 | 265 | Lv.8 |
+| 10 | 3,690 | 3 | 2 | 1 | 280 | Lv.9 |
+| 11 | 4,191 | 3 | 2 | 1 | 295 | Lv.10 |
+| 12 | 2,816 | 1 | 1 | 1 | 140 | Lv.10 |
+| 13 | 2,904 | 1 | 1 | 1 | 185 | Lv.10 |
+| 14 | 4,227 | 2 | 2 | 1 | 325 | Lv.11 |
+
+## 보통
+
+목표 3,000보(모두 같음), 하루 4,500~7,500보, 새 안개 15~40칸, 여관은 거의 매일, 필드 몬스터 하루 2~4마리
+
+경험치 출처: 던전 34% · 필드 몬스터 17% · 탐험 3% · 퀘스트 33% · 주간 의뢰 5% · 여관 휴식 8%
+
+14일째 스탯 (포인트를 고르게 나눔): 힘 22 · 민첩 22 · 지능 22 · 체력 23 · 행운 22 (같은 레벨 기준값 합계 110, 실제 합계 111) · 칭호 6개
+
+| 날 | 걸음 | 던전 | 클리어 | 스킬 없이 | 경험치 | 레벨 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 6,776 | 3 | 2 | 1 | 280 | Lv.3 |
+| 2 | 4,733 | 2 | 2 | 1 | 255 | Lv.4 |
+| 3 | 5,672 | 2 | 1 | 0 | 275 | Lv.5 |
+| 4 | 6,067 | 3 | 2 | 1 | 265 | Lv.6 |
+| 5 | 5,446 | 2 | 1 | 0 | 195 | Lv.7 |
+| 6 | 5,681 | 2 | 1 | 0 | 290 | Lv.8 |
+| 7 | 7,196 | 3 | 2 | 1 | 245 | Lv.9 |
+| 8 | 4,872 | 1 | 0 | 0 | 185 | Lv.9 |
+| 9 | 5,347 | 3 | 2 | 1 | 250 | Lv.10 |
+| 10 | 6,488 | 3 | 2 | 1 | 300 | Lv.11 |
+| 11 | 4,978 | 3 | 2 | 1 | 340 | Lv.11 |
+| 12 | 4,775 | 3 | 2 | 1 | 300 | Lv.12 |
+| 13 | 6,096 | 3 | 2 | 1 | 280 | Lv.13 |
+| 14 | 6,103 | 3 | 2 | 1 | 325 | Lv.13 |
+
+## 많이 걷는 사람
+
+목표 3,000보(모두 같음), 하루 8,000~13,000보, 새 안개 30~80칸, 여관은 매일, 필드 몬스터 하루 3~5마리
+
+경험치 출처: 던전 35% · 필드 몬스터 19% · 탐험 3% · 퀘스트 28% · 주간 의뢰 4% · 여관 휴식 11%
+
+14일째 스탯 (포인트를 고르게 나눔): 힘 24 · 민첩 24 · 지능 24 · 체력 26 · 행운 24 (같은 레벨 기준값 합계 120, 실제 합계 122) · 칭호 6개
+
+| 날 | 걸음 | 던전 | 클리어 | 스킬 없이 | 경험치 | 레벨 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 11,271 | 3 | 2 | 1 | 295 | Lv.3 |
+| 2 | 9,256 | 3 | 2 | 1 | 355 | Lv.5 |
+| 3 | 8,247 | 3 | 2 | 1 | 345 | Lv.6 |
+| 4 | 9,685 | 3 | 2 | 1 | 325 | Lv.7 |
+| 5 | 8,223 | 3 | 2 | 1 | 285 | Lv.8 |
+| 6 | 10,897 | 3 | 2 | 1 | 300 | Lv.9 |
+| 7 | 8,627 | 3 | 2 | 1 | 355 | Lv.10 |
+| 8 | 10,560 | 3 | 2 | 1 | 300 | Lv.11 |
+| 9 | 8,946 | 3 | 2 | 1 | 270 | Lv.11 |
+| 10 | 10,159 | 3 | 2 | 1 | 345 | Lv.12 |
+| 11 | 11,761 | 3 | 2 | 1 | 330 | Lv.13 |
+| 12 | 12,045 | 3 | 2 | 1 | 285 | Lv.13 |
+| 13 | 11,242 | 3 | 2 | 1 | 300 | Lv.14 |
+| 14 | 12,685 | 3 | 2 | 1 | 370 | Lv.15 |
+
+00:35 +287: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:36 +288: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:36 +289: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:36 +290: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:36 +291: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 작은 iPhone: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +292: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +293: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +294: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +295: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +296: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:37 +297: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:38 +298: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:38 +299: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:38 +300: /home/runner/work/isekai-reality/isekai-reality/test/batch26_test.dart: #173 안내 중 스크롤 Android: 무기를 고르면 「만들기 (무료)」가 화면 안에 보이고 눌린다
+00:38 +301: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 흰색 한 벌: 공격 +8%, 받는 피해 -13%, 최대 HP +5%
+00:38 +302: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 등급 확률: 기본 60/28/10/1.8/0.2, 귀한 재료 30/40/22/6.5/1.5, 숙련도
+00:38 +303: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 등급 배수와 추가 능력 개수
+00:38 +304: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 강화: +8%씩, 성공 확률과 비용
+00:38 +305: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 내구도 0이면 능력 절반, 흰색을 0에서 고치면 금화 50
+00:38 +306: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 분해: 재료 절반(내림) + 마석 1 + 강화 마석 절반
+00:38 +307: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 장비를 입으면 공격이 세지고 받는 피해가 준다
+00:38 +308: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 장비 규칙 저장했다 되살려도 같다
+00:38 +309: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 대장간 재료와 마석으로 만들고, 입으면 최대 HP가 는다
+00:38 +310: /home/runner/work/isekai-reality/isekai-reality/test/equipment_test.dart: 대장간 싸우면 내구도가 줄고, 고치고, 강화하고, 분해한다
+00:38 +311: /home/runner/work/isekai-reality/isekai-reality/test/route_test.dart: 원정 길찾기 (11-11 #42) 길을 따라 ㄱ자로 간다 (직선보다 길다)
+00:38 +312: /home/runner/work/isekai-reality/isekai-reality/test/route_test.dart: 원정 길찾기 (11-11 #42) 바다 위 몬스터: 길 끝까지 가서 남은 거리는 날아간다
+00:39 +313: /home/runner/work/isekai-reality/isekai-reality/test/route_test.dart: 원정 길찾기 (11-11 #42) 조각이 없거나 길이 이어지지 않으면 직선
+00:39 +314: /home/runner/work/isekai-reality/isekai-reality/test/route_test.dart: 원정 길찾기 (11-11 #42) 길 거리가 직선의 3배를 넘으면 직선
+00:39 +315: /home/runner/work/isekai-reality/isekai-reality/test/route_test.dart: 원정 길찾기 (11-11 #42) 정령은 길을 따라 움직인다
+00:39 +316: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: (setUpAll)
+00:40 +316: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:40 +317: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:40 +318: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:40 +319: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:40 +320: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:40 +321: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +322: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +323: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +324: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +325: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +326: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +327: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +328: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +329: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +330: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +331: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:41 +332: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +333: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +334: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +335: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +336: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +337: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +338: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +339: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +340: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +341: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:42 +342: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:43 +343: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:43 +344: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:43 +345: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +346: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +347: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +348: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +349: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +350: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +351: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +352: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +353: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +354: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +355: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +356: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +357: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +358: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +359: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +360: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +361: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +362: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +363: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +364: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +365: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +366: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +367: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +368: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +369: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +370: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +371: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +372: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +373: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +374: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +375: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +376: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +377: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+00:44 +378: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 예시 데이터로 탭과 던전
+01:06 +379: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 여성 각성자
+01:10 +380: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 여관과 잡화상
+01:17 +381: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 첫 실행 각성
+01:30 +382: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 각성 장면 작은화면
+01:32 +383: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 각성 장면 큰화면
+01:34 +384: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 지친 각성자와 정령 표정
+01:38 +385: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 수식어·대장간·장비
+01:52 +386: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 원정 결과 카드
+01:55 +387: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 정령 이별과 펫
+02:01 +388: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 펫 도감·알·원정
+02:04 +389: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 마법 돋보기 감정
+02:13 +390: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 채집·승객·우편 (11-11)
+02:20 +391: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 그림 확인 (물약·재료·몬스터)
+02:24 +392: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: 화면 미리보기: 첫 튜토리얼 (묶음 18)
+02:34 +393: /home/runner/work/isekai-reality/isekai-reality/test/screenshots_test.dart: (tearDownAll)
+02:35 +393: All tests passed!

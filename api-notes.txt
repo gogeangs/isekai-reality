@@ -1,0 +1,81 @@
+== /home/runner/.pub-cache/hosted/pub.dev/camera-0.11.4
+== /home/runner/.pub-cache/hosted/pub.dev/google_mlkit_face_detection-0.15.1
+== /home/runner/.pub-cache/hosted/pub.dev/google_mlkit_commons-0.13.0
+== /home/runner/.pub-cache/hosted/pub.dev/gal-2.3.3
+== /home/runner/.pub-cache/hosted/pub.dev/share_plus-11.1.0
+lib/src/gal.dart:22:  static Future<void> putVideo(String path, {String? album}) async =>
+lib/src/gal.dart:35:  static Future<void> putImage(String path, {String? album}) async =>
+lib/src/gal.dart:48:  static Future<void> putImageBytes(Uint8List bytes,
+lib/src/gal.dart:55:  static Future<void> open() async => GalPlatform.instance.open();
+lib/src/gal.dart:62:  static Future<bool> hasAccess({bool toAlbum = false}) async =>
+lib/src/gal.dart:72:  static Future<bool> requestAccess({bool toAlbum = false}) async =>
+lib/src/share_plus_windows.dart:25:  Future<ShareResult> share(ShareParams params) async {
+lib/src/share_plus_web.dart:31:  Future<ShareResult> share(ShareParams params) async {
+lib/src/share_plus_linux.dart:20:  Future<ShareResult> share(ShareParams params) async {
+lib/src/windows_version_helper.dart:7:  static VersionHelper instance = VersionHelper._();
+lib/share_plus.dart:30:  static final SharePlus instance = SharePlus._(SharePlatform.instance);
+lib/share_plus.dart:73:  Future<ShareResult> share(ShareParams params) async {
+lib/share_plus.dart:132:  static Future<ShareResult> shareUri(
+lib/share_plus.dart:181:  static Future<ShareResult> share(
+lib/share_plus.dart:226:  static Future<ShareResult> shareXFiles(
+lib/src/input_image.dart:35:  factory InputImage.fromFilePath(String path) {
+lib/src/input_image.dart-36-    return InputImage._(filePath: path, type: InputImageType.file);
+lib/src/input_image.dart-37-  }
+lib/src/input_image.dart-38-
+lib/src/input_image.dart-39-  /// Creates an instance of [InputImage] by passing a file.
+lib/src/input_image.dart:40:  factory InputImage.fromFile(File file) {
+lib/src/input_image.dart-41-    return InputImage._(filePath: file.path, type: InputImageType.file);
+lib/src/input_image.dart-42-  }
+lib/src/input_image.dart-43-
+lib/src/input_image.dart-44-  /// Creates an instance of [InputImage] using bytes.
+lib/src/input_image.dart:45:  factory InputImage.fromBytes({
+lib/src/input_image.dart-46-    required Uint8List bytes,
+lib/src/input_image.dart-47-    required InputImageMetadata metadata,
+lib/src/input_image.dart-48-  }) {
+lib/src/input_image.dart-49-    return InputImage._(
+lib/src/input_image.dart-50-      bytes: bytes,
+lib/src/input_image.dart-51-      type: InputImageType.bytes,
+lib/src/input_image.dart-52-      metadata: metadata,
+lib/src/input_image.dart-53-    );
+--
+lib/src/input_image.dart:80:  factory InputImage.fromBitmap({
+lib/src/input_image.dart-81-    required Uint8List bitmap,
+lib/src/input_image.dart-82-    required int width,
+lib/src/input_image.dart-83-    required int height,
+lib/src/input_image.dart-84-    int rotation = 0,
+lib/src/input_image.dart-85-  }) {
+lib/src/input_image.dart-86-    return InputImage._(
+lib/src/input_image.dart-87-      bitmapData: bitmap,
+lib/src/input_image.dart-88-      type: InputImageType.bitmap,
+--
+lib/src/input_image.dart:118:class InputImageMetadata {
+lib/src/input_image.dart-119-  /// Size of image.
+lib/src/input_image.dart-120-  final Size size;
+lib/src/input_image.dart-121-
+lib/src/input_image.dart-122-  /// Image rotation degree.
+lib/src/input_image.dart-123-  ///
+lib/src/input_image.dart-124-  /// Not used on iOS.
+lib/src/input_image.dart-125-  final InputImageRotation rotation;
+lib/src/input_image.dart-126-
+54:  FaceDetectorOptions({
+55-    this.enableClassification = false,
+56-    this.enableLandmarks = false,
+57-    this.enableContours = false,
+58-    this.enableTracking = false,
+59-    this.minFaceSize = 0.1,
+60-    this.performanceMode = FaceDetectorMode.fast,
+61-  }) : assert(minFaceSize >= 0.0),
+62-       assert(minFaceSize <= 1.0);
+63-
+64-  /// Whether to run additional classifiers for characterizing attributes.
+65-  ///
+66-  /// E.g. "smiling" and "eyes open".
+107:  final Rect boundingBox;
+137:  final double? headEulerAngleZ;
+160:  final int? trackingId;
+178:    this.headEulerAngleZ,
+182:    this.trackingId,
+190:    headEulerAngleZ: json['headEulerAngleZ'],
+194:    trackingId: json['trackingId'],
+/home/runner/.pub-cache/hosted/pub.dev/google_mlkit_face_detection-0.15.1/ios/google_mlkit_face_detection.podspec:19:  s.platform = :ios, '15.5'
+/home/runner/.pub-cache/hosted/pub.dev/google_mlkit_face_detection-0.15.1/ios/google_mlkit_face_detection.podspec:20:  s.ios.deployment_target = '15.5'

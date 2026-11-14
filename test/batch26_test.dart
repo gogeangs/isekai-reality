@@ -114,13 +114,13 @@ void main() {
       final scroll = ScrollController();
       var tapped = 0;
       await tester.pumpWidget(MaterialApp(
-        home: Stack(children: [
+        home: Scaffold(body: Stack(children: [
           ListView(controller: scroll, children: [
             for (var i = 0; i < 60; i++)
               ListTile(title: Text('줄 $i'), onTap: () => tapped++),
           ]),
           const HoleSpotlight(hole: Rect.fromLTWH(20, 20, 100, 40)),
-        ]),
+        ])),
       ));
       await tester.pump();
       await tester.dragFrom(const Offset(200, 500), const Offset(0, -300));

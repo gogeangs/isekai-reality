@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'board_parchment.dart';
 
-/// 일일 의뢰 상자 (11-10: 상태 화면에서 의뢰 게시판으로 옮김)
-// ───────────────────────────────────────────────────────────── 일일 퀘스트
+/// 오늘의 의뢰 (11-10: 상태 화면에서 의뢰 게시판으로 옮김).
+/// 묶음 26 #180: 「일일 퀘스트」 → 「오늘의 의뢰」, 양피지 쪽지 모양
 
 class DailyQuestPanel extends StatelessWidget {
   const DailyQuestPanel({
@@ -27,25 +27,15 @@ class DailyQuestPanel extends StatelessWidget {
     final total = quests.length * QuestRules.rewardExp + QuestRules.allDoneBonusExp;
     return FoldingQuestPanel(
       done: allDone,
-      foldedText: '일일 퀘스트 모두 완료 · 연속 $streak일째 · EXP +$total',
+      foldedText: '오늘의 의뢰 모두 완료 · 연속 $streak일째 · EXP +$total',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [
-            const GameIcon('quest', size: 26),
-            const SizedBox(width: 8),
-            Text('일일 퀘스트', style: AppText.title(19)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: AppColors.gold.withValues(alpha: 0.4),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 2),
-          for (final q in sortedQuests(quests)) QuestRowView(quest: q),
-          const SizedBox(height: 8),
+          const BoardPlaque('오늘의 의뢰'),
+          const SizedBox(height: 4),
+          for (final (i, q) in sortedQuests(quests).indexed)
+            QuestRowView(quest: q, seed: i),
+          const SizedBox(height: 4),
           AllDoneRow(done: allDone, streak: streak),
         ],
       ),
@@ -61,7 +51,7 @@ List<QuestProgress> sortedQuests(List<QuestProgress> qs) => [
         if (q.completed) q,
     ];
 
-/// 한 종류를 모두 끝내면 한 줄로 접히는 의뢰 상자 (11-11 #45). 누르면 펼친다.
+/// 한 종류를 모두 끝내면 작은 쪽지 한 장으로 접히는 의뢰 묶음 (11-11 #45). 누르면 펼친다.
 class FoldingQuestPanel extends StatefulWidget {
   const FoldingQuestPanel({
     super.key,
@@ -87,30 +77,25 @@ class _FoldingQuestPanelState extends State<FoldingQuestPanel> {
       return GestureDetector(
         onTap: widget.done ? () => setState(() => _open = false) : null,
         behavior: HitTestBehavior.translucent,
-        child: OrnatePanel(child: widget.child),
+        child: widget.child,
       );
     }
     return GestureDetector(
       onTap: () => setState(() => _open = true),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
-        decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xAA6FE3B0)),
-        ),
+      child: ParchmentNote(
+        seed: widget.foldedText.length,
+        faded: true,
+        stamp: const DoneStamp(small: true),
         child: Row(children: [
-          const Icon(Icons.check_circle_rounded,
-              color: Color(0xFF8FF0C4), size: 22),
-          const SizedBox(width: 8),
           Expanded(
-            child: KText(widget.foldedText,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700)),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 60),
+              child: KText(widget.foldedText,
+                  style: const TextStyle(
+                      color: kInk, fontSize: 14, fontWeight: FontWeight.w700)),
+            ),
           ),
-          const Icon(Icons.expand_more_rounded, color: AppColors.textMuted),
+          const Icon(Icons.expand_more_rounded, color: kInkSoft),
         ]),
       ),
     );
@@ -126,126 +111,73 @@ class RewardChip extends StatelessWidget {
   final Widget? icon;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(5, 3, 8, 3),
-      decoration: BoxDecoration(
-        color: done ? const Color(0x3346E0A0) : const Color(0x33E8B04A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: done
-                ? const Color(0xAA6FE3B0)
-                : AppColors.gold.withValues(alpha: 0.7)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        done
-            ? const Icon(Icons.check_rounded, size: 15, color: Color(0xFF8FF0C4))
-            : icon ?? const GameIcon('exp', size: 16),
-        const SizedBox(width: 3),
-        Text(text,
-            style: TextStyle(
-                color: done ? const Color(0xFF8FF0C4) : AppColors.goldBright,
-                fontSize: 12,
-                fontWeight: FontWeight.w800)),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => NoteRewards(
+        done: done,
+        items: [(icon ?? const GameIcon('exp', size: 15), text)],
+      );
 }
 
+/// 의뢰 쪽지 한 장 (오늘의 의뢰·주간 의뢰)
 class QuestRowView extends StatelessWidget {
-  const QuestRowView({super.key, required this.quest, this.rewardExp, this.extra = const []});
+  const QuestRowView(
+      {super.key,
+      required this.quest,
+      this.rewardExp,
+      this.extra = const [],
+      this.seed = 0});
 
   final QuestProgress quest;
 
-  /// 보상 경험치 (없으면 일일 퀘스트 경험치)
+  /// 보상 경험치 (없으면 오늘의 의뢰 경험치)
   final int? rewardExp;
 
-  /// 경험치 말고 더 받는 보상 (예: 주간 의뢰의 금화)
-  final List<Widget> extra;
+  /// 경험치 말고 더 받는 보상 (예: 주간 의뢰의 금화) — (아이콘, 글)
+  final List<(Widget, String)> extra;
+
+  /// 쪽지 기울기
+  final int seed;
 
   @override
   Widget build(BuildContext context) {
     final current =
         quest.unit == '보' ? comma(quest.current) : '${quest.current}';
     final target = quest.unit == '보' ? comma(quest.target) : '${quest.target}';
-    // 끝낸 의뢰는 흐리게 (11-11 #45)
-    return Opacity(
-      opacity: quest.completed ? 0.55 : 1,
-      child: Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-      decoration: BoxDecoration(
-        color: const Color(0x66101333),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
-      ),
-      child: Row(children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
-            gradient: quest.completed ? kGoldGradient : null,
-            border: Border.all(color: AppColors.gold, width: 1.4),
-          ),
-          child: quest.completed
-              ? const Icon(Icons.check_rounded,
-                  size: 18, color: AppColors.goldInk)
-              : null,
-        ),
-        const SizedBox(width: 10),
-        // 이름은 넓게, 진행 막대는 이름 아래 짧게 (C2)
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(keepAll(quest.title),
-                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
-              const SizedBox(height: 4),
-              if (quest.completed)
-                Text('완료', style: AppText.title(14))
-              else
-                Row(children: [
-                  SizedBox(
-                    width: 70,
-                    child: GlowBar(
-                      ratio: quest.target == 0
-                          ? 0
-                          : quest.current / quest.target,
-                      colors: BarColors.exp,
-                      height: 6,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text('$current / $target${quest.unit}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 13)),
-                  ),
-                ]),
-            ],
-          ),
-        ),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RewardChip(
-                text: 'EXP ${rewardExp ?? QuestRules.rewardExp}',
-                done: quest.completed),
-            for (final w in extra) ...[const SizedBox(height: 3), w],
-          ],
-        ),
-      ]),
+    // 끝낸 의뢰는 흐리게 + 「완료」 인장 (11-11 #45, 묶음 26 #180)
+    return ParchmentNote(
+      seed: seed + quest.title.length,
+      faded: quest.completed,
+      stamp: quest.completed ? const DoneStamp() : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(keepAll(quest.title), style: noteTitle(15)),
+          const SizedBox(height: 6),
+          if (!quest.completed)
+            Row(children: [
+              Expanded(
+                child: InkBar(
+                    ratio: quest.target == 0 ? 0 : quest.current / quest.target),
+              ),
+              const SizedBox(width: 8),
+              Text('$current / $target${quest.unit}',
+                  maxLines: 1,
+                  style: const TextStyle(
+                      color: kInkSoft,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          NoteRewards(done: quest.completed, items: [
+            (const GameIcon('exp', size: 15),
+                'EXP ${rewardExp ?? QuestRules.rewardExp}'),
+            ...extra,
+          ]),
+        ],
       ),
     );
   }
 }
 
-/// 3개 모두 완료 보너스 + 연속 달성 일수 (11-10 C2)
+/// 3개 모두 완료 보너스 + 연속 달성 일수: 맨 아래 큰 쪽지(금색 리본) (11-10 C2, 묶음 26 #180)
 class AllDoneRow extends StatelessWidget {
   const AllDoneRow({super.key, required this.done, required this.streak});
 
@@ -254,37 +186,31 @@ class AllDoneRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: LinearGradient(colors: [
-          AppColors.gold.withValues(alpha: done ? 0.28 : 0.14),
-          AppColors.gold.withValues(alpha: 0.04),
-        ]),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
-      ),
+    return ParchmentNote(
+      key: const Key('allDoneNote'),
+      seed: 5,
+      ribbon: true,
+      stamp: done ? const DoneStamp() : null,
       child: Row(children: [
-        const GameIcon('medal', size: 26),
-        const SizedBox(width: 8),
+        const GameIcon('medal', size: 34),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(done ? '모두 완료!' : '3개 모두 완료하면 보너스',
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
+                  style: noteTitle(16)),
               Text(
                 streak > 0 ? '연속 달성 $streak일째' : '연속 달성을 시작해 보세요',
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 12),
+                style: const TextStyle(color: kInkSoft, fontSize: 12),
               ),
+              NoteRewards(done: done, items: [
+                (const GameIcon('exp', size: 15),
+                    'EXP +${QuestRules.allDoneBonusExp}'),
+              ]),
             ],
           ),
         ),
-        RewardChip(text: 'EXP +${QuestRules.allDoneBonusExp}', done: done),
       ]),
     );
   }

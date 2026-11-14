@@ -120,10 +120,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
         if (p.materialCount(m) > 0) m,
     ];
     if (_rare != null && !rares.contains(_rare)) _rare = null;
+    // 묶음 26 #174: 등급 확률·숙련도 숫자는 숨긴다 (숨은 규칙). 나올 수 있는 등급 색 점만
     final chances =
         EquipmentRules.gradeChances(rare: _rare != null, crafts: c.armory.crafts);
-    String fmt(double v) =>
-        v == v.roundToDouble() ? v.round().toString() : v.toString();
     return [
       OrnatePanel(
         child: Column(
@@ -146,21 +145,42 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   ),
               ]),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 2, children: [
+            Row(key: const Key('gradeDots'), children: [
+              const Text('나올 수 있는 등급',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              const SizedBox(width: 8),
               for (var i = 0; i < EquipGrade.values.length; i++)
-                Text(
-                    '${EquipmentRules.gradeLabel(EquipGrade.values[i])} '
-                    '${fmt(chances[i])}%',
-                    style: TextStyle(
-                        color: equipGradeColor(EquipGrade.values[i]),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
+                if (chances[i] > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Tooltip(
+                      message:
+                          EquipmentRules.gradeLabel(EquipGrade.values[i]),
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: equipGradeColor(EquipGrade.values[i]),
+                          border: Border.all(
+                              color: const Color(0x66000000), width: 1),
+                        ),
+                      ),
+                    ),
+                  ),
             ]),
-            const SizedBox(height: 2),
-            KText(
-                '만든 장비 ${c.armory.crafts}개 · 숙련도 파랑 +'
-                '${EquipmentRules.masteryBonus(c.armory.crafts)}%p '
-                '(10개마다 +1%p)',
+            if (_rare != null) ...[
+              const SizedBox(height: 4),
+              const KText('좋은 등급이 나오기 쉬워져요',
+                  key: Key('rareHint'),
+                  style: TextStyle(
+                      color: AppColors.goldBright,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700)),
+            ],
+            const SizedBox(height: 4),
+            KText('만든 장비 ${c.armory.crafts}개',
+                key: const Key('craftCount'),
                 style:
                     const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ],
@@ -640,8 +660,9 @@ class _RecipeCard extends StatelessWidget {
                 children: [
                   Text(info.name, style: AppText.title(16, color: AppColors.text)),
                   Text(
+                      // 묶음 26 #178: 어울리는 직업은 직업이 생긴 뒤에 (지금은 숨김)
                       '${EquipmentRules.slotLabel(info.slot)} · ${info.statLabel}'
-                      '${info.job == null ? '' : ' · 어울리는 직업 ${info.job}'}',
+                      '${info.job == null || !LockedJobPanel.jobsVisible ? '' : ' · 어울리는 직업 ${info.job}'}',
                       style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 12)),
                 ],

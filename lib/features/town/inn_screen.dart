@@ -72,12 +72,56 @@ class InnScreen extends StatelessWidget {
                       full: full),
                 ),
                 const SizedBox(height: 4),
+                // 묶음 26 #175: 그림을 줄이고 체크인·쉬는 중 버튼을 바로 아래에
+                // (작은 iPhone에서도 들어오자마자 보이게)
                 Center(
                   child: Image.asset('assets/images/map_inn.webp',
-                      height: 110,
+                      height: 80,
                       errorBuilder: (_, __, ___) => const SizedBox()),
                 ),
                 const SizedBox(height: 8),
+                if (resting) ...[
+                  GoldButton(
+                    key: const Key('innResting'),
+                    label: full
+                        ? '회복 완료 · 보너스까지 ${left(controller.restLeft)}'
+                        : '쉬는 중 · ${left(controller.restLeft)} 남음',
+                    onPressed: null,
+                  ),
+                  // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
+                  if (controller.canShortenRest) ...[
+                    const SizedBox(height: 8),
+                    AdButton(
+                      key: const Key('adShortenRest'),
+                      label: '광고 보고 1시간 줄이기',
+                      onPressed: () async {
+                        final ok = await controller.adShortenRest();
+                        if (!ok && context.mounted) {
+                          showTopNotice(context, '광고를 불러오지 못했어요.');
+                        }
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  // 묶음 15 #107: 일어나도 그때까지 찬 HP·MP는 그대로
+                  TextButton(
+                    key: const Key('innWake'),
+                    onPressed: () => controller.stopResting(),
+                    child: const KText('일어나기 (찬 만큼은 그대로)',
+                        style: TextStyle(color: AppColors.textMuted)),
+                  ),
+                ] else
+                  GoldButton(
+                    key: const Key('innCheckIn'),
+                    label: '체크인하고 쉬기',
+                    onPressed: () async {
+                      final ok = await controller.restAtInn();
+                      if (ok && context.mounted) {
+                        showTopNotice(context, '체크인했어요. 4시간 뒤에 다 쉬어요!');
+                      }
+                    },
+                  ),
+                const SizedBox(height: 12),
                 OrnatePanel(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -180,45 +224,6 @@ class InnScreen extends StatelessWidget {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (resting) ...[
-                  GoldButton(
-                    label: full
-                        ? '회복 완료 · 보너스까지 ${left(controller.restLeft)}'
-                        : '쉬는 중 · ${left(controller.restLeft)} 남음',
-                    onPressed: null,
-                  ),
-                  // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
-                  if (controller.canShortenRest) ...[
-                    const SizedBox(height: 8),
-                    AdButton(
-                      key: const Key('adShortenRest'),
-                      label: '광고 보고 1시간 줄이기',
-                      onPressed: () async {
-                        final ok = await controller.adShortenRest();
-                        if (!ok && context.mounted) {
-                          showTopNotice(context, '광고를 불러오지 못했어요.');
-                        }
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  // 묶음 15 #107: 일어나도 그때까지 찬 HP·MP는 그대로
-                  TextButton(
-                    onPressed: () => controller.stopResting(),
-                    child: const KText('일어나기 (찬 만큼은 그대로)',
-                        style: TextStyle(color: AppColors.textMuted)),
-                  ),
-                ] else
-                  GoldButton(
-                    label: '체크인하고 쉬기',
-                    onPressed: () async {
-                      final ok = await controller.restAtInn();
-                      if (ok && context.mounted) {
-                        showTopNotice(context, '체크인했어요. 4시간 뒤에 다 쉬어요!');
-                      }
-                    },
-                  ),
               ],
             );
           },

@@ -163,7 +163,9 @@ Rect? rectOfKey(Key key) {
   final e = elementOfKey(key);
   final box = e?.findRenderObject();
   if (box is! RenderBox || !box.hasSize || !box.attached) return null;
-  return box.localToGlobal(Offset.zero) & box.size;
+  // 묶음 26 #180: 살짝 기운 쪽지 안 버튼도 정확히 (돌린 모양을 감싸는 사각형)
+  return MatrixUtils.transformRect(
+      box.getTransformTo(null), Offset.zero & box.size);
 }
 
 /// 한 단계: 누를 곳·말·누르면 할 일

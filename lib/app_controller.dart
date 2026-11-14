@@ -216,8 +216,35 @@ class AppController extends ChangeNotifier {
     if (!on) Future<void>.microtask(notifyListeners);
   }
 
-  Future<void> _saveSeenTitles() => store.saveJson(
-      _titlesKey, {'seen': [for (final t in _seenTitles) t.name]});
+  Future<void> _saveSeenTitles() => store.saveJson(_titlesKey, {
+        'seen': [for (final t in _seenTitles) t.name],
+        'listed': [for (final t in _listedTitles) t.name],
+      });
+
+  /// 프로필 칭호 목록에서 이미 보여 준 칭호 (묶음 26 #177: 처음 볼 때 한 번 빛남)
+  Set<TitleId> _listedTitles = {};
+
+  /// 얻은 칭호, 새로 얻은 것부터 (묶음 26 #177)
+  List<TitleId> get titlesNewestFirst {
+    final earned = player.titles;
+    return [
+      for (final t in earned)
+        if (!_seenTitles.contains(t)) t,
+      for (final t in _seenTitles.toList().reversed)
+        if (earned.contains(t)) t,
+    ];
+  }
+
+  /// 프로필 목록에서 아직 보여 주지 않은 칭호인지
+  bool titleIsNewInList(TitleId t) => !_listedTitles.contains(t);
+
+  /// 지금 얻은 칭호를 모두 보여 준 것으로
+  Future<void> markTitlesListed() async {
+    final earned = player.titles;
+    if (earned.every(_listedTitles.contains)) return;
+    _listedTitles = {..._listedTitles, ...earned};
+    await _saveSeenTitles();
+  }
 
   /// 확인하지 않은 레벨업. 없으면 null.
   ({int from, int to})? get pendingLevelUp {
@@ -479,7 +506,15 @@ class AppController extends ChangeNotifier {
             for (final n in (titles['seen'] as List? ?? const []))
               if (TitleRules.parse(n as String) case final t?) t,
           };
-    if (titles == null) await _saveSeenTitles();
+    // 묶음 26 #177: 예전 기록은 지금 가진 칭호를 이미 보여 준 것으로 (빛나지 않게)
+    final listed = titles?['listed'] as List?;
+    _listedTitles = listed == null
+        ? {...player.titles}
+        : {
+            for (final n in listed)
+              if (TitleRules.parse(n as String) case final t?) t,
+          };
+    if (titles == null || listed == null) await _saveSeenTitles();
     if (_alloc.seenLife == null) {
       // 예전 저장본·처음 각성: 지금 생활 보너스까지는 이미 알려 준 것으로 친다
       _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));

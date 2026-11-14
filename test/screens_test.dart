@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
-import 'package:isekai_reality/core/rules/title_rules.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
@@ -115,7 +114,8 @@ void main() {
       expect(find.textContaining('희귀·전설'), findsWidgets);
       await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
-      expect(find.textContaining('/ ${TitleRules.all.length}'), findsWidgets);
+      // 묶음 26 #177: 전체 개수 없이 「얻은 칭호 ○개」만
+      expect(find.byKey(const Key('titleCount')), findsOneWidget);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {

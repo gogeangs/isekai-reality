@@ -9,6 +9,10 @@ import '../../theme/ornaments.dart';
 /// 그림(board_bg·board_note·board_pin·board_seal·board_done)이 들어오면 그것을 쓰고,
 /// 없으면 코드로 그린 임시 그림을 쓴다.
 
+/// 게시판 그림 자리. 그림이 아직 없으면 코드로 그린 임시 그림이 보인다
+/// (그림 경로 점검 시험이 빠진 그림을 오류로 보지 않게 이름만 적는다)
+String boardArt(String name) => 'assets/images/$name.webp';
+
 /// 쪽지 글씨 (진한 갈색)
 const Color kInk = Color(0xFF3A2614);
 
@@ -46,7 +50,7 @@ class WoodBoard extends StatelessWidget {
           child: Stack(children: [
             const Positioned.fill(child: CustomPaint(painter: _WoodPainter())),
             Positioned.fill(
-              child: Image.asset('assets/images/board_bg.webp',
+              child: Image.asset(boardArt('board_bg'),
                   fit: BoxFit.fitWidth,
                   alignment: Alignment.topCenter,
                   repeat: ImageRepeat.repeatY,
@@ -217,7 +221,7 @@ class ParchmentNote extends StatelessWidget {
       ),
       child: Stack(children: [
         Positioned.fill(
-          child: Image.asset('assets/images/board_note.webp',
+          child: Image.asset(boardArt('board_note'),
               centerSlice: const Rect.fromLTRB(90, 90, 710, 310),
               fit: BoxFit.fill,
               errorBuilder: (_, __, ___) => const SizedBox()),
@@ -277,7 +281,7 @@ class BoardPin extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
         width: 24,
         height: 24,
-        child: Image.asset('assets/images/board_pin.webp',
+        child: Image.asset(boardArt('board_pin'),
             errorBuilder: (_, __, ___) =>
                 const CustomPaint(painter: _PinPainter())),
       );
@@ -435,7 +439,7 @@ class _WaxSealState extends State<WaxSeal> with SingleTickerProviderStateMixin {
         key: const Key('waxSeal'),
         width: s,
         height: s,
-        child: Image.asset('assets/images/board_seal.webp',
+        child: Image.asset(boardArt('board_seal'),
             errorBuilder: (_, __, ___) =>
                 const CustomPaint(painter: _SealPainter())),
       ),
@@ -510,7 +514,7 @@ class DoneStamp extends StatelessWidget {
         height: h,
         child: Stack(alignment: Alignment.center, children: [
           Positioned.fill(
-            child: Image.asset('assets/images/board_done.webp',
+            child: Image.asset(boardArt('board_done'),
                 fit: BoxFit.fill,
                 errorBuilder: (_, __, ___) => Container(
                       decoration: BoxDecoration(

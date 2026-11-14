@@ -42,7 +42,7 @@ void main() {
   InMemoryRecordStore oneTitle({bool listed = true}) => InMemoryRecordStore(
         profile: const PlayerProfile(name: '하루'),
         history: [
-          DailyRecord(date: DateTime(2026, 11, 13), steps: 3000),
+          DailyRecord(date: DateTime(2026, 11, 10), steps: 3000),
         ],
         json: {
           'titles': {

@@ -52,8 +52,20 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
     super.dispose();
   }
 
+  /// 「만들기 (무료)」 자리 (고르면 바로 보이게 굴린다, 묶음 26 #173)
+  final _craftKey = GlobalKey(debugLabel: 'firstWeaponCraft');
+
   void _choose(EquipBase b) {
+    final first = _pick == null;
     setState(() => _pick = b);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _craftKey.currentContext;
+      if (!mounted || ctx == null) return;
+      Scrollable.ensureVisible(ctx,
+          duration: Duration(milliseconds: first ? 320 : 200),
+          curve: Curves.easeOut,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd);
+    });
     _a
       ..reset()
       ..repeat(count: 4);
@@ -133,12 +145,15 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
               ]),
             ),
             const SizedBox(height: 10),
-            GoldButton(
+            KeyedSubtree(
+              key: _craftKey,
+              child: GoldButton(
               key: const Key('firstWeaponCraft'),
               label: '만들기 (무료)',
               height: 46,
               fontSize: 16,
               onPressed: () => widget.onCraft(pick),
+            ),
             ),
           ],
         ],

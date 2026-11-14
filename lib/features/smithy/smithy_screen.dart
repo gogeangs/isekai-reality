@@ -51,7 +51,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
           builder: (context, _) {
             final p = c.player;
             return ListView(
-              padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
+              // 묶음 26 #173: 아래 홈 표시줄만큼 더 비워 마지막 버튼이 가려지지 않게
+              padding: EdgeInsets.fromLTRB(
+                  14, top + 6, 14, 28 + MediaQuery.paddingOf(context).bottom),
               children: [
                 OrnateTopBar(
                   title: '대장간',

@@ -460,6 +460,17 @@ class AppController extends ChangeNotifier {
       _nearAnchor = GeoPoint(
           (near['lat'] as num).toDouble(), (near['lng'] as num).toDouble());
     }
+    // 묶음 26 #179: 안내·튜토리얼 몬스터·꽃 자리 (그날 한 번 정하면 고정)
+    final pins = await _load(_pinsKey, (j) => j, null);
+    if (pins != null && pins['day'] is String && pins['spots'] is Map) {
+      _pinsDay = pins['day'] as String;
+      _pins = {
+        for (final e in (pins['spots'] as Map).entries)
+          if (e.value is List && (e.value as List).length == 2)
+            '${e.key}': GeoPoint(((e.value as List)[0] as num).toDouble(),
+                ((e.value as List)[1] as num).toDouble()),
+      };
+    }
     await sync();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
@@ -597,6 +608,9 @@ class AppController extends ChangeNotifier {
   Set<String> _introsSeen = {};
 
   /// 초반(Lv.2~5) 내 둘레 몬스터 (묶음 25 #171): 그날 처음 위치를 잡은 곳
+  static const _pinsKey = 'guidePins';
+  String? _pinsDay;
+  Map<String, GeoPoint> _pins = const {};
   static const _nearKey = 'nearAnchor';
   String? _nearDay;
   GeoPoint? _nearAnchor;

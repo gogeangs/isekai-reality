@@ -266,10 +266,9 @@ void main() {
       expect(line(tester), contains('만들어 보자'));
       expect(find.byKey(const Key('firstWeaponPreview')), findsOneWidget);
 
-      Scrollable.ensureVisible(
-          tester.element(find.byKey(const Key('firstWeaponCraft'))),
-          alignment: 0.5);
-      await settle(tester);
+      // 묶음 26 #173: 고르면 「만들기 (무료)」가 저절로 화면 안에
+      final craft = tester.getRect(find.byKey(const Key('firstWeaponCraft')));
+      expect(craft.bottom, lessThanOrEqualTo(2532 / 3));
       await tester.tap(find.byKey(const Key('firstWeaponCraft')),
             warnIfMissed: false);
       await tester.runAsync(

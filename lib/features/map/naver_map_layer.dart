@@ -558,16 +558,24 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       math.pow(2, (zoom - 15) / 2).toDouble().clamp(0.55, 1.15);
 
   NMarker _monster(AppController c, FieldSpawn spawn, GeoPoint? me) {
+    // 묶음 26 #179: 안내·튜토리얼 몬스터는 제 그림(하늘 슬라임)으로 크게, 맨 위에,
+    // 자리 한가운데에 (밝게 비추는 원이 정확히 몬스터를 감싸게)
+    final guide = c.guideMapTarget?.id == spawn.id;
     // 기본 40 → 60 (1.5배). 희귀 이상 수식어는 조금 더 크게
-    final base = spawn.modifiers.isEmpty
-        ? 60.0
-        : spawn.grade.index >= ModGrade.rare.index
-            ? 70.0
-            : 64.0;
+    final base = guide
+        ? 84.0
+        : spawn.modifiers.isEmpty
+            ? 60.0
+            : spawn.grade.index >= ModGrade.rare.index
+                ? 70.0
+                : 64.0;
     final m = NMarker(
       id: 'monster_${spawn.id}',
       position: _ll(spawn.point),
-      icon: const NOverlayImage.fromAssetImage('assets/images/map_monster.webp'),
+      icon: guide
+          ? NOverlayImage.fromAssetImage(spawn.info.asset)
+          : const NOverlayImage.fromAssetImage('assets/images/map_monster.webp'),
+      anchor: guide ? const NPoint(0.5, 0.5) : const NPoint(0.5, 1),
       size: Size(base, base),
       // 11-11 #91: 수식어 이름표가 지도 장소 이름과 겹치면 지도 이름을 비킨다
       isHideCollidedSymbols: spawn.modifiers.isNotEmpty,
@@ -583,6 +591,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     )..setOnTapListener((_) {
         if (mounted) showSpawnSheet(context, c, spawn);
       });
+    if (guide) m.setGlobalZIndex(260000);
     // 11-11 #80: 지도를 축소하면 먼 몬스터는 숨기고 가까운 몬스터 위주로
     if (me != null) {
       final d = spawn.point.distanceTo(me);

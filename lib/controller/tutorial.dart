@@ -3,17 +3,89 @@ part of '../app_controller.dart';
 /// 튜토리얼(Lv.1~2)·기능 안내(Lv.3~6)·레벨 잠금 (묶음 21: [AppController] 에서 나눔. 상태 칸은 본체에 있다)
 extension TutorialOps on AppController {
 
-  /// 게시판 안내 중 「지도에서 깨기」: 바로 옆에 몬스터 하나
+  /// 게시판 안내 중 「지도에서 깨기」: 바로 옆에 몬스터 하나.
+  /// 묶음 26 #179: 자리는 안내가 시작될 때 한 번 정해 그날 고정 (걸어도 따라오지 않게),
+  /// 내 위치에서 25~40m, 원정 목표·다른 몬스터·채집 자리·큰길과 겹치지 않는 쪽
   FieldSpawn? get guideSpawn {
     if (!_guideHunt || inTutorial) return null;
-    final center = _lastFix?.point ?? fallbackCenter;
-    if (center == null) return null;
     final today = player.today;
     if (today?.purifiedSpawnIds.contains(AppController.guideHuntId) ?? false) return null;
+    final p = _pinned(AppController.guideHuntId, _clearSpotNear);
+    if (p == null) return null;
     return FieldSpawn(
-        id: AppController.guideHuntId,
-        monster: MonsterId.slime,
-        point: GeoPoint(center.lat + 0.00027, center.lng));
+        id: AppController.guideHuntId, monster: MonsterId.slime, point: p);
+  }
+
+  /// 안내·튜토리얼 자리 [id]: 오늘 정해 둔 곳, 없으면 지금 위치로 [place] 해서 정한다.
+  /// 위치를 아직 못 받았으면 기본 자리로 보여 주기만 하고 정하지 않는다
+  GeoPoint? _pinned(String id, GeoPoint Function(GeoPoint here) place) {
+    final day = DailyRecord.dayKeyOf(_clock());
+    final saved = _pinsDay == day ? _pins[id] : null;
+    if (saved != null) return saved;
+    final fix = _lastFix?.point;
+    final base = fix ?? fallbackCenter;
+    if (base == null) return null;
+    final p = place(base);
+    if (fix != null) {
+      _pins = {if (_pinsDay == day) ..._pins, id: p};
+      _pinsDay = day;
+      unawaited(_savePins());
+    }
+    return p;
+  }
+
+  Future<void> _savePins() => store.saveJson(AppController._pinsKey, {
+        'day': _pinsDay,
+        'spots': {
+          for (final e in _pins.entries) e.key: [e.value.lat, e.value.lng],
+        },
+      });
+
+  /// 안내가 끝나면 그 자리는 잊는다 (다음 안내는 새로)
+  void _unpin(String id) {
+    if (!_pins.containsKey(id)) return;
+    _pins = {..._pins}..remove(id);
+    unawaited(_savePins());
+  }
+
+  /// [here] 에서 25~40m, 다른 것과 겹치지 않는 빈자리 (북쪽부터 둘러본다)
+  GeoPoint _clearSpotNear(GeoPoint here) {
+    final others = <GeoPoint>[
+      for (final e in _vitals.expeditions) GeoPoint(e.lat, e.lng),
+      for (final h in _spotsCache) h.point,
+      for (final s in FieldMonsterRules.spawnsFor(area, _clock(),
+          center: here, radiusM: 200, roads: roads, exclusions: exclusions))
+        s.point,
+      for (final s in calledSpawns) s.point,
+    ];
+    bool clear(GeoPoint p) {
+      final l = lands?.kindAt(p);
+      if (area.isExcluded(p) ||
+          (exclusions?.contains(p) ?? false) ||
+          (roads?.isRoad(p) ?? false) ||
+          l == LandKind.water ||
+          l == LandKind.sea) {
+        return false;
+      }
+      return others.every((o) => o.distanceTo(p) >= 22);
+    }
+
+    GeoPoint at(double m, double deg) {
+      final b = deg * math.pi / 180;
+      return GeoPoint(
+          here.lat + m * math.cos(b) / 111320,
+          here.lng +
+              m * math.sin(b) / (111320 * math.cos(here.lat * math.pi / 180)));
+    }
+
+    const bearings = [0, 30, -30, 60, -60, 90, -90, 120, -120, 150, -150, 180];
+    for (final m in const [32.0, 38.0, 26.0]) {
+      for (final d in bearings) {
+        final p = at(m, d.toDouble());
+        if (clear(p)) return p;
+      }
+    }
+    return at(32, 0);
   }
 
   set guideHunt(bool on) {
@@ -141,13 +213,18 @@ extension TutorialOps on AppController {
               FieldSpawn(
                   id: AppController.tutorialHuntId,
                   monster: MonsterId.slime,
-                  point: GeoPoint(center.lat + 0.00027, center.lng)),
+                  // 묶음 26 #179: 처음 정한 자리에 고정 (걸어도 따라오지 않게)
+                  point: _pinned(AppController.tutorialHuntId,
+                          (h) => GeoPoint(h.lat + 0.00027, h.lng)) ??
+                      GeoPoint(center.lat + 0.00027, center.lng)),
           ],
         TutorialStep.expedition => [
             FieldSpawn(
                 id: AppController.tutorialExpeditionId,
                 monster: MonsterId.slime,
-                point: GeoPoint(center.lat + 0.0021, center.lng + 0.0008)),
+                point: _pinned(AppController.tutorialExpeditionId,
+                        (h) => GeoPoint(h.lat + 0.0021, h.lng + 0.0008)) ??
+                    GeoPoint(center.lat + 0.0021, center.lng + 0.0008)),
           ],
         _ => const [],
       };
@@ -185,6 +262,8 @@ extension TutorialOps on AppController {
 
   Future<void> markFeatureIntro(Feature f) async {
     _introsSeen = {..._introsSeen, f.name};
+    _unpin(AppController.guideHuntId);
+    _unpin('tutorial-harvest');
     _harvestTutorial = false;
     _guideHunt = false;
     _spotsKey = null;

@@ -36,6 +36,8 @@ enum EquipBase {
   stormWeapon, stormHead, stormBody, stormHands, stormFeet, stormAcc,
   // 묶음 19 첫 무기 5종: 검·도끼·창 기본형 (단검·지팡이와 함께)
   ironSword, woodAxe, ironSpear,
+  // 묶음 34 2막: 「잿빛 왕의 유품」 (분신·본체를 처음 쓰러뜨리면)
+  ashWeapon, ashCrown, ashBody, ashHands, ashFeet, ashAcc,
 }
 
 /// 장비 하나의 기본 정보와 제작법

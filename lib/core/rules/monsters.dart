@@ -36,6 +36,13 @@ enum MonsterId {
   thunderGriffin,
   // 묶음 18 #149: 첫 튜토리얼 전용 하늘색 슬라임 (도감·지도에는 나오지 않음)
   slime,
+  // 묶음 34 2막: 잿빛 군주의 분신 다섯과 본체 (지도·도감에는 나오지 않음)
+  ashRage,
+  ashSorrow,
+  ashGreed,
+  ashFear,
+  ashLonely,
+  ashKing,
 }
 
 /// 전투 성향 (도감 설명)
@@ -456,6 +463,72 @@ class Monsters {
       hp: 0.8,
       retired: true, // 지도에는 안 나옴
       codexOnly: true, // 도감에는 맨 앞 칸
+    ),
+    // 묶음 34 2막: 잿빛 틈의 분신 다섯 · 던전 끝 「문 앞」의 본체 (도감·지도 밖)
+    MonsterInfo(
+      id: MonsterId.ashRage,
+      element: Element.fire,
+      name: '잿불의 분노',
+      habitat: '잿빛 틈',
+      huntLine: '잿불의 분노를 잠재웠어! 불길이 조용히 사그라들었어.',
+      description: '잿빛 군주의 분신. 분노가 잿불이 되어 타오른다.',
+      traitText: '분신',
+      isBoss: true,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ashSorrow,
+      element: Element.water,
+      name: '잿비의 슬픔',
+      habitat: '잿빛 틈',
+      huntLine: '잿비의 슬픔을 달랬어! 비가 그쳤어.',
+      description: '잿빛 군주의 분신. 슬픔이 잿빛 비가 되어 내린다.',
+      traitText: '분신',
+      isBoss: true,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ashGreed,
+      element: Element.metal,
+      name: '잿금의 탐욕',
+      habitat: '잿빛 틈',
+      huntLine: '잿금의 탐욕을 끊어 냈어! 움켜쥔 손이 풀렸어.',
+      description: '잿빛 군주의 분신. 탐욕이 잿빛 금이 되어 번쩍인다.',
+      traitText: '분신',
+      isBoss: true,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ashFear,
+      element: Element.dark,
+      name: '잿그림자의 두려움',
+      habitat: '잿빛 틈',
+      huntLine: '잿그림자의 두려움을 이겨 냈어! 그림자가 옅어졌어.',
+      description: '잿빛 군주의 분신. 두려움이 잿빛 그림자가 되어 드리운다.',
+      traitText: '분신',
+      isBoss: true,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ashLonely,
+      element: Element.wind,
+      name: '잿바람의 외로움',
+      habitat: '잿빛 틈',
+      huntLine: '잿바람의 외로움을 안아 줬어! 바람이 잦아들었어.',
+      description: '잿빛 군주의 분신. 외로움이 잿빛 바람이 되어 분다.',
+      traitText: '분신',
+      isBoss: true,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.ashKing,
+      name: '잿빛 군주',
+      habitat: '던전 끝 「문 앞」',
+      huntLine: '잿빛 군주를 멈춰 세웠어…',
+      description: '문을 깨고 빛을 삼키려 한 저쪽 세계의 왕.',
+      traitText: '본체',
+      isBoss: true,
+      retired: true,
     ),
     MonsterInfo(
       id: MonsterId.roughWaterSpirit,

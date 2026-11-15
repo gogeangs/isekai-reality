@@ -14,7 +14,11 @@ class RecordsScreen extends StatefulWidget {
       required this.player,
       this.embedded = false,
       this.prophecy = const [],
+      this.kingStory = const [],
       this.memory});
+
+  /// 왕의 사연 (묶음 34): 쓰러뜨린 분신 순서대로 늘어난다
+  final List<String> kingStory;
 
   final PlayerState player;
 
@@ -223,6 +227,36 @@ class _RecordsScreenState extends State<RecordsScreen> {
                     child: KText(t,
                         style: const TextStyle(
                             color: Color(0xFF3A2614),
+                            fontSize: 14,
+                            height: 1.5,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+          ],
+          // 묶음 34: 왕의 사연 (쓰러뜨린 분신만, 차례대로)
+          if (widget.kingStory.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('왕의 사연',
+                key: const Key('kingStoryRecords'), style: AppText.title(19)),
+            const SizedBox(height: 8),
+            for (final (i, t) in widget.kingStory.indexed)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D3E2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0x998A82A0)),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${i + 1}',
+                      style: AppText.title(15, color: const Color(0xFF4A4258))),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: KText(t,
+                        style: const TextStyle(
+                            color: Color(0xFF2A2433),
                             fontSize: 14,
                             height: 1.5,
                             fontWeight: FontWeight.w600)),

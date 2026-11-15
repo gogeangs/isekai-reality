@@ -24,6 +24,7 @@ import 'features/map/map_screen.dart';
 import 'features/tutorial/targets.dart';
 import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
+import 'features/act2/ash_battle_screen.dart' show EndingScreen;
 import 'features/jobs/guild_screen.dart';
 import 'features/jobs/job_skill_bar.dart';
 import 'features/jobs/skill_screen.dart';
@@ -160,7 +161,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _petNewsShowing ||
       _walkShowing ||
       _farewellShowing ||
-      _jobShowing;
+      _jobShowing ||
+      _endingShowing;
 
   /// 창 하나를 닫은 뒤 다음 차례 창을 볼 수 있게 다시 그린다
   void _kick() {
@@ -227,6 +229,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   bool _farewellShowing = false;
   bool _jobShowing = false;
+  bool _endingShowing = false;
 
   bool _petNewsShowing = false;
 
@@ -329,6 +332,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowLevelUp();
         _maybeShowFarewell();
         _maybeShowJobAwaken();
+        _maybeShowAct2();
         _maybeShowJobNews();
         _maybeShowNotices();
         _maybeShowPetNews();

@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 
 import '../models/armory.dart';
+import 'act2_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'materials.dart';
 import 'monsters.dart';
 
 /// 보스 장비 세트 (11-11 #82). 보스마다 6부위 한 벌.
-enum BossSet { warden, flame, frost, grove, night, storm }
+/// 묶음 34: ash = 「잿빛 왕의 유품」 (만들 수 없고 분신·본체에게서만 얻는다)
+enum BossSet { warden, flame, frost, grove, night, storm, ash }
 
 /// 6개 세트 효과 (보스 고유 능력, 확률·배율은 숨김)
 enum BossSetAbility {
@@ -28,6 +30,9 @@ enum BossSetAbility {
 
   /// 천둥 그리폰: 가끔 한 번 더 공격
   chain,
+
+  /// 잿빛 왕의 유품 (묶음 34): 잿빛 몬스터에게 더 세고 덜 다친다
+  ashBane,
 }
 
 class BossSetInfo {
@@ -208,11 +213,38 @@ class BossGearRules {
     ),
   ];
 
-  static BossSetInfo info(BossSet s) => sets.firstWhere((x) => x.id == s);
+  /// 「잿빛 왕의 유품」 (묶음 34): 대장간에서 만들 수 없다. 분신 다섯과 본체가 한 부위씩.
+  /// 부위 순서는 다른 세트와 같다 (무기·머리·몸·장갑·신발·장신구)
+  static const BossSetInfo relicSet = BossSetInfo(
+    id: BossSet.ash,
+    name: '잿빛 왕의 유품',
+    boss: MonsterId.ashKing,
+    element: Element.dark,
+    material: MaterialId.bossShard,
+    ability: BossSetAbility.ashBane,
+    abilityName: '왕의 기억',
+    abilityText: '잿빛 몬스터에게 주는 피해가 늘고 받는 피해가 줄어요',
+    look: '잿빛 왕',
+    lookText: '금 간 왕관과 잿빛 망토, 발밑에 흩날리는 잿가루',
+    aura: 0xFFB9B2C9,
+    parts: [
+      (EquipBase.ashWeapon, '분노의 잿불검', '잿불이 금처럼 번진 왕의 검'),
+      (EquipBase.ashCrown, '금 간 왕관', '잿빛 군주가 쓰던 금이 간 왕관'),
+      (EquipBase.ashBody, '탐욕의 잿금 갑옷', '빛을 움켜쥐려던 잿금빛 갑옷'),
+      (EquipBase.ashHands, '슬픔의 잿비 장갑', '눈물 자국처럼 잿비가 스민 장갑'),
+      (EquipBase.ashFeet, '외로움의 잿바람 장화', '홀로 걷던 잿바람이 감도는 장화'),
+      (EquipBase.ashAcc, '두려움의 잿그림자 목걸이', '그림자가 고인 잿빛 보석 목걸이'),
+    ],
+  );
+
+  /// 만들 수 있는 보스 세트 + 유품 세트
+  static const List<BossSetInfo> allSets = [...sets, relicSet];
+
+  static BossSetInfo info(BossSet s) => allSets.firstWhere((x) => x.id == s);
 
   /// 이 장비가 속한 세트 (일반 장비면 null)
   static BossSet? setOf(EquipBase base) {
-    for (final s in sets) {
+    for (final s in allSets) {
       for (final p in s.parts) {
         if (p.$1 == base) return s.id;
       }
@@ -243,7 +275,7 @@ class BossGearRules {
 
   /// EquipmentRules 에 넣는 36부위
   static final List<EquipBaseInfo> infos = [
-    for (final s in sets)
+    for (final s in allSets)
       for (var i = 0; i < 6; i++)
         EquipBaseInfo(
           id: s.parts[i].$1,
@@ -326,7 +358,13 @@ class SetBonus {
     this.attack = const {},
     this.abilities = const {},
     this.look,
+    this.ashDealt = 0,
+    this.ashTaken = 0,
   });
+
+  /// 잿빛 왕의 유품 (묶음 34): 잿빛 몬스터에게 주는 피해 증가 · 받는 피해 감소 (숨김)
+  final double ashDealt;
+  final double ashTaken;
 
   /// 2개: 속성 저항 (배율)
   final Map<Element, double> resist;
@@ -348,8 +386,22 @@ class SetBonus {
     final attack = <Element, double>{};
     final ab = <BossSetAbility>{};
     BossSet? look;
+    var ashDealt = 0.0;
+    var ashTaken = 0.0;
     c.forEach((s, n) {
       final info = BossGearRules.info(s);
+      if (s == BossSet.ash) {
+        // 2개 받는 피해 ↓ · 4개 주는 피해 ↑ · 6개 둘 다 더
+        if (n >= 2) ashTaken = Act2Rules.setTaken2;
+        if (n >= 4) ashDealt = Act2Rules.setDealt4;
+        if (n >= 6) {
+          ashTaken = Act2Rules.setTaken6;
+          ashDealt = Act2Rules.setDealt6;
+          ab.add(info.ability);
+          look = s;
+        }
+        return;
+      }
       if (n >= 2) resist[info.element] = BossGearRules.setResist;
       if (n >= 4) attack[info.element] = BossGearRules.setAttack;
       if (n >= 6) {
@@ -357,6 +409,12 @@ class SetBonus {
         look = s;
       }
     });
-    return SetBonus(resist: resist, attack: attack, abilities: ab, look: look);
+    return SetBonus(
+        resist: resist,
+        attack: attack,
+        abilities: ab,
+        look: look,
+        ashDealt: ashDealt,
+        ashTaken: ashTaken);
   }
 }

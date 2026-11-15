@@ -122,6 +122,8 @@ extension PetsOps on AppController {
             ]
           : null,
     ));
+    // 묶음 34: Lv.12 이상이면 이별 뒤 바로 잿빛 틈 한마디
+    _checkAct2();
     return pet;
   }
 

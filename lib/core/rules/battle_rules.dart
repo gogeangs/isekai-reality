@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'act2_rules.dart';
 import 'alchemy_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
@@ -22,7 +23,22 @@ class Foe {
     this.defense = 1,
     this.speed = 1,
     this.small = false,
+    this.forceElement,
+    this.move,
+    this.reveal,
   });
+
+  /// 묶음 34: 몬스터 속성 대신 쓰는 속성 (잿빛 군주는 감정 단계마다 바뀐다)
+  final Element? forceElement;
+
+  /// 묶음 34: 분신·본체 단계의 특별한 공격
+  final AshMove? move;
+
+  /// 묶음 34: 잿빛 군주 얼굴이 드러난 정도 (0 안개 ~ 1 얼굴)
+  final double? reveal;
+
+  /// 이 몬스터의 속성
+  Element? get element => forceElement ?? info.element;
 
   final MonsterId monster;
   final int maxHp;
@@ -232,6 +248,8 @@ class Battle {
     this.heroSkills = false,
     this.setAttack = const {},
     this.setAbilities = const {},
+    this.ashDealt = 0,
+    this.ashTaken = 0,
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -308,6 +326,8 @@ class Battle {
       },
       setAttack: gear.sets.attack,
       setAbilities: gear.sets.abilities,
+      ashDealt: gear.sets.ashDealt,
+      ashTaken: gear.sets.ashTaken,
       attackElement: gear.attackElement,
       skillElement: skillElement,
       guardElements: gear.guardElements,
@@ -466,10 +486,112 @@ class Battle {
             lastEvent = '연쇄 번개!';
             _hitFoe(extra);
           }
-        case BossSetAbility.stoneSkin || BossSetAbility.regrow:
+        case BossSetAbility.stoneSkin ||
+              BossSetAbility.regrow ||
+              BossSetAbility.ashBane:
           break;
       }
     }
+  }
+
+  // ───────────── 2막 잿빛 군주 (묶음 34, 숨은 규칙. 화면에는 문장만)
+
+  /// 잿빛 왕의 유품 세트: 잿빛 몬스터에게 주는 피해 증가 · 받는 피해 감소
+  final double ashDealt;
+  final double ashTaken;
+
+  /// 이번 틱에 분신이 쓴 특별한 공격 문장 (없으면 null)
+  String? lastMove;
+
+  /// 눈물비 남은 턴 (내 공격이 가끔 빗나가고 몬스터가 회복)
+  int tearTurns = 0;
+
+  /// 겁주기: 스킬 버튼이 잠긴 남은 턴
+  int skillLockTurns = 0;
+
+  /// 고립: 펫 게이지가 멈춘 남은 턴
+  int isolateTurns = 0;
+
+  /// 빼앗기: 빼앗은 힘이 남은 턴 (몬스터 공격이 세다)
+  int stolenTurns = 0;
+
+  /// 분노 폭발 단계 (문장을 한 번씩만)
+  int _rageStep = 0;
+
+  /// 지금 스킬 버튼이 잠겼는지 (겁주기)
+  bool get skillsLocked => skillLockTurns > 0 && phase == BattlePhase.fighting;
+
+  /// 지금 펫이 고립됐는지
+  bool get isolated => isolateTurns > 0 && phase == BattlePhase.fighting;
+
+  void _clearAshMoves() {
+    tearTurns = 0;
+    skillLockTurns = 0;
+    isolateTurns = 0;
+    stolenTurns = 0;
+    _rageStep = 0;
+  }
+
+  /// 틱 처음: 분신·본체 단계의 특별한 공격
+  void _ashMove() {
+    final m = foe.move;
+    if (m == null) return;
+    final t = floorTicks;
+    final line = Act2Rules.ofMove(m)?.moveLine;
+    switch (m) {
+      case AshMove.rage:
+        final step = ((1 - foeHp / foe.maxHp) * 3).floor().clamp(0, 2);
+        if (step > _rageStep) {
+          _rageStep = step;
+          lastMove = line;
+        }
+      case AshMove.tears:
+        if (tearTurns <= 0 && t % Act2Rules.tearsEvery == 3) {
+          tearTurns = Act2Rules.tearsLength;
+          lastMove = line;
+        }
+      case AshMove.steal:
+        if (t % Act2Rules.stealEvery == 0 && _stealBuff()) {
+          stolenTurns = Act2Rules.stolenLength;
+          lastMove = line;
+        }
+      case AshMove.fear:
+        if (heroSkills && t % Act2Rules.fearEvery == 2) {
+          skillLockTurns = 1;
+          lastMove = line;
+        }
+      case AshMove.isolate:
+        if (isolateTurns <= 0 && t % Act2Rules.isolateEvery == 3) {
+          isolateTurns = Act2Rules.isolateLength;
+          lastMove = line;
+        }
+    }
+  }
+
+  /// 나에게 걸린 좋은 효과 하나를 없앤다 (있었으면 true)
+  bool _stealBuff() {
+    if (rallyTurns > 0) {
+      rallyTurns = 0;
+    } else if (wallTurns > 0) {
+      wallTurns = 0;
+    } else if (stanceTurns > 0) {
+      stanceTurns = 0;
+    } else if (regenTurns > 0) {
+      regenTurns = 0;
+    } else if (insightTurns > 0) {
+      insightTurns = 0;
+    } else if (shieldHits > 0) {
+      shieldHits = 0;
+    } else if (dodgeNext) {
+      dodgeNext = false;
+    } else if (blockNext) {
+      blockNext = false;
+    } else if (reflectNext) {
+      reflectNext = false;
+    } else {
+      return false;
+    }
+    return true;
   }
 
   /// 강한 공격을 예고하고 막기를 받는지 (화면이 있는 전투만. 원정 자동 전투는 false)
@@ -560,9 +682,15 @@ class Battle {
   int stanceTurns = 0;
 
   bool get bashReady =>
-      heroSkills && phase == BattlePhase.fighting && bashCharge >= bashTicks;
+      heroSkills &&
+      phase == BattlePhase.fighting &&
+      bashCharge >= bashTicks &&
+      !skillsLocked;
   bool get stanceReady =>
-      heroSkills && phase == BattlePhase.fighting && stanceCharge >= stanceTicks;
+      heroSkills &&
+      phase == BattlePhase.fighting &&
+      stanceCharge >= stanceTicks &&
+      !skillsLocked;
   double get bashRatio => (bashCharge / bashTicks).clamp(0, 1).toDouble();
   double get stanceRatio => (stanceCharge / stanceTicks).clamp(0, 1).toDouble();
 
@@ -658,7 +786,8 @@ class Battle {
       heroSkills &&
       phase == BattlePhase.fighting &&
       masteryActives.contains(m) &&
-      (masteryCharge[m] ?? 0) >= JobRules.masteryActiveTicks;
+      (masteryCharge[m] ?? 0) >= JobRules.masteryActiveTicks &&
+      !skillsLocked;
 
   double masteryRatio(Mastery m) =>
       ((masteryCharge[m] ?? 0) / JobRules.masteryActiveTicks)
@@ -667,7 +796,7 @@ class Battle {
 
   /// 몬스터가 약한 속성 하나 (없으면 null)
   Element? get _foeWeakTo {
-    final e = AlchemyRules.elementOf(foe.monster);
+    final e = foe.element;
     if (e == null) return null;
     final b = ElementRules.beats(e);
     return b.isEmpty ? null : b.first;
@@ -718,7 +847,7 @@ class Battle {
 
   /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). [power] 는 스킬 단계 세기. 쓸 수 없으면 false
   bool useJobSkill(JobSkill s, {double power = 1}) {
-    if (phase != BattlePhase.fighting) return false;
+    if (phase != BattlePhase.fighting || skillsLocked) return false;
     final p = power;
     switch (s) {
       case JobSkill.ironWall:
@@ -1068,7 +1197,8 @@ class Battle {
   String? lastEvent;
   bool get skillReady =>
       phase == BattlePhase.fighting &&
-      skillCharge >= skillChargeTicks;
+      skillCharge >= skillChargeTicks &&
+      !isolated;
   double get skillRatio =>
       (skillCharge / skillChargeTicks).clamp(0, 1).toDouble();
 
@@ -1107,6 +1237,9 @@ class Battle {
       lastTaken = 0;
       lastWasSkill = false;
       lastEvent = null;
+      _clearAshMoves();
+      // 묶음 34: 잿빛 군주는 감정 단계가 바뀔 때 한 줄
+      lastMove = foe.move == null ? null : Act2Rules.ofMove(foe.move!)?.kingLine;
       _prepareStrong();
       return;
     }
@@ -1119,6 +1252,9 @@ class Battle {
     lastCrit = false;
     lastSuper = false;
     lastHealed = 0;
+    lastMove = null;
+    if (skillLockTurns > 0) skillLockTurns--;
+    _ashMove();
     // 이번 틱의 몬스터 첫 공격이 예고된 강한 공격인지
     _strongNow = _strongNext;
     _strongNowMult = _strongNextMult;
@@ -1156,6 +1292,8 @@ class Battle {
         !clearEye &&
         _rng.nextDouble() < 0.25) {
       lastEvent = '눈부셔요!';
+    } else if (tearTurns > 0 && _rng.nextDouble() < Act2Rules.tearsMiss) {
+      lastEvent = '빗나갔어요!';
     } else {
       var dmg = _jobHit(_vary(playerAttack));
       if (insightTurns > 0) {
@@ -1206,6 +1344,15 @@ class Battle {
       if (phase != BattlePhase.fighting) return;
     }
 
+    // 묶음 34 눈물비: 그사이 스스로 회복
+    if (tearTurns > 0) {
+      tearTurns--;
+      if (foeHp < f.maxHp) {
+        foeHp = math.min(
+            f.maxHp, foeHp + math.max(1, (f.maxHp * Act2Rules.tearsHeal).round()));
+      }
+    }
+    if (stolenTurns > 0) stolenTurns--;
     // 물 슬라임: 매 턴 끝에 5% 회복
     if (f.trait == MonsterTrait.regen && foeHp < f.maxHp) {
       foeHp = math.min(f.maxHp, foeHp + math.max(1, (f.maxHp * 0.05).round()));
@@ -1253,7 +1400,12 @@ class Battle {
       setProcs++;
     }
     _autoDrink();
-    if (skillCharge < skillChargeTicks) skillCharge++;
+    // 묶음 34 고립: 그동안 펫 게이지가 멈춘다
+    if (isolateTurns > 0) {
+      isolateTurns--;
+    } else if (skillCharge < skillChargeTicks) {
+      skillCharge++;
+    }
     if (heroSkills) {
       if (bashCharge < bashTicks) bashCharge++;
       // 전투 함성: 강타가 더 빨리 참
@@ -1309,6 +1461,12 @@ class Battle {
       _strongNow = false;
     }
     if (enraged) atk *= bossRageAttack;
+    // 묶음 34: 분노 폭발 · 빼앗은 힘 · 유품 세트
+    if (f.move == AshMove.rage) {
+      atk *= 1 + Act2Rules.rageMax * (1 - foeHp / f.maxHp);
+    }
+    if (stolenTurns > 0) atk *= Act2Rules.stolenAttack;
+    if (ashTaken > 0 && foeIsAsh) atk *= 1 - ashTaken;
     if (stanceTurns > 0) atk *= stanceTaken;
     if (wallTurns > 0) atk *= wallTaken;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
@@ -1322,7 +1480,7 @@ class Battle {
       lastEvent = '강타!';
     }
     if (damageTaken != 1) atk *= damageTaken;
-    final element = AlchemyRules.elementOf(f.monster);
+    final element = f.element;
     if (element != null && (resist[element] ?? 0) > 0) {
       atk *= 1 - resist[element]!;
     }
@@ -1509,13 +1667,15 @@ class Battle {
   /// 속성 상성 (11-11 #63): 배율은 숨기고 문구로만 알린다.
   /// [level] 은 장비 속성 강화 단계 (11-11 #74): 강할 때 배율이 더 커진다.
   int _elemental(int dmg, Element? attack, {int level = 0}) {
-    var m = ElementRules.multiplier(attack, AlchemyRules.elementOf(foe.monster));
+    var m = ElementRules.multiplier(attack, foe.element);
     if (noWeakness && m < 1) m = 1;
     if (m > 1 && level > 0) m = SmithRules.strongAt(level);
     var d = dmg * m;
     if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;
     // 보스 장비 4개 세트: 그 속성 공격 강화 (11-11 #82)
     if (attack != null && setAttack[attack] != null) d *= 1 + setAttack[attack]!;
+    // 잿빛 왕의 유품 (묶음 34)
+    if (ashDealt > 0 && foeIsAsh) d *= 1 + ashDealt;
     if (m > 1) {
       lastEvent = superEffective;
       lastSuper = true;

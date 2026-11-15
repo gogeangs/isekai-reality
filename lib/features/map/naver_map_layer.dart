@@ -148,6 +148,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       'g:${c.guideMapTarget?.id}',
       'f:${c.skillTimedOn(JobSkill.farSight)}',
       'w:${c.skillTimedOn(JobSkill.windWalk)}',
+      // 묶음 34: 잿빛 틈 (자리·닫힘)
+      'r:${c.riftPoint?.lat},${c.riftPoint?.lng},${c.riftClosedToday}',
     ].join('|');
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
@@ -249,6 +251,25 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           caption:
               NOverlayCaption(text: actives[i].petName ?? c.firstSpiritName),
         )..setOnTapListener((_) => widget.onRush?.call(actives[i])),
+      // 묶음 34 잿빛 틈: 걸어서 가면 무료로 들어간다 (원정 불가)
+      if (c.riftPoint case final rift?)
+        NMarker(
+          id: 'rift',
+          position: _ll(rift),
+          icon: const NOverlayImage.fromAssetImage('assets/images/map_rift.webp'),
+          size: const Size(64, 64),
+          anchor: const NPoint(0.5, 0.5),
+          alpha: c.riftClosedToday ? 0.5 : 1,
+          caption: NOverlayCaption(
+            text: c.riftClosedToday ? '잿빛 틈 · ${Act2Rules.closedLine}' : '잿빛 틈',
+            color: const Color(0xFFD9D3E2),
+            haloColor: AppColors.abyss,
+          ),
+        )
+          ..setGlobalZIndex(255000)
+          ..setOnTapListener((_) {
+            if (mounted) openRift(context, c);
+          }),
       // 떠돌이 상인 (11-11 #84): 누르면 거리와 상관없이 바로 상점
       if (merchantAt != null)
         NMarker(
@@ -437,6 +458,32 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     return (_assets ?? const <String>{}).contains(f) ? f : asset;
   }
 
+  /// 코드로 좌우를 뒤집은 그림 (그림마다 한 번 만들어 둔다)
+  static final Map<String, NOverlayImage> _flipCache = {};
+
+  Future<NOverlayImage?> _flipImage(String asset) async {
+    final hit = _flipCache[asset];
+    if (hit != null) return hit;
+    try {
+      final data = await rootBundle.load(asset);
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final src = (await codec.getNextFrame()).image;
+      final rec = ui.PictureRecorder();
+      Canvas(rec)
+        ..translate(src.width.toDouble(), 0)
+        ..scale(-1, 1)
+        ..drawImage(src, Offset.zero, Paint());
+      final out = await rec.endRecording().toImage(src.width, src.height);
+      final bytes = await out.toByteData(format: ui.ImageByteFormat.png);
+      if (bytes == null) return null;
+      final img = NOverlayImage.fromByteArray(bytes.buffer.asUint8List());
+      _flipCache[asset] = img;
+      return img;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 마리마다 지금 왼쪽을 보고 있는지
   final Map<int, bool> _facingLeft = {};
 
@@ -479,7 +526,20 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           if (_facingLeft[i] != left) {
             _facingLeft[i] = left;
             final base = _walkerAsset(c, ex);
-            m.setIcon(NOverlayImage.fromAssetImage(left ? _flipped(base) : base));
+            final flip = _flipped(base);
+            if (!left || flip != base) {
+              m.setIcon(NOverlayImage.fromAssetImage(left ? flip : base));
+            } else {
+              // 묶음 34: _flip 그림이 없으면 코드로 좌우를 뒤집는다 (희귀 펫 메달 등)
+              unawaited(_flipImage(base).then((img) {
+                if (img == null || _facingLeft[i] != true || _petMarkers[i] != m) {
+                  return;
+                }
+                try {
+                  m.setIcon(img);
+                } catch (_) {}
+              }));
+            }
           }
         }
         // 묶음 23 #169: 기울이지 않는다 (각도는 늘 0)

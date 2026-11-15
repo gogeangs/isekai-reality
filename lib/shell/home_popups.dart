@@ -167,6 +167,34 @@ extension _ShellPopups on _HomeShellState {
     });
   }
 
+  /// 묶음 34: 결말을 보다 앱을 껐으면 다음에 켤 때 다시 · 결말 뒤 Lv.21이 되면 한 줄
+  void _maybeShowAct2() {
+    final c = widget.controller;
+    if (_popupBusy || c.pendingLevelUp != null || c.holdNotices || c.inTutorial) {
+      return;
+    }
+    if (c.endingPending) {
+      _endingShowing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => EndingScreen(controller: c)));
+        _endingShowing = false;
+        _kick();
+      });
+      return;
+    }
+    if (c.bridgePending) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !c.bridgePending) return;
+        unawaited(c.markBridgeShown());
+        showTopNotice(context, Act2Rules.bridgeLine,
+            icon: Icons.auto_awesome);
+      });
+    }
+  }
+
   /// 새 직업 · 견습을 뗌 · 순례자가 찾은 물건 (위쪽 띠)
   void _maybeShowJobNews() {
     final c = widget.controller;

@@ -140,6 +140,10 @@ class _BattleViewState extends State<BattleView> {
   /// 전투 기록 두 줄
   final List<String> _log = [];
 
+  /// 묶음 34: 분신의 특별한 공격 문장 (몇 박자 동안 위에 띄운다)
+  String? _move;
+  int _moveBeat = 0;
+
   /// 보스가 나오는 순간 (이름 띠 + 확대, 11-11 #81)
   int _bossBeat = 0;
 
@@ -179,6 +183,12 @@ class _BattleViewState extends State<BattleView> {
       if (_b.ticks != before) _beat++; // 층이 바뀌는 틱은 연출하지 않는다
       if (_b.floor != floorBefore && _b.foe.isBoss) _bossBeat++;
       _record();
+      // 묶음 34: 분신의 특별한 공격 문장 (위쪽 띠 + 기록)
+      if (_b.lastMove case final m?) {
+        _addLog(m);
+        _move = m;
+        _moveBeat = _beat;
+      }
       // 자동으로 마시면 전투 기록 한 줄 (11-11 #93)
       if (_b.autoHealed) _addLog('회복 물약을 자동으로 마셨다');
       if (_b.autoCured) _addLog('물약을 자동으로 마셨다');
@@ -606,7 +616,7 @@ class _BattleViewState extends State<BattleView> {
                       child: _HpColumn(
                         name: foe.name,
                         nameColor: modGradeColor(foe.grade),
-                        element: Monsters.info(foe.monster).element,
+                        element: foe.element,
                         showElement: true,
                         hp: _b.foeHp,
                         maxHp: foe.maxHp,
@@ -700,7 +710,7 @@ class _BattleViewState extends State<BattleView> {
                             sub: 'MP $cost',
                             icon: Icons.bolt_rounded,
                             ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
-                            ready: mp >= cost && !_b.isOver,
+                            ready: mp >= cost && !_b.isOver && !_b.skillsLocked,
                             ringColor: const Color(0xFFB27BFF),
                             onPressed: () => _jobSkill(sk, cost, power),
                           );
@@ -800,6 +810,29 @@ class _BattleViewState extends State<BattleView> {
               ),
             ],
           ),
+          if (_move != null && _beat - _moveBeat < 3 && !_b.isOver)
+            Positioned(
+              left: 12,
+              right: 12,
+              top: 34,
+              child: IgnorePointer(
+                child: Center(
+                  child: Container(
+                    key: const Key('ashMoveBanner'),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xCC1A1424),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFB9B2C9)),
+                    ),
+                    child: Text(_move!,
+                        textAlign: TextAlign.center,
+                        style: AppText.title(15, color: AppColors.text)),
+                  ),
+                ),
+              ),
+            ),
           if (_tipOpen) Positioned.fill(child: _poisonTip()),
         ],
       ),
@@ -1277,7 +1310,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 450),
                         child: ColorFiltered(
-                          key: ValueKey('${foe.monster.name}_$cleared'),
+                          key: ValueKey('${foe.monster.name}_${foe.reveal}_$cleared'),
                           colorFilter: ColorFilter.mode(
                               Colors.white.withValues(alpha: flash * 0.75),
                               BlendMode.srcATop),
@@ -1305,6 +1338,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                       child: MonsterPicture(
                                         monster: foe.monster,
                                         size: monSize,
+                                        reveal: foe.reveal,
                                       ),
                                     ),
                                   )
@@ -1318,6 +1352,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                         MonsterPicture(
                                           monster: foe.monster,
                                           size: monSize,
+                                          reveal: foe.reveal,
                                         )),
                           ),
                         ),
@@ -2154,10 +2189,14 @@ class MonsterPicture extends StatelessWidget {
     required this.monster,
     this.size = 64,
     this.defeated = false,
+    this.reveal,
   });
 
   final MonsterId monster;
   final double size;
+
+  /// 묶음 34 잿빛 군주: 안개 판 위에 얼굴 판을 겹친다 (0 안개 ~ 1 얼굴)
+  final double? reveal;
 
   /// true 면 쓰러진 모습 (기울어지며 흐려진다, 11-10 사냥)
   final bool defeated;
@@ -2177,6 +2216,12 @@ class MonsterPicture extends StatelessWidget {
 
   static IconData iconOf(MonsterId id) => switch (id) {
         MonsterId.ashSlime || MonsterId.slime => Icons.water_drop_rounded,
+        MonsterId.ashRage => Icons.local_fire_department_rounded,
+        MonsterId.ashSorrow => Icons.water_rounded,
+        MonsterId.ashGreed => Icons.diamond_rounded,
+        MonsterId.ashFear => Icons.dark_mode_rounded,
+        MonsterId.ashLonely => Icons.air_rounded,
+        MonsterId.ashKing => Icons.cloud_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
@@ -2206,6 +2251,34 @@ class MonsterPicture extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final info = Monsters.info(monster);
+    final r = reveal;
+    if (r != null && !defeated) {
+      final k = r.clamp(0.0, 1.0);
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(fit: StackFit.expand, children: [
+          Opacity(
+            opacity: 1 - 0.7 * k,
+            child: Image.asset(info.asset,
+                width: size,
+                height: size,
+                semanticLabel: info.name,
+                errorBuilder: (_, __, ___) => Icon(iconOf(monster),
+                    size: size * 0.7, color: const Color(0xFFB8B2C8))),
+          ),
+          Opacity(
+            key: const Key('ashKingFace'),
+            opacity: 0.12 + 0.88 * k,
+            child: Image.asset(
+                'assets/images/monster_${monster.name}_face.webp',
+                width: size,
+                height: size,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+          ),
+        ]),
+      );
+    }
     final picture = Image.asset(
       info.asset,
       width: size,

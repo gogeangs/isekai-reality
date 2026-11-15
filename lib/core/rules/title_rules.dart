@@ -54,6 +54,13 @@ enum TitleId {
   spiritMaster,
   tradeAdept,
   tradeMaster,
+  // 묶음 34 2막: 분신 다섯 · 본체를 처음 쓰러뜨리면 (얻기 전엔 숨김)
+  ashRage,
+  ashSorrow,
+  ashGreed,
+  ashFear,
+  ashLonely,
+  bridgeMaker,
 }
 
 class TitleInfo {
@@ -113,6 +120,12 @@ class TitleRules {
       TitleId.appraiseAdept || TitleId.appraiseMaster => '감정에 익숙해졌어요',
       TitleId.spiritAdept || TitleId.spiritMaster => '원정 보내기에 익숙해졌어요',
       TitleId.tradeAdept || TitleId.tradeMaster => '장사와 의뢰에 익숙해졌어요',
+      TitleId.ashRage => '잿불의 분노를 잠재웠어요',
+      TitleId.ashSorrow => '잿비의 슬픔을 달랬어요',
+      TitleId.ashGreed => '잿금의 탐욕을 끊어 냈어요',
+      TitleId.ashFear => '잿그림자의 두려움을 이겨 냈어요',
+      TitleId.ashLonely => '잿바람의 외로움을 안아 줬어요',
+      TitleId.bridgeMaker => '잿빛 군주를 멈추고 문을 다리로 바꿨어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -131,7 +144,26 @@ class TitleRules {
     ...bossTitles,
     TitleId.relicHunter,
     ...masteryTitles,
+    ...ashTitles,
   };
+
+  /// 2막 칭호 (묶음 34)와 그 몬스터: 처음 쓰러뜨리면
+  static const Map<TitleId, MonsterId> ashTitleMonsters = {
+    TitleId.ashRage: MonsterId.ashRage,
+    TitleId.ashSorrow: MonsterId.ashSorrow,
+    TitleId.ashGreed: MonsterId.ashGreed,
+    TitleId.ashFear: MonsterId.ashFear,
+    TitleId.ashLonely: MonsterId.ashLonely,
+    TitleId.bridgeMaker: MonsterId.ashKing,
+  };
+  static const List<TitleId> ashTitles = [
+    TitleId.ashRage,
+    TitleId.ashSorrow,
+    TitleId.ashGreed,
+    TitleId.ashFear,
+    TitleId.ashLonely,
+    TitleId.bridgeMaker,
+  ];
 
   /// 숨은 숙련도 칭호 (묶음 27 #176). 기록 counters 'mtitle:<이름>' 으로 얻는다
   static const List<TitleId> masteryTitles = [
@@ -198,6 +230,8 @@ class TitleRules {
         if (earned.contains(TitleId.relicHunter)) info(TitleId.relicHunter),
         for (final t in masteryTitles)
           if (earned.contains(t)) info(t),
+        for (final t in ashTitles)
+          if (earned.contains(t)) info(t),
       ];
 
   static const List<TitleInfo> _all = [
@@ -245,6 +279,12 @@ class TitleRules {
     TitleInfo(TitleId.spiritMaster, '정령과 하나 된 자', '정령술의 장인'),
     TitleInfo(TitleId.tradeAdept, '떠돌이 상인', '장사와 의뢰를 꾸준히'),
     TitleInfo(TitleId.tradeMaster, '길드의 해결사', '장사와 의뢰의 장인'),
+    TitleInfo(TitleId.ashRage, '분노를 잠재운 자', '숨은 칭호'),
+    TitleInfo(TitleId.ashSorrow, '슬픔을 달랜 자', '숨은 칭호'),
+    TitleInfo(TitleId.ashGreed, '탐욕을 끊은 자', '숨은 칭호'),
+    TitleInfo(TitleId.ashFear, '두려움을 이긴 자', '숨은 칭호'),
+    TitleInfo(TitleId.ashLonely, '외로움을 안아 준 자', '숨은 칭호'),
+    TitleInfo(TitleId.bridgeMaker, '다리를 놓은 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -339,6 +379,10 @@ class TitleRules {
     });
     // 보스 칭호 (11-11 #75): 그 보스를 처음 잡으면
     bossTitleMonsters.forEach((t, m) {
+      if (species.contains(m.name)) result.add(t);
+    });
+    // 묶음 34 2막: 분신·본체를 처음 쓰러뜨리면
+    ashTitleMonsters.forEach((t, m) {
       if (species.contains(m.name)) result.add(t);
     });
     final relics = history.fold<int>(0, (s, d) => s + (d.counters['relicDug'] ?? 0));

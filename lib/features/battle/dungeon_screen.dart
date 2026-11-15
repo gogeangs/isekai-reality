@@ -13,6 +13,7 @@ import '../town/material_view.dart';
 import '../pets/pet_art.dart';
 import '../../data/storage/record_store.dart' show HeroLook;
 import 'battle_view.dart';
+import '../act2/ash_battle_screen.dart' show AshBattleScreen;
 import 'hero_rig.dart';
 
 enum _Stage { entry, battle, result }
@@ -221,6 +222,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
           line: line,
           mood: hp < maxHp * 0.3 ? SpiritMood.worried : SpiritMood.normal),
       const SizedBox(height: 10),
+      // 묶음 34: 분신 다섯을 모두 쓰러뜨리면 던전 끝 「문 앞」이 다시 열린다 (열쇠 없이)
+      if (_c.kingOpen) ...[
+        _KingGate(controller: _c),
+        const SizedBox(height: 10),
+      ],
       // HP 0: 지쳐 주저앉은 각성자
       if (hp <= 0) ...[
         SizedBox(
@@ -775,4 +781,72 @@ String dungeonBackground(int floor, Foe foe) {
     return 'assets/images/bg_boss_warden.webp';
   }
   return 'assets/images/bg_dungeon_${(floor % 3) + 1}.webp';
+}
+
+
+/// 던전 끝 「문 앞」 (묶음 34): 잿빛 군주에게 가는 길
+class _KingGate extends StatelessWidget {
+  const _KingGate({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final phase = controller.act2.kingPhase;
+    return GestureDetector(
+      key: const Key('kingGate'),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) =>
+              AshBattleScreen(controller: controller, king: true))),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFB9B2C9), width: 1.5),
+          ),
+          child: Stack(fit: StackFit.expand, children: [
+            Image.asset('assets/images/bg_boss_gate.webp',
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, -0.2),
+                errorBuilder: (_, __, ___) =>
+                    const ColoredBox(color: Color(0xFF1B1840))),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Color(0xCC0B0D26), Color(0x000B0D26)],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('문 앞', style: AppText.title(21, color: AppColors.text)),
+                      const SizedBox(height: 4),
+                      KText(
+                          phase > 0
+                              ? '잿빛 군주 · 걷어 낸 곳부터 이어서'
+                              : '잿빛 군주가 기다리고 있어요',
+                          style: const TextStyle(
+                              color: Color(0xFFD9D3E2), fontSize: 13)),
+                    ],
+                  ),
+                ),
+                MonsterPicture(
+                    monster: MonsterId.ashKing, size: 92, reveal: phase / 4),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }

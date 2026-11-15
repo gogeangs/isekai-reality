@@ -21,7 +21,7 @@ class SetAuraPattern extends StatefulWidget {
   /// 세트 빛 색으로 세트를 찾는다 (빛 색은 세트마다 다르다)
   static BossSet? ofAura(Color? aura) {
     if (aura == null) return null;
-    for (final s in BossGearRules.sets) {
+    for (final s in BossGearRules.allSets) {
       if (s.aura == aura.toARGB32()) return s.id;
     }
     return null;
@@ -170,6 +170,19 @@ class _SetPainter extends CustomPainter {
                 ..strokeCap = StrokeCap.round
                 ..color = color
                 ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2.5));
+        }
+      case BossSet.ash:
+        // 잿가루: 발밑에서 천천히 떠올라 흩어진다 (묶음 34 잿빛 왕의 유품)
+        for (var i = 0; i < _n + 2; i++) {
+          final x0 = rnd.nextDouble();
+          final phase = (t * 0.8 + rnd.nextDouble()) % 1;
+          final x = c.dx + (x0 - 0.5) * rx * 1.8 +
+              math.sin((phase * 2 + x0) * math.pi * 2) * 10;
+          final y = size.height * (0.95 - phase * 0.9);
+          canvas.drawCircle(Offset(x, y), 1.6 + 1.6 * (1 - phase),
+              Paint()
+                ..color = color.withValues(alpha: 0.8 * math.sin(phase * math.pi))
+                ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5));
         }
     }
     // 모든 세트: 발밑에 세트 빛 고리

@@ -42,6 +42,11 @@ class BossGearTab extends StatelessWidget {
               : _HiddenSet(set: s),
           const SizedBox(height: 10),
         ],
+        // 묶음 34: 잿빛 왕의 유품 (만들 수 없음, 분신·본체에게서). 하나라도 얻으면 보인다
+        if (BossGearRules.relicSet.parts.any((x) => c.hasBossPart(x.$1))) ...[
+          _RelicCard(controller: c),
+          const SizedBox(height: 10),
+        ],
         const LockedJobPanel(
           title: '대장장이',
           lines: ['보스 장비가 덜 실패해요', '금화가 덜 들어요'],
@@ -124,6 +129,77 @@ class _SetCard extends StatelessWidget {
           const SizedBox(height: 8),
           for (final part in set.parts)
             _PartRow(controller: c, set: set, base: part.$1),
+        ],
+      ),
+    );
+  }
+}
+
+/// 「잿빛 왕의 유품」 (묶음 34): 만들기 버튼 없이 얻은 부위만 밝게
+class _RelicCard extends StatelessWidget {
+  const _RelicCard({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    const set = BossGearRules.relicSet;
+    final got = set.parts.where((x) => c.hasBossPart(x.$1)).length;
+    const style = TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4);
+    return OrnatePanel(
+      key: const Key('bossSet_ash'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.auto_awesome, color: Color(0xFFB9B2C9), size: 22),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(set.name,
+                  style: AppText.title(19, color: Color(set.aura))),
+            ),
+            Text('$got / 6',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          ]),
+          const SizedBox(height: 4),
+          const KText('2개 · 잿빛 몬스터에게 받는 피해가 줄어요', style: style),
+          const KText('4개 · 잿빛 몬스터에게 주는 피해가 늘어요', style: style),
+          KText('6개 · ${set.abilityName}: ${set.abilityText} · 「${set.look}」 모습',
+              style: style),
+          const SizedBox(height: 8),
+          for (final part in set.parts)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(children: [
+                Opacity(
+                  opacity: c.hasBossPart(part.$1) ? 1 : 0.35,
+                  child: EquipIcon(base: part.$1, size: 42),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          c.hasBossPart(part.$1) ? part.$2 : '???',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: c.hasBossPart(part.$1)
+                                  ? AppColors.text
+                                  : AppColors.textMuted,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14)),
+                      Text(
+                          '${EquipmentRules.slotLabel(EquipmentRules.info(part.$1).slot)} · '
+                          '${c.hasBossPart(part.$1) ? part.$3 : '잿빛 군주에게서 얻어요'}',
+                          style: const TextStyle(
+                              color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
         ],
       ),
     );

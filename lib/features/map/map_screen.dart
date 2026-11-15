@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/services.dart' show AssetManifest, rootBundle;
@@ -29,6 +30,7 @@ import '../../theme/top_notice.dart';
 import '../tutorial/targets.dart';
 import '../lens/lens_screen.dart' show openLens;
 import '../jobs/job_skill_bar.dart';
+import '../act2/ash_battle_screen.dart' show openRift;
 
 part 'map_overlays.dart';
 part 'naver_map_layer.dart';

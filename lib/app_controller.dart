@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'core/format.dart';
 import 'core/geo/geo.dart';
 import 'core/geo/route_grid.dart';
+import 'core/models/act2_state.dart';
 import 'core/models/alchemy_state.dart';
 import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
@@ -35,6 +36,7 @@ import 'features/map/ansan_area.dart';
 import 'features/map/korea_area.dart';
 import 'features/status/demo_data.dart';
 
+part 'controller/act2.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/battle.dart';
@@ -97,6 +99,8 @@ class AppController extends ChangeNotifier {
             'pageIntro': true,
             'masteryShown': {for (final m in Mastery.values) m.name: 4},
           },
+          // 묶음 34: 예시 모드는 잿빛 틈 한마디를 이미 들은 것으로
+          'act2': {'announced': 6},
         },
       ),
       health: FakeHealthSource(granted: false),
@@ -405,6 +409,8 @@ class AppController extends ChangeNotifier {
   /// 레벨업 연출을 닫았을 때
   Future<void> acknowledgeLevelUp() async {
     await updateProfile(_profile.copyWith(lastSeenLevel: player.level.level));
+    // 묶음 34: 새 분신의 잿빛 틈이 열렸으면 첫 펫 한마디
+    _checkAct2();
   }
 
   Future<void> _startPlaying() async {
@@ -523,6 +529,10 @@ class AppController extends ChangeNotifier {
     await _loadMastery();
     // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
     await _migrateSkills31();
+    // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
+    _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
+    _act2Ready = true;
+    _checkAct2();
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -711,6 +721,11 @@ class AppController extends ChangeNotifier {
   static const _pinsKey = 'guidePins';
   String? _pinsDay;
   Map<String, GeoPoint> _pins = const {};
+  /// 묶음 34 2막: 쓰러뜨린 분신 · 본체 단계 · 결말 · 그날 잿빛 틈
+  static const _act2Key = 'act2';
+  Act2State _act2 = const Act2State();
+  bool _act2Ready = false;
+
   static const _nearKey = 'nearAnchor';
   String? _nearDay;
   GeoPoint? _nearAnchor;

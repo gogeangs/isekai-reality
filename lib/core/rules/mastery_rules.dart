@@ -93,7 +93,8 @@ class MasteryRules {
         EquipBase.staff || EquipBase.flameWeapon => 'staff',
         EquipBase.ironSword ||
         EquipBase.wardenWeapon ||
-        EquipBase.frostWeapon =>
+        EquipBase.frostWeapon ||
+        EquipBase.ashWeapon =>
           'sword',
         EquipBase.woodAxe || EquipBase.groveWeapon => 'axe',
         EquipBase.ironSpear || EquipBase.stormWeapon => 'spear',

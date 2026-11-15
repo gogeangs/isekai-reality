@@ -56,6 +56,9 @@ class VillageScreen extends StatelessWidget {
           AppController.featureLevel[Feature.smithy],
         Facility.board when !controller.featureOpen(Feature.board) =>
           AppController.featureLevel[Feature.board],
+        // 묶음 28 #181: 연금술 공방은 Lv.7 (약초 덤불과 함께)
+        Facility.alchemy when !controller.featureOpen(Feature.alchemy) =>
+          AppController.featureLevel[Feature.alchemy],
         _ => null,
       };
 

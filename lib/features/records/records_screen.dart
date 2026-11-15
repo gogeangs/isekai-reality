@@ -10,9 +10,15 @@ import '../bulssi/bulssi_bubble.dart';
 /// 기록 (목업 구도): 이번 주 / 지난 주, 걸음·필드 몬스터·여관 휴식 그래프, 주간 요약 3칸.
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen(
-      {super.key, required this.player, this.embedded = false});
+      {super.key,
+      required this.player,
+      this.embedded = false,
+      this.prophecy = const []});
 
   final PlayerState player;
+
+  /// 모은 고대 유물 글귀 (묶음 28 #181, 모은 것만)
+  final List<String> prophecy;
 
   /// 프로필 안 '기록' 영역으로 쓸 때 (위쪽 제목·여백 없이, 11-10 #24)
   final bool embedded;
@@ -173,6 +179,36 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 label: '새 칭호',
                 value: '$newTitles'),
           ]),
+          // 묶음 28 #181: 고대 유물 글귀 (모은 조각만, 늘어나는 방식)
+          if (widget.prophecy.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('고대 유물 글귀',
+                key: const Key('prophecyRecords'), style: AppText.title(19)),
+            const SizedBox(height: 8),
+            for (final (i, t) in widget.prophecy.indexed)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1E0B8),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0x99A07840)),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${i + 1}',
+                      style: AppText.title(15, color: const Color(0xFF6E4C2C))),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: KText(t,
+                        style: const TextStyle(
+                            color: Color(0xFF3A2614),
+                            fontSize: 14,
+                            height: 1.5,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+          ],
           const SizedBox(height: 16),
           Text('하루별 기록', style: AppText.title(19)),
           const SizedBox(height: 8),

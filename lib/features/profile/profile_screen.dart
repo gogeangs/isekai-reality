@@ -347,7 +347,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               Expanded(
                                   child: RecordsScreen(
-                                      player: p, embedded: true)),
+                                      player: p,
+                                      embedded: true,
+                                      prophecy: c.prophecyPieces)),
                             ],
                           ),
                   ),

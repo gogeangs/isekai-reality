@@ -14,6 +14,35 @@ extension HarvestOps on AppController {
   /// 지도에 보이는 채집 자리 (지금 위치 둘레 3km)
   List<HarvestSpot> get harvestSpots {
     if (inTutorial) return const []; // 묶음 18 #150
+    // 묶음 28 #181: 막 열린 채집 자리 하나는 그날 내 가까이에 (안내 자리)
+    final spots = _baseHarvestSpots();
+    final guides = _guideHarvestSpots();
+    if (guides.isEmpty) return spots;
+    return [...guides, ...spots];
+  }
+
+  /// 새로 열린 채집 자리를 그날 가까이(50~150m)에 하나씩 (#179처럼 그날 고정)
+  List<HarvestSpot> _guideHarvestSpots() {
+    if (_legacyGates || _lastFix == null) return const [];
+    final day = DailyRecord.dayKeyOf(_clock());
+    final pending = pendingFeatureIntro;
+    final out = <HarvestSpot>[];
+    for (final (f, kind) in const [
+      (Feature.alchemy, HarvestKind.herb),
+      (Feature.ore, HarvestKind.ore),
+      (Feature.wood, HarvestKind.wood),
+      (Feature.relic, HarvestKind.relic),
+    ]) {
+      final id = 'guide-${kind.name}';
+      final pinned = _pinsDay == day && _pins.containsKey(id);
+      if (!featureOpen(f) || (pending != f && !pinned)) continue;
+      final p = _pinned(id, (h) => _clearSpotNear(h, near: true));
+      if (p != null) out.add(HarvestSpot(id: id, kind: kind, point: p));
+    }
+    return out;
+  }
+
+  List<HarvestSpot> _baseHarvestSpots() {
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
     final lure = lureActive;
@@ -48,11 +77,9 @@ extension HarvestOps on AppController {
                                   h.lat + 0.00008, h.lng + 0.00006)) ??
                           GeoPoint(_lastFix!.point.lat + 0.00008,
                               _lastFix!.point.lng + 0.00006)),
+                // 묶음 28 #181: 도구별로 레벨마다 나눠 연다 (업데이트 때 Lv.7 이상이던 사람은 모두)
                 for (final x in _spotsCache)
-                  if (lv >= 7 ||
-                      x.kind == HarvestKind.flower ||
-                      x.kind == HarvestKind.mushroom)
-                    x,
+                  if (_harvestAll || lv >= HarvestRules.openLevel(x.kind)) x,
               ];
       }
     }
@@ -227,6 +254,13 @@ extension HarvestOps on AppController {
     _lastRelicLore = relic && HarvestRules.relicLore.isNotEmpty
         ? HarvestRules.relicLore[(h.relics - 1) % HarvestRules.relicLore.length]
         : null;
+    // 묶음 28 #181: 고대 유물을 처음 세 번 캘 때 예언 조각 하나씩 (차례대로)
+    _lastProphecy = null;
+    if (relic && _prophecy < HarvestRules.prophecy.length) {
+      _lastProphecy = _prophecy;
+      _prophecy++;
+      await store.saveJson(AppController._prophecyKey, {'got': _prophecy});
+    }
     await _saveHarvest(h);
     await _grant(0, 0, mats);
     await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
@@ -241,6 +275,18 @@ extension HarvestOps on AppController {
 
   /// 방금 캔 고대 유물의 이야기 (없으면 null)
   String? get lastRelicLore => _lastRelicLore;
+
+  /// 방금 얻은 예언 조각 번호 (0~2, 없으면 null). 한 번 꺼내면 비운다
+  int? takeProphecy() {
+    final p = _lastProphecy;
+    _lastProphecy = null;
+    return p;
+  }
+
+  /// 모은 예언 조각 글귀 (기록 탭)
+  List<String> get prophecyPieces => [
+        for (var i = 0; i < _prophecy; i++) HarvestRules.prophecy[i].$1,
+      ];
 
   /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대·붓은 공방)
   Future<bool> repairTool(HarvestTool t) =>

@@ -466,7 +466,12 @@ class AppController extends ChangeNotifier {
         for (final x in (gates['seen'] as List?) ?? const []) '$x'
       };
       _hpTipShown = gates['hpTip'] == true || _legacyGates;
+      _gates28 = gates['v28'] == true;
+      _harvestAll = gates['harvestAll'] == true;
+      _alchemyKept = gates['alchemyKept'] == true;
     }
+    final prophecy = await _load(_prophecyKey, (j) => j, null);
+    _prophecy = ((prophecy?['got'] as num?) ?? 0).toInt().clamp(0, 3);
     // 묶음 23: 한 번만 주는 선물은 안내 기록과 따로. 예전 기록은 받은 것으로 옮긴다
     final gifts = await _load(_giftsKey, (j) => j, null);
     if (gifts == null) {
@@ -501,6 +506,8 @@ class AppController extends ChangeNotifier {
       };
     }
     await sync();
+    // 묶음 28 #181: 이미 넘은 레벨의 기능은 안내 없이 그대로 연다
+    if (!_legacyGates && !_gates28) await _migrateGates28();
     // 묶음 27 #176: 숨은 숙련도 (없으면 지금까지 한 횟수로 시작 값을 채운다)
     await _loadMastery();
     final titles = await store.loadJson(_titlesKey);
@@ -673,7 +680,28 @@ class AppController extends ChangeNotifier {
     Feature.board: 4,
     Feature.harvest: 5,
     Feature.lens: 6,
+    Feature.alchemy: 7,
+    Feature.ore: 8,
+    Feature.wood: 9,
+    Feature.relic: 10,
   };
+
+  /// 묶음 28 #181: 이 저장 방식으로 옮겼는지 (아니면 열 때 한 번 옮긴다)
+  bool _gates28 = true;
+
+  /// 업데이트 때 이미 Lv.7 이상이던 사람: 채집 자리를 모두 그대로 연다
+  bool _harvestAll = false;
+
+  /// 업데이트 때 이미 연금술 공방을 쓰던 사람: Lv.7 전이어도 열어 둔다
+  bool _alchemyKept = false;
+
+  /// 모은 예언 조각 수 (고대 유물, 0~3)
+  static const _prophecyKey = 'prophecy';
+  int _prophecy = 0;
+  int? _lastProphecy;
+
+  /// 안내가 지도에서 비출 채집 자리 (첫 물약 안내의 약초 덤불)
+  String? _guideSpotId;
 
   /// 채집 안내 중이면 바로 옆에 꽃 자리 하나 (#143)
   bool _harvestTutorial = false;
@@ -908,7 +936,18 @@ enum TutorialStep { done, hunt, bag, expedition, intro }
 
 /// 레벨에 따라 여는 기능 (묶음 16)
 /// 레벨로 열리는 기능과 그 안내. stats 는 Lv.2 능력치 나누기 안내 (묶음 25 #165)
-enum Feature { stats, smithy, board, harvest, lens }
+enum Feature {
+  stats,
+  smithy,
+  board,
+  harvest,
+  lens,
+  // 묶음 28 #181: Lv.7 약초 덤불·연금술 공방 · Lv.8 광석 · Lv.9 나무·물가 · Lv.10 고대 유물
+  alchemy,
+  ore,
+  wood,
+  relic,
+}
 
 class ExpeditionPlan {
   const ExpeditionPlan(

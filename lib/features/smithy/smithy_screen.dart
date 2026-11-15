@@ -1,3 +1,4 @@
+import '../village/npc_header.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../core/format.dart';
@@ -61,6 +62,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
+                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
+                NpcHeader(controller: c, npc: Npc.bron),
+                const SizedBox(height: 8),
                 BulssiLine(
                     line: switch (_tab) {
                   0 when c.firstWeaponFree =>

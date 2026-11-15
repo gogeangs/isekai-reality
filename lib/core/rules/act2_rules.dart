@@ -245,6 +245,14 @@ class Act2Rules {
     return tries.first;
   }
 
+  // ───────────── 경험치 (묶음 34 확인 답: 처음 쓰러뜨릴 때 한 번, 재료는 없음)
+
+  /// 분신: 던전 보스 클리어 경험치의 2배
+  static const int avatarExp = RuleConstants.dungeonClearExp * 2;
+
+  /// 본체: 던전 보스 클리어 경험치의 3배
+  static const int kingExp = RuleConstants.dungeonClearExp * 3;
+
   // ───────────── 강함 (그 레벨 던전 보스보다 조금 세게)
 
   /// 분신: 던전 보스 대비 체력·공격 배율

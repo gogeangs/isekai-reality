@@ -693,7 +693,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       position: _ll(h.point),
       anchor: guide ? const NPoint(0.5, 0.5) : const NPoint(0.5, 1),
       icon: NOverlayImage.fromAssetImage(c.isTreasure(h)
-          ? 'assets/images/icon_gold.webp'
+          ? 'assets/images/map_treasure.webp'
           : h.info.mapAsset),
       size: Size(base, base),
       caption: _dots(c.isTreasure(h) ? 0 : c.harvestCharges(h), 1),

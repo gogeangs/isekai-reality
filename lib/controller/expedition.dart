@@ -455,6 +455,8 @@ extension ExpeditionOps on AppController {
       check = ExpeditionCheck.busy;
     } else if (isAway(pet?.uid)) {
       check = ExpeditionCheck.busy;
+    } else if (pet != null && _pets.isTired(pet.uid, _clock())) {
+      check = ExpeditionCheck.tired;
     } else if (activeExpeditions.any((e) => e.spawnId == spawn.id)) {
       check = ExpeditionCheck.busy;
     } else if (mp < cost) {
@@ -687,6 +689,14 @@ extension ExpeditionOps on AppController {
         }
       }
       await _givePetExp(pet.uid, PetRules.expPerExpedition);
+    }
+    // 묶음 35: 원정에서 진 펫은 잠시 지침 (원정만 못 감, 동행·던전은 됨)
+    if (battle.phase == BattlePhase.failed && pet != null) {
+      _clearShelterRest(pet.uid);
+      await _savePets(_pets.copyWith(tired: {
+        ..._pets.tired,
+        pet.uid: ex.arriveAt.add(PetRules.tiredFor),
+      }));
     }
     // 묶음 33 #185: 골렘 → 져도 기력을 돌려받음
     if (!cleared && pet != null && PetRules.keepsMpOnLoss(pet.species)) {

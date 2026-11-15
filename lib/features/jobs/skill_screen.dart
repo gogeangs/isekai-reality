@@ -1,3 +1,4 @@
+import 'skill_icon.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -84,6 +85,23 @@ class _SkillScreenState extends State<SkillScreen> {
 
   // ───────────── 전투 칸
 
+  /// 전투 칸 그림 (묶음 35)
+  Widget _slotIcon(String? e) {
+    if (e != null && e.startsWith('job:')) {
+      final s = JobRules.parseSkill(e.substring(4));
+      if (s != null) return SkillArt.jobIcon(s, size: 44);
+    }
+    final m = e == null
+        ? null
+        : Mastery.values.where((x) => 'mastery:${x.name}' == e).firstOrNull;
+    if (m != null) return SkillArt.masteryIcon(m, active: true, size: 44);
+    return Image.asset('assets/images/btn_skill_empty.webp',
+        width: 44,
+        height: 44,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.add_rounded, color: AppColors.gold));
+  }
+
   String _entryName(String e) {
     if (e.startsWith('job:')) {
       final s = JobRules.parseSkill(e.substring(4));
@@ -122,6 +140,7 @@ class _SkillScreenState extends State<SkillScreen> {
             for (final e in choices)
               ListTile(
                 key: Key('slotPick_$e'),
+                leading: _slotIcon(e),
                 title: Text(_entryName(e),
                     style: const TextStyle(color: AppColors.text)),
                 subtitle: Text(_entrySub(e),
@@ -155,8 +174,12 @@ class _SkillScreenState extends State<SkillScreen> {
       const KText('전투 화면에 나오는 스킬이에요. 칸을 눌러 바꿀 수 있어요.',
           style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
       const SizedBox(height: 10),
-      const _FixedRow(name: '강타', text: '몇 턴마다 크게 쳐요'),
-      const _FixedRow(name: '방어 태세', text: '몇 턴마다 잠시 받는 피해를 줄여요'),
+      const _FixedRow(
+          name: '강타', text: '몇 턴마다 크게 쳐요', art: 'btn_strike'),
+      const _FixedRow(
+          name: '방어 태세',
+          text: '몇 턴마다 잠시 받는 피해를 줄여요',
+          art: 'btn_guard'),
       for (var i = 0; i < 2; i++)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -167,14 +190,8 @@ class _SkillScreenState extends State<SkillScreen> {
             child: OrnatePanel(
               highlight: i < slots.length,
               child: Row(children: [
-                Icon(
-                    i < slots.length && slots[i].startsWith('job:')
-                        ? Icons.bolt_rounded
-                        : Icons.auto_awesome,
-                    color: i < slots.length && slots[i].startsWith('job:')
-                        ? kJobMpColor
-                        : AppColors.goldBright,
-                    size: 20),
+                // 묶음 35: 스킬 그림 (빈 칸은 btn_skill_empty)
+                _slotIcon(i < slots.length ? slots[i] : null),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -199,7 +216,8 @@ class _SkillScreenState extends State<SkillScreen> {
         ),
       _FixedRow(
           name: pet != null ? pet.info.skillName : '정령의 일격',
-          text: pet != null ? '함께 있는 펫의 스킬' : '정령이 함께 싸워요'),
+          text: pet != null ? '함께 있는 펫의 스킬' : '정령이 함께 싸워요',
+          art: 'btn_pet'),
     ];
   }
 
@@ -250,9 +268,15 @@ class _SkillScreenState extends State<SkillScreen> {
           style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
       const SizedBox(height: 10),
       for (final j in jobs) ...[
-        Text(
-            '${j == c.mainJob ? '주 직업' : '보조 직업'} · ${JobRules.info(j).name}',
-            style: AppText.title(16, color: AppColors.text)),
+        Row(children: [
+          JobEmblem(j, size: 34),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+                '${j == c.mainJob ? '주 직업' : '보조 직업'} · ${JobRules.info(j).name}',
+                style: AppText.title(16, color: AppColors.text)),
+          ),
+        ]),
         const SizedBox(height: 2),
         KText('고유 기술 · ${JobRules.info(j).trait}',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
@@ -286,8 +310,7 @@ class _SkillScreenState extends State<SkillScreen> {
               child: OrnatePanel(
                 key: Key('masterySkill_${x.key}'),
                 child: Row(children: [
-                  Icon(x.active ? Icons.auto_awesome : Icons.spa_rounded,
-                      color: AppColors.goldBright, size: 20),
+                  SkillArt.masteryIcon(x.mastery, active: x.active, size: 40),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -342,6 +365,8 @@ class _SkillTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(children: [
+                  SkillArt.jobIcon(skill, size: 40, dim: lv == 0),
+                  const SizedBox(width: 6),
                   Text('${'①②③④'[i]} ',
                       style: const TextStyle(
                           color: AppColors.goldBright, fontSize: 15)),
@@ -398,18 +423,30 @@ class _SkillTile extends StatelessWidget {
 }
 
 class _FixedRow extends StatelessWidget {
-  const _FixedRow({required this.name, required this.text});
+  const _FixedRow({required this.name, required this.text, this.art});
 
   final String name;
   final String text;
+
+  /// 묶음 35: 전투 버튼 그림
+  final String? art;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: OrnatePanel(
           child: Row(children: [
-            const Icon(Icons.lock_outline_rounded,
-                color: AppColors.textMuted, size: 18),
+            if (art != null)
+              Image.asset('assets/images/$art.webp',
+                  width: 40,
+                  height: 40,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.textMuted,
+                      size: 18))
+            else
+              const Icon(Icons.lock_outline_rounded,
+                  color: AppColors.textMuted, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Column(

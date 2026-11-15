@@ -1,3 +1,5 @@
+import '../village/npc_header.dart';
+import 'skill_icon.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -119,6 +121,21 @@ class _GuildScreenState extends State<GuildScreen> {
                 OrnateTopBar(
                     title: '길드', onBack: () => Navigator.of(context).maybePop()),
                 const SizedBox(height: 6),
+                // 묶음 35: 길드 홀 그림 (띠처럼) + 길드장 세라
+                ClipRRect(
+                  key: const Key('guildHall'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    height: 110,
+                    child: Image.asset('assets/images/guild_hall.webp',
+                        fit: BoxFit.cover,
+                        alignment: const Alignment(0, -0.1),
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                NpcHeader(controller: c, npc: Npc.sera),
+                const SizedBox(height: 8),
                 const SpiritBadgeRow(
                     key: Key('guildGreeting'),
                     line: '직업은 언제든 바꿀 수 있어. 마음 가는 길을 골라 봐!'),
@@ -127,9 +144,18 @@ class _GuildScreenState extends State<GuildScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('주 직업 · ${c.mainJobLabel ?? '-'}',
-                            key: const Key('guildMain'),
-                            style: AppText.title(18, color: AppColors.goldBright)),
+                        Row(children: [
+                          if (main != null) ...[
+                            JobEmblem(main, size: 44),
+                            const SizedBox(width: 8),
+                          ],
+                          Expanded(
+                            child: Text('주 직업 · ${c.mainJobLabel ?? '-'}',
+                                key: const Key('guildMain'),
+                                style: AppText.title(18,
+                                    color: AppColors.goldBright)),
+                          ),
+                        ]),
                         if (main != null) ...[
                           const SizedBox(height: 4),
                           JobSummary(job: main),
@@ -235,6 +261,8 @@ class _JobCard extends StatelessWidget {
       highlight: isMain || fresh,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
+          JobEmblem(job, size: 36),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(apprentice ? '견습 ${info.name}' : info.name,
                 style: AppText.title(16, color: AppColors.text)),
@@ -319,6 +347,14 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
   late final bool _apprentice = c.jobStartsApprentice;
   late final JobId _rec = c.recommendedJob;
 
+  /// 직업을 고른 순간 금빛 터짐 (묶음 35, 고를 때마다 1씩)
+  int _burst = 0;
+
+  void _pick(JobId j) => setState(() {
+        _main = j;
+        _burst++;
+      });
+
   Future<void> _finish() async {
     await c.awakenJob(_main!, subs: [if (_sub != null) _sub!]);
     if (mounted) setState(() => _step = 3);
@@ -352,13 +388,16 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: GestureDetector(
                 key: Key('jobPick_${j.name}'),
-                onTap: () => setState(() => _main = j),
+                onTap: () => _pick(j),
                 child: OrnatePanel(
                   highlight: _main == j,
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(children: [
+                          // 묶음 35: 직업 문장
+                          JobEmblem(j, size: 40),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                                 _apprentice
@@ -407,8 +446,14 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(JobRules.info(j).name,
-                              style: AppText.title(17, color: AppColors.text)),
+                          Row(children: [
+                            JobEmblem(j, size: 36),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(JobRules.info(j).name,
+                                  style: AppText.title(17, color: AppColors.text)),
+                            ),
+                          ]),
                           const SizedBox(height: 4),
                           JobSummary(job: j, sub: true),
                         ]),
@@ -445,8 +490,22 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
       child: Scaffold(
         key: const Key('jobAwakenScreen'),
         backgroundColor: AppColors.deepNight,
-        body: NightBackground(
-          child: SafeArea(
+        // 묶음 35: 각성 배경 (가운데가 밝아 카드가 잘 읽히게 살짝 어둡게) + 고를 때 금빛 터짐
+        body: Stack(fit: StackFit.expand, children: [
+          Image.asset('assets/images/bg_job_awaken.webp',
+              key: const Key('jobAwakenBg'),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  const ColoredBox(color: AppColors.deepNight)),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                radius: 0.9,
+                colors: [Color(0x99060818), Color(0x66060818)],
+              ),
+            ),
+          ),
+          SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
@@ -454,7 +513,29 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
               ),
             ),
           ),
-        ),
+          if (_burst > 0)
+            IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey('burst$_burst'),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 1000),
+                builder: (context, k, _) => k >= 1
+                    ? const SizedBox.shrink()
+                    : Center(
+                        child: Opacity(
+                          opacity: (1 - k) * (k < 0.15 ? k / 0.15 : 1),
+                          child: Transform.scale(
+                            scale: 0.6 + 0.8 * Curves.easeOut.transform(k),
+                            child: Image.asset('assets/images/fx_job_awaken.webp',
+                                key: const Key('jobAwakenFx'),
+                                width: 360,
+                                errorBuilder: (_, __, ___) => const SizedBox()),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+        ]),
       ),
     );
   }

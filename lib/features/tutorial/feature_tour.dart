@@ -248,6 +248,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       if (_shownFeature == null &&
           c.pendingFeatureIntro == null &&
           !c.skillIntroPending &&
+          !c.shelterIntroPending &&
           !_skillMode) {
         return;
       }
@@ -806,6 +807,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   /// 「새로 열렸어요」 카드를 넘겼는지 (앱을 끄면 다시 카드부터)
   bool _skillCardSeen = false;
 
+  Future<void> _finishShelter() async {
+    await c.markShelterIntro();
+    _queue();
+  }
+
   Future<void> _finishSkill() async {
     _skillCardSeen = false;
     await c.markSkillIntro();
@@ -863,6 +869,17 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       skill = true;
       step = _skillIntro();
       if (step != null && step.wait) _scheduleRetry('skills:${step.line}');
+    } else if (f == null &&
+        c.shelterIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready &&
+        (b.top == null || b.top == 'home')) {
+      // 묶음 35: 펫 쉼터 「새로 열렸어요」 카드 (한 번만, 예전 Lv.11 이상 계정도)
+      skill = true;
+      step = TourStep('펫 쉼터가 열렸어! 알은 둥지에서, 지친 펫은 여기서 쉬어.',
+          opened: ('펫 쉼터', 'village_shelter'),
+          button: ('알겠어', _finishShelter));
     } else if (f == null) {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
@@ -902,6 +919,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           return Material(
             type: MaterialType.transparency,
             child: _TourView(step: step, onSkip: _finishSkill),
+          );
+        }
+        if (_skillMode && step != null && c.shelterIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishShelter),
           );
         }
         if (step == null || f == null || c.pendingFeatureIntro != f) {

@@ -1,3 +1,4 @@
+import '../village/npc_header.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -47,6 +48,9 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                   title: '연금술 공방',
                   onBack: () => Navigator.of(context).maybePop()),
               const SizedBox(height: 6),
+              // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
+              NpcHeader(controller: c, npc: Npc.ella),
+              const SizedBox(height: 8),
               BulssiLine(
                   line: switch (_tab) {
                 0 => '넣는 순서가 딱 맞거나 귀한 재료를 쓰면 품질이 좋아져!',

@@ -1,3 +1,4 @@
+import 'npc_header.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -47,6 +48,9 @@ class BoardScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
+                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
+                NpcHeader(controller: controller, npc: Npc.hart),
+                const SizedBox(height: 8),
                 BulssiLine(
                     line: urgent != null && !controller.board.urgentDone
                         ? '긴급 의뢰가 붙었어! 오늘 자정까지야.'

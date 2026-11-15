@@ -1,0 +1,309 @@
+import 'package:flutter/material.dart' hide Element;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/act2_state.dart';
+import 'package:isekai_reality/core/models/daily_record.dart';
+import 'package:isekai_reality/core/models/pet_state.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
+import 'package:isekai_reality/data/health/health_source.dart';
+import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/village/shelter_screen.dart';
+import 'package:isekai_reality/features/village/village_screen.dart';
+import 'package:isekai_reality/features/town/inn_screen.dart';
+
+void main() {
+  final t0 = DateTime(2026, 11, 15, 10);
+
+  /// Lv.[level] 계정. [farewell] 이면 첫 펫과 함께 (2막)
+  InMemoryRecordStore account(int level,
+          {bool farewell = false,
+          Map<String, DateTime> tired = const {},
+          List<PetEgg> eggs = const [],
+          Map<String, dynamic>? act2,
+          Map<String, dynamic>? village}) =>
+      InMemoryRecordStore(
+        profile: const PlayerProfile(
+            name: '하루',
+            spiritName: '불씨',
+            spiritKind: SpiritKind.water,
+            lastSeenLevel: 99),
+        history: [
+          DailyRecord(
+            date: DateTime(2026, 11, 14),
+            gains: {'exp': LevelRules.totalExpToReach(level)},
+          ),
+        ],
+        json: {
+          'tutorial': {'step': TutorialStep.done.index},
+          if (farewell)
+            'pets': PetState(
+              pets: [
+                Pet(
+                    uid: 'p1',
+                    species: PetSpecies.owl,
+                    name: '부엉',
+                    bornAt: DateTime(2026, 11, 1)),
+              ],
+              companion: 'p1',
+              firstPet: 'p1',
+              firstSpiritName: '불씨',
+              farewellAt: DateTime(2026, 11, 2),
+              tired: tired,
+              eggs: eggs,
+            ).toJson(),
+          if (act2 != null) 'act2': act2,
+          if (village != null) 'village': village,
+        },
+      );
+
+  Future<AppController> start(InMemoryRecordStore store,
+      {DateTime Function()? clock}) async {
+    final c = AppController(
+      store: store,
+      health: FakeHealthSource(stepsByDay: const {}),
+      clock: clock ?? () => t0,
+    )..mailSources = const [];
+    await c.init();
+    return c;
+  }
+
+  group('묶음 34 확인 답', () {
+    test('분신·본체는 처음 쓰러뜨릴 때 경험치 (분신 2배 · 본체 3배)', () {
+      expect(Act2Rules.avatarExp, RuleConstants.dungeonClearExp * 2);
+      expect(Act2Rules.kingExp, RuleConstants.dungeonClearExp * 3);
+    });
+
+    test('분신을 처음 쓰러뜨리면 경험치가 오른다', () async {
+      final c = await start(account(12));
+      final before = LevelRules.totalExpToReach(c.player.level.level) +
+          c.player.level.expIntoLevel;
+      final b = c.startAshBattle()!;
+      b.floor = 0;
+      b.foeHp = 1;
+      b.phase = BattlePhase.cleared;
+      final r = await c.finishAshBattle(b);
+      expect(r.exp, Act2Rules.avatarExp);
+      final after = LevelRules.totalExpToReach(c.player.level.level) +
+          c.player.level.expIntoLevel;
+      expect(after - before, Act2Rules.avatarExp);
+    });
+  });
+
+  group('마을 사람', () {
+    test('처음엔 첫 줄, 그 뒤엔 그 막의 두 줄을 번갈아 (1막 대사가 없으면 2막)', () {
+      expect(VillageRules.lineFor(Npc.marta, act: 1, met: false, visits: 0),
+          VillageRules.npc(Npc.marta).first);
+      final a = VillageRules.lineFor(Npc.marta, act: 1, met: true, visits: 0);
+      final b = VillageRules.lineFor(Npc.marta, act: 1, met: true, visits: 1);
+      expect(a, isNot(b));
+      expect(VillageRules.lineFor(Npc.marta, act: 1, met: true, visits: 2), a);
+      expect(VillageRules.linesFor(Npc.sera, 1), VillageRules.linesFor(Npc.sera, 2));
+      expect(VillageRules.linesFor(Npc.lumi, 3).first, contains('탑이 켜지니까'));
+      for (final n in VillageRules.npcs) {
+        expect(n.lines[3], hasLength(2), reason: n.name);
+      }
+    });
+
+    test('만난 것·번갈아 셈은 저장된다 (예전 기록도 시설마다 한 번씩 첫 줄)', () async {
+      final store = account(5);
+      final c = await start(store);
+      expect(c.takeNpcLine(Npc.bron), VillageRules.npc(Npc.bron).first);
+      final x = c.takeNpcLine(Npc.bron);
+      expect(x, isNot(VillageRules.npc(Npc.bron).first));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final again = await start(store);
+      final y = again.takeNpcLine(Npc.bron);
+      expect(y, isNot(x));
+      expect(again.takeNpcLine(Npc.toby), VillageRules.npc(Npc.toby).first);
+    });
+
+    test('막: 이별 전 1 · 이별 뒤 2 · 결말 뒤 3', () async {
+      expect((await start(account(5))).villageAct, 1);
+      expect((await start(account(12, farewell: true))).villageAct, 2);
+      expect(
+          (await start(account(22,
+                  farewell: true,
+                  act2: const Act2State(beaten: 5, kingPhase: 5, kingDone: true)
+                      .toJson())))
+              .villageAct,
+          3);
+    });
+
+    test('소개 3줄: 이별 뒤면 3번째 줄이 떠난 정령 이야기', () {
+      expect(VillageRules.intro(), hasLength(3));
+      expect(VillageRules.intro(departed: '불씨')[2],
+          '저 탑에 다시 불을 켜는 게 불씨의 오래된 소원이었대.');
+      expect(VillageRules.afterFarewell('불씨'), '불씨가 열어 둔 마을 길은 이제 네 안에 있대.');
+      expect(VillageRules.afterFarewell('이슬빛'), startsWith('이슬빛이 열어'));
+    });
+  });
+
+  group('펫 쉼터 · 지침', () {
+    test('지침은 저장되고, 쉼터에 두면 그때부터 15분', () async {
+      final store = account(12,
+          farewell: true, tired: {'p1': t0.add(const Duration(minutes: 50))});
+      final c = await start(store);
+      expect(c.shelterOpen, isTrue);
+      expect(c.petTiredLeft('p1'), const Duration(minutes: 50));
+      expect(c.tiredPets.single.uid, 'p1');
+      expect(await c.restInShelter('p1'), isTrue);
+      expect(c.petTiredLeft('p1'), PetRules.shelterRest);
+      expect(c.petInShelter('p1'), isTrue);
+      final later = await start(store,
+          clock: () => t0.add(const Duration(minutes: 16)));
+      expect(later.petTiredLeft('p1'), isNull);
+      expect(later.tiredPets, isEmpty);
+    });
+
+    test('예전에 진 펫은 지침 없이 시작 · 쉼터는 Lv.11 첫 펫과 함께', () async {
+      final c = await start(account(12, farewell: true));
+      expect(c.tiredPets, isEmpty);
+      expect(c.shelterIntroPending, isTrue);
+      await c.markShelterIntro();
+      expect(c.shelterIntroPending, isFalse);
+      expect((await start(account(8))).shelterOpen, isFalse);
+    });
+  });
+
+  group('화면', () {
+    void phone(WidgetTester tester, {Size size = const Size(1170, 2532)}) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+    }
+
+    Future<void> village(WidgetTester tester, AppController c) async {
+      await tester.pumpWidget(
+          MaterialApp(home: Scaffold(body: VillageScreen(controller: c))));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    testWidgets('처음 들어오면 소개 3줄 + 탑 비춤, 건너뛰면 다시 안 나옴', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async => c = await start(account(5)));
+      await village(tester, c);
+      expect(find.byKey(const Key('villageIntro')), findsOneWidget);
+      expect(find.byKey(const Key('towerGlow')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('villageIntroNext')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('villageIntroSkip')));
+      await tester.pump();
+      expect(find.byKey(const Key('villageIntro')), findsNothing);
+      expect(c.villageIntroPending, isFalse);
+      await tester.pump(const Duration(seconds: 9));
+    });
+
+    testWidgets('건물은 그림에, 열린 시설만 이름표 · 안 열린 건물은 어둡게', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async =>
+          c = await start(account(5, village: {'seen': ['intro']})));
+      await village(tester, c);
+      for (final f in Facility.values) {
+        expect(find.byKey(Key('building_${f.name}')), findsOneWidget, reason: f.name);
+      }
+      expect(find.byKey(const Key('facility_inn')), findsOneWidget);
+      expect(find.byKey(const Key('facility_smithy')), findsOneWidget);
+      expect(find.byKey(const Key('facility_alchemy')), findsNothing);
+      expect(find.byKey(const Key('facility_shelter')), findsNothing);
+      expect(find.byKey(const Key('facility_market')), findsNothing);
+      expect(find.byKey(const Key('villageAllButton')), findsNothing);
+      expect(find.byKey(const Key('villageFog')), findsNothing);
+      await tester.pump(const Duration(seconds: 9));
+    });
+
+    testWidgets('작은 iPhone·Android 화면에서도 이름표가 한 줄에 겹치지 않음', (tester) async {
+      for (final size in const [Size(750, 1334), Size(1080, 2400)]) {
+        phone(tester, size: size);
+        late AppController c;
+        await tester.runAsync(() async => c = await start(account(16,
+            farewell: true, village: {'seen': ['intro', 'farewell']})));
+        await village(tester, c);
+        final tags = [
+          for (final f in Facility.values)
+            if (find.byKey(Key('facility_${f.name}')).evaluate().isNotEmpty)
+              tester.getRect(find.byKey(Key('facility_${f.name}'))),
+        ];
+        expect(tags.length, greaterThanOrEqualTo(5));
+        for (var i = 1; i < tags.length; i++) {
+          expect(tags[i].left, greaterThanOrEqualTo(tags[i - 1].right - 0.5));
+          expect(tags[i].top, closeTo(tags[0].top, 1));
+        }
+        // 2막: 안개
+        expect(find.byKey(const Key('villageFog')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pump(const Duration(seconds: 9));
+      }
+    });
+
+    testWidgets('넓은 마을(예시 모드): 좌우 버튼·위치 막대·「전체」 모아 보기', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async {
+        c = AppController.demo(clock: () => t0);
+        await c.init();
+      });
+      await village(tester, c);
+      expect(find.byKey(const Key('villageScroll')), findsOneWidget);
+      expect(find.byKey(const Key('villageLeft')), findsOneWidget);
+      expect(find.byKey(const Key('villageBar')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('villageAllButton')));
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      expect(find.byKey(const Key('villageAll')), findsOneWidget);
+      expect(find.byKey(const Key('villageAll_inn')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 9));
+    });
+
+    testWidgets('결말 뒤: 밝은 바탕 + 탑 불꽃 + 첫 펫 한마디(한 번)', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async => c = await start(account(22,
+          farewell: true,
+          village: {'seen': ['intro', 'farewell']},
+          act2: const Act2State(beaten: 5, kingPhase: 5, kingDone: true, endingSeen: true)
+              .toJson())));
+      expect(c.villageMoment, VillageRules.towerLit);
+      await village(tester, c);
+      expect(find.byKey(const Key('towerLight')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)));
+      expect(c.villageMoment, isNull);
+      await tester.pump(const Duration(seconds: 9));
+    });
+
+    testWidgets('여관: 마르타 얼굴 + 처음 만날 때 한 줄', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async => c = await start(account(5)));
+      await tester.pumpWidget(MaterialApp(home: InnScreen(controller: c)));
+      await tester.pump();
+      expect(find.byKey(const Key('npc_marta')), findsOneWidget);
+      expect(find.text(VillageRules.npc(Npc.marta).first), findsOneWidget);
+      await tester.pump(const Duration(seconds: 9));
+    });
+
+    testWidgets('펫 쉼터: 둥지의 알 · 지친 펫 쉬게 하기', (tester) async {
+      phone(tester);
+      late AppController c;
+      await tester.runAsync(() async => c = await start(account(12,
+          farewell: true,
+          tired: {'p1': t0.add(const Duration(minutes: 40))},
+          eggs: [PetEgg(id: 'e1', incubatedAt: t0)])));
+      await tester.pumpWidget(MaterialApp(home: ShelterScreen(controller: c)));
+      await tester.pump();
+      expect(find.byKey(const Key('npc_lumi')), findsOneWidget);
+      expect(find.byKey(const Key('nest_e1')), findsOneWidget);
+      expect(find.byKey(const Key('tired_p1')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('shelterRest_p1')));
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await tester.pump();
+      expect(c.petTiredLeft('p1'), PetRules.shelterRest);
+      expect(find.byKey(const Key('shelterRest_p1')), findsNothing);
+      await tester.pump(const Duration(seconds: 9));
+    });
+  });
+}

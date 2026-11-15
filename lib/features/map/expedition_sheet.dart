@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
+import '../../core/models/pet_state.dart' show Pet;
 import '../../core/models/vitals.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
@@ -24,7 +25,16 @@ String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.needsLocation => '위치를 켜야 보낼 수 있어요',
       ExpeditionCheck.notEnoughMp => '기력이 모자라요',
       ExpeditionCheck.busy => '이미 원정 중이에요',
+      ExpeditionCheck.tired => '지쳐서 쉬는 중이에요',
     };
+
+/// 원정 펫 칩 이름 (묶음 35: 지친 펫은 남은 시간)
+String _petLabel(AppController c, Pet p) {
+  if (c.isAway(p.uid)) return '${p.name} (원정 중)';
+  final t = c.petTiredLeft(p.uid);
+  if (t != null) return '${p.name} · 지쳐서 쉬는 중 · ${_minutes(t)} 남음';
+  return p.name;
+}
 
 String _minutes(Duration d) {
   final m = d.inMinutes;
@@ -265,9 +275,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                           ChoiceChip(
                             key: Key('expPet_${p.uid}'),
                             label: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text(c.isAway(p.uid)
-                                  ? '${p.name} (원정 중)'
-                                  : p.name),
+                              Text(_petLabel(c, p)),
                               if (c.petSuits(p, spawn)) ...[
                                 const SizedBox(width: 4),
                                 Text('잘 맞아요',
@@ -281,7 +289,8 @@ class _SpawnSheetState extends State<SpawnSheet> {
                               ],
                             ]),
                             selected: p.uid == chosen,
-                            onSelected: c.isAway(p.uid)
+                            onSelected: c.isAway(p.uid) ||
+                                    c.petTiredLeft(p.uid) != null
                                 ? null
                                 : (_) => setState(() => _petUid = p.uid),
                             selectedColor: AppColors.gold,

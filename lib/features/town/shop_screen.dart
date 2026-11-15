@@ -1,3 +1,4 @@
+import '../village/npc_header.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -79,6 +80,9 @@ class ShopScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
+                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
+                NpcHeader(controller: controller, npc: Npc.toby),
+                const SizedBox(height: 8),
                 const BulssiLine(
                     line: '몬스터를 잡으면 마석이 나와. 팔아서 금화로 필요한 걸 사자!'),
                 const SizedBox(height: 4),

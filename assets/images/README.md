@@ -226,3 +226,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 (시트에서 잘라 냄, 가운데 맞춤, 512) |
 | 2026-11-15 | guild_hall | 길드 홀 배경 (1536×768로 줄임) |
 | 2026-11-15 | mastery_{walk,appraise,spirit,trade} | 숙련도 문장 4 (원본에 틀이 없어 앞 4장의 금테 남색 원판에 얹음, 512) |
+| 2026-11-15 | skill_{hotHammer,thornVine,potionThrow,rush} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |

@@ -229,3 +229,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | skill_{hotHammer,thornVine,potionThrow,rush} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
 | 2026-11-15 | job_{blacksmith,herbalist,alchemist,warrior} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |
 | 2026-11-15 | skill_{galeSlash,weakStab,chargeOrder,coinToss} | 전투 스킬 아이콘 4 (뒤에 깔린 어두운 판을 걷어 냄, 단검 손잡이·소매는 손으로 살림, 512) |
+| 2026-11-15 | job_{explorer,appraiser,tamer,merchant} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |

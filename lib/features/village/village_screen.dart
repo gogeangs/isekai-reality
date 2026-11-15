@@ -375,7 +375,8 @@ class _VillageArt extends StatefulWidget {
 
 class _VillageArtState extends State<_VillageArt> {
   final _scroll = ScrollController();
-  double? _placedFor;
+  /// 마지막으로 가운데 맞춘 화면 크기 (탭을 옮겨 높이가 바뀌면 다시 맞춤)
+  Size? _placedFor;
 
   @override
   void dispose() {
@@ -401,8 +402,8 @@ class _VillageArtState extends State<_VillageArt> {
       final fullH = art.height * s;
       // 위아래가 남으면 3×3 묶음이 가운데 오게
       final oy = (h / 2 - cl.center.dy * s).clamp(h - fullH, 0.0);
-      if (_placedFor != w) {
-        _placedFor = w;
+      if (_placedFor != Size(w, h)) {
+        _placedFor = Size(w, h);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scroll.hasClients) {
             _scroll.jumpTo((cl.center.dx * s - w / 2).clamp(0.0, _max));

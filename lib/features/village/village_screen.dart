@@ -58,13 +58,13 @@ class VillageScreen extends StatefulWidget {
   /// 건물 자리 (뒤쪽부터 그린다). 나중에 ★2·★3 그림이 조금 커져도 맞게 둘레를 남겼다
   static const facilities = [
     FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 1010, y: 445, w: 200)),
-    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 790, y: 470, w: 220)),
-    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 1265, y: 480, w: 240)),
-    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 790, y: 665, w: 240)),
-    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 1280, y: 670, w: 230)),
+    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 815, y: 470, w: 220)),
+    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 1250, y: 480, w: 240)),
+    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 815, y: 665, w: 240)),
+    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 1262, y: 670, w: 230)),
     FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 1030, y: 795, w: 200)),
-    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 785, y: 860, w: 240)),
-    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 1270, y: 870, w: 230)),
+    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 812, y: 860, w: 240)),
+    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 1255, y: 870, w: 230)),
   ];
 
   static const groupNames = {

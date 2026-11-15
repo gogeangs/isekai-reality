@@ -69,6 +69,16 @@ extension ExploreOps on AppController {
     );
     await store.upsert(updated);
     _history = await store.loadHistory();
-    if (!visitedBefore) _lastDiscovery = place;
+    if (!visitedBefore) {
+      _lastDiscovery = place;
+      // 묶음 27 #176: 걷기·탐험 숙련도가 오르면 새 장소 보상이 조금 더 (숨김)
+      final bonus = placeBonusExp;
+      if (bonus > 0) {
+        await _save(_history.last.copyWith(
+            gains: DailyRecord.addCounts(
+                _history.last.gains, {Wallet.exp: bonus})));
+      }
+    }
+    await _checkWalkMastery();
   }
 }

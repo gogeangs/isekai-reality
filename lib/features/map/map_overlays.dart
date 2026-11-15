@@ -22,6 +22,9 @@ class _SpiritCornerState extends State<_SpiritCorner> {
     final low = c.maxHp > 0 && c.hp / c.maxHp < 0.3;
     final away = low ? null : c.expeditionTalk;
     if (away != null) return away;
+    // 묶음 27 #176: 숙련도 대사 (단계가 오를 때 · 가끔 성향)
+    final mastery = low ? null : c.masteryTalk;
+    if (mastery != null) return mastery;
     return c.statusLifeLine ??
         BulssiLines.forStatus(
           today: p.today!,

@@ -298,7 +298,8 @@ extension _ShellPopups on _HomeShellState {
         _kick();
         return;
       }
-      if (c.quietTitles) {
+      // 묶음 27 #176: 예전 기록 시작 값으로 얻은 숙련도 칭호도 조용히 띠로
+      if (c.titleIsQuiet(t)) {
         showTopNotice(context, '새 칭호 「${TitleRules.info(t).name}」',
             icon: Icons.military_tech_rounded);
       } else {

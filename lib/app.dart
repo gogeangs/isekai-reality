@@ -336,7 +336,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             lifeLine: (controller.maxHp > 0 &&
                         controller.hp / controller.maxHp < 0.3
                     ? null
-                    : controller.expeditionTalk) ??
+                    : controller.expeditionTalk ?? controller.masteryTalk) ??
                 controller.statusLifeLine,
             armory: controller.armory,
             onSlot: (slot) => showEquipPicker(context, controller, slot),

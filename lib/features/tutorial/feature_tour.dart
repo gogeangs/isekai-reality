@@ -455,7 +455,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       // 묶음 26 #179: 만남 카드가 뜨면 카드의 「사냥하기」를 가리킨다
       final hunt = rectOfKey(const Key('monsterCardHunt'));
       if (hunt != null) {
-        return TourStep('나타났어! 「사냥하기」를 눌러 봐.',
+        return TourStep('바로 여기야! 사냥하기를 눌러 봐.',
             hole: hunt.inflate(4), label: '사냥하기');
       }
       final r = tutorialMonsterRect.value;

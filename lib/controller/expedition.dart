@@ -180,8 +180,9 @@ extension ExpeditionOps on AppController {
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {m.name: n}),
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: n * BagRules.materialPrice(m)}),
+          today.gains, {Wallet.gold: tradeGold(n * BagRules.materialPrice(m))}),
     ));
+    await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
 
@@ -194,8 +195,9 @@ extension ExpeditionOps on AppController {
       counters: DailyRecord.addCounts(
           today.counters, {TownRules.dropKey(item): n}),
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: n * BagRules.itemPrice(item)}),
+          today.gains, {Wallet.gold: tradeGold(n * BagRules.itemPrice(item))}),
     ));
+    await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
 
@@ -207,10 +209,11 @@ extension ExpeditionOps on AppController {
     final today = await _todayRecord();
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: BagRules.equipPrice(item)}),
+          today.gains, {Wallet.gold: tradeGold(BagRules.equipPrice(item))}),
     ));
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
 
@@ -222,8 +225,9 @@ extension ExpeditionOps on AppController {
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {Wallet.manaStone: count}),
       gains: DailyRecord.addCounts(today.gains,
-          {Wallet.gold: count * RuleConstants.goldPerManaStone}),
+          {Wallet.gold: tradeGold(count * RuleConstants.goldPerManaStone)}),
     ));
+    await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
 
@@ -397,6 +401,13 @@ extension ExpeditionOps on AppController {
               adult: pet.adult, bond: pet.bond, waterside: water);
       base = Duration(seconds: (base.inSeconds * t).round());
     }
+    // 묶음 27 #176: 정령술 숙련도 → MP 조금 덜, 시간 조금 짧게 (숨김)
+    if (spiritMpFactor < 1) {
+      cost = math.max(1, (cost * spiritMpFactor).round());
+    }
+    if (spiritTimeFactor < 1) {
+      base = Duration(seconds: (base.inSeconds * spiritTimeFactor).round());
+    }
     // 원정 나침반을 써 두었으면 이동 시간 절반
     final oneWay = _vitals.compassReady ? base ~/ 2 : base;
     ExpeditionCheck check;
@@ -562,6 +573,9 @@ extension ExpeditionOps on AppController {
     }
     final isNew = !purifiedEver.contains(monster);
     if (cleared) await _count('expeditionWin');
+    // 묶음 27 #176: 정령술 숙련도 (이긴 원정 1, 진 원정 0.5)
+    await gainMastery(Mastery.spirit,
+        cleared ? MasteryRules.expeditionWin : MasteryRules.expeditionLoss);
     _lastExpeditionExp = cleared
         ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
             mods: mods, count: battle.floors.length)

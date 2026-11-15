@@ -707,21 +707,31 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     expect(find.byType(FarewellScreen), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
     await _shot(tester, '40_정령_이별1');
-    await tester.tap(find.text('다음'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('다음'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await _shot(tester, '40b_정령_이별_알');
-    await tester.tap(find.text('알을 깨운다'));
-    await tester.pump(const Duration(seconds: 1));
+    // 묶음 29 #182: 장면 5개 (대사 6줄), 건너뛰기 없음
+    expect(find.text('건너뛰기 ›'), findsNothing);
+    for (var i = 0; i < 6; i++) {
+      if (i == 2) await _shot(tester, '40b_정령_이별_같이');
+      if (i == 5) {
+        await tester.pump(const Duration(seconds: 2));
+        await _shot(tester, '40c_잿빛_눈빛');
+      }
+      await tester.tapAt(const Offset(200, 300));
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await tester.pump(const Duration(milliseconds: 1500));
     await _shot(tester, '41_첫_펫_부화');
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
     await tester.enterText(find.byKey(const Key('petName')), '호호');
     await tester.pump(const Duration(milliseconds: 300));
     await tester.ensureVisible(find.text('이름 짓기'));
     await tester.tap(find.text('이름 짓기'));
     await tester.pump(const Duration(milliseconds: 500));
-    await _shot(tester, '42_정령_작별');
+    expect(find.text(FarewellScreen.petLine), findsOneWidget);
+    await _shot(tester, '42_첫_펫_한마디');
     await tester.tap(find.textContaining('함께 가기'));
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 300));

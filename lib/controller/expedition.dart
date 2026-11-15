@@ -104,7 +104,7 @@ extension ExpeditionOps on AppController {
     ]);
   }
 
-  /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·MP가 바로 더 찬다)
+  /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·기력이 바로 더 찬다)
   bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
 
   Future<bool> adShortenRest() async {
@@ -119,7 +119,7 @@ extension ExpeditionOps on AppController {
       NotifyId.rest,
       _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 $companionName의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      'HP와 $companionName의 기력이 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));
     await refreshVitals();
     return true;

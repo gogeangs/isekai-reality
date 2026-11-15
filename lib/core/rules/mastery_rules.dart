@@ -241,9 +241,21 @@ class MasteryRules {
     ],
   };
 
-  /// 그 단계로 오를 때의 대사 (서툰은 없음)
-  static String? stageLine(Mastery m, MasteryStage s) =>
-      s == MasteryStage.clumsy ? null : stageLines[m]![s.index - 1];
+  /// 그 단계로 오를 때의 대사 (서툰은 없음). [departed] 는 떠난 정령 이름:
+  /// 첫 펫이 말할 때 정령술 대사만 첫 펫용 문구로 (묶음 29 #182)
+  static String? stageLine(Mastery m, MasteryStage s, {String? departed}) {
+    if (s == MasteryStage.clumsy) return null;
+    if (departed != null && m == Mastery.spirit) {
+      return switch (s) {
+        MasteryStage.familiar => '원정 나가는 게 점점 익숙해져! 나도 잘할 수 있어.',
+        MasteryStage.skilled =>
+          '말 안 해도 어디로 갈지 알 것 같아. ${josa(departed, '이/가')} 가르쳐 준 길이야!',
+        MasteryStage.master => '우린 이제 마음이 하나야. $departed도 기뻐할 거야!',
+        _ => stageLines[m]![s.index - 1],
+      };
+    }
+    return stageLines[m]![s.index - 1];
+  }
 
   /// 세부 숙련도가 장인이 될 때 한마디
   static String? masterLine(String detailKey) {
@@ -271,8 +283,13 @@ class MasteryRules {
     return null;
   }
 
-  /// 성향 대사: 가장 높은 큰 숙련도
-  static String leanLine(Mastery m) => switch (m) {
+  /// 성향 대사: 가장 높은 큰 숙련도. [departed] 는 첫 펫이 말할 때 떠난 정령 이름
+  static String leanLine(Mastery m, {String? departed}) =>
+      departed != null && m == Mastery.spirit
+          ? '나를 자주 믿고 보내 줘서 고마워. $departed 몫까지 열심히 할게!'
+          : _leanLine(m);
+
+  static String _leanLine(Mastery m) => switch (m) {
         Mastery.smith => '요즘 망치를 자주 드네. 꼭 대장장이 같아!',
         Mastery.harvest => '요즘 채집을 많이 하네. 꼭 약초꾼 같아!',
         Mastery.alchemy => '가마솥 앞에 자주 서네. 연금술사 냄새가 나!',

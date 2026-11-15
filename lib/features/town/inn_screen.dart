@@ -26,7 +26,7 @@ class InnScreen extends StatelessWidget {
     }
     if (resting) return '푹 쉬는 중이야. 다른 일 하다가 와도 돼. 다 쉬면 알려 줄게!';
     if (restedToday) return '오늘은 이미 푹 쉬었어. 지치면 언제든 또 쉬어도 돼.';
-    return '오늘 하루 고생 많았어. 여기서 쉬면 HP와 MP가 가득 찰 거야.';
+    return '오늘 하루 고생 많았어. 여기서 쉬면 HP와 기력이 가득 찰 거야.';
   }
 
   static String left(Duration d) {
@@ -103,7 +103,7 @@ class InnScreen extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  // 묶음 15 #107: 일어나도 그때까지 찬 HP·MP는 그대로
+                  // 묶음 15 #107: 일어나도 그때까지 찬 HP·기력은 그대로
                   TextButton(
                     key: const Key('innWake'),
                     onPressed: () => controller.stopResting(),
@@ -214,7 +214,7 @@ class InnScreen extends StatelessWidget {
                       SizedBox(width: 10),
                       Expanded(
                         child: KText(
-                          '쉬는 동안 HP와 정령 MP가 조금씩 차오르고, 4시간이면 가득 차요.\n'
+                          '쉬는 동안 HP와 기력이 조금씩 차오르고, 4시간이면 가득 차요.\n'
                           '하루 첫 휴식은 경험치 +${RuleConstants.restBonusExp}, '
                           '며칠 이어서 쉬면 보너스가 커져요.',
                           style: TextStyle(

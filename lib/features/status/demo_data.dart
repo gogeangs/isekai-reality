@@ -19,6 +19,7 @@ class DemoData {
         Pet(uid: 'pet2', species: PetSpecies.crow, name: '까망', exp: 60, bond: 4, bornAt: t),
       ],
       companion: 'pet1',
+      firstPet: 'pet1',
       eggs: const [PetEgg(id: 'egg3', source: 'field')],
       skippedLetters: const ['lv20', 'lv30', 'day100', 'day365'],
       nextId: 4,

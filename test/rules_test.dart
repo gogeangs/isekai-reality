@@ -181,7 +181,7 @@ void main() {
       expect(StatRules.battleMaxHp(level: 12, stats: base.withValue(StatKind.vitality, 12)), 1500);
       expect(StatRules.evade(base.withValue(StatKind.agility, 20)), closeTo(0.04, 1e-9));
       expect(StatRules.crit(base.withValue(StatKind.luck, 30)), closeTo(0.15, 1e-9));
-      expect(StatRules.maxMp(base.withValue(StatKind.intellect, 25)), 75);
+      expect(StatRules.maxMp(base.withValue(StatKind.intellect, 25)), 60);
     });
   });
 

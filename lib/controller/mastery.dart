@@ -26,6 +26,9 @@ extension MasteryOps on AppController {
   /// 지금은 함께 다니는 동료(정령, Lv.11 이별 뒤엔 첫 펫) — 배지 그림도 같은 동료다.
   String get masteryVoice => companionName;
 
+  /// 첫 펫이 말할 때 떠난 정령 이름 (정령술 대사만 첫 펫용 문구로, 묶음 29 #182)
+  String? get _departed => firstPet != null ? firstSpiritName : null;
+
   // ───────────── 효과 (숨은 규칙, 단계마다 조금씩)
 
   /// 지금 든 무기 종류
@@ -94,6 +97,11 @@ extension MasteryOps on AppController {
   double appraiseChance(double c) =>
       MasteryRules.scaled(c, _bigFrac(Mastery.appraise), MasteryRules.appraiseBonus);
 
+  /// #183: Lv.15 전 지능의 숨은 몫 (감정 드문 결과·연금술 결과). Lv.15 부터는 새 MP 로
+  double get intellectCraft => player.level.level < 15
+      ? StatRules.intellectCraftBonus(combatStats)
+      : 0;
+
   /// 새 장소 보너스 경험치 (걷기·탐험)
   int get placeBonusExp =>
       (RuleConstants.newPlaceExp * MasteryRules.walkPlaceExp * _bigFrac(Mastery.walk))
@@ -145,7 +153,7 @@ extension MasteryOps on AppController {
       final before = announced[m.name] ?? 0;
       if (st.index > before) {
         // 한 번에 여러 단계가 오르면 마지막 단계 대사만
-        final line = MasteryRules.stageLine(m, st);
+        final line = MasteryRules.stageLine(m, st, departed: _departed);
         if (line != null) lines.add(line);
         announced[m.name] = st.index;
       }
@@ -169,7 +177,7 @@ extension MasteryOps on AppController {
         s.top != null &&
         top.name != s.top &&
         MasteryRules.leanReady(masteryOf(top))) {
-      lines.add(MasteryRules.leanLine(top));
+      lines.add(MasteryRules.leanLine(top, departed: _departed));
       leanAt = _clock();
     }
     _mastery = s.copyWith(
@@ -255,7 +263,7 @@ extension MasteryOps on AppController {
         MasteryRules.leanReady(masteryOf(top)) &&
         (s.leanAt == null ||
             now.difference(s.leanAt!) >= MasteryRules.leanEvery)) {
-      final line = MasteryRules.leanLine(top);
+      final line = MasteryRules.leanLine(top, departed: _departed);
       _shownMastery = (line, now);
       _mastery = s.copyWith(leanAt: now, top: top.name);
       unawaited(_saveMastery());

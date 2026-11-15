@@ -284,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     look: c.profile.look,
                     spiritKind: c.profile.spiritKind,
                     spiritName: c.firstSpiritName,
-                    pet: c.companionPet,
+                    pet: c.voicePet,
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,
@@ -349,7 +349,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   child: RecordsScreen(
                                       player: p,
                                       embedded: true,
-                                      prophecy: c.prophecyPieces)),
+                                      prophecy: c.prophecyPieces,
+                                      memory: switch (c.spiritMemory) {
+                                        final m? => (
+                                            name: c.firstSpiritName,
+                                            met: m.met,
+                                            days: m.days,
+                                            monsters: m.monsters,
+                                          ),
+                                        null => null,
+                                      })),
                             ],
                           ),
                   ),

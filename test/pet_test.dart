@@ -111,23 +111,23 @@ void main() {
           pets: const PetState(eggs: [PetEgg(id: 'e1')], firstEggFound: true));
       expect(c.player.level.level, 11);
       expect(c.farewellPending, isTrue);
-      expect(c.hasEggForFarewell, isTrue);
 
-      final pet = await c.completeFarewell(PetSpecies.owl, '호호');
+      final pet = await c.completeFarewell('호호');
       expect(pet.name, '호호');
+      expect(pet.species, PetSpecies.homunculus); // 속성 점수가 없으면
+      expect(c.firstPet?.uid, pet.uid);
       expect(c.farewellDone, isTrue);
       expect(c.farewellPending, isFalse);
-      expect(c.pets.eggs, isEmpty);
+      expect(c.pets.eggs, hasLength(1)); // 묶음 29: 숨어서 받은 알은 이때 보인다
       expect(c.companionName, '호호');
       expect(c.firstSpiritName, '불씨');
       expect(c.itemName(ShopItem.bulssiPotion), '펫 간식');
     });
 
-    test('알이 없으면 선물 알에서 태어난다. 지나간 편지는 오지 않는다', () async {
+    test('이름을 비우면 종류 이름. 지나간 편지는 오지 않는다', () async {
       final (c, _) = await start(exp: LevelRules.totalExpToReach(31));
-      expect(c.hasEggForFarewell, isFalse);
-      await c.completeFarewell(PetSpecies.crow, '');
-      expect(c.companionName, '까마귀'); // 이름을 비우면 종류 이름
+      await c.completeFarewell('');
+      expect(c.companionName, '호문쿨루스'); // 이름을 비우면 종류 이름
       expect(c.pets.skippedLetters, containsAll(['lv20', 'lv30']));
       await c.refreshVitals();
       expect(c.receivedLetters, isEmpty);
@@ -146,6 +146,7 @@ void main() {
                   bornAt: DateTime(2026, 11, 1))
             ],
             companion: 'pet1',
+            firstPet: 'pet1',
             eggs: const [PetEgg(id: 'e2'), PetEgg(id: 'e3')],
             nextId: 4,
           ));
@@ -235,6 +236,7 @@ void main() {
               Pet(uid: 'pet2', species: PetSpecies.crow, name: '까망', bornAt: born),
             ],
             companion: 'pet1',
+            firstPet: 'pet1',
             nextId: 3,
           ).toJson(),
         },

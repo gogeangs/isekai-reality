@@ -119,7 +119,12 @@ class PetState {
     this.stepsDay,
     this.stepsCounted = 0,
     this.seenSpecies = const [],
+    this.firstPet,
   });
+
+  /// 빛 조각에서 태어난 첫 펫 uid (묶음 29 #182). 이 펫만 말을 한다.
+  /// null 이면 아직 새 이별 컷신을 보지 않았다 (예전 이별을 본 계정도 한 번 더)
+  final String? firstPet;
 
   /// 한 번이라도 함께한 펫 종류 (도감 펫 탭)
   final List<String> seenSpecies;
@@ -195,6 +200,7 @@ class PetState {
     String? stepsDay,
     int? stepsCounted,
     List<String>? seenSpecies,
+    String? firstPet,
   }) =>
       PetState(
         eggs: eggs ?? this.eggs,
@@ -211,6 +217,7 @@ class PetState {
         nextId: nextId ?? this.nextId,
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
+        firstPet: firstPet ?? this.firstPet,
         seenSpecies: seenSpecies ??
             {
               ...this.seenSpecies,
@@ -238,6 +245,7 @@ class PetState {
         if (stepsDay != null) 'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'seenSpecies': [for (final s in seen) s.name],
+        if (firstPet != null) 'firstPet': firstPet,
       };
 
   factory PetState.fromJson(Map<String, dynamic> j) {
@@ -268,6 +276,7 @@ class PetState {
       stepsDay: j['stepsDay'] as String?,
       stepsCounted: (j['stepsCounted'] as num?)?.toInt() ?? 0,
       seenSpecies: strings(j['seenSpecies']),
+      firstPet: j['firstPet'] as String?,
     );
   }
 }

@@ -141,7 +141,8 @@ extension AlchemyOps on AppController {
       // 묶음 27 #176: 그 물약 연금술 숙련도 → 가끔 하나 더 (숨김)
       final yields = info.yields +
           (_masteryRoll(MasteryRules.brewExtra *
-                  _detailFrac(MasteryRules.potionKey(match.id)))
+                      _detailFrac(MasteryRules.potionKey(match.id)) +
+                  intellectCraft)
               ? 1
               : 0);
       // 품질 3등급 (11-11 #74): 숙련도 보너스는 연금술사 직업 각성 뒤에 더한다

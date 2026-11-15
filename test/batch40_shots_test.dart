@@ -128,6 +128,9 @@ void main() {
         await _shot(tester, '${n}_01_만들기_첫화면');
         await _down(tester, 500);
         await _shot(tester, '${n}_02_만들기_내린뒤');
+        await tester.drag(
+            find.byKey(const Key('smithyList')), const Offset(0, 3000));
+        await _settle(tester, 4);
         await tester.tap(find.byKey(const Key('slotChip_body')));
         await _settle(tester, 3);
         await _shot(tester, '${n}_03_만들기_몸_모자람');

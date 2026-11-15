@@ -6,6 +6,7 @@ import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/armory.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
+import 'package:isekai_reality/theme/ornaments.dart';
 
 import 'support/smithy_seed.dart';
 
@@ -19,12 +20,10 @@ void phone(WidgetTester tester,
 }
 
 String allText(WidgetTester tester) => [
-      for (final w in find.byType(Text).evaluate().map((e) => e.widget as Text))
+      for (final w in tester.widgetList<Text>(find.byType(Text)))
         w.data ?? w.textSpan?.toPlainText() ?? '',
-      for (final w
-          in find.byType(RichText).evaluate().map((e) => e.widget as RichText))
-        w.text.toPlainText(),
-    ].join('\n');
+      for (final w in tester.widgetList<KText>(find.byType(KText))) w.data,
+    ].join('\n').replaceAll('\u2060', '');
 
 void main() {
   Future<AppController> open(WidgetTester tester,
@@ -149,10 +148,9 @@ void main() {
       await tester.pump();
       expect(find.byKey(const Key('recipe_armor')), findsOneWidget);
       expect(find.byKey(const Key('recipe_cap')), findsNothing);
-      final miss = tester.widget<Text>(find.descendant(
-          of: find.byKey(const Key('missing_armor')),
-          matching: find.byType(Text)));
-      expect(miss.data, contains('박쥐 날개 1개 모자라요'));
+      final miss = tester.widget<KText>(find.byKey(const Key('missing_armor')));
+      expect(miss.data.replaceAll('\u2060', ''), contains('박쥐 날개 1개'));
+      expect(miss.data.replaceAll('\u2060', ''), endsWith('모자라요'));
       // 장갑은 입은 게 없다 → 새 부위
       await tester.tap(find.byKey(const Key('slotChip_hands')));
       await tester.pump();

@@ -147,7 +147,10 @@ class OrnateNavBar extends StatelessWidget {
                                   ),
                               ]),
                               const SizedBox(height: 2),
+                              // 묶음 40: 기기 글자 크기를 키워도 탭 막대 칸(54)을 넘지 않게
                               Text(items[i].$2,
+                                  textScaler: MediaQuery.textScalerOf(context)
+                                      .clamp(maxScaleFactor: 1.0),
                                   style: TextStyle(
                                     color: i == index
                                         ? AppColors.goldBright

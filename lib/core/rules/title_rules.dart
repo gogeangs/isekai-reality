@@ -37,6 +37,23 @@ enum TitleId {
   bossGriffin,
   // 11-11 #83: 고대 유물을 다섯 번 캐면 (얻기 전엔 숨김)
   relicHunter,
+  // 숨은 숙련도 (묶음 27 #176): 큰 숙련도 숙련된 · 장인
+  smithAdept,
+  smithMaster,
+  harvestAdept,
+  harvestMaster,
+  alchemyAdept,
+  alchemyMaster,
+  combatAdept,
+  combatMaster,
+  walkAdept,
+  walkMaster,
+  appraiseAdept,
+  appraiseMaster,
+  spiritAdept,
+  spiritMaster,
+  tradeAdept,
+  tradeMaster,
 }
 
 class TitleInfo {
@@ -88,6 +105,14 @@ class TitleRules {
       TitleId.bossBatQueen => '그림자 박쥐 여왕을 처음 쓰러뜨렸어요',
       TitleId.bossGriffin => '천둥 그리폰을 처음 쓰러뜨렸어요',
       TitleId.relicHunter => '고대 유물을 다섯 번 발굴했어요',
+      TitleId.smithAdept || TitleId.smithMaster => '대장간 일에 익숙해졌어요',
+      TitleId.harvestAdept || TitleId.harvestMaster => '채집에 익숙해졌어요',
+      TitleId.alchemyAdept || TitleId.alchemyMaster => '물약 끓이기에 익숙해졌어요',
+      TitleId.combatAdept || TitleId.combatMaster => '싸움에 익숙해졌어요',
+      TitleId.walkAdept || TitleId.walkMaster => '정말 많이 걷고 찾아다녔어요',
+      TitleId.appraiseAdept || TitleId.appraiseMaster => '감정에 익숙해졌어요',
+      TitleId.spiritAdept || TitleId.spiritMaster => '원정 보내기에 익숙해졌어요',
+      TitleId.tradeAdept || TitleId.tradeMaster => '장사와 의뢰에 익숙해졌어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -105,7 +130,31 @@ class TitleRules {
     ...elementTitles,
     ...bossTitles,
     TitleId.relicHunter,
+    ...masteryTitles,
   };
+
+  /// 숨은 숙련도 칭호 (묶음 27 #176). 기록 counters 'mtitle:<이름>' 으로 얻는다
+  static const List<TitleId> masteryTitles = [
+    TitleId.smithAdept,
+    TitleId.smithMaster,
+    TitleId.harvestAdept,
+    TitleId.harvestMaster,
+    TitleId.alchemyAdept,
+    TitleId.alchemyMaster,
+    TitleId.combatAdept,
+    TitleId.combatMaster,
+    TitleId.walkAdept,
+    TitleId.walkMaster,
+    TitleId.appraiseAdept,
+    TitleId.appraiseMaster,
+    TitleId.spiritAdept,
+    TitleId.spiritMaster,
+    TitleId.tradeAdept,
+    TitleId.tradeMaster,
+  ];
+
+  /// 숙련도 칭호를 얻었다는 기록 칸
+  static String masteryCounter(TitleId t) => 'mtitle:${t.name}';
 
   /// 보스 칭호와 그 보스
   static const Map<TitleId, MonsterId> bossTitleMonsters = {
@@ -147,6 +196,8 @@ class TitleRules {
         for (final t in bossTitles)
           if (earned.contains(t)) info(t),
         if (earned.contains(TitleId.relicHunter)) info(TitleId.relicHunter),
+        for (final t in masteryTitles)
+          if (earned.contains(t)) info(t),
       ];
 
   static const List<TitleInfo> _all = [
@@ -178,6 +229,22 @@ class TitleRules {
     TitleInfo(TitleId.bossBatQueen, '밤을 밝힌 자', '숨은 칭호'),
     TitleInfo(TitleId.bossGriffin, '하늘을 가른 자', '숨은 칭호'),
     TitleInfo(TitleId.relicHunter, '옛 이야기를 캔 자', '숨은 칭호'),
+    TitleInfo(TitleId.smithAdept, '견습 대장장이', '대장간 일을 꾸준히'),
+    TitleInfo(TitleId.smithMaster, '장인 대장장이', '대장간 일의 장인'),
+    TitleInfo(TitleId.harvestAdept, '약초꾼', '채집을 꾸준히'),
+    TitleInfo(TitleId.harvestMaster, '대지의 손', '채집의 장인'),
+    TitleInfo(TitleId.alchemyAdept, '견습 연금술사', '물약을 꾸준히'),
+    TitleInfo(TitleId.alchemyMaster, '물약 장인', '연금술의 장인'),
+    TitleInfo(TitleId.combatAdept, '노련한 사냥꾼', '싸움을 꾸준히'),
+    TitleInfo(TitleId.combatMaster, '전장의 장인', '싸움의 장인'),
+    TitleInfo(TitleId.walkAdept, '길잡이', '걷고 찾아다니기를 꾸준히'),
+    TitleInfo(TitleId.walkMaster, '대륙을 걷는 자', '걷기와 탐험의 장인'),
+    TitleInfo(TitleId.appraiseAdept, '견습 감정사', '감정을 꾸준히'),
+    TitleInfo(TitleId.appraiseMaster, '진실의 눈', '감정의 장인'),
+    TitleInfo(TitleId.spiritAdept, '정령의 벗', '원정을 꾸준히'),
+    TitleInfo(TitleId.spiritMaster, '정령과 하나 된 자', '정령술의 장인'),
+    TitleInfo(TitleId.tradeAdept, '떠돌이 상인', '장사와 의뢰를 꾸준히'),
+    TitleInfo(TitleId.tradeMaster, '길드의 해결사', '장사와 의뢰의 장인'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -276,6 +343,11 @@ class TitleRules {
     });
     final relics = history.fold<int>(0, (s, d) => s + (d.counters['relicDug'] ?? 0));
     if (relics >= 5) result.add(TitleId.relicHunter);
+    // 숨은 숙련도 칭호 (묶음 27 #176)
+    for (final t in masteryTitles) {
+      final k = masteryCounter(t);
+      if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
+    }
     final monsters =
         history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);
     if (monsters >= RuleConstants.townLightMonsters) {

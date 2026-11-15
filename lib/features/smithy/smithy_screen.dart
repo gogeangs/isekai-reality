@@ -345,13 +345,13 @@ class _SmithyScreenState extends State<SmithyScreen> {
             SizedBox(
               width: 150,
               child: GoldButton(
-                label: EquipmentRules.repairCost(item) == 0
+                label: c.masteryRepairCost(item) == 0
                     ? '멀쩡해요'
-                    : '수리 · 금화 ${EquipmentRules.repairCost(item)}',
+                    : '수리 · 금화 ${c.masteryRepairCost(item)}',
                 height: 40,
                 fontSize: 14,
-                onPressed: EquipmentRules.repairCost(item) > 0 &&
-                        c.player.gold >= EquipmentRules.repairCost(item)
+                onPressed: c.masteryRepairCost(item) > 0 &&
+                        c.player.gold >= c.masteryRepairCost(item)
                     ? () async {
                         if (await c.repair(item.uid)) _snack('다 고쳤어요!');
                       }

@@ -17,6 +17,8 @@ extension ShopBagOps on AppController {
     await _save(today.copyWith(
       goldPurchases: [...today.goldPurchases, item.name],
     ));
+    // 묶음 27 #176: 잡화상 거래 1건마다 장사·의뢰 숙련도
+    await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return PurchaseCheck.ok;
   });
 

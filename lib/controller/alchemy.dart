@@ -86,11 +86,19 @@ extension AlchemyOps on AppController {
     for (final e in need.entries) {
       if (player.materialCount(e.key) < e.value) return false;
     }
+    final match = AlchemyRules.match(put);
+    // 묶음 27 #176: 그 물약 연금술 숙련도 → 재료 하나를 가끔 안 씀 (숨김)
+    if (match != null &&
+        _masteryRoll(MasteryRules.brewSave *
+            _detailFrac(MasteryRules.potionKey(match.id)))) {
+      final k = need.keys.first;
+      need[k] = need[k]! - 1;
+      if (need[k]! <= 0) need.remove(k);
+    }
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(
             today.spends, {for (final e in need.entries) e.key.name: e.value})));
-    final match = AlchemyRules.match(put);
     final minutes = match == null
         ? AlchemyRules.suspiciousMinutes
         : AlchemyRules.info(match.id).minutes;
@@ -130,6 +138,12 @@ extension AlchemyOps on AppController {
     } else {
       final info = AlchemyRules.info(match.id);
       final isNew = !recipeDiscovered(match.id);
+      // 묶음 27 #176: 그 물약 연금술 숙련도 → 가끔 하나 더 (숨김)
+      final yields = info.yields +
+          (_masteryRoll(MasteryRules.brewExtra *
+                  _detailFrac(MasteryRules.potionKey(match.id)))
+              ? 1
+              : 0);
       // 품질 3등급 (11-11 #74): 숙련도 보너스는 연금술사 직업 각성 뒤에 더한다
       final q = AlchemyRules.quality(perfect: match.perfect, put: put);
       a = a.copyWith(
@@ -141,19 +155,21 @@ extension AlchemyOps on AppController {
         final today = await _todayRecord();
         await _save(today.copyWith(
             counters: DailyRecord.addCounts(today.counters,
-                {TownRules.giftKey(info.shopItem!): info.yields})));
+                {TownRules.giftKey(info.shopItem!): yields})));
       } else {
-        a = a.add(AlchemyRules.keyOf(match.id, q), info.yields);
+        a = a.add(AlchemyRules.keyOf(match.id, q), yields);
       }
       if (isNew) a = a.copyWith(discovered: [...a.discovered, match.id.name]);
       result = BrewResult(
           potion: match.id,
           perfect: match.perfect,
           quality: q,
-          count: info.yields,
+          count: yields,
           discovered: isNew);
     }
     await _saveAlc(a);
+    await gainMastery(Mastery.alchemy, MasteryRules.brew,
+        details: [if (match != null) MasteryRules.potionKey(match.id)]);
     return result;
   });
 

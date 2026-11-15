@@ -16,6 +16,7 @@ import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
 import 'core/models/lens_state.dart';
 import 'core/models/mail_state.dart';
+import 'core/models/mastery_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
@@ -44,6 +45,7 @@ part 'controller/gather.dart';
 part 'controller/harvest.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
+part 'controller/mastery.dart';
 part 'controller/pets.dart';
 part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
@@ -499,6 +501,8 @@ class AppController extends ChangeNotifier {
       };
     }
     await sync();
+    // 묶음 27 #176: 숨은 숙련도 (없으면 지금까지 한 횟수로 시작 값을 채운다)
+    await _loadMastery();
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
         ? {...player.titles}
@@ -571,6 +575,8 @@ class AppController extends ChangeNotifier {
       final merged = tHealth == null ? tNow : _healthOnto(tNow, tHealth);
       await store.upsert(_withQuests(merged.copyWith(openedApp: true)));
       _history = await store.loadHistory();
+      // 묶음 27 #176: 걷기·탐험 숙련도 (열쇠 게이지 보너스·단계 대사)
+      await _checkWalkMastery();
       await refreshVitals();
     });
     notifyListeners();
@@ -643,6 +649,12 @@ class AppController extends ChangeNotifier {
   Set<String> _introsSeen = {};
 
   /// 초반(Lv.2~5) 내 둘레 몬스터 (묶음 25 #171): 그날 처음 위치를 잡은 곳
+  // 숨은 숙련도 (묶음 27 #176)
+  static const _masteryKey = 'mastery';
+  MasteryState _mastery = const MasteryState();
+  bool _masteryReady = false;
+  (String, DateTime)? _shownMastery;
+
   static const _pinsKey = 'guidePins';
   String? _pinsDay;
   Map<String, GeoPoint> _pins = const {};

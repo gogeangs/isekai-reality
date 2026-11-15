@@ -75,7 +75,9 @@ extension SmithyOps on AppController {
     }
     final a = _armory;
     final grade =
-        EquipmentRules.rollGrade(_random, rare: rare != null, crafts: a.crafts);
+        // 묶음 27 #176: 그 장비 종류의 대장일 숙련도만큼 좋은 등급이 조금 더 (숨김)
+        EquipmentRules.rollGrade(_random,
+            rare: rare != null, bonus: smithGradeBonus(base));
     final item = EquipItem(
       uid: 'eq${a.nextId}',
       base: base,
@@ -88,6 +90,8 @@ extension SmithyOps on AppController {
       crafts: a.crafts + 1,
       nextId: a.nextId + 1,
     ));
+    await gainMastery(Mastery.smith, MasteryRules.craft,
+        details: [MasteryRules.smithKey(MasteryRules.smithKind(base))]);
     return item;
   });
 
@@ -148,7 +152,8 @@ extension SmithyOps on AppController {
       spends: DailyRecord.addCounts(today.spends, {...used, Wallet.gold: c.gold}),
     ));
     final a = _armory;
-    final grade = EquipmentRules.rollGrade(_random, rare: true, crafts: a.crafts);
+    final grade = EquipmentRules.rollGrade(_random,
+        rare: true, bonus: smithGradeBonus(base));
     final item = EquipItem(
       uid: 'eq${a.nextId}',
       base: base,
@@ -162,6 +167,8 @@ extension SmithyOps on AppController {
       crafts: a.crafts + 1,
       nextId: a.nextId + 1,
     ));
+    await gainMastery(Mastery.smith, MasteryRules.craft,
+        details: [MasteryRules.smithKey(MasteryRules.smithKind(base))]);
     return BossCraftResult(item: item);
   });
 
@@ -192,6 +199,9 @@ extension SmithyOps on AppController {
       enhance: ok ? to : item.enhance,
       enhanceManaSpent: item.enhanceManaSpent + cost.manaStones,
     )));
+    // 숙련도는 쌓이지만 강화 성공률에는 넣지 않는다 (화면 「성공 ○○%」와 같게)
+    await gainMastery(Mastery.smith, MasteryRules.enhance,
+        details: [MasteryRules.smithKey(MasteryRules.smithKind(item.base))]);
     return ok;
   });
 
@@ -200,7 +210,7 @@ extension SmithyOps on AppController {
       _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return false;
-    final cost = EquipmentRules.repairCost(item);
+    final cost = masteryRepairCost(item);
     if (cost <= 0 || player.gold < cost) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
@@ -208,6 +218,8 @@ extension SmithyOps on AppController {
     ));
     await _saveArmory(_armory.replace(
         item.copyWith(durability: EquipmentRules.maxDurability)));
+    await gainMastery(Mastery.smith, MasteryRules.repair,
+        details: [MasteryRules.smithKey(MasteryRules.smithKind(item.base))]);
     return true;
   });
 

@@ -42,10 +42,11 @@ extension LensOps on AppController {
     MaterialId? mat;
     var note = false;
     if (rewarded) {
-      if (_random.nextDouble() < LensRules.materialChance) {
+      // 묶음 27 #176: 감정 숙련도 → 감정 보상·드문 결과 조금 더 (숨김)
+      if (_random.nextDouble() < appraiseChance(LensRules.materialChance)) {
         mat = LensRules.info(races[_random.nextInt(races.length)]).material;
       }
-      note = _random.nextDouble() < LensRules.noteChance;
+      note = _random.nextDouble() < appraiseChance(LensRules.noteChance);
     }
     await _save(today.copyWith(
       itemsUsed: free
@@ -80,6 +81,7 @@ extension LensOps on AppController {
     await store.saveJson(AppController._lensKey, _lens.toJson());
     if (mat != null) await _grant(0, 0, {mat: 1});
     if (note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    await gainMastery(Mastery.appraise, MasteryRules.appraiseOnce);
     _notify();
     return AppraiseResult(
         races: races,

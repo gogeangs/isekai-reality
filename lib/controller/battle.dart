@@ -41,6 +41,8 @@ extension BattleOps on AppController {
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
       gear: gear,
+      // 묶음 27 #176: 그 무기 전투 숙련도 (숨김)
+      power: combatPower(),
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
       potions: battlePotions,
@@ -131,6 +133,12 @@ extension BattleOps on AppController {
       gold: fit.gold,
       materials: mats,
     );
+    // 묶음 27 #176: 던전 클리어는 전투 숙련도 크게 (그때 든 무기도)
+    if (run.cleared) {
+      final w = _weaponKind;
+      await gainMastery(Mastery.combat, MasteryRules.dungeonClear,
+          details: [if (w != null) MasteryRules.weaponKey(w)]);
+    }
     return exp;
   });
 

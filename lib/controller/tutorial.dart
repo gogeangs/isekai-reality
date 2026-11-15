@@ -336,6 +336,8 @@ extension TutorialOps on AppController {
       startHp: hp,
       skillChargeTicks: _skillTicks(p),
       gear: gear,
+      // 묶음 27 #176: 그 무기·그 몬스터 전투 숙련도 (숨김)
+      power: combatPower(monster: spawn.monster),
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
       potions: battlePotions,
@@ -375,8 +377,15 @@ extension TutorialOps on AppController {
       return 0;
     }
     if (battle.phase != BattlePhase.cleared) return 0;
-    return _recordFieldPurify(spawn.id, spawn.monster, spawn.point,
+    final exp = await _recordFieldPurify(spawn.id, spawn.monster, spawn.point,
         mods: spawn.modifiers, count: battle.floors.length);
+    // 묶음 27 #176: 직접 사냥해서 이기면 전투 숙련도 (그때 든 무기 · 그 몬스터)
+    final w = _weaponKind;
+    await gainMastery(Mastery.combat, MasteryRules.fieldWin, details: [
+      if (w != null) MasteryRules.weaponKey(w),
+      MasteryRules.monsterKey(spawn.monster),
+    ]);
+    return exp;
   });
 
   /// 필드 몬스터 정화를 기록한다 (직접 잡았든 정령이 잡았든 같다).
@@ -464,6 +473,13 @@ extension TutorialOps on AppController {
           final extra = d.common[_random.nextInt(d.common.length)];
           mats[extra] = (mats[extra] ?? 0) + 1;
         }
+      }
+      // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
+      if (_masteryRoll(MasteryRules.monsterExtraLoot *
+          _detailFrac(MasteryRules.monsterKey(monster)))) {
+        final d = LootRules.dropsOf(monster);
+        final extra = d.common[_random.nextInt(d.common.length)];
+        mats[extra] = (mats[extra] ?? 0) + 1;
       }
       final b = ModifierRules.bonus(monster, mods, _random);
       b.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);

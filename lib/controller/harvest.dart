@@ -194,16 +194,26 @@ extension HarvestOps on AppController {
         : grade == HarvestGrade.perfect
             ? h.streak + 1
             : 0;
-    final mats = HarvestRules.yieldOf(s.kind, effective, _random,
+    final rolled = HarvestRules.yieldOf(s.kind, effective, _random,
         factor: passengerMode ? 0.5 : 1,
         tier: h.tierOf(tool),
         streak: grade == HarvestGrade.perfect ? h.streak : 0,
         element: h.elementOf(tool),
         month: now.month);
+    // 묶음 27 #176: 그 종류(약초·광석·나무) 채집 숙련도 → 가끔 하나 더, 도구가 가끔 안 닳음 (숨김)
+    final hk = MasteryRules.harvestKind(s.kind);
+    final hf = hk == null ? 0.0 : _detailFrac(MasteryRules.harvestKey(hk));
+    final mats = {...rolled};
+    if (mats.isNotEmpty && _masteryRoll(MasteryRules.harvestExtra * hf)) {
+      final k = mats.keys.first;
+      mats[k] = mats[k]! + 1;
+    }
+    final keepTool =
+        minigame && _masteryRoll(MasteryRules.harvestToolSave * hf);
     final relic = s.kind == HarvestKind.relic;
     h = h.copyWith(
       spots: {...h.spots, s.id: charge.use(now)},
-      tools: minigame
+      tools: minigame && !keepTool
           ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
           : h.tools,
       total: h.total + 1,
@@ -219,6 +229,8 @@ extension HarvestOps on AppController {
         : null;
     await _saveHarvest(h);
     await _grant(0, 0, mats);
+    await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
+        details: [if (hk != null) MasteryRules.harvestKey(hk)]);
     if (relic) {
       final today = await _todayRecord();
       await _save(today.copyWith(

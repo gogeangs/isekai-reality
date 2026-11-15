@@ -371,11 +371,14 @@ class EquipmentRules {
 
   /// 등급 확률 (흰·초록·파랑·보라·주황, %). 귀한 재료를 넣으면 좋아진다.
   /// 제작 숙련도: 제작 10번마다 파랑 +1%p (최대 +10%p, 흰색에서 뺀다).
-  static List<double> gradeChances({required bool rare, int crafts = 0}) {
+  /// [bonus] 가 있으면 그 값(%p)을 파랑에 더한다 (묶음 27 #176: 그 장비 종류의 대장일 숙련도).
+  /// 없으면 예전 규칙(만든 장비 10개마다 +1%p)
+  static List<double> gradeChances(
+      {required bool rare, int crafts = 0, double? bonus}) {
     final c = rare
         ? [30.0, 40.0, 22.0, 6.5, 1.5]
         : [60.0, 28.0, 10.0, 1.8, 0.2];
-    final mastery = math.min(10, crafts ~/ 10).toDouble();
+    final mastery = bonus ?? math.min(10, crafts ~/ 10).toDouble();
     c[0] -= mastery;
     c[2] += mastery;
     return c;
@@ -384,8 +387,8 @@ class EquipmentRules {
   static int masteryBonus(int crafts) => math.min(10, crafts ~/ 10);
 
   static EquipGrade rollGrade(math.Random rng,
-      {required bool rare, int crafts = 0}) {
-    final c = gradeChances(rare: rare, crafts: crafts);
+      {required bool rare, int crafts = 0, double? bonus}) {
+    final c = gradeChances(rare: rare, crafts: crafts, bonus: bonus);
     var u = rng.nextDouble() * 100;
     for (var i = 0; i < c.length; i++) {
       if (u < c[i]) return EquipGrade.values[i];

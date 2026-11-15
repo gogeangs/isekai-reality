@@ -189,9 +189,10 @@ void main() {
   });
 
   group('화면', () {
-    void phone(WidgetTester tester, {Size size = const Size(1170, 2532)}) {
+    void phone(WidgetTester tester,
+        {Size size = const Size(1170, 2532), double dpr = 3}) {
       tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 3;
+      tester.view.devicePixelRatio = dpr;
       addTearDown(tester.view.reset);
     }
 
@@ -240,8 +241,12 @@ void main() {
 
     testWidgets('묶음 38: 작은 iPhone·큰 iPhone·Android — 처음 화면에 건물 8채가 다 보이고 이름표가 겹치지 않음',
         (tester) async {
-      for (final size in const [Size(750, 1334), Size(1290, 2796), Size(1080, 2400)]) {
-        phone(tester, size: size);
+      for (final (size, dpr) in const [
+        (Size(750, 1334), 2.0),
+        (Size(1290, 2796), 3.0),
+        (Size(1080, 2400), 2.625),
+      ]) {
+        phone(tester, size: size, dpr: dpr);
         late AppController c;
         await tester.runAsync(() async => c = await start(account(16,
             farewell: true, village: {'seen': ['intro', 'farewell']})));

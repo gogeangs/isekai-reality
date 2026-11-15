@@ -992,7 +992,7 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
 /// 이름판 바로 아래 작은 한 줄 설명 (묶음 37 #206). 묶음 38 #215: 나무판 위에서도 또렷하게
 /// 작은 어두운 반투명 띠 위에 밝은 글씨. 넘치면 글씨를 줄여서라도 한 줄
 class _BoardNote extends StatelessWidget {
-  const _BoardNote(this.text, {super.key});
+  const _BoardNote(this.text);
 
   final String text;
 

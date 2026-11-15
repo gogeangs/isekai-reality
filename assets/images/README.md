@@ -197,3 +197,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | pet_drake_{baby,adult}·pet_map_drake | 희귀 펫 드레이크 (#185, 시트에서 잘라 냄, 512) |
 | 2026-11-15 | pet_kelpie_{baby,adult}·pet_map_kelpie | 희귀 펫 켈피 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
 | 2026-11-15 | pet_mimic_{baby,adult}·pet_map_mimic | 희귀 펫 미믹 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
+| 2026-11-15 | pet_golem_{baby,adult}·pet_map_golem | 희귀 펫 골렘 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |

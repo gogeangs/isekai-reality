@@ -209,3 +209,42 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | title_bridgeMaker | 2막 칭호 「다리를 놓은 자」 (512 → 개발이 160) |
 | 2026-11-15 | title_{smith,harvest,alchemy,combat}Adept | 숙련도 칭호 견습 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
 | 2026-11-15 | title_{walk,appraise,spirit,trade}Adept | 숙련도 칭호 견습 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
+| 2026-11-15 | title_{smith,harvest,alchemy,combat}Master | 숙련도 칭호 장인 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
+| 2026-11-15 | npc_{marta,toby,bron,ella} | 마을 사람 얼굴 4 (마을 개편, 시트에서 잘라 냄, 512 아래 맞춤) |
+| 2026-11-15 | title_{walk,appraise,spirit,trade}Master | 숙련도 칭호 장인 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
+| 2026-11-15 | npc_{hart,sera,lumi} | 마을 사람 얼굴 3 (마을 개편, 시트에서 잘라 냄, 512 아래 맞춤) |
+| 2026-11-15 | btn_{strike,guard,potion,pet} | 전투 버튼 4 (시트에서 잘라 냄, 512) |
+| 2026-11-15 | village_bg | 새 마을 바탕 (건물 없음, 빈 터 12곳, 1536×1024) |
+| 2026-11-15 | btn_skill_empty | 전투 빈 스킬 칸 버튼 (512) |
+| 2026-11-15 | village_bg_end | 결말 뒤 마을 바탕 (village_bg 편집, 탑 불 켜짐·빛의 다리, 1536×1024) |
+| 2026-11-15 | village_fog | 2막 마을 잿빛 안개 겹침 (투명, 1536×1024) |
+| 2026-11-15 | village_{inn,shop,board,smithy} | 새 마을 건물 4 (시트에서 잘라 냄, 같은 비율·아래 맞춤, 512) |
+| 2026-11-15 | village_{alchemy,guild,shelter,market_build} | 새 마을 건물 4 (첫 시트와 거의 같은 비율, 아래 맞춤, 512) |
+| 2026-11-15 | bg_job_awaken | 직업 각성 배경 (1024×1536, 그대로) |
+| 2026-11-15 | skill_frame_{attack,life,passive,active} | 스킬 테두리 4 (시트에서 잘라 냄, 번진 빛 노이즈 제거, 가운데 맞춤, 512) |
+| 2026-11-15 | fx_job_awaken | 직업 각성 빛 효과 (울퉁불퉁한 배경 경계를 둥글게 서서히 사라지게 다시 만듦, 1024) |
+| 2026-11-15 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 (시트에서 잘라 냄, 가운데 맞춤, 512) |
+| 2026-11-15 | guild_hall | 길드 홀 배경 (1536×768로 줄임) |
+| 2026-11-15 | mastery_{walk,appraise,spirit,trade} | 숙련도 문장 4 (기획대로 틀 없이, 게임에서 스킬 테두리를 두름, 512) |
+| 2026-11-15 | skill_{hotHammer,thornVine,potionThrow,rush} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-15 | job_{blacksmith,herbalist,alchemist,warrior} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | skill_{galeSlash,weakStab,chargeOrder,coinToss} | 전투 스킬 아이콘 4 (뒤에 깔린 어두운 판을 걷어 냄, 단검 손잡이·소매는 손으로 살림, 512) |
+| 2026-11-15 | job_{explorer,appraiser,tamer,merchant} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 다시 (기획대로 틀 없이, 금테 원판 판을 바꿈, 512) |
+| 2026-11-15 | village_inn_{2,3} | 여관 ★2·★3 (★1과 같은 틀: 512, 높이 480, 아래 맞춤) |
+| 2026-11-15 | job_{weaponsmith,runesmith,jeweler,healer} | 직업 문장 4 (복합 직업 청록+은 고리, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | skill_{masterSlash,runeBurst,gemShard,healingLight} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-15 | job_{hunter,archaeologist,pilgrim,peddler} | 직업 문장 4 (복합 직업, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | skill_{vitalStrike,relicLight,blessedStrike,bundleSwing} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-16 | job_{adventurer,beastKnight,pathfinder,potionMerchant} | 직업 문장 4 (복합 직업, 시트에서 잘라 냄, 512) |
+| 2026-11-16 | job_{nightWalker,gateHeir,ashHunter,allCrafter} | 직업 문장 4 (숨은 직업, 번진 노랑·보라 빛 제거, 512) |
+| 2026-11-16 | skill_{counterSlash,jointAttack,windBlade,poisonFlask} | 전투 스킬 아이콘 4 (뒤에 깔린 판을 걷어 냄, 단검 손잡이·날은 손으로 살림, 512) |
+| 2026-11-16 | skill_{shadowSlash,gatekeeperLight,ashPurge,artisanCombo} | 전투 스킬 아이콘 4 (숨은 직업, 번진 빛 제거, 512) |
+| 2026-11-16 | skill_m_{smith,harvest,alchemy,combat} | 숙련 액티브 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-16 | skill_m_{walk,appraise,spirit,trade} | 숙련 액티브 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-16 | village_shop_{2,3} | 잡화상 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
+| 2026-11-16 | village_board_{2,3} | 의뢰 게시판 ★2·★3 (★3은 검은 배경을 걷어 냄, 512, 아래 맞춤) |
+| 2026-11-16 | village_smithy_{2,3} | 대장간 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
+| 2026-11-16 | village_alchemy_{2,3} | 연금술 공방 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
+| 2026-11-16 | village_guild_{2,3} | 길드 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
+| 2026-11-16 | village_shelter_{2,3} | 보금자리 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |

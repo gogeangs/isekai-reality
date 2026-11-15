@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -289,7 +290,26 @@ class _FarewellScreenState extends State<FarewellScreen>
 
   Widget _talkView() {
     final pet = _pet!;
-    return NightBackground(
+    // 11-15 결정 F: 빛 조각 장면(farewell_04_light)을 흐리게 배경으로
+    return Stack(fit: StackFit.expand, children: [
+      const ColoredBox(color: AppColors.deepNight),
+      Opacity(
+        opacity: 0.55,
+        child: ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: Image.asset('assets/images/farewell_04_light.webp',
+              key: const Key('farewellTalkBg'),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+        ),
+      ),
+      _talkBody(pet),
+    ]);
+  }
+
+  Widget _talkBody(Pet pet) {
+    return Container(
+      color: Colors.transparent,
       child: SafeArea(
         child: Center(
           child: SingleChildScrollView(

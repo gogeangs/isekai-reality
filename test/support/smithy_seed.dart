@@ -49,6 +49,7 @@ Future<AppController> startSmithy(
       'ratHide': 4,
       'ironShard': 3,
       'twig': 2,
+      'slimeJelly': 1,
       'glossyFur': 2,
       'glowWaterCore': 1,
     }}) async {

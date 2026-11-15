@@ -172,7 +172,10 @@ void main() {
         await _shot(tester, '${n}_10_속성');
         await tester.tap(find.byKey(const Key('smith_change_w')));
         await _settle(tester, 3);
-        await tester.ensureVisible(find.byKey(const Key('pick_apply_g_fire')));
+        await tester.scrollUntilVisible(find.byKey(const Key('pick_apply_g_fire')), 150,
+          scrollable: find.descendant(
+              of: find.byKey(const Key('smithyList')),
+              matching: find.byType(Scrollable)));
         await tester.tap(find.byKey(const Key('pick_apply_g_fire')));
         await _settle(tester, 3);
         await _shot(tester, '${n}_11_속성_바꾸기_모자란코어');

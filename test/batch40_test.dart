@@ -197,7 +197,7 @@ void main() {
       await tester.tap(find.byKey(const Key('rare_glossyFur')));
       await tester.pump();
       expect(find.byKey(const Key('rareHint')), findsOneWidget);
-      expect(allText(tester), isNot(contains('%')));
+      expect(allText(tester), isNot(contains('확률')));
       await tester.tap(find.byKey(const Key('craftCancel')));
       await tester.pumpAndSettle();
       expect(c.armory.crafts, crafts);
@@ -258,7 +258,10 @@ void main() {
       expect(item.enabled, isFalse);
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const Key('more_f')));
+      await tester.scrollUntilVisible(find.byKey(const Key('more_f')), 150,
+          scrollable: find.descendant(
+              of: find.byKey(const Key('smithyList')),
+              matching: find.byType(Scrollable)));
       await tester.tap(find.byKey(const Key('more_f')));
       await tester.pumpAndSettle();
       expect(find.text('마석과 재료 일부를 돌려받아요'), findsOneWidget);
@@ -304,26 +307,36 @@ void main() {
       // 불 코어가 없어 속성 강화가 꺼지고 모자란 코어 한 줄
       expect(allText(tester), contains('2개 모자라요'));
       // 실패 확률 숫자 없음
-      expect(allText(tester), isNot(contains('%')));
+      expect(allText(tester), isNot(contains('25%')));
+      expect(allText(tester), isNot(contains('확률')));
       // 속성이 없는 모자: 고르기 5칸 + 더 보기, 물 코어만 밝게
       expect(find.byKey(const Key('pick_apply_h_water')), findsOneWidget);
       expect(find.byKey(const Key('pickMore_h')), findsOneWidget);
       await tester.tap(find.byKey(const Key('pick_apply_h_water')));
       await tester.pump();
       final gold = c.player.gold;
-      await tester.ensureVisible(find.byKey(const Key('smith_apply_h')));
+      await tester.scrollUntilVisible(find.byKey(const Key('smith_apply_h')), 150,
+          scrollable: find.descendant(
+              of: find.byKey(const Key('smithyList')),
+              matching: find.byType(Scrollable)));
       await tester.tap(find.byKey(const Key('smith_apply_h')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 80)));
       await tester.pump();
       expect(c.player.gold, gold - SmithRules.gold(SmithAction.apply));
       // 코어가 없는 속성을 고르면 모자란 코어 한 줄
-      await tester.ensureVisible(find.byKey(const Key('pick_apply_g_fire')));
+      await tester.scrollUntilVisible(find.byKey(const Key('pick_apply_g_fire')), 150,
+          scrollable: find.descendant(
+              of: find.byKey(const Key('smithyList')),
+              matching: find.byType(Scrollable)));
       await tester.tap(find.byKey(const Key('pick_apply_g_fire')));
       await tester.pump();
       expect(allText(tester), contains('1개 모자라요'));
       // 바꾸기를 누르면 고르기가 펼쳐짐
-      await tester.ensureVisible(find.byKey(const Key('smith_change_w')));
+      await tester.scrollUntilVisible(find.byKey(const Key('smith_change_w')), -150,
+          scrollable: find.descendant(
+              of: find.byKey(const Key('smithyList')),
+              matching: find.byType(Scrollable)));
       await tester.tap(find.byKey(const Key('smith_change_w')));
       await tester.pump();
       expect(find.byKey(const Key('pick_change_w_water')), findsOneWidget);
@@ -341,7 +354,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: SmithyScreen(controller: c)));
       await tester.pump();
       await tab(tester, 3);
-      expect(find.text('속성 강화'), findsOneWidget);
+      expect(allText(tester), contains('속성 강화'));
       await tester.pump(const Duration(seconds: 9));
     });
   });

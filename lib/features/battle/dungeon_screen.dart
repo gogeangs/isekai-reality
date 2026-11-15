@@ -124,6 +124,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     fit: true,
                     // 묶음 31 #198: 전투 칸 2개
                     jobSkills: _c.battleJobSlots,
+                    emptySlots: _c.skillPageOpen,
                     jobMp: () => _c.jobMp,
                     onJobSkill: _c.payBattleSkill,
                     onMasterySkill: _c.payMasterySkill,
@@ -652,8 +653,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
   }
 }
 
-/// 축하 배경 (사람 없는 그림이 오면 이 이름만 바꾼다)
-const String victoryBackground = 'assets/images/bg_battle.webp';
+/// 축하 배경 (묶음 34 확인 답: 사람 없는 새 그림)
+const String victoryBackground = 'assets/images/bg_victory.webp';
 
 /// 각성자 성별 축하 그림
 String victoryHeroAsset(HeroLook look) =>

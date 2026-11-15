@@ -151,6 +151,10 @@ class PetRules {
   /// 품은 뒤 저절로 부화하기까지
   static const Duration hatchTime = Duration(hours: 12);
 
+  /// 묶음 35 지침: 원정에서 진 펫이 쉬는 시간 (그냥 두면 1시간, 쉼터에 두면 그때부터 15분)
+  static const Duration tiredFor = Duration(hours: 1);
+  static const Duration shelterRest = Duration(minutes: 15);
+
   /// 바로 부화: 남은 시간 1시간마다 (올림)
   static const int hatchManaPerHour = 2;
   static const int hatchGoldPerHour = 20;

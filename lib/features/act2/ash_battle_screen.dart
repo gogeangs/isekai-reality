@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
+import '../../core/format.dart';
 import '../../core/models/armory.dart' show EquipItem;
 import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart' show HeroLook;
@@ -171,6 +172,7 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
         battle: _battle!,
         fit: true,
         jobSkills: _c.battleJobSlots,
+        emptySlots: _c.skillPageOpen,
         jobMp: () => _c.jobMp,
         onJobSkill: _c.payBattleSkill,
         onMasterySkill: _c.payMasterySkill,
@@ -344,6 +346,10 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
               ? PurifiedMonster(monster: info.monster, size: 150)
               : MonsterPicture(monster: info.monster, size: 150),
         ),
+      if (r.exp > 0) ...[
+        const SizedBox(height: 10),
+        AshExpPanel(controller: _c, exp: r.exp),
+      ],
       if (r.won && r.firstKill) ...[
         const SizedBox(height: 10),
         OrnatePanel(
@@ -635,7 +641,8 @@ class _EndingScreenState extends State<EndingScreen> {
     return NightBackground(
       child: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
+           child: Padding(
             padding: const EdgeInsets.all(20),
             child: OrnatePanel(
               key: const Key('endingReward'),
@@ -650,6 +657,8 @@ class _EndingScreenState extends State<EndingScreen> {
                   ItemStats(crown, fontSize: 13),
                   const SizedBox(height: 10),
                 ],
+                AshExpPanel(controller: c, exp: Act2Rules.kingExp),
+                const SizedBox(height: 10),
                 Text('칭호 「${TitleRules.info(Act2Rules.kingTitle).name}」',
                     style: AppText.title(16, color: AppColors.goldBright)),
                 if (lv >= Act2Rules.bridgeLevel) ...[
@@ -667,9 +676,45 @@ class _EndingScreenState extends State<EndingScreen> {
                 ),
               ]),
             ),
+           ),
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// 처음 쓰러뜨릴 때 받은 경험치 · 레벨 막대 (던전 결과와 같은 방식, 묶음 34 확인 답)
+class AshExpPanel extends StatelessWidget {
+  const AshExpPanel({super.key, required this.controller, required this.exp});
+
+  final AppController controller;
+  final int exp;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = controller.player;
+    return OrnatePanel(
+      key: const Key('ashExp'),
+      child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const GameIcon('exp', size: 28),
+          const SizedBox(width: 8),
+          Text('경험치 +$exp', style: AppText.title(22)),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Text('Lv.${p.level.level}',
+              style: AppText.level(15, color: AppColors.text)),
+          const SizedBox(width: 8),
+          Expanded(
+              child: GlowBar(ratio: p.level.ratio, colors: BarColors.exp)),
+          const SizedBox(width: 8),
+          Text('${comma(p.level.expIntoLevel)} / ${comma(p.level.expToNext)}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        ]),
+      ]),
     );
   }
 }

@@ -36,3 +36,4 @@ export 'step_goal_rules.dart';
 export 'title_rules.dart';
 export 'town_rules.dart';
 export 'vital_rules.dart';
+export 'village_rules.dart';

@@ -133,7 +133,17 @@ class PetState {
     this.stepsCounted = 0,
     this.seenSpecies = const [],
     this.firstPet,
+    this.tired = const {},
   });
+
+  /// 묶음 35 지침: 원정에서 진 펫이 풀리는 때 (uid → 시각). 지친 동안 원정은 못 감
+  final Map<String, DateTime> tired;
+
+  /// [now] 에 지쳐 있는 펫인지
+  bool isTired(String uid, DateTime now) {
+    final t = tired[uid];
+    return t != null && now.isBefore(t);
+  }
 
   /// 빛 조각에서 태어난 첫 펫 uid (묶음 29 #182). 이 펫만 말을 한다.
   /// null 이면 아직 새 이별 컷신을 보지 않았다 (예전 이별을 본 계정도 한 번 더)
@@ -214,6 +224,7 @@ class PetState {
     int? stepsCounted,
     List<String>? seenSpecies,
     String? firstPet,
+    Map<String, DateTime>? tired,
   }) =>
       PetState(
         eggs: eggs ?? this.eggs,
@@ -231,6 +242,7 @@ class PetState {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         firstPet: firstPet ?? this.firstPet,
+        tired: tired ?? this.tired,
         seenSpecies: seenSpecies ??
             {
               ...this.seenSpecies,
@@ -259,6 +271,8 @@ class PetState {
         'stepsCounted': stepsCounted,
         'seenSpecies': [for (final s in seen) s.name],
         if (firstPet != null) 'firstPet': firstPet,
+        if (tired.isNotEmpty)
+          'tired': {for (final e in tired.entries) e.key: e.value.toIso8601String()},
       };
 
   factory PetState.fromJson(Map<String, dynamic> j) {
@@ -290,6 +304,10 @@ class PetState {
       stepsCounted: (j['stepsCounted'] as num?)?.toInt() ?? 0,
       seenSpecies: strings(j['seenSpecies']),
       firstPet: j['firstPet'] as String?,
+      tired: {
+        for (final e in ((j['tired'] as Map?) ?? const {}).entries)
+          if (DateTime.tryParse('${e.value}') case final t?) '${e.key}': t,
+      },
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'skill_icon.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -80,8 +81,8 @@ class JobSkillChip extends StatelessWidget {
                   width: on ? 1.6 : 1),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(on ? Icons.auto_awesome : Icons.bolt_rounded,
-                  size: 18, color: kJobMpColor),
+              // 묶음 35: 직업 문장 + 종류 테두리
+              SkillArt.jobIcon(skill, size: 30),
               const SizedBox(width: 5),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

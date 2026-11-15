@@ -10,7 +10,11 @@ class AshResult {
     this.egg = false,
     this.story,
     this.phasesCleared = 0,
+    this.exp = 0,
   });
+
+  /// 처음 쓰러뜨릴 때 받은 경험치 (묶음 34 확인 답)
+  final int exp;
 
   final bool won;
 
@@ -173,10 +177,14 @@ extension Act2Ops on AppController {
           return const AshResult(won: false);
         }
         final first = _act2.beaten == a.id.index;
+        final exp = first ? Act2Rules.avatarExp : 0;
         final today = await _todayRecord();
         await _save(today.copyWith(
           purifiedMonsterIds: _addMonsters(today, [a.monster]),
           counters: DailyRecord.addCounts(today.counters, {'ashClone': 1}),
+          gains: exp > 0
+              ? DailyRecord.addCounts(today.gains, {'exp': exp})
+              : today.gains,
         ));
         EquipItem? item;
         var egg = false;
@@ -196,6 +204,7 @@ extension Act2Ops on AppController {
           title: first ? a.title : null,
           egg: egg,
           story: first ? a.story : null,
+          exp: exp,
         );
       });
 
@@ -247,6 +256,7 @@ extension Act2Ops on AppController {
         await _save(today.copyWith(
           purifiedMonsterIds: _addMonsters(today, [MonsterId.ashKing]),
           counters: DailyRecord.addCounts(today.counters, {'ashKing': 1}),
+          gains: DailyRecord.addCounts(today.gains, {'exp': Act2Rules.kingExp}),
         ));
         final item = await _giveRelic(Act2Rules.kingGear, null);
         _act2 = _act2.copyWith(kingPhase: 5, kingDone: true);
@@ -258,7 +268,8 @@ extension Act2Ops on AppController {
             firstKill: true,
             item: item,
             title: Act2Rules.kingTitle,
-            phasesCleared: 5);
+            phasesCleared: 5,
+            exp: Act2Rules.kingExp);
       });
 
   // ───────────── 결말 · 다리 너머

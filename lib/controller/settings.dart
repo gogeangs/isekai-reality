@@ -19,6 +19,8 @@ extension SettingsOps on AppController {
       MailRules.mina,
       MailRules.dorgun,
       MailRules.eliel,
+      // 묶음 35: 마을 사람 7명
+      for (final n in VillageRules.npcs) n.name,
       _profile.spiritName,
       for (final p in _pets.pets) p.name,
     }.contains(n);

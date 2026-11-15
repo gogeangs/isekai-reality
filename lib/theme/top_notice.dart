@@ -10,10 +10,11 @@ import 'app_colors.dart';
 /// 앱 맨 바깥(MaterialApp.builder)에 [TopNoticeHost] 가 있으면 그 위에 띄우고,
 /// 없으면(테스트처럼 화면 하나만 띄웠을 때) 기본 띠로 대신한다.
 void showTopNotice(BuildContext context, String text,
-    {VoidCallback? onTap, IconData? icon, Duration? duration}) {
+    {VoidCallback? onTap, IconData? icon, Duration? duration, String? image}) {
   final host = TopNoticeHost._state;
   if (host != null && host.mounted) {
-    host._add(_Notice(text, onTap, icon, duration ?? _durationFor(text)));
+    host._add(_Notice(text, onTap, icon, duration ?? _durationFor(text),
+        image: image));
     return;
   }
   ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(text)));
@@ -23,7 +24,10 @@ Duration _durationFor(String text) =>
     Duration(milliseconds: (2200 + text.length * 45).clamp(2600, 5500));
 
 class _Notice {
-  _Notice(this.text, this.onTap, this.icon, this.duration);
+  _Notice(this.text, this.onTap, this.icon, this.duration, {this.image});
+
+  /// 묶음 35: 아이콘 대신 작은 그림 (예: 직업 문장)
+  final String? image;
   final String text;
   final VoidCallback? onTap;
   final IconData? icon;
@@ -134,8 +138,17 @@ class _TopNoticeHostState extends State<TopNoticeHost> {
                         ],
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(n.icon ?? Icons.auto_awesome_rounded,
-                            size: 18, color: AppColors.goldBright),
+                        if (n.image != null)
+                          Image.asset(n.image!,
+                              width: 28,
+                              height: 28,
+                              errorBuilder: (_, __, ___) => Icon(
+                                  n.icon ?? Icons.auto_awesome_rounded,
+                                  size: 18,
+                                  color: AppColors.goldBright))
+                        else
+                          Icon(n.icon ?? Icons.auto_awesome_rounded,
+                              size: 18, color: AppColors.goldBright),
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(n.text,

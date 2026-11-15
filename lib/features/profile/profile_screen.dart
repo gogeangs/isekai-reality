@@ -13,6 +13,7 @@ import '../pets/pet_art.dart';
 import '../pets/pet_screen.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
+import '../jobs/skill_icon.dart' show JobEmblem;
 import '../../theme/top_notice.dart';
 
 /// 지금은 직업이 없다 (각성 기능에서 정하기로 미룸)
@@ -33,10 +34,14 @@ class ProfileCard extends StatelessWidget {
     this.onEditName,
     this.pet,
     this.aura,
+    this.jobId,
   });
 
   /// 나의 기운 (묶음 32 #189, 주 속성. 없으면 줄 없음)
   final String? aura;
+
+  /// 묶음 35: 주 직업 (직업 문장)
+  final JobId? jobId;
 
   /// 정령이 떠난 뒤 데리고 다니는 펫 (그때 [spiritName] 은 처음 함께한 정령)
   final Pet? pet;
@@ -104,9 +109,17 @@ class ProfileCard extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
               // 묶음 26 #178: 직업이 없으면(직업 각성 전) 줄을 보이지 않는다
               if (job != kNoJobLabel)
-                Text('직업 · $job',
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 12)),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (jobId != null) ...[
+                    JobEmblem(jobId!, size: 20),
+                    const SizedBox(width: 4),
+                  ],
+                  Flexible(
+                    child: Text('직업 · $job',
+                        style: const TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                ]),
               if (aura != null)
                 Text('나의 기운 · $aura',
                     key: const Key('profileAura'),
@@ -295,6 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     spiritName: c.firstSpiritName,
                     pet: c.voicePet,
                     aura: c.mainElement?.label,
+                    jobId: c.mainJob,
                     // 묶음 30 #55: 주 직업(보조는 작게)
                     job: c.mainJobLabel == null
                         ? kNoJobLabel

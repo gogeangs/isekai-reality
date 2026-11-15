@@ -1,3 +1,4 @@
+import '../village/shelter_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -43,6 +44,18 @@ class PetScreen extends StatelessWidget {
                     style: const TextStyle(color: AppColors.text, fontSize: 14),
                   ),
                 ),
+                // 묶음 35: 알은 펫 쉼터 둥지에서도 (부화 규칙은 그대로)
+                if (c.shelterOpen && c.pets.eggs.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  FrameButton(
+                    key: const Key('petToShelter'),
+                    label: '펫 쉼터에서 알 보기',
+                    height: 42,
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => ShelterScreen(controller: c))),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (pets.isEmpty)
                   const KText('Lv.11이 되면 첫 펫이 태어나요.',

@@ -201,10 +201,15 @@ extension _ShellPopups on _HomeShellState {
     if (_popupBusy || _ahead(3) || c.holdNotices) return;
     final find = c.takeJobFind();
     final note = c.hasJobNotice ? c.takeJobNotice() : null;
+    // 묶음 35: 새 직업 띠엔 직업 문장
+    final art = note == null ? null : c.jobNoticeArt;
     if (note == null && !find) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (note != null) showTopNotice(context, note, icon: Icons.workspace_premium_rounded);
+      if (note != null) {
+        showTopNotice(context, note,
+            icon: Icons.workspace_premium_rounded, image: art);
+      }
       if (find) showTopNotice(context, '길에서 숨은 물건을 찾았어요!');
     });
   }

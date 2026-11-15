@@ -56,6 +56,7 @@ part 'controller/shop_bag.dart';
 part 'controller/smithy.dart';
 part 'controller/stats.dart';
 part 'controller/tutorial.dart';
+part 'controller/village.dart';
 part 'controller/vitals.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
@@ -101,6 +102,10 @@ class AppController extends ChangeNotifier {
           },
           // 묶음 34: 예시 모드는 잿빛 틈 한마디를 이미 들은 것으로
           'act2': {'announced': 6},
+          // 묶음 35: 예시 모드는 마을 소개·쉼터 카드를 본 것으로 (넓은 마을 미리 보기는 켬)
+          'village': {
+            'seen': ['intro', 'farewell', 'shelterCard'],
+          },
         },
       ),
       health: FakeHealthSource(granted: false),
@@ -108,6 +113,7 @@ class AppController extends ChangeNotifier {
       clock: clock,
     )
       ..walkEvents = false // 예시 모드는 걸음 주머니·길가 알림을 띄우지 않는다
+      ..villagePreviewWide = true // 묶음 35: 시설 12곳부터의 넓은 마을을 미리 보기
       ..quietTitles = true; // 예시 모드는 처음 칭호들을 축하 창 대신 띠로
   }
 
@@ -531,6 +537,13 @@ class AppController extends ChangeNotifier {
     await _migrateSkills31();
     // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
+    // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)
+    final village = await _load(_villageKey, (j) => j, null);
+    _village = {for (final x in (village?['seen'] as List?) ?? const []) '$x'};
+    _npcVisits = {
+      for (final e in ((village?['visits'] as Map?) ?? const {}).entries)
+        if (e.value is num) '${e.key}': (e.value as num).toInt(),
+    };
     _act2Ready = true;
     _checkAct2();
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
@@ -721,6 +734,17 @@ class AppController extends ChangeNotifier {
   static const _pinsKey = 'guidePins';
   String? _pinsDay;
   Map<String, GeoPoint> _pins = const {};
+  /// 묶음 35 마을: 본 소개·한마디·만난 마을 사람·쉼터 ('village')
+  static const _villageKey = 'village';
+  Set<String> _village = {};
+  Map<String, int> _npcVisits = {};
+
+  /// 방금 꺼낸 직업 소식의 문장 그림 (묶음 35)
+  String? _jobNoticeArt;
+
+  /// 마을 그림을 넓게(좌우로 끌기) 미리 보기 — 예시 모드
+  bool villagePreviewWide = false;
+
   /// 묶음 34 2막: 쓰러뜨린 분신 · 본체 단계 · 결말 · 그날 잿빛 틈
   static const _act2Key = 'act2';
   Act2State _act2 = const Act2State();
@@ -987,7 +1011,8 @@ class BrewResult {
 }
 
 /// 정령 원정을 보낼 수 있는지
-enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy }
+/// 묶음 35: tired = 원정에서 져서 쉬는 중인 펫
+enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy, tired }
 
 /// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
 /// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·

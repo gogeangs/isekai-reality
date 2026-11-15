@@ -18,6 +18,7 @@ import '../bulssi/spirit_art.dart';
 import 'element_view.dart';
 import 'hero_rig.dart';
 import '../smithy/set_aura.dart';
+import '../jobs/skill_icon.dart';
 
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
@@ -46,6 +47,7 @@ class BattleView extends StatefulWidget {
     this.weapon,
     this.onFloor,
     this.jobSkills = const [],
+    this.emptySlots = false,
     this.jobMp,
     this.onJobSkill,
     this.onMasterySkill,
@@ -58,6 +60,9 @@ class BattleView extends StatefulWidget {
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
   final List<(JobSkill, int, double)> jobSkills;
+
+  /// 묶음 35: 스킬 페이지가 열렸으면 빈 스킬 칸을 btn_skill_empty 로 보여 준다
+  final bool emptySlots;
 
   /// 숙련 스킬을 썼을 때 (장사·의뢰 동전 튕기기 금화 등)
   final Future<void> Function(Mastery)? onMasterySkill;
@@ -583,8 +588,12 @@ class _BattleViewState extends State<BattleView> {
                           tooltip: '물약 마시기',
                           visualDensity: VisualDensity.compact,
                           onPressed: _potionSheet,
-                          icon: const Icon(Icons.local_drink_rounded,
-                              color: AppColors.goldBright),
+                          icon: Image.asset('assets/images/btn_potion.webp',
+                              width: 30,
+                              height: 30,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.local_drink_rounded,
+                                  color: AppColors.goldBright)),
                         ),
                         // 물약 줄 끝 작은 「자동」 표시 (11-11 #93)
                         GestureDetector(
@@ -683,6 +692,7 @@ class _BattleViewState extends State<BattleView> {
                         key: const Key('bashButton'),
                         label: '강타',
                         icon: Icons.gavel_rounded,
+                        art: 'btn_strike',
                         ratio: _b.bashRatio,
                         ready: _b.bashReady,
                         onPressed: _bash,
@@ -693,6 +703,7 @@ class _BattleViewState extends State<BattleView> {
                         key: const Key('stanceButton'),
                         label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
                         icon: Icons.shield_rounded,
+                        art: 'btn_guard',
                         ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
                         ready: _b.stanceReady,
                         active: _b.stanceTurns > 0,
@@ -709,6 +720,10 @@ class _BattleViewState extends State<BattleView> {
                             label: JobRules.skill(sk).name,
                             sub: 'MP $cost',
                             icon: Icons.bolt_rounded,
+                            artFrame: SkillArt.jobIcon(sk,
+                                dim: !(mp >= cost &&
+                                    !_b.isOver &&
+                                    !_b.skillsLocked)),
                             ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
                             ready: mp >= cost && !_b.isOver && !_b.skillsLocked,
                             ringColor: const Color(0xFFB27BFF),
@@ -723,9 +738,36 @@ class _BattleViewState extends State<BattleView> {
                           key: Key('battleMastery_${m.name}'),
                           label: JobRules.masteryActive(m).name,
                           icon: Icons.auto_awesome,
+                          artFrame: SkillArt.masteryIcon(m,
+                              active: true, dim: !_b.masteryReady(m)),
                           ratio: _b.masteryRatio(m),
                           ready: _b.masteryReady(m),
                           onPressed: () => _masterySkill(m),
+                        ),
+                      ),
+                    // 묶음 35: 스킬 페이지가 열렸는데 칸이 비면 빈 칸 그림
+                    for (var i = 0;
+                        i <
+                            (widget.emptySlots
+                                ? math.max(
+                                    0,
+                                    2 -
+                                        widget.jobSkills.take(2).length -
+                                        _b.masteryActives
+                                            .take(math.max(
+                                                0, 2 - widget.jobSkills.length))
+                                            .length)
+                                : 0);
+                        i++)
+                      Expanded(
+                        child: _MiniSkill(
+                          key: Key('battleEmpty_$i'),
+                          label: '빈 칸',
+                          icon: Icons.add_rounded,
+                          art: 'btn_skill_empty',
+                          ratio: 0,
+                          ready: false,
+                          onPressed: () {},
                         ),
                       ),
                     Expanded(
@@ -940,7 +982,15 @@ class _MiniSkill extends StatelessWidget {
     this.active = false,
     this.sub,
     this.ringColor,
+    this.art,
+    this.artFrame,
   });
+
+  /// 묶음 35: 버튼 그림 (btn_○○). 있으면 아이콘 대신 둥근 그림
+  final String? art;
+
+  /// 묶음 35: 스킬 그림 (종류 테두리 안 70%). [art] 보다 먼저
+  final Widget? artFrame;
 
   final String label;
   final IconData icon;
@@ -979,6 +1029,47 @@ class _MiniSkill extends StatelessWidget {
                     backgroundColor: AppColors.track,
                   ),
                 ),
+                if (artFrame != null)
+                  // 충전 중·잠김은 어둡게 (게이지는 둘레 고리)
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: ready
+                          ? [
+                              BoxShadow(
+                                  color: AppColors.gold.withValues(alpha: 0.7),
+                                  blurRadius: 14),
+                            ]
+                          : null,
+                    ),
+                    child: artFrame,
+                  )
+                else if (art != null)
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: ready
+                          ? [
+                              BoxShadow(
+                                  color: AppColors.gold.withValues(alpha: 0.7),
+                                  blurRadius: 14),
+                            ]
+                          : null,
+                    ),
+                    child: _dimmed(
+                        !lit,
+                        Image.asset('assets/images/$art.webp',
+                            width: 46,
+                            height: 46,
+                            errorBuilder: (_, __, ___) => Icon(icon,
+                                size: 24,
+                                color: lit
+                                    ? AppColors.goldBright
+                                    : AppColors.textMuted))),
+                  )
+                else
                 Container(
                   width: 44,
                   height: 44,
@@ -2109,11 +2200,19 @@ class _SkillOrb extends StatelessWidget {
                           ]
                         : null,
                   ),
-                  child: Icon(Icons.flare_rounded,
-                      size: size * 0.44,
-                      color: ready
-                          ? const Color(0xFF5A3410)
-                          : AppColors.textMuted),
+                  // 묶음 35: 펫 버튼 그림 (충전 중엔 어둡게)
+                  child: ClipOval(
+                    child: _dimmed(
+                        !ready,
+                        Image.asset('assets/images/btn_pet.webp',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                                Icons.flare_rounded,
+                                size: size * 0.44,
+                                color: ready
+                                    ? const Color(0xFF5A3410)
+                                    : AppColors.textMuted))),
+                  ),
                 ),
               ],
             ),
@@ -2558,3 +2657,16 @@ class _AmbientPainter extends CustomPainter {
       old.element != element ||
       old.hour != hour;
 }
+
+
+/// 충전 중·잠긴 버튼 그림은 어둡게 (묶음 35)
+Widget _dimmed(bool dim, Widget child) => dim
+    ? ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          0.25, 0.25, 0.25, 0, 0, //
+          0.25, 0.25, 0.25, 0, 0, //
+          0.30, 0.30, 0.30, 0, 0, //
+          0, 0, 0, 0.85, 0,
+        ]),
+        child: child)
+    : child;

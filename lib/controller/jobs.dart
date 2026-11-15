@@ -219,8 +219,12 @@ extension JobOps on AppController {
     ));
   }
 
+  /// 방금 꺼낸 직업 소식의 문장 그림 (묶음 35, 숙련 스킬 띠면 null)
+  String? get jobNoticeArt => _jobNoticeArt;
+
   /// 위쪽 띠로 알릴 새 직업 소식 (한 번 꺼내면 지운다)
   String? takeJobNotice() {
+    _jobNoticeArt = null;
     if (_jobs.newJobs.isEmpty) return null;
     // 직업 소식 먼저, 숙련 스킬 띠는 그다음
     var i = _jobs.newJobs.indexWhere((n) => !n.startsWith('ms:'));
@@ -239,9 +243,11 @@ extension JobOps on AppController {
     }
     if (first.startsWith('done:')) {
       final j = JobRules.parse(first.substring(5));
+      _jobNoticeArt = j == null ? null : 'assets/images/job_${j.name}.webp';
       return j == null ? null : '견습을 마쳤어요 · 이제 ${JobRules.info(j).name}예요!';
     }
     final j = JobRules.parse(first);
+    _jobNoticeArt = j == null ? null : 'assets/images/job_${j.name}.webp';
     return j == null ? null : '새 직업을 얻었어요 · ${JobRules.info(j).name}';
   }
 

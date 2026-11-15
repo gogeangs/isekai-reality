@@ -417,18 +417,8 @@ class _VillageArtState extends State<_VillageArt> {
           scrollDirection: Axis.horizontal,
           physics: const ClampingScrollPhysics(),
           child: SizedBox(
-              width: fullW, height: h, child: _scene(s, Offset(0, oy))),
+              width: fullW, height: h, child: _scene(s, Offset(0, oy), w)),
         ),
-        // 2막: 잿빛 안개는 그림과 같이 움직이지 않고 화면 가장자리에 고정
-        if (widget.act == 2)
-          Positioned.fill(
-            key: const Key('villageFog'),
-            child: IgnorePointer(
-              child: Image.asset('assets/images/village_fog.webp',
-                  fit: BoxFit.fill,
-                  errorBuilder: (_, __, ___) => const SizedBox()),
-            ),
-          ),
         // 아래 작은 위치 막대
         if (fullW > w + 1)
           Positioned(
@@ -478,7 +468,7 @@ class _VillageArtState extends State<_VillageArt> {
   }
 
   /// 바탕 + 건물 (그림 픽셀 → 화면: ×[s], [o] 만큼 옮김)
-  Widget _scene(double s, Offset o) {
+  Widget _scene(double s, Offset o, double viewW) {
     const art = VillageScreen.art;
     final bg = widget.act == 3
         ? 'assets/images/village_bg_end.webp'
@@ -516,6 +506,24 @@ class _VillageArtState extends State<_VillageArt> {
                 ),
               ),
             ),
+          ),
+        ),
+      // 2막: 잿빛 안개는 그림과 같이 움직이지 않고 화면 가장자리에 고정 (건물·이름표 아래)
+      if (widget.act == 2)
+        AnimatedBuilder(
+          key: const Key('villageFog'),
+          animation: _scroll,
+          builder: (context, child) => Positioned(
+            left: _scroll.hasClients ? _scroll.offset : 0,
+            top: 0,
+            bottom: 0,
+            width: viewW,
+            child: child!,
+          ),
+          child: IgnorePointer(
+            child: Image.asset('assets/images/village_fog.webp',
+                fit: BoxFit.fill,
+                errorBuilder: (_, __, ___) => const SizedBox()),
           ),
         ),
       for (final f in widget.all) _building(f, r),

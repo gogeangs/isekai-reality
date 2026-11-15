@@ -1,5 +1,5 @@
-// 묶음 38: 작은 iPhone(SE) · 큰 iPhone · Android 화면 미리보기 (build/screenshots/b38_*)
-// 마을 전체 화면 · 건물 이름표 · 시설 마을 사람 안내 · 의뢰 게시판 쪽지를 기기 크기별로 찍는다.
+// 묶음 38·39: 작은 iPhone(SE) · 큰 iPhone · Android 화면 미리보기 (build/screenshots/b39_*)
+// 글자 크기 기본·한 단계 크게(×1.12) 두 가지로 마을 · 시설 · 의뢰 게시판 쪽지를 찍는다.
 
 import 'dart:convert';
 import 'dart:io';
@@ -13,7 +13,6 @@ import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/features/village/board_parchment.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
-import 'package:isekai_reality/features/village/daily_quests.dart';
 import 'package:isekai_reality/features/smithy/smithy_screen.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 
@@ -62,7 +61,7 @@ Future<void> _shot(WidgetTester tester, String name) async {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     return data!.buffer.asUint8List();
   });
-  File('build/screenshots/b38_$name.png')
+  File('build/screenshots/b39_$name.png')
     ..createSync(recursive: true)
     ..writeAsBytesSync(bytes!);
 }
@@ -74,7 +73,10 @@ const _devices = [
   ('Android', Size(1080, 2400), 2.625, 63.0, 63.0),
 ];
 
-void _device(WidgetTester tester, (String, Size, double, double, double) d) {
+void _device(WidgetTester tester, (String, Size, double, double, double) d,
+    {double text = 1}) {
+  tester.platformDispatcher.textScaleFactorTestValue = text;
+  addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   tester.view.physicalSize = d.$2;
   tester.view.devicePixelRatio = d.$3;
   tester.view.padding = FakeViewPadding(top: d.$4, bottom: d.$5);
@@ -101,16 +103,14 @@ Widget _sampleBoard() => ListView(
                   SmallNote(
                       title: t, seed: i, ratio: 0.3, progress: '3 / 15마리'),
               ]),
-              const SizedBox(height: NoteGrid.rowGap),
-              const AllDoneRow(done: false, streak: 2),
               const SizedBox(height: 14),
               const BoardPlaque('주간 의뢰', note: '완료 0/3 · 4일 남음'),
               const SizedBox(height: 4),
               NoteGrid(children: [
                 for (final (i, t) in [
                   '이번 주 2만 보 걷기',
-                  '던전 2번 클리어',
-                  '원정 2번',
+                  '던전 5번 클리어',
+                  '필드 몬스터 15마리 사냥',
                 ].indexed)
                   SmallNote(
                       title: t,
@@ -129,6 +129,18 @@ Widget _sampleBoard() => ListView(
                     ratio: 0.33,
                     progress: '1 / 3마리',
                     sealed: true),
+                SmallNote(
+                    title: '수식어 붙은 몬스터 2마리 사냥',
+                    seed: 9,
+                    ratio: 0.5,
+                    progress: '1 / 2마리'),
+                ParchmentNote(
+                  seed: 10,
+                  small: true,
+                  faded: true,
+                  child: Text('새 의뢰가 1시간 12분 뒤에 붙어요',
+                      style: TextStyle(color: kInkSoft, fontSize: 12, height: 1.3)),
+                ),
               ]),
             ],
           ),
@@ -140,7 +152,7 @@ void main() {
   setUpAll(_loadFonts);
 
   for (final d in _devices) {
-    testWidgets('b38 ${d.$1}: 마을 · 시설 · 게시판', (tester) async {
+    testWidgets('b39 ${d.$1}: 마을 · 시설 · 게시판', (tester) async {
       _device(tester, d);
       final c = AppController.demo(clock: () => DateTime(2026, 11, 16, 14));
       await tester.pumpWidget(
@@ -190,8 +202,9 @@ void main() {
       await tester.pump(const Duration(seconds: 9));
     });
 
-    testWidgets('b38 ${d.$1}: 긴 이름 쪽지 모음', (tester) async {
-      _device(tester, d);
+    for (final (tn, ts) in const [('기본', 1.0), ('크게', 1.12)])
+    testWidgets('b39 ${d.$1} 글자$tn: 긴 이름 쪽지 모음 · 게시판', (tester) async {
+      _device(tester, d, text: ts);
       await tester.pumpWidget(RepaintBoundary(
         key: _root,
         child: MaterialApp(
@@ -201,12 +214,28 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
-      await _shot(tester, '${d.$1}_쪽지_위');
+      await _shot(tester, '${d.$1}_글자${tn}_쪽지_위');
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
       await tester.pumpAndSettle();
-      await _shot(tester, '${d.$1}_쪽지_아래');
-      // 쪽지끼리 겹치지 않음: 같은 줄은 같은 높이, 아랫줄은 윗줄 아래(핀 높이 + 여유)
+      await _shot(tester, '${d.$1}_글자${tn}_쪽지_아래');
       expect(tester.takeException(), isNull);
+
+      // 실제 게시판 (예시 계정)
+      final c = AppController.demo(clock: () => DateTime(2026, 11, 16, 14));
+      await tester.runAsync(c.init);
+      await tester.pumpWidget(RepaintBoundary(
+        key: _root,
+        child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: BoardScreen(controller: c)),
+      ));
+      await tester.pumpAndSettle();
+      await _shot(tester, '${d.$1}_글자${tn}_게시판_위');
+      await tester.drag(find.byKey(const Key('boardScroll')), const Offset(0, -600));
+      await tester.pumpAndSettle();
+      await _shot(tester, '${d.$1}_글자${tn}_게시판_아래');
+      expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(seconds: 9));
     });
   }
 }

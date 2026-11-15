@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../theme/ornaments.dart';
 
@@ -33,9 +34,16 @@ TextStyle noteTitle([double size = 16]) =>
 /// 묶음 28: board_bg 그림은 위(문장·등불)·아래(나무틀 끝)를 그대로 두고
 /// 가운데 판자만 세로로 이어 붙인다 (세로 9-slice). 그림이 없으면 코드로 그린 판자.
 class WoodBoard extends StatefulWidget {
-  const WoodBoard({super.key, required this.child});
+  const WoodBoard(
+      {super.key, required this.child, this.topInset = 0, this.minHeight = 0});
 
   final Widget child;
+
+  /// 묶음 39 #217 전체 화면: 위쪽에 얹은 버튼·마을 사람 아래부터 내용 (최소 위 여백)
+  final double topInset;
+
+  /// 게시판이 화면 끝까지 이어지게 하는 최소 높이
+  final double minHeight;
 
   /// 그림에서 늘리지 않는 위·아래 높이 (그림 픽셀)
   static const double artTop = 220, artBottom = 120, artWidth = 1024;
@@ -79,16 +87,16 @@ class _WoodBoardState extends State<WoodBoard> {
       final s = box.maxWidth / art.width;
       return Container(
         key: const Key('woodBoard'),
-        decoration: const BoxDecoration(boxShadow: [
-          BoxShadow(
-              color: Color(0x99000000), blurRadius: 16, offset: Offset(0, 6)),
-        ]),
+        constraints: BoxConstraints(minHeight: widget.minHeight),
         child: CustomPaint(
           painter: _BoardArtPainter(art),
           child: Padding(
-            // 위 문장·등불 아래부터, 양옆 나무틀 안쪽에
-            padding: EdgeInsets.fromLTRB(70 * s, WoodBoard.artTop * s,
-                70 * s, WoodBoard.artBottom * s + 6),
+            // 위 문장·등불 아래부터(위에 얹은 것이 있으면 그 아래), 양옆 나무틀 안쪽에
+            padding: EdgeInsets.fromLTRB(
+                62 * s,
+                math.max(WoodBoard.artTop * s, widget.topInset),
+                62 * s,
+                WoodBoard.artBottom * s + 6),
             child: widget.child,
           ),
         ),
@@ -98,6 +106,7 @@ class _WoodBoardState extends State<WoodBoard> {
 
   Widget _fallback() => Container(
         key: const Key('woodBoard'),
+        constraints: BoxConstraints(minHeight: widget.minHeight),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFF3B2410), width: 7),
@@ -111,7 +120,7 @@ class _WoodBoardState extends State<WoodBoard> {
           child: Stack(children: [
             const Positioned.fill(child: CustomPaint(painter: _WoodPainter())),
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
+              padding: EdgeInsets.fromLTRB(12, math.max(14, widget.topInset), 12, 16),
               child: widget.child,
             ),
           ]),
@@ -319,17 +328,19 @@ class ParchmentNote extends StatelessWidget {
         Positioned.fill(
           child: Opacity(
             opacity: faded ? 0.82 : 1,
+            // 묶음 39 #218·#219: 엔진의 9조각 그리기(centerSlice)는 실제 기기(Impeller)에서
+            // 귀퉁이가 다르게 그려져 종이가 비뚤어지거나 잘려 보임 → 9조각을 직접 그린다
             child: small
-                ? Image.asset(boardArt('board_note_small'),
+                ? NineSliceArt(
+                    asset: boardArt('board_note_small'),
+                    slice: const Rect.fromLTRB(72, 72, 312, 408),
                     scale: 3.2,
-                    centerSlice: const Rect.fromLTRB(72, 72, 312, 408),
-                    fit: BoxFit.fill,
-                    errorBuilder: (_, __, ___) => drawn)
-                : Image.asset(boardArt('board_note'),
+                    fallback: drawn)
+                : NineSliceArt(
+                    asset: boardArt('board_note'),
+                    slice: const Rect.fromLTRB(110, 92, 690, 308),
                     scale: 2.4,
-                    centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
-                    fit: BoxFit.fill,
-                    errorBuilder: (_, __, ___) => drawn),
+                    fallback: drawn),
           ),
         ),
         if (edge != null)
@@ -396,6 +407,202 @@ class ParchmentNote extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 9조각 그림 (귀퉁이·가장자리는 늘리지 않고 가운데만 늘림). [slice] 는 그림 픽셀,
+/// 귀퉁이는 그림 픽셀 ÷ [scale] 크기로. 칸이 귀퉁이보다 작으면 귀퉁이를 함께 줄인다.
+/// 그림을 못 읽으면 [fallback]
+class NineSliceArt extends StatefulWidget {
+  const NineSliceArt({
+    super.key,
+    required this.asset,
+    required this.slice,
+    required this.scale,
+    this.fallback = const SizedBox.shrink(),
+  });
+
+  final String asset;
+  final Rect slice;
+  final double scale;
+  final Widget fallback;
+
+  @override
+  State<NineSliceArt> createState() => _NineSliceArtState();
+}
+
+class _NineSliceArtState extends State<NineSliceArt> {
+  ui.Image? _art;
+  bool _failed = false;
+  ImageStream? _stream;
+  late final ImageStreamListener _listener = ImageStreamListener(
+    (info, _) {
+      if (mounted) setState(() => _art = info.image);
+    },
+    onError: (_, __) {
+      if (mounted) setState(() => _failed = true);
+    },
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final s = AssetImage(widget.asset)
+        .resolve(createLocalImageConfiguration(context));
+    if (s.key != _stream?.key) {
+      _stream?.removeListener(_listener);
+      _stream = s..addListener(_listener);
+    }
+  }
+
+  @override
+  void dispose() {
+    _stream?.removeListener(_listener);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final art = _art;
+    if (art == null) return _failed ? widget.fallback : const SizedBox.expand();
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _NineSlicePainter(art, widget.slice, widget.scale),
+    );
+  }
+}
+
+class _NineSlicePainter extends CustomPainter {
+  _NineSlicePainter(this.art, this.slice, this.scale);
+
+  final ui.Image art;
+  final Rect slice;
+  final double scale;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = art.width.toDouble(), h = art.height.toDouble();
+    // 그림 픽셀 기준 네 귀퉁이 크기
+    final l = slice.left, t = slice.top, r = w - slice.right, b = h - slice.bottom;
+    // 화면 크기 (칸이 작으면 귀퉁이를 같은 비율로 줄임)
+    var dl = l / scale, dr = r / scale, dt = t / scale, db = b / scale;
+    final kx = math.min(1.0, size.width / (dl + dr));
+    final ky = math.min(1.0, size.height / (dt + db));
+    dl *= kx;
+    dr *= kx;
+    dt *= ky;
+    db *= ky;
+    final sx = [0.0, l, w - r, w];
+    final sy = [0.0, t, h - b, h];
+    final dx = [0.0, dl, size.width - dr, size.width];
+    final dy = [0.0, dt, size.height - db, size.height];
+    final paint = Paint()..filterQuality = FilterQuality.medium;
+    for (var i = 0; i < 3; i++) {
+      for (var j = 0; j < 3; j++) {
+        final src = Rect.fromLTRB(sx[i], sy[j], sx[i + 1], sy[j + 1]);
+        final dst = Rect.fromLTRB(dx[i], dy[j], dx[i + 1], dy[j + 1]);
+        if (src.isEmpty || dst.isEmpty) continue;
+        canvas.drawImageRect(art, src, dst, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NineSlicePainter old) =>
+      old.art != art || old.slice != slice || old.scale != scale;
+}
+
+/// 같은 줄 칸들을 같은 폭으로 놓고, 가장 높은 칸의 높이에 모두 맞춘다 (묶음 39 #218).
+/// 칸마다 실제로 그려 본 높이로 정하므로(미리 재는 값이 아님) 어떤 칸도 줄 밖으로 넘치지 않는다
+class EqualHeightRow extends MultiChildRenderObjectWidget {
+  const EqualHeightRow({super.key, required super.children, this.gap = 0});
+
+  final double gap;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderEqualRow(gap);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderEqualRow r) =>
+      r.gap = gap;
+}
+
+class _EqualRowData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderEqualRow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _EqualRowData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _EqualRowData> {
+  _RenderEqualRow(this._gap);
+
+  double _gap;
+  set gap(double v) {
+    if (v == _gap) return;
+    _gap = v;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _EqualRowData) child.parentData = _EqualRowData();
+  }
+
+  double _cell(double width) =>
+      childCount == 0 ? 0 : (width - _gap * (childCount - 1)) / childCount;
+
+  @override
+  void performLayout() {
+    final w = constraints.maxWidth;
+    final cw = _cell(w);
+    var maxH = 0.0;
+    var child = firstChild;
+    while (child != null) {
+      child.layout(BoxConstraints(minWidth: cw, maxWidth: cw),
+          parentUsesSize: true);
+      maxH = math.max(maxH, child.size.height);
+      child = childAfter(child);
+    }
+    var x = 0.0;
+    child = firstChild;
+    while (child != null) {
+      // 높이를 꼭 맞춘 제약(tight)이면 칸이 혼자서 다시 그려질 때 이 줄을 다시 재지 않아
+      // 내용이 줄 밖으로 넘칠 수 있다 → 「최소 maxH」로만 준다
+      child.layout(
+          BoxConstraints(minWidth: cw, maxWidth: cw, minHeight: maxH),
+          parentUsesSize: true);
+      maxH = math.max(maxH, child.size.height);
+      (child.parentData! as _EqualRowData).offset = Offset(x, 0);
+      x += cw + _gap;
+      child = childAfter(child);
+    }
+    size = constraints.constrain(Size(w, maxH));
+  }
+
+  double _maxChild(double Function(RenderBox) f) {
+    var m = 0.0;
+    var child = firstChild;
+    while (child != null) {
+      m = math.max(m, f(child));
+      child = childAfter(child);
+    }
+    return m;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      _maxChild((c) => c.getMinIntrinsicHeight(_cell(width)));
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      _maxChild((c) => c.getMaxIntrinsicHeight(_cell(width)));
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
 
 /// 쪽지를 꽂은 핀

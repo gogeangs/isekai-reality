@@ -1,5 +1,6 @@
 import 'npc_header.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
@@ -19,88 +20,167 @@ import '../jobs/job_skill_bar.dart';
 /// 묶음 26 #180: 나무 게시판에 핀으로 꽂은 양피지 쪽지 모양.
 /// 묶음 33 #200·#201: 한 줄에 쪽지 2개(이름·진행만), 누르면 상세 창. 끝낸 쪽지는
 /// 「완료」 인장이 찍히고 떼어지듯 사라진다
-class BoardScreen extends StatelessWidget {
+class BoardScreen extends StatefulWidget {
   const BoardScreen({super.key, required this.controller});
 
   final AppController controller;
 
   @override
+  State<BoardScreen> createState() => _BoardScreenState();
+}
+
+/// 묶음 39 #217: 나무 게시판 그림이 화면 전체(폭에 맞추고 위아래로 스크롤).
+/// 뒤로 가기·하르트 얼굴·이름 띠·말풍선은 게시판 위쪽에 얹는다(뒤에 살짝 어두운 그라데이션)
+class _BoardScreenState extends State<BoardScreen> {
+  AppController get controller => widget.controller;
+
+  /// 위에 얹은 머리(뒤로 가기 + 하르트)의 높이. 그려 본 뒤 재서 맞춘다
+  double? _headerH;
+
+  @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
+    final pad = MediaQuery.paddingOf(context);
+    final screenH = MediaQuery.sizeOf(context).height;
     return TourScreenMark(name: 'board', child: Scaffold(
-      backgroundColor: AppColors.deepNight,
-      body: NightBackground(
-        header: true,
-        child: ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
-            final p = controller.player;
-            final today = p.today!;
-            // 묶음 16 #142: 막 열린 게시판(Lv.4)은 오늘의·길드 의뢰만
-            final full = controller.boardFull;
-            final urgent = full ? controller.urgent : null;
-            return ListView(
-              padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
-              children: [
-                OrnateTopBar(
-                  title: '의뢰 게시판',
-                  onBack: () => Navigator.of(context).maybePop(),
-                ),
-                const SizedBox(height: 6),
-                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
-                NpcHeader(
-                  controller: controller,
-                  npc: Npc.hart,
-                  guide: VillageRules.boardGuide,
-                  situation: urgent != null && !controller.board.urgentDone
-                      ? VillageRules.boardUrgent
-                      : null,
-                ),
-                const SizedBox(height: 10),
-                JobSkillBar(
-                    controller: controller, places: const [SkillPlace.board]),
-                WoodBoard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (urgent != null && !controller.board.urgentDone) ...[
-                        const BoardPlaque('긴급 의뢰', note: '오늘 자정까지'),
-                        const SizedBox(height: 4),
-                        NoteGrid(children: [
-                          _UrgentNote(controller: controller),
-                        ]),
+      backgroundColor: const Color(0xFF2B1A0D),
+      body: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final p = controller.player;
+          final today = p.today!;
+          // 묶음 16 #142: 막 열린 게시판(Lv.4)은 오늘의·길드 의뢰만
+          final full = controller.boardFull;
+          final urgent = full ? controller.urgent : null;
+          final headerH = _headerH ?? pad.top + 160;
+          return Stack(children: [
+            Positioned.fill(
+              child: ListView(
+                key: const Key('boardScroll'),
+                padding: EdgeInsets.zero,
+                children: [
+                  WoodBoard(
+                    topInset: headerH + 4,
+                    minHeight: screenH,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        JobSkillBar(
+                            controller: controller,
+                            places: const [SkillPlace.board]),
+                        if (urgent != null && !controller.board.urgentDone) ...[
+                          const BoardPlaque('긴급 의뢰', note: '오늘 자정까지'),
+                          const SizedBox(height: 4),
+                          NoteGrid(children: [
+                            _UrgentNote(controller: controller),
+                          ]),
+                          const SizedBox(height: 14),
+                        ],
+                        _DailyPanel(
+                          quests: QuestRules.forDay(today),
+                          allDone: QuestRules.allDone(today),
+                          streak: QuestRules.allDoneStreak(p.history),
+                          day: today.dayKey,
+                        ),
+                        if (full) ...[
+                          const SizedBox(height: 14),
+                          _WeeklyPanel(controller: controller),
+                        ],
                         const SizedBox(height: 14),
+                        _ErrandPanel(controller: controller),
+                        SizedBox(height: pad.bottom),
                       ],
-                      _DailyPanel(
-                        quests: QuestRules.forDay(today),
-                        allDone: QuestRules.allDone(today),
-                        streak: QuestRules.allDoneStreak(p.history),
-                        day: today.dayKey,
-                      ),
-                      if (full) ...[
-                        const SizedBox(height: 14),
-                        _WeeklyPanel(controller: controller),
-                      ],
-                      const SizedBox(height: 14),
-                      _ErrandPanel(controller: controller),
-                    ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+            // 위에 얹은 머리 (뒤로 가기 · 하르트)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: _SizeReporter(
+                onSize: (sz) {
+                  if (_headerH == null || (sz.height - _headerH!).abs() > 1) {
+                    setState(() => _headerH = sz.height);
+                  }
+                },
+                child: Container(
+                  key: const Key('boardHeader'),
+                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 14),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      // 아래로 지나가는 쪽지가 위쪽 글과 겹쳐 보이지 않게 머리 부분은 짙게
+                      colors: [Color(0xF20B0D26), Color(0xE00B0D26), Color(0x000B0D26)],
+                      stops: [0, 0.8, 1],
+                    ),
+                  ),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    OrnateTopBar(
+                      title: '의뢰 게시판',
+                      onBack: () => Navigator.of(context).maybePop(),
+                    ),
+                    const SizedBox(height: 6),
+                    // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
+                    NpcHeader(
+                      controller: controller,
+                      npc: Npc.hart,
+                      guide: VillageRules.boardGuide,
+                      situation: urgent != null && !controller.board.urgentDone
+                          ? VillageRules.boardUrgent
+                          : null,
+                    ),
+                  ]),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ),
+          ]);
+        },
       ),
     ));
+  }
+}
+
+/// 자식 크기가 정해지면 알려 준다 (그린 뒤)
+class _SizeReporter extends SingleChildRenderObjectWidget {
+  const _SizeReporter({required this.onSize, required super.child});
+
+  final ValueChanged<Size> onSize;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderSizeReporter(onSize);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSizeReporter r) =>
+      r.onSize = onSize;
+}
+
+class _RenderSizeReporter extends RenderProxyBox {
+  _RenderSizeReporter(this.onSize);
+
+  ValueChanged<Size> onSize;
+  Size? _last;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (size != _last) {
+      _last = size;
+      final s = size;
+      WidgetsBinding.instance.addPostFrameCallback((_) => onSize(s));
+    }
   }
 }
 
 /// 이 화면에서 사라지는 연출을 이미 보여 준 쪽지 (앱을 켜 둔 동안)
 final Set<String> _vanished = {};
 
-/// 한 줄에 쪽지 2개 (묶음 37 #206): 두 칸 폭·간격이 같고 게시판 안에만,
-/// 같은 줄 쪽지는 높은 쪽에 맞추고 줄끼리 겹치지 않는다
+/// 한 줄에 쪽지 2개 (묶음 37 #206 · 묶음 39 #218): 두 칸 폭·간격이 같고 게시판 안에만.
+/// 같은 줄 쪽지는 실제로 그려 본 높이 중 높은 쪽에 맞추고([EqualHeightRow]),
+/// 다음 줄은 그 아래 핀 높이 + 여유만큼 띄워 어떤 쪽지도 다른 쪽지를 덮지 않는다
 class NoteGrid extends StatelessWidget {
   const NoteGrid({super.key, required this.children});
 
@@ -112,56 +192,28 @@ class NoteGrid extends StatelessWidget {
   static const double rowGap = 14;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        final w = (box.maxWidth - gap) / 2;
-        Widget cell(Widget? c) => Expanded(
-              child: c == null
-                  ? const SizedBox.shrink()
-                  : NoteCell(
-                      width: w,
-                      child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: c),
-                    ),
-            );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < children.length; i += 2)
-              // 묶음 38 #215: 줄 사이를 핀 높이 + 여유만큼 (아랫줄 핀이 윗줄을 덮지 않게)
-              Padding(
-                padding: EdgeInsets.only(top: i == 0 ? 0 : rowGap),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      cell(children[i]),
-                      const SizedBox(width: gap),
-                      cell(i + 1 < children.length ? children[i + 1] : null),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
-      });
-}
-
-/// 두 칸 쪽지의 칸 폭 (쪽지 이름 글씨 크기를 정할 때 씀)
-class NoteCell extends InheritedWidget {
-  const NoteCell({super.key, required this.width, required super.child});
-
-  final double width;
-
-  static double? widthOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<NoteCell>()?.width;
-
-  @override
-  bool updateShouldNotify(NoteCell old) => old.width != width;
+  Widget build(BuildContext context) {
+    Widget cell(Widget? c) => c == null
+        ? const SizedBox.shrink()
+        : Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: c);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i += 2)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : rowGap),
+            child: EqualHeightRow(gap: gap, children: [
+              cell(children[i]),
+              cell(i + 1 < children.length ? children[i + 1] : null),
+            ]),
+          ),
+      ],
+    );
+  }
 }
 
 /// 쪽지 이름: 단어 중간에서 끊지 않는다. 한 줄에 조금 넘치면 글씨를 줄이고,
-/// 많이 넘치면 단어 단위로 두 줄
+/// 많이 넘치면 단어 단위로 두 줄. 실제 글 폭(종이 안쪽)과 기기 글자 크기로 잰다 (묶음 39 #218)
 class NoteTitle extends StatelessWidget {
   const NoteTitle(this.title, {super.key, this.size = 14});
 
@@ -171,40 +223,43 @@ class NoteTitle extends StatelessWidget {
   /// 이보다 작게는 줄이지 않는다 (그때는 두 줄)
   static const double minSize = 11.5;
 
-  /// 칸 폭 [cell] 에서 쓸 글씨 크기와 줄 수
+  /// 칸 폭 [cell] 에서 쓸 글씨 크기와 줄 수 (칸 양옆 2 + 보이는 종이 안쪽 여백)
   static (double, int) fit(String title, double cell, TextScaler scaler,
-      {double size = 14}) {
-    // 칸 양옆 2 + 보이는 종이 안쪽 여백 (묶음 38 #215)
-    final avail = cell - 4 - ParchmentNote.smallSide * 2;
+          {double size = 14, Locale? locale}) =>
+      fitIn(title, cell - 4 - ParchmentNote.smallSide * 2, scaler,
+          size: size, locale: locale);
+
+  /// 글 폭 [avail] 안에서 쓸 글씨 크기와 줄 수
+  static (double, int) fitIn(String title, double avail, TextScaler scaler,
+      {double size = 14, Locale? locale}) {
     final tp = TextPainter(
       text: TextSpan(text: keepAll(title), style: noteTitle(size)),
       textDirection: TextDirection.ltr,
       textScaler: scaler,
+      locale: locale,
       maxLines: 1,
     )..layout();
     final full = tp.width;
     tp.dispose();
-    if (full <= avail) return (size, 1);
-    final s = (size * avail / full * 10).floorToDouble() / 10;
+    // 기기 글꼴 폭이 조금 달라도 넘치지 않게 4% 여유
+    final room = avail * 0.96;
+    if (full <= room) return (size, 1);
+    final s = (size * room / full * 10).floorToDouble() / 10;
     if (s >= minSize) return (s, 1);
     return (size, 2);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final w = NoteCell.widthOf(context);
-    var (s, lines) = (size, 2);
-    if (w != null) {
-      (s, lines) = fit(title, w, MediaQuery.textScalerOf(context), size: size);
-    }
-    // 말줄임 없이: 한 줄이면 줄인 글씨로, 아니면 단어 단위로 줄바꿈
-    return Text(keepAll(title),
-        key: const Key('noteTitle'),
-        maxLines: lines == 1 ? 1 : null,
-        softWrap: lines != 1,
-        overflow: TextOverflow.visible,
-        style: noteTitle(s));
-  }
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final (s, _) = fitIn(title, box.maxWidth, MediaQuery.textScalerOf(context),
+            size: size, locale: Localizations.maybeLocaleOf(context));
+        // 말줄임 없이, 혹시 기기 글꼴이 더 넓어도 종이 밖으로 나가지 않고 단어 단위로 줄바꿈
+        return Text(keepAll(title),
+            key: const Key('noteTitle'),
+            softWrap: true,
+            overflow: TextOverflow.visible,
+            style: noteTitle(s));
+      });
 }
 
 /// 작은 쪽지 (이름 + 짧은 진행). [glow] 면 금빛으로 빛나고 「받기!」 리본
@@ -388,23 +443,24 @@ class _DailyPanel extends StatelessWidget {
         quests.length * QuestRules.rewardExp + QuestRules.allDoneBonusExp;
     final done = quests.where((q) => q.completed).length;
     final notes = _questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp);
-    // 묶음 37 #206: 보너스를 받으면(모두 완료) 큰 쪽지 대신 이름판 아래 한 줄로 접힌다
+    // 묶음 39 #216: 보너스 쪽지 대신 이름판 바로 아래 금빛 띠 한 줄
+    // (보상은 지금처럼 다 끝내는 순간 저절로 들어온다)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         BoardPlaque('오늘의 의뢰',
             key: const Key('dailyPlaque'),
             note: '완료 $done/${quests.length}'),
-        if (allDone)
-          _BoardNote('오늘 모두 완료 · 연속 $streak일째 · EXP +$total',
-              key: const Key('dailyAllDoneLine')),
+        _BonusBand(
+          key: const Key('dailyBonusBand'),
+          done: allDone,
+          text: allDone
+              ? '오늘 모두 완료 · 연속 $streak일째 · EXP +$total'
+              : '${quests.length}개 모두 하면 EXP +${QuestRules.allDoneBonusExp}'
+                  '${streak > 0 ? ' · 연속 $streak일째' : ''}',
+        ),
         const SizedBox(height: 4),
         if (notes.isNotEmpty) NoteGrid(children: notes),
-        if (!allDone) ...[
-          // 보너스 쪽지 위도 핀 높이만큼 띄움
-          const SizedBox(height: NoteGrid.rowGap),
-          AllDoneRow(done: false, streak: streak, count: quests.length),
-        ],
       ],
     );
   }
@@ -559,22 +615,25 @@ class _ErrandNoteState extends State<_ErrandNote> {
       } else {
         text = '오늘은 더 붙지 않아요';
       }
-      return Opacity(
+      // 묶음 39 #219: 다른 쪽지와 같은 종이 모양 그대로 흐리게 (잘리지 않게 바깥 Opacity 없이)
+      return ParchmentNote(
         key: Key('errandEmpty_$slot'),
-        opacity: 0.85,
-        child: ParchmentNote(
-          seed: slot + 7,
-          small: true,
-          faded: true,
-          child: Row(children: [
-            const Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 18),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(text,
-                  style: const TextStyle(color: kInkSoft, fontSize: 12)),
-            ),
-          ]),
-        ),
+        seed: slot + 7,
+        small: true,
+        faded: true,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 16),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(keepAll(text),
+                softWrap: true,
+                style: const TextStyle(
+                    color: kInkSoft, fontSize: 12, height: 1.3)),
+          ),
+        ]),
       );
     }
     final progress = c.errandProgress(slot);
@@ -934,7 +993,7 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
 /// 이름판 바로 아래 작은 한 줄 설명 (묶음 37 #206). 묶음 38 #215: 나무판 위에서도 또렷하게
 /// 작은 어두운 반투명 띠 위에 밝은 글씨. 넘치면 글씨를 줄여서라도 한 줄
 class _BoardNote extends StatelessWidget {
-  const _BoardNote(this.text, {super.key});
+  const _BoardNote(this.text);
 
   final String text;
 
@@ -957,6 +1016,52 @@ class _BoardNote extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w700)),
           ),
+        ),
+      );
+}
+
+/// 오늘의 의뢰 보너스 금빛 띠 (묶음 39 #216): 설명 띠와 같은 모양·높이, 색만 금빛.
+/// 다 끝내면 조금 더 밝게 빛난다
+class _BonusBand extends StatelessWidget {
+  const _BonusBand({super.key, required this.text, required this.done});
+
+  final String text;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(2, 5, 2, 0),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(7, 2, 9, 3),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: done
+                ? const [Color(0xFFF7D978), Color(0xFFD9A441)]
+                : const [Color(0xE6D9B060), Color(0xE6B8862E)]),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: done
+                ? [
+                    BoxShadow(
+                        color: AppColors.goldBright.withValues(alpha: 0.6),
+                        blurRadius: 10),
+                  ]
+                : null,
+          ),
+          child: Row(children: [
+            const GameIcon('medal', size: 16),
+            const SizedBox(width: 4),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(text,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: Color(0xFF3A2614),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ]),
         ),
       );
 }

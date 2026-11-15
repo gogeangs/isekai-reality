@@ -258,9 +258,14 @@ class ParchmentNote extends StatelessWidget {
     this.stamp,
     this.ribbon = false,
     this.edge,
+    this.small = false,
   });
 
   final Widget child;
+
+  /// 두 칸 쪽지 (묶음 37 #206): 세로 쪽지 그림 board_note_small, 높이는 내용만큼,
+  /// 칸 높이가 정해지면(같은 줄의 높은 쪽) 그만큼 채운다
+  final bool small;
 
   /// 기울기를 정하는 수 (쪽지마다 다르게)
   final int seed;
@@ -281,7 +286,7 @@ class ParchmentNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tilt = tiltOf(seed) * math.pi / 180;
+    final tilt = tiltOf(seed) * (small ? 0.5 : 1) * math.pi / 180;
     // 그림이 없을 때 쓰는 종이 (코드로 그림)
     final drawn = DecoratedBox(
       decoration: BoxDecoration(
@@ -302,17 +307,23 @@ class ParchmentNote extends StatelessWidget {
     );
     final paper = ConstrainedBox(
       // 늘린 쪽지의 귀퉁이 장식이 겹치지 않을 만큼은 높게
-      constraints: const BoxConstraints(minHeight: 78),
+      constraints: BoxConstraints(minHeight: small ? 60 : 78),
       child: Stack(children: [
         // 묶음 28: 양피지 그림 (9-slice, 귀퉁이 장식은 늘리지 않음)
         Positioned.fill(
           child: Opacity(
             opacity: faded ? 0.82 : 1,
-            child: Image.asset(boardArt('board_note'),
-                scale: 2.4,
-                centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
-                fit: BoxFit.fill,
-                errorBuilder: (_, __, ___) => drawn),
+            child: small
+                ? Image.asset(boardArt('board_note_small'),
+                    scale: 3.2,
+                    centerSlice: const Rect.fromLTRB(72, 72, 312, 408),
+                    fit: BoxFit.fill,
+                    errorBuilder: (_, __, ___) => drawn)
+                : Image.asset(boardArt('board_note'),
+                    scale: 2.4,
+                    centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
+                    fit: BoxFit.fill,
+                    errorBuilder: (_, __, ___) => drawn),
           ),
         ),
         if (edge != null)
@@ -338,7 +349,9 @@ class ParchmentNote extends StatelessWidget {
             ),
           ),
         Padding(
-          padding: EdgeInsets.fromLTRB(18, ribbon ? 22 : 16, 18, 12),
+          padding: small
+              ? const EdgeInsets.fromLTRB(14, 15, 14, 10)
+              : EdgeInsets.fromLTRB(18, ribbon ? 22 : 16, 18, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -359,7 +372,9 @@ class ParchmentNote extends StatelessWidget {
       padding: const EdgeInsets.only(top: 10, bottom: 4),
       child: Transform.rotate(
         angle: tilt,
-        child: Stack(clipBehavior: Clip.none, children: [
+        // passthrough: 칸 높이가 정해져 있으면 쪽지가 그만큼 채운다
+        child: Stack(
+            clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
           paper,
           // 핀
           // 옆에서 본 핀: 머리는 쪽지 위 가장자리, 바늘 끝은 쪽지 안쪽으로 살짝

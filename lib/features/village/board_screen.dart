@@ -97,22 +97,106 @@ class BoardScreen extends StatelessWidget {
 /// 이 화면에서 사라지는 연출을 이미 보여 준 쪽지 (앱을 켜 둔 동안)
 final Set<String> _vanished = {};
 
-/// 한 줄에 쪽지 2개
+/// 한 줄에 쪽지 2개 (묶음 37 #206): 두 칸 폭·간격이 같고 게시판 안에만,
+/// 같은 줄 쪽지는 높은 쪽에 맞추고 줄끼리 겹치지 않는다
 class NoteGrid extends StatelessWidget {
   const NoteGrid({super.key, required this.children});
 
   final List<Widget> children;
 
+  static const double gap = 10;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        const gap = 10.0;
         final w = (box.maxWidth - gap) / 2;
-        return Wrap(
-          spacing: gap,
-          runSpacing: 2,
-          children: [for (final c in children) SizedBox(width: w, child: c)],
+        Widget cell(Widget? c) => Expanded(
+              child: c == null
+                  ? const SizedBox.shrink()
+                  : NoteCell(
+                      width: w,
+                      child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: c),
+                    ),
+            );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < children.length; i += 2)
+              Padding(
+                padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      cell(children[i]),
+                      const SizedBox(width: gap),
+                      cell(i + 1 < children.length ? children[i + 1] : null),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         );
       });
+}
+
+/// 두 칸 쪽지의 칸 폭 (쪽지 이름 글씨 크기를 정할 때 씀)
+class NoteCell extends InheritedWidget {
+  const NoteCell({super.key, required this.width, required super.child});
+
+  final double width;
+
+  static double? widthOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<NoteCell>()?.width;
+
+  @override
+  bool updateShouldNotify(NoteCell old) => old.width != width;
+}
+
+/// 쪽지 이름: 단어 중간에서 끊지 않는다. 한 줄에 조금 넘치면 글씨를 줄이고,
+/// 많이 넘치면 단어 단위로 두 줄
+class NoteTitle extends StatelessWidget {
+  const NoteTitle(this.title, {super.key, this.size = 14});
+
+  final String title;
+  final double size;
+
+  /// 이보다 작게는 줄이지 않는다 (그때는 두 줄)
+  static const double minSize = 11.5;
+
+  /// 칸 폭 [cell] 에서 쓸 글씨 크기와 줄 수
+  static (double, int) fit(String title, double cell, TextScaler scaler,
+      {double size = 14}) {
+    // 칸 양옆 2 + 쪽지 안쪽 14 씩
+    final avail = cell - 4 - 28;
+    final tp = TextPainter(
+      text: TextSpan(text: keepAll(title), style: noteTitle(size)),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+      maxLines: 1,
+    )..layout();
+    final full = tp.width;
+    tp.dispose();
+    if (full <= avail) return (size, 1);
+    final s = (size * avail / full * 10).floorToDouble() / 10;
+    if (s >= minSize) return (s, 1);
+    return (size, 2);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final w = NoteCell.widthOf(context);
+    var (s, lines) = (size, 2);
+    if (w != null) {
+      (s, lines) = fit(title, w, MediaQuery.textScalerOf(context), size: size);
+    }
+    return Text(keepAll(title),
+        key: const Key('noteTitle'),
+        maxLines: lines,
+        overflow: TextOverflow.ellipsis,
+        style: noteTitle(s));
+  }
 }
 
 /// 작은 쪽지 (이름 + 짧은 진행). [glow] 면 금빛으로 빛나고 「받기!」 리본
@@ -146,6 +230,7 @@ class SmallNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final note = ParchmentNote(
       seed: seed,
+      small: true,
       edge: edge,
       faded: done,
       stamp: done
@@ -157,10 +242,7 @@ class SmallNote extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(keepAll(title),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: noteTitle(14)),
+          NoteTitle(title),
           if (ratio != null) ...[
             const SizedBox(height: 6),
             InkBar(ratio: ratio!.clamp(0.0, 1.0)),
@@ -185,7 +267,7 @@ class SmallNote extends StatelessWidget {
     );
     Widget out = note;
     if (glow) {
-      out = Stack(clipBehavior: Clip.none, children: [
+      out = Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
         DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(6),
@@ -298,21 +380,23 @@ class _DailyPanel extends StatelessWidget {
         quests.length * QuestRules.rewardExp + QuestRules.allDoneBonusExp;
     final done = quests.where((q) => q.completed).length;
     final notes = _questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp);
-    return FoldingQuestPanel(
-      done: allDone && notes.isEmpty,
-      foldedText: '오늘의 의뢰 모두 완료 · 연속 $streak일째 · EXP +$total',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          BoardPlaque('오늘의 의뢰',
-              key: const Key('dailyPlaque'),
-              note: '완료 $done/${quests.length}'),
+    // 묶음 37 #206: 보너스를 받으면(모두 완료) 큰 쪽지 대신 이름판 아래 한 줄로 접힌다
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        BoardPlaque('오늘의 의뢰',
+            key: const Key('dailyPlaque'),
+            note: '완료 $done/${quests.length}'),
+        if (allDone)
+          _BoardNote('오늘 모두 완료 · 연속 $streak일째 · EXP +$total',
+              key: const Key('dailyAllDoneLine')),
+        const SizedBox(height: 4),
+        if (notes.isNotEmpty) NoteGrid(children: notes),
+        if (!allDone) ...[
           const SizedBox(height: 4),
-          if (notes.isNotEmpty) NoteGrid(children: notes),
-          const SizedBox(height: 4),
-          AllDoneRow(done: allDone, streak: streak, count: quests.length),
+          AllDoneRow(done: false, streak: streak, count: quests.length),
         ],
-      ),
+      ],
     );
   }
 }
@@ -368,10 +452,9 @@ class _WeeklyPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BoardPlaque('주간 의뢰', note: '완료 $done/$n · $left일 남음'),
+          const _BoardNote('매주 월요일에 새로 시작해요.'),
           const SizedBox(height: 4),
           if (notes.isNotEmpty) NoteGrid(children: notes),
-          const SizedBox(height: 6),
-          const _BoardNote('매주 월요일에 새로 시작해요.'),
         ],
       ),
     );
@@ -395,14 +478,12 @@ class _ErrandPanel extends StatelessWidget {
         children: [
           BoardPlaque('길드 의뢰',
               note: '오늘 ${b.doneToday} / ${BoardRules.errandsPerDay}'),
+          const _BoardNote('수락하면 시작 · 끝내면 2시간 뒤 새 의뢰 · 자정에 모두 바뀌어요'),
           const SizedBox(height: 4),
           NoteGrid(children: [
             for (var i = 0; i < b.slots.length; i++)
               _ErrandNote(controller: controller, slot: i),
           ]),
-          const SizedBox(height: 6),
-          const _BoardNote(
-              '수락하면 그때부터 세요. 끝내면 2시간 뒤 새 의뢰가 붙고, 자정에 모두 바뀌어요.'),
         ],
       ),
     );
@@ -474,6 +555,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
         opacity: 0.85,
         child: ParchmentNote(
           seed: slot + 7,
+          small: true,
           faded: true,
           child: Row(children: [
             const Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 18),
@@ -840,20 +922,27 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
       ),
     );
 
-/// 게시판 아래 작은 설명 (나무 위 밝은 글씨)
+/// 이름판 바로 아래 작은 한 줄 설명 (나무 위 밝은 글씨, 묶음 37 #206).
+/// 넘치면 글씨를 줄여서라도 한 줄
 class _BoardNote extends StatelessWidget {
-  const _BoardNote(this.text);
+  const _BoardNote(this.text, {super.key});
 
   final String text;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: KText(text,
-            style: const TextStyle(
-                color: Color(0xFFEBD7AE),
-                fontSize: 12,
-                shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)])),
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 0),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(text,
+              maxLines: 1,
+              style: const TextStyle(
+                  color: Color(0xFFEBD7AE),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)])),
+        ),
       );
 }
 

@@ -82,7 +82,9 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     showTopNotice(context, s);
   }
 
-  Future<void> _appraise() async {
+  /// 감정 (무작위). [picked] 면 종족 골라 찍기 (묶음 37 #209): 모든 얼굴이 그 종족,
+  /// 하루 무료·돋보기·보상·숙련도·앨범은 감정과 같다
+  Future<void> _appraise({Race? picked}) async {
     final n = math.min(_engine.faces.value.length, LensRules.facesNow);
     if (n == 0) {
       _snack('얼굴이 보이지 않아요. 얼굴을 화면 가운데에 비춰 주세요.');
@@ -94,7 +96,9 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     }
     setState(() => _phase = _Phase.appraising);
     await _spin.forward(from: 0);
-    final races = LensRules.rollFaces(_random, n);
+    final races = picked != null
+        ? List<Race>.filled(n, picked)
+        : LensRules.rollFaces(_random, n);
     final r = await c.appraise(races);
     if (!mounted) return;
     if (r == null) {
@@ -106,6 +110,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _races = races;
       _result = r;
       _phase = _Phase.reveal;
+      _snapFailed = false;
     });
     final id = r.albumId;
     if (id != null) unawaited(_keepInAlbum(id, races));
@@ -131,6 +136,33 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
 
   /// 앨범 사진을 만드는 중 (셔터와 따로)
   bool _albumBusy = false;
+
+  /// 렌즈 사진을 받지 못했음 → 「렌즈 없이 찍기」를 보여 준다
+  bool _snapFailed = false;
+
+  /// 이번 감정 결과에 AR 렌즈가 있는 종족이 있는지 (있으면 렌즈로 찍기가 기본)
+  bool get _hasLens => SnapLens.supports(_races ?? const []);
+
+  /// 종족 골라 찍기 창 (묶음 37 #209)
+  Future<void> _pickRace() async {
+    if (_engine.faces.value.isEmpty) {
+      _snack('얼굴이 보이지 않아요. 얼굴을 화면 가운데에 비춰 주세요.');
+      return;
+    }
+    if (!c.canAppraise) {
+      _snack('마법 돋보기가 없어요. 잡화상에서 살 수 있어요.');
+      return;
+    }
+    final race = await showModalBottomSheet<Race>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => _RacePicker(
+        onLocked: () => showTopNotice(sheet, '곧 만나요!'),
+      ),
+    );
+    if (race == null || !mounted || _phase != _Phase.aim) return;
+    await _appraise(picked: race);
+  }
 
   void _openAlbum() => Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => AlbumScreen(
@@ -207,12 +239,14 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     // 묶음 14 A1: 시험 빌드에서만 여는 시간을 보여 준다
     final timing = SnapLens.testBuild ? SnapLens.instance.timingLine : null;
     if (png == null) {
-      _snack('렌즈 사진을 받지 못했어요. 지금 장식으로 계속할게요.'
+      setState(() => _snapFailed = true);
+      _snack('렌즈 사진을 받지 못했어요. 셔터를 눌러 다시 찍어 볼까요?'
           '${timing == null ? '' : '\n$timing'}');
       return;
     }
     if (timing != null) _snack(timing);
     final id = _result?.albumId;
+    _snapFailed = false;
     if (id != null) {
       final file = await AlbumFiles.writer(id, png);
       if (file != null) await c.attachAlbumFile(id, file);
@@ -310,8 +344,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                   errorBuilder: (_, __, ___) => const Icon(Icons.search_rounded,
                       size: 16, color: AppColors.goldBright)),
               const SizedBox(width: 4),
-              // 묶음 19 #154: 지금 쓰게 될 것
-              Text(c.lensFreeToday ? '오늘 무료 1번' : '돋보기 $_lenses개',
+              // 묶음 37 #210: 지금 쓰게 될 것
+              Text(c.lensFreeToday ? '오늘 무료 ${c.lensFreeLeft}번' : '돋보기 $_lenses개',
                   key: const Key('lensCount'),
                   style: const TextStyle(
                       color: AppColors.text, fontWeight: FontWeight.w700)),
@@ -433,10 +467,24 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
               JobSkillBar(controller: c, places: const [SkillPlace.lens]),
               GoldButton(
                 key: const Key('appraise'),
-                label: c.lensFreeToday ? '감정하기 (오늘 무료)' : '감정하기 (돋보기 1개)',
+                label: c.lensFreeToday
+                    ? '감정하기 (오늘 무료 ${c.lensFreeLeft}번)'
+                    : '감정하기 (돋보기 1개)',
                 onPressed:
-                    faces.isNotEmpty && c.canAppraise ? _appraise : null,
+                    faces.isNotEmpty && c.canAppraise ? () => _appraise() : null,
               ),
+              // 묶음 37 #209: 종족 골라 찍기 (Lv.6 돋보기 안내 중엔 숨김)
+              if (c.pendingFeatureIntro != Feature.lens) ...[
+                const SizedBox(height: 8),
+                FrameButton(
+                  key: const Key('pickRace'),
+                  label: '종족 골라 찍기',
+                  icon: Icons.auto_awesome_rounded,
+                  height: 44,
+                  onPressed:
+                      faces.isNotEmpty && c.canAppraise ? _pickRace : null,
+                ),
+              ],
             ],
           ),
         );
@@ -444,13 +492,17 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         return Text('감정 중…',
             textAlign: TextAlign.center, style: AppText.title(19));
       case _Phase.reveal:
+        // 묶음 37 #207: 렌즈가 있으면 바로 렌즈 카메라, 없으면 맨 얼굴 + 감정 틀
         return GoldButton(
           key: const Key('lensToFilter'),
-          label: '변신한 모습 보기',
-          onPressed: () => setState(() => _phase = _Phase.filter),
+          label: _hasLens ? '변신한 모습 보기' : '사진 찍기',
+          onPressed: () {
+            setState(() => _phase = _Phase.filter);
+            if (_hasLens) _snapShoot();
+          },
         );
       case _Phase.filter:
-        final snap = SnapLens.supports(_races ?? const []);
+        final snap = _hasLens;
         final row = Row(children: [
           Expanded(
             child: FrameButton(
@@ -466,7 +518,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 12),
-          _Shutter(busy: _working, onTap: _shoot),
+          // 렌즈가 있는 종족은 셔터가 렌즈 카메라를 연다 (셔터 하나)
+          _Shutter(busy: _working, onTap: snap ? _snapShoot : _shoot),
           const SizedBox(width: 12),
           Expanded(
             child: Text(PhotoFrame.raceLine(_races ?? const []),
@@ -475,18 +528,16 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                 style: AppText.title(14)),
           ),
         ]);
-        if (!snap) return row;
-        // #60 Snap 시험 렌즈: 렌즈가 있는 종족(지금은 엘프)만
+        if (!snap || !_snapFailed) return row;
+        // 렌즈 사진을 받지 못했을 때만: 렌즈 없이 (맨 얼굴 + 틀)
         return Column(mainAxisSize: MainAxisSize.min, children: [
-          FrameButton(
-            key: const Key('snapLens'),
-            label: '엘프 렌즈로 찍기 (시험)',
-            icon: Icons.auto_awesome_rounded,
-            height: 42,
-            onPressed: _working ? null : _snapShoot,
-          ),
-          const SizedBox(height: 8),
           row,
+          TextButton(
+            key: const Key('shootNoLens'),
+            onPressed: _working ? null : _shoot,
+            child: const Text('렌즈 없이 찍기',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
         ]);
       case _Phase.shot:
         return Column(mainAxisSize: MainAxisSize.min, children: [
@@ -559,6 +610,108 @@ class _Shutter extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// 종족 골라 찍기 창 (묶음 37 #209): 8종족 한 줄 4칸. AR 렌즈가 있는 종족만 고를 수 있고
+/// ([SnapLens.races] 에 더하면 저절로 열림), 나머지는 흐리게 「준비 중」
+class _RacePicker extends StatelessWidget {
+  const _RacePicker({required this.onLocked});
+
+  final VoidCallback onLocked;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: OrnatePanel(
+            key: const Key('racePicker'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('어떤 종족으로 찍을까요?',
+                    textAlign: TextAlign.center, style: AppText.title(17)),
+                const SizedBox(height: 4),
+                const KText('보이는 얼굴 모두 고른 종족이 돼요. 감정과 같이 돋보기를 써요.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 0.78,
+                  children: [
+                    for (final info in LensRules.all)
+                      _RaceCell(
+                        info: info,
+                        open: SnapLens.races.contains(info.id),
+                        onTap: SnapLens.races.contains(info.id)
+                            ? () => Navigator.of(context).pop(info.id)
+                            : onLocked,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _RaceCell extends StatelessWidget {
+  const _RaceCell(
+      {required this.info, required this.open, required this.onTap});
+
+  final RaceInfo info;
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(info.color);
+    return GestureDetector(
+      key: Key('race_${info.id.name}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Opacity(
+        opacity: open ? 1 : 0.42,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(colors: [
+                Color.lerp(color, Colors.white, 0.35)!,
+                color,
+              ]),
+              border: Border.all(
+                  color: open ? AppColors.goldBright : AppColors.textMuted,
+                  width: 2),
+            ),
+            child: Icon(
+                open ? Icons.auto_awesome_rounded : Icons.lock_rounded,
+                color: Colors.white,
+                size: 22),
+          ),
+          const SizedBox(height: 4),
+          Text(info.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+          if (!open)
+            const Text('준비 중',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 10.5)),
+        ]),
+      ),
+    );
+  }
 }
 
 /// 감정 결과 (얼굴마다 종족 + 보상)

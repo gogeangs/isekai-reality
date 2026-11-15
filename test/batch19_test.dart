@@ -100,8 +100,9 @@ void main() {
       expect(c.canAppraise, isTrue);
       final r = await c.appraise(const [Race.dwarf]);
       expect(r, isNotNull);
-      expect(c.lensFreeToday, isFalse);
-      expect(c.canAppraise, isFalse); // 가방 돋보기 없음
+      // 묶음 37 #210: 하루 5번 무료 → 4번 남음
+      expect(c.lensFreeLeft, LensRules.freePerDay - 1);
+      expect(c.canAppraise, isTrue);
       expect(c.album, isNotEmpty);
     });
   });

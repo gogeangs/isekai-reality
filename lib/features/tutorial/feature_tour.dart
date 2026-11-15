@@ -707,7 +707,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         return _here(const Key('lensToFilter'), '어떤 종족일까? 눌러 봐!');
       }
       return _here(const Key('appraise'),
-          '사람 얼굴을 비추고 눌러 봐! 오늘 한 번은 무료야.');
+          '사람 얼굴을 비추고 눌러 봐! 하루 5번은 무료야.');
     }
     if (b.top != 'home' && b.top != null) {
       return TourStep('지도에 마법 돋보기가 생겼어!',

@@ -21,6 +21,10 @@ class PhotoFrame {
   static const String logoAsset = 'assets/images/logo_small.webp';
   static const String gameName = '이세계가 현실이라면?';
 
+  /// 아래 이름판 안쪽 위 끝 · 글자를 쓸 수 있는 폭 (틀 그림 픽셀)
+  static const double plateTop = 1260;
+  static const double plateWidth = 500;
+
   static Future<ui.Image?> _load(String asset) async {
     try {
       final data = await rootBundle.load(asset);
@@ -64,19 +68,20 @@ class PhotoFrame {
       _paintFrame(canvas);
     }
 
-    // 아래 띠: 감정 결과 · 종족 이름 · 로고
-    _text(canvas, '마법 돋보기 감정 결과', const Offset(width / 2, 1236), 30,
+    // 아래 띠 (묶음 37 #208): 금테 안 이름판(가로 270~815 · 세로 약 1255~1390)에
+    // 감정 결과 · 종족 이름 · 로고 세 줄을 가지런히 (금테 선과 겹치지 않게)
+    _text(canvas, '마법 돋보기 감정 결과', const Offset(width / 2, plateTop + 18), 25,
         const Color(0xFFD9C38A), FontWeight.w700,
         title: true);
-    _text(canvas, raceLine(races), const Offset(width / 2, 1300), 64,
+    _text(canvas, raceLine(races), const Offset(width / 2, plateTop + 62), 46,
         const Color(0xFFFFE9A8), FontWeight.w700,
-        title: true, maxWidth: 940);
-    const logoSize = 64.0;
-    final name = _layout(gameName, 30, const Color(0xFFEDE3C8), FontWeight.w700,
+        title: true, maxWidth: plateWidth);
+    const logoSize = 36.0;
+    final name = _layout(gameName, 23, const Color(0xFFEDE3C8), FontWeight.w700,
         title: true);
-    final rowW = (logo != null ? logoSize + 14 : 0) + name.width;
+    final rowW = (logo != null ? logoSize + 10 : 0) + name.width;
     var x = width / 2 - rowW / 2;
-    const rowY = 1372.0;
+    const rowY = plateTop + 106;
     if (logo != null) {
       final dst = Rect.fromLTWH(x, rowY - logoSize / 2, logoSize, logoSize);
       canvas.save();
@@ -87,7 +92,7 @@ class PhotoFrame {
           dst,
           Paint()..filterQuality = FilterQuality.high);
       canvas.restore();
-      x += logoSize + 14;
+      x += logoSize + 10;
     }
     name.paint(canvas, Offset(x, rowY - name.height / 2));
 
@@ -170,10 +175,14 @@ class PhotoFrame {
             ..strokeWidth = 4);
       canvas.drawCircle(c, 6, Paint()..color = bright);
     }
-    // 아래 띠 장식 선
-    final line = Paint()
-      ..color = gold.withValues(alpha: 0.7)
-      ..strokeWidth = 2;
-    canvas.drawLine(const Offset(140, 1338), const Offset(940, 1338), line);
+    // 아래 이름판 (그림 틀과 같은 자리)
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            const Rect.fromLTRB(270, plateTop - 10, 810, plateTop + 130),
+            const Radius.circular(12)),
+        Paint()
+          ..color = gold.withValues(alpha: 0.8)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3);
   }
 }

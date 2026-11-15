@@ -25,9 +25,17 @@ extension LensOps on AppController {
     return math.max(0, LensRules.rewardedPerDay + extra - used);
   }
 
-  /// 오늘 무료 감정이 남았는지 (자정에 다시 채움)
-  bool get lensFreeToday =>
-      _lens.freeDay != DailyRecord.dayKeyOf(_clock());
+  /// 오늘 쓴 무료 감정 횟수 (묶음 36까지의 기록은 그날 1번으로)
+  int get _lensFreeUsed => _lens.freeDay == DailyRecord.dayKeyOf(_clock())
+      ? (_lens.freeUsed ?? 1)
+      : 0;
+
+  /// 오늘 남은 무료 감정 횟수 (하루 5번, 자정에 다시 채움. 묶음 37 #210)
+  int get lensFreeLeft =>
+      math.max(0, LensRules.freePerDay - _lensFreeUsed);
+
+  /// 오늘 무료 감정이 남았는지
+  bool get lensFreeToday => lensFreeLeft > 0;
 
   /// 지금 감정할 수 있는지 (무료 또는 가방 돋보기)
   bool get canAppraise => lensFreeToday || bagCount(ShopItem.raceLens) > 0;
@@ -88,6 +96,7 @@ extension LensOps on AppController {
       },
       day: day,
       freeDay: free ? day : null,
+      freeUsed: free ? _lensFreeUsed + 1 : null,
       rewardedToday:
           (_lens.day == day ? _lens.rewardedToday : 0) + (rewarded ? 1 : 0),
     );

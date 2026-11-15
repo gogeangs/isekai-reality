@@ -39,6 +39,10 @@ class StickerArt {
   static final StickerArt none = StickerArt._(const {});
 }
 
+/// 2D 종족 장식을 그릴지 (묶음 37 #207: 미리보기·찍은 사진 모두 그리지 않음.
+/// 변신 모습은 AR 렌즈로만)
+bool raceStickersOn = false;
+
 /// 얼굴들에 종족 장식을 그린다. [faces] 는 [size] 안의 실제 좌표.
 void paintRaceStickers(
   Canvas canvas,
@@ -47,6 +51,7 @@ void paintRaceStickers(
   StickerArt art, {
   bool labels = true,
 }) {
+  if (!raceStickersOn) return;
   final sorted = [...faces]
     ..sort((a, b) => a.box.center.dx.compareTo(b.box.center.dx));
   for (var i = 0; i < sorted.length && i < races.length; i++) {

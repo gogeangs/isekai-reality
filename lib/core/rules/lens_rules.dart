@@ -35,8 +35,12 @@ class LensRules {
   /// 종족을 처음 감정하면 앨범에 「처음 만난 종족!」으로 남고 경험치
   static const int firstExp = 20;
 
-  /// 보상을 받는 감정 횟수 (하루)
-  static const int rewardedPerDay = 3;
+  /// 보상을 받는 감정 횟수 (하루, 묶음 37 #210: 3 → 5)
+  static const int rewardedPerDay = 5;
+
+  /// 돋보기 없이 하는 감정 횟수 (하루, 자정에 다시. 묶음 37 #210: 1 → 5).
+  /// 감정·종족 골라 찍기가 같은 횟수를 쓴다
+  static const int freePerDay = 5;
   static const double materialChance = 0.30;
   static const double noteChance = 0.05;
 

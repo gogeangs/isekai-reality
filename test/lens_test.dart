@@ -79,6 +79,11 @@ void main() {
       expect(r.firsts, [Race.elf, Race.dwarf]);
       expect(r.exp, 2 * LensRules.firstExp);
       expect(c.player.totalExp - exp0, 2 * LensRules.firstExp);
+      // 묶음 37 #210: 하루 5번 무료
+      expect(c.lensFreeLeft, LensRules.freePerDay - 1);
+      for (var i = 1; i < LensRules.freePerDay; i++) {
+        expect(await c.appraise([Race.dwarf]), isNotNull);
+      }
       expect(c.lensFreeToday, isFalse);
       expect(await c.appraise([Race.elf]), isNull); // 무료는 썼고 돋보기가 없다
       expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
@@ -87,13 +92,13 @@ void main() {
       expect(c.bagCount(ShopItem.raceLens), 0);
       expect(c.racesSeen, {Race.elf, Race.dwarf});
       expect(c.lens.counts['elf'], 3);
-      expect(c.lensRewardsLeft, LensRules.rewardedPerDay - 2);
+      expect(c.lensRewardsLeft, 0); // 보상 5번을 다 씀 (감정 6번)
 
       // 다시 열어도 남아 있다
       final again = make();
       await again.init();
       expect(again.racesSeen, {Race.elf, Race.dwarf});
-      expect(again.lensRewardsLeft, LensRules.rewardedPerDay - 2);
+      expect(again.lensRewardsLeft, 0);
       expect(again.lensFreeToday, isFalse);
     });
 
@@ -104,8 +109,8 @@ void main() {
         expect(await c.buy(ShopItem.raceLens), PurchaseCheck.ok);
       }
       expect(await c.buy(ShopItem.raceLens), PurchaseCheck.limitReached);
-      // 무료 1번 + 돋보기 3개
-      for (var i = 0; i < 4; i++) {
+      // 무료 5번 + 돋보기 3개
+      for (var i = 0; i < LensRules.freePerDay + 3; i++) {
         expect(await c.appraise([Race.mermaid]), isNotNull);
       }
       expect(c.lensRewardsLeft, 0);

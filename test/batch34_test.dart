@@ -85,7 +85,7 @@ void main() {
       }
       expect(TitleRules.info(TitleId.ashRage).name, '분노를 잠재운 자');
       expect(TitleRules.info(TitleId.ashLonely).name, '외로움을 안아 준 자');
-      expect(TitleRules.info(TitleId.ashBridge).name, '다리를 놓은 자');
+      expect(TitleRules.info(TitleId.bridgeMaker).name, '다리를 놓은 자');
     });
 
     test('분신은 그 레벨 던전 보스보다 조금 세다', () {
@@ -291,7 +291,7 @@ void main() {
       final r = await c.finishKingBattle(again);
       expect(r.won, isTrue);
       expect(c.endingPending, isTrue);
-      expect(c.player.titles, contains(TitleId.ashBridge));
+      expect(c.player.titles, contains(TitleId.bridgeMaker));
       expect(c.armory.items.any((i) => i.base == EquipBase.ashCrown), isTrue);
       // Lv.21 전이면 다리 안내는 아직
       await c.markEndingSeen();

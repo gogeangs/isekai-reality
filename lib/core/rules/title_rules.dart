@@ -60,7 +60,7 @@ enum TitleId {
   ashGreed,
   ashFear,
   ashLonely,
-  ashBridge,
+  bridgeMaker,
 }
 
 class TitleInfo {
@@ -125,7 +125,7 @@ class TitleRules {
       TitleId.ashGreed => '잿금의 탐욕을 끊어 냈어요',
       TitleId.ashFear => '잿그림자의 두려움을 이겨 냈어요',
       TitleId.ashLonely => '잿바람의 외로움을 안아 줬어요',
-      TitleId.ashBridge => '잿빛 군주를 멈추고 문을 다리로 바꿨어요',
+      TitleId.bridgeMaker => '잿빛 군주를 멈추고 문을 다리로 바꿨어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -154,7 +154,7 @@ class TitleRules {
     TitleId.ashGreed: MonsterId.ashGreed,
     TitleId.ashFear: MonsterId.ashFear,
     TitleId.ashLonely: MonsterId.ashLonely,
-    TitleId.ashBridge: MonsterId.ashKing,
+    TitleId.bridgeMaker: MonsterId.ashKing,
   };
   static const List<TitleId> ashTitles = [
     TitleId.ashRage,
@@ -162,7 +162,7 @@ class TitleRules {
     TitleId.ashGreed,
     TitleId.ashFear,
     TitleId.ashLonely,
-    TitleId.ashBridge,
+    TitleId.bridgeMaker,
   ];
 
   /// 숨은 숙련도 칭호 (묶음 27 #176). 기록 counters 'mtitle:<이름>' 으로 얻는다
@@ -284,7 +284,7 @@ class TitleRules {
     TitleInfo(TitleId.ashGreed, '탐욕을 끊은 자', '숨은 칭호'),
     TitleInfo(TitleId.ashFear, '두려움을 이긴 자', '숨은 칭호'),
     TitleInfo(TitleId.ashLonely, '외로움을 안아 준 자', '숨은 칭호'),
-    TitleInfo(TitleId.ashBridge, '다리를 놓은 자', '숨은 칭호'),
+    TitleInfo(TitleId.bridgeMaker, '다리를 놓은 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)

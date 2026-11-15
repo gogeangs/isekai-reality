@@ -175,7 +175,7 @@ class Act2Rules {
 
   /// 본체
   static const String kingName = '잿빛 군주';
-  static const TitleId kingTitle = TitleId.ashBridge;
+  static const TitleId kingTitle = TitleId.bridgeMaker;
   static const EquipBase kingGear = EquipBase.ashCrown;
 
   /// 잿빛 틈이 처음 생길 때 첫 펫 한마디

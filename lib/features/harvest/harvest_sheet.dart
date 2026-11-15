@@ -28,6 +28,8 @@ String _left(Duration d) =>
 /// 지도에서 채집 자리를 눌렀을 때 (11-11 #56)
 Future<void> showHarvestSheet(
     BuildContext context, AppController c, HarvestSpot spot) async {
+  // 묶음 31: 길 찾기 보물 상자 (도구 없이 연다)
+  if (c.isTreasure(spot)) return _showTreasure(context, c, spot);
   // 묶음 20 #4: 새로 시작한 사람은 채집 도구를 만들어야 채집할 수 있다
   if (c.harvestNeedsTool) {
     final name = HarvestRules.toolName(spot.info.tool);
@@ -427,3 +429,69 @@ class _ProphecyViewState extends State<_ProphecyView>
     );
   }
 }
+
+
+/// 길 찾기 보물 상자
+Future<void> _showTreasure(
+        BuildContext context, AppController c, HarvestSpot spot) =>
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+          child: ListenableBuilder(
+            listenable: c,
+            builder: (context, _) {
+              final p = c.lastPoint;
+              final near = p != null &&
+                  spot.point.distanceTo(p) <= HarvestRules.reachM;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    Image.asset('assets/images/icon_gold.webp',
+                        width: 52, height: 52),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('숨은 보물 상자', style: AppText.title(19)),
+                          const SizedBox(height: 4),
+                          const Text('길 찾기로 찾은 상자예요. 금화와 재료가 들어 있어요',
+                              style: TextStyle(
+                                  color: AppColors.textMuted, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 16),
+                  GoldButton(
+                    label: near ? '상자 열기' : '가까이 가면 열 수 있어요',
+                    onPressed: !near
+                        ? null
+                        : () async {
+                            final mats = await c.openTreasure(spot);
+                            if (!sheet.mounted) return;
+                            Navigator.of(sheet).pop();
+                            if (mats == null || !context.mounted) return;
+                            final line = [
+                              '금화 +${c.lastTreasureGold}',
+                              for (final e in mats.entries)
+                                '${Materials.info(e.key).name} +${e.value}',
+                            ].join(', ');
+                            showTopNotice(context, '보물 상자를 열었어요! $line',
+                                icon: Icons.inventory_2_rounded);
+                          },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );

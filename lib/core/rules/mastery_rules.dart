@@ -35,13 +35,17 @@ class MasteryRules {
   MasteryRules._();
 
   // ───────────── 쌓이는 양 (행동 한 번에)
-  static const double craft = 1, enhance = 1, repair = 1;
+  // 묶음 31 #192: 대장일·연금술·감정·정령술은 앞으로 더 빨리 (쌓인 값은 그대로)
+  static const double craft = 2, enhance = 2, repair = 2;
   static const double harvestOnce = 1;
-  static const double brew = 1;
+  static const double brew = 2;
   static const double fieldWin = 1, dungeonClear = 3;
   static const double stepsPerPoint = 1000, newPlace = 3, revisit = 1;
-  static const double appraiseOnce = 1;
-  static const double expeditionWin = 1, expeditionLoss = 0.5;
+  static const double appraiseOnce = 3;
+  static const double expeditionWin = 2, expeditionLoss = 1;
+
+  /// 예전 기록에서 시작 값을 셀 때 (묶음 27 값 그대로)
+  static const double legacyExpeditionWin = 1, legacyExpeditionLoss = 0.5;
   static const double tradeOnce = 1, errandDone = 2;
 
   // ───────────── 단계 기준 (숨은 규칙, 처음 값)

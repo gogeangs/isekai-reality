@@ -26,6 +26,16 @@ class QuestProgress {
 class QuestRules {
   QuestRules._();
 
+  /// 상인 「발 넓은 상인」이 붙인 네 번째 의뢰 (그날 기록에 1)
+  static const String quest4Key = 'quest4';
+
+  /// 그날 잡화상에서 사고판 횟수
+  static const String shopTradeKey = 'shopTrade';
+
+  /// 그날 의뢰 수 (보통 3, 상인이면 4)
+  static int perDay(DailyRecord r) =>
+      RuleConstants.questsPerDay + ((r.counters[quest4Key] ?? 0) > 0 ? 1 : 0);
+
   static List<QuestProgress> forDay(DailyRecord record) => [
         QuestProgress(
           title: '${_comma(record.stepGoal)}보 걷기',
@@ -45,6 +55,13 @@ class QuestRules {
           target: 1,
           unit: '마리',
         ),
+        if ((record.counters[quest4Key] ?? 0) > 0)
+          QuestProgress(
+            title: '잡화상 거래 1번',
+            current: record.counters[shopTradeKey] ?? 0,
+            target: 1,
+            unit: '번',
+          ),
       ];
 
   static int completedCount(DailyRecord record) =>
@@ -56,8 +73,7 @@ class QuestRules {
   /// 3개를 모두 마치면 더 받는 경험치
   static int get allDoneBonusExp => RuleConstants.questAllBonusExp;
 
-  static bool allDone(DailyRecord r) =>
-      r.questsCompleted >= RuleConstants.questsPerDay;
+  static bool allDone(DailyRecord r) => r.questsCompleted >= perDay(r);
 
   /// 3개를 모두 마친 날이 며칠째 이어지는지 (보상 없이 표시만, 11-10 결정).
   /// 오늘을 아직 다 못 했으면 어제까지 이어진 일수.

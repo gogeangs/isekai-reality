@@ -5,7 +5,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../town/sell_sheet.dart';
 
 /// 직업 스킬 MP 색 (기력과 헷갈리지 않게 보라)
 const Color kJobMpColor = Color(0xFFB27BFF);
@@ -127,10 +126,14 @@ Future<void> useSkillFromUi(BuildContext context, AppController c, JobSkill s,
     case JobSkill.negotiate:
       await _negotiate(context, c);
       return;
-    case JobSkill.wanderingMarket:
-      final r = await c.openWanderingMarket();
-      if (!context.mounted) return;
-      if (r == SkillUse.ok) await showSellSheet(context, c);
+    case JobSkill.quickRepair:
+      await _quickRepair(context, c);
+      return;
+    case JobSkill.snackPouch:
+      await _snack(context, c);
+      return;
+    case JobSkill.track:
+      await _track(context, c);
       return;
     default:
       break;
@@ -146,6 +149,8 @@ Future<void> useSkillFromUi(BuildContext context, AppController c, JobSkill s,
         SkillUse.cannot => switch (s) {
             JobSkill.cheer => '원정 간 펫이 없어요',
             JobSkill.lightResonance => '기력이 이미 가득해요',
+            JobSkill.eggWarm => '품고 있는 알이 없어요',
+            JobSkill.firstAid => 'HP가 이미 가득해요',
             _ => '지금은 쓸 수 없어요',
           },
       },
@@ -215,7 +220,58 @@ Future<void> _polish(BuildContext context, AppController c) async {
       if (EquipmentRules.info(i.base).slot == EquipSlot.accessory) (i.uid, i.name),
   ]);
   if (uid == null || !context.mounted) return;
-  _result(context, await c.polishAccessory(uid), '광택을 냈어요 · 능력치가 새로 나왔어요');
+  final before = c.armory.byUid(uid)?.extras ?? const <String, int>{};
+  final after = await c.polishRoll(uid);
+  if (!context.mounted) return;
+  if (after == null) {
+    _result(context, SkillUse.cannot, '');
+    return;
+  }
+  String line(Map<String, int> m) => m.isEmpty
+      ? '추가 능력치 없음'
+      : [
+          for (final e in m.entries)
+            '${EquipmentRules.statName(e.key)} +${e.value}',
+        ].join(' · ');
+  final keepNew = await _pick<bool>(context, '어느 쪽을 남길까요?', [
+    (false, '이전 · ${line(before)}'),
+    (true, '새것 · ${line(after)}'),
+  ]);
+  if (!context.mounted) return;
+  if (keepNew == true) {
+    await c.polishKeep(uid, after);
+    if (context.mounted) showTopNotice(context, '광택을 냈어요 · 새 능력치를 남겼어요');
+  } else {
+    showTopNotice(context, '광택을 냈어요 · 이전 능력치를 남겼어요');
+  }
+}
+
+Future<void> _quickRepair(BuildContext context, AppController c) async {
+  final uid = await _pick<String>(context, '고칠 장비', [
+    for (final i in c.armory.items)
+      if (i.durability < EquipmentRules.maxDurability) (i.uid, i.name),
+  ]);
+  if (uid == null || !context.mounted) return;
+  _result(context, await c.quickRepair(uid), '장비를 고쳤어요');
+}
+
+Future<void> _snack(BuildContext context, AppController c) async {
+  final uid = await _pick<String>(context, '간식을 줄 펫', [
+    for (final p in c.pets.pets)
+      if (p.bond < PetRules.maxBond) (p.uid, p.name),
+  ]);
+  if (uid == null || !context.mounted) return;
+  _result(context, await c.snackPouch(uid), '펫과 한층 친해졌어요');
+}
+
+Future<void> _track(BuildContext context, AppController c) async {
+  final m = await _pick<MonsterId>(context, '쫓을 몬스터', [
+    for (final x in MonsterId.values)
+      if (c.purifiedEver.contains(x) && !Monsters.info(x).isBoss)
+        (x, Monsters.info(x).name),
+  ]);
+  if (m == null || !context.mounted) return;
+  _result(context, await c.trackMonster(m), '${Monsters.info(m).name}의 흔적을 찾았어요');
 }
 
 Future<void> _negotiate(BuildContext context, AppController c) async {

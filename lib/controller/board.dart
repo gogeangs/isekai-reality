@@ -65,7 +65,7 @@ extension BoardOps on AppController {
     if (t == null || !s.accepted || errandProgress(slot) < t.target) {
       return false;
     }
-    await _grant(errandGold(t.gold), t.manaStones, t.materials);
+    await _grant(await _knackGold(errandGold(t.gold)), t.manaStones, t.materials);
     await _count('errandDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
     await _maybeNote(AlchemyRules.noteFromErrand);
@@ -132,9 +132,9 @@ extension BoardOps on AppController {
       final today = await _todayRecord();
       await _save(today.copyWith(
           counters: DailyRecord.addCounts(today.counters, {'bonusKeys': 1})));
-      await _grant(errandGold(u.quest.gold), 0, const {});
+      await _grant(await _knackGold(errandGold(u.quest.gold)), 0, const {});
     } else {
-      await _grant(errandGold(u.quest.gold), 0, {u.rare: 1});
+      await _grant(await _knackGold(errandGold(u.quest.gold)), 0, {u.rare: 1});
     }
     await _count('urgentDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);

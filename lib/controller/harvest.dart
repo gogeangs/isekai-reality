@@ -17,9 +17,90 @@ extension HarvestOps on AppController {
     // 묶음 28 #181: 막 열린 채집 자리 하나는 그날 내 가까이에 (안내 자리)
     final spots = _baseHarvestSpots();
     final guides = _guideHarvestSpots();
-    if (guides.isEmpty) return spots;
-    return [...guides, ...spots];
+    final path = _pathFindSpots();
+    if (guides.isEmpty && path.isEmpty) return spots;
+    return [...path, ...guides, ...spots];
   }
+
+  /// 길 찾기(탐험가): 쓴 자리 둘레 150~400m에 나에게만 보이는 채집 자리 하나와 보물 상자 하나
+  List<HarvestSpot> _pathFindSpots() {
+    if (!skillTimedOn(JobSkill.pathFind)) return const [];
+    final m = _jobs.marks;
+    final lat = m['pathFindLat'], lng = m['pathFindLng'];
+    final until = _jobs.timed[JobSkill.pathFind.name];
+    if (lat == null || lng == null || until == null) return const [];
+    final key = until.millisecondsSinceEpoch;
+    final rng = math.Random(key);
+    final from = GeoPoint(lat / 1e6, lng / 1e6);
+    GeoPoint around() {
+      final d = 150 + rng.nextDouble() * 250;
+      final b = rng.nextDouble() * 2 * math.pi;
+      return GeoPoint(from.lat + d * math.cos(b) / 111320,
+          from.lng + d * math.sin(b) / (111320 * math.cos(from.lat * math.pi / 180)));
+    }
+
+    const kinds = [
+      HarvestKind.herb,
+      HarvestKind.ore,
+      HarvestKind.wood,
+      HarvestKind.flower,
+      HarvestKind.mushroom,
+      HarvestKind.gem,
+    ];
+    final open = [
+      for (final k in kinds)
+        if (_legacyGates || _harvestAll || player.level.level >= HarvestRules.openLevel(k))
+          k,
+    ];
+    final spotPoint = around(), chestPoint = around();
+    return [
+      if (open.isNotEmpty)
+        HarvestSpot(
+            id: 'pf-spot-$key',
+            kind: open[rng.nextInt(open.length)],
+            point: spotPoint),
+      if (m['pfChestOpened'] != key % 1000000000)
+        HarvestSpot(id: 'pf-chest-$key', kind: HarvestKind.relic, point: chestPoint),
+    ];
+  }
+
+  /// 길 찾기 보물 상자인지 (도구 없이 연다)
+  bool isTreasure(HarvestSpot s) => s.id.startsWith('pf-chest-');
+
+  /// 방금 연 보물 상자의 금화
+  int get lastTreasureGold => _lastTreasureGold;
+
+  /// 보물 상자를 연다: 금화와 재료 (한 번)
+  Future<Map<MaterialId, int>?> openTreasure(HarvestSpot s) => _serial(() async {
+        if (!isTreasure(s)) return null;
+        final fix = _lastFix;
+        if (fix == null || s.point.distanceTo(fix.point) > HarvestRules.reachM) {
+          return null;
+        }
+        final key = int.tryParse(s.id.substring('pf-chest-'.length));
+        if (key == null || _jobs.marks['pfChestOpened'] == key % 1000000000) {
+          return null;
+        }
+        final gold = 50 + _random.nextInt(101);
+        const pool = [
+          MaterialId.herb,
+          MaterialId.butterflyDust,
+          MaterialId.waterJelly,
+          MaterialId.essence,
+          MaterialId.roughGem,
+        ];
+        final mats = <MaterialId, int>{};
+        for (var i = 0; i < 2; i++) {
+          final k = pool[_random.nextInt(pool.length)];
+          mats[k] = (mats[k] ?? 0) + 1;
+        }
+        await _grant(gold, 0, mats);
+        await _saveJobs(_jobs.copyWith(
+            marks: {..._jobs.marks, 'pfChestOpened': key % 1000000000}));
+        _lastTreasureGold = gold;
+        _notify();
+        return mats;
+      });
 
   /// 새로 열린 채집 자리를 그날 가까이(50~150m)에 하나씩 (#179처럼 그날 고정)
   List<HarvestSpot> _guideHarvestSpots() {
@@ -49,7 +130,7 @@ extension HarvestOps on AppController {
     final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
         '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}'
-        'r${harvestMapRadius.round()}'
+        'r${harvestMapRadius.round()}a${jobTrait(JobId.archaeologist)}'
         '${_legacyGates ? '' : 'v${player.level.level}${_harvestTutorial ? 'T' : ''}'}';
     if (key != _spotsKey) {
       _spotsKey = key;
@@ -84,6 +165,22 @@ extension HarvestOps on AppController {
                 for (final x in _spotsCache)
                   if (_harvestAll || lv >= HarvestRules.openLevel(x.kind)) x,
               ];
+      }
+      // 묶음 31: 고고학자 옛 길 아는 자 → 꽃·버섯 자리 몇 곳이 고대 유물 자리로 (숨김)
+      final at = jobTrait(JobId.archaeologist);
+      if (at > 0 &&
+          (_legacyGates ||
+              _harvestAll ||
+              player.level.level >= HarvestRules.openLevel(HarvestKind.relic))) {
+        _spotsCache = [
+          for (final x in _spotsCache)
+            (x.kind == HarvestKind.flower || x.kind == HarvestKind.mushroom) &&
+                    (x.id.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0xffff) %
+                            100) <
+                        (100 * 0.25 * JobRules.archaeologistRelic * at)
+                ? HarvestSpot(id: x.id, kind: HarvestKind.relic, point: x.point)
+                : x,
+        ];
       }
     }
     return _spotsCache;
@@ -182,6 +279,7 @@ extension HarvestOps on AppController {
   });
 
   HarvestCheck canHarvest(HarvestSpot s, {bool minigame = false}) {
+    if (isTreasure(s)) return HarvestCheck.empty;
     final fix = _lastFix;
     if (fix == null || s.point.distanceTo(fix.point) > HarvestRules.reachM) {
       return HarvestCheck.far;
@@ -200,6 +298,13 @@ extension HarvestOps on AppController {
   Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) =>
       _serial(() async {
     final minigame = grade != HarvestGrade.quick;
+    // 묶음 31: 채집 감각 → 잠시 동안 「좋음」이 가끔 「완벽」으로 (숨김)
+    if (grade == HarvestGrade.good &&
+        skillTimedOn(JobSkill.harvestSense) &&
+        _random.nextDouble() <
+            0.5 * skillPower(JobSkill.harvestSense)) {
+      grade = HarvestGrade.perfect;
+    }
     if (canHarvest(s, minigame: minigame) != HarvestCheck.ok) return null;
     if (s.id == 'tutorial-harvest') {
       // 채집 안내 끝: 다음부터는 보통 자리만
@@ -241,14 +346,10 @@ extension HarvestOps on AppController {
     final keepTool =
         minigame && _masteryRoll(MasteryRules.harvestToolSave * hf);
     final relic = s.kind == HarvestKind.relic;
-    // 묶음 30: 풍요의 손길 → 이번 채집 두 배 / 고고학자 → 유물 +1 / 발굴 → 귀한 유물 재료 꼭 (숨김)
+    // 묶음 30·31: 풍요의 손길 → 이번 채집 두 배 / 발굴 → 귀한 유물 재료 꼭 /
+    // 보석 세공사 → 보석을 가끔 하나 더 / 뿌리째 캐기 → 남은 횟수를 쓰지 않음 (숨김)
     if (mats.isNotEmpty) {
       if (relic) {
-        final t = jobTrait(JobId.archaeologist);
-        if (t >= 1 || (t > 0 && _random.nextDouble() < t)) {
-          final k = mats.keys.first;
-          mats[k] = mats[k]! + JobRules.archaeologistExtra;
-        }
         if (await _consumeSkill(JobSkill.excavate)) {
           final r = HarvestRules.info(s.kind).rare;
           mats[r] = math.max(1, mats[r] ?? 0);
@@ -258,9 +359,22 @@ extension HarvestOps on AppController {
           mats[k] = mats[k]! * 2;
         }
       }
+      final gems = [
+        for (final k in mats.keys)
+          if (k.name.startsWith('gem') || k == MaterialId.roughGem) k,
+      ];
+      if (gems.isNotEmpty && _jobRoll(JobId.jeweler, JobRules.jewelerGem)) {
+        mats[gems.first] = mats[gems.first]! + 1;
+      }
     }
+    // 길 찾기 자리: 귀한 재료가 꼭
+    if (s.id.startsWith('pf-spot-') && mats.isNotEmpty) {
+      final r = HarvestRules.info(s.kind).rare;
+      mats[r] = math.max(1, mats[r] ?? 0);
+    }
+    final keepCharge = await _consumeSkill(JobSkill.rootPull);
     h = h.copyWith(
-      spots: {...h.spots, s.id: charge.use(now)},
+      spots: keepCharge ? h.spots : {...h.spots, s.id: charge.use(now)},
       tools: minigame && !keepTool
           ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
           : h.tools,

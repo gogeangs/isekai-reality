@@ -156,6 +156,7 @@ extension MasteryOps on AppController {
   /// 단계 대사·장인 한마디·칭호·성향 바뀜을 살핀다
   Future<void> _afterMastery() async {
     await _checkJobs();
+    await _checkSkillPage();
     var s = _mastery;
     final lines = <String>[...s.pending];
     final announced = {...s.announced};
@@ -245,6 +246,7 @@ extension MasteryOps on AppController {
     if (!_masteryReady) return;
     await _walkGaugeBonus();
     await _jobGauge();
+    await _jobQuests();
     // 묶음 30: 걷기·탐험이 직업 숙련도면 늘어난 만큼 더 (기록에서 센 값은 그대로 두고 따로 쌓음)
     final base = MasteryRules.walkFrom(_history);
     final seen = _mastery.bigOf('walkSeen');
@@ -393,8 +395,8 @@ extension MasteryOps on AppController {
     final wins = counter('expeditionWin');
     final sent = counter('expedition');
     add(big, Mastery.spirit.name,
-        wins * MasteryRules.expeditionWin +
-            math.max(0, sent - wins) * MasteryRules.expeditionLoss);
+        wins * MasteryRules.legacyExpeditionWin +
+            math.max(0, sent - wins) * MasteryRules.legacyExpeditionLoss);
     // 장사·의뢰: 끝낸 의뢰
     add(big, Mastery.trade.name,
         (counter('errandDone') + counter('urgentDone')) *

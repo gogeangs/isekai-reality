@@ -70,8 +70,9 @@ void main() {
       for (final j in JobRules.jobs) {
         expect(JobRules.info(j.id), same(j));
         expect(j.skills, hasLength(j.kind == JobKind.basic ? 4 : 2));
-        expect(j.openSkills, hasLength(1));
-        skills.addAll(j.openSkills);
+        // 묶음 31: 직업을 얻으면 ① 공격 스킬만 열린다
+        skills.add(JobRules.firstOf(j.id));
+        expect(JobRules.skill(JobRules.firstOf(j.id)).attack, isTrue);
         slots += j.skills.length;
         // 화면 문구에 숫자·% 없음
         expect(RegExp(r'[0-9%]').hasMatch(j.trait), isFalse, reason: j.name);
@@ -91,8 +92,8 @@ void main() {
       expect(JobRules.subSlots(14), 0);
       expect(JobRules.subSlots(15), 1);
       expect(JobRules.subSlots(20), 2);
-      expect(JobRules.skillCost(JobSkill.powerStrike), 10);
-      expect(JobRules.skillCost(JobSkill.powerStrike, sub: true), 15);
+      expect(JobRules.skillCost(JobSkill.rush), 20);
+      expect(JobRules.skillCost(JobSkill.rush, sub: true), 30);
       expect(JobRules.skillCost(JobSkill.focusForge, sub: true), 45);
       expect(JobRules.skillCost(JobSkill.runeCarve, sub: true), 60);
       expect(JobRules.skillCost(JobSkill.focusForge, half: true), 15);
@@ -232,20 +233,23 @@ void main() {
       final c = await start(store);
       await c.awakenJob(JobId.herbalist, subs: [JobId.warrior]);
       final max = c.jobMpMax;
+      // 묶음 31: 처음엔 ①만. 포인트로 풍요의 손길을 배운다
+      expect(c.skillsAt(const [SkillPlace.harvest]), isEmpty);
+      expect(await c.raiseSkill(JobSkill.bountyTouch), isTrue);
       expect(c.skillsAt(const [SkillPlace.harvest]).single.$1,
           JobSkill.bountyTouch);
       expect(await c.useJobSkill(JobSkill.bountyTouch), SkillUse.ok);
       expect(c.jobMp, max - 20);
       expect(c.skillPending(JobSkill.bountyTouch), isTrue);
       expect(await c.useJobSkill(JobSkill.bountyTouch), SkillUse.already);
-      expect(c.skillCost(JobSkill.powerStrike, sub: true), 15);
-      expect(await c.payBattleSkill(JobSkill.powerStrike), isTrue);
-      expect(c.jobMp, max - 35);
+      expect(c.skillCost(JobSkill.rush, sub: true), 30);
+      expect(await c.payBattleSkill(JobSkill.rush), isTrue);
+      expect(c.jobMp, max - 50);
       final again = await start(store);
       expect(again.skillPending(JobSkill.bountyTouch), isTrue);
-      expect(again.jobMp, max - 35);
-      while (again.jobMp >= 15) {
-        await again.payBattleSkill(JobSkill.powerStrike);
+      expect(again.jobMp, max - 50);
+      while (again.jobMp >= 30) {
+        await again.payBattleSkill(JobSkill.rush);
       }
       expect(await again.useJobSkill(JobSkill.pathFind), SkillUse.cannot);
     });
@@ -254,8 +258,8 @@ void main() {
       final store = account(15, big: {'combat': 50});
       final c = await start(store);
       await c.awakenJob(JobId.warrior);
-      while (c.jobMp >= 10) {
-        await c.payBattleSkill(JobSkill.powerStrike);
+      while (c.jobMp >= 20) {
+        await c.payBattleSkill(JobSkill.rush);
       }
       final low = c.jobMp;
       final walked = await start(account(15,
@@ -269,7 +273,7 @@ void main() {
       expect(walked.jobMp, walked.jobMpMax);
     });
 
-    test('전투 스킬: 힘의 일격·급소·치유의 빛', () {
+    test('전투 스킬: 돌진·급소 사격·치유의 빛·철벽', () {
       final b = Battle.forPlayer(
         level: 15,
         stats: Stats.all(10),
@@ -278,15 +282,15 @@ void main() {
         ],
         startHp: 100,
       );
-      expect(b.useJobSkill(JobSkill.powerStrike), isTrue);
-      expect(b.useJobSkill(JobSkill.powerStrike), isFalse);
-      expect(b.nextHitMult, JobRules.powerStrike);
+      expect(b.useJobSkill(JobSkill.rush), isTrue);
+      expect(b.lastDealt, greaterThan(0));
       expect(b.useJobSkill(JobSkill.vitalStrike), isTrue);
+      expect(b.lastCrit, isTrue);
       expect(b.useJobSkill(JobSkill.healingLight), isTrue);
       expect(b.playerHp, greaterThan(100));
-      b.tick();
-      expect(b.nextHitMult, 1);
-      expect(b.nextCrit, isFalse);
+      expect(b.useJobSkill(JobSkill.ironWall), isTrue);
+      expect(b.useJobSkill(JobSkill.ironWall), isFalse);
+      expect(b.useJobSkill(JobSkill.focusForge), isFalse);
     });
   });
 }

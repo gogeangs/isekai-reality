@@ -84,6 +84,9 @@ extension ExploreOps on AppController {
       }
       // 묶음 30: 탐험가 → 새 장소 보상 더, 순례자 → 가끔 숨은 물건 (숨김)
       await _jobNewPlace();
+    } else {
+      // 묶음 31: 순례자 → 자주 가는 곳에 다시 오면 작은 선물 (숨김)
+      await _jobRevisit(place.id);
     }
     await _checkWalkMastery();
   }

@@ -11,11 +11,18 @@ extension LensOps on AppController {
           if (LensRules.parse(n) case final r?) r,
       };
 
+  /// 돋보기가 보는 얼굴 수 (넓은 시야를 쓰는 동안 더)
+  int get lensFaces => LensRules.maxFaces +
+      (skillTimedOn(JobSkill.wideView) ? LensRules.wideViewFaces : 0);
+
   /// 오늘 보상을 더 받을 수 있는 감정 횟수
   int get lensRewardsLeft {
     final day = DailyRecord.dayKeyOf(_clock());
     final used = _lens.day == day ? _lens.rewardedToday : 0;
-    return math.max(0, LensRules.rewardedPerDay - used);
+    // 묶음 31: 감정사 밝은 눈 → 하루 감정 보상 한 번 더 (숨김)
+    final extra =
+        (JobRules.appraiserExtra * jobTrait(JobId.appraiser)).round();
+    return math.max(0, LensRules.rewardedPerDay + extra - used);
   }
 
   /// 오늘 무료 감정이 남았는지 (자정에 다시 채움)
@@ -47,12 +54,13 @@ extension LensOps on AppController {
         mat = LensRules.info(races[_random.nextInt(races.length)]).material;
       }
       note = _random.nextDouble() <
-          (appraiseChance(LensRules.noteChance) + intellectCraft) *
-              // 묶음 30: 감정사 → 드문 결과가 조금 더 (숨김)
-              (1 + JobRules.appraiserRare * jobTrait(JobId.appraiser));
-      // 묶음 30: 진실의 눈 → 이번 감정은 드문 결과(쪽지)가 꼭
-      if (await _consumeSkill(JobSkill.trueEye)) note = true;
+          appraiseChance(LensRules.noteChance) + intellectCraft;
     }
+    // 묶음 31: 진실의 눈 → 귀한 재료 꼭 · 기억 읽기 → 레시피 쪽지 꼭
+    if (await _consumeSkill(JobSkill.trueEye)) {
+      mat ??= LensRules.info(races[_random.nextInt(races.length)]).material;
+    }
+    if (await _consumeSkill(JobSkill.memoryRead)) note = true;
     await _save(today.copyWith(
       itemsUsed: free
           ? today.itemsUsed

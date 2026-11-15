@@ -497,10 +497,11 @@ class TownRules {
     bool hasLocation = true,
     int level = 99,
     bool bagRoom = true,
+    int extraLimit = 0,
   }) {
     final i = info(item);
     if (level < i.minLevel) return PurchaseCheck.levelTooLow;
-    if (boughtInLimit(history, item) >= i.perLimit) {
+    if (boughtInLimit(history, item) >= i.perLimit + extraLimit) {
       return PurchaseCheck.limitReached;
     }
     if (gold(history) < i.price) return PurchaseCheck.notEnoughCrystals;

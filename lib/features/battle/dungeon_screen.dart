@@ -117,14 +117,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   ],
                   BattleView(
                     battle: _battle!,
-                    // 묶음 30 #55: 직업 전투 스킬
-                    jobSkills: [
-                      for (final (sk, sub)
-                          in _c.skillsAt(const [SkillPlace.battle]))
-                        (sk, _c.skillCost(sk, sub: sub)),
-                    ],
+                    // 묶음 31 #198: 전투 칸 2개
+                    jobSkills: _c.battleJobSlots,
                     jobMp: () => _c.jobMp,
                     onJobSkill: _c.payBattleSkill,
+                    onMasterySkill: _c.payMasterySkill,
                     onFloor: (f) {
                       if (mounted && f != _clueFloor) {
                         setState(() => _clueFloor = f);

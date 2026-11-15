@@ -90,6 +90,13 @@ class AppController extends ChangeNotifier {
           'pets': DemoData.pets(today: now).toJson(),
           // 예시 모드는 채집 도구를 이미 가졌다 (묶음 22)
           'harvest': {'granted': true},
+          // 묶음 31: 예시 모드는 스킬 페이지 안내를 이미 본 것으로
+          'jobs': {
+            'v31': true,
+            'pageOpen': true,
+            'pageIntro': true,
+            'masteryShown': {for (final m in Mastery.values) m.name: 4},
+          },
         },
       ),
       health: FakeHealthSource(granted: false),
@@ -514,6 +521,8 @@ class AppController extends ChangeNotifier {
     if (!_legacyGates && !_gates28) await _migrateGates28();
     // 묶음 27 #176: 숨은 숙련도 (없으면 지금까지 한 횟수로 시작 값을 채운다)
     await _loadMastery();
+    // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
+    await _migrateSkills31();
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -684,6 +693,7 @@ class AppController extends ChangeNotifier {
 
   /// 순례자가 방금 숨은 물건을 찾았는지
   bool _jobFind = false;
+  int _lastTreasureGold = 0;
 
   /// 방금 강화 실패가 무사했는지
   bool _lastEnhanceSafe = false;

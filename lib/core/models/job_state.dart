@@ -19,7 +19,37 @@ class JobState {
     this.gaugeDay,
     this.gaugeGiven = 0,
     this.marks = const {},
+    this.learned = const {},
+    this.free = const [],
+    this.loadout = const [],
+    this.v31 = false,
+    this.pageOpen = false,
+    this.pageIntro = false,
+    this.masteryShown = const {},
   });
+
+  // ───────────── 묶음 31 #195~#198
+
+  /// 배운 직업 스킬과 단계 (1~3). ① 공격 스킬은 직업을 얻으면 Lv.1
+  final Map<String, int> learned;
+
+  /// 포인트 없이 받은 스킬 (각 직업 ①, 예전 각성 계정이 쓰던 스킬). 다시 나누기에도 남음
+  final List<String> free;
+
+  /// 전투 화면 스킬 칸 2개 ('job:<스킬>' · 'mastery:<숙련도>')
+  final List<String> loadout;
+
+  /// 묶음 31 저장 방식으로 옮겼는지
+  final bool v31;
+
+  /// 스킬 페이지가 열렸는지 (첫 숙련된 또는 Lv.15 각성), 「새로 열렸어요」 안내를 마쳤는지
+  final bool pageOpen;
+  final bool pageIntro;
+
+  /// 숙련 스킬을 알린 단계 (큰 숙련도 → 단계 번호)
+  final Map<String, int> masteryShown;
+
+  int levelOf(String skill) => learned[skill] ?? 0;
 
   /// 그 밖의 작은 기록 (축복의 발걸음을 쓴 때의 걸음 등)
   final Map<String, int> marks;
@@ -97,6 +127,13 @@ class JobState {
     String? gaugeDay,
     int? gaugeGiven,
     Map<String, int>? marks,
+    Map<String, int>? learned,
+    List<String>? free,
+    List<String>? loadout,
+    bool? v31,
+    bool? pageOpen,
+    bool? pageIntro,
+    Map<String, int>? masteryShown,
   }) =>
       JobState(
         awakened: awakened ?? this.awakened,
@@ -115,6 +152,13 @@ class JobState {
         gaugeDay: gaugeDay ?? this.gaugeDay,
         gaugeGiven: gaugeGiven ?? this.gaugeGiven,
         marks: marks ?? this.marks,
+        learned: learned ?? this.learned,
+        free: free ?? this.free,
+        loadout: loadout ?? this.loadout,
+        v31: v31 ?? this.v31,
+        pageOpen: pageOpen ?? this.pageOpen,
+        pageIntro: pageIntro ?? this.pageIntro,
+        masteryShown: masteryShown ?? this.masteryShown,
       );
 
   Map<String, dynamic> toJson() => {
@@ -136,11 +180,22 @@ class JobState {
         if (gaugeDay != null) 'gaugeDay': gaugeDay,
         'gaugeGiven': gaugeGiven,
         'marks': marks,
+        'learned': learned,
+        'free': free,
+        'loadout': loadout,
+        'v31': v31,
+        'pageOpen': pageOpen,
+        'pageIntro': pageIntro,
+        'masteryShown': masteryShown,
       };
 
   factory JobState.fromJson(Map<String, dynamic> j) {
     List<String> strings(Object? v) =>
         [for (final s in (v as List?) ?? const []) '$s'];
+    Map<String, int> ints(Object? v) => {
+          for (final e in ((v as Map?) ?? const {}).entries)
+            if (e.value is num) '${e.key}': (e.value as num).toInt(),
+        };
     final t = (j['timed'] as Map?) ?? const {};
     return JobState(
       awakened: j['awakened'] == true,
@@ -161,10 +216,14 @@ class JobState {
       newJobs: strings(j['newJobs']),
       gaugeDay: j['gaugeDay'] as String?,
       gaugeGiven: (j['gaugeGiven'] as num?)?.toInt() ?? 0,
-      marks: {
-        for (final e in ((j['marks'] as Map?) ?? const {}).entries)
-          if (e.value is num) '${e.key}': (e.value as num).toInt(),
-      },
+      marks: ints(j['marks']),
+      learned: ints(j['learned']),
+      free: strings(j['free']),
+      loadout: strings(j['loadout']),
+      v31: j['v31'] == true,
+      pageOpen: j['pageOpen'] == true,
+      pageIntro: j['pageIntro'] == true,
+      masteryShown: ints(j['masteryShown']),
     );
   }
 }

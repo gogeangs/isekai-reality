@@ -74,14 +74,30 @@ extension SmithyOps on AppController {
       ));
     }
     final a = _armory;
-    // 묶음 30: 명검 벼리기(무기) → 좋은 등급이 나오기 쉬움 (숨김)
+    // 묶음 31: 명장의 손길 → 좋은 등급이 나오기 쉬움 · 명검 벼리기(무기) → 추가 능력치 하나 더 (숨김)
     final isWeapon = info.slot == EquipSlot.weapon;
+    final touch = await _consumeSkill(JobSkill.masterTouch);
     final blade = isWeapon && await _consumeSkill(JobSkill.masterBlade);
     final grade =
         // 묶음 27 #176: 그 장비 종류의 대장일 숙련도만큼 좋은 등급이 조금 더 (숨김)
         EquipmentRules.rollGrade(_random,
             rare: rare != null,
-            bonus: smithGradeBonus(base) + (blade ? 25 : 0));
+            bonus: smithGradeBonus(base) +
+                (touch
+                    ? JobRules.masterTouchGrade *
+                        skillPower(JobSkill.masterTouch)
+                    : 0));
+    final extras = EquipmentRules.rollExtras(grade, _random);
+    if (blade) {
+      final keys = [
+        for (final k in EquipmentRules.statKeys)
+          if (!extras.containsKey(k)) k,
+      ];
+      if (keys.isNotEmpty) {
+        extras[keys[_random.nextInt(keys.length)]] =
+            1 + _random.nextInt(2 + skillLevel(JobSkill.masterBlade));
+      }
+    }
     // 묶음 30: 룬 대장장이 → 가끔 속성이 붙음 (숨김)
     final rune = _jobRoll(JobId.runesmith, JobRules.runesmithElement)
         ? Element.values[_random.nextInt(Element.values.length)]
@@ -90,7 +106,7 @@ extension SmithyOps on AppController {
       uid: 'eq${a.nextId}',
       base: base,
       grade: grade,
-      extras: EquipmentRules.rollExtras(grade, _random),
+      extras: extras,
       materialsUsed: used,
       element: rune,
     );
@@ -185,6 +201,16 @@ extension SmithyOps on AppController {
     return BossCraftResult(item: item);
   });
 
+  /// 집중 단조로 오르는 성공률 (단계마다 조금 더)
+  double get focusForgeBoost =>
+      JobRules.focusForgeChance * skillPower(JobSkill.focusForge);
+
+  /// 화면에 보이는 강화 성공률 (집중 단조를 써 두면 오른 값)
+  double enhanceChanceShown(int to) => math.min(
+      1.0,
+      EquipmentRules.enhanceChance(to) +
+          (skillPending(JobSkill.focusForge) ? focusForgeBoost : 0));
+
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
     if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
@@ -207,19 +233,19 @@ extension SmithyOps on AppController {
       spends: DailyRecord.addCounts(today.spends,
           {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
     ));
-    final ok = _random.nextDouble() < EquipmentRules.enhanceChance(to);
-    // 묶음 30: 대장장이(가끔)·집중 단조(꼭) → 실패해도 무사 (쓴 마석·금화를 돌려받음, 숨김)
+    // 묶음 31 #193: 집중 단조 → 성공률이 오르고(화면 %에도), 실패해도 무사 (쓴 마석·금화를 돌려받음)
+    final focus = await _consumeSkill(JobSkill.focusForge);
+    final ok = _random.nextDouble() <
+        EquipmentRules.enhanceChance(to) +
+            (focus ? focusForgeBoost : 0);
     var safe = false;
-    if (!ok) {
-      safe = await _consumeSkill(JobSkill.focusForge) ||
-          _jobRoll(JobId.blacksmith, JobRules.blacksmithSafe);
-      if (safe) {
-        final t = await _todayRecord();
-        await _save(t.copyWith(
-          gains: DailyRecord.addCounts(t.gains,
-              {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
-        ));
-      }
+    if (!ok && focus) {
+      safe = true;
+      final t = await _todayRecord();
+      await _save(t.copyWith(
+        gains: DailyRecord.addCounts(t.gains,
+            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+      ));
     }
     _lastEnhanceSafe = safe;
     await _saveArmory(_armory.replace(item.copyWith(
@@ -338,10 +364,11 @@ extension SmithyOps on AppController {
     }));
   });
 
-  /// 싸울 때마다 입은 장비의 내구도가 준다
+  /// 싸울 때마다 입은 장비의 내구도가 준다 (대장장이 튼튼한 손: 가끔 닳지 않음)
   Future<void> _wear(int n) async {
     final worn = _armory.worn;
     if (worn.isEmpty) return;
+    if (_jobRoll(JobId.blacksmith, JobRules.blacksmithWear)) return;
     var a = _armory;
     for (final item in worn) {
       a = a.replace(item.copyWith(

@@ -17,13 +17,20 @@ extension ShopBagOps on AppController {
     await _save(today.copyWith(
       goldPurchases: [...today.goldPurchases, item.name],
     ));
-    // 묶음 30: 상인 하루 한 번 할인 · 대흥정 → 산 값 일부를 돌려받는다 (숨김)
-    final back = await _jobBuyRefund(TownRules.info(item).price);
+    // 묶음 31: 단골 손님 → 하루 개수를 넘겨 산 거면 이번에 쓴다
+    final i = TownRules.info(item);
+    if (TownRules.boughtInLimit(_history, item) > i.perLimit) {
+      await _consumeSkill(JobSkill.regular);
+    }
+    // 묶음 31: 물약 상인 물약 도매 · 대흥정 → 산 값 일부를 돌려받는다 (숨김)
+    final back = await _jobBuyRefund(i.price,
+        potion: i.hpRatio > 0 || i.mpRatio > 0 || i.jobMpRatio > 0);
     if (back > 0) {
       final t = await _todayRecord();
       await _save(t.copyWith(
           gains: DailyRecord.addCounts(t.gains, {Wallet.gold: back})));
     }
+    await _shopTraded();
     // 묶음 27 #176: 잡화상 거래 1건마다 장사·의뢰 숙련도
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return PurchaseCheck.ok;
@@ -49,7 +56,8 @@ extension ShopBagOps on AppController {
     return TownRules.canBuy(_history, item,
         hasLocation: hasLocation ?? _lastFix != null,
         level: player.level.level,
-        bagRoom: have < 0 || _roomFor(have));
+        bagRoom: have < 0 || _roomFor(have),
+        extraLimit: skillPending(JobSkill.regular) ? 1 : 0);
   }
 
   /// [have] 개 있는 것에 하나 더 넣을 자리가 있는지
@@ -60,7 +68,8 @@ extension ShopBagOps on AppController {
   int get bagCapacity => BagRules.capacity(
       goldExpansions: _bag.goldExpansions,
       extraSlots: _bag.extraSlots,
-      singleSlots: _bag.singleSlots);
+      singleSlots: _bag.singleSlots) +
+      jobBagSlots;
 
   /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
   int get bagUsed => BagRules.usedSlots(

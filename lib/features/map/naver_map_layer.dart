@@ -169,7 +169,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
               : 'assets/images/map_unknown.webp'),
           size: const Size(46, 46),
           caption: NOverlayCaption(
-            text: visited.contains(place.id) ? place.name : '???',
+            text: visited.contains(place.id) || c.placeRevealed(place) ? place.name : '???',
           ),
         ),
       // 시내 전체에 몬스터가 많아 이름은 빼고 그림만. 수식어 몬스터만 수식어를
@@ -610,9 +610,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final m = NMarker(
       id: 'harvest_${h.id}',
       position: _ll(h.point),
-      icon: NOverlayImage.fromAssetImage(h.info.mapAsset),
+      icon: NOverlayImage.fromAssetImage(c.isTreasure(h)
+          ? 'assets/images/icon_gold.webp'
+          : h.info.mapAsset),
       size: const Size(base, base),
-      caption: _dots(c.harvestCharges(h), 1),
+      caption: _dots(c.isTreasure(h) ? 0 : c.harvestCharges(h), 1),
     )..setOnTapListener((_) {
         if (mounted) showHarvestSheet(context, c, h);
       });
@@ -647,7 +649,10 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         if (harvest) {
           final id = m.info.id.substring('harvest_'.length);
           final spot = c.harvestSpots.where((h) => h.id == id).firstOrNull;
-          if (spot != null) m.setCaption(_dots(c.harvestCharges(spot), s));
+          if (spot != null) {
+            m.setCaption(
+                _dots(c.isTreasure(spot) ? 0 : c.harvestCharges(spot), s));
+          }
         }
       } catch (_) {
         // 지도에서 이미 빠진 아이콘

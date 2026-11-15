@@ -416,7 +416,7 @@ class _ExploreSummary extends StatelessWidget {
                     color: AppColors.gold),
               ),
               title: Text(
-                visited.contains(place.id) ? place.name : '???',
+                visited.contains(place.id) || controller.placeRevealed(place) ? place.name : '???',
                 style: const TextStyle(color: AppColors.text),
               ),
               subtitle: Text(place.realName,

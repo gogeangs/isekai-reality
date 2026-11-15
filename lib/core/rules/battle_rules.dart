@@ -5,6 +5,7 @@ import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'job_rules.dart';
+import 'mastery_rules.dart';
 import 'modifier_rules.dart';
 import 'pet_rules.dart';
 import 'monsters.dart';
@@ -597,52 +598,280 @@ class Battle {
   /// 치유사: 회복 물약 회복량 더
   double healBoost = 0;
 
-  /// 힘의 일격: 다음 공격 피해 배율 (1이면 없음)
+  /// 다음 보통 공격 피해 배율 (1이면 없음)
   double nextHitMult = 1;
 
-  /// 급소 노리기: 다음 공격이 꼭 치명타
+  /// 다음 보통 공격이 꼭 치명타
   bool nextCrit = false;
 
   /// 지금 몬스터가 잿빛 몬스터인지
   bool get foeIsAsh =>
       phase == BattlePhase.fighting && foe.monster.name.startsWith('ash');
 
-  /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). 쓸 수 없으면 false
-  bool useJobSkill(JobSkill s) {
+  // ───────────── 스킬 두 갈래 (묶음 31 #195~#198, 숨은 규칙)
+
+  /// 입은 무기 강화 단계 (명검 베기)
+  int weaponEnhance = 0;
+
+  /// 보조 직업 수 (장인의 연타)
+  int artisanSubs = 0;
+
+  /// 밤인지 (그림자 베기)
+  bool nightTime = false;
+
+  /// 방어가 깨진 남은 턴 (몬스터가 받는 피해 더)
+  int foeBreakTurns = 0;
+  static const double breakTaken = 1.3;
+
+  /// 몬스터가 묶인 남은 몬스터 차례
+  int foeBindTurns = 0;
+
+  /// 몬스터에게 남은 계속 피해 (턴 · 최대 체력 비율)
+  int foeDotTurns = 0;
+  double foeDotRatio = 0;
+
+  /// 철벽: 받는 피해 줄이는 남은 턴
+  int wallTurns = 0;
+  static const double wallTaken = 0.5;
+
+  /// 전투 함성: 공격이 세지는 남은 턴 (강타도 빨리 참)
+  int rallyTurns = 0;
+  static const double rallyAttack = 1.3;
+
+  /// 축복의 일격: HP가 조금씩 차는 남은 턴
+  int regenTurns = 0;
+
+  /// 다음 몬스터 공격을 피함
+  bool dodgeNext = false;
+
+  /// 다음 강한 공격을 막음
+  bool blockNext = false;
+
+  /// 다음에 받는 공격 일부를 돌려줌
+  bool reflectNext = false;
+
+  /// 전투 칸에 낀 숙련 스킬 (MP 없이 몇 턴마다)
+  final Set<Mastery> masteryActives = {};
+  final Map<Mastery, int> masteryCharge = {};
+
+  bool masteryReady(Mastery m) =>
+      heroSkills &&
+      phase == BattlePhase.fighting &&
+      masteryActives.contains(m) &&
+      (masteryCharge[m] ?? 0) >= JobRules.masteryActiveTicks;
+
+  double masteryRatio(Mastery m) =>
+      ((masteryCharge[m] ?? 0) / JobRules.masteryActiveTicks)
+          .clamp(0, 1)
+          .toDouble();
+
+  /// 몬스터가 약한 속성 하나 (없으면 null)
+  Element? get _foeWeakTo {
+    final e = AlchemyRules.elementOf(foe.monster);
+    if (e == null) return null;
+    final b = ElementRules.beats(e);
+    return b.isEmpty ? null : b.first;
+  }
+
+  /// 스킬 한 번 치기
+  int _strike(double mult,
+      {Element? element, bool useElement = true, bool crit = false}) {
+    var d = _vary(playerAttack) * mult;
+    if (foeBreakTurns > 0) d *= breakTaken;
+    if (rallyTurns > 0) d *= rallyAttack;
+    if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
+    var dmg = math.max(1, d.round());
+    if (crit) {
+      dmg = (dmg * StatRules.critMultiplier).round();
+      lastCrit = true;
+    }
+    if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
+    if (useElement) {
+      final el = element ?? weaponPotion ?? attackElement;
+      dmg = _elemental(dmg, el,
+          level: element == null && weaponPotion == null ? attackLevel : 0);
+    }
+    lastDealt += dmg;
+    _hitFoe(dmg);
+    _setOnHit(dmg);
+    _checkRage();
+    return dmg;
+  }
+
+  void _startSkill(String event) {
+    lastWasSkill = false;
+    lastBash = true;
+    lastDealt = 0;
+    lastTaken = 0;
+    lastCrit = false;
+    lastSuper = false;
+    lastHealed = 0;
+    lastEvent = event;
+  }
+
+  void _maybeStun(double chance) {
+    if (phase == BattlePhase.fighting && _rng.nextDouble() < chance) {
+      _foeBound = true;
+      lastEvent = '${lastEvent ?? ''} 멈칫!'.trim();
+    }
+  }
+
+  /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). [power] 는 스킬 단계 세기. 쓸 수 없으면 false
+  bool useJobSkill(JobSkill s, {double power = 1}) {
     if (phase != BattlePhase.fighting) return false;
+    final p = power;
     switch (s) {
-      case JobSkill.powerStrike:
-        if (nextHitMult > 1) return false;
-        nextHitMult = JobRules.powerStrike;
-        lastEvent = '힘을 모았어요!';
-      case JobSkill.vitalStrike:
-        if (nextCrit) return false;
-        nextCrit = true;
-        lastEvent = '급소를 노려요!';
+      case JobSkill.ironWall:
+        if (wallTurns > 0) return false;
+        _startSkill('철벽!');
+        wallTurns = 3;
+        return true;
+      case JobSkill.warCry:
+        if (rallyTurns > 0) return false;
+        _startSkill('전투 함성!');
+        rallyTurns = 3;
+        return true;
+      default:
+        break;
+    }
+    switch (s) {
+      case JobSkill.hotHammer:
+        _startSkill('달군 망치!');
+        _strike(2.0 * p);
+        foeBreakTurns = 3;
+      case JobSkill.thornVine:
+        _startSkill('가시덩굴!');
+        _strike(1.2 * p);
+        foeBindTurns = 2;
+        foeDotTurns = 2;
+        foeDotRatio = 0.03;
+      case JobSkill.potionThrow:
+        _startSkill('물약 투척!');
+        final w = _foeWeakTo;
+        _strike((w == null ? 1.5 : 2.0) * p, element: w);
+      case JobSkill.rush:
+        _startSkill('돌진!');
+        _strike(2.2 * p);
+      case JobSkill.galeSlash:
+        _startSkill('질풍 베기!');
+        _strike(1.4 * p);
+        dodgeNext = true;
+      case JobSkill.weakStab:
+        _startSkill('약점 찌르기!');
+        final w = _foeWeakTo;
+        _strike((w == null ? 1.4 : 1.8) * p, element: w);
+      case JobSkill.chargeOrder:
+        _startSkill('돌격 명령!');
+        _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+            element: skillElement, useElement: skillElement != null);
+        skillCharge = math.min(skillChargeTicks, skillCharge + 2);
+      case JobSkill.coinToss:
+        _startSkill('금화 던지기!');
+        _strike(2.0 * p);
+      case JobSkill.masterSlash:
+        _startSkill('명검 베기!');
+        _strike((1.6 + 0.1 * weaponEnhance) * p);
+      case JobSkill.runeBurst:
+        _startSkill('룬 폭발!');
+        _strike(2.2 * p, element: attackElement, useElement: true);
+      case JobSkill.gemShard:
+        _startSkill('보석 파편!');
+        _strike(1.4 * p);
+        _maybeStun(0.30);
       case JobSkill.healingLight:
-        if (playerHp >= playerMaxHp) return false;
+        _startSkill('치유의 빛!');
+        final d = _strike(1.2 * p, element: Element.light);
         final before = playerHp;
-        playerHp = math.min(playerMaxHp,
-            playerHp + (playerMaxHp * JobRules.healingLight).round());
+        playerHp = math.min(playerMaxHp, playerHp + d);
         _healed(playerHp - before);
-        lastEvent = '치유의 빛!';
+      case JobSkill.vitalStrike:
+        _startSkill('급소 사격!');
+        _strike(1.0 * p, crit: true);
+      case JobSkill.relicLight:
+        _startSkill('고대 유물의 빛!');
+        _strike(1.2 * p, element: Element.light);
+        blockNext = true;
+      case JobSkill.blessedStrike:
+        _startSkill('축복의 일격!');
+        _strike(1.2 * p);
+        regenTurns = 3;
+      case JobSkill.bundleSwing:
+        _startSkill('짐 보따리 휘두르기!');
+        _strike(1.3 * p);
+        _maybeStun(0.30);
+      case JobSkill.counterSlash:
+        _startSkill('반격 베기!');
+        _strike(1.3 * p);
+        reflectNext = true;
       case JobSkill.jointAttack:
-        if (petSkill == null || skillChargeTicks >= skillUnavailable) {
-          return false;
+        _startSkill('합동 돌격!');
+        _strike(1.0 * p);
+        if (phase == BattlePhase.fighting) {
+          _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+              element: skillElement, useElement: skillElement != null);
         }
-        if (skillReady) return false;
-        skillCharge = skillChargeTicks;
-        lastEvent = '합동 공격 준비!';
+        skillCharge = math.min(skillChargeTicks, skillCharge + 2);
+      case JobSkill.windBlade:
+        _startSkill('바람 칼날!');
+        _strike(1.5 * p, element: Element.wind);
+        playerSpeed = math.max(playerSpeed, baseSpeed * 1.3);
+      case JobSkill.poisonFlask:
+        _startSkill('독 물약 뿌리기!');
+        _strike(0.6 * p, element: Element.poison);
+        foeDotTurns = 4;
+        foeDotRatio = 0.03 * p;
+      case JobSkill.shadowSlash:
+        _startSkill('그림자 베기!');
+        _strike((nightTime ? 1.8 : 1.4) * p, element: Element.dark);
+        dodgeNext = true;
+      case JobSkill.gatekeeperLight:
+        _startSkill('문지기의 빛!');
+        shieldHits += 3;
+        _strike((foeIsAsh ? 3.0 : 1.2) * p, element: Element.light);
       case JobSkill.ashPurge:
-        var dmg = _vary(playerAttack);
-        dmg = (dmg * (foeIsAsh ? JobRules.ashPurge : 1.5)).round();
-        lastDealt = dmg;
-        lastTaken = 0;
-        lastEvent = '잿빛 정화!';
-        _hitFoe(dmg);
-        _checkRage();
+        _startSkill('잿빛 정화!');
+        _strike((foeIsAsh ? JobRules.ashPurge : 1.5) * p);
+      case JobSkill.artisanCombo:
+        _startSkill('장인의 연타!');
+        for (var i = 0; i <= artisanSubs; i++) {
+          if (phase != BattlePhase.fighting) break;
+          _strike(0.8 * p);
+        }
       default:
         return false;
+    }
+    return true;
+  }
+
+  /// 숙련 스킬 (MP 없이 몇 턴마다)
+  bool useMasterySkill(Mastery m) {
+    if (!masteryReady(m)) return false;
+    masteryCharge[m] = 0;
+    _startSkill('${JobRules.masteryActive(m).name}!');
+    switch (m) {
+      case Mastery.smith:
+        _strike(2.4);
+      case Mastery.harvest:
+        _strike(1.3);
+        foeBindTurns = math.max(foeBindTurns, 1);
+      case Mastery.alchemy:
+        _strike(1.5, element: Element.fire);
+        foeBurnTurns = 3;
+      case Mastery.combat:
+        for (var i = 0; i < 3; i++) {
+          if (phase != BattlePhase.fighting) break;
+          _strike(0.6);
+        }
+      case Mastery.walk:
+        _strike(1.5);
+        playerSpeed = math.max(playerSpeed, baseSpeed * 1.3);
+      case Mastery.appraise:
+        final w = _foeWeakTo;
+        _strike(w == null ? 1.4 : 1.6, element: w);
+      case Mastery.spirit:
+        _strike(1.8, element: Element.light);
+      case Mastery.trade:
+        _strike(1.5);
     }
     return true;
   }
@@ -660,6 +889,8 @@ class Battle {
     var d = dmg.toDouble();
     if (lowHpBoost > 0 && playerHp * 2 < playerMaxHp) d *= 1 + lowHpBoost;
     if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
+    if (foeBreakTurns > 0) d *= breakTaken;
+    if (rallyTurns > 0) d *= rallyAttack;
     if (nextHitMult > 1) {
       d *= nextHitMult;
       nextHitMult = 1;
@@ -867,6 +1098,9 @@ class Battle {
       _foeBound = false;
       _foeFrozen = false;
       foeBurnTurns = 0;
+      foeBreakTurns = 0;
+      foeBindTurns = 0;
+      foeDotTurns = 0;
       enraged = false;
       _guard = null;
       lastDealt = 0;
@@ -965,6 +1199,13 @@ class Battle {
       if (phase != BattlePhase.fighting) return;
     }
 
+    // 묶음 31: 가시덩굴·독 물약 계속 피해
+    if (foeDotTurns > 0) {
+      foeDotTurns--;
+      _hitFoe(math.max(1, (f.maxHp * foeDotRatio).round()));
+      if (phase != BattlePhase.fighting) return;
+    }
+
     // 물 슬라임: 매 턴 끝에 5% 회복
     if (f.trait == MonsterTrait.regen && foeHp < f.maxHp) {
       foeHp = math.min(f.maxHp, foeHp + math.max(1, (f.maxHp * 0.05).round()));
@@ -992,6 +1233,17 @@ class Battle {
     if (immuneTurns > 0) immuneTurns--;
     if (freezeImmune > 0) freezeImmune--;
     if (stanceTurns > 0) stanceTurns--;
+    if (wallTurns > 0) wallTurns--;
+    if (foeBreakTurns > 0) foeBreakTurns--;
+    if (regenTurns > 0 && playerHp < playerMaxHp) {
+      regenTurns--;
+      final before = playerHp;
+      playerHp = math.min(
+          playerMaxHp, playerHp + math.max(1, (playerMaxHp * 0.04).round()));
+      _healed(playerHp - before);
+    } else if (regenTurns > 0) {
+      regenTurns--;
+    }
     // 고목 세트 6개: 매 턴 HP 조금 회복 (11-11 #82)
     if (setAbilities.contains(BossSetAbility.regrow) && playerHp < playerMaxHp) {
       final before = playerHp;
@@ -1004,14 +1256,37 @@ class Battle {
     if (skillCharge < skillChargeTicks) skillCharge++;
     if (heroSkills) {
       if (bashCharge < bashTicks) bashCharge++;
+      // 전투 함성: 강타가 더 빨리 참
+      if (rallyTurns > 0 && bashCharge < bashTicks) bashCharge++;
       if (stanceCharge < stanceTicks) stanceCharge++;
+      for (final m in masteryActives) {
+        final c = masteryCharge[m] ?? 0;
+        if (c < JobRules.masteryActiveTicks) masteryCharge[m] = c + 1;
+      }
     }
+    if (rallyTurns > 0) rallyTurns--;
     _guard = null;
     _prepareStrong();
   }
 
   void _foeTurn() {
     final f = foe;
+    if (foeBindTurns > 0) {
+      foeBindTurns--;
+      lastEvent = '묶였어요!';
+      return;
+    }
+    if (dodgeNext) {
+      dodgeNext = false;
+      lastEvent = '피했어요!';
+      return;
+    }
+    if (blockNext && _strongNow) {
+      blockNext = false;
+      _strongNow = false;
+      lastEvent = '막았다!';
+      return;
+    }
     if (_foeBound) {
       _foeBound = false;
       lastEvent = '묶였어요!';
@@ -1035,6 +1310,7 @@ class Battle {
     }
     if (enraged) atk *= bossRageAttack;
     if (stanceTurns > 0) atk *= stanceTaken;
+    if (wallTurns > 0) atk *= wallTaken;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
     if (f.has(ModifierId.charging) && !_charged) {
       atk *= 2;
@@ -1090,6 +1366,12 @@ class Battle {
     final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;
     playerHp = math.max(0, playerHp - taken);
+    // 반격 베기: 받은 공격 일부를 돌려줌
+    if (reflectNext) {
+      reflectNext = false;
+      _hitFoe(math.max(1, (taken * 0.5).round()));
+      if (phase != BattlePhase.fighting) return;
+    }
     if ((f.has(ModifierId.venomous) ||
             f.has(ModifierId.plagued) ||
             f.trait == MonsterTrait.poison) &&

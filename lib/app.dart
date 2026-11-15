@@ -26,6 +26,7 @@ import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
 import 'features/jobs/guild_screen.dart';
 import 'features/jobs/job_skill_bar.dart';
+import 'features/jobs/skill_screen.dart';
 import 'features/alchemy/convert_panel.dart' show LockedJobPanel;
 import 'features/pets/pet_screen.dart';
 import 'features/smithy/equip_picker.dart';
@@ -136,10 +137,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   // #130 빨간 점: 탭을 열면 사라지고, 새로 생기면 다시
   int _seenPoints = 0;
   int _seenRewards = 0;
+  int _seenSkillPoints = 0;
 
   void _openTab(int i) {
     final c = widget.controller;
-    if (i == tStatus) _seenPoints = c.unspentPoints;
+    if (i == tStatus) {
+      _seenPoints = c.unspentPoints;
+      _seenSkillPoints = c.skillPointsLeft;
+    }
     if (i == tVillage) _seenRewards = c.questRewardsReady;
     if (_tab != i) spiritTabVisits.value++;
     _tab = i;
@@ -350,6 +355,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             stats: controller.shownStats,
             unspentPoints: controller.unspentPoints,
             onOpenStats: () => push(StatScreen(controller: controller)),
+            // 묶음 31 #198: 스킬 페이지 (첫 숙련된 또는 Lv.15 각성 뒤)
+            onOpenSkills: controller.skillPageOpen
+                ? () => push(SkillScreen(controller: controller))
+                : null,
+            skillDot: controller.skillPointsLeft > 0,
             // 묶음 25 #166: 원정 중이면 원정 대사 먼저 (HP 30% 아래만 그보다 앞)
             lifeLine: (controller.maxHp > 0 &&
                         controller.hp / controller.maxHp < 0.3
@@ -469,8 +479,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             index: _tab,
             dots: {
               if (_tab != tStatus &&
-                  controller.unspentPoints > 0 &&
-                  controller.unspentPoints != _seenPoints)
+                  ((controller.unspentPoints > 0 &&
+                          controller.unspentPoints != _seenPoints) ||
+                      (controller.skillPointsLeft > 0 &&
+                          controller.skillPointsLeft != _seenSkillPoints)))
                 tStatus,
               if (_tab != tVillage &&
                   controller.questRewardsReady > 0 &&

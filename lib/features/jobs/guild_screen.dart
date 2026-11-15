@@ -9,11 +9,13 @@ import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import 'job_skill_bar.dart';
 
-/// 직업 하나의 짧은 소개 (고유 기술 한 줄 · 스킬 이름 · MP)
+/// 직업 하나의 짧은 소개 (고유 기술 한 줄 · 스킬 이름)
 class JobSummary extends StatelessWidget {
   const JobSummary({super.key, required this.job, this.sub = false});
 
   final JobId job;
+
+  /// 보조 직업으로 볼 때 (예전 호출과 맞춤)
   final bool sub;
 
   @override
@@ -22,19 +24,18 @@ class JobSummary extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       KText(info.trait,
           style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-      for (final s in info.openSkills)
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Row(children: [
-            const Icon(Icons.bolt_rounded, size: 15, color: kJobMpColor),
-            const SizedBox(width: 3),
-            Flexible(
-              child: KText(
-                  '${JobRules.skill(s).name} · MP ${JobRules.skillCost(s, sub: sub)}',
-                  style: const TextStyle(color: AppColors.text, fontSize: 13)),
-            ),
-          ]),
-        ),
+      Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Row(children: [
+          const Icon(Icons.bolt_rounded, size: 15, color: kJobMpColor),
+          const SizedBox(width: 3),
+          Flexible(
+            child: KText(
+                [for (final s in info.skills) JobRules.skill(s).name].join(' · '),
+                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+          ),
+        ]),
+      ),
     ]);
   }
 }
@@ -147,6 +148,41 @@ class _GuildScreenState extends State<GuildScreen> {
                         JobMpBar(controller: c),
                       ]),
                 ),
+                const SizedBox(height: 6),
+                const KText('스킬은 상태 → 스킬에서 배우고 강화해요.',
+                    key: Key('guildSkillNote'),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                // 묶음 31 #192: 곧 열릴 것 같은 직업 (숫자 없이)
+                if (c.nearJobs.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text('곧 열릴 것 같은 직업', style: AppText.title(17)),
+                  const SizedBox(height: 6),
+                  for (final j in c.nearJobs)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: OrnatePanel(
+                        key: Key('guildNear_${j.name}'),
+                        child: Row(children: [
+                          const Icon(Icons.explore_rounded,
+                              color: AppColors.gold, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(JobRules.info(j).name,
+                                      style: AppText.title(15,
+                                          color: AppColors.text)),
+                                  KText(JobRules.hintLine(j),
+                                      style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 13)),
+                                ]),
+                          ),
+                        ]),
+                      ),
+                    ),
+                ],
                 const SizedBox(height: 14),
                 Text('얻은 직업 ${c.ownedJobs.length}개',
                     style: AppText.title(17)),

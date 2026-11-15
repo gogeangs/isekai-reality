@@ -1,6 +1,7 @@
 import '../models/daily_record.dart';
 import 'rule_constants.dart';
 import 'board_rules.dart';
+import 'quest_rules.dart';
 import 'town_rules.dart';
 
 /// 하루 경험치의 내역
@@ -78,8 +79,9 @@ class ExpRules {
             ? RuleConstants.maxNewPlacesPerDay
             : record.newPlacesVisited;
 
-    final quests = record.questsCompleted > RuleConstants.questsPerDay
-        ? RuleConstants.questsPerDay
+    final perDay = QuestRules.perDay(record);
+    final quests = record.questsCompleted > perDay
+        ? perDay
         : record.questsCompleted;
 
     return DailyExpBreakdown(
@@ -97,7 +99,7 @@ class ExpRules {
       quest: quests * RuleConstants.questExp,
       rest: record.rested ? RuleConstants.restBonusExp : 0,
       restStreak: record.rested ? TownRules.restStreakReward(restStreak).$1 : 0,
-      questAll: quests >= RuleConstants.questsPerDay
+      questAll: quests >= perDay
           ? RuleConstants.questAllBonusExp
           : 0,
       weekly: weeklyDone * BoardRules.weeklyExp,

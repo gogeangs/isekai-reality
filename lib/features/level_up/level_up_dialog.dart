@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/rules/level_rules.dart';
+import '../../core/rules/job_rules.dart' show JobRules;
 import '../../core/rules/stat_rules.dart';
 import '../status/stat_icon.dart';
 import '../../theme/app_colors.dart';
@@ -121,6 +122,17 @@ class LevelUpDialog extends StatelessWidget {
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700)),
                               ]),
+                          // 묶음 31: Lv.15부터 스킬 포인트
+                          if (JobRules.pointsFor(to) - JobRules.pointsFor(from)
+                              case final sp when sp > 0) ...[
+                            const SizedBox(height: 6),
+                            Text('스킬 포인트 +$sp',
+                                key: const Key('skillPointsGained'),
+                                style: const TextStyle(
+                                    color: AppColors.goldBright,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700)),
+                          ],
                           // Lv.2가 되는 순간 스탯 분배가 열린다
                           if (from < 2 && to >= 2) ...[
                             const SizedBox(height: 8),

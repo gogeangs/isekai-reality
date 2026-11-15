@@ -185,6 +185,7 @@ extension ExpeditionOps on AppController {
             await _jobSellGold(tradeGold(n * BagRules.materialPrice(m)))
       }),
     ));
+    await _shopTraded();
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -205,6 +206,7 @@ extension ExpeditionOps on AppController {
                 TownRules.info(item).jobMpRatio > 0)
       }),
     ));
+    await _shopTraded();
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -222,6 +224,7 @@ extension ExpeditionOps on AppController {
     ));
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
+    await _shopTraded();
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -239,6 +242,7 @@ extension ExpeditionOps on AppController {
                 tradeGold(count * RuleConstants.goldPerManaStone))
           }),
     ));
+    await _shopTraded();
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -434,24 +438,12 @@ extension ExpeditionOps on AppController {
     if (spiritTimeFactor < 1) {
       base = Duration(seconds: (base.inSeconds * spiritTimeFactor).round());
     }
-    // 묶음 30: 조련사 → 펫 원정 시간 덜 / 문지기의 후계자 → 첫 펫 원정 기력 덜 /
-    // 길잡이 → 더 멀리(기력 덜) / 먼 길 안내 → 이번 원정 더 멀리 (숨김)
-    if (pet != null) {
-      final tt = jobTrait(JobId.tamer);
-      if (tt > 0) {
-        base = Duration(
-            seconds: (base.inSeconds * (1 - JobRules.tamerTime * tt)).round());
+    // 묶음 30: 문지기의 후계자 → 첫 펫 원정 기력 덜 / 먼 길 안내 → 이번 원정 더 멀리 (숨김)
+    if (pet != null && pet.uid == _pets.firstPet) {
+      final g = jobTrait(JobId.gateHeir);
+      if (g > 0) {
+        cost = math.max(1, (cost * (1 - JobRules.gateHeirMp * g)).round());
       }
-      if (pet.uid == _pets.firstPet) {
-        final g = jobTrait(JobId.gateHeir);
-        if (g > 0) {
-          cost = math.max(1, (cost * (1 - JobRules.gateHeirMp * g)).round());
-        }
-      }
-    }
-    final pf = jobTrait(JobId.pathfinder);
-    if (pf > 0) {
-      cost = math.max(1, (cost / (1 + JobRules.pathfinderRange * pf)).round());
     }
     if (skillPending(JobSkill.longRoad)) {
       cost = math.max(1, (cost / (1 + JobRules.longRoad)).round());
@@ -667,6 +659,20 @@ extension ExpeditionOps on AppController {
             exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
       }
       await _givePetExp(pet.uid, PetRules.expPerExpedition);
+    }
+    // 묶음 31: 길잡이 먼 곳의 보물 → 먼 원정에서 이기면 재료를 더 (숨김)
+    if (cleared &&
+        r.exp > 0 &&
+        ex.distanceM >= JobRules.pathfinderFarM &&
+        _jobRoll(JobId.pathfinder, JobRules.pathfinderReward)) {
+      final more = LootRules.field(monster, _random, early: earlyLoot);
+      if (more.isNotEmpty) {
+        await _grant(0, 0, more);
+        final mats = {...r.materials};
+        more.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+        r = HuntReward(
+            exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
+      }
     }
     final done = ex.withResult(cleared,
             escaped: escaped,

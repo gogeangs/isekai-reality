@@ -352,10 +352,15 @@ class _VillageArtState extends State<_VillageArt> {
     super.dispose();
   }
 
+  /// 끝까지 끌 수 있는 거리 (아직 그리기 전이면 0)
+  double get _max => _scroll.hasClients &&
+          _scroll.position.hasContentDimensions
+      ? _scroll.position.maxScrollExtent
+      : 0;
+
   void _page(int dir, double viewW) {
     if (!_scroll.hasClients) return;
-    final to = (_scroll.offset + dir * viewW * 0.7)
-        .clamp(0.0, _scroll.position.maxScrollExtent);
+    final to = (_scroll.offset + dir * viewW * 0.7).clamp(0.0, _max);
     _scroll.animateTo(to,
         duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
   }
@@ -376,7 +381,7 @@ class _VillageArtState extends State<_VillageArt> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_scroll.hasClients) {
                 _scroll.jumpTo((VillageScreen.tower.center.dx * s - w / 2)
-                    .clamp(0.0, _scroll.position.maxScrollExtent));
+                    .clamp(0.0, _max));
               }
             });
           }
@@ -412,10 +417,8 @@ class _VillageArtState extends State<_VillageArt> {
               child: AnimatedBuilder(
                 animation: _scroll,
                 builder: (context, _) {
-                  final max = _scroll.hasClients
-                      ? _scroll.position.maxScrollExtent
-                      : 0.0;
-                  final at = !_scroll.hasClients || max <= 0
+                  final max = _max;
+                  final at = max <= 0
                       ? 0.5
                       : (_scroll.offset / max).clamp(0.0, 1.0);
                   final frac = (w / fullW).clamp(0.1, 1.0);

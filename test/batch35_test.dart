@@ -10,6 +10,7 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/village/shelter_screen.dart';
 import 'package:isekai_reality/features/village/village_screen.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
+import 'package:isekai_reality/theme/ornaments.dart' show KText;
 
 void main() {
   final t0 = DateTime(2026, 11, 15, 10);
@@ -20,7 +21,8 @@ void main() {
           Map<String, DateTime> tired = const {},
           List<PetEgg> eggs = const [],
           Map<String, dynamic>? act2,
-          Map<String, dynamic>? village}) =>
+          Map<String, dynamic>? village,
+          bool newGates = false}) =>
       InMemoryRecordStore(
         profile: const PlayerProfile(
             name: '하루',
@@ -35,6 +37,13 @@ void main() {
         ],
         json: {
           'tutorial': {'step': TutorialStep.done.index},
+          // 새로 시작한 계정처럼 레벨로 기능이 열림 (안내는 이미 본 것으로)
+          if (newGates)
+            'gates': {
+              'legacy': false,
+              'v28': true,
+              'seen': [for (final f in Feature.values) f.name],
+            },
           if (farewell)
             'pets': PetState(
               pets: [
@@ -199,7 +208,8 @@ void main() {
       phone(tester);
       late AppController c;
       await tester.runAsync(() async =>
-          c = await start(account(5, village: {'seen': ['intro']})));
+          c = await start(
+              account(5, newGates: true, village: {'seen': ['intro']})));
       await village(tester, c);
       for (final f in Facility.values) {
         expect(find.byKey(Key('building_${f.name}')), findsOneWidget, reason: f.name);
@@ -225,7 +235,7 @@ void main() {
           for (final f in Facility.values)
             if (find.byKey(Key('facility_${f.name}')).evaluate().isNotEmpty)
               tester.getRect(find.byKey(Key('facility_${f.name}'))),
-        ];
+        ]..sort((a, b) => a.left.compareTo(b.left));
         expect(tags.length, greaterThanOrEqualTo(5));
         for (var i = 1; i < tags.length; i++) {
           expect(tags[i].left, greaterThanOrEqualTo(tags[i - 1].right - 0.5));
@@ -281,7 +291,9 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: InnScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('npc_marta')), findsOneWidget);
-      expect(find.text(VillageRules.npc(Npc.marta).first), findsOneWidget);
+      expect(
+          tester.widget<KText>(find.byKey(const Key('npcLine_marta'))).data,
+          VillageRules.npc(Npc.marta).first);
       await tester.pump(const Duration(seconds: 9));
     });
 

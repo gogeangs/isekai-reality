@@ -163,14 +163,18 @@ class SmallNote extends StatelessWidget {
           ],
           if (progress != null)
             Padding(
-              padding: const EdgeInsets.only(top: 3, right: 30),
-              child: Text(progress!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: kInkSoft,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
+              // 도장 자리만큼 비우고, 숫자는 줄여서라도 다 보이게
+              padding: EdgeInsets.only(top: 3, right: sealed ? 34 : 0),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(progress!,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: kInkSoft,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
             ),
         ],
       ),

@@ -232,3 +232,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | job_{explorer,appraiser,tamer,merchant} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |
 | 2026-11-15 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 다시 (기획대로 틀 없이, 금테 원판 판을 바꿈, 512) |
 | 2026-11-15 | village_inn_{2,3} | 여관 ★2·★3 (★1과 같은 틀: 512, 높이 480, 아래 맞춤) |
+| 2026-11-15 | job_{weaponsmith,runesmith,jeweler,healer} | 직업 문장 4 (복합 직업 청록+은 고리, 시트에서 잘라 냄, 512) |

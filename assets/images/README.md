@@ -212,3 +212,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | title_{smith,harvest,alchemy,combat}Master | 숙련도 칭호 장인 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
 | 2026-11-15 | npc_{marta,toby,bron,ella} | 마을 사람 얼굴 4 (마을 개편, 시트에서 잘라 냄, 512 아래 맞춤) |
 | 2026-11-15 | title_{walk,appraise,spirit,trade}Master | 숙련도 칭호 장인 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
+| 2026-11-15 | npc_{hart,sera,lumi} | 마을 사람 얼굴 3 (마을 개편, 시트에서 잘라 냄, 512 아래 맞춤) |

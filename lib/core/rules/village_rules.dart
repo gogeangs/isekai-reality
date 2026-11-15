@@ -1,7 +1,7 @@
 import '../format.dart';
 
 /// 마을 사람 (묶음 35): 시설마다 한 사람, 모두 틈에 걸린 저쪽 세계 사람
-enum Npc { marta, toby, bron, ella, hart, sera, lumi }
+enum Npc { marta, mina, dorgun, eliel, hart, sera, lumi }
 
 class NpcInfo {
   const NpcInfo({
@@ -28,6 +28,9 @@ class NpcInfo {
 /// 마을 규칙 (묶음 35)
 class VillageRules {
   VillageRules._();
+
+  /// 묶음 36 이름 바꿈 (예전 저장 키 → 새 키)
+  static const renamed = {'toby': 'mina', 'bron': 'dorgun', 'ella': 'eliel'};
 
   /// 마을 탭 처음 소개 3줄 (이별 뒤면 첫 펫이 말하고 3번째 줄만 바뀜)
   static List<String> intro({String? departed}) => [
@@ -64,8 +67,8 @@ class VillageRules {
       },
     ),
     NpcInfo(
-      id: Npc.toby,
-      name: '토비',
+      id: Npc.mina,
+      name: '미나',
       role: '잡화상 주인',
       first: '어서 와요, 어서 와! 틈에 걸려도 장사는 해야죠. 뭐든 있어요… 거의!',
       lines: {
@@ -75,8 +78,8 @@ class VillageRules {
       },
     ),
     NpcInfo(
-      id: Npc.bron,
-      name: '브론',
+      id: Npc.dorgun,
+      name: '도르군',
       role: '대장장이',
       first: '…각성자인가. 연장은 아껴 쓰도록.',
       lines: {
@@ -86,8 +89,8 @@ class VillageRules {
       },
     ),
     NpcInfo(
-      id: Npc.ella,
-      name: '엘라',
+      id: Npc.eliel,
+      name: '엘리엘',
       role: '연금술사',
       first: '어, 손님이다! 잠깐만요, 이거 터지기 전에… 아, 안녕하세요!',
       lines: {

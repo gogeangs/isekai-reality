@@ -116,14 +116,14 @@ void main() {
     test('만난 것·번갈아 셈은 저장된다 (예전 기록도 시설마다 한 번씩 첫 줄)', () async {
       final store = account(5);
       final c = await start(store);
-      expect(c.takeNpcLine(Npc.bron), VillageRules.npc(Npc.bron).first);
-      final x = c.takeNpcLine(Npc.bron);
-      expect(x, isNot(VillageRules.npc(Npc.bron).first));
+      expect(c.takeNpcLine(Npc.dorgun), VillageRules.npc(Npc.dorgun).first);
+      final x = c.takeNpcLine(Npc.dorgun);
+      expect(x, isNot(VillageRules.npc(Npc.dorgun).first));
       await Future<void>.delayed(const Duration(milliseconds: 10));
       final again = await start(store);
-      final y = again.takeNpcLine(Npc.bron);
+      final y = again.takeNpcLine(Npc.dorgun);
       expect(y, isNot(x));
-      expect(again.takeNpcLine(Npc.toby), VillageRules.npc(Npc.toby).first);
+      expect(again.takeNpcLine(Npc.mina), VillageRules.npc(Npc.mina).first);
     });
 
     test('막: 이별 전 1 · 이별 뒤 2 · 결말 뒤 3', () async {

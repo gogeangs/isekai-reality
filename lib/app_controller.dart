@@ -539,10 +539,15 @@ class AppController extends ChangeNotifier {
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
     // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)
     final village = await _load(_villageKey, (j) => j, null);
-    _village = {for (final x in (village?['seen'] as List?) ?? const []) '$x'};
+    // 묶음 36: 마을 사람 이름 바꿈(토비→미나 · 브론→도르군 · 엘라→엘리엘) — 만난 기록은 그대로 이어 감
+    String renamed(String k) => VillageRules.renamed[k] ?? k;
+    _village = {
+      for (final x in (village?['seen'] as List?) ?? const [])
+        '$x'.startsWith('met:') ? 'met:${renamed('$x'.substring(4))}' : '$x'
+    };
     _npcVisits = {
       for (final e in ((village?['visits'] as Map?) ?? const {}).entries)
-        if (e.value is num) '${e.key}': (e.value as num).toInt(),
+        if (e.value is num) renamed('${e.key}'): (e.value as num).toInt(),
     };
     _act2Ready = true;
     _checkAct2();

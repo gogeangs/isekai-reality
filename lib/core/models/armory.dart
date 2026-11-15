@@ -59,6 +59,7 @@ class EquipItem {
     Element? element,
     int? elementLevel,
     bool clearElement = false,
+    Map<String, int>? extras,
   }) =>
       EquipItem(
         uid: uid,
@@ -66,7 +67,7 @@ class EquipItem {
         grade: grade,
         enhance: enhance ?? this.enhance,
         durability: durability ?? this.durability,
-        extras: extras,
+        extras: extras ?? this.extras,
         materialsUsed: materialsUsed,
         enhanceManaSpent: enhanceManaSpent ?? this.enhanceManaSpent,
         appearance: appearance,

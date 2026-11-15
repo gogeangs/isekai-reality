@@ -12,8 +12,8 @@ import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart'
-import '../jobs/job_skill_bar.dart';
     show TourScreenMark, firstPotionPicked, firstPotionMadeTick;
+import '../jobs/job_skill_bar.dart';
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {

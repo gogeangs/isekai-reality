@@ -10,10 +10,38 @@ enum PetGrade { common, rare, legend }
 /// 펫 종류. 이름은 저장 키라 바꾸지 않는다.
 /// 희귀(아기 그리핀·다이어울프·드레이크·켈피·미믹·골렘), 전설(아기 페가수스·유니콘·
 /// 키메라·바실리스크·드래곤·피닉스)은 나중에 여기에 더한다.
-enum PetSpecies { crow, blackCat, toad, owl, lizard, homunculus }
+enum PetSpecies {
+  crow,
+  blackCat,
+  toad,
+  owl,
+  lizard,
+  homunculus,
+  // 묶음 33 #185 희귀 펫
+  griffin,
+  direwolf,
+  drake,
+  kelpie,
+  mimic,
+  golem,
+}
 
 /// 펫의 던전 스킬 종류
-enum PetSkill { peck, scratch, tongue, insight, ember, shield }
+enum PetSkill {
+  peck,
+  scratch,
+  tongue,
+  insight,
+  ember,
+  shield,
+  // 묶음 33 #185 희귀 펫
+  thunderClaw,
+  frostBite,
+  flameBreath,
+  tideWrap,
+  ambush,
+  stoneWall,
+}
 
 class PetSpeciesInfo {
   const PetSpeciesInfo({
@@ -138,11 +166,36 @@ class PetRules {
   static int hatchGoldCost(DateTime startedAt, DateTime now) =>
       hoursLeft(startedAt, now) * hatchGoldPerHour;
 
-  /// 부화할 펫: 6종 각 1몫, 정령 짝은 2몫
+  /// 부화할 때 희귀 펫이 나올 확률 (묶음 33 #185, 숨은 값)
+  static const double rareChance = 0.10;
+
+  static const List<PetSpecies> commonSpecies = [
+    PetSpecies.crow,
+    PetSpecies.blackCat,
+    PetSpecies.toad,
+    PetSpecies.owl,
+    PetSpecies.lizard,
+    PetSpecies.homunculus,
+  ];
+
+  static const List<PetSpecies> rareSpecies = [
+    PetSpecies.griffin,
+    PetSpecies.direwolf,
+    PetSpecies.drake,
+    PetSpecies.kelpie,
+    PetSpecies.mimic,
+    PetSpecies.golem,
+  ];
+
+  static bool isRare(PetSpecies s) => info(s).grade == PetGrade.rare;
+
+  /// 부화할 펫: 10%는 희귀 6종, 나머지는 일반 6종 (각 1몫, 정령 짝은 2몫,
+  /// 주 속성 펫 3배, 연금술 1등이면 호문쿨루스 3배)
   static PetSpecies rollSpecies(math.Random rng,
       {PetSpecies? favored, Element? element, bool alchemyTop = false}) {
+    final rare = rng.nextDouble() < rareChance;
     final pool = [
-      for (final s in PetSpecies.values) ...[
+      for (final s in rare ? rareSpecies : commonSpecies) ...[
         s,
         if (s == favored) s,
         // 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 3배
@@ -240,8 +293,14 @@ class PetRules {
   /// 원정 이동 시간 배율 (까마귀)
   static double travelTimeFactor(PetSpecies s,
       {required bool adult, int bond = 0, bool resonant = false}) {
-    if (s != PetSpecies.crow) return 1;
-    return 1 - (adult ? 0.30 : 0.20) * bondMultiplier(bond, resonant: resonant);
+    final m = bondMultiplier(bond, resonant: resonant);
+    return switch (s) {
+      PetSpecies.crow => 1 - (adult ? 0.30 : 0.20) * m,
+      // 묶음 33 #185: 그리핀 빨리, 켈피 다른 원정도 조금 빨리
+      PetSpecies.griffin => 1 - (adult ? 0.35 : 0.25) * m,
+      PetSpecies.kelpie => 1 - (adult ? 0.15 : 0.10) * m,
+      _ => 1,
+    };
   }
 
   /// 원정 MP 배율 (꼬마 도마뱀, 물가의 두꺼비)
@@ -252,7 +311,11 @@ class PetRules {
       bool resonant = false}) {
     final m = bondMultiplier(bond, resonant: resonant);
     if (s == PetSpecies.lizard) return 1 - (adult ? 0.35 : 0.25) * m;
+    if (s == PetSpecies.drake) return 1 - (adult ? 0.40 : 0.30) * m;
     if (s == PetSpecies.toad && waterside) return 1 - (adult ? 0.60 : 0.50) * m;
+    if (s == PetSpecies.kelpie && waterside) {
+      return 1 - (adult ? 0.70 : 0.60) * m;
+    }
     return 1;
   }
 
@@ -264,7 +327,9 @@ class PetRules {
           bool resonant = false}) =>
       s == PetSpecies.toad && waterside
           ? 1 - 0.30 * bondMultiplier(bond, resonant: resonant)
-          : 1;
+          : s == PetSpecies.kelpie && waterside
+              ? 1 - 0.40 * bondMultiplier(bond, resonant: resonant)
+              : 1;
 
   /// 원정 전투력 배율 (부엉이 항상, 검은 고양이 밤)
   static double powerFactor(PetSpecies s,
@@ -277,16 +342,33 @@ class PetRules {
     if (s == PetSpecies.blackCat && night) {
       return 1 + (adult ? 0.25 : 0.15) * m;
     }
+    // 묶음 33 #185 희귀 펫
+    if (s == PetSpecies.griffin) return 1 + (adult ? 0.15 : 0.10) * m;
+    if (s == PetSpecies.direwolf) return 1 + (adult ? 0.25 : 0.18) * m;
+    if (s == PetSpecies.drake) return 1 + (adult ? 0.15 : 0.10) * m;
     return 1;
   }
 
   /// 원정 성공 때 더 가져오는 재료 수 (호문쿨루스: +2, 성체는 가끔 +3. 묶음 32 #190)
   static int extraMaterials(PetSpecies s, math.Random rng,
       {required bool adult, int bond = 0}) {
+    if (s == PetSpecies.direwolf) {
+      // 묶음 33 #185: 다이어울프 이기면 재료 더 (성체는 가끔 하나 더)
+      if (adult && rng.nextDouble() < 0.5 * bondMultiplier(bond)) return 2;
+      return 1;
+    }
     if (s != PetSpecies.homunculus) return 0;
     if (adult && rng.nextDouble() < 0.5 * bondMultiplier(bond)) return 3;
     return 2;
   }
+
+  /// 미믹: 이긴 원정에서 가끔 금화·귀한 재료 (숨은 값)
+  static double mimicChance({required bool adult, int bond = 0}) =>
+      (adult ? 0.35 : 0.25) * bondMultiplier(bond);
+  static const int mimicGoldMin = 30, mimicGoldMax = 80;
+
+  /// 골렘: 원정에서 져도 기력을 돌려받음
+  static bool keepsMpOnLoss(PetSpecies s) => s == PetSpecies.golem;
 
   /// 「잘 맞아요」(#188): 먼 목표 · 기력이 많이 드는 원정 기준 (숨은 값)
   static const double farM = 1000;
@@ -308,7 +390,24 @@ class PetRules {
         PetSkill.insight => 3.0,
         PetSkill.ember => adult ? 3.5 : 3.0,
         PetSkill.shield => 2.0,
+        // 묶음 33 #185 희귀 펫 (일반보다 한 단계 세게)
+        PetSkill.thunderClaw => adult ? 5.5 : 4.5,
+        PetSkill.frostBite => adult ? 4.0 : 3.5,
+        PetSkill.flameBreath => adult ? 4.5 : 4.0,
+        PetSkill.tideWrap => adult ? 3.5 : 3.0,
+        PetSkill.ambush => adult ? 3.5 : 3.0,
+        PetSkill.stoneWall => 2.5,
       };
+
+  /// 번개 발톱이 멈추게 할 확률 · 깜짝 물기가 아주 크게 물 확률·배율 (숨은 값)
+  static const double thunderStun = 0.30;
+  static double ambushChance({required bool adult}) => adult ? 0.40 : 0.30;
+  static const double ambushMultiplier = 3.0;
+
+  /// 화염 숨결 계속 타는 턴 · 물살 휘감기 회복 · 돌 방벽 막는 횟수
+  static const int flameTurns = 4;
+  static const double tideHeal = 0.08;
+  static int stoneWallHits({required bool adult}) => adult ? 6 : 5;
 
   /// 스킬 충전 틱 (쪼기만 4, 나머지는 기본 5)
   static int? skillChargeTicks(PetSkill s) => s == PetSkill.peck ? 4 : null;
@@ -408,6 +507,85 @@ class PetRules {
       skillText: '받는 피해를 오래 막아 줘요',
       skillTextAdult: '받는 피해를 오래 막아 줘요',
       favorite: MaterialId.slimeCore,
+    ),
+    // ───────── 묶음 33 #185 희귀 펫
+    PetSpecies.griffin: PetSpeciesInfo(
+      id: PetSpecies.griffin,
+      element: Element.thunder,
+      name: '아기 그리핀',
+      grade: PetGrade.rare,
+      special: '원정을 빨리 다녀오고 잘 싸워요',
+      specialAdult: '원정을 더 빨리 다녀오고 더 잘 싸워요',
+      skill: PetSkill.thunderClaw,
+      skillName: '번개 발톱',
+      skillText: '세게 할퀴고 가끔 멈추게 해요',
+      skillTextAdult: '세게 할퀴고 가끔 멈추게 해요',
+      favorite: MaterialId.gemThunder,
+    ),
+    PetSpecies.direwolf: PetSpeciesInfo(
+      id: PetSpecies.direwolf,
+      element: Element.ice,
+      name: '다이어울프',
+      grade: PetGrade.rare,
+      special: '원정에서 아주 잘 싸우고, 이기면 재료를 더 가져와요',
+      specialAdult: '원정에서 아주 잘 싸우고, 이기면 재료를 더 많이 가져와요',
+      skill: PetSkill.frostBite,
+      skillName: '서리 물기',
+      skillText: '물어서 얼려 잠시 움직이지 못하게 해요',
+      skillTextAdult: '물어서 얼려 잠시 움직이지 못하게 해요',
+      favorite: MaterialId.gemIce,
+    ),
+    PetSpecies.drake: PetSpeciesInfo(
+      id: PetSpecies.drake,
+      element: Element.fire,
+      name: '드레이크',
+      grade: PetGrade.rare,
+      special: '원정 기력을 덜 쓰고 잘 싸워요',
+      specialAdult: '원정 기력을 더 덜 쓰고 더 잘 싸워요',
+      skill: PetSkill.flameBreath,
+      skillName: '화염 숨결',
+      skillText: '크게 태우고 불이 계속 타요',
+      skillTextAdult: '크게 태우고 불이 계속 타요',
+      favorite: MaterialId.gemFire,
+    ),
+    PetSpecies.kelpie: PetSpeciesInfo(
+      id: PetSpecies.kelpie,
+      element: Element.water,
+      name: '켈피',
+      grade: PetGrade.rare,
+      special: '물가 원정이 아주 가볍고 빠르고, 다른 원정도 조금 빨라요',
+      specialAdult: '물가 원정이 아주 가볍고 더 빠르고, 다른 원정도 빨라요',
+      skill: PetSkill.tideWrap,
+      skillName: '물살 휘감기',
+      skillText: '몬스터를 묶고 내 HP를 조금 채워요',
+      skillTextAdult: '몬스터를 묶고 내 HP를 조금 채워요',
+      favorite: MaterialId.gemWater,
+    ),
+    PetSpecies.mimic: PetSpeciesInfo(
+      id: PetSpecies.mimic,
+      element: Element.metal,
+      name: '미믹',
+      grade: PetGrade.rare,
+      special: '원정에서 가끔 금화나 귀한 재료를 가져와요',
+      specialAdult: '원정에서 더 자주 금화나 귀한 재료를 가져와요',
+      skill: PetSkill.ambush,
+      skillName: '깜짝 물기',
+      skillText: '가끔 아주 크게 물어요',
+      skillTextAdult: '더 자주 아주 크게 물어요',
+      favorite: MaterialId.gemMetal,
+    ),
+    PetSpecies.golem: PetSpeciesInfo(
+      id: PetSpecies.golem,
+      element: Element.earth,
+      name: '골렘',
+      grade: PetGrade.rare,
+      special: '원정에서 져도 기력을 잃지 않아요',
+      specialAdult: '원정에서 져도 기력을 잃지 않아요',
+      skill: PetSkill.stoneWall,
+      skillName: '돌 방벽',
+      skillText: '아주 오래 막는 보호막을 쳐요',
+      skillTextAdult: '아주 오래 막는 보호막을 쳐요',
+      favorite: MaterialId.gemEarth,
     ),
   };
 

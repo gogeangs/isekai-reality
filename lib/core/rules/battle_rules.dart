@@ -1441,6 +1441,34 @@ class Battle {
       case PetSkill.shield:
         shieldHits = PetRules.shieldHits(adult: petAdult);
         lastEvent = '보호막!';
+      // 묶음 33 #185 희귀 펫
+      case PetSkill.thunderClaw:
+        if (_rng.nextDouble() < PetRules.thunderStun) {
+          _foeBound = true;
+          lastEvent = '멈칫!';
+        }
+      case PetSkill.frostBite:
+        _foeFrozen = true;
+        foeFreezes++;
+        lastEvent = '얼었어요!';
+      case PetSkill.flameBreath:
+        foeBurnTurns = PetRules.flameTurns;
+        lastEvent = '화상!';
+      case PetSkill.tideWrap:
+        _foeBound = true;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + math.max(1, (playerMaxHp * PetRules.tideHeal).round()));
+        _healed(playerHp - before);
+        lastEvent = '묶었어요!';
+      case PetSkill.ambush:
+        if (_rng.nextDouble() < PetRules.ambushChance(adult: petAdult)) {
+          dmg = (dmg * PetRules.ambushMultiplier).round();
+          lastEvent = '깜짝 물기!';
+        }
+      case PetSkill.stoneWall:
+        shieldHits = PetRules.stoneWallHits(adult: petAdult);
+        lastEvent = '돌 방벽!';
       case PetSkill.peck || null:
         break;
     }

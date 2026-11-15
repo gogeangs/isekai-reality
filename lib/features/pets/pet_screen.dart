@@ -164,7 +164,7 @@ class _PetCard extends StatelessWidget {
                     ),
                   ]),
                   Text(
-                      '${info.name} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
+                      '${info.name}${info.grade == PetGrade.rare ? ' · 희귀' : ''} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
                       '${companion ? ' · 동행' : ''}${away ? ' · 원정 중' : ''}',
                       style: const TextStyle(
                           color: AppColors.goldBright, fontSize: 12)),

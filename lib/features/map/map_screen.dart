@@ -132,7 +132,10 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
         // 묶음 16 #126: 상태 화면의 정령 한마디를 지도 구석에도 작게
-        if (!controller.inTutorial && controller.player.today != null)
+        // 묶음 33 #199: 기능 안내(손가락) 중에는 배지 말풍선을 띄우지 않는다
+        if (!controller.inTutorial &&
+            !controller.guideTourActive &&
+            controller.player.today != null)
           Positioned(
             left: 14, // 프로필 동그라미와 같은 줄
             top: top + 64,

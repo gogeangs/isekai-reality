@@ -34,6 +34,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   String? _drawnFix;
   String? _drawnSpirit;
   String? _drawnMerchant;
+  String? _drawnHarvest;
 
   static NLatLng _ll(GeoPoint p) => NLatLng(p.lat, p.lng);
 
@@ -140,12 +141,22 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     final merchantAt = c.merchantPoint;
     final merchantKey =
         merchantAt == null ? null : '${c.merchantMinutesLeft}';
+    // 묶음 33 #199: 채집 자리(안내 꽃·길 찾기)·안내 대상·먼 눈·바람 따라 걷기가 바뀌어도 다시 그림
+    final harvestKey = [
+      for (final h in c.harvestSpots)
+        '${h.id}@${h.point.lat.toStringAsFixed(5)},${h.point.lng.toStringAsFixed(5)}',
+      'g:${c.guideMapTarget?.id}',
+      'f:${c.skillTimedOn(JobSkill.farSight)}',
+      'w:${c.skillTimedOn(JobSkill.windWalk)}',
+    ].join('|');
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
         _drawnSpirit == spiritKey &&
-        _drawnMerchant == merchantKey) {
+        _drawnMerchant == merchantKey &&
+        _drawnHarvest == harvestKey) {
       return;
     }
+    _drawnHarvest = harvestKey;
     _drawnSpawns = spawns.length;
     _drawnFix = fixKey;
     _drawnSpirit = spiritKey;
@@ -272,6 +283,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     await _resize();
     await _findHidden();
     await _tutorialCamera();
+    // 묶음 33 #199: 그린 뒤에도 비출 자리를 다시 알린다 (지도가 움직였을 수 있다)
+    await _publishTutorialTarget();
     if (_anim == null && actives.isNotEmpty && mounted) {
       await _updateScale();
       _startAnim();
@@ -612,19 +625,23 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
   }
 
   NMarker _harvest(AppController c, HarvestSpot h) {
-    const base = 42.0; // 30 → 42 (몬스터와 같은 비율)
+    // 묶음 33 #199: 안내 중인 꽃은 크게, 맨 위에, 자리 한가운데에 (빛나는 원이 정확히 감싸게)
+    final guide = c.guideMapTarget?.id == h.id;
+    final base = guide ? 64.0 : 42.0; // 30 → 42 (몬스터와 같은 비율)
     final m = NMarker(
       id: 'harvest_${h.id}',
       position: _ll(h.point),
+      anchor: guide ? const NPoint(0.5, 0.5) : const NPoint(0.5, 1),
       icon: NOverlayImage.fromAssetImage(c.isTreasure(h)
           ? 'assets/images/icon_gold.webp'
           : h.info.mapAsset),
-      size: const Size(base, base),
+      size: Size(base, base),
       caption: _dots(c.isTreasure(h) ? 0 : c.harvestCharges(h), 1),
     )..setOnTapListener((_) {
         if (mounted) showHarvestSheet(context, c, h);
       });
-    _sized.add((m, const Size(base, base), true));
+    if (guide) m.setGlobalZIndex(260000);
+    _sized.add((m, Size(base, base), true));
     return m;
   }
 

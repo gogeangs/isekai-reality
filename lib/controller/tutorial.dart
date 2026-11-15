@@ -114,6 +114,10 @@ extension TutorialOps on AppController {
     _notify();
   }
 
+  /// 기능 안내(손가락·새로 열렸어요)가 진행 중인지 (배지 말풍선을 숨긴다)
+  bool get guideTourActive =>
+      pendingFeatureIntro != null || skillIntroPending || guideMapTarget != null;
+
   /// 안내가 비출 지도 위 자리 (튜토리얼 몬스터 · 안내 몬스터 · 안내 꽃)
   ({String id, GeoPoint point})? get guideMapTarget {
     if (inTutorial) {

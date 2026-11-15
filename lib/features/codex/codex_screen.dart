@@ -394,7 +394,7 @@ class _PetCodex extends StatelessWidget {
                   PetArt(species: info.id, adult: true, size: 120),
                 ]),
                 const SizedBox(height: 8),
-                Text(info.name,
+                Text(info.grade == PetGrade.rare ? '${info.name} · 희귀' : info.name,
                     textAlign: TextAlign.center,
                     style: AppText.title(22, color: AppColors.goldBright)),
                 const SizedBox(height: 10),

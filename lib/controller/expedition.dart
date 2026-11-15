@@ -658,7 +658,40 @@ extension ExpeditionOps on AppController {
         r = HuntReward(
             exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
       }
+      // 묶음 33 #185: 미믹 → 가끔 금화나 귀한 재료
+      if (pet.species == PetSpecies.mimic &&
+          r.exp > 0 &&
+          _random.nextDouble() <
+              PetRules.mimicChance(adult: pet.adult, bond: pet.bond)) {
+        if (_random.nextBool()) {
+          final g = PetRules.mimicGoldMin +
+              _random.nextInt(PetRules.mimicGoldMax - PetRules.mimicGoldMin + 1);
+          await _grant(g, 0, const {});
+          r = HuntReward(
+              exp: r.exp,
+              manaStones: r.manaStones,
+              gold: r.gold + g,
+              materials: r.materials);
+        } else {
+          const rare = [
+            MaterialId.essence,
+            MaterialId.roughGem,
+            MaterialId.butterflyDust,
+          ];
+          final m = rare[_random.nextInt(rare.length)];
+          await _grant(0, 0, {m: 1});
+          final mats = {...r.materials};
+          mats[m] = (mats[m] ?? 0) + 1;
+          r = HuntReward(
+              exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
+        }
+      }
       await _givePetExp(pet.uid, PetRules.expPerExpedition);
+    }
+    // 묶음 33 #185: 골렘 → 져도 기력을 돌려받음
+    if (!cleared && pet != null && PetRules.keepsMpOnLoss(pet.species)) {
+      _vitals = _vitals.copyWith(mp: math.min(mpMax, mp + ex.mpCost));
+      await store.saveVitals(_vitals);
     }
     // 묶음 31: 길잡이 먼 곳의 보물 → 먼 원정에서 이기면 재료를 더 (숨김)
     if (cleared &&

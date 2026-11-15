@@ -225,7 +225,7 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | fx_job_awaken | 직업 각성 빛 효과 (울퉁불퉁한 배경 경계를 둥글게 서서히 사라지게 다시 만듦, 1024) |
 | 2026-11-15 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 (시트에서 잘라 냄, 가운데 맞춤, 512) |
 | 2026-11-15 | guild_hall | 길드 홀 배경 (1536×768로 줄임) |
-| 2026-11-15 | mastery_{walk,appraise,spirit,trade} | 숙련도 문장 4 (원본에 틀이 없어 앞 4장의 금테 남색 원판에 얹음, 512) |
+| 2026-11-15 | mastery_{walk,appraise,spirit,trade} | 숙련도 문장 4 (기획대로 틀 없이, 게임에서 스킬 테두리를 두름, 512) |
 | 2026-11-15 | skill_{hotHammer,thornVine,potionThrow,rush} | 전투 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
 | 2026-11-15 | job_{blacksmith,herbalist,alchemist,warrior} | 직업 문장 4 (기본 직업, 시트에서 잘라 냄, 512) |
 | 2026-11-15 | skill_{galeSlash,weakStab,chargeOrder,coinToss} | 전투 스킬 아이콘 4 (뒤에 깔린 어두운 판을 걷어 냄, 단검 손잡이·소매는 손으로 살림, 512) |

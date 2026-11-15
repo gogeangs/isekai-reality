@@ -565,8 +565,12 @@ class _RenderEqualRow extends RenderBox
     var x = 0.0;
     child = firstChild;
     while (child != null) {
-      child.layout(BoxConstraints.tightFor(width: cw, height: maxH),
+      // 높이를 꼭 맞춘 제약(tight)이면 칸이 혼자서 다시 그려질 때 이 줄을 다시 재지 않아
+      // 내용이 줄 밖으로 넘칠 수 있다 → 「최소 maxH」로만 준다
+      child.layout(
+          BoxConstraints(minWidth: cw, maxWidth: cw, minHeight: maxH),
           parentUsesSize: true);
+      maxH = math.max(maxH, child.size.height);
       (child.parentData! as _EqualRowData).offset = Offset(x, 0);
       x += cw + _gap;
       child = childAfter(child);

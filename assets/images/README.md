@@ -240,3 +240,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | job_{nightWalker,gateHeir,ashHunter,allCrafter} | 직업 문장 4 (숨은 직업, 번진 노랑·보라 빛 제거, 512) |
 | 2026-11-16 | skill_{counterSlash,jointAttack,windBlade,poisonFlask} | 전투 스킬 아이콘 4 (뒤에 깔린 판을 걷어 냄, 단검 손잡이·날은 손으로 살림, 512) |
 | 2026-11-16 | skill_{shadowSlash,gatekeeperLight,ashPurge,artisanCombo} | 전투 스킬 아이콘 4 (숨은 직업, 번진 빛 제거, 512) |
+| 2026-11-16 | skill_m_{smith,harvest,alchemy,combat} | 숙련 액티브 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |

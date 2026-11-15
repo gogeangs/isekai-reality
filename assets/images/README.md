@@ -242,3 +242,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | skill_{shadowSlash,gatekeeperLight,ashPurge,artisanCombo} | 전투 스킬 아이콘 4 (숨은 직업, 번진 빛 제거, 512) |
 | 2026-11-16 | skill_m_{smith,harvest,alchemy,combat} | 숙련 액티브 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
 | 2026-11-16 | skill_m_{walk,appraise,spirit,trade} | 숙련 액티브 스킬 아이콘 4 (시트에서 잘라 냄, 번진 빛 제거, 512) |
+| 2026-11-16 | village_shop_{2,3} | 잡화상 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |

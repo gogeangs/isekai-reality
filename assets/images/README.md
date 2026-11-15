@@ -191,3 +191,14 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | ending_05_dawn | 결말 장면 5 다리 너머 여명 (852×1846) |
 | 2026-11-15 | potion_jobmana_{1,2} | 마나 물약 2종 (#183, 기력 물약 그림을 보라색으로 바꿔 만든 임시 그림, 160) |
 | 2026-11-15 | icon_guild | 길드 아이콘 금테 메달 (임시 그림 교체, 512) |
+| 2026-11-15 | potion_jobmana_{1,2} | 직업 마나 물약 보라 2병 (시트에서 잘라 냄, 임시 그림 교체, 512) |
+| 2026-11-15 | pet_griffin_{baby,adult}·pet_map_griffin | 희귀 펫 아기 그리핀 (#185, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | pet_direwolf_{baby,adult}·pet_map_direwolf | 희귀 펫 다이어울프 (#185, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | pet_drake_{baby,adult}·pet_map_drake | 희귀 펫 드레이크 (#185, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | pet_kelpie_{baby,adult}·pet_map_kelpie | 희귀 펫 켈피 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
+| 2026-11-15 | pet_mimic_{baby,adult}·pet_map_mimic | 희귀 펫 미믹 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
+| 2026-11-15 | pet_golem_{baby,adult}·pet_map_golem | 희귀 펫 골렘 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
+| 2026-11-15 | map_rift | 지도 잿빛 틈 금테 메달 (2막, 512 → 개발이 160) |
+| 2026-11-15 | equip_ash{Weapon,Crown,Body,Hands,Feet,Acc} | 잿빛 왕의 유품 6 (2막, 시트에서 잘라 냄, 512 → 개발이 256) |
+| 2026-11-15 | monster_ash{Rage,Sorrow,Greed} | 2막 분신 보스 분노·슬픔·탐욕 (시트에서 그림 덩어리별로 잘라 냄, 512) |
+| 2026-11-15 | monster_ash{Fear,Lonely} | 2막 분신 보스 두려움·외로움 (시트에서 잘라 냄, 뿌연 빛무리 제거, 512) |

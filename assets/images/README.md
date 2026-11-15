@@ -194,3 +194,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | potion_jobmana_{1,2} | 직업 마나 물약 보라 2병 (시트에서 잘라 냄, 임시 그림 교체, 512) |
 | 2026-11-15 | pet_griffin_{baby,adult}·pet_map_griffin | 희귀 펫 아기 그리핀 (#185, 시트에서 잘라 냄, 512) |
 | 2026-11-15 | pet_direwolf_{baby,adult}·pet_map_direwolf | 희귀 펫 다이어울프 (#185, 시트에서 잘라 냄, 512) |
+| 2026-11-15 | pet_drake_{baby,adult}·pet_map_drake | 희귀 펫 드레이크 (#185, 시트에서 잘라 냄, 512) |

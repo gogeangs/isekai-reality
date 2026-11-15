@@ -925,7 +925,6 @@ extension JobOps on AppController {
   double get harvestMapRadius {
     var r = HarvestRules.mapRadiusM *
         (1 + JobRules.herbalistSight * jobTrait(JobId.herbalist));
-    if (skillTimedOn(JobSkill.farSight)) r *= 2;
     return r;
   }
 
@@ -937,8 +936,17 @@ extension JobOps on AppController {
     return place.point.distanceTo(GeoPoint(lat / 1e6, lng / 1e6)) <= 1500;
   }
 
-  /// 먼 눈: 몬스터도 더 멀리 (지도에 보이는 거리 배율)
-  double get monsterSightFactor => skillTimedOn(JobSkill.farSight) ? 2 : 1;
+  /// 수식어(희귀) 몬스터가 붙는 몫: 행운 + 먼 눈(30분 동안 조금 더 자주)
+  double get modLuckBonus =>
+      StatRules.modifierBonus(combatStats) +
+      (skillTimedOn(JobSkill.farSight)
+          ? JobRules.farSightRare * skillPower(JobSkill.farSight)
+          : 0);
+
+  /// 먼 눈: 이 몬스터를 지도에 눈에 띄게 (희귀·전설 수식어)
+  bool spotsSpecial(FieldSpawn s) =>
+      skillTimedOn(JobSkill.farSight) &&
+      s.grade.index >= ModGrade.rare.index;
 
   /// 전투 피해 배율 (무기 장인·마수 기사·밤의 산책자)
   double get jobPower {

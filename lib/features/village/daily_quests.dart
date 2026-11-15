@@ -179,10 +179,14 @@ class QuestRowView extends StatelessWidget {
 
 /// 3개 모두 완료 보너스 + 연속 달성 일수: 맨 아래 큰 쪽지(금색 리본) (11-10 C2, 묶음 26 #180)
 class AllDoneRow extends StatelessWidget {
-  const AllDoneRow({super.key, required this.done, required this.streak});
+  const AllDoneRow(
+      {super.key, required this.done, required this.streak, this.count = 3});
 
   final bool done;
   final int streak;
+
+  /// 오늘의 의뢰 개수 (상인이면 4)
+  final int count;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +202,7 @@ class AllDoneRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(done ? '모두 완료!' : '3개 모두 완료하면 보너스',
+              Text(done ? '모두 완료!' : '$count개 모두 완료하면 보너스',
                   style: noteTitle(16)),
               Text(
                 streak > 0 ? '연속 달성 $streak일째' : '연속 달성을 시작해 보세요',

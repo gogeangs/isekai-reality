@@ -10,6 +10,8 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/bag_tab.dart' show openBag, BagFilter;
 import '../town/material_view.dart';
+import '../pets/pet_art.dart';
+import '../../data/storage/record_store.dart' show HeroLook;
 import 'battle_view.dart';
 import 'hero_rig.dart';
 
@@ -81,15 +83,16 @@ class _DungeonScreenState extends State<DungeonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
       backgroundColor: AppColors.deepNight,
       // 입장 화면의 '던전 열기'는 스크롤과 상관없이 화면 아래에 늘 보이게 고정한다
-      bottomNavigationBar: _stage == _Stage.entry ? _entryButton() : null,
+      bottomNavigationBar: _stage == _Stage.entry
+          ? _entryButton()
+          : _stage == _Stage.result
+              ? _resultButtons()
+              : null,
       body: NightBackground(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
-          children: [
+        child: _page([
             OrnateTopBar(
               title: switch (_stage) {
                 _Stage.entry => _c.atGate ? '미궁 입구' : '잿빛 던전',
@@ -117,6 +120,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   ],
                   BattleView(
                     battle: _battle!,
+                    fit: true,
                     // 묶음 31 #198: 전투 칸 2개
                     jobSkills: _c.battleJobSlots,
                     jobMp: () => _c.jobMp,
@@ -152,8 +156,27 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 ],
               _Stage.result => _result(),
             },
-          ],
-        ),
+          ]),
+      ),
+    );
+  }
+
+  /// 묶음 33 #202: 싸우는 동안은 스크롤 없이 한 화면 (전투 장면이 남은 높이에 맞춰 줄어듦)
+  Widget _page(List<Widget> children) {
+    final pad = MediaQuery.paddingOf(context);
+    if (_stage != _Stage.battle) {
+      return ListView(
+        padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 28),
+        children: children,
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final c in children) c is BattleView ? Expanded(child: c) : c,
+        ],
       ),
     );
   }
@@ -392,7 +415,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final cleared = battle.phase == BattlePhase.cleared;
     final purified = battle.purified.toSet().map(Monsters.info).toList();
     final player = _c.player;
-    final keys = player.gauge.keysAvailable;
     final line = cleared
         ? (purified.any((m) => m.isBoss)
             ? purified.firstWhere((m) => m.isBoss).huntLine
@@ -404,10 +426,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
       BulssiLine(
           line: line,
           mood: cleared ? SpiritMood.cheer : SpiritMood.worried),
-      const SizedBox(height: 10),
-      // 배너
+      const SizedBox(height: 8),
+      // 묶음 33 #203·#204: 낮은 축하 그림 — 배경 위에 각성자(성별)와 지금 동행(정령·펫)을 겹쳐 그림
       SizedBox(
-        height: 300,
+        height: 190,
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
@@ -422,34 +444,18 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     stops: [0, 0.7, 1],
                   ).createShader(r),
                   blendMode: BlendMode.dstIn,
-                  child: Image.asset(
-                      cleared
-                          ? 'assets/images/bg_victory.webp'
-                          : 'assets/images/bg_battle.webp',
+                  child: Image.asset(victoryBackground,
                       fit: BoxFit.cover,
                       alignment: const Alignment(0, 0.2),
+                      color: cleared ? null : const Color(0x88000000),
+                      colorBlendMode: cleared ? null : BlendMode.darken,
                       errorBuilder: (_, __, ___) => const SizedBox()),
                 ),
               ),
             ),
-            Positioned(
-              top: 6,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: ArtBanner(
-                  asset: 'assets/images/banner_clear.webp',
-                  width: 330,
-                  aspect: 760 / 302,
-                  text: cleared ? '던전 돌파!' : '이번엔 물러났어요',
-                  textOffset: -0.12,
-                  fontSize: 25,
-                ),
-              ),
-            ),
             Container(
-              width: 220,
-              height: 220,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(colors: [
@@ -458,18 +464,49 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 ]),
               ),
             ),
+            // 각성자 상반신 정도 (그림 아래쪽은 잘라 냄)
             Positioned(
-              bottom: 6,
-              height: 170,
-              child: HeroSprite(
-                  look: _c.profile.look,
-                  pose: cleared ? HeroPose.victory : HeroPose.idle),
+              key: const Key('victoryHero'),
+              bottom: 0,
+              height: 150,
+              width: 170,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  maxHeight: 230,
+                  child: Image.asset(
+                      cleared
+                          ? victoryHeroAsset(_c.profile.look)
+                          : 'assets/images/hero_idle_${_c.profile.look == HeroLook.female ? 'female' : 'male'}.webp',
+                      height: 230,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.topCenter,
+                      errorBuilder: (_, __, ___) => HeroSprite(
+                          look: _c.profile.look,
+                          pose: cleared ? HeroPose.victory : HeroPose.idle)),
+                ),
+              ),
             ),
             Positioned(
-              right: 36,
-              bottom: 60,
-              child: Image.asset('assets/images/bulssi.webp',
-                  width: 76, errorBuilder: (_, __, ___) => const SizedBox()),
+              key: const Key('victoryBuddy'),
+              right: 26,
+              bottom: 26,
+              child: _victoryBuddy(cleared),
+            ),
+            Positioned(
+              top: 4,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: ArtBanner(
+                  asset: 'assets/images/banner_clear.webp',
+                  width: 280,
+                  aspect: 760 / 302,
+                  text: cleared ? '던전 돌파!' : '이번엔 물러났어요',
+                  textOffset: -0.12,
+                  fontSize: 22,
+                ),
+              ),
             ),
           ],
         ),
@@ -482,11 +519,13 @@ class _DungeonScreenState extends State<DungeonScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const GameIcon('exp', size: 34),
+                const GameIcon('exp', size: 28),
                 const SizedBox(width: 8),
-                Text(
-                  _exp > 0 ? '경험치 +$_exp' : '오늘 던전 경험치는 다 받았어요',
-                  style: AppText.title(_exp > 0 ? 28 : 17),
+                Flexible(
+                  child: Text(
+                    _exp > 0 ? '경험치 +$_exp' : '오늘 던전 경험치는 다 받았어요',
+                    style: AppText.title(_exp > 0 ? 24 : 16),
+                  ),
                 ),
                 if (_atGate && _exp > 0) ...[
                   const SizedBox(width: 10),
@@ -494,7 +533,7 @@ class _DungeonScreenState extends State<DungeonScreen> {
                 ],
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(children: [
               Text('Lv.${player.level.level}',
                   style: AppText.level(15, color: AppColors.text)),
@@ -510,65 +549,138 @@ class _DungeonScreenState extends State<DungeonScreen> {
                       const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ]),
             const SizedBox(height: 8),
-            Text('사냥 ${battle.purified.length} / ${battle.floors.length}',
-                style: AppText.title(16, color: const Color(0xFFCDB8F5))),
-            const SizedBox(height: 8),
-            RewardItems(reward: _c.lastReward),
+            Row(children: [
+              Text('사냥 ${battle.purified.length} / ${battle.floors.length}',
+                  style: AppText.title(14, color: const Color(0xFFCDB8F5))),
+              const SizedBox(width: 10),
+              // 얻은 것 한 줄 (넘치면 옆으로 넘김, 누르면 이름)
+              Expanded(child: RewardStrip(reward: _c.lastReward)),
+            ]),
           ],
         ),
       ),
-      const SizedBox(height: 12),
-      if (purified.isNotEmpty)
-        OrnatePanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
+      if (purified.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        // 도감 새로 등록은 작은 칩 한 줄
+        SingleChildScrollView(
+          key: const Key('codexChips'),
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            Text(
                 purified.any((m) => !_knownBefore.contains(m.id))
                     ? '도감에 새로 등록'
                     : '사냥한 몬스터',
-                textAlign: TextAlign.center,
-                style: AppText.title(16),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final m in purified)
-                    Expanded(
-                      child: _MonsterCard(
-                          info: m, isNew: !_knownBefore.contains(m.id)),
-                    ),
-                ],
-              ),
+                style: AppText.title(13, color: AppColors.goldBright)),
+            const SizedBox(width: 8),
+            for (final m in purified) ...[
+              _MonsterChip(info: m, isNew: !_knownBefore.contains(m.id)),
+              const SizedBox(width: 6),
             ],
-          ),
+          ]),
         ),
-      const SizedBox(height: 14),
-      Center(
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const GameIcon('key', size: 26),
-          const SizedBox(width: 6),
-          Text('남은 열쇠 $keys개', style: AppText.title(16, color: AppColors.text)),
-        ]),
-      ),
-      const SizedBox(height: 14),
-      if (keys > 0 && _c.canFightNow) ...[
-        GoldButton(
-          label: '다시 열기 · 열쇠 1개',
-          onPressed: () {
-            setState(() => _stage = _Stage.entry);
-            _start();
-          },
-        ),
-        const SizedBox(height: 10),
       ],
-      FrameButton(
-        label: '돌아가기',
-        onPressed: () => Navigator.of(context).pop(),
-      ),
     ];
   }
+
+  /// 결과 화면 아래 고정: 남은 열쇠 + 다시 열기 · 돌아가기
+  Widget _resultButtons() {
+    final keys = _c.player.gauge.keysAvailable;
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x000F1233), AppColors.deepNight],
+          stops: [0, 0.3],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: SafeArea(
+        top: false,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const GameIcon('key', size: 22),
+            const SizedBox(width: 6),
+            Text('남은 열쇠 $keys개',
+                style: AppText.title(15, color: AppColors.text)),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            if (keys > 0 && _c.canFightNow) ...[
+              Expanded(
+                child: GoldButton(
+                  label: '다시 열기 · 열쇠 1개',
+                  fontSize: 15,
+                  onPressed: () {
+                    setState(() => _stage = _Stage.entry);
+                    _start();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: FrameButton(
+                label: '돌아가기',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  /// 축하 그림 속 동행: 정령(고른 종류의 기뻐하는 그림), 이별 뒤엔 동행 펫
+  Widget _victoryBuddy(bool cleared) {
+    final pet = _c.companionPet;
+    if (_c.farewellDone && pet != null) {
+      return PetArt(species: pet.species, adult: pet.adult, size: 70);
+    }
+    if (_c.farewellDone) return const SizedBox.shrink();
+    final kind = _c.profile.spiritKind;
+    return Image.asset(
+        cleared ? 'assets/images/spirit_${kind.name}_cheer.webp' : spiritAsset(kind),
+        width: 70,
+        errorBuilder: (_, __, ___) => Image.asset(spiritAsset(kind), width: 70));
+  }
+}
+
+/// 축하 배경 (사람 없는 그림이 오면 이 이름만 바꾼다)
+const String victoryBackground = 'assets/images/bg_battle.webp';
+
+/// 각성자 성별 축하 그림
+String victoryHeroAsset(HeroLook look) =>
+    'assets/images/hero_victory_${look == HeroLook.female ? 'female' : 'male'}.webp';
+
+/// 도감 칩 (작게 한 줄)
+class _MonsterChip extends StatelessWidget {
+  const _MonsterChip({required this.info, required this.isNew});
+
+  final MonsterInfo info;
+  final bool isNew;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(4, 3, 10, 3),
+        decoration: BoxDecoration(
+          color: AppColors.slotBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: isNew
+                  ? AppColors.goldBright
+                  : AppColors.gold.withValues(alpha: 0.5)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          MonsterPicture(monster: info.id, size: 26),
+          const SizedBox(width: 4),
+          Text(isNew ? '${info.name} · 새로' : info.name,
+              style: TextStyle(
+                  color: isNew ? AppColors.goldBright : AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      );
 }
 
 class _FloorTrack extends StatelessWidget {
@@ -624,55 +736,6 @@ class _GateBonusBadge extends StatelessWidget {
       text: '×1.5',
       textOffset: -0.1,
       fontSize: small ? 15 : 22,
-    );
-  }
-}
-
-class _MonsterCard extends StatelessWidget {
-  const _MonsterCard({required this.info, required this.isNew});
-
-  final MonsterInfo info;
-  final bool isNew;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.fromLTRB(6, 6, 6, 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF3A2E6E), Color(0xFF1B1E4C)],
-        ),
-        border: Border.all(color: AppColors.goldBright, width: 1.2),
-      ),
-      child: Column(children: [
-        if (isNew)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-            decoration: BoxDecoration(
-              gradient: kGoldGradient,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text('NEW',
-                style: TextStyle(
-                    color: AppColors.goldInk,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900)),
-          )
-        else
-          const SizedBox(height: 15),
-        MonsterPicture(monster: info.id, size: 70),
-        Text(info.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: const TextStyle(
-                color: AppColors.text,
-                fontSize: 12,
-                fontWeight: FontWeight.w700)),
-      ]),
     );
   }
 }

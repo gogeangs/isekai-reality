@@ -577,6 +577,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     }
     if (accepted == null) {
       _guide(hunt: false);
+      // 묶음 33 #201: 쪽지 → 상세 창 → 수락하기
+      if (b.top == 'errandDetail') {
+        final slot = bd.slots.indexWhere((s) => s.templateId != null);
+        return _here(Key('errandAccept_${slot < 0 ? 0 : slot}'), '수락하기를 눌러 봐!');
+      }
       if (b.top != 'board') {
         return _toFacility('board', 'facility_board',
             '의뢰 게시판이 열렸어! 마을로 가 보자.', '의뢰 게시판을 눌러 봐!');
@@ -589,7 +594,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         _doOnce('end', () => _finish(f));
         return null;
       }
-      return _here(Key('errandAccept_$slot'), '쉬운 의뢰부터 받아 보자!');
+      return _here(Key('errandNote_$slot'), '쉬운 의뢰부터 받아 보자! 쪽지를 눌러 봐.');
     }
     if (c.questRewardsReady == 0) {
       // 지도에서 깨기
@@ -614,6 +619,9 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           round: true);
     }
     _guide(hunt: false);
+    if (b.top == 'errandDetail') {
+      return _here(Key('errandClaim_$accepted'), '보상을 받자!');
+    }
     if (b.top != 'board') {
       if (b.top == 'home' && b.tab != FeatureTourLayer.tVillage) {
         final nav = rectOf(tutorialNavKeys[FeatureTourLayer.tVillage]);
@@ -623,7 +631,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       return _toFacility('board', 'facility_board',
           '의뢰를 다 했어! 마을로 가 보자.', '의뢰 게시판에서 보상을 받자!');
     }
-    return _here(Key('errandClaim_$accepted'), '보상을 받자!');
+    return _here(Key('errandNote_$accepted'), '쪽지가 빛나! 눌러서 보상을 받자.');
   }
 
   // ───────────── Lv.5 채집: 첫 도구 만들기 → 가까운 꽃 → 미니게임 → 얻은 것

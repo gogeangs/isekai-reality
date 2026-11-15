@@ -8,18 +8,43 @@ import '../../theme/ornaments.dart';
 /// 시설 맨 위 마을 사람 (묶음 35): 금테 얼굴 + 이름·역할 + 한마디 말풍선.
 /// 처음 만날 때 한 줄(한 번), 그 뒤엔 그 막의 평소 대사 두 줄을 번갈아.
 /// 한마디는 화면을 열 때 한 번 정한다 (다시 그려도 바뀌지 않음).
+/// 묶음 38 #213: 시설 안 정령 띠 대신 마을 사람이 안내한다 — 처음 만날 때 첫 줄 →
+/// 상황 안내([situation]) → 그 밖엔 막 대사와 기본 안내([guide])를 번갈아.
+/// 탭을 바꾸면 그 탭 안내([tabLine])로 바뀐다
 class NpcHeader extends StatefulWidget {
-  const NpcHeader({super.key, required this.controller, required this.npc});
+  const NpcHeader({
+    super.key,
+    required this.controller,
+    required this.npc,
+    this.guide,
+    this.situation,
+    this.tabLine,
+  });
 
   final AppController controller;
   final Npc npc;
+  final String? guide;
+  final String? situation;
+  final String? tabLine;
 
   @override
   State<NpcHeader> createState() => _NpcHeaderState();
 }
 
 class _NpcHeaderState extends State<NpcHeader> {
-  late final String _line = widget.controller.takeNpcLine(widget.npc);
+  late String _line = widget.controller.takeNpcLine(widget.npc,
+      guide: widget.guide, situation: widget.situation);
+
+  @override
+  void didUpdateWidget(NpcHeader old) {
+    super.didUpdateWidget(old);
+    // 화면에 있는 동안 상황이 바뀌면 (예: 체크인해서 쉬는 중) 그 안내로
+    final s = widget.situation;
+    if (s != null && s != old.situation) _line = s;
+    if (s == null && old.situation != null && widget.guide != null) {
+      _line = widget.guide!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,16 +59,28 @@ class _NpcHeaderState extends State<NpcHeader> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Text(info.name, style: AppText.title(16, color: AppColors.goldBright)),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(info.role,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 12)),
+              // 묶음 38 #214: 뒤 배경 그림 위에서도 또렷하게 어두운 반투명 띠
+              Container(
+                key: Key('npcName_${widget.npc.name}'),
+                padding: const EdgeInsets.fromLTRB(8, 2, 10, 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xCC0B0D26),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ]),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(info.name,
+                      style: AppText.title(16, color: AppColors.goldBright)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(info.role,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Color(0xFFE6DCC4),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
               const SizedBox(height: 4),
               // 말풍선 (꼬리는 얼굴 쪽)
               Stack(clipBehavior: Clip.none, children: [
@@ -55,7 +92,7 @@ class _NpcHeaderState extends State<NpcHeader> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFB08A4A)),
                   ),
-                  child: KText(_line,
+                  child: KText(widget.tabLine ?? _line,
                       key: Key('npcLine_${widget.npc.name}'),
                       style: const TextStyle(
                           color: Color(0xFF3A2614),

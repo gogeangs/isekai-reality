@@ -7,7 +7,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../data/storage/record_store.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
@@ -80,11 +79,11 @@ class ShopScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
-                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                NpcHeader(controller: controller, npc: Npc.mina),
-                const SizedBox(height: 8),
-                const BulssiLine(
-                    line: '몬스터를 잡으면 마석이 나와. 팔아서 금화로 필요한 걸 사자!'),
+                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
+                NpcHeader(
+                    controller: controller,
+                    npc: Npc.mina,
+                    guide: VillageRules.shopGuide),
                 const SizedBox(height: 4),
                 JobSkillBar(
                     controller: controller, places: const [SkillPlace.shop]),

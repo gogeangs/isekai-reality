@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/rules/rules.dart' show VillageRules;
+import '../../core/rules/rules.dart' show JobRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -38,9 +38,9 @@ class FacilityInfo {
       }}.webp';
 }
 
-/// 하단 메뉴 '마을' 탭 (묶음 35 개편): 스크롤 없이 마을 그림을 크게, 그림 속 건물을 누르면
-/// 들어간다. 아래엔 열린 시설 이름표 한 줄. 막(이별 전 · 2막 · 결말 뒤)마다 바탕이 바뀐다.
-/// 시설이 12곳부터는 바탕 전체를 좌우로 끌어서 둘러보고, 「전체」로 모아 본다.
+/// 하단 메뉴 '마을' 탭 (묶음 35 개편 · 묶음 38 #211 전체 화면).
+/// 마을 그림이 화면 전체를 채우고(높이에 맞춤), 처음부터 좌우로 끌어서 둘러본다.
+/// 건물마다 아래에 작은 이름표(#212). 막(이별 전 · 2막 · 결말 뒤)마다 바탕이 바뀐다.
 class VillageScreen extends StatefulWidget {
   const VillageScreen({super.key, required this.controller});
 
@@ -50,22 +50,22 @@ class VillageScreen extends StatefulWidget {
   static const Size art = Size(1536, 1024);
 
   /// 여명의 탑 자리 (바탕 그림 픽셀, 누를 수 없는 배경)
-  static const Rect tower = Rect.fromLTWH(765, 10, 85, 195);
+  static const Rect tower = Rect.fromLTWH(738, 12, 72, 195);
 
-  /// 시설이 적을 때 화면에 들어오게 하는 바탕 부분 (탑이 가운데)
-  static const Rect home = Rect.fromLTWH(420, 120, 760, 700);
+  /// 건물 3×3 묶음 (가운데 칸은 우물). 처음 들어올 때 이 가운데에 맞춘다
+  static const Rect cluster = Rect.fromLTRB(565, 370, 975, 775);
 
-  /// 건물 자리 (뒤쪽부터 그린다, 묶음 36 새 바탕: 탑 가운데·빈 터 14곳 중 가운데 8곳).
-  /// 나중에 ★2·★3 그림이 조금 커져도 맞게 둘레를 남겼다. 바깥 빈 터 6곳은 새 건물 자리
+  /// 건물 자리 (뒤쪽부터 그린다, 묶음 38 세로 화면용 바탕: 3×3 중 우물 뺀 8칸).
+  /// 양옆 큰 공터 6곳은 새 건물 자리로 비워 둔다
   static const facilities = [
-    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 610, y: 452, w: 225)),
-    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 925, y: 452, w: 225)),
-    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 530, y: 592, w: 235)),
-    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 1005, y: 592, w: 235)),
-    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 505, y: 768, w: 230)),
-    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 1045, y: 768, w: 230)),
-    FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 680, y: 772, w: 175)),
-    FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 852, y: 772, w: 175)),
+    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 635, y: 505, w: 132)),
+    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 770, y: 505, w: 132)),
+    FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 908, y: 505, w: 132)),
+    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 635, y: 642, w: 132)),
+    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 908, y: 642, w: 132)),
+    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 635, y: 772, w: 132)),
+    FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 770, y: 772, w: 132)),
+    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 908, y: 772, w: 132)),
   ];
 
   static const groupNames = {
@@ -132,12 +132,30 @@ class _VillageScreenState extends State<VillageScreen> {
     return '어서 와! 마을에서 쉬고, 사고, 의뢰를 받을 수 있어.';
   }
 
+  /// 안 열린 건물 이름표 뒤 글 (#212): 「Lv.7」 · 「첫 펫」
+  String _lockLabel(Facility f) => switch (f) {
+        Facility.smithy => 'Lv.${AppController.featureLevel[Feature.smithy]}',
+        Facility.board => 'Lv.${AppController.featureLevel[Feature.board]}',
+        Facility.alchemy => 'Lv.${AppController.featureLevel[Feature.alchemy]}',
+        Facility.guild => 'Lv.${JobRules.awakenLevel}',
+        Facility.shelter => '첫 펫',
+        _ => '',
+      };
+
   void _enter(FacilityInfo f) {
     if (f.facility == Facility.market) {
       showTopNotice(context, '거래소는 준비 중이에요', icon: Icons.construction_rounded);
       return;
     }
-    if (!_open(f.facility)) return;
+    if (!_open(f.facility)) {
+      showTopNotice(
+          context,
+          f.facility == Facility.shelter
+              ? '첫 펫과 함께 열려요'
+              : '${_lockLabel(f.facility)}에 열려요',
+          icon: Icons.lock_rounded);
+      return;
+    }
     final Widget page = switch (f.facility) {
       Facility.inn => InnScreen(controller: controller),
       Facility.shop => ShopScreen(controller: controller),
@@ -227,9 +245,10 @@ class _VillageScreenState extends State<VillageScreen> {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final top = MediaQuery.paddingOf(context).top;
+    final pad = MediaQuery.paddingOf(context);
     final open = _openList;
-    final wide = open.length >= VillageRules.wideFrom || c.villageWide;
+    // 시설이 12곳 넘게 생기면 「전체 ○」 (예시 모드는 미리 보기)
+    final many = open.length >= VillageRules.wideFrom || c.villageWide;
     if (_intro == null && c.villageIntroPending) {
       // 처음 들어올 때 소개 (한 번만, 건너뛰기 가능)
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -239,87 +258,87 @@ class _VillageScreenState extends State<VillageScreen> {
       });
     }
     final introLines = c.villageIntroLines;
-    return Stack(children: [
-      Padding(
-        padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
-        child: Column(children: [
-          const OrnateTopBar(title: '마을'),
-          const SizedBox(height: 6),
-          SpiritBadgeRow(
-              key: const Key('villageGreeting'), line: _moment ?? _greeting),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _VillageArt(
-              key: const Key('villageArt'),
-              act: c.villageAct,
-              all: VillageScreen.facilities,
-              open: _open,
-              news: _news,
-              wide: wide,
-              lighting: _lit,
-              towerGlow: _intro != null,
-              onTap: _enter,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 40,
-            child: Row(children: [
-              Expanded(
-                // 한꺼번에 그려 둔다 (안내가 화면 밖 이름표도 찾아 굴릴 수 있게)
-                child: SingleChildScrollView(
-                  key: const Key('villageTags'),
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    for (final f in open)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _NameTag(
-                          key: Key('facility_${f.facility.name}'),
-                          name: f.name,
-                          news: _news(f.facility),
-                          onTap: () => _enter(f),
-                        ),
-                      ),
-                  ]),
-                ),
-              ),
-              if (wide) ...[
-                const SizedBox(width: 6),
-                _AllButton(
-                    count: open.length,
-                    news: open.any((f) => _news(f.facility)),
-                    onTap: _showAll),
-              ],
-            ]),
-          ),
-          const SizedBox(height: 8),
-        ]),
-      ),
-      if (_intro != null && _intro! < introLines.length)
+    return ColoredBox(
+      color: AppColors.deepNight,
+      child: Stack(children: [
         Positioned.fill(
-          child: _IntroOverlay(
-            line: introLines[_intro!],
-            last: _intro == introLines.length - 1,
-            onNext: () {
-              if (_intro! < introLines.length - 1) {
-                setState(() => _intro = _intro! + 1);
-              } else {
-                setState(() => _intro = introLines.length);
-                c.markVillageIntro();
-              }
-            },
-            onSkip: () {
-              setState(() => _intro = introLines.length);
-              c.markVillageIntro();
-            },
+          child: _VillageArt(
+            key: const Key('villageArt'),
+            act: c.villageAct,
+            all: VillageScreen.facilities,
+            open: _open,
+            news: _news,
+            lockLabel: _lockLabel,
+            lighting: _lit,
+            towerGlow: _intro != null,
+            bottomPad: pad.bottom,
+            onTap: _enter,
           ),
         ),
-    ]);
+        // 위쪽 버튼 뒤 살짝 어두운 그라데이션
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: pad.top + 120,
+          child: const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xB30B0D26), Color(0x000B0D26)],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 14,
+          right: 14,
+          top: pad.top + 6,
+          child: Column(children: [
+            const OrnateTopBar(title: '마을'),
+            const SizedBox(height: 6),
+            SpiritBadgeRow(
+                key: const Key('villageGreeting'), line: _moment ?? _greeting),
+          ]),
+        ),
+        if (many)
+          Positioned(
+            right: 14,
+            bottom: pad.bottom + 22,
+            child: _AllButton(
+                count: open.length,
+                news: open.any((f) => _news(f.facility)),
+                onTap: _showAll),
+          ),
+        if (_intro != null && _intro! < introLines.length)
+          Positioned.fill(
+            child: _IntroOverlay(
+              line: introLines[_intro!],
+              last: _intro == introLines.length - 1,
+              onNext: () {
+                if (_intro! < introLines.length - 1) {
+                  setState(() => _intro = _intro! + 1);
+                } else {
+                  setState(() => _intro = introLines.length);
+                  c.markVillageIntro();
+                }
+              },
+              onSkip: () {
+                setState(() => _intro = introLines.length);
+                c.markVillageIntro();
+              },
+            ),
+          ),
+      ]),
+    );
   }
 }
 
-/// 마을 그림: 바탕 위에 건물을 한 채씩. 넓을 땐 좌우로 끌어서 둘러본다.
+/// 마을 그림: 바탕 위에 건물을 한 채씩. 높이에 맞추고 처음부터 좌우로 끌어서 둘러본다
+/// (양쪽 끝에서 멈춤, 아래 작은 위치 막대). 처음엔 건물 3×3 묶음 가운데.
 class _VillageArt extends StatefulWidget {
   const _VillageArt({
     super.key,
@@ -327,9 +346,10 @@ class _VillageArt extends StatefulWidget {
     required this.all,
     required this.open,
     required this.news,
-    required this.wide,
+    required this.lockLabel,
     required this.lighting,
     required this.towerGlow,
+    required this.bottomPad,
     required this.onTap,
   });
 
@@ -337,13 +357,16 @@ class _VillageArt extends StatefulWidget {
   final List<FacilityInfo> all;
   final bool Function(Facility) open;
   final bool Function(Facility) news;
-  final bool wide;
+  final String Function(Facility) lockLabel;
 
   /// 결말 뒤 처음: 탑 불꽃이 켜지는 연출
   final bool lighting;
 
   /// 소개 중: 탑을 금빛 테두리로
   final bool towerGlow;
+
+  /// 아래 탭 막대 높이 (그림이 그 아래까지 깔린다)
+  final double bottomPad;
   final ValueChanged<FacilityInfo> onTap;
 
   @override
@@ -352,7 +375,7 @@ class _VillageArt extends StatefulWidget {
 
 class _VillageArtState extends State<_VillageArt> {
   final _scroll = ScrollController();
-  bool _placed = false;
+  double? _placedFor;
 
   @override
   void dispose() {
@@ -366,62 +389,52 @@ class _VillageArtState extends State<_VillageArt> {
       ? _scroll.position.maxScrollExtent
       : 0;
 
-  void _page(int dir, double viewW) {
-    if (!_scroll.hasClients) return;
-    final to = (_scroll.offset + dir * viewW * 0.7).clamp(0.0, _max);
-    _scroll.animateTo(to,
-        duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: LayoutBuilder(builder: (context, box) {
-        final w = box.maxWidth, h = box.maxHeight;
-        const art = VillageScreen.art;
-        if (widget.wide) {
-          // 넓은 마을: 높이에 맞추고 좌우로 끌기 (처음엔 탑 쪽)
-          final s = h / art.height;
-          final fullW = art.width * s;
-          if (!_placed) {
-            _placed = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_scroll.hasClients) {
-                _scroll.jumpTo((VillageScreen.tower.center.dx * s - w / 2)
-                    .clamp(0.0, _max));
-              }
-            });
+    return LayoutBuilder(builder: (context, box) {
+      final w = box.maxWidth, h = box.maxHeight;
+      const art = VillageScreen.art;
+      const cl = VillageScreen.cluster;
+      // 높이에 맞춘다 (아주 넓은 화면이면 폭에 맞추고 위아래를 조금 자름)
+      final s = math.max(h / art.height, w / art.width);
+      final fullW = art.width * s;
+      final fullH = art.height * s;
+      // 위아래가 남으면 3×3 묶음이 가운데 오게
+      final oy = (h / 2 - cl.center.dy * s).clamp(h - fullH, 0.0);
+      if (_placedFor != w) {
+        _placedFor = w;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scroll.hasClients) {
+            _scroll.jumpTo((cl.center.dx * s - w / 2).clamp(0.0, _max));
           }
-          return Stack(children: [
-            SingleChildScrollView(
-              key: const Key('villageScroll'),
-              controller: _scroll,
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                  width: fullW, height: h, child: _scene(s, Offset.zero)),
+        });
+      }
+      return Stack(children: [
+        SingleChildScrollView(
+          key: const Key('villageScroll'),
+          controller: _scroll,
+          scrollDirection: Axis.horizontal,
+          physics: const ClampingScrollPhysics(),
+          child: SizedBox(
+              width: fullW, height: h, child: _scene(s, Offset(0, oy))),
+        ),
+        // 2막: 잿빛 안개는 그림과 같이 움직이지 않고 화면 가장자리에 고정
+        if (widget.act == 2)
+          Positioned.fill(
+            key: const Key('villageFog'),
+            child: IgnorePointer(
+              child: Image.asset('assets/images/village_fog.webp',
+                  fit: BoxFit.fill,
+                  errorBuilder: (_, __, ___) => const SizedBox()),
             ),
-            Positioned(
-              left: 4,
-              top: h / 2 - 20,
-              child: _ArrowButton(
-                  key: const Key('villageLeft'),
-                  icon: Icons.chevron_left_rounded,
-                  onTap: () => _page(-1, w)),
-            ),
-            Positioned(
-              right: 4,
-              top: h / 2 - 20,
-              child: _ArrowButton(
-                  key: const Key('villageRight'),
-                  icon: Icons.chevron_right_rounded,
-                  onTap: () => _page(1, w)),
-            ),
-            // 아래 작은 위치 막대
-            Positioned(
-              left: w * 0.3,
-              right: w * 0.3,
-              bottom: 8,
+          ),
+        // 아래 작은 위치 막대
+        if (fullW > w + 1)
+          Positioned(
+            left: w * 0.32,
+            right: w * 0.32,
+            bottom: widget.bottomPad + 8,
+            child: IgnorePointer(
               child: AnimatedBuilder(
                 animation: _scroll,
                 builder: (context, _) {
@@ -434,9 +447,9 @@ class _VillageArtState extends State<_VillageArt> {
                     final bw = bar.maxWidth;
                     return Container(
                       key: const Key('villageBar'),
-                      height: 6,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: const Color(0x66000000),
+                        color: const Color(0x88000000),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Stack(children: [
@@ -458,19 +471,9 @@ class _VillageArtState extends State<_VillageArt> {
                 },
               ),
             ),
-          ]);
-        }
-        // 시설이 적을 때: 탑 쪽 부분이 화면에 들어오게 (빈틈 없이 채움)
-        const home = VillageScreen.home;
-        final s = math.max(
-            math.min(w / home.width, h / home.height),
-            math.max(w / art.width, h / art.height));
-        final left = (w / 2 - (home.center.dx) * s)
-            .clamp(w - art.width * s, 0.0);
-        final topY = (h / 2 - home.center.dy * s).clamp(h - art.height * s, 0.0);
-        return _scene(s, Offset(left, topY));
-      }),
-    );
+          ),
+      ]);
+    });
   }
 
   /// 바탕 + 건물 (그림 픽셀 → 화면: ×[s], [o] 만큼 옮김)
@@ -490,17 +493,6 @@ class _VillageArtState extends State<_VillageArt> {
             errorBuilder: (_, __, ___) =>
                 const ColoredBox(color: Color(0xFF1A1D4A))),
       ),
-      // 2막: 가장자리·아래 잿빛 안개
-      if (widget.act == 2)
-        Positioned.fromRect(
-          key: const Key('villageFog'),
-          rect: r(0, 0, art.width, art.height),
-          child: IgnorePointer(
-            child: Image.asset('assets/images/village_fog.webp',
-                fit: BoxFit.fill,
-                errorBuilder: (_, __, ___) => const SizedBox()),
-          ),
-        ),
       // 결말 뒤 처음: 탑 불꽃이 켜진다 (1초쯤)
       if (widget.lighting)
         Positioned.fromRect(
@@ -526,6 +518,8 @@ class _VillageArtState extends State<_VillageArt> {
           ),
         ),
       for (final f in widget.all) _building(f, r),
+      // 건물 이름표 (#212): 건물 아래쪽 가운데, 건물보다 위에
+      for (final f in widget.all) _tag(f, r),
       // 소개 중: 탑을 금빛 테두리로 비춤
       if (widget.towerGlow)
         Positioned.fromRect(
@@ -563,50 +557,110 @@ class _VillageArtState extends State<_VillageArt> {
         child: pic,
       );
     }
+    // 누르는 곳은 건물 가운데 부분만 (이웃 건물과 겹친 투명한 둘레는 빼고)
     return Positioned.fromRect(
       key: Key('building_${f.facility.name}'),
       rect: rect,
-      child: Semantics(
-        button: open,
-        label: f.name,
+      child: Stack(children: [
+        Positioned.fill(child: IgnorePointer(child: pic)),
+        Positioned.fromRect(
+          rect: Rect.fromLTWH(rect.width * 0.1, rect.height * 0.12,
+              rect.width * 0.8, rect.height * 0.88),
+          child: Semantics(
+            button: true,
+            label: f.name,
+            child: GestureDetector(
+              // 열린 시설만 안내·시험이 찾는 이름 (facility_○○)
+              key: open && f.facility != Facility.market
+                  ? Key('facility_${f.facility.name}')
+                  : null,
+              behavior: HitTestBehavior.opaque,
+              onTap: () => widget.onTap(f),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// 건물 이름표 (#212): 열린 건물 「여관」 · 안 열린 건물 「🔒 연금술 공방 · Lv.7」 ·
+  /// 거래소 「거래소 · 준비 중」. 빨간 점은 이름표 오른쪽 위
+  Widget _tag(FacilityInfo f, Rect Function(double, double, double, double) r) {
+    final open = widget.open(f.facility);
+    final market = f.facility == Facility.market;
+    final sp = f.spot;
+    final bottom = r(sp.x, sp.y, 0, 0);
+    // 안 열린 건물·거래소는 두 줄 (이름 / 열리는 때) — 작은 화면에서도 옆 이름표와 겹치지 않게
+    final sub = market
+        ? '준비 중'
+        : open
+            ? null
+            : widget.lockLabel(f.facility);
+    const half = 80.0;
+    return Positioned(
+      left: bottom.left - half,
+      width: half * 2,
+      top: bottom.top - 14,
+      child: Center(
         child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: dim ? null : () => widget.onTap(f),
-          child: Stack(children: [
-            Positioned.fill(child: pic),
-            if (open && widget.news(f.facility))
-              Positioned(
-                right: rect.width * 0.18,
-                top: rect.height * 0.2,
-                child: const _RedDot(),
+          key: Key(market
+              ? 'tag_market'
+              : open
+                  ? 'tag_${f.facility.name}'
+                  : 'locked_${f.facility.name}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onTap(f),
+          child: Stack(clipBehavior: Clip.none, children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
+              decoration: BoxDecoration(
+                color: open
+                    ? const Color(0xE61A1636)
+                    : const Color(0xD9101024),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                    color: open
+                        ? AppColors.goldBright
+                        : AppColors.gold.withValues(alpha: 0.5),
+                    width: 1),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x88000000), blurRadius: 4),
+                ],
               ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (!open && !market) ...[
+                    const Icon(Icons.lock_rounded,
+                        size: 10, color: AppColors.textMuted),
+                    const SizedBox(width: 2),
+                  ],
+                  Text(f.name,
+                      maxLines: 1,
+                      style: TextStyle(
+                          color:
+                              open ? AppColors.goldBright : const Color(0xFFCFC6E0),
+                          fontSize: 11,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800)),
+                ]),
+                if (sub != null)
+                  Text(sub,
+                      key: Key('tagSub_${f.facility.name}'),
+                      maxLines: 1,
+                      style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 9.5,
+                          height: 1.15,
+                          fontWeight: FontWeight.w700)),
+              ]),
+            ),
+            if (open && widget.news(f.facility))
+              const Positioned(right: -5, top: -6, child: _RedDot()),
           ]),
         ),
       ),
     );
   }
-}
-
-class _ArrowButton extends StatelessWidget {
-  const _ArrowButton({super.key, required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xAA0B0D26),
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.8)),
-          ),
-          child: Icon(icon, color: AppColors.goldBright),
-        ),
-      );
 }
 
 class _RedDot extends StatelessWidget {
@@ -624,39 +678,7 @@ class _RedDot extends StatelessWidget {
       );
 }
 
-/// 아래 이름표 (열린 시설만)
-class _NameTag extends StatelessWidget {
-  const _NameTag(
-      {super.key, required this.name, required this.news, required this.onTap});
-
-  final String name;
-  final bool news;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Stack(clipBehavior: Clip.none, children: [
-          Container(
-            height: 36,
-            margin: const EdgeInsets.only(top: 2, right: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.cardBg,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.gold.withValues(alpha: 0.8)),
-            ),
-            child: Text(name,
-                style: AppText.title(14, color: AppColors.text)),
-          ),
-          if (news) const Positioned(right: 0, top: 0, child: _RedDot()),
-        ]),
-      );
-}
-
-/// 이름표 줄 끝 「전체 ○」 (시설 12곳부터)
+/// 오른쪽 아래 「전체 ○」 (시설 12곳부터)
 class _AllButton extends StatelessWidget {
   const _AllButton(
       {required this.count, required this.news, required this.onTap});

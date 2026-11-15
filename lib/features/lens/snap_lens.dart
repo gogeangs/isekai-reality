@@ -33,6 +33,16 @@ class SnapLens implements CameraKitFlutterEvents {
   /// 테스트에서 끈다
   static bool enabled = _on && groupId != '';
 
+  /// 렌즈 사진 이름판에 쓸 종족: 감정된 종족 중 렌즈가 있는 것만 (같은 종족은 한 번).
+  /// 렌즈 종족이 둘 이상 섞이면 앞(왼쪽 얼굴)부터 — 지금은 엘프 하나라 엘프만
+  static List<Race> lensRaces(List<Race> found) {
+    final out = [
+      for (final r in {...found})
+        if (races.contains(r)) r,
+    ];
+    return out.isEmpty ? found : out;
+  }
+
   /// 이 종족을 렌즈로 볼 수 있는지
   static bool supports(List<Race> found) =>
       enabled && found.any(races.contains);

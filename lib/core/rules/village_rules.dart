@@ -29,6 +29,34 @@ class NpcInfo {
 class VillageRules {
   VillageRules._();
 
+  // ───────────── 묶음 38 #213: 시설 안 정령 띠 대신 마을 사람이 안내
+  static const innFull = '기운은 벌써 가득하네. 그래도 푹 쉬면 휴식 보너스를 챙겨 줄게.';
+  static const innResting = '푹 쉬는 중이구나. 다른 일 보고 와도 돼. 다 쉬면 알려 줄게.';
+  static const innRested = '오늘은 벌써 푹 쉬었지? 지치면 언제든 또 와.';
+  static const innGuide = '오늘 하루 고생 많았어. 여기서 쉬면 HP랑 기력이 가득 찰 거야.';
+  static const shopGuide = '몬스터를 잡으면 마석이 나와요. 저한테 팔면 금화로 바꿔 드려요!';
+  static const smithyFree = '첫 무기는 값을 받지 않겠다. 마음에 드는 걸 골라라.';
+
+  /// 대장간 탭 안내 (0 만들기 · 1 강화 · 2·3 수리·분해·가공 · 4 보스 장비)
+  static String smithyGuide(int tab) => switch (tab) {
+        0 => '몬스터 재료로 장비를 만든다. 귀한 재료를 넣으면 좋은 등급이 잘 나오지.',
+        1 => '강화는 실패해도 부서지지 않는다. 마석과 금화만 든다.',
+        4 => '보스 조각과 보스 재료로 세트 장비를 만든다. 모아 입을수록 힘이 깨어나지.',
+        _ => '닳은 건 고치고, 안 쓰는 건 분해해라. 재료로 돌려주지.',
+      };
+
+  /// 연금술 공방 탭 안내
+  static String alchemyGuide(int tab) => switch (tab) {
+        0 => '넣는 순서가 딱 맞거나 귀한 재료를 쓰면 품질이 좋아져요!',
+        1 => '한 번 만든 물약은 여기 적혀요. 쪽지를 읽으면 재료도 알 수 있고요!',
+        2 => '하위 재료 여러 개를 상위 재료로 바꿔 드릴게요.',
+        _ => '남는 재료를 바꾸거나, 마석을 속성 마석으로 정제할 수 있어요.',
+      };
+  static const boardUrgent = '긴급 의뢰가 붙었네. 오늘 자정까지일세.';
+  static const boardGuide = '오늘의 의뢰일세. 길드 의뢰는 수락해야 시작되네.';
+  static const shelterGuide =
+      '알은 둥지에서 내가 따뜻하게 봐 줄게. 원정에서 지친 애들은 여기서 쉬면 금방 나아!';
+
   /// 묶음 36 이름 바꿈 (예전 저장 키 → 새 키)
   static const renamed = {'toby': 'mina', 'bron': 'dorgun', 'ella': 'eliel'};
 

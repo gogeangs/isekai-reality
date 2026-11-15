@@ -238,45 +238,59 @@ void main() {
       await tester.pump(const Duration(seconds: 9));
     });
 
-    testWidgets('작은 iPhone·Android 화면에서도 이름표가 한 줄에 겹치지 않음', (tester) async {
-      for (final size in const [Size(750, 1334), Size(1080, 2400)]) {
+    testWidgets('묶음 38: 작은 iPhone·큰 iPhone·Android — 처음 화면에 건물 8채가 다 보이고 이름표가 겹치지 않음',
+        (tester) async {
+      for (final size in const [Size(750, 1334), Size(1290, 2796), Size(1080, 2400)]) {
         phone(tester, size: size);
         late AppController c;
         await tester.runAsync(() async => c = await start(account(16,
             farewell: true, village: {'seen': ['intro', 'farewell']})));
         await village(tester, c);
+        final screen = tester.getRect(find.byKey(const Key('villageArt')));
+        for (final f in Facility.values) {
+          final r = tester.getRect(find.byKey(Key('building_${f.name}')));
+          expect(r.left, greaterThanOrEqualTo(screen.left - 1), reason: '$size ${f.name}');
+          expect(r.right, lessThanOrEqualTo(screen.right + 1), reason: '$size ${f.name}');
+        }
         final tags = [
           for (final f in Facility.values)
-            if (find.byKey(Key('facility_${f.name}')).evaluate().isNotEmpty)
-              tester.getRect(find.byKey(Key('facility_${f.name}'))),
-        ]..sort((a, b) => a.left.compareTo(b.left));
-        expect(tags.length, greaterThanOrEqualTo(5));
-        for (var i = 1; i < tags.length; i++) {
-          expect(tags[i].left, greaterThanOrEqualTo(tags[i - 1].right - 0.5));
-          expect(tags[i].top, closeTo(tags[0].top, 1));
+            for (final k in ['tag_${f.name}', 'locked_${f.name}'])
+              if (find.byKey(Key(k)).evaluate().isNotEmpty)
+                tester.getRect(find.byKey(Key(k))),
+        ];
+        expect(tags.length, Facility.values.length);
+        for (var i = 0; i < tags.length; i++) {
+          for (var j = i + 1; j < tags.length; j++) {
+            expect(tags[i].overlaps(tags[j]), isFalse, reason: '$size $i $j');
+          }
         }
-        // 2막: 안개
+        // 2막: 안개 (화면에 고정)
         expect(find.byKey(const Key('villageFog')), findsOneWidget);
+        // 아래 이름표 줄은 없음, 처음부터 끌기
+        expect(find.byKey(const Key('villageTags')), findsNothing);
+        expect(find.byKey(const Key('villageScroll')), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.pump(const Duration(seconds: 9));
       }
     });
 
-    testWidgets('넓은 마을(예시 모드): 좌우 버튼·위치 막대·「전체」 모아 보기', (tester) async {
+    testWidgets('묶음 38: 안 열린 건물은 자물쇠 + 열리는 때, 누르면 안내 · 거래소 준비 중',
+        (tester) async {
       phone(tester);
       late AppController c;
-      await tester.runAsync(() async {
-        c = AppController.demo(clock: () => t0);
-        await c.init();
-      });
+      await tester.runAsync(() async => c = await start(
+          account(5, newGates: true, village: {'seen': ['intro']})));
       await village(tester, c);
-      expect(find.byKey(const Key('villageScroll')), findsOneWidget);
-      expect(find.byKey(const Key('villageLeft')), findsOneWidget);
-      expect(find.byKey(const Key('villageBar')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('villageAllButton')));
-      await tester.pumpAndSettle(const Duration(milliseconds: 100));
-      expect(find.byKey(const Key('villageAll')), findsOneWidget);
-      expect(find.byKey(const Key('villageAll_inn')), findsOneWidget);
+      Text sub(String n) =>
+          tester.widget<Text>(find.byKey(Key('tagSub_$n')));
+      expect(sub('alchemy').data, 'Lv.7');
+      expect(sub('guild').data, 'Lv.15');
+      expect(sub('shelter').data, '첫 펫');
+      expect(sub('market').data, '준비 중');
+      expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('locked_alchemy')));
+      await tester.pump();
+      expect(find.text('Lv.7에 열려요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 

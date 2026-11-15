@@ -126,6 +126,20 @@ void main() {
       expect(again.takeNpcLine(Npc.mina), VillageRules.npc(Npc.mina).first);
     });
 
+    test('묶음 36 이름 바꿈: 토비·브론·엘라를 만난 기록은 미나·도르군·엘리엘로 이어 감', () async {
+      final c = await start(account(8, village: {
+        'seen': ['intro', 'met:toby', 'met:bron', 'met:ella'],
+        'visits': {'bron': 1},
+      }));
+      expect(VillageRules.npc(Npc.mina).name, '미나');
+      expect(VillageRules.npc(Npc.dorgun).name, '도르군');
+      expect(VillageRules.npc(Npc.eliel).name, '엘리엘');
+      expect(c.takeNpcLine(Npc.mina), isNot(VillageRules.npc(Npc.mina).first));
+      expect(c.takeNpcLine(Npc.eliel), isNot(VillageRules.npc(Npc.eliel).first));
+      // 도르군은 한 번 번갈았으므로 둘째 줄
+      expect(c.takeNpcLine(Npc.dorgun), VillageRules.linesFor(Npc.dorgun, 1)[1]);
+    });
+
     test('막: 이별 전 1 · 이별 뒤 2 · 결말 뒤 3', () async {
       expect((await start(account(5))).villageAct, 1);
       expect((await start(account(12, farewell: true))).villageAct, 2);

@@ -125,10 +125,42 @@ class ElementRules {
   static Set<Element> challengers(Element? main) =>
       main == null ? const {} : beats(main).toSet();
 
+  /// 걷기 속성 점수 (1,000보마다, 숨은 값)
+  static const double stepScore = 0.5;
+
+  /// 묶음 32 #189: 그 밖에 쌓이는 곳 (숨은 값)
+  static const double waterScore = 1; // 물가 채집·물가 장소
+  static const double oreScore = 0.5; // 광석 채집 → 금속
+  static const double woodScore = 0.5; // 나무·약초 채집 → 대지
+  static const double potionScore = 1; // 속성 물약 끓이기
+  static const double imbueScore = 3; // 대장간 속성 부여
+
+  /// 주 속성이 처음 생기거나 바뀔 때 한마디
+  static String auraLine(Element e) => switch (e) {
+        Element.fire => '요즘 너한테서 따뜻한 불 냄새가 나.',
+        Element.water => '요즘 너한테서 시원한 물 냄새가 나.',
+        Element.ice => '요즘 네 곁에 있으면 서늘한 바람이 불어.',
+        Element.wind => '요즘 너, 바람처럼 가벼워 보여.',
+        Element.thunder => '요즘 너한테서 찌릿한 기운이 느껴져.',
+        Element.earth => '요즘 너한테서 흙 냄새가 나. 든든해.',
+        Element.light => '요즘 너한테서 아침 햇살 같은 빛이 나.',
+        Element.dark => '요즘 너, 밤하늘처럼 조용한 기운이 있어.',
+        Element.metal => '요즘 너한테서 단단한 쇠 냄새가 나.',
+        Element.poison => '요즘 너한테서 쌉싸름한 풀 냄새가 나.',
+      };
+
   /// 기록에 적힌 점수 (counters 'el:<속성>' 은 10배로 적혀 있다)
   static Map<Element, double> scoresFrom(List<DailyRecord> history) {
     final out = <Element, double>{};
     for (final r in history) {
+      // 묶음 32 #189: 밤 1,000보마다 어둠 0.5 · 이른 아침 1,000보마다 빛 0.5 (예전 기록 포함)
+      final night = r.nightSteps ~/ 1000, dawn = r.dawnSteps ~/ 1000;
+      if (night > 0) {
+        out[Element.dark] = (out[Element.dark] ?? 0) + night * stepScore;
+      }
+      if (dawn > 0) {
+        out[Element.light] = (out[Element.light] ?? 0) + dawn * stepScore;
+      }
       r.counters.forEach((k, v) {
         if (!k.startsWith('el:')) return;
         final e = parse(k.substring(3));

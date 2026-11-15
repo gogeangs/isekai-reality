@@ -257,11 +257,29 @@ class _SpawnSheetState extends State<SpawnSheet> {
                     if (c.farewellDone && c.pets.pets.length > 1) ...[
                       const SizedBox(height: 6),
                       Wrap(spacing: 6, runSpacing: 4, children: [
-                        for (final p in c.pets.pets)
+                        // 묶음 32 #188: 잘 맞는 펫을 맨 위(앞)로, 「잘 맞아요」 표시
+                        for (final p in [
+                          ...c.pets.pets.where((p) => c.petSuits(p, spawn)),
+                          ...c.pets.pets.where((p) => !c.petSuits(p, spawn)),
+                        ])
                           ChoiceChip(
-                            label: Text(c.isAway(p.uid)
-                                ? '${p.name} (원정 중)'
-                                : p.name),
+                            key: Key('expPet_${p.uid}'),
+                            label: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(c.isAway(p.uid)
+                                  ? '${p.name} (원정 중)'
+                                  : p.name),
+                              if (c.petSuits(p, spawn)) ...[
+                                const SizedBox(width: 4),
+                                Text('잘 맞아요',
+                                    key: Key('suits_${p.uid}'),
+                                    style: TextStyle(
+                                        color: p.uid == chosen
+                                            ? AppColors.night
+                                            : AppColors.goldBright,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800)),
+                              ],
+                            ]),
                             selected: p.uid == chosen,
                             onSelected: c.isAway(p.uid)
                                 ? null

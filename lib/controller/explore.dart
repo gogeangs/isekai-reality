@@ -69,6 +69,10 @@ extension ExploreOps on AppController {
     );
     await store.upsert(updated);
     _history = await store.loadHistory();
+    // 묶음 32 #189: 물가 장소(정령의 호수)에 가면 물 점수
+    if (place.kind == PlaceKind.spiritLake) {
+      await _gainElement(Element.water, ElementRules.waterScore);
+    }
     if (!visitedBefore) {
       _lastDiscovery = place;
       // 묶음 27 #176: 걷기·탐험 숙련도가 오르면 새 장소 보상이 조금 더 (숨김)

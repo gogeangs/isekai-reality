@@ -190,10 +190,10 @@ void main() {
     test('작은 보호막: 다음 2번 받는 피해 절반 (성체 3번)', () {
       final b = battle(PetSkill.shield)..skillCharge = 99;
       b.useSkill();
-      expect(b.shieldHits, 2);
+      expect(b.shieldHits, 3); // 묶음 32 #190
       final a = battle(PetSkill.shield, adult: true)..skillCharge = 99;
       a.useSkill();
-      expect(a.shieldHits, 3);
+      expect(a.shieldHits, 4);
     });
 
     test('쪼기는 4틱에 찬다, 펫 스킬 배율이 피해에 들어간다', () {

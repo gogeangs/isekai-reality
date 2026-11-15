@@ -296,6 +296,10 @@ extension SmithyOps on AppController {
         await _saveArmory(_armory.replace(
             item.copyWith(elementLevel: item.elementLevel + 1)));
     }
+    // 묶음 32 #189: 대장간에서 속성을 부여하면(입히기·바꾸기) 그 속성 점수 (룬 새기기는 아님)
+    if ((act == SmithAction.apply || act == SmithAction.change) && to != null) {
+      await _gainElement(to, ElementRules.imbueScore);
+    }
     return SmithResult.ok;
   });
 

@@ -514,7 +514,18 @@ class AppController extends ChangeNotifier {
     if (!_legacyGates && !_gates28) await _migrateGates28();
     // 묶음 27 #176: 숨은 숙련도 (없으면 지금까지 한 횟수로 시작 값을 채운다)
     await _loadMastery();
-    final titles = await store.loadJson(_titlesKey);
+    // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
+    final aura = await _load(_auraKey, (j) => j, null);
+    if (aura == null || aura['v32'] != true) {
+      await _seedAura();
+    } else {
+      _auraAnnounced = aura['main'] as String?;
+      _elementSeed = {
+        for (final e in ((aura['seed'] as Map?) ?? const {}).entries)
+          if (ElementRules.parse('${e.key}') case final el?)
+            el: (e.value as num).toDouble(),
+      };
+    }
     _seenTitles = titles == null
         ? {...player.titles}
         : {
@@ -598,7 +609,9 @@ class AppController extends ChangeNotifier {
     var out = latest.copyWith(
         steps: health.steps,
         stepsAfter8pm: health.stepsAfter8pm,
-        stepsMorning: health.stepsMorning);
+        stepsMorning: health.stepsMorning,
+        stepsNight: health.stepsNight,
+        stepsDawn: health.stepsDawn);
     final bonus = health.counters['gaugeBonus'];
     if (bonus != null && bonus > (out.counters['gaugeBonus'] ?? 0)) {
       out = out.copyWith(counters: {...out.counters, 'gaugeBonus': bonus});
@@ -673,6 +686,11 @@ class AppController extends ChangeNotifier {
 
   /// 방금 강화 실패가 무사했는지
   bool _lastEnhanceSafe = false;
+
+  /// 묶음 32 #189: 예전 기록에서 한 번 센 속성 점수 · 마지막으로 알린 주 속성
+  static const _auraKey = 'aura';
+  Map<Element, double> _elementSeed = const {};
+  String? _auraAnnounced;
   bool _masteryReady = false;
   (String, DateTime)? _shownMastery;
 

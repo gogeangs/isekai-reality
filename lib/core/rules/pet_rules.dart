@@ -69,6 +69,29 @@ class PetRules {
   /// 빛 조각에서 태어나는 첫 펫 (묶음 29 #182): 숨은 주 속성에 맞춰.
   /// 바람 까마귀 · 어둠 검은 고양이 · 독 두꺼비 · 빛 부엉이 · 불 꼬마 도마뱀,
   /// 그 밖이거나 아직 없으면 호문쿨루스
+  /// 묶음 32 #189: ① 연금술이 큰 숙련도 1등이면 호문쿨루스 ② 아니면 펫이 있는 5속성
+  /// (바람·어둠·독·빛·불) 중 가장 높은 점수(30점이 안 돼도) ③ 다섯 모두 0이면 호문쿨루스
+  static PetSpecies firstPetFrom(Map<Element, double> scores,
+      {bool alchemyTop = false}) {
+    if (alchemyTop) return PetSpecies.homunculus;
+    Element? best;
+    var v = 0.0;
+    for (final e in const [
+      Element.wind,
+      Element.dark,
+      Element.poison,
+      Element.light,
+      Element.fire,
+    ]) {
+      final x = scores[e] ?? 0;
+      if (x > v) {
+        v = x;
+        best = e;
+      }
+    }
+    return firstPetFor(best);
+  }
+
   static PetSpecies firstPetFor(Element? e) => switch (e) {
         Element.wind => PetSpecies.crow,
         Element.dark => PetSpecies.blackCat,
@@ -85,13 +108,14 @@ class PetRules {
 
   /// Lv.11 이후 필드 사냥 (수식어 등급별)
   static double fieldEggChance(ModGrade grade) => switch (grade) {
-        ModGrade.none || ModGrade.common => 0.01,
+        // 묶음 32 #186: 보통 몬스터 1% → 2%
+        ModGrade.none || ModGrade.common => 0.02,
         ModGrade.rare => 0.05,
         ModGrade.legend => 0.20,
       };
 
   /// 던전 보스를 쓰러뜨렸을 때
-  static const double dungeonEggChance = 0.05;
+  static const double dungeonEggChance = 0.10; // 묶음 32 #186: 5% → 10%
 
   /// 주간 의뢰를 모두 끝낸 주: 2주에 한 번 알
   static const int boardEggEveryWeeks = 2;
@@ -116,13 +140,15 @@ class PetRules {
 
   /// 부화할 펫: 6종 각 1몫, 정령 짝은 2몫
   static PetSpecies rollSpecies(math.Random rng,
-      {PetSpecies? favored, Element? element}) {
+      {PetSpecies? favored, Element? element, bool alchemyTop = false}) {
     final pool = [
       for (final s in PetSpecies.values) ...[
         s,
         if (s == favored) s,
         // 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 3배
         if (element != null && info(s).element == element) ...[s, s],
+        // 묶음 32 #189: 연금술이 큰 숙련도 1등이면 호문쿨루스 3배
+        if (alchemyTop && s == PetSpecies.homunculus) ...[s, s],
       ],
     ];
     return pool[rng.nextInt(pool.length)];
@@ -175,8 +201,35 @@ class PetRules {
   static const int bondPerFood = 1;
   static const int bondPerSnack = 5;
 
-  /// 친밀도 100(단짝)이면 원정 특기 ×1.2
-  static double bondMultiplier(int bond) => bond >= maxBond ? 1.2 : 1.0;
+  /// 친밀도 100(단짝)이면 원정 특기 ×1.2. 기운 공명(#191)이면 효과 +10% (숨김)
+  static double bondMultiplier(int bond, {bool resonant = false}) =>
+      (bond >= maxBond ? 1.2 : 1.0) * (resonant ? resonanceBoost : 1.0);
+
+  // ───────────────────────── 기운 공명 (묶음 32 #191, 숨은 값)
+
+  /// 펫 속성이 내 주 속성과 같으면: 원정 특기·던전 스킬 효과 +10%
+  static const double resonanceBoost = 1.10;
+
+  /// 친밀도 오르는 양 1.5배 (먹이·간식)
+  static const double resonanceBond = 1.5;
+
+  static bool resonant(PetSpecies s, Element? main) =>
+      main != null && info(s).element == main;
+
+  // ───────────────────────── 호문쿨루스 (묶음 32 #190, 숨은 값)
+
+  /// 원정 특기 문구 (#184)
+  static const String homunculusSpecial =
+      '원정에서 재료를 많이 가져오고, 어느 몬스터에게도 약하지 않아요. 함께 있으면 물약이 가끔 하나 더 나와요';
+
+  /// 동행 중 연금술 물약이 가끔 하나 더 (연금술 숙련도·연금술사와 따로)
+  static double homunculusBrew({required bool adult}) => adult ? 0.15 : 0.10;
+
+  /// 이긴 원정에서 가끔 귀한 연금술 재료 (정제 에센스 계열)
+  static const double homunculusEssence = 0.20;
+
+  /// 원정에서 속성 몬스터에게 받는 피해 줄이기 (상성 약점도 없음)
+  static double homunculusGuard({required bool adult}) => adult ? 0.15 : 0.10;
 
   /// 돌려보내기: 마석 (5 + 레벨 × 2) + 좋아하던 재료 3개
   static int releaseMana(int level) => 5 + level * 2;
@@ -185,15 +238,19 @@ class PetRules {
   // ───────────────────────── 원정 특기
 
   /// 원정 이동 시간 배율 (까마귀)
-  static double travelTimeFactor(PetSpecies s, {required bool adult, int bond = 0}) {
+  static double travelTimeFactor(PetSpecies s,
+      {required bool adult, int bond = 0, bool resonant = false}) {
     if (s != PetSpecies.crow) return 1;
-    return 1 - (adult ? 0.30 : 0.20) * bondMultiplier(bond);
+    return 1 - (adult ? 0.30 : 0.20) * bondMultiplier(bond, resonant: resonant);
   }
 
   /// 원정 MP 배율 (꼬마 도마뱀, 물가의 두꺼비)
   static double mpFactor(PetSpecies s,
-      {required bool adult, int bond = 0, bool waterside = false}) {
-    final m = bondMultiplier(bond);
+      {required bool adult,
+      int bond = 0,
+      bool waterside = false,
+      bool resonant = false}) {
+    final m = bondMultiplier(bond, resonant: resonant);
     if (s == PetSpecies.lizard) return 1 - (adult ? 0.35 : 0.25) * m;
     if (s == PetSpecies.toad && waterside) return 1 - (adult ? 0.60 : 0.50) * m;
     return 1;
@@ -201,13 +258,21 @@ class PetRules {
 
   /// 물가 두꺼비의 이동 시간 배율
   static double waterTimeFactor(PetSpecies s,
-          {required bool adult, int bond = 0, bool waterside = false}) =>
-      s == PetSpecies.toad && waterside ? 1 - 0.30 * bondMultiplier(bond) : 1;
+          {required bool adult,
+          int bond = 0,
+          bool waterside = false,
+          bool resonant = false}) =>
+      s == PetSpecies.toad && waterside
+          ? 1 - 0.30 * bondMultiplier(bond, resonant: resonant)
+          : 1;
 
   /// 원정 전투력 배율 (부엉이 항상, 검은 고양이 밤)
   static double powerFactor(PetSpecies s,
-      {required bool adult, int bond = 0, bool night = false}) {
-    final m = bondMultiplier(bond);
+      {required bool adult,
+      int bond = 0,
+      bool night = false,
+      bool resonant = false}) {
+    final m = bondMultiplier(bond, resonant: resonant);
     if (s == PetSpecies.owl) return 1 + (adult ? 0.12 : 0.08) * m;
     if (s == PetSpecies.blackCat && night) {
       return 1 + (adult ? 0.25 : 0.15) * m;
@@ -215,13 +280,17 @@ class PetRules {
     return 1;
   }
 
-  /// 원정 성공 때 더 가져오는 재료 수 (호문쿨루스)
+  /// 원정 성공 때 더 가져오는 재료 수 (호문쿨루스: +2, 성체는 가끔 +3. 묶음 32 #190)
   static int extraMaterials(PetSpecies s, math.Random rng,
       {required bool adult, int bond = 0}) {
     if (s != PetSpecies.homunculus) return 0;
-    if (adult && rng.nextDouble() < 0.5 * bondMultiplier(bond)) return 2;
-    return 1;
+    if (adult && rng.nextDouble() < 0.5 * bondMultiplier(bond)) return 3;
+    return 2;
   }
+
+  /// 「잘 맞아요」(#188): 먼 목표 · 기력이 많이 드는 원정 기준 (숨은 값)
+  static const double farM = 1000;
+  static const int costlyMp = 20;
 
   /// 길에서 이만큼 넘게 떨어진 몬스터는 물가 몬스터로 친다 (두꺼비)
   static const double watersideM = 150;
@@ -229,14 +298,16 @@ class PetRules {
   // ───────────────────────── 던전 스킬
 
   /// 스킬 피해 배율 (기본 정령의 일격 ×4 자리)
-  static double skillMultiplier(PetSkill s, {required bool adult}) =>
+  static double skillMultiplier(PetSkill s,
+          {required bool adult, bool resonant = false}) =>
+      (resonant ? resonanceBoost : 1.0) *
       switch (s) {
-        PetSkill.peck => adult ? 5 : 4,
+        PetSkill.peck => adult ? 5.0 : 4.0,
         PetSkill.scratch => adult ? 4.5 : 3.5,
-        PetSkill.tongue => adult ? 3 : 2.5,
-        PetSkill.insight => 3,
-        PetSkill.ember => adult ? 3.5 : 3,
-        PetSkill.shield => 2,
+        PetSkill.tongue => adult ? 3.0 : 2.5,
+        PetSkill.insight => 3.0,
+        PetSkill.ember => adult ? 3.5 : 3.0,
+        PetSkill.shield => 2.0,
       };
 
   /// 스킬 충전 틱 (쪼기만 4, 나머지는 기본 5)
@@ -246,8 +317,8 @@ class PetRules {
   static double insightBonus({required bool adult}) => adult ? 0.30 : 0.20;
   static const int insightTurns = 3;
 
-  /// 작은 보호막: 다음 2번(성체 3번) 받는 피해 -50%
-  static int shieldHits({required bool adult}) => adult ? 3 : 2;
+  /// 작은 보호막: 다음 3번(성체 4번) 받는 피해 -50% (묶음 32 #190)
+  static int shieldHits({required bool adult}) => adult ? 4 : 3;
 
   // ───────────────────────── 정보
 
@@ -266,12 +337,12 @@ class PetRules {
       element: Element.wind,
       name: '까마귀',
       grade: PetGrade.common,
-      special: '원정 이동 시간 -20%',
-      specialAdult: '원정 이동 시간 -30%',
+      special: '원정을 빨리 다녀와요',
+      specialAdult: '원정을 더 빨리 다녀와요',
       skill: PetSkill.peck,
       skillName: '쪼기',
-      skillText: '피해 ×4, 빨리 차요 (4틱)',
-      skillTextAdult: '피해 ×5, 빨리 차요 (4틱)',
+      skillText: '금방 차고 세게 쪼아요',
+      skillTextAdult: '금방 차고 세게 쪼아요',
       favorite: MaterialId.batWing,
     ),
     PetSpecies.blackCat: PetSpeciesInfo(
@@ -279,12 +350,12 @@ class PetRules {
       element: Element.dark,
       name: '검은 고양이',
       grade: PetGrade.common,
-      special: '밤(오후 7시~새벽 5시) 원정 전투력 +15%',
-      specialAdult: '밤(오후 7시~새벽 5시) 원정 전투력 +25%',
+      special: '밤 원정에 강해요',
+      specialAdult: '밤 원정에 아주 강해요',
       skill: PetSkill.scratch,
       skillName: '할퀴기',
-      skillText: '피해 ×3.5, 반드시 치명타',
-      skillTextAdult: '피해 ×4.5, 반드시 치명타',
+      skillText: '꼭 급소를 할퀴어요',
+      skillTextAdult: '꼭 급소를 할퀴어요',
       favorite: MaterialId.rabbitMeat,
     ),
     PetSpecies.toad: PetSpeciesInfo(
@@ -292,12 +363,12 @@ class PetRules {
       element: Element.poison,
       name: '두꺼비',
       grade: PetGrade.common,
-      special: '물가 몬스터 원정 기력 -50%, 시간 -30%',
-      specialAdult: '물가 몬스터 원정 기력 -60%, 시간 -30%',
+      special: '물가 원정이 가볍고 빨라요',
+      specialAdult: '물가 원정이 더 가볍고 빨라요',
       skill: PetSkill.tongue,
       skillName: '혀로 묶기',
-      skillText: '피해 ×2.5, 몬스터가 한 턴 멈춰요',
-      skillTextAdult: '피해 ×3, 몬스터가 한 턴 멈춰요',
+      skillText: '몬스터를 한 번 묶어 둬요',
+      skillTextAdult: '몬스터를 한 번 묶어 둬요',
       favorite: MaterialId.waterJelly,
     ),
     PetSpecies.owl: PetSpeciesInfo(
@@ -305,12 +376,12 @@ class PetRules {
       element: Element.light,
       name: '부엉이',
       grade: PetGrade.common,
-      special: '원정 전투력 +8%',
-      specialAdult: '원정 전투력 +12%',
+      special: '원정에서 잘 싸워요',
+      specialAdult: '원정에서 더 잘 싸워요',
       skill: PetSkill.insight,
       skillName: '약점 간파',
-      skillText: '피해 ×3, 3턴 동안 내 피해 +20%',
-      skillTextAdult: '피해 ×3, 3턴 동안 내 피해 +30%',
+      skillText: '약점을 찾아 내 공격이 잠시 세져요',
+      skillTextAdult: '약점을 찾아 내 공격이 잠시 세져요',
       favorite: MaterialId.butterflyDust,
     ),
     PetSpecies.lizard: PetSpeciesInfo(
@@ -318,24 +389,24 @@ class PetRules {
       element: Element.fire,
       name: '꼬마 도마뱀',
       grade: PetGrade.common,
-      special: '원정 기력 -25%',
-      specialAdult: '원정 기력 -35%',
+      special: '원정 기력을 덜 써요',
+      specialAdult: '원정 기력을 더 덜 써요',
       skill: PetSkill.ember,
       skillName: '작은 불씨',
-      skillText: '피해 ×3, 화상 3턴',
-      skillTextAdult: '피해 ×3.5, 화상 3턴',
+      skillText: '불씨가 남아 계속 타요',
+      skillTextAdult: '불씨가 남아 계속 타요',
       favorite: MaterialId.fireJelly,
     ),
     PetSpecies.homunculus: PetSpeciesInfo(
       id: PetSpecies.homunculus,
       name: '호문쿨루스',
       grade: PetGrade.common,
-      special: '원정 성공 때 재료 +1',
-      specialAdult: '원정 성공 때 재료 +1 (50%로 +2)',
+      special: homunculusSpecial,
+      specialAdult: homunculusSpecial,
       skill: PetSkill.shield,
       skillName: '작은 보호막',
-      skillText: '피해 ×2, 다음 2번 받는 피해 -50%',
-      skillTextAdult: '피해 ×2, 다음 3번 받는 피해 -50%',
+      skillText: '받는 피해를 오래 막아 줘요',
+      skillTextAdult: '받는 피해를 오래 막아 줘요',
       favorite: MaterialId.slimeCore,
     ),
   };

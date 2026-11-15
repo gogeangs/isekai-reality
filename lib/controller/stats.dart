@@ -96,8 +96,76 @@ extension StatsOps on AppController {
     return out;
   }
 
-  /// 속성 점수 (화면에 숫자로 보여 주지 않는다)
-  Map<Element, double> get elementScores => ElementRules.scoresFrom(_history);
+  /// 속성 점수 (화면에 숫자로 보여 주지 않는다). 묶음 32: 예전 기록에서 한 번 센 몫을 더한다
+  Map<Element, double> get elementScores {
+    final out = ElementRules.scoresFrom(_history);
+    _elementSeed.forEach((e, v) => out[e] = (out[e] ?? 0) + v);
+    return out;
+  }
+
+  /// 묶음 32 #189: 속성 점수를 더한다 (오늘 기록 counters 'el:<속성>', 10배)
+  Future<void> _gainElement(Element e, double pts) async {
+    if (pts <= 0) return;
+    final today = await _todayRecord();
+    await _save(today.copyWith(
+        counters: DailyRecord.addCounts(
+            today.counters, {'el:${e.name}': (pts * 10).round()})));
+    await _checkAura();
+  }
+
+  /// 주 속성이 처음 생기거나 바뀌면 첫 펫(이별 전엔 정령) 한마디 (숙련도 대사 자리)
+  Future<void> _checkAura() async {
+    if (!_masteryReady) return;
+    final main = mainElement;
+    if (main == null || main.name == _auraAnnounced) return;
+    _auraAnnounced = main.name;
+    _mastery = _mastery.copyWith(
+        pending: [..._mastery.pending, ElementRules.auraLine(main)]);
+    await _saveMastery();
+    await _saveAura();
+    _notify();
+  }
+
+  Future<void> _saveAura() => store.saveJson(AppController._auraKey, {
+        'v32': true,
+        if (_auraAnnounced != null) 'main': _auraAnnounced,
+        'seed': {for (final e in _elementSeed.entries) e.key.name: e.value},
+      });
+
+  /// 묶음 32 처음 열 때: 남은 기록(채집·물약·장비)으로 새 쌓이는 곳을 한 번 센다.
+  /// 이때 주 속성이 생기거나 바뀌어도 대사 없이 (프로필만)
+  Future<void> _seedAura() async {
+    final seed = <Element, double>{};
+    void add(Element e, double v) {
+      if (v > 0) seed[e] = (seed[e] ?? 0) + v;
+    }
+
+    // 채집 (숙련도 세부 기록: 광석·보석 → 금속, 약초·나무 → 대지), 물가는 완벽 채집 수
+    add(Element.metal,
+        masteryDetail(MasteryRules.harvestKey('ore')) * ElementRules.oreScore);
+    add(
+        Element.earth,
+        (masteryDetail(MasteryRules.harvestKey('herb')) +
+                masteryDetail(MasteryRules.harvestKey('wood'))) *
+            ElementRules.woodScore);
+    add(Element.water,
+        (_harvest.perfects[HarvestKind.water.name] ?? 0) * ElementRules.waterScore);
+    // 속성 물약 (연금술 세부 기록)
+    for (final p in AlchemyRules.all) {
+      final e = p.element;
+      if (e == null) continue;
+      add(e, masteryDetail(MasteryRules.potionKey(p.id)) * ElementRules.potionScore);
+    }
+    // 대장간에서 속성을 입힌 장비 (보스 장비는 처음부터 속성이 있어 뺌)
+    for (final i in _armory.items) {
+      final e = i.element;
+      if (e == null || BossGearRules.setOf(i.base) != null) continue;
+      add(e, ElementRules.imbueScore);
+    }
+    _elementSeed = seed;
+    _auraAnnounced = mainElement?.name;
+    await _saveAura();
+  }
 
   /// 주 속성 (점수 1위, 30점부터)
   Element? get mainElement => ElementRules.mainOf(elementScores);

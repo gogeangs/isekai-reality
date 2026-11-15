@@ -778,8 +778,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       Feature.harvest => ('채집', 'map_harvest_flower', '이제 꽃이랑 버섯을 딸 수 있어!'),
       Feature.lens => ('마법 돋보기', 'icon_lens', '마법 돋보기가 생겼어! 숨은 이세계 종족을 볼 수 있어.'),
       Feature.alchemy => ('약초 덤불 · 연금술 공방', 'icon_alchemy', _openedLines[f]!),
-      Feature.ore => ('광석 바위 · 보석 광맥', 'map_harvest_gem', _openedLines[f]!),
-      Feature.wood => ('쓰러진 나무 · 물가', 'tool_axe_stone', _openedLines[f]!),
+      Feature.ore => ('광석 바위 · 보석 광맥', 'card_open_ore', _openedLines[f]!),
+      Feature.wood => ('쓰러진 나무 · 물가', 'card_open_wood', _openedLines[f]!),
       Feature.relic => ('고대 유물', 'map_harvest_relic', _openedLines[f]!),
     };
     return TourStep(line, opened: (name, icon), button: ('가 보기', () {

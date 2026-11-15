@@ -179,3 +179,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | farewell_01_gate | 이별 컷신 장면 1 문 앞 (#182, 852×1846) |
 | 2026-11-15 | farewell_02_lookup·03_smile_{fire,water,leaf}·04_light·05_eyes | 이별 컷신 나머지 6장 (#182, 852×1846) |
 | 2026-11-15 | farewell_01_gate_female·02_lookup_female·05_eyes_female | 이별 컷신 여자 각성자 판 3장 (#182, 852×1846, 코드에서 성별에 따라 골라 써야 함) |
+| 2026-11-15 | card_open_{ore,wood} | 「새로 열렸어요」 카드 Lv.8·Lv.9 금테 메달 (#181, 256, WebP로 합침) |

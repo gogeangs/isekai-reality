@@ -29,6 +29,7 @@ import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/map/expedition_result.dart';
 import 'package:isekai_reality/features/pets/farewell_screen.dart';
 import 'package:isekai_reality/features/jobs/guild_screen.dart';
+import 'package:isekai_reality/features/jobs/skill_screen.dart';
 import 'package:isekai_reality/features/pets/pet_screen.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/features/town/bag_tab.dart';
@@ -818,6 +819,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     await _shot(tester, '48_길드');
+    // 묶음 31 #198: 스킬 페이지 (전투 칸 · 고유 스킬 · 숙련 스킬)
+    await c.markSkillIntro();
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => SkillScreen(controller: c)));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '48b_스킬_전투칸');
+    await tester.tap(find.byKey(const Key('skillTab_1')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await _shot(tester, '48c_스킬_고유');
+    await tester.tap(find.byKey(const Key('skillTab_2')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await _shot(tester, '48d_스킬_숙련');
   });
 
   testWidgets('화면 미리보기: 펫 도감·알·원정', (tester) async {

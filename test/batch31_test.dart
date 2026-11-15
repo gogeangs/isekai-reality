@@ -121,6 +121,7 @@ void main() {
         floors: const [
           Foe(monster: MonsterId.slime, maxHp: 100000, attack: 1),
         ],
+        heroSkills: true,
       )..masteryActives.add(Mastery.combat);
       expect(b.masteryReady(Mastery.combat), isFalse);
       for (var i = 0; i < JobRules.masteryActiveTicks; i++) {

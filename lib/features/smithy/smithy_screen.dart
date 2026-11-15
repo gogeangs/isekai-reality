@@ -17,6 +17,7 @@ import '../tutorial/feature_tour.dart';
 import '../battle/element_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import '../../theme/top_notice.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 마을 대장간 (11-10 #27): 장비 만들기 · 강화 · 수리 · 분해.
 /// 장비는 대장간에서만 만든다.
@@ -70,6 +71,12 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   _ => '닳은 장비는 고치고, 안 쓰는 장비는 분해해서 재료로 돌려받자.',
                 }),
                 const SizedBox(height: 8),
+                // 묶음 30 #55: 대장간에서 쓰는 직업 스킬
+                JobSkillBar(controller: c, places: const [
+                  SkillPlace.smithyEnhance,
+                  SkillPlace.smithyCraft,
+                  SkillPlace.smithyWork,
+                ]),
                 Center(
                   child: Image.asset('assets/images/icon_smithy.webp',
                       height: 90, errorBuilder: (_, __, ___) => const SizedBox()),
@@ -301,7 +308,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   if (!mounted || ok == null) return;
                   _snack(ok
                       ? '강화 성공! ${item.info.name} +$to'
-                      : '강화 실패… 장비는 그대로예요.');
+                      : c.lastEnhanceSafe
+                          ? '강화 실패… 그래도 무사해요! 쓴 마석과 금화를 돌려받았어요.'
+                          : '강화 실패… 장비는 그대로예요.');
                 }
               : null,
         ),

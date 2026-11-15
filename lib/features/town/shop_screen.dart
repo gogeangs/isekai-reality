@@ -13,6 +13,7 @@ import 'material_view.dart';
 import 'sell_sheet.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../../theme/top_notice.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 잡화상 (앱 안 시설): 몬스터가 떨어뜨린 마석을 금화로 팔고, 금화로 물건을 산다.
 class ShopScreen extends StatelessWidget {
@@ -50,7 +51,9 @@ class ShopScreen extends StatelessWidget {
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||
-        ShopItem.mana =>
+        ShopItem.mana ||
+        ShopItem.jobManaSmall ||
+        ShopItem.jobMana =>
           '가방에 넣었어요. 필요할 때 가방에서 마셔요!',
       };
 
@@ -79,6 +82,8 @@ class ShopScreen extends StatelessWidget {
                 const BulssiLine(
                     line: '몬스터를 잡으면 마석이 나와. 팔아서 금화로 필요한 걸 사자!'),
                 const SizedBox(height: 4),
+                JobSkillBar(
+                    controller: controller, places: const [SkillPlace.shop]),
                 Center(
                   child: Image.asset('assets/images/map_store.webp',
                       height: 110,

@@ -45,7 +45,19 @@ class BattleView extends StatefulWidget {
     this.backgroundOf,
     this.weapon,
     this.onFloor,
+    this.jobSkills = const [],
+    this.jobMp,
+    this.onJobSkill,
   });
+
+  /// 직업 스킬 (묶음 30): 스킬과 MP 비용. 버튼을 누르면 [onJobSkill] 이 MP를 쓴다
+  final List<(JobSkill, int)> jobSkills;
+
+  /// 지금 MP
+  final int Function()? jobMp;
+
+  /// MP를 쓴다 (모자라면 false)
+  final Future<bool> Function(JobSkill)? onJobSkill;
 
   /// 입은 무기 종류 (#81 2단계: 부위 애니메이션 손에 든 무기·공격 동작). 없으면 맨손
   final WeaponKind? weapon;
@@ -351,6 +363,28 @@ class _BattleViewState extends State<BattleView> {
     _checkEnd();
   }
 
+  Future<void> _jobSkill(JobSkill s, int cost) async {
+    if (_b.isOver) return;
+    final mp = widget.jobMp?.call() ?? 0;
+    if (mp < cost) {
+      setState(() => _log.add('MP가 모자라요'));
+      return;
+    }
+    // 쓸 수 없는 때(이미 써 둠·HP 가득 등)에는 MP를 쓰지 않는다
+    final probe = _b.phase == BattlePhase.fighting;
+    if (!probe) return;
+    var ok = false;
+    setState(() {
+      ok = _b.useJobSkill(s);
+      if (ok) _record();
+    });
+    if (!ok) return;
+    await widget.onJobSkill?.call(s);
+    if (widget.vibrate) HapticFeedback.mediumImpact();
+    if (mounted) setState(() {});
+    _checkEnd();
+  }
+
   void _stance() {
     setState(() {
       if (_b.useStance()) _record();
@@ -602,6 +636,20 @@ class _BattleViewState extends State<BattleView> {
                 ]),
               ),
               const SizedBox(height: 10),
+              // 묶음 30 #55: 직업 스킬 (MP)
+              if (widget.jobSkills.isNotEmpty) ...[
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  for (final (sk, cost) in widget.jobSkills)
+                    _JobSkillButton(
+                      key: Key('battleJob_${sk.name}'),
+                      name: JobRules.skill(sk).name,
+                      cost: cost,
+                      enough: (widget.jobMp?.call() ?? 0) >= cost,
+                      onPressed: () => _jobSkill(sk, cost),
+                    ),
+                ]),
+                const SizedBox(height: 8),
+              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -2305,4 +2353,46 @@ class _AmbientPainter extends CustomPainter {
       old.t != t ||
       old.element != element ||
       old.hour != hour;
+}
+
+
+/// 전투 화면 직업 스킬 버튼 (MP가 모자라면 흐리게)
+class _JobSkillButton extends StatelessWidget {
+  const _JobSkillButton({
+    super.key,
+    required this.name,
+    required this.cost,
+    required this.enough,
+    required this.onPressed,
+  });
+
+  final String name;
+  final int cost;
+  final bool enough;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+        opacity: enough ? 1 : 0.45,
+        child: GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+            decoration: BoxDecoration(
+              color: const Color(0xE614163A),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFB27BFF)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFB27BFF)),
+              const SizedBox(width: 4),
+              Text('$name · MP $cost',
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      );
 }

@@ -11,6 +11,7 @@ import 'harvest_games.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../../theme/top_notice.dart';
 import '../../core/format.dart';
+import '../jobs/job_skill_bar.dart';
 
 String harvestReason(HarvestCheck c) => switch (c) {
       HarvestCheck.ok => '',
@@ -130,6 +131,12 @@ class HarvestSheet extends StatelessWidget {
                     ),
                   ]),
                   const SizedBox(height: 14),
+                  // 묶음 30 #55: 풍요의 손길 · 발굴
+                  JobSkillBar(controller: c, places: [
+                    spot.kind == HarvestKind.relic
+                        ? SkillPlace.relic
+                        : SkillPlace.harvest,
+                  ]),
                   GoldButton(
                     key: const Key('harvestQuick'),
                     label: '빠른 채집',

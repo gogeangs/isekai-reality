@@ -453,7 +453,7 @@ extension TutorialOps on AppController {
     if (!canFightNow || hp <= 0) return null;
     _stopResting();
     final p = player;
-    return Battle.forPlayer(
+    return _withJob(Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.fieldFoes(
@@ -466,7 +466,7 @@ extension TutorialOps on AppController {
       skillChargeTicks: _skillTicks(p),
       gear: gear,
       // 묶음 27 #176: 그 무기·그 몬스터 전투 숙련도 (숨김)
-      power: combatPower(monster: spawn.monster),
+      power: combatPower(monster: spawn.monster) * jobPower,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
       potions: battlePotions,
@@ -478,7 +478,7 @@ extension TutorialOps on AppController {
       weaponPotion: weaponPotionElement,
       telegraphs: true,
       heroSkills: true,
-    );
+    ));
   }
 
   /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
@@ -606,6 +606,12 @@ extension TutorialOps on AppController {
       // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
       if (_masteryRoll(MasteryRules.monsterExtraLoot *
           _detailFrac(MasteryRules.monsterKey(monster)))) {
+        final d = LootRules.dropsOf(monster);
+        final extra = d.common[_random.nextInt(d.common.length)];
+        mats[extra] = (mats[extra] ?? 0) + 1;
+      }
+      // 묶음 30: 사냥꾼 → 필드 몬스터 재료 가끔 하나 더 (숨김)
+      if (_jobRoll(JobId.hunter, JobRules.hunterLoot)) {
         final d = LootRules.dropsOf(monster);
         final extra = d.common[_random.nextInt(d.common.length)];
         mats[extra] = (mats[extra] ?? 0) + 1;

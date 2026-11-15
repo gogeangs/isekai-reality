@@ -74,16 +74,25 @@ extension SmithyOps on AppController {
       ));
     }
     final a = _armory;
+    // 묶음 30: 명검 벼리기(무기) → 좋은 등급이 나오기 쉬움 (숨김)
+    final isWeapon = info.slot == EquipSlot.weapon;
+    final blade = isWeapon && await _consumeSkill(JobSkill.masterBlade);
     final grade =
         // 묶음 27 #176: 그 장비 종류의 대장일 숙련도만큼 좋은 등급이 조금 더 (숨김)
         EquipmentRules.rollGrade(_random,
-            rare: rare != null, bonus: smithGradeBonus(base));
+            rare: rare != null,
+            bonus: smithGradeBonus(base) + (blade ? 25 : 0));
+    // 묶음 30: 룬 대장장이 → 가끔 속성이 붙음 (숨김)
+    final rune = _jobRoll(JobId.runesmith, JobRules.runesmithElement)
+        ? Element.values[_random.nextInt(Element.values.length)]
+        : null;
     final item = EquipItem(
       uid: 'eq${a.nextId}',
       base: base,
       grade: grade,
       extras: EquipmentRules.rollExtras(grade, _random),
       materialsUsed: used,
+      element: rune,
     );
     await _saveArmory(a.copyWith(
       items: [...a.items, item],
@@ -97,8 +106,12 @@ extension SmithyOps on AppController {
 
   // ───────────── 보스 장비 만들기 (11-11 #82)
 
-  /// 대장장이 직업 (#55 직업 각성 뒤 열림, 지금은 늘 false)
+  /// 예전(11-11 #82) 대장장이 직업 규칙(보스 장비 비용·실패 절반). 묶음 30 직업 각성의
+  /// 대장장이 고유 기술과는 따로라 지금은 끔
   bool get blacksmith => false;
+
+  /// 방금 강화 실패가 무사했는지 (대장장이·집중 단조)
+  bool get lastEnhanceSafe => _lastEnhanceSafe;
 
   /// 이 세트의 보스를 잡아 봤는지 (못 잡은 보스의 세트는 그림자로 숨김)
   bool bossSetOpen(BossSet s) =>
@@ -195,9 +208,23 @@ extension SmithyOps on AppController {
           {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
     ));
     final ok = _random.nextDouble() < EquipmentRules.enhanceChance(to);
+    // 묶음 30: 대장장이(가끔)·집중 단조(꼭) → 실패해도 무사 (쓴 마석·금화를 돌려받음, 숨김)
+    var safe = false;
+    if (!ok) {
+      safe = await _consumeSkill(JobSkill.focusForge) ||
+          _jobRoll(JobId.blacksmith, JobRules.blacksmithSafe);
+      if (safe) {
+        final t = await _todayRecord();
+        await _save(t.copyWith(
+          gains: DailyRecord.addCounts(t.gains,
+              {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+        ));
+      }
+    }
+    _lastEnhanceSafe = safe;
     await _saveArmory(_armory.replace(item.copyWith(
       enhance: ok ? to : item.enhance,
-      enhanceManaSpent: item.enhanceManaSpent + cost.manaStones,
+      enhanceManaSpent: item.enhanceManaSpent + (safe ? 0 : cost.manaStones),
     )));
     // 숙련도는 쌓이지만 강화 성공률에는 넣지 않는다 (화면 「성공 ○○%」와 같게)
     await gainMastery(Mastery.smith, MasteryRules.enhance,

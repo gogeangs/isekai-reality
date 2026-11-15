@@ -76,6 +76,25 @@ extension BoardOps on AppController {
     return true;
   });
 
+  /// 의뢰 협상(묶음 30): 아직 받지 않았거나 받은 길드 의뢰 하나를 다른 의뢰로
+  Future<bool> _swapGuildErrand(int slot) async {
+    final b = board;
+    if (slot < 0 || slot >= b.slots.length) return false;
+    final cur = b.slots[slot].templateId;
+    if (cur == null) return false;
+    final taken = {for (final s in b.slots) s.templateId};
+    final choices = [
+      for (final t in BoardRules.errands)
+        if (!taken.contains(t.id)) t,
+    ];
+    if (choices.isEmpty) return false;
+    final pick = choices[_random.nextInt(choices.length)];
+    final slots = [...b.slots];
+    slots[slot] = ErrandSlot(templateId: pick.id);
+    await _saveBoard(b.copyWith(slots: slots));
+    return true;
+  }
+
   /// 수시 의뢰를 포기한다 (보상 없이, 2시간 뒤 새 의뢰)
   Future<void> abandonErrand(int slot) async {
     final b = board;

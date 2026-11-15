@@ -7,7 +7,7 @@ extension MasteryOps on AppController {
 
   /// 큰 숙련도 값 (걷기·탐험은 기록에서 바로 센다)
   double masteryOf(Mastery m) => m == Mastery.walk
-      ? MasteryRules.walkFrom(_history)
+      ? MasteryRules.walkFrom(_history) + _mastery.bigOf(m.name)
       : _mastery.bigOf(m.name);
 
   MasteryStage masteryStage(Mastery m) => MasteryRules.stageOf(masteryOf(m));
@@ -53,10 +53,15 @@ extension MasteryOps on AppController {
   }
 
   /// 그 장비 종류를 만들 때 좋은 등급(파랑) +%p
-  double smithGradeBonus(EquipBase base) => math.max(
-      _mastery.smithFloor ?? 0,
-      MasteryRules.smithBluePoints *
-          _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(base))));
+  double smithGradeBonus(EquipBase base) =>
+      math.max(
+          _mastery.smithFloor ?? 0,
+          MasteryRules.smithBluePoints *
+              _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(base)))) +
+      // 묶음 30: 보석 세공사 → 장신구 좋은 등급 (숨김)
+      (EquipmentRules.info(base).slot == EquipSlot.accessory
+          ? JobRules.jewelerGrade * jobTrait(JobId.jeweler)
+          : 0);
 
   /// 예전 규칙(만든 장비 10개마다 +1%p, 최대 10)으로 센 바닥값
   double get _legacySmithFloor =>
@@ -89,8 +94,10 @@ extension MasteryOps on AppController {
   /// 의뢰 보상 금화 (장사·의뢰)
   int errandGold(int gold) {
     final f = _bigFrac(Mastery.trade);
-    if (f <= 0 || gold <= 0) return gold;
-    return (gold * (1 + MasteryRules.errandGold * f)).round();
+    // 묶음 30: 모험가 → 길드·긴급 의뢰 보상 (숨김)
+    final a = JobRules.adventurerReward * jobTrait(JobId.adventurer);
+    if ((f <= 0 && a <= 0) || gold <= 0) return gold;
+    return (gold * (1 + MasteryRules.errandGold * f) * (1 + a)).round();
   }
 
   /// 감정 재료·쪽지 확률 (감정)
@@ -127,6 +134,10 @@ extension MasteryOps on AppController {
   Future<void> gainMastery(Mastery m, double amount,
       {List<String> details = const [], double detailAmount = 1}) async {
     if (amount <= 0 && details.isEmpty) return;
+    // 묶음 30: 주 직업 ×1.5 · 보조 직업 ×1.2 (그 직업 숙련도)
+    final g = jobGrowth(m);
+    amount *= g;
+    detailAmount *= g;
     var s = _mastery;
     if (m != Mastery.walk && amount > 0) {
       s = s.copyWith(big: {...s.big, m.name: s.bigOf(m.name) + amount});
@@ -144,6 +155,7 @@ extension MasteryOps on AppController {
 
   /// 단계 대사·장인 한마디·칭호·성향 바뀜을 살핀다
   Future<void> _afterMastery() async {
+    await _checkJobs();
     var s = _mastery;
     final lines = <String>[...s.pending];
     final announced = {...s.announced};
@@ -232,6 +244,20 @@ extension MasteryOps on AppController {
   Future<void> _checkWalkMastery() async {
     if (!_masteryReady) return;
     await _walkGaugeBonus();
+    await _jobGauge();
+    // 묶음 30: 걷기·탐험이 직업 숙련도면 늘어난 만큼 더 (기록에서 센 값은 그대로 두고 따로 쌓음)
+    final base = MasteryRules.walkFrom(_history);
+    final seen = _mastery.bigOf('walkSeen');
+    if (base > seen) {
+      final g = jobGrowth(Mastery.walk);
+      _mastery = _mastery.copyWith(big: {
+        ..._mastery.big,
+        'walkSeen': base,
+        if (g > 1 && seen > 0)
+          Mastery.walk.name: _mastery.bigOf(Mastery.walk.name) + (base - seen) * (g - 1),
+      });
+      unawaited(_saveMastery());
+    }
     final st = masteryStage(Mastery.walk);
     if (st.index > (_mastery.announced[Mastery.walk.name] ?? 0)) {
       await _afterMastery();

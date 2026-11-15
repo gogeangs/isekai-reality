@@ -25,11 +25,19 @@ extension AlchemyOps on AppController {
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
   List<PotionId> get knownRecipes => [
         for (final p in AlchemyRules.all)
-          if (p.public ||
-              _alc.discovered.contains(p.id.name) ||
-              _alc.noted.contains(p.id.name))
+          if ((p.public ||
+                  _alc.discovered.contains(p.id.name) ||
+                  _alc.noted.contains(p.id.name)) &&
+              (jobsOpen || !AlchemyRules.needsJobs(p.id)))
             p.id,
       ];
+
+  /// 넣은 재료로 되는 물약 (마나 물약은 직업 각성 뒤에만)
+  ({PotionId id, bool perfect})? _brewMatch(List<MaterialId> put) {
+    final m = AlchemyRules.match(put);
+    if (m != null && !jobsOpen && AlchemyRules.needsJobs(m.id)) return null;
+    return m;
+  }
 
   /// 재료·개수를 아는지 (쪽지로만 알면 아직 만들어 보지 않은 것)
   bool recipeDiscovered(PotionId id) =>
@@ -42,7 +50,8 @@ extension AlchemyOps on AppController {
       for (final p in AlchemyRules.all)
         if (!p.public &&
             !_alc.discovered.contains(p.id.name) &&
-            !_alc.noted.contains(p.id.name))
+            !_alc.noted.contains(p.id.name) &&
+            (jobsOpen || !AlchemyRules.needsJobs(p.id)))
           p.id,
     ];
     if (unknown.isEmpty) return null;
@@ -86,7 +95,7 @@ extension AlchemyOps on AppController {
     for (final e in need.entries) {
       if (player.materialCount(e.key) < e.value) return false;
     }
-    final match = AlchemyRules.match(put);
+    final match = _brewMatch(put);
     // 묶음 27 #176: 그 물약 연금술 숙련도 → 재료 하나를 가끔 안 씀 (숨김)
     if (match != null &&
         _masteryRoll(MasteryRules.brewSave *
@@ -129,7 +138,7 @@ extension AlchemyOps on AppController {
     ];
     final brews = {..._alc.brews}..remove(slot);
     var a = _alc.copyWith(brews: brews);
-    final match = AlchemyRules.match(put);
+    final match = _brewMatch(put);
     BrewResult result;
     if (match == null) {
       final key = '?:${AlchemyRules.comboKey(put)}';
@@ -139,19 +148,23 @@ extension AlchemyOps on AppController {
       final info = AlchemyRules.info(match.id);
       final isNew = !recipeDiscovered(match.id);
       // 묶음 27 #176: 그 물약 연금술 숙련도 → 가끔 하나 더 (숨김)
-      final yields = info.yields +
+      var yields = info.yields +
           (_masteryRoll(MasteryRules.brewExtra *
                       _detailFrac(MasteryRules.potionKey(match.id)) +
                   intellectCraft)
               ? 1
               : 0);
+      // 묶음 30: 연금술사 → 가끔 두 배, 연성 가속 → 하나 더 (숨김)
+      if (_jobRoll(JobId.alchemist, JobRules.alchemistDouble)) yields *= 2;
+      if (await _consumeSkill(JobSkill.quickBrew)) yields += 1;
       // 품질 3등급 (11-11 #74): 숙련도 보너스는 연금술사 직업 각성 뒤에 더한다
       final q = AlchemyRules.quality(perfect: match.perfect, put: put);
       a = a.copyWith(
           mastery: a.mastery +
               AlchemistRules.brewPoints +
               (q == PotionQuality.best ? AlchemistRules.bestBonusPoints : 0));
-      if (info.shopItem != null && q == PotionQuality.normal) {
+      if (info.shopItem != null &&
+          (q == PotionQuality.normal || AlchemyRules.needsJobs(match.id))) {
         // 잡화상과 같은 물약은 같은 물건으로 가방에
         final today = await _todayRecord();
         await _save(today.copyWith(

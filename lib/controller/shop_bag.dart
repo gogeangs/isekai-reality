@@ -17,6 +17,13 @@ extension ShopBagOps on AppController {
     await _save(today.copyWith(
       goldPurchases: [...today.goldPurchases, item.name],
     ));
+    // 묶음 30: 상인 하루 한 번 할인 · 대흥정 → 산 값 일부를 돌려받는다 (숨김)
+    final back = await _jobBuyRefund(TownRules.info(item).price);
+    if (back > 0) {
+      final t = await _todayRecord();
+      await _save(t.copyWith(
+          gains: DailyRecord.addCounts(t.gains, {Wallet.gold: back})));
+    }
     // 묶음 27 #176: 잡화상 거래 1건마다 장사·의뢰 숙련도
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return PurchaseCheck.ok;
@@ -26,7 +33,10 @@ extension ShopBagOps on AppController {
   /// 잡화상에 보이는 물건 (묶음 16 #144: 감정 돋보기는 Lv.6에 열린다)
   List<ShopItemInfo> get shopItems => [
         for (final i in TownRules.items)
-          if (i.item != ShopItem.raceLens || featureOpen(Feature.lens)) i,
+          if ((i.item != ShopItem.raceLens || featureOpen(Feature.lens)) &&
+              // 묶음 30: 마나 물약은 직업 각성 뒤에만 (그 전엔 MP가 없다)
+              (i.jobMpRatio <= 0 || jobsOpen))
+            i,
       ];
 
   PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {

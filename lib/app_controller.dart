@@ -14,6 +14,7 @@ import 'core/models/daily_record.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
+import 'core/models/job_state.dart';
 import 'core/models/lens_state.dart';
 import 'core/models/mail_state.dart';
 import 'core/models/mastery_state.dart';
@@ -43,6 +44,7 @@ part 'controller/expedition.dart';
 part 'controller/explore.dart';
 part 'controller/gather.dart';
 part 'controller/harvest.dart';
+part 'controller/jobs.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
 part 'controller/mastery.dart';
@@ -387,6 +389,7 @@ class AppController extends ChangeNotifier {
       compassReady: _vitals.compassReady,
     );
     await store.saveVitals(_vitals);
+    await _fillJobMp(); // 묶음 30: 새 MP도 가득
     if (_tiredUntil != null) await _setTired(null);
     notifyListeners();
     return before;
@@ -441,6 +444,7 @@ class AppController extends ChangeNotifier {
     _board = await _load(_boardKey, BoardState.fromJson, const BoardState());
     _bag = await _load(_bagKey, BagState.fromJson, const BagState());
     _pets = await _load(_petsKey, PetState.fromJson, const PetState());
+    _jobs = await _load(_jobsKey, JobState.fromJson, const JobState());
     _alc = await _load(_alchemyKey, AlchemyState.fromJson, const AlchemyState());
     _gather = await _load(_gatherKey, GatherState.fromJson, const GatherState());
     _harvest =
@@ -659,6 +663,16 @@ class AppController extends ChangeNotifier {
   // 숨은 숙련도 (묶음 27 #176)
   static const _masteryKey = 'mastery';
   MasteryState _mastery = const MasteryState();
+
+  /// 직업 각성·새 MP·직업 스킬 (묶음 30 #55·#183)
+  static const _jobsKey = 'jobs';
+  JobState _jobs = const JobState();
+
+  /// 순례자가 방금 숨은 물건을 찾았는지
+  bool _jobFind = false;
+
+  /// 방금 강화 실패가 무사했는지
+  bool _lastEnhanceSafe = false;
   bool _masteryReady = false;
   (String, DateTime)? _shownMastery;
 

@@ -285,6 +285,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     spiritKind: c.profile.spiritKind,
                     spiritName: c.firstSpiritName,
                     pet: c.voicePet,
+                    // 묶음 30 #55: 주 직업(보조는 작게)
+                    job: c.mainJobLabel == null
+                        ? kNoJobLabel
+                        : [
+                            c.mainJobLabel!,
+                            if (c.subJobs.isNotEmpty)
+                              '(${c.subJobs.map((j) => JobRules.info(j).name).join(' · ')})',
+                          ].join(' '),
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,

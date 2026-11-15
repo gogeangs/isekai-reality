@@ -180,7 +180,10 @@ extension ExpeditionOps on AppController {
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {m.name: n}),
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: tradeGold(n * BagRules.materialPrice(m))}),
+          today.gains, {
+        Wallet.gold:
+            await _jobSellGold(tradeGold(n * BagRules.materialPrice(m)))
+      }),
     ));
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
@@ -195,7 +198,12 @@ extension ExpeditionOps on AppController {
       counters: DailyRecord.addCounts(
           today.counters, {TownRules.dropKey(item): n}),
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: tradeGold(n * BagRules.itemPrice(item))}),
+          today.gains, {
+        Wallet.gold: await _jobSellGold(tradeGold(n * BagRules.itemPrice(item)),
+            potion: TownRules.info(item).hpRatio > 0 ||
+                TownRules.info(item).mpRatio > 0 ||
+                TownRules.info(item).jobMpRatio > 0)
+      }),
     ));
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
@@ -209,7 +217,8 @@ extension ExpeditionOps on AppController {
     final today = await _todayRecord();
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
-          today.gains, {Wallet.gold: tradeGold(BagRules.equipPrice(item))}),
+          today.gains,
+          {Wallet.gold: await _jobSellGold(tradeGold(BagRules.equipPrice(item)))}),
     ));
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
@@ -225,7 +234,10 @@ extension ExpeditionOps on AppController {
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {Wallet.manaStone: count}),
       gains: DailyRecord.addCounts(today.gains,
-          {Wallet.gold: tradeGold(count * RuleConstants.goldPerManaStone)}),
+          {
+            Wallet.gold: await _jobSellGold(
+                tradeGold(count * RuleConstants.goldPerManaStone))
+          }),
     ));
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
@@ -239,6 +251,12 @@ extension ExpeditionOps on AppController {
     if (item == ShopItem.bulssiPotion && farewellDone) {
       if (bagCount(item) <= 0) return UseCheck.none;
       return companionPet == null ? UseCheck.none : UseCheck.ok;
+    }
+    // 묶음 30: 마나 물약은 새 MP
+    if (TownRules.info(item).jobMpRatio > 0) {
+      if (bagCount(item) <= 0) return UseCheck.none;
+      if (!jobsOpen) return UseCheck.none;
+      return jobMp >= jobMpMax ? UseCheck.alreadyFull : UseCheck.ok;
     }
     return TownRules.canUse(_history, item,
         hpFull: hp >= maxHp,
@@ -279,6 +297,9 @@ extension ExpeditionOps on AppController {
     }
     if (item == ShopItem.expeditionCompass) {
       _vitals = _vitals.copyWith(compassReady: true);
+    }
+    if (info.jobMpRatio > 0) {
+      await _setJobMp(jobMp + (jobMpMax * info.jobMpRatio).round());
     }
     if (item == ShopItem.bulssiPotion && companionPet != null) {
       final pet = companionPet!;
@@ -408,6 +429,28 @@ extension ExpeditionOps on AppController {
     if (spiritTimeFactor < 1) {
       base = Duration(seconds: (base.inSeconds * spiritTimeFactor).round());
     }
+    // 묶음 30: 조련사 → 펫 원정 시간 덜 / 문지기의 후계자 → 첫 펫 원정 기력 덜 /
+    // 길잡이 → 더 멀리(기력 덜) / 먼 길 안내 → 이번 원정 더 멀리 (숨김)
+    if (pet != null) {
+      final tt = jobTrait(JobId.tamer);
+      if (tt > 0) {
+        base = Duration(
+            seconds: (base.inSeconds * (1 - JobRules.tamerTime * tt)).round());
+      }
+      if (pet.uid == _pets.firstPet) {
+        final g = jobTrait(JobId.gateHeir);
+        if (g > 0) {
+          cost = math.max(1, (cost * (1 - JobRules.gateHeirMp * g)).round());
+        }
+      }
+    }
+    final pf = jobTrait(JobId.pathfinder);
+    if (pf > 0) {
+      cost = math.max(1, (cost / (1 + JobRules.pathfinderRange * pf)).round());
+    }
+    if (skillPending(JobSkill.longRoad)) {
+      cost = math.max(1, (cost / (1 + JobRules.longRoad)).round());
+    }
     // 원정 나침반을 써 두었으면 이동 시간 절반
     final oneWay = _vitals.compassReady ? base ~/ 2 : base;
     ExpeditionCheck check;
@@ -444,6 +487,8 @@ extension ExpeditionOps on AppController {
     if (plan.check != ExpeditionCheck.ok) return plan.check;
     final pet = plan.petUid == null ? null : _pets.byUid(plan.petUid!);
     final now = _clock();
+    // 묶음 30: 먼 길 안내는 이번 원정에 한 번
+    await _consumeSkill(JobSkill.longRoad);
     // 승객 모드에서 보낸 원정은 보상 절반 (11-11 #61)
     if (passengerMode) {
       await _saveDrive(_drive.copyWith(

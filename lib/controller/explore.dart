@@ -78,6 +78,8 @@ extension ExploreOps on AppController {
             gains: DailyRecord.addCounts(
                 _history.last.gains, {Wallet.exp: bonus})));
       }
+      // 묶음 30: 탐험가 → 새 장소 보상 더, 순례자 → 가끔 숨은 물건 (숨김)
+      await _jobNewPlace();
     }
     await _checkWalkMastery();
   }

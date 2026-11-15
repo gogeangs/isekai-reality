@@ -545,7 +545,9 @@ void main() {
     // 11-10: 잡화상은 마을 탭에서
     await tester.tap(find.text('마을'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('잡화상').last);
+    await tester.ensureVisible(find.byKey(const Key('facility_shop')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('facility_shop')));
     await tester.pumpAndSettle();
     expect(find.textContaining('금화'), findsWidgets);
 

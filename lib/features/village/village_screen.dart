@@ -151,11 +151,16 @@ class _VillageScreenState extends State<VillageScreen> {
 
   Future<void> _showAll() => showModalBottomSheet<void>(
         context: context,
+        isScrollControlled: true,
         backgroundColor: AppColors.night,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         builder: (sheet) => SafeArea(
-          child: Padding(
+          child: ConstrainedBox(
+           constraints: BoxConstraints(
+               maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
+           child: SingleChildScrollView(
+           child: Padding(
             key: const Key('villageAll'),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Column(
@@ -213,6 +218,8 @@ class _VillageScreenState extends State<VillageScreen> {
               ],
             ),
           ),
+        ),
+        ),
         ),
       );
 

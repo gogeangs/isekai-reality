@@ -332,13 +332,17 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '20_마을');
 
-    await tester.tap(find.text('여관').last);
+    await tester.ensureVisible(find.byKey(const Key('facility_inn')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('facility_inn')));
     await tester.pumpAndSettle();
     await _shot(tester, '21_여관');
     Navigator.of(tester.element(find.byType(InnScreen))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('잡화상').last);
+    await tester.ensureVisible(find.byKey(const Key('facility_shop')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('facility_shop')));
     await tester.pumpAndSettle();
     await c.buy(ShopItem.bulssiPotion);
     await c.buy(ShopItem.healSmall);
@@ -356,7 +360,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // 의뢰 게시판 · 가방 탭
-    await tester.tap(find.text('의뢰 게시판').last);
+    await tester.ensureVisible(find.byKey(const Key('facility_board')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('facility_board')));
     await tester.pumpAndSettle();
     await _shot(tester, '27_의뢰_게시판');
     Navigator.of(tester.element(find.byType(BoardScreen))).pop();
@@ -587,7 +593,9 @@ void main() {
 
     await tester.tap(find.text('마을'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('대장간').last);
+    await tester.ensureVisible(find.byKey(const Key('facility_smithy')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('facility_smithy')));
     await tester.pumpAndSettle();
     await _shot(tester, '28_대장간');
     await tester.tap(find.text('강화'));

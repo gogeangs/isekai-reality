@@ -110,7 +110,7 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
       ? '문 앞'
       : _avatar == null
           ? '잿빛 틈'
-          : Act2Rules.info(_avatar!).name;
+          : Act2Rules.info(_avatar).name;
 
   @override
   Widget build(BuildContext context) {

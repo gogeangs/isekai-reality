@@ -476,7 +476,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       final out = await rec.endRecording().toImage(src.width, src.height);
       final bytes = await out.toByteData(format: ui.ImageByteFormat.png);
       if (bytes == null) return null;
-      final img = NOverlayImage.fromByteArray(bytes.buffer.asUint8List());
+      final img = await NOverlayImage.fromByteArray(bytes.buffer.asUint8List());
       _flipCache[asset] = img;
       return img;
     } catch (_) {

@@ -488,7 +488,13 @@ class LootRules {
         MonsterId.shadowBatQueen ||
         MonsterId.thunderGriffin =>
           (common: [MaterialId.wardenShard], rare: MaterialId.labyrinthCore, chance: rareChance),
-        // 예전 정령 몬스터 (지금은 나오지 않음)
+        // 예전 정령 몬스터 (지금은 나오지 않음) · 묶음 34 분신·본체 (재료 대신 유품)
+        MonsterId.ashRage ||
+        MonsterId.ashSorrow ||
+        MonsterId.ashGreed ||
+        MonsterId.ashFear ||
+        MonsterId.ashLonely ||
+        MonsterId.ashKing ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

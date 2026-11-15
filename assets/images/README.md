@@ -200,3 +200,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | pet_golem_{baby,adult}·pet_map_golem | 희귀 펫 골렘 (#185, 시트에서 그림 덩어리별로 잘라 냄, 512) |
 | 2026-11-15 | map_rift | 지도 잿빛 틈 금테 메달 (2막, 512 → 개발이 160) |
 | 2026-11-15 | equip_ash{Weapon,Crown,Body,Hands,Feet,Acc} | 잿빛 왕의 유품 6 (2막, 시트에서 잘라 냄, 512 → 개발이 256) |
+| 2026-11-15 | monster_ash{Rage,Sorrow,Greed} | 2막 분신 보스 분노·슬픔·탐욕 (시트에서 그림 덩어리별로 잘라 냄, 512) |

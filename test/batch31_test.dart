@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/job_state.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
@@ -84,7 +85,8 @@ void main() {
 
     test('설명에 숫자 없음, 단계마다 세기·MP', () {
       for (final s in JobRules.skills) {
-        expect(RegExp(r'[0-9%×]').hasMatch(s.text), isFalse, reason: s.name);
+        // 묶음 31 확인 답: 「30분 동안」 같은 지속 시간은 보여도 됨 (숨은 배율·확률만 숨김)
+        expect(RegExp(r'[0-9%×]').hasMatch(s.text.replaceAll(RegExp(r'\d+분 동안'), '')), isFalse, reason: s.name);
       }
       expect(JobRules.levelPower(1), 1);
       expect(JobRules.levelPower(3), greaterThan(JobRules.levelPower(2)));
@@ -263,6 +265,24 @@ void main() {
       final before = c.enhanceChanceShown(10);
       expect(await c.useJobSkill(JobSkill.focusForge), SkillUse.ok);
       expect(c.enhanceChanceShown(10), greaterThan(before));
+    });
+  });
+
+  group('묶음 31 확인 답', () {
+    test('먼 눈: 30분 동안 희귀 수식어 몬스터가 더 자주 + 지도에 눈에 띄게', () async {
+      final c = await start(account(16, big: {'walk': 50}));
+      await c.awakenJob(JobId.explorer);
+      expect(await c.raiseSkill(JobSkill.farSight), isTrue);
+      final before = c.modLuckBonus;
+      expect(await c.useJobSkill(JobSkill.farSight), SkillUse.ok);
+      expect(c.modLuckBonus, greaterThan(before));
+      const rare = FieldSpawn(
+          id: 'x',
+          monster: MonsterId.slime,
+          point: GeoPoint(37.32, 126.83),
+          modifiers: [ModifierId.golden]);
+      expect(c.spotsSpecial(rare), rare.grade.index >= ModGrade.rare.index);
+      expect(JobRules.skill(JobSkill.farSight).text, '30분 동안 특별한 몬스터를 찾아내요');
     });
   });
 

@@ -81,7 +81,8 @@ void main() {
       expect(skills, hasLength(24));
       for (final s in JobRules.skills) {
         expect(JobRules.skill(s.id), same(s));
-        expect(RegExp(r'[0-9%]').hasMatch(s.text), isFalse, reason: s.name);
+        // 묶음 31 확인 답: 「30분 동안」 같은 지속 시간은 보여도 됨 (숨은 배율·확률만 숨김)
+        expect(RegExp(r'[0-9%]').hasMatch(s.text.replaceAll(RegExp(r'\d+분 동안'), '')), isFalse, reason: s.name);
       }
     });
 

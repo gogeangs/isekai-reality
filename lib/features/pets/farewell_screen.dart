@@ -87,6 +87,12 @@ class FarewellScreen extends StatefulWidget {
         PetSpecies.owl => '부엉',
         PetSpecies.lizard => '도롱',
         PetSpecies.homunculus => '호문',
+        PetSpecies.griffin => '번개',
+        PetSpecies.direwolf => '서리',
+        PetSpecies.drake => '불꽃',
+        PetSpecies.kelpie => '물결',
+        PetSpecies.mimic => '덥석',
+        PetSpecies.golem => '바위',
       };
 
   /// 첫 펫의 마지막 한마디 (Lv.15 직업 각성 복선)

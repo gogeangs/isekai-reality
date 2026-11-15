@@ -109,5 +109,23 @@ class ExpeditionTalkRules {
         PetSpecies.homunculus => going
             ? const ['재료… 재료…', '목표 확인. 이동 중.']
             : const ['재료를 많이 챙겼어'],
+        PetSpecies.griffin => going
+            ? const ['번개처럼 다녀올게!', '날개가 근질근질해']
+            : const ['하늘을 한 바퀴 돌고 왔어!'],
+        PetSpecies.direwolf => going
+            ? const ['아우우… 사냥 시간이야', '냄새를 따라갈게']
+            : const ['먹잇감을 잔뜩 물어 왔어'],
+        PetSpecies.drake => going
+            ? const ['불길이 끓어올라!', '날아서 금방 가지']
+            : const ['조금 그을렸지만 괜찮아'],
+        PetSpecies.kelpie => going
+            ? const ['물길이 있으면 더 좋은데', '찰랑찰랑 출발!']
+            : const ['물보라처럼 돌아왔어'],
+        PetSpecies.mimic => going
+            ? const ['덜컥… 덜컥…', '반짝이는 건 내 거야']
+            : const ['상자 안에 뭐가 들었게?'],
+        PetSpecies.golem => going
+            ? const ['…천천히, 하지만 확실히', '쿵, 쿵, 출발']
+            : const ['…돌아왔어. 쿵.'],
       };
 }

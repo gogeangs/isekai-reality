@@ -155,12 +155,9 @@ extension HarvestOps on AppController {
                       id: 'tutorial-harvest',
                       kind: HarvestKind.flower,
                       // 묶음 26 #179: 처음 정한 자리에 고정
-                      point: _pinned(
-                              'tutorial-harvest',
-                              (h) => GeoPoint(
-                                  h.lat + 0.00008, h.lng + 0.00006)) ??
-                          GeoPoint(_lastFix!.point.lat + 0.00008,
-                              _lastFix!.point.lng + 0.00006)),
+                      // 묶음 33 #199: 내 위치(화살표)와 겹치지 않게 25~40m 빈자리
+                      point: _pinned('tutorial-harvest', _clearSpotNear) ??
+                          _clearSpotNear(_lastFix!.point)),
                 // 묶음 28 #181: 도구별로 레벨마다 나눠 연다 (업데이트 때 Lv.7 이상이던 사람은 모두)
                 for (final x in _spotsCache)
                   if (_harvestAll || lv >= HarvestRules.openLevel(x.kind)) x,

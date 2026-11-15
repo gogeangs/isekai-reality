@@ -518,6 +518,9 @@ extension JobOps on AppController {
               marks['${s.name}Lat'] = (here.lat * 1e6).round();
               marks['${s.name}Lng'] = (here.lng * 1e6).round();
             }
+            if (s == JobSkill.farSight) {
+              _farSightSeen = {for (final x in todaySpawns) x.id};
+            }
             await _saveJobs(_jobs.copyWith(
               timed: {..._jobs.timed, s.name: now.add(info.duration!)},
               marks: marks,
@@ -936,12 +939,35 @@ extension JobOps on AppController {
     return place.point.distanceTo(GeoPoint(lat / 1e6, lng / 1e6)) <= 1500;
   }
 
-  /// 수식어(희귀) 몬스터가 붙는 몫: 행운 + 먼 눈(30분 동안 조금 더 자주)
-  double get modLuckBonus =>
-      StatRules.modifierBonus(combatStats) +
-      (skillTimedOn(JobSkill.farSight)
-          ? JobRules.farSightRare * skillPower(JobSkill.farSight)
-          : 0);
+  /// 수식어(희귀) 몬스터가 붙는 몫 (행운)
+  double get modLuckBonus => StatRules.modifierBonus(combatStats);
+
+  /// 먼 눈을 쓰는 동안 더 붙는 희귀 몫 (묶음 31 확인 답: 새로 나타나는 몬스터에만)
+  double get farSightBonus => skillTimedOn(JobSkill.farSight)
+      ? JobRules.farSightRare * skillPower(JobSkill.farSight)
+      : 0;
+
+  /// 먼 눈: 쓸 때 이미 있던 몬스터는 그대로, 그 뒤 새로 나타나는 몬스터만 희귀가 더 자주
+  List<FieldSpawn> _withFarSight(List<FieldSpawn> list) {
+    final bonus = farSightBonus;
+    if (bonus <= 0) {
+      _farSightSeen = null;
+      return list;
+    }
+    final seen = _farSightSeen ??= {for (final s in list) s.id};
+    final lv = player.level.level;
+    return [
+      for (final s in list)
+        seen.contains(s.id) || s.id == guideSpawn?.id
+            ? s
+            : FieldSpawn(
+                id: s.id,
+                monster: s.monster,
+                point: s.point,
+                modifiers: ModifierRules.roll(s.id, s.monster, lv,
+                    bonus: modLuckBonus + bonus)),
+    ];
+  }
 
   /// 먼 눈: 이 몬스터를 지도에 눈에 띄게 (희귀·전설 수식어)
   bool spotsSpecial(FieldSpawn s) =>

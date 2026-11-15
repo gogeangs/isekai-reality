@@ -174,16 +174,25 @@ void main() {
     final slot = c.board.slots.indexWhere((s) => s.templateId != null);
     expect(slot, greaterThanOrEqualTo(0));
     expect(find.byKey(const Key('waxSeal')), findsNothing);
-    final accept = find.byKey(Key('errandAccept_$slot'));
-    await tester.ensureVisible(accept);
+    // 묶음 33 #201: 쪽지를 누르면 상세 창, 거기서 수락 → 도장
+    final note = find.byKey(Key('errandNote_$slot'));
+    await tester.ensureVisible(note);
     await tester.pump();
+    await tester.tap(note);
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    final accept = find.byKey(Key('errandAccept_$slot'));
+    expect(accept, findsOneWidget);
     await tester.tap(accept);
+    await tester.pump();
     await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.byKey(const Key('waxSeal')), findsOneWidget);
+    expect(find.byKey(const Key('waxSeal')), findsWidgets);
     expect(find.byKey(Key('errandWait_$slot')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 9));
   });
 

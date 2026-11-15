@@ -86,7 +86,7 @@ void main() {
     test('설명에 숫자 없음, 단계마다 세기·MP', () {
       for (final s in JobRules.skills) {
         // 묶음 31 확인 답: 「30분 동안」 같은 지속 시간은 보여도 됨 (숨은 배율·확률만 숨김)
-        expect(RegExp(r'[0-9%×]').hasMatch(s.text.replaceAll(RegExp(r'\d+분 동안'), '')), isFalse, reason: s.name);
+        expect(RegExp(r'[0-9%×]').hasMatch(s.text.replaceAll(RegExp(r'\d+(분|시간) 동안'), '')), isFalse, reason: s.name);
       }
       expect(JobRules.levelPower(1), 1);
       expect(JobRules.levelPower(3), greaterThan(JobRules.levelPower(2)));
@@ -269,13 +269,19 @@ void main() {
   });
 
   group('묶음 31 확인 답', () {
-    test('먼 눈: 30분 동안 희귀 수식어 몬스터가 더 자주 + 지도에 눈에 띄게', () async {
+    test('먼 눈: 30분 동안 새로 나타나는 희귀 수식어 몬스터가 더 자주 + 지도에 눈에 띄게', () async {
       final c = await start(account(16, big: {'walk': 50}));
       await c.awakenJob(JobId.explorer);
       expect(await c.raiseSkill(JobSkill.farSight), isTrue);
-      final before = c.modLuckBonus;
+      expect(c.farSightBonus, 0);
+      await c.handleFix(const LocationFix(point: GeoPoint(37.3219, 126.8309)));
+      final before = {for (final s in c.todaySpawns) s.id: s.modifiers};
       expect(await c.useJobSkill(JobSkill.farSight), SkillUse.ok);
-      expect(c.modLuckBonus, greaterThan(before));
+      expect(c.farSightBonus, greaterThan(0));
+      // 이미 있던 몬스터의 수식어는 그대로
+      for (final s in c.todaySpawns) {
+        if (before.containsKey(s.id)) expect(s.modifiers, before[s.id]);
+      }
       const rare = FieldSpawn(
           id: 'x',
           monster: MonsterId.slime,

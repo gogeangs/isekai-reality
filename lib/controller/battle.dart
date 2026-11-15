@@ -280,7 +280,7 @@ extension BattleOps on AppController {
     }
     final center = _lastFix?.point ?? fallbackCenter;
     if (center == null) return const [];
-    return FieldMonsterRules.spawnsFor(area, _clock(),
+    return _withFarSight(FieldMonsterRules.spawnsFor(area, _clock(),
             center: center,
             roads: roads,
             exclusions: exclusions,
@@ -294,7 +294,7 @@ extension BattleOps on AppController {
         .followedBy(_nearSpawns())
         .followedBy(_moonSpawns())
         .where((s) => !done.contains(s.id))
-        .toList();
+        .toList());
   }
 
   /// 도감 펫 탭이 열렸는지 (묶음 15 #116): 정령과 이별한 뒤(알 부화가 가능해진 뒤)에만.

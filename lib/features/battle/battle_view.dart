@@ -49,7 +49,11 @@ class BattleView extends StatefulWidget {
     this.jobMp,
     this.onJobSkill,
     this.onMasterySkill,
+    this.fit = false,
   });
+
+  /// 묶음 33 #202: 화면 남은 높이에 맞춰 전투 장면을 줄인다 (스크롤 없이 한 화면)
+  final bool fit;
 
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
@@ -509,8 +513,10 @@ class _BattleViewState extends State<BattleView> {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: widget.fit ? MainAxisSize.max : MainAxisSize.min,
             children: [
-              _Scene(
+              _fitScene(_Scene(
+                height: widget.fit ? null : 380,
                 foe: foe,
                 cleared: cleared,
                 floorLabel: _floorLabel,
@@ -541,7 +547,7 @@ class _BattleViewState extends State<BattleView> {
                 season: widget.season,
                 background: widget.backgroundOf?.call(_b.floor, _b.foe) ??
                     widget.background,
-              ),
+              )),
               const SizedBox(height: 8),
               OrnatePanel(
                 padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
@@ -655,31 +661,76 @@ class _BattleViewState extends State<BattleView> {
                 ]),
               ),
               const SizedBox(height: 10),
-              // 묶음 31 #198: 전투 칸 2개 (직업 스킬 MP · 숙련 스킬 몇 턴마다)
-              if (widget.jobSkills.isNotEmpty ||
-                  (_b.heroSkills && _b.masteryActives.isNotEmpty)) ...[
-                Wrap(spacing: 8, runSpacing: 6, children: [
-                  for (final (sk, cost, power) in widget.jobSkills.take(2))
-                    _JobSkillButton(
-                      key: Key('battleJob_${sk.name}'),
-                      name: JobRules.skill(sk).name,
-                      cost: cost,
-                      enough: (widget.jobMp?.call() ?? 0) >= cost,
-                      onPressed: () => _jobSkill(sk, cost, power),
+              // 묶음 33 #202: 버튼은 한 줄에 최대 5개 (강타·방어 태세·스킬 칸 2·펫), 이름까지
+              if (_b.heroSkills) ...[
+                _counterRow(),
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _MiniSkill(
+                        key: const Key('bashButton'),
+                        label: '강타',
+                        icon: Icons.gavel_rounded,
+                        ratio: _b.bashRatio,
+                        ready: _b.bashReady,
+                        onPressed: _bash,
+                      ),
                     ),
-                  if (_b.heroSkills)
+                    Expanded(
+                      child: _MiniSkill(
+                        key: const Key('stanceButton'),
+                        label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
+                        icon: Icons.shield_rounded,
+                        ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
+                        ready: _b.stanceReady,
+                        active: _b.stanceTurns > 0,
+                        onPressed: _stance,
+                      ),
+                    ),
+                    // 묶음 31 #198: 전투 칸 2개 (직업 스킬 MP · 숙련 스킬 몇 턴마다)
+                    for (final (sk, cost, power) in widget.jobSkills.take(2))
+                      Expanded(
+                        child: Builder(builder: (context) {
+                          final mp = widget.jobMp?.call() ?? 0;
+                          return _MiniSkill(
+                            key: Key('battleJob_${sk.name}'),
+                            label: JobRules.skill(sk).name,
+                            sub: 'MP $cost',
+                            icon: Icons.bolt_rounded,
+                            ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
+                            ready: mp >= cost && !_b.isOver,
+                            ringColor: const Color(0xFFB27BFF),
+                            onPressed: () => _jobSkill(sk, cost, power),
+                          );
+                        }),
+                      ),
                     for (final m in _b.masteryActives
                         .take(math.max(0, 2 - widget.jobSkills.length)))
-                      _MasterySkillButton(
-                        key: Key('battleMastery_${m.name}'),
-                        name: JobRules.masteryActive(m).name,
-                        ratio: _b.masteryRatio(m),
-                        ready: _b.masteryReady(m),
-                        onPressed: () => _masterySkill(m),
+                      Expanded(
+                        child: _MiniSkill(
+                          key: Key('battleMastery_${m.name}'),
+                          label: JobRules.masteryActive(m).name,
+                          icon: Icons.auto_awesome,
+                          ratio: _b.masteryRatio(m),
+                          ready: _b.masteryReady(m),
+                          onPressed: () => _masterySkill(m),
+                        ),
                       ),
-                ]),
-                const SizedBox(height: 8),
-              ],
+                    Expanded(
+                      child: _SkillOrb(
+                        ratio: _b.skillRatio,
+                        ready: _b.skillReady,
+                        away: _b.skillDisabled,
+                        onPressed: _skill,
+                        size: 56,
+                        compact: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -737,34 +788,13 @@ class _BattleViewState extends State<BattleView> {
                       ),
                     ),
                   ),
-                  if (_b.heroSkills) ...[
-                    const SizedBox(width: 8),
-                    _MiniSkill(
-                      key: const Key('bashButton'),
-                      label: '강타',
-                      icon: Icons.gavel_rounded,
-                      ratio: _b.bashRatio,
-                      ready: _b.bashReady,
-                      onPressed: _bash,
-                    ),
-                    const SizedBox(width: 6),
-                    _MiniSkill(
-                      key: const Key('stanceButton'),
-                      label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
-                      icon: Icons.shield_rounded,
-                      ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
-                      ready: _b.stanceReady,
-                      active: _b.stanceTurns > 0,
-                      onPressed: _stance,
-                    ),
-                  ],
                   const SizedBox(width: 8),
                   _SkillOrb(
                     ratio: _b.skillRatio,
                     ready: _b.skillReady,
                     away: _b.skillDisabled,
                     onPressed: _skill,
-                    size: _b.heroSkills ? 84 : 104,
+                    size: 104,
                   ),
                 ],
               ),
@@ -775,6 +805,44 @@ class _BattleViewState extends State<BattleView> {
       ),
     );
   }
+
+  /// 맞춤 모드면 남은 높이를 장면이 차지한다 (너무 작아지지 않게)
+  Widget _fitScene(Widget scene) => widget.fit
+      ? Expanded(
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 150), child: scene))
+      : scene;
+
+  /// 정화한 수 · 빠르기 (작은 한 줄)
+  Widget _counterRow() => Row(children: [
+        const GameIcon('mana_stone', size: 20),
+        const SizedBox(width: 4),
+        Text('${_b.purified.length} / ${_b.floors.length}',
+            style: AppText.title(15, color: AppColors.text)),
+        const Spacer(),
+        InkWell(
+          key: const Key('battleSpeed'),
+          onTap: _toggleSpeed,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: _fast ? AppColors.goldBright : AppColors.textMuted),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              GameGlyph(_fast ? Glyph.fast : Glyph.play, size: 13, dim: !_fast),
+              const SizedBox(width: 3),
+              Text(_fast ? '2배' : '1배',
+                  style: TextStyle(
+                      color: _fast ? AppColors.goldBright : AppColors.textMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      ]);
 
   Widget _poisonTip() {
     final a = _antidote;
@@ -837,6 +905,8 @@ class _MiniSkill extends StatelessWidget {
     required this.ready,
     required this.onPressed,
     this.active = false,
+    this.sub,
+    this.ringColor,
   });
 
   final String label;
@@ -846,13 +916,17 @@ class _MiniSkill extends StatelessWidget {
   final bool active;
   final VoidCallback onPressed;
 
+  /// 이름 아래 작은 글 (직업 스킬 MP)
+  final String? sub;
+  final Color? ringColor;
+
   @override
   Widget build(BuildContext context) {
     final lit = ready || active;
     return GestureDetector(
       onTap: ready ? onPressed : null,
+      behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 58,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -866,7 +940,9 @@ class _MiniSkill extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: ratio,
                     strokeWidth: 4,
-                    color: active ? AppColors.mana : AppColors.goldBright,
+                    color: active
+                        ? AppColors.mana
+                        : ringColor ?? AppColors.goldBright,
                     backgroundColor: AppColors.track,
                   ),
                 ),
@@ -893,14 +969,22 @@ class _MiniSkill extends StatelessWidget {
               ]),
             ),
             const SizedBox(height: 2),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.visible,
-                softWrap: false,
+            Text(keepAll(label),
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     color: lit ? AppColors.goldBright : AppColors.textMuted,
-                    fontSize: 12,
+                    fontSize: 11.5,
+                    height: 1.15,
                     fontWeight: FontWeight.w700)),
+            if (sub != null)
+              Text(sub!,
+                  maxLines: 1,
+                  style: TextStyle(
+                      color: ringColor ?? AppColors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700)),
           ],
         ),
       ),
@@ -912,6 +996,7 @@ class _MiniSkill extends StatelessWidget {
 
 class _Scene extends StatefulWidget {
   const _Scene({
+    this.height = 380,
     required this.foe,
     required this.cleared,
     required this.floorLabel,
@@ -942,6 +1027,9 @@ class _Scene extends StatefulWidget {
     this.background,
     this.weapon,
   });
+
+  /// 장면 높이 (null 이면 주어진 자리만큼)
+  final double? height;
 
   final WeaponKind? weapon;
   final Color? aura;
@@ -1035,7 +1123,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 380,
+        height: widget.height,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
@@ -1926,9 +2014,13 @@ class _SkillOrb extends StatelessWidget {
     required this.onPressed,
     this.away = false,
     this.size = 104,
+    this.compact = false,
   });
 
   final double size;
+
+  /// 버튼 줄 안 (이름이 잘리지 않게 작은 글씨)
+  final bool compact;
   final double ratio;
   final bool ready;
   final VoidCallback onPressed;
@@ -2002,8 +2094,17 @@ class _SkillOrb extends StatelessWidget {
                   : ready
                       ? skillLabel(context)
                       : '충전 중',
-              style: AppText.title(14,
-                  color: ready ? AppColors.goldBright : AppColors.textMuted)),
+              maxLines: compact ? 2 : 1,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: compact
+                  ? TextStyle(
+                      color: ready ? AppColors.goldBright : AppColors.textMuted,
+                      fontSize: 11.5,
+                      height: 1.15,
+                      fontWeight: FontWeight.w700)
+                  : AppText.title(14,
+                      color: ready ? AppColors.goldBright : AppColors.textMuted)),
         ),
       ],
     );
@@ -2383,97 +2484,4 @@ class _AmbientPainter extends CustomPainter {
       old.t != t ||
       old.element != element ||
       old.hour != hour;
-}
-
-
-/// 전투 화면 직업 스킬 버튼 (MP가 모자라면 흐리게)
-class _JobSkillButton extends StatelessWidget {
-  const _JobSkillButton({
-    super.key,
-    required this.name,
-    required this.cost,
-    required this.enough,
-    required this.onPressed,
-  });
-
-  final String name;
-  final int cost;
-  final bool enough;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: enough ? 1 : 0.45,
-        child: GestureDetector(
-          onTap: onPressed,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-            decoration: BoxDecoration(
-              color: const Color(0xE614163A),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFB27BFF)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFB27BFF)),
-              const SizedBox(width: 4),
-              Text('$name · MP $cost',
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ),
-      );
-}
-
-/// 숙련 스킬 버튼 (MP 없이, 강타처럼 차오름)
-class _MasterySkillButton extends StatelessWidget {
-  const _MasterySkillButton({
-    super.key,
-    required this.name,
-    required this.ratio,
-    required this.ready,
-    required this.onPressed,
-  });
-
-  final String name;
-  final double ratio;
-  final bool ready;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: ready ? 1 : 0.6,
-        child: GestureDetector(
-          onTap: ready ? onPressed : null,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-            decoration: BoxDecoration(
-              color: const Color(0xE614163A),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                  color: ready ? AppColors.goldBright : AppColors.gold),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  value: ratio,
-                  strokeWidth: 3,
-                  color: AppColors.goldBright,
-                  backgroundColor: const Color(0x33FFFFFF),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(name,
-                  style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ),
-      );
 }

@@ -337,3 +337,83 @@ class RewardItems extends StatelessWidget {
     );
   }
 }
+
+/// 얻은 것 한 줄 (묶음 33 #203): 넘치면 옆으로 넘기고, 누르면 이름
+class RewardStrip extends StatelessWidget {
+  const RewardStrip({super.key, required this.reward});
+
+  final HuntReward reward;
+
+  @override
+  Widget build(BuildContext context) {
+    final slots = <(Widget, String, String, bool)>[
+      if (reward.manaStones > 0)
+        (
+          const GameIcon('mana_stone', size: 24, fallback: Icons.diamond_rounded),
+          '마석',
+          '+${reward.manaStones}',
+          false
+        ),
+      if (reward.gold > 0)
+        (
+          const GameIcon('gold', size: 24, fallback: Icons.monetization_on_rounded),
+          '금화',
+          '+${reward.gold}',
+          false
+        ),
+      for (final e in reward.materials.entries)
+        (
+          MaterialIcon(e.key, size: 26),
+          Materials.info(e.key).name,
+          '+${e.value}',
+          Materials.info(e.key).rare
+        ),
+    ];
+    if (slots.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      key: const Key('rewardStrip'),
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final (icon, name, count, rare) in slots)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Tooltip(
+                message: '$name $count',
+                triggerMode: TooltipTriggerMode.tap,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.slotBg,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                        color: rare
+                            ? AppColors.goldBright
+                            : AppColors.gold.withValues(alpha: 0.55),
+                        width: rare ? 2 : 1),
+                  ),
+                  child: Stack(children: [
+                    Center(child: icon),
+                    Positioned(
+                      right: 2,
+                      bottom: 0,
+                      child: Text(count,
+                          style: const TextStyle(
+                              color: AppColors.text,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              shadows: [
+                                Shadow(color: Colors.black, blurRadius: 2)
+                              ])),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

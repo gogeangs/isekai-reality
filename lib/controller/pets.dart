@@ -67,6 +67,14 @@ extension PetsOps on AppController {
       PetSpecies.lizard =>
         far || VitalRules.expeditionCost(dist) >= PetRules.costlyMp,
       PetSpecies.homunculus => false,
+      // 묶음 33 #185 희귀 펫
+      PetSpecies.kelpie => _waterside(route),
+      PetSpecies.griffin => far,
+      PetSpecies.drake =>
+        far || VitalRules.expeditionCost(dist) >= PetRules.costlyMp,
+      PetSpecies.direwolf =>
+        spawn.modifiers.isNotEmpty || Monsters.info(spawn.monster).isBoss,
+      PetSpecies.mimic || PetSpecies.golem => false,
     };
   }
 

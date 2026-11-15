@@ -65,12 +65,28 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
     final spawn = widget.spawn;
     final nameColor = modGradeColor(spawn.grade);
     final top = MediaQuery.paddingOf(context).top;
+    // 묶음 33 #202: 싸우는 동안은 스크롤 없이 한 화면 (전투 장면이 남은 높이에 맞춰 줄어듦)
+    final fighting = battle != null && !_done;
+    Widget page(List<Widget> children) => fighting
+        ? Padding(
+            padding: EdgeInsets.fromLTRB(
+                14, top + 6, 14, MediaQuery.paddingOf(context).bottom + 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final c in children)
+                  c is BattleView ? Expanded(child: c) : c,
+              ],
+            ),
+          )
+        : ListView(
+            padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
+            children: children,
+          );
     return Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
-          children: [
+        child: page([
             OrnateTopBar(
               title: info.name,
               onBack: battle == null || _done
@@ -119,6 +135,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
             if (battle != null && !_done)
               BattleView(
                 battle: battle,
+                fit: true,
                 onFinished: _finish,
                 // 묶음 31 #198: 전투 칸 2개
                 jobSkills: widget.controller.battleJobSlots,
@@ -216,8 +233,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
-          ],
-        ),
+          ]),
       ),
     );
   }

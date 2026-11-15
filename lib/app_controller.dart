@@ -695,6 +695,9 @@ class AppController extends ChangeNotifier {
   bool _jobFind = false;
   int _lastTreasureGold = 0;
 
+  /// 먼 눈을 쓸 때 이미 지도에 있던 몬스터 (그 수식어는 그대로)
+  Set<String>? _farSightSeen;
+
   /// 방금 강화 실패가 무사했는지
   bool _lastEnhanceSafe = false;
 

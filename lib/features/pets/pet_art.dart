@@ -12,6 +12,12 @@ Color petColor(PetSpecies s) => switch (s) {
       PetSpecies.owl => const Color(0xFFE8C66A),
       PetSpecies.lizard => const Color(0xFFFF9E5E),
       PetSpecies.homunculus => const Color(0xFF7FD0FF),
+      PetSpecies.griffin => const Color(0xFFFFE066),
+      PetSpecies.direwolf => const Color(0xFFA8E0FF),
+      PetSpecies.drake => const Color(0xFFFF7A4A),
+      PetSpecies.kelpie => const Color(0xFF5EC8F0),
+      PetSpecies.mimic => const Color(0xFFD9B36A),
+      PetSpecies.golem => const Color(0xFFB8A27A),
     };
 
 IconData petIcon(PetSpecies s) => switch (s) {
@@ -21,6 +27,12 @@ IconData petIcon(PetSpecies s) => switch (s) {
       PetSpecies.owl => Icons.visibility_rounded,
       PetSpecies.lizard => Icons.local_fire_department_rounded,
       PetSpecies.homunculus => Icons.science_rounded,
+      PetSpecies.griffin => Icons.bolt_rounded,
+      PetSpecies.direwolf => Icons.ac_unit_rounded,
+      PetSpecies.drake => Icons.whatshot_rounded,
+      PetSpecies.kelpie => Icons.waves_rounded,
+      PetSpecies.mimic => Icons.inventory_2_rounded,
+      PetSpecies.golem => Icons.landscape_rounded,
     };
 
 /// 펫 그림 (pet_<종류>_baby/adult.png). 그림이 오기 전에는 아이콘으로.

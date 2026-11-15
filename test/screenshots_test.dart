@@ -598,21 +598,18 @@ void main() {
     await tester.tap(find.byKey(const Key('facility_smithy')));
     await tester.pumpAndSettle();
     await _shot(tester, '28_대장간');
-    await tester.tap(find.text('강화'));
+    await tester.tap(find.byKey(const Key('smithyTab_1')));
     await tester.pumpAndSettle();
     await _shot(tester, '28b_대장간_강화');
-    await tester.tap(find.text('수리 · 분해'));
+    await tester.tap(find.byKey(const Key('smithyTab_2')));
     await tester.pumpAndSettle();
     await _shot(tester, '28c_대장간_수리');
-    // 장비 속성 (11-11 #74): 입히기 · 바꾸기 · 추출 · 강화
-    await tester.ensureVisible(find.byKey(Key('imbue_${armor.uid}')));
-    await tester.tap(find.byKey(Key('imbue_${armor.uid}')));
+    // 장비 속성 (11-11 #74 · 묶음 40 #223 속성 탭)
+    await tester.tap(find.byKey(const Key('smithyTab_3')));
     await tester.pumpAndSettle();
     await _shot(tester, '28d_대장간_속성');
-    Navigator.of(tester.element(find.text('속성 입히기'))).pop();
-    await tester.pumpAndSettle();
     // 보스 장비 (11-11 #82)
-    await tester.tap(find.text('보스 장비'));
+    await tester.tap(find.byKey(const Key('smithyTab_5')));
     await tester.pumpAndSettle();
     await _shot(tester, '28g_대장간_보스장비');
     Navigator.of(tester.element(find.byType(SmithyScreen))).pop();

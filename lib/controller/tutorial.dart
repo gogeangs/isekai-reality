@@ -132,8 +132,29 @@ extension TutorialOps on AppController {
       for (final s in harvestSpots) {
         if (s.id == spotId) return (id: s.id, point: s.point);
       }
+      // 묶음 29: 젤리 안내 중 가까운 슬라임
+      for (final s in todaySpawns) {
+        if (s.id == spotId) return (id: s.id, point: s.point);
+      }
     }
     return null;
+  }
+
+  /// 묶음 29 #181: 젤리 안내에서 비출 가까운 슬라임 id. 근처에 없으면 안내 슬라임을 하나 둔다
+  String? nearestSlimeId() {
+    final here = _lastFix?.point ?? fallbackCenter;
+    if (here == null) return null;
+    FieldSpawn? best;
+    for (final s in todaySpawns) {
+      if (s.monster != MonsterId.slime) continue;
+      if (s.point.distanceTo(here) > 400) continue;
+      if (best == null || s.point.distanceTo(here) < best.point.distanceTo(here)) {
+        best = s;
+      }
+    }
+    if (best != null) return best.id;
+    guideHunt = true;
+    return guideSpawn?.id;
   }
 
   /// 안내가 지도에서 비출 채집 자리 (null 이면 끔)
@@ -142,6 +163,9 @@ extension TutorialOps on AppController {
     _guideSpotId = id;
     if (id != null) {
       for (final s in harvestSpots) {
+        if (s.id == id) requestMapFocus(s.point);
+      }
+      for (final s in todaySpawns) {
         if (s.id == id) requestMapFocus(s.point);
       }
     }

@@ -46,7 +46,8 @@ extension LensOps on AppController {
       if (_random.nextDouble() < appraiseChance(LensRules.materialChance)) {
         mat = LensRules.info(races[_random.nextInt(races.length)]).material;
       }
-      note = _random.nextDouble() < appraiseChance(LensRules.noteChance);
+      note = _random.nextDouble() <
+          appraiseChance(LensRules.noteChance) + intellectCraft;
     }
     await _save(today.copyWith(
       itemsUsed: free

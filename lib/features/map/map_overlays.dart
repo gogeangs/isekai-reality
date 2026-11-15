@@ -387,14 +387,14 @@ class _ExpeditionList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            KText('${c.farewellDone ? '펫' : '정령'} 원정 · MP ${c.mp} / ${c.mpMax}',
+            KText('${c.farewellDone ? '펫' : '정령'} 원정 · 기력 ${c.mp} / ${c.mpMax}',
                 style: AppText.title(16)),
             const SizedBox(height: 4),
             Text(
               reachable.isEmpty
                   ? '근처에 남은 몬스터가 없어요.'
                   : '근처 몬스터 ${reachable.length}마리 · 가까운 곳부터 보여 드려요. '
-                      '100m마다 MP ${RuleConstants.expeditionMpPer100m}',
+                      '100m마다 기력 ${RuleConstants.expeditionMpPer100m}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
             for (final s in reachable.take(5))

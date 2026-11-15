@@ -44,7 +44,7 @@ class LevelUpDialog extends StatelessWidget {
   String get _line {
     if (clues[to] case final c?) return c;
     if (from < 10 && to >= 10) return 'Lv.10이야! 이제 진짜 각성자다운걸?';
-    // #102: HP·MP가 가득 찼다는 대사
+    // #102: HP·기력이 가득 찼다는 대사
     if (healedFrom != null) {
       const healed = [
         '레벨 업! 힘이 가득 차올랐어.',
@@ -219,7 +219,7 @@ class _RefillBars extends StatelessWidget {
     final hp0 = from.maxHp == 0 ? 1.0 : from.hp / from.maxHp;
     final mp0 = from.mpMax == 0 ? 1.0 : from.mp / from.mpMax;
     return Column(key: const Key('levelUpRefill'), children: [
-      const Text('HP·MP가 가득 찼어요',
+      const Text('HP·기력이 가득 찼어요',
           style: TextStyle(
               color: AppColors.goldBright, fontWeight: FontWeight.w700)),
       const SizedBox(height: 6),
@@ -241,7 +241,7 @@ class _RefillBars extends StatelessWidget {
           Row(children: [
             const SizedBox(
                 width: 34,
-                child: Text('MP',
+                child: Text('기력',
                     style: TextStyle(color: AppColors.text, fontSize: 12))),
             Expanded(
                 child: GlowBar(

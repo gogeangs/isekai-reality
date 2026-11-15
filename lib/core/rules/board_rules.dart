@@ -136,7 +136,7 @@ class BoardRules {
         materials: {MaterialId.batWing: 2}),
     ErrandTemplate(
         id: 'expedition2',
-        title: '정령 원정 2번',
+        title: '원정 2번',
         counter: 'expedition',
         target: 2,
         unit: '번',

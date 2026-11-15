@@ -40,7 +40,7 @@ class ShopScreen extends StatelessWidget {
         ShopItem.raceLens =>
           '마법 돋보기를 가방에 넣었어요. 가방에서 「감정하기」로 친구의 종족을 감정해 봐요!',
         ShopItem.expeditionCompass =>
-          '원정 나침반을 가방에 넣었어요. 정령을 보내기 전에 써요!',
+          '원정 나침반을 가방에 넣었어요. 원정을 보내기 전에 써요!',
         ShopItem.purifyIncense =>
           '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.ironShard ||

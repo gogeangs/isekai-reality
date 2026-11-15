@@ -75,8 +75,8 @@ class IsekaiRealityApp extends StatelessWidget {
           mood: controller.bulssiMood,
           spiritName: controller.companionName,
           kind: controller.profile.spiritKind,
-          petSpecies: controller.companionPet?.species,
-          petAdult: controller.companionPet?.adult ?? false,
+          petSpecies: controller.voicePet?.species,
+          petAdult: controller.voicePet?.adult ?? false,
           // 차량 속도 이동 확인 (11-11 #61): 모든 화면 위를 가린다
           // 앱 안 알림은 모두 위쪽 금테 띠로 (11-11 #85)
           child: TopNoticeHost(
@@ -162,6 +162,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   bool _ahead(int rank) {
     final c = widget.controller;
     if (rank > 0 && c.pendingLevelUp != null) return true;
+    // 묶음 29 #182: 이별 컷신은 레벨업 창 바로 다음. 다른 창은 그 뒤로 모아 둔다
+    if (rank > 0 && c.farewellPending && !c.inTutorial) return true;
     if (rank > 1 && c.newTitle != null) return true;
     if (rank > 2 &&
         _tab != tMap &&
@@ -317,7 +319,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowNotices();
         _maybeShowPetNews();
         _maybeShowWalkNews();
-        tourBridge.paused = _popupBusy;
+        tourBridge.paused = _popupBusy ||
+            (controller.farewellPending && !controller.inTutorial);
         _maybeShowHpTip();
         void push(Widget page) => Navigator.of(context)
             .push(MaterialPageRoute<void>(builder: (_) => page));

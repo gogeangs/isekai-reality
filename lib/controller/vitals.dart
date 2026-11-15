@@ -13,13 +13,12 @@ extension VitalsOps on AppController {
   /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
   int get hp => math.min(maxHp, _vitals.hp ?? maxHp);
 
-  /// 정령 MP (원정에 쓴다)
+  /// 기력 (정령·펫이 원정에 쓴다, #183)
   int get mp => math.min(mpMax, _vitals.mp ?? mpMax);
 
-  /// 최대 MP (지능, 11-11 #50)
-  int get mpMax =>
-      StatRules.maxMp(combatStats + gear.stats) +
-      PetRules.mpMaxBonus(_pets.pets.length);
+  /// 기력 최대치: 기본 60 + 펫 보너스 (지능은 빠짐, #183). 저장된 값이 더 크면
+  /// [mp] 가 새 최대치까지만 보여 준다.
+  int get mpMax => StatRules.maxMp() + PetRules.mpMaxBonus(_pets.pets.length);
 
   /// 시간당 MP 회복 (두 번째 펫부터 +2, 11-11 #38)
   int get mpRegenPerHour =>
@@ -236,13 +235,13 @@ extension VitalsOps on AppController {
       NotifyId.rest,
       now.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 $companionName의 MP가 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      'HP와 $companionName의 기력이 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));
     _notify();
     return true;
   });
 
-  /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·MP는 그대로 (묶음 15 #107)
+  /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·기력은 그대로 (묶음 15 #107)
   Future<void> stopResting() =>
       _serial(() async {
     if (!resting) return;

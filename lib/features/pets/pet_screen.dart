@@ -38,7 +38,7 @@ class PetScreen extends StatelessWidget {
                 OrnatePanel(
                   child: KText(
                     '펫 ${pets.length} / ${PetRules.maxPets} · '
-                    '공용 MP ${c.mp} / ${c.mpMax} (시간당 +${c.mpRegenPerHour})'
+                    '기력 ${c.mp} / ${c.mpMax} (시간당 +${c.mpRegenPerHour})'
                     '${c.pets.eggs.isEmpty ? '' : ' · 가방에 알 ${c.pets.eggs.length}개'}',
                     style: const TextStyle(color: AppColors.text, fontSize: 14),
                   ),

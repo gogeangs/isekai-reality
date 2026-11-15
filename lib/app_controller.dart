@@ -355,7 +355,7 @@ class AppController extends ChangeNotifier {
       spiritKind: spirit,
       spiritName: sn == null || sn.isEmpty ? spirit.defaultName : sn,
     );
-    _vitals = const Vitals(); // 처음 각성은 HP·MP 가득
+    _vitals = const Vitals(); // 처음 각성은 HP·기력 가득
     await store.saveProfile(_profile);
     // 묶음 15 #104: 새로 시작하는 사람만 Lv.1~2 튜토리얼 (기존 사용자는 그대로)
     if (player.level.level < 2 && player.history.every((d) => d.fieldMonstersPurified == 0)) {

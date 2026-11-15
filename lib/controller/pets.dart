@@ -11,8 +11,17 @@ extension PetsOps on AppController {
   /// 데리고 다니는 펫 (정령이 떠나기 전에는 null)
   Pet? get companionPet => _pets.farewellDone ? _pets.companionPet : null;
 
-  /// 말풍선·원정에 나오는 동료 이름 (정령 또는 데리고 다니는 펫)
-  String get companionName => companionPet?.name ?? _profile.spiritName;
+  /// 빛 조각에서 태어난 첫 펫 (묶음 29 #182). 이 펫만 말을 한다
+  Pet? get firstPet {
+    final uid = _pets.firstPet;
+    return uid == null ? null : _pets.byUid(uid);
+  }
+
+  /// 말풍선·배지에 나오는 펫: 첫 펫, 없으면 데리고 다니는 펫 (예전 이별 뒤 아직 컷신 전)
+  Pet? get voicePet => firstPet ?? companionPet;
+
+  /// 말풍선·원정에 나오는 동료 이름 (정령 또는 첫 펫)
+  String get companionName => voicePet?.name ?? _profile.spiritName;
 
   /// 처음 함께한 정령 이름 (떠난 뒤 프로필·기록에)
   String get firstSpiritName => _pets.firstSpiritName ?? _profile.spiritName;
@@ -23,56 +32,71 @@ extension PetsOps on AppController {
     _notify();
   }
 
-  /// 이별 연출을 보여 줄 때인지: Lv.11 이상, 아직 함께, 정령 원정이 없음
+  /// 이별 컷신·첫 펫을 보여 줄 때인지 (묶음 29 #182): Lv.11 이상, 아직 첫 펫이 없음.
+  /// 정령이 아직 함께면 정령 원정이 끝난 뒤에. 예전 이별을 이미 본 계정도 한 번.
   bool get farewellPending =>
-      !_pets.farewellDone &&
+      _pets.firstPet == null &&
       player.level.level >= PetRules.farewellLevel &&
-      _vitals.expeditions.isEmpty;
+      (_pets.farewellDone || _vitals.expeditions.isEmpty);
 
-  /// 정령 짝 펫 (첫 펫 확률을 조금 올린다)
-  PetSpecies get _favoredSpecies => switch (_profile.spiritKind) {
-        SpiritKind.fire => PetSpecies.lizard,
-        SpiritKind.water => PetSpecies.toad,
-        SpiritKind.plant => PetSpecies.owl,
-      };
+  /// 첫 펫 종류: 숨은 속성 점수(mainElement) — 바람 까마귀 · 어둠 검은 고양이 ·
+  /// 독 두꺼비 · 빛 부엉이 · 불 꼬마 도마뱀, 그 밖이거나 없으면 호문쿨루스
+  PetSpecies get firstPetSpecies => PetRules.firstPetFor(mainElement);
 
-  /// 이별 때 깨어날 펫 (연출에서 한 번 뽑아 이름을 짓게 한다)
-  PetSpecies rollFirstPet() => PetRules.rollSpecies(_random,
-      favored: _favoredSpecies, element: mainElement);
-
-  /// 이별 때 가방에 알이 있었는지 (없으면 정령이 선물 알을 남긴다)
-  bool get hasEggForFarewell => _pets.eggs.isNotEmpty;
-
-  /// 정령이 떠나고 첫 펫이 태어난다. 가방의 알 하나를 쓰고, 없으면 선물 알.
-  Future<Pet> completeFarewell(PetSpecies species, String name) async {
+  /// 이별 컷신 끝: 빛 조각에서 첫 펫이 태어난다. 가방의 알은 그대로 (이때 보인다).
+  /// 이미 펫이 있으면 하나 더, 동행은 새 첫 펫. 정령 저장 값은 지우지 않는다.
+  Future<Pet> completeFarewell(String name) async {
     final now = _clock();
     final p = _pets;
-    final eggs = [...p.eggs];
-    if (eggs.isNotEmpty) eggs.removeAt(0);
+    final existing = firstPet;
+    if (existing != null) return existing;
+    final species = firstPetSpecies;
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: species,
       name: name.trim().isEmpty ? PetRules.info(species).name : name.trim(),
       bornAt: now,
     );
+    final first = !p.farewellDone;
     await _savePets(p.copyWith(
-      eggs: eggs,
       pets: [...p.pets, pet],
       companion: pet.uid,
-      farewellAt: now,
-      firstSpiritName: _profile.spiritName,
-      firstSpiritKind: _profile.spiritKind.name,
+      firstPet: pet.uid,
       nextId: p.nextId + 1,
+      farewellAt: first ? now : null,
+      firstSpiritName: first ? _profile.spiritName : null,
+      firstSpiritKind: first ? _profile.spiritKind.name : null,
       // 태어난 뒤 걸음부터 센다
-      stepsDay: player.today?.dayKey,
-      stepsCounted: player.today?.steps ?? 0,
+      stepsDay: first ? player.today?.dayKey : null,
+      stepsCounted: first ? player.today?.steps ?? 0 : null,
       // 이별 전에 이미 지나간 날의 편지는 보내지 않는다
-      skippedLetters: [
-        for (final l in PetRules.letters)
-          if (_letterDue(l)) l.id,
-      ],
+      skippedLetters: first
+          ? [
+              for (final l in PetRules.letters)
+                if (_letterDue(l)) l.id,
+            ]
+          : null,
     ));
     return pet;
+  }
+
+  /// 기록 탭 「○○와의 추억」: 처음 만난 날 · 함께한 날 수 · 함께 잡은 몬스터 수.
+  /// 정령이 떠나기 전에는 null
+  ({DateTime met, int days, int monsters})? get spiritMemory {
+    final at = _pets.farewellAt;
+    if (at == null || _history.isEmpty) return null;
+    final met = _history.first.date;
+    final end = DateTime(at.year, at.month, at.day);
+    var monsters = 0;
+    for (final d in _history) {
+      if (d.date.isAfter(end)) break;
+      monsters += d.huntCounts.isNotEmpty
+          ? d.huntCounts.values.fold<int>(0, (a, b) => a + b)
+          : d.purifiedMonsterIds.length;
+    }
+    final days =
+        end.difference(DateTime(met.year, met.month, met.day)).inDays + 1;
+    return (met: met, days: math.max(1, days), monsters: monsters);
   }
 
   /// 확률로 알 하나 (Lv.11 전에는 한 번만, 정령이 떠난 뒤에는 [chance])
@@ -302,13 +326,17 @@ extension PetsOps on AppController {
       _serial(() async {
     final pet = _pets.byUid(uid);
     if (pet == null || _pets.pets.length <= 1 || isAway(uid)) return false;
+    // 묶음 29 #182: 빛 조각에서 태어난 첫 펫은 돌려보낼 수 없다
+    if (uid == _pets.firstPet) return false;
     await _grant(0, PetRules.releaseMana(pet.level),
         {pet.info.favorite: PetRules.releaseMaterials});
     final rest = [for (final p in _pets.pets) if (p.uid != uid) p];
     await _savePets(PetState.fromJson({
       ..._pets.toJson(),
       'pets': [for (final p in rest) p.toJson()],
-      'companion': _pets.companion == uid ? rest.first.uid : _pets.companion,
+      'companion': _pets.companion == uid
+          ? (_pets.firstPet ?? rest.first.uid)
+          : _pets.companion,
     }));
     return true;
   });

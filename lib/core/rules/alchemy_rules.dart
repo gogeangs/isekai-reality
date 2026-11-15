@@ -415,9 +415,9 @@ class AlchemyRules {
     ),
     const PotionInfo(
       id: PotionId.manaSmall,
-      name: '작은 마나 물약',
+      name: '작은 기력 물약',
       kind: PotionKind.mana,
-      description: 'MP가 20% 차요.',
+      description: '기력이 20% 차요.',
       recipe: [MaterialId.waterJelly, MaterialId.herb, MaterialId.butterflyDust],
       minutes: 10,
       yields: 3,
@@ -444,9 +444,9 @@ class AlchemyRules {
     ),
     const PotionInfo(
       id: PotionId.mana,
-      name: '마나 물약',
+      name: '기력 물약',
       kind: PotionKind.mana,
-      description: 'MP가 40% 차요.',
+      description: '기력이 40% 차요.',
       recipe: [
         MaterialId.waterJelly,
         MaterialId.waterJelly,
@@ -836,9 +836,9 @@ class AlchemyRules {
     ),
     const PotionInfo(
       id: PotionId.mana3,
-      name: '맑은 마나 물약',
+      name: '맑은 기력 물약',
       kind: PotionKind.mana,
-      description: 'MP가 55% 차요.',
+      description: '기력이 55% 차요.',
       recipe: [
         MaterialId.essence,
         MaterialId.waterJelly,
@@ -852,9 +852,9 @@ class AlchemyRules {
     ),
     const PotionInfo(
       id: PotionId.mana4,
-      name: '깊은 마나 물약',
+      name: '깊은 기력 물약',
       kind: PotionKind.mana,
-      description: 'MP가 85% 차요.',
+      description: '기력이 85% 차요.',
       recipe: [
         MaterialId.essence,
         MaterialId.waterCore,
@@ -867,9 +867,9 @@ class AlchemyRules {
     ),
     const PotionInfo(
       id: PotionId.mana5,
-      name: '여명의 마나 물약',
+      name: '여명의 기력 물약',
       kind: PotionKind.mana,
-      description: 'MP가 가득 차요. 여명의 탑의 빛을 담은 물약.',
+      description: '기력이 가득 차요. 여명의 탑의 빛을 담은 물약.',
       recipe: [
         MaterialId.essence,
         MaterialId.essence,

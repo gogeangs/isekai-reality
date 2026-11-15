@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules, HarvestTool;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, MaterialId;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -393,8 +393,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   /// 첫 물약을 만들고 「완성」 한마디를 보여 주는 중
   bool _potionMade = false;
 
-  /// 약초가 모자라 지도를 가리킨 뒤 (재료가 생길 때까지 기다린다)
-  bool _waitHerbs = false;
+  /// 재료가 모자라 지도를 가리킨 뒤 기다리는 재료 ('herb' 약초 · 'jelly' 젤리).
+  /// 그 재료가 모이면 다음 안내로 이어진다
+  String? _waitFor;
+
+  /// 첫 물약 뒤 두 번째 한마디 (가마솥 시간)
+  bool _potionMore = false;
 
   // ───────────── 묶음 28 #181: Lv.7 약초 덤불 + 연금술 공방 → 첫 물약
   TourStep? _alchemy(Feature f) {
@@ -409,10 +413,18 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     }
     if (_potionMade) {
       if (b.topIsPopup) return null;
+      if (_potionMore) {
+        return TourStep('다음부터는 가마솥에서 끓는 시간이 걸려. 기다리는 동안 다녀와도 돼!',
+            button: ('알겠어', () {
+              _potionMade = false;
+              _potionMore = false;
+              _finish(f);
+            }));
+      }
       return TourStep('첫 물약 완성! 위험할 때 전투에서 저절로 써 줄게.',
-          button: ('알겠어', () {
-            _potionMade = false;
-            _finish(f);
+          button: ('다음', () {
+            _potionMore = true;
+            _queue();
           }));
     }
     // 약초를 캘 낫이 없으면 대장간만 가리키고 끝
@@ -427,28 +439,31 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     }
     final missing = c.firstPotionMissing;
     if (missing.isNotEmpty) {
-      if (_waitHerbs) return null; // 재료가 생기면 이어서
+      // 약초·젤리 둘 다 모자라면 약초 먼저
+      final herb = missing.containsKey(MaterialId.herb);
+      final want = herb ? 'herb' : 'jelly';
+      if (_waitFor == want) return null; // 재료가 생기면 이어서
+      _waitFor = null;
       if (b.topIsPopup || b.top == null) return null;
       if (b.top != 'home' || b.tab != FeatureTourLayer.tMap) {
-        _doOnce('toMap', () => _goHome(FeatureTourLayer.tMap));
+        _doOnce('toMap:$want', () => _goHome(FeatureTourLayer.tMap));
         return const TourStep('', wait: true);
       }
-      if (c.guideSpotId == null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) c.guideSpotId = 'guide-herb';
-        });
-      }
+      _doOnce('spot:$want', () {
+        c.guideSpotId = herb ? 'guide-herb' : c.nearestSlimeId();
+      });
       final r = tutorialMonsterRect.value;
-      return TourStep('약초 덤불에서 약초를 모아 오자!',
+      return TourStep(
+          herb ? '약초 덤불에서 약초를 모아 오자!' : '슬라임 젤리가 하나 필요해. 슬라임을 잡아 보자!',
           hole: r,
           round: true,
           button: ('알겠어', () {
-            _waitHerbs = true;
+            _waitFor = want;
             c.guideSpotId = null;
             _queue();
           }));
     }
-    _waitHerbs = false;
+    _waitFor = null;
     if (c.guideSpotId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) c.guideSpotId = null;

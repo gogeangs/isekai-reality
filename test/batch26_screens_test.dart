@@ -120,8 +120,8 @@ void main() {
         InMemoryRecordStore(profile: const PlayerProfile(name: '하루'))));
     await tester.pumpWidget(MaterialApp(home: SmithyScreen(controller: c)));
     await tester.pump();
-    expect(find.byKey(const Key('gradeDots')), findsOneWidget);
-    expect(find.byKey(const Key('craftCount')), findsOneWidget);
+    // 묶음 40 #221: 색 점은 만들기 확인 창으로 옮김, 「만든 장비 ○개」 줄은 없앰
+    expect(find.byKey(const Key('craftCount')), findsNothing);
     final text = allText(tester);
     expect(text, isNot(contains('%p')));
     expect(text, isNot(contains('숙련도')));

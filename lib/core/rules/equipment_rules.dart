@@ -556,6 +556,41 @@ class EquipmentRules {
     return out;
   }
 
+  /// 묶음 40 #221: 새로 만들 장비(흰색 +0)와 지금 그 부위에 입은 장비의 비교 한 줄.
+  /// 좋아지면 (true, '공격 +2%'), 나빠지면 (false, '공격 -1%'). 입은 게 없으면 빈 목록.
+  static List<(bool, String)> compareWith(EquipBase base, EquipItem worn) {
+    final a = info(base);
+    final b = info(worn.base);
+    final pa = gradeMultiplier(EquipGrade.white);
+    final pb = power(worn);
+    final out = <(bool, String)>[];
+    void num(String label, double mine, double theirs, String unit,
+        {bool lowerIsBetter = false}) {
+      final d = ((mine - theirs) * 1000).round() / 1000;
+      if (d.abs() < 0.0005) return;
+      final up = d > 0;
+      final v = _pct(d.abs());
+      if (lowerIsBetter) {
+        out.add((up, '$label ${up ? '-' : '+'}$v$unit'));
+      } else {
+        out.add((up, '$label ${up ? '+' : '-'}$v$unit'));
+      }
+    }
+
+    num('공격', a.attack * pa, b.attack * pb, '%');
+    num('받는 피해', a.reduce * pa, b.reduce * pb, '%', lowerIsBetter: true);
+    num('최대 HP', a.maxHp * pa, b.maxHp * pb, '%');
+    num('치명타', a.crit * (a.crit > 0 ? pa : 1), b.crit * (b.crit > 0 ? pb : 1), '%p');
+    num('회피', a.evade * pa, b.evade * pb, '%p');
+    if ((a.skillFaster > 0) != (b.skillFaster > 0)) {
+      out.add(a.skillFaster > 0 ? (true, '일격 충전 빨리') : (false, '일격 충전 빨리 없음'));
+    }
+    if ((a.speed > 0) != (b.speed > 0)) {
+      out.add(a.speed > 0 ? (true, '먼저 침') : (false, '먼저 치기 없음'));
+    }
+    return out;
+  }
+
   /// 스탯을 뺀 장비 능력 (공격·받는 피해·속성 …)
   static String itemEffectLabel(EquipItem item) =>
       itemStatLabel(item, withStats: false);

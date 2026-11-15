@@ -68,7 +68,7 @@ void main() {
 
     test('탭 안내 문구', () {
       expect(VillageRules.smithyGuide(1), contains('부서지지'));
-      expect(VillageRules.smithyGuide(2), VillageRules.smithyGuide(3));
+      expect(VillageRules.smithyGuide(2), contains('분해'));
       expect(VillageRules.alchemyGuide(2), contains('상위 재료'));
     });
   });

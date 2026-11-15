@@ -733,8 +733,18 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     if (step == null || key == null || h == null) return;
     final size = MediaQuery.sizeOf(context);
     final pad = MediaQuery.paddingOf(context);
-    final top = pad.top + 56; // 위쪽 제목·건너뛰기 줄
-    final bottom = size.height - pad.bottom - 12;
+    var top = pad.top + 56; // 위쪽 제목·건너뛰기 줄
+    var bottom = size.height - pad.bottom - 12;
+    // 묶음 40: 굴러가는 칸이 화면 일부만 쓰면(대장간처럼 위쪽이 붙어 있으면) 그 칸 안에 다 보여야 함
+    final target = elementOfKey(key);
+    if (target != null && target.mounted) {
+      final vp = Scrollable.maybeOf(target)?.context.findRenderObject();
+      if (vp is RenderBox && vp.attached && vp.hasSize) {
+        final o = vp.localToGlobal(Offset.zero);
+        if (o.dy > top) top = o.dy;
+        if (o.dy + vp.size.height < bottom) bottom = o.dy + vp.size.height;
+      }
+    }
     // 다 보이면 끝. 화면보다 큰 칸은 굴려도 다 들어오지 않으니 그대로
     if (h.top >= top && h.bottom <= bottom) return;
     if (h.height > bottom - top) return;

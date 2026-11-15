@@ -127,10 +127,10 @@ extension TutorialOps on AppController {
       if (h != null) return (id: h.id, point: h.point);
     }
     // 묶음 28 #181: 첫 물약 안내 중 지도의 약초 덤불
-    final g = _guideSpotId;
-    if (g != null) {
+    final spotId = _guideSpotId;
+    if (spotId != null) {
       for (final s in harvestSpots) {
-        if (s.id == g) return (id: s.id, point: s.point);
+        if (s.id == spotId) return (id: s.id, point: s.point);
       }
     }
     return null;

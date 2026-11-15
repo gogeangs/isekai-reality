@@ -280,6 +280,7 @@ void main() {
       await tester.tap(find.text('그만두기'));
       await tester.pumpAndSettle();
       // 모두 수리
+      await reveal(tester, 'repairAll', -150);
       await tester.tap(find.byKey(const Key('repairAll')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 80)));

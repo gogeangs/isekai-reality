@@ -561,9 +561,13 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
     // 묶음 26 #179: 안내·튜토리얼 몬스터는 제 그림(하늘 슬라임)으로 크게, 맨 위에,
     // 자리 한가운데에 (밝게 비추는 원이 정확히 몬스터를 감싸게)
     final guide = c.guideMapTarget?.id == spawn.id;
+    // 묶음 31: 먼 눈을 쓰는 동안 희귀·전설 몬스터는 크게, 맨 위에, 멀리서도
+    final spotted = c.spotsSpecial(spawn);
     // 기본 40 → 60 (1.5배). 희귀 이상 수식어는 조금 더 크게
     final base = guide
         ? 84.0
+        : spotted
+            ? 92.0
         : spawn.modifiers.isEmpty
             ? 60.0
             : spawn.grade.index >= ModGrade.rare.index
@@ -587,13 +591,15 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
                   .join(' '),
               color: modGradeColor(spawn.grade),
               haloColor: AppColors.abyss,
+              textSize: spotted ? 15 : 12,
             ),
     )..setOnTapListener((_) {
         if (mounted) showSpawnSheet(context, c, spawn);
       });
     if (guide) m.setGlobalZIndex(260000);
+    if (spotted && !guide) m.setGlobalZIndex(250000);
     // 11-11 #80: 지도를 축소하면 먼 몬스터는 숨기고 가까운 몬스터 위주로
-    if (me != null) {
+    if (me != null && !spotted) {
       final d = spawn.point.distanceTo(me);
       if (d > 1800) {
         m.setMinZoom(14.5);

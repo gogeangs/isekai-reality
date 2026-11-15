@@ -455,6 +455,7 @@ class JobRules {
   static const double drillExp = 0.25;
   static const double runTogether = 1.0; // 함께 달리기: 걸음 펫 경험치 두 배
   static const double coinTossGold = 10;
+  static const double farSightRare = 0.05; // 먼 눈: 희귀 수식어 몫 더 (30분)
 
   // ───────────── 숨은 직업 조건
   static const int nightWalkerSteps = 50000;
@@ -611,7 +612,7 @@ class JobRules {
         '잠시 동안 나에게만 보이는 채집 자리와 보물 상자가 근처에 생겨요', 20,
         mode: SkillMode.timed, duration: _min30),
     JobSkillInfo(JobSkill.farSight, '먼 눈', SkillPlace.map,
-        '잠시 동안 더 먼 곳의 몬스터와 채집 자리가 보여요', 20,
+        '30분 동안 특별한 몬스터를 찾아내요', 20,
         mode: SkillMode.timed, duration: _min30),
     JobSkillInfo(JobSkill.windWalk, '바람 따라 걷기', SkillPlace.map,
         '잠시 동안 주변의 안 가 본 장소가 지도에 보여요', 20,

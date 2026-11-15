@@ -178,7 +178,7 @@ extension BattleOps on AppController {
         roads: roads,
         exclusions: exclusions,
         level: player.level.level,
-        luckBonus: StatRules.modifierBonus(combatStats),
+        luckBonus: modLuckBonus,
         night: FieldMonsterRules.isNight(_clock()),
         favored: ElementRules.challengers(mainElement),
         land: lands?.kindAt);
@@ -203,7 +203,7 @@ extension BattleOps on AppController {
             roads: roads,
             exclusions: exclusions,
             level: player.level.level,
-            luckBonus: StatRules.modifierBonus(combatStats),
+            luckBonus: modLuckBonus,
             night: night || FieldMonsterRules.isNight(_clock()),
             favored: ElementRules.challengers(mainElement),
             land: lands?.kindAt);
@@ -241,7 +241,7 @@ extension BattleOps on AppController {
           monster: mon,
           point: trackAt,
           modifiers: ModifierRules.roll(id, mon, player.level.level,
-              bonus: StatRules.modifierBonus(combatStats))));
+              bonus: modLuckBonus)));
     }
     // 묶음 31: 사냥꾼 → 주변에 사냥감이 더 (그날 기준 자리 둘레)
     final hunt = (4 * JobRules.hunterSpawns * jobTrait(JobId.hunter)).round();
@@ -285,7 +285,7 @@ extension BattleOps on AppController {
             roads: roads,
             exclusions: exclusions,
             level: player.level.level,
-            luckBonus: StatRules.modifierBonus(combatStats),
+            luckBonus: modLuckBonus,
             favored: ElementRules.challengers(mainElement),
             land: lands?.kindAt)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)

@@ -921,7 +921,7 @@ extension JobOps on AppController {
 
   // ───────────── 고유 기술·스킬이 쓰이는 곳 (숨은 규칙)
 
-  /// 지도에 채집 자리를 보여 주는 거리 (채집가·먼 눈)
+  /// 지도에 채집 자리를 보여 주는 거리 (채집가)
   double get harvestMapRadius {
     var r = HarvestRules.mapRadiusM *
         (1 + JobRules.herbalistSight * jobTrait(JobId.herbalist));

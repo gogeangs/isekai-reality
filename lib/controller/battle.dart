@@ -45,6 +45,7 @@ extension BattleOps on AppController {
       power: combatPower() * jobPower,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
+      petResonant: companionPet != null && petResonant(companionPet!),
       potions: battlePotions,
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,

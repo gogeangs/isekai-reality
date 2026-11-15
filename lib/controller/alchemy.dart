@@ -157,6 +157,13 @@ extension AlchemyOps on AppController {
       // 묶음 30: 연금술사 → 가끔 두 배, 연성 가속 → 하나 더 (숨김)
       if (_jobRoll(JobId.alchemist, JobRules.alchemistDouble)) yields *= 2;
       if (await _consumeSkill(JobSkill.quickBrew)) yields += 1;
+      // 묶음 32 #190: 호문쿨루스가 동행 중이면 가끔 하나 더 (따로 셈, 숨김)
+      final comp = companionPet;
+      if (comp != null &&
+          comp.species == PetSpecies.homunculus &&
+          _random.nextDouble() < PetRules.homunculusBrew(adult: comp.adult)) {
+        yields += 1;
+      }
       // 품질 3등급 (11-11 #74): 숙련도 보너스는 연금술사 직업 각성 뒤에 더한다
       final q = AlchemyRules.quality(perfect: match.perfect, put: put);
       a = a.copyWith(
@@ -184,6 +191,9 @@ extension AlchemyOps on AppController {
     await _saveAlc(a);
     await gainMastery(Mastery.alchemy, MasteryRules.brew,
         details: [if (match != null) MasteryRules.potionKey(match.id)]);
+    // 묶음 32 #189: 속성 물약을 끓이면 그 속성 점수
+    final pe = match == null ? null : AlchemyRules.info(match.id).element;
+    if (pe != null) await _gainElement(pe, ElementRules.potionScore);
     return result;
   });
 

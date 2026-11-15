@@ -398,11 +398,18 @@ class _PetCodex extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: AppText.title(22, color: AppColors.goldBright)),
                 const SizedBox(height: 10),
-                _Fact(label: '원정 특기', value: '${info.special} (성체: ${info.specialAdult})'),
+                // 묶음 32 #184: 숫자 없이 문장으로, 성체는 한 줄로
+                _Fact(label: '원정 특기', value: info.special),
                 _Fact(
                     label: '던전 스킬',
-                    value: '${info.skillName} · ${info.skillText} '
-                        '(성체: ${info.skillTextAdult})'),
+                    value: '${info.skillName} · ${info.skillText}'),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('자라면 더 좋아져요',
+                      key: Key('petGrowsBetter'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                ),
                 const SizedBox(height: 12),
                 FrameButton(
                     label: '닫기', onPressed: () => Navigator.of(sheet).pop()),

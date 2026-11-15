@@ -14,8 +14,13 @@ class FakeHealthSource implements HealthSource {
     this.granted = true,
     Map<String, int>? stepsByDay,
     Map<String, int>? stepsAfter8pmByDay,
+    Map<String, int>? windowSteps,
   })  : stepsByDay = stepsByDay ?? {},
-        stepsAfter8pmByDay = stepsAfter8pmByDay ?? {};
+        stepsAfter8pmByDay = stepsAfter8pmByDay ?? {},
+        windowSteps = windowSteps ?? {};
+
+  /// 시간 창 걸음 (시작이 정각 1초인 창, 키 'yyyy-mm-dd@시'). 없으면 0
+  final Map<String, int> windowSteps;
 
   final bool granted;
 
@@ -34,6 +39,7 @@ class FakeHealthSource implements HealthSource {
   @override
   Future<int> stepsBetween(DateTime start, DateTime end) async {
     final key = keyOf(start);
+    if (start.second == 1) return windowSteps['$key@${start.hour}'] ?? 0;
     // 저녁 8시부터 묻는 경우는 '저녁 걸음'으로 본다
     if (start.hour >= 20) return stepsAfter8pmByDay[key] ?? 0;
     return stepsByDay[key] ?? 0;

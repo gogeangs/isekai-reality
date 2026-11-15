@@ -188,8 +188,16 @@ class _PetCard extends StatelessWidget {
           KText(
               '원정 특기 · ${pet.adult ? info.specialAdult : info.special}\n'
               '던전 스킬 · ${info.skillName}: ${pet.adult ? info.skillTextAdult : info.skillText}'
-              '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요.'}',
+              '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요. 자라면 더 좋아져요.'}',
               style: const TextStyle(color: AppColors.text, fontSize: 12)),
+          // 묶음 32 #191: 기운 공명
+          if (c.petResonant(pet))
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: KText('나와 같은 기운이에요',
+                  key: Key('petResonant'),
+                  style: TextStyle(color: AppColors.goldBright, fontSize: 12)),
+            ),
           const SizedBox(height: 8),
           Row(children: [
             if (!companion)

@@ -4,7 +4,14 @@ import '../rules/pet_rules.dart';
 /// 펫 알 (가방 한 칸). 품으면 [incubatedAt] 부터 12시간 뒤 부화.
 class PetEgg {
   const PetEgg(
-      {required this.id, this.source = '', this.incubatedAt, this.element});
+      {required this.id,
+      this.source = '',
+      this.incubatedAt,
+      this.element,
+      this.adHalved = false});
+
+  /// 광고로 남은 시간을 절반으로 줄였는지 (알 하나에 한 번, 묶음 32 #187)
+  final bool adHalved;
 
   /// 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 잘 태어난다
   final String? element;
@@ -15,14 +22,19 @@ class PetEgg {
   final String source;
   final DateTime? incubatedAt;
 
-  PetEgg incubate(DateTime at) =>
-      PetEgg(id: id, source: source, incubatedAt: at, element: element);
+  PetEgg incubate(DateTime at, {bool? adHalved}) => PetEgg(
+      id: id,
+      source: source,
+      incubatedAt: at,
+      element: element,
+      adHalved: adHalved ?? this.adHalved);
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'source': source,
         if (incubatedAt != null) 'incubatedAt': incubatedAt!.toIso8601String(),
         if (element != null) 'element': element,
+        if (adHalved) 'adHalved': true,
       };
 
   factory PetEgg.fromJson(Map<String, dynamic> j) => PetEgg(
@@ -32,6 +44,7 @@ class PetEgg {
             ? null
             : DateTime.tryParse(j['incubatedAt'] as String),
         element: j['element'] as String?,
+        adHalved: j['adHalved'] == true,
       );
 }
 

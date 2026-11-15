@@ -921,6 +921,20 @@ class EggSheet extends StatelessWidget {
                 ),
               ),
             ]),
+            // 묶음 32 #187: 광고 보고 남은 시간 절반 (알 하나에 한 번)
+            if (c.canAdHalveEgg(e)) ...[
+              const SizedBox(height: 8),
+              AdButton(
+                key: const Key('adHalveEgg'),
+                label: '광고 보고 남은 시간 절반',
+                onPressed: () async {
+                  final ok = await c.adHalveEgg(e.id);
+                  if (!ok && context.mounted) {
+                    showTopNotice(context, '광고를 불러오지 못했어요.');
+                  }
+                },
+              ),
+            ],
           ]);
         }
         return SafeArea(

@@ -32,7 +32,11 @@ class ProfileCard extends StatelessWidget {
     this.job = kNoJobLabel,
     this.onEditName,
     this.pet,
+    this.aura,
   });
+
+  /// 나의 기운 (묶음 32 #189, 주 속성. 없으면 줄 없음)
+  final String? aura;
 
   /// 정령이 떠난 뒤 데리고 다니는 펫 (그때 [spiritName] 은 처음 함께한 정령)
   final Pet? pet;
@@ -101,6 +105,11 @@ class ProfileCard extends StatelessWidget {
               // 묶음 26 #178: 직업이 없으면(직업 각성 전) 줄을 보이지 않는다
               if (job != kNoJobLabel)
                 Text('직업 · $job',
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontSize: 12)),
+              if (aura != null)
+                Text('나의 기운 · $aura',
+                    key: const Key('profileAura'),
                     style: const TextStyle(
                         color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 4),
@@ -285,6 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     spiritKind: c.profile.spiritKind,
                     spiritName: c.firstSpiritName,
                     pet: c.voicePet,
+                    aura: c.mainElement?.label,
                     // 묶음 30 #55: 주 직업(보조는 작게)
                     job: c.mainJobLabel == null
                         ? kNoJobLabel

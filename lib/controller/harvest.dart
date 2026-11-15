@@ -291,6 +291,17 @@ extension HarvestOps on AppController {
       await _save(today.copyWith(
           counters: DailyRecord.addCounts(today.counters, {'relicDug': 1})));
     }
+    // 묶음 32 #189: 물가 → 물, 광석 → 금속, 나무·약초 → 대지 (숨은 속성 점수)
+    switch (s.kind) {
+      case HarvestKind.water:
+        await _gainElement(Element.water, ElementRules.waterScore);
+      case HarvestKind.ore || HarvestKind.gem:
+        await _gainElement(Element.metal, ElementRules.oreScore);
+      case HarvestKind.wood || HarvestKind.herb:
+        await _gainElement(Element.earth, ElementRules.woodScore);
+      default:
+        break;
+    }
     return mats;
   });
 

@@ -305,7 +305,8 @@ extension ExpeditionOps on AppController {
       final pet = companionPet!;
       await _savePets(_pets.replace(pet.copyWith(
         exp: pet.exp + PetRules.expSnack,
-        bond: math.min(PetRules.maxBond, pet.bond + PetRules.bondPerSnack),
+        bond: math.min(
+            PetRules.maxBond, pet.bond + _bondGain(pet, PetRules.bondPerSnack)),
       )));
     }
     await store.saveVitals(_vitals);
@@ -410,16 +411,20 @@ extension ExpeditionOps on AppController {
     var cost = VitalRules.expeditionCost(dist);
     var base = VitalRules.expeditionOneWay(dist);
     if (pet != null) {
+      final res = petResonant(pet); // 묶음 32 #191 기운 공명
       cost = math.max(
           1,
           (cost *
                   PetRules.mpFactor(pet.species,
-                      adult: pet.adult, bond: pet.bond, waterside: water))
+                      adult: pet.adult,
+                      bond: pet.bond,
+                      waterside: water,
+                      resonant: res))
               .round());
       final t = PetRules.travelTimeFactor(pet.species,
-              adult: pet.adult, bond: pet.bond) *
+              adult: pet.adult, bond: pet.bond, resonant: res) *
           PetRules.waterTimeFactor(pet.species,
-              adult: pet.adult, bond: pet.bond, waterside: water);
+              adult: pet.adult, bond: pet.bond, waterside: water, resonant: res);
       base = Duration(seconds: (base.inSeconds * t).round());
     }
     // 묶음 27 #176: 정령술 숙련도 → MP 조금 덜, 시간 조금 짧게 (숨김)
@@ -583,8 +588,10 @@ extension ExpeditionOps on AppController {
         : PetRules.powerFactor(pet.species,
             adult: pet.adult,
             bond: pet.bond,
-            night: FieldMonsterRules.isNight(ex.arriveAt));
-    final battle = Battle.forPlayer(
+            night: FieldMonsterRules.isNight(ex.arriveAt),
+            resonant: petResonant(pet));
+    final homun = pet?.species == PetSpecies.homunculus;
+    final battle = (Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.fieldFoes(
@@ -604,7 +611,13 @@ extension ExpeditionOps on AppController {
       skillElement: pet?.element,
       mainElement: mainElement,
       weaponPotion: weaponPotionElement,
-    ).runToEnd(useSkills: true);
+      petResonant: pet != null && petResonant(pet),
+    )
+          // 묶음 32 #190: 호문쿨루스 원정은 상성 약점 없음 + 속성 몬스터 피해 덜
+          ..noWeakness = homun
+          ..elementGuard =
+              homun ? PetRules.homunculusGuard(adult: pet?.adult ?? false) : 0)
+        .runToEnd(useSkills: true);
     await _consumeBattlePotions(battle);
     // 튜토리얼 원정은 실패하지 않는다
     final cleared =
@@ -640,6 +653,16 @@ extension ExpeditionOps on AppController {
         await _grant(0, 0, more);
         final mats = {...r.materials};
         more.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+        r = HuntReward(
+            exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
+      }
+      // 묶음 32 #190: 호문쿨루스 → 가끔 귀한 연금술 재료 (정제 에센스 계열)
+      if (homun && _random.nextDouble() < PetRules.homunculusEssence) {
+        const rare = [MaterialId.essence];
+        final m = rare[_random.nextInt(rare.length)];
+        await _grant(0, 0, {m: 1});
+        final mats = {...r.materials};
+        mats[m] = (mats[m] ?? 0) + 1;
         r = HuntReward(
             exp: r.exp, manaStones: r.manaStones, gold: r.gold, materials: mats);
       }
@@ -760,8 +783,23 @@ extension ExpeditionOps on AppController {
     final morning = end.isAfter(five)
         ? await health.stepsBetween(five, end.isBefore(eight) ? end : eight)
         : 0;
+    // 묶음 32 #189: 밤(오후 7시~새벽 5시) · 이른 아침(새벽 5~9시) 걸음 (속성 점수).
+    // 창 시작은 1초 뒤로 (시험용 가짜 건강 앱이 창을 알아보게)
+    DateTime at(int h, [int sec = 1]) =>
+        DateTime(dayStart.year, dayStart.month, dayStart.day, h, 0, sec);
+    Future<int> win(DateTime a, DateTime b) async =>
+        end.isAfter(a)
+            ? await health.stepsBetween(a, end.isBefore(b) ? end : b)
+            : 0;
+    final night = await win(at(0), at(5, 0)) +
+        await win(at(19), DateTime(dayStart.year, dayStart.month, dayStart.day + 1));
+    final dawn = await win(at(5), at(9, 0));
     var out = record.copyWith(
-        steps: steps, stepsAfter8pm: after8, stepsMorning: morning);
+        steps: steps,
+        stepsAfter8pm: after8,
+        stepsMorning: morning,
+        stepsNight: night,
+        stepsDawn: dawn);
     // 걸음 물약 (11-11 #74): 마신 뒤 걸은 걸음의 절반만큼 게이지가 더 찬다
     for (final b in _alc.buffs) {
       if (b.key != PotionId.steps.name || b.day != record.dayKey) continue;

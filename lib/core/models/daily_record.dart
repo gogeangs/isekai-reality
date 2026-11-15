@@ -26,6 +26,8 @@ class DailyRecord {
     this.steps = 0,
     this.stepsAfter8pm = 0,
     this.stepsMorning = 0,
+    this.stepsNight,
+    this.stepsDawn,
     this.sleepMinutes,
     this.studyMinutes = 0,
     this.stepGoal = 5000,
@@ -59,6 +61,14 @@ class DailyRecord {
 
   /// 오전 5~8시 걸음 (11-11, 숨은 생활 보너스)
   final int stepsMorning;
+
+  /// 묶음 32 #189 속성 점수: 밤(오후 7시~새벽 5시) · 이른 아침(새벽 5~9시) 걸음.
+  /// 예전 기록(null)은 저녁 8시 뒤 · 오전 5~8시 걸음으로 친다
+  final int? stepsNight;
+  final int? stepsDawn;
+
+  int get nightSteps => stepsNight ?? stepsAfter8pm;
+  int get dawnSteps => stepsDawn ?? stepsMorning;
 
   /// (예전 기록) 지난밤 수면(분). 더 이상 읽지도 쓰지도 않는다.
   final int? sleepMinutes;
@@ -147,6 +157,8 @@ class DailyRecord {
         'steps': steps,
         'stepsAfter8pm': stepsAfter8pm,
         'stepsMorning': stepsMorning,
+        if (stepsNight != null) 'stepsNight': stepsNight,
+        if (stepsDawn != null) 'stepsDawn': stepsDawn,
         'sleepMinutes': sleepMinutes,
         'studyMinutes': studyMinutes,
         'stepGoal': stepGoal,
@@ -181,6 +193,8 @@ class DailyRecord {
       steps: json['steps'] as int? ?? 0,
       stepsAfter8pm: json['stepsAfter8pm'] as int? ?? 0,
       stepsMorning: json['stepsMorning'] as int? ?? 0,
+      stepsNight: (json['stepsNight'] as num?)?.toInt(),
+      stepsDawn: (json['stepsDawn'] as num?)?.toInt(),
       sleepMinutes: json['sleepMinutes'] as int?,
       studyMinutes: json['studyMinutes'] as int? ?? 0,
       stepGoal: json['stepGoal'] as int? ?? 5000,
@@ -248,6 +262,8 @@ class DailyRecord {
     int? steps,
     int? stepsAfter8pm,
     int? stepsMorning,
+    int? stepsNight,
+    int? stepsDawn,
     int? sleepMinutes,
     int? studyMinutes,
     int? stepGoal,
@@ -279,6 +295,8 @@ class DailyRecord {
       steps: steps ?? this.steps,
       stepsAfter8pm: stepsAfter8pm ?? this.stepsAfter8pm,
       stepsMorning: stepsMorning ?? this.stepsMorning,
+      stepsNight: stepsNight ?? this.stepsNight,
+      stepsDawn: stepsDawn ?? this.stepsDawn,
       sleepMinutes: sleepMinutes ?? this.sleepMinutes,
       studyMinutes: studyMinutes ?? this.studyMinutes,
       stepGoal: stepGoal ?? this.stepGoal,

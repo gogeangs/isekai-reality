@@ -210,6 +210,7 @@ extension VitalsOps on AppController {
     await _checkMail();
     await _petSteps();
     await _jobSteps();
+    await _checkAura();
     await _checkBoardEggs();
     await _checkWalkEvents();
     _notify();

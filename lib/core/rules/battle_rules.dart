@@ -257,6 +257,7 @@ class Battle {
     GearBonus gear = GearBonus.none,
     PetSkill? petSkill,
     bool petAdult = false,
+    bool petResonant = false,
     double power = 1,
     List<BattlePotion> potions = const [],
     int autoHp = 0,
@@ -645,6 +646,14 @@ class Battle {
     }
     return true;
   }
+
+  // ───────────── 호문쿨루스 원정 (묶음 32 #190, 숨은 규칙)
+
+  /// 상성 약점 없음 (약함 배율 대신 1)
+  bool noWeakness = false;
+
+  /// 속성 몬스터에게 받는 피해 줄이기
+  double elementGuard = 0;
 
   /// 보통 공격에 직업 효과를 붙인다
   int _jobHit(int dmg) {
@@ -1041,6 +1050,7 @@ class Battle {
     if (element != null && (resist[element] ?? 0) > 0) {
       atk *= 1 - resist[element]!;
     }
+    if (element != null && elementGuard > 0) atk *= 1 - elementGuard;
     // 방어 속성 장비·주 속성 (11-11 #63, 숫자는 숨김)
     if (element != null) {
       if (guardElements.contains(element)) {
@@ -1190,6 +1200,7 @@ class Battle {
   /// [level] 은 장비 속성 강화 단계 (11-11 #74): 강할 때 배율이 더 커진다.
   int _elemental(int dmg, Element? attack, {int level = 0}) {
     var m = ElementRules.multiplier(attack, AlchemyRules.elementOf(foe.monster));
+    if (noWeakness && m < 1) m = 1;
     if (m > 1 && level > 0) m = SmithRules.strongAt(level);
     var d = dmg * m;
     if (attack != null && attack == mainElement) d *= 1 + ElementRules.mainBonus;

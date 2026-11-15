@@ -41,7 +41,42 @@ extension PetsOps on AppController {
 
   /// 첫 펫 종류: 숨은 속성 점수(mainElement) — 바람 까마귀 · 어둠 검은 고양이 ·
   /// 독 두꺼비 · 빛 부엉이 · 불 꼬마 도마뱀, 그 밖이거나 없으면 호문쿨루스
-  PetSpecies get firstPetSpecies => PetRules.firstPetFor(mainElement);
+  PetSpecies get firstPetSpecies => PetRules.firstPetFrom(elementScores,
+      alchemyTop: alchemyIsTop);
+
+  /// 큰 숙련도 중 연금술이 1등인지 (묶음 32 #189: 첫 펫·알 호문쿨루스)
+  bool get alchemyIsTop => _topMastery() == Mastery.alchemy;
+
+  /// 기운 공명 (묶음 32 #191): 펫 속성 = 내 주 속성
+  bool petResonant(Pet p) => PetRules.resonant(p.species, mainElement);
+
+  /// 원정 보내기 창 「잘 맞아요」 (묶음 32 #188): 그 목표에 특기가 맞는 펫 · 공명 펫.
+  /// 물가 → 두꺼비 · 밤 → 검은 고양이 · 먼 목표 → 까마귀 · 강한 몬스터 → 부엉이 ·
+  /// 먼 원정·기력이 많이 드는 원정 → 꼬마 도마뱀. 호문쿨루스는 표시 없이 무난
+  bool petSuits(Pet p, FieldSpawn spawn) {
+    if (petResonant(p)) return true;
+    final route = routeFor(spawn);
+    final from = _lastFix?.point;
+    final dist = route?.lengthM ?? (from == null ? 0.0 : from.distanceTo(spawn.point));
+    final far = dist >= PetRules.farM;
+    return switch (p.species) {
+      PetSpecies.toad => _waterside(route),
+      PetSpecies.blackCat => FieldMonsterRules.isNight(_clock()),
+      PetSpecies.crow => far,
+      PetSpecies.owl => spawn.modifiers.isNotEmpty,
+      PetSpecies.lizard =>
+        far || VitalRules.expeditionCost(dist) >= PetRules.costlyMp,
+      PetSpecies.homunculus => false,
+    };
+  }
+
+  /// 친밀도 오르는 양 (공명이면 1.5배, 소수는 확률로)
+  int _bondGain(Pet p, int n) {
+    if (n <= 0 || !petResonant(p)) return n;
+    final x = n * PetRules.resonanceBond;
+    final whole = x.floor();
+    return whole + (_random.nextDouble() < x - whole ? 1 : 0);
+  }
 
   /// 이별 컷신 끝: 빛 조각에서 첫 펫이 태어난다. 가방의 알은 그대로 (이때 보인다).
   /// 이미 펫이 있으면 하나 더, 동행은 새 첫 펫. 정령 저장 값은 지우지 않는다.
@@ -184,6 +219,49 @@ extension PetsOps on AppController {
     return true;
   });
 
+  /// 광고로 남은 시간 절반 (알 하나에 한 번, 묶음 32 #187)
+  bool canAdHalveEgg(PetEgg e) =>
+      adsReady &&
+      e.incubatedAt != null &&
+      !e.adHalved &&
+      !eggReady(e);
+
+  Future<bool> adHalveEgg(String eggId) async {
+    PetEgg? egg;
+    for (final e in _pets.eggs) {
+      if (e.id == eggId) egg = e;
+    }
+    if (egg == null || !canAdHalveEgg(egg) || !await _watchAd('egg_half')) {
+      return false;
+    }
+    return _serial(() async {
+      final now = _clock();
+      var changed = false;
+      final eggs = [
+        for (final e in _pets.eggs)
+          if (e.id == eggId && e.incubatedAt != null && !e.adHalved)
+            () {
+              changed = true;
+              final left = e.incubatedAt!.add(PetRules.hatchTime).difference(now);
+              return e.incubate(e.incubatedAt!.subtract(left ~/ 2),
+                  adHalved: true);
+            }()
+          else
+            e,
+      ];
+      if (!changed) return false;
+      await _savePets(_pets.copyWith(eggs: eggs));
+      for (final e in eggs) {
+        if (e.id == eggId) {
+          unawaited(notifier?.schedule(NotifyId.hatch,
+              e.incubatedAt!.add(PetRules.hatchTime),
+              '알이 깨어나려 해요', '가방에서 알을 확인하고 이름을 지어 주세요!'));
+        }
+      }
+      return true;
+    });
+  }
+
   /// 다 된 알에서 펫이 태어난다. 펫이 6마리면 null.
   Future<Pet?> hatch(String eggId, String name, {PetSpecies? species}) async {
     final p = _pets;
@@ -194,7 +272,8 @@ extension PetsOps on AppController {
     }
     if (egg == null || !eggReady(egg)) return null;
     final s = species ??
-        PetRules.rollSpecies(_random, element: ElementRules.parse(egg.element));
+        PetRules.rollSpecies(_random,
+            element: ElementRules.parse(egg.element), alchemyTop: alchemyIsTop);
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: s,
@@ -225,7 +304,7 @@ extension PetsOps on AppController {
     if (pet == null) return;
     await _savePets(_pets.replace(pet.copyWith(
       exp: pet.exp + _petGrowth(uid, exp),
-      bond: math.min(PetRules.maxBond, pet.bond + bond),
+      bond: math.min(PetRules.maxBond, pet.bond + _bondGain(pet, bond)),
     )));
   }
 

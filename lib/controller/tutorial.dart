@@ -469,6 +469,7 @@ extension TutorialOps on AppController {
       power: combatPower(monster: spawn.monster) * jobPower,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
+      petResonant: companionPet != null && petResonant(companionPet!),
       potions: battlePotions,
       autoHp: _alc.autoHp,
       autoCure: _alc.autoCure,

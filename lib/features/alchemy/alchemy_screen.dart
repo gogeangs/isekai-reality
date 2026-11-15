@@ -49,7 +49,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                   onBack: () => Navigator.of(context).maybePop()),
               const SizedBox(height: 6),
               // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-              NpcHeader(controller: c, npc: Npc.ella),
+              NpcHeader(controller: c, npc: Npc.eliel),
               const SizedBox(height: 8),
               BulssiLine(
                   line: switch (_tab) {

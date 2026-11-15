@@ -63,7 +63,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                 ),
                 const SizedBox(height: 6),
                 // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                NpcHeader(controller: c, npc: Npc.bron),
+                NpcHeader(controller: c, npc: Npc.dorgun),
                 const SizedBox(height: 8),
                 BulssiLine(
                     line: switch (_tab) {

@@ -50,21 +50,22 @@ class VillageScreen extends StatefulWidget {
   static const Size art = Size(1536, 1024);
 
   /// 여명의 탑 자리 (바탕 그림 픽셀, 누를 수 없는 배경)
-  static const Rect tower = Rect.fromLTWH(975, 0, 135, 200);
+  static const Rect tower = Rect.fromLTWH(765, 10, 85, 195);
 
-  /// 시설이 적을 때 화면에 들어오게 하는 바탕 부분 (탑 쪽)
-  static const Rect home = Rect.fromLTWH(650, 300, 760, 600);
+  /// 시설이 적을 때 화면에 들어오게 하는 바탕 부분 (탑이 가운데)
+  static const Rect home = Rect.fromLTWH(420, 120, 760, 700);
 
-  /// 건물 자리 (뒤쪽부터 그린다). 나중에 ★2·★3 그림이 조금 커져도 맞게 둘레를 남겼다
+  /// 건물 자리 (뒤쪽부터 그린다, 묶음 36 새 바탕: 탑 가운데·빈 터 14곳 중 가운데 8곳).
+  /// 나중에 ★2·★3 그림이 조금 커져도 맞게 둘레를 남겼다. 바깥 빈 터 6곳은 새 건물 자리
   static const facilities = [
-    FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 1010, y: 445, w: 200)),
-    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 815, y: 470, w: 220)),
-    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 1250, y: 480, w: 240)),
-    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 815, y: 665, w: 240)),
-    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 1262, y: 670, w: 230)),
-    FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 1030, y: 795, w: 200)),
-    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 812, y: 860, w: 240)),
-    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 1255, y: 870, w: 230)),
+    FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 610, y: 452, w: 225)),
+    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 925, y: 452, w: 225)),
+    FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 530, y: 592, w: 235)),
+    FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 1005, y: 592, w: 235)),
+    FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 505, y: 768, w: 230)),
+    FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 1045, y: 768, w: 230)),
+    FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 680, y: 772, w: 175)),
+    FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 852, y: 772, w: 175)),
   ];
 
   static const groupNames = {

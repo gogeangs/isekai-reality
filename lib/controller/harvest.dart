@@ -49,10 +49,13 @@ extension HarvestOps on AppController {
     final night = HarvestRules.isNight(_clock());
     final key = '${(center.lat * 1000).round()}_${(center.lng * 1000).round()}'
         '${lure ? 'L' : ''}${night ? 'N' : ''}${lands == null ? '' : 'P'}'
+        'r${harvestMapRadius.round()}'
         '${_legacyGates ? '' : 'v${player.level.level}${_harvestTutorial ? 'T' : ''}'}';
     if (key != _spotsKey) {
       _spotsKey = key;
       _spotsCache = HarvestRules.spotsAround(center,
+          // 묶음 30: 약초꾼·길 찾기로 더 멀리 보이면 그만큼 더 둘러본다
+          radiusM: math.max(HarvestRules.radiusM, harvestMapRadius + 100),
           roads: roads,
           exclusions: exclusions,
           places: area.places,
@@ -238,6 +241,24 @@ extension HarvestOps on AppController {
     final keepTool =
         minigame && _masteryRoll(MasteryRules.harvestToolSave * hf);
     final relic = s.kind == HarvestKind.relic;
+    // 묶음 30: 풍요의 손길 → 이번 채집 두 배 / 고고학자 → 유물 +1 / 발굴 → 귀한 유물 재료 꼭 (숨김)
+    if (mats.isNotEmpty) {
+      if (relic) {
+        final t = jobTrait(JobId.archaeologist);
+        if (t >= 1 || (t > 0 && _random.nextDouble() < t)) {
+          final k = mats.keys.first;
+          mats[k] = mats[k]! + JobRules.archaeologistExtra;
+        }
+        if (await _consumeSkill(JobSkill.excavate)) {
+          final r = HarvestRules.info(s.kind).rare;
+          mats[r] = math.max(1, mats[r] ?? 0);
+        }
+      } else if (await _consumeSkill(JobSkill.bountyTouch)) {
+        for (final k in [...mats.keys]) {
+          mats[k] = mats[k]! * 2;
+        }
+      }
+    }
     h = h.copyWith(
       spots: {...h.spots, s.id: charge.use(now)},
       tools: minigame && !keepTool

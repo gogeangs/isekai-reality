@@ -47,7 +47,11 @@ class StatusScreen extends StatelessWidget {
     this.look = HeroLook.male,
     this.season,
     this.now,
+    this.jobMpBar,
   });
+
+  /// 직업 스킬 MP 막대 (묶음 30, 직업 각성 뒤에만)
+  final Widget? jobMpBar;
 
   /// 계절 (상태 화면 무대 위 계절 입자, 묶음 14 A4)
   final Season? season;
@@ -240,6 +244,7 @@ class StatusScreen extends StatelessWidget {
                   mp: curMp,
                   spiritAway: spiritAway,
                   resting: restLeft != null,
+                  jobMpBar: jobMpBar,
                 ),
                 const SizedBox(height: 12),
                 _StatsSection(
@@ -567,7 +572,10 @@ class _StatusPanel extends StatelessWidget {
     required this.mp,
     this.spiritAway,
     this.resting = false,
+    this.jobMpBar,
   });
+
+  final Widget? jobMpBar;
 
   /// 여관에서 쉬는 중: 막대가 천천히 차오르며 살짝 빛난다 (묶음 15 #107)
   final bool resting;
@@ -612,6 +620,10 @@ class _StatusPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (jobMpBar != null) ...[
+            const SizedBox(height: 10),
+            jobMpBar!,
+          ],
         ],
       ),
     );

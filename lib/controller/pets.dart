@@ -209,12 +209,22 @@ extension PetsOps on AppController {
     return pet;
   }
 
+  /// 묶음 30: 조련사 → 펫 성장, 문지기의 후계자 → 첫 펫 성장 (숨김)
+  int _petGrowth(String uid, int exp) {
+    if (exp <= 0) return exp;
+    var f = 1 + JobRules.tamerGrowth * jobTrait(JobId.tamer);
+    if (uid == _pets.firstPet) {
+      f += JobRules.gateHeirGrowth * jobTrait(JobId.gateHeir);
+    }
+    return (exp * f).round();
+  }
+
   /// 펫 경험치·친밀도를 더한다
   Future<void> _givePetExp(String uid, int exp, {int bond = 0}) async {
     final pet = _pets.byUid(uid);
     if (pet == null) return;
     await _savePets(_pets.replace(pet.copyWith(
-      exp: pet.exp + exp,
+      exp: pet.exp + _petGrowth(uid, exp),
       bond: math.min(PetRules.maxBond, pet.bond + bond),
     )));
   }
@@ -240,7 +250,8 @@ extension PetsOps on AppController {
       return;
     }
     await _savePets(_pets
-        .replace(pet.copyWith(exp: pet.exp + gained * PetRules.expPer100Steps))
+        .replace(pet.copyWith(
+            exp: pet.exp + _petGrowth(pet.uid, gained * PetRules.expPer100Steps)))
         .copyWith(stepsDay: day, stepsCounted: counted + gained * 100));
   }
 

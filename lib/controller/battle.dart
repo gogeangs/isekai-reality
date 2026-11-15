@@ -32,7 +32,7 @@ extension BattleOps on AppController {
     final p = player;
     if (p.gauge.keysAvailable <= 0 || !canFightNow || hp <= 0) return null;
     _stopResting();
-    return Battle.forPlayer(
+    return _withJob(Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.dungeonFloors(
@@ -42,7 +42,7 @@ extension BattleOps on AppController {
       skillChargeTicks: _skillTicks(p),
       gear: gear,
       // 묶음 27 #176: 그 무기 전투 숙련도 (숨김)
-      power: combatPower(),
+      power: combatPower() * jobPower,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
       potions: battlePotions,
@@ -54,7 +54,7 @@ extension BattleOps on AppController {
       weaponPotion: weaponPotionElement,
       telegraphs: true,
       heroSkills: true,
-    );
+    ));
   }
 
   int _skillTicks(PlayerState p) {
@@ -175,6 +175,26 @@ extension BattleOps on AppController {
         land: lands?.kindAt);
   }
 
+  /// 묶음 30 달빛 걸음: 쓴 자리 둘레에 밤 몬스터가 더 (1시간)
+  List<FieldSpawn> _moonSpawns() {
+    if (!skillTimedOn(JobSkill.moonWalk)) return const [];
+    final m = _jobs.marks;
+    final lat = m['moonLat'], lng = m['moonLng'];
+    final until = _jobs.timed[JobSkill.moonWalk.name];
+    if (lat == null || lng == null || until == null) return const [];
+    return FieldMonsterRules.nearSpawns(area,
+        dayKey: 'moon${until.millisecondsSinceEpoch}',
+        anchor: GeoPoint(lat / 1e6, lng / 1e6),
+        count: 4,
+        roads: roads,
+        exclusions: exclusions,
+        level: player.level.level,
+        luckBonus: StatRules.modifierBonus(combatStats),
+        night: true,
+        favored: ElementRules.challengers(mainElement),
+        land: lands?.kindAt);
+  }
+
   /// 그날 처음 위치를 잡은 곳을 기준 자리로 (하루 동안 고정)
   Future<void> _anchorNear(GeoPoint p) async {
     if (!_nearOn) return;
@@ -214,6 +234,7 @@ extension BattleOps on AppController {
         .followedBy(_tutorialSpawns(center))
         .followedBy([if (guideSpawn != null) guideSpawn!])
         .followedBy(_nearSpawns())
+        .followedBy(_moonSpawns())
         .where((s) => !done.contains(s.id))
         .toList();
   }

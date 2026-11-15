@@ -16,6 +16,7 @@ import '../battle/element_view.dart';
 import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../tutorial/spotlight.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
@@ -326,6 +327,8 @@ class _SpawnSheetState extends State<SpawnSheet> {
               ),
             ),
             const SizedBox(height: 10),
+            // 묶음 30 #55: 먼 길 안내 (이번 원정 더 멀리)
+            JobSkillBar(controller: c, places: const [SkillPlace.expeditionSend]),
             // 11-11 #64: 보낼 수 없으면 흐리게 (눌리지 않음)
             Opacity(
               opacity: plan.check == ExpeditionCheck.ok ? 1 : 0.4,

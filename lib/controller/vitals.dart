@@ -163,6 +163,7 @@ extension VitalsOps on AppController {
           hp: max, mp: mpMax, mpAt: now, clearRest: true);
       _vitals = v;
       await store.saveVitals(v);
+      await _fillJobMp(); // 묶음 30: 새 MP도 가득
       _justRested = true;
       final rec = await _todayRecord();
       await store.upsert(
@@ -208,6 +209,7 @@ extension VitalsOps on AppController {
     await _checkLetters();
     await _checkMail();
     await _petSteps();
+    await _jobSteps();
     await _checkBoardEggs();
     await _checkWalkEvents();
     _notify();

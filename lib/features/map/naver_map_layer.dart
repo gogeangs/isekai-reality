@@ -179,7 +179,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       // 채집 자리 (11-11 #56): 1.5km 안, 남은 횟수는 점으로
       for (final h in c.harvestSpots)
         if (fix == null ||
-            h.point.distanceTo(fix.point) <= HarvestRules.mapRadiusM)
+            h.point.distanceTo(fix.point) <= c.harvestMapRadius)
           _harvest(c, h),
       // 원정 목표 (11-11 #90): 원정 동안 그대로 보이고 깃발 + 금빛 고리.
       // 직접 사냥은 못 하고, 누르면 「이슬이 가는 중이에요 · 9분」

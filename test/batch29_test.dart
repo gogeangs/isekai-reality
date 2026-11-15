@@ -70,7 +70,7 @@ void main() {
       expect((await start(low)).mp, lessThanOrEqualTo(60));
     });
 
-    test('화면 글자에 「MP」·「마나 물약」이 없다', () {
+    test('원정에 쓰는 힘은 「기력」 (정령·펫·원정 MP 문구 없음)', () {
       final bad = <String>[];
       final quoted = RegExp(r"'[^'\n]*'");
       for (final f in Directory('lib').listSync(recursive: true)) {
@@ -80,7 +80,8 @@ void main() {
           if (t.startsWith('//')) continue;
           for (final m in quoted.allMatches(line)) {
             final s = m.group(0)!;
-            if (RegExp(r'\bMP\b').hasMatch(s) || s.contains('마나 물약')) {
+            // 묶음 30: 새 MP(직업 스킬)·마나 물약이 생겼다. 원정에 쓰는 힘은 계속 「기력」
+            if (s.contains('정령 MP') || s.contains('펫 MP') || s.contains('원정 MP')) {
               bad.add('${f.path}: $s');
             }
           }

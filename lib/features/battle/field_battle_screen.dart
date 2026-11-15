@@ -120,6 +120,14 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
               BattleView(
                 battle: battle,
                 onFinished: _finish,
+                // 묶음 30 #55: 직업 전투 스킬
+                jobSkills: [
+                  for (final (sk, sub) in widget.controller
+                      .skillsAt(const [SkillPlace.battle]))
+                    (sk, widget.controller.skillCost(sk, sub: sub)),
+                ],
+                jobMp: () => widget.controller.jobMp,
+                onJobSkill: widget.controller.payBattleSkill,
                 tickInterval: widget.tickInterval,
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,

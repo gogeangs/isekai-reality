@@ -56,6 +56,9 @@ enum PotionId {
   mana3,
   mana4,
   mana5,
+  // 묶음 30 #183: 새 MP 마나 물약 (직업 각성 뒤에만)
+  jobManaSmall,
+  jobMana,
 }
 
 enum PotionKind { heal, mana, care, buff, resist, special, weapon }
@@ -890,7 +893,39 @@ class AlchemyRules {
       minutes: 20,
       yields: 2,
     ),
+    const PotionInfo(
+      id: PotionId.jobManaSmall,
+      name: '작은 마나 물약',
+      kind: PotionKind.mana,
+      description: '직업 스킬에 쓰는 MP가 20% 차요.',
+      recipe: [MaterialId.waterJelly, MaterialId.essence, MaterialId.waterJelly],
+      minutes: 10,
+      yields: 3,
+      public: true,
+      shopItem: ShopItem.jobManaSmall,
+      icon: 'potion_jobmana_1',
+    ),
+    const PotionInfo(
+      id: PotionId.jobMana,
+      name: '마나 물약',
+      kind: PotionKind.mana,
+      description: '직업 스킬에 쓰는 MP가 40% 차요.',
+      recipe: [
+        MaterialId.waterJelly,
+        MaterialId.essence,
+        MaterialId.essence,
+        MaterialId.waterJelly,
+      ],
+      minutes: 20,
+      yields: 2,
+      shopItem: ShopItem.jobMana,
+      icon: 'potion_jobmana_2',
+    ),
   ];
+
+  /// 직업 각성 뒤에만 보이는 물약 (묶음 30)
+  static bool needsJobs(PotionId id) =>
+      id == PotionId.jobManaSmall || id == PotionId.jobMana;
 
   // 위 목록을 const 로 두려고 Element 순서대로 적는다
   static const _weaponIds = [

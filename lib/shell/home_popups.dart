@@ -147,6 +147,40 @@ extension _ShellPopups on _HomeShellState {
     });
   }
 
+  /// Lv.15 직업 각성 (묶음 30 #55): 레벨업 창(·이별 컷신) 바로 다음
+  void _maybeShowJobAwaken() {
+    final c = widget.controller;
+    if (!c.jobAwakenPending ||
+        _popupBusy ||
+        c.pendingLevelUp != null ||
+        c.holdNotices) {
+      return;
+    }
+    _jobShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => JobAwakenScreen(controller: c)));
+      _jobShowing = false;
+      _kick();
+    });
+  }
+
+  /// 새 직업 · 견습을 뗌 · 순례자가 찾은 물건 (위쪽 띠)
+  void _maybeShowJobNews() {
+    final c = widget.controller;
+    if (_popupBusy || _ahead(3) || c.holdNotices) return;
+    final find = c.takeJobFind();
+    final note = c.hasJobNotice ? c.takeJobNotice() : null;
+    if (note == null && !find) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (note != null) showTopNotice(context, note, icon: Icons.workspace_premium_rounded);
+      if (find) showTopNotice(context, '길에서 숨은 물건을 찾았어요!');
+    });
+  }
+
   /// 알을 주웠을 때 · 정령 편지가 왔을 때 · 품은 알이 다 됐을 때
   void _maybeShowPetNews() {
     final c = widget.controller;

@@ -46,6 +46,12 @@ enum ShopItem {
   /// 마법 돋보기 「감정」: 카메라로 비춘 사람의 이세계 종족을 감정한다 (11-11 #60, 하루 3개).
   /// 예전 [magicLens](안개 걷기)와는 다른 물건이다.
   raceLens,
+
+  /// 작은 마나 물약 (묶음 30 #183): 새 MP 20% (하루 3개, Lv.15 직업 각성 뒤)
+  jobManaSmall,
+
+  /// 마나 물약: 새 MP 40%
+  jobMana,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -62,8 +68,12 @@ class ShopItemInfo {
     this.minLevel = 1,
     this.hpRatio = 0,
     this.mpRatio = 0,
+    this.jobMpRatio = 0,
     this.material,
   });
+
+  /// 새 MP(직업 스킬)를 채우는 비율 (묶음 30)
+  final double jobMpRatio;
 
   final ShopItem item;
   final String name;
@@ -182,6 +192,28 @@ class TownRules {
       minLevel: 3,
       mpRatio: 0.4,
       icon: 'potion_mana_2',
+    ),
+    ShopItemInfo(
+      item: ShopItem.jobManaSmall,
+      name: '작은 마나 물약',
+      description: '가방에 넣어 두고, 마시면 직업 스킬에 쓰는 MP가 20% 차요.',
+      price: 10,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      minLevel: 15,
+      jobMpRatio: 0.2,
+      icon: 'potion_jobmana_1',
+    ),
+    ShopItemInfo(
+      item: ShopItem.jobMana,
+      name: '마나 물약',
+      description: '가방에 넣어 두고, 마시면 직업 스킬에 쓰는 MP가 40% 차요.',
+      price: 30,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      minLevel: 15,
+      jobMpRatio: 0.4,
+      icon: 'potion_jobmana_2',
     ),
     ShopItemInfo(
       item: ShopItem.spareKey,
@@ -410,6 +442,8 @@ class TownRules {
     ShopItem.expeditionCompass,
     ShopItem.purifyIncense,
     ShopItem.raceLens,
+    ShopItem.jobManaSmall,
+    ShopItem.jobMana,
   };
 
   static int usedOn(DailyRecord r, ShopItem item) =>

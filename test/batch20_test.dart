@@ -159,7 +159,8 @@ void main() {
       expect(find.byKey(const Key('facility_board')), findsNothing);
       expect(find.byKey(const Key('facility_market')), findsNothing);
       expect(find.byKey(const Key('facility_inn')), findsOneWidget);
-      expect(find.byKey(const Key('facility_alchemy')), findsOneWidget);
+      // 묶음 28 #181: 연금술 공방은 Lv.7에 열린다
+      expect(find.byKey(const Key('facility_alchemy')), findsNothing);
       expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
     });
 

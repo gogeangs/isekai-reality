@@ -48,8 +48,9 @@ extension TutorialOps on AppController {
     unawaited(_savePins());
   }
 
-  /// [here] 에서 25~40m, 다른 것과 겹치지 않는 빈자리 (북쪽부터 둘러본다)
-  GeoPoint _clearSpotNear(GeoPoint here) {
+  /// [here] 에서 25~40m, 다른 것과 겹치지 않는 빈자리 (북쪽부터 둘러본다).
+  /// [near] 면 50~150m (새로 열린 채집 자리, 묶음 28 #181)
+  GeoPoint _clearSpotNear(GeoPoint here, {bool near = false}) {
     final others = <GeoPoint>[
       for (final e in _vitals.expeditions) GeoPoint(e.lat, e.lng),
       for (final h in _spotsCache) h.point,
@@ -79,13 +80,13 @@ extension TutorialOps on AppController {
     }
 
     const bearings = [0, 30, -30, 60, -60, 90, -90, 120, -120, 150, -150, 180];
-    for (final m in const [32.0, 38.0, 26.0]) {
+    for (final m in near ? const [80.0, 110.0, 60.0, 140.0] : const [32.0, 38.0, 26.0]) {
       for (final d in bearings) {
         final p = at(m, d.toDouble());
         if (clear(p)) return p;
       }
     }
-    return at(32, 0);
+    return at(near ? 80 : 32, 0);
   }
 
   set guideHunt(bool on) {
@@ -125,8 +126,84 @@ extension TutorialOps on AppController {
       final h = guideHarvestSpot;
       if (h != null) return (id: h.id, point: h.point);
     }
+    // 묶음 28 #181: 첫 물약 안내 중 지도의 약초 덤불
+    final g = _guideSpotId;
+    if (g != null) {
+      for (final s in harvestSpots) {
+        if (s.id == g) return (id: s.id, point: s.point);
+      }
+    }
     return null;
   }
+
+  /// 안내가 지도에서 비출 채집 자리 (null 이면 끔)
+  set guideSpotId(String? id) {
+    if (_guideSpotId == id) return;
+    _guideSpotId = id;
+    if (id != null) {
+      for (final s in harvestSpots) {
+        if (s.id == id) requestMapFocus(s.point);
+      }
+    }
+    _notify();
+  }
+
+  String? get guideSpotId => _guideSpotId;
+
+  // ───────────── 묶음 28 #181: 연금술 첫 물약 (작은 회복 물약)
+
+  /// 첫 물약 안내에서 만드는 물약
+  static const PotionId firstPotion = PotionId.healSmall;
+
+  /// 첫 물약에 모자란 재료 (없으면 빈 지도)
+  Map<MaterialId, int> get firstPotionMissing {
+    final need = <MaterialId, int>{};
+    for (final m in AlchemyRules.info(TutorialOps.firstPotion).recipe) {
+      need[m] = (need[m] ?? 0) + 1;
+    }
+    final p = player;
+    return {
+      for (final e in need.entries)
+        if (p.materialCount(e.key) < e.value)
+          e.key: e.value - p.materialCount(e.key),
+    };
+  }
+
+  /// 첫 물약 안내 중인지 (공방 가마솥 칸에 「회복 물약 만들기」 판을 보여 준다)
+  bool get firstPotionGuide =>
+      pendingFeatureIntro == Feature.alchemy &&
+      featureAnnounced(Feature.alchemy) &&
+      _alc.discovered.isEmpty;
+
+  /// 안내로 첫 물약을 만든다 (바로 완성). 재료가 모자라면 false
+  Future<bool> brewFirstPotion() => _serial(() async {
+        if (firstPotionMissing.isNotEmpty) return false;
+        final info = AlchemyRules.info(TutorialOps.firstPotion);
+        final need = <String, int>{};
+        for (final m in info.recipe) {
+          need[m.name] = (need[m.name] ?? 0) + 1;
+        }
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+          spends: DailyRecord.addCounts(today.spends, need),
+          counters: info.shopItem == null
+              ? today.counters
+              : DailyRecord.addCounts(today.counters,
+                  {TownRules.giftKey(info.shopItem!): info.yields}),
+        ));
+        var a = _alc;
+        if (info.shopItem == null) {
+          a = a.add(AlchemyRules.keyOf(info.id, PotionQuality.normal), info.yields);
+        }
+        if (!a.discovered.contains(info.id.name)) {
+          a = a.copyWith(discovered: [...a.discovered, info.id.name]);
+        }
+        await _saveAlc(a);
+        await gainMastery(Mastery.alchemy, MasteryRules.brew,
+            details: [MasteryRules.potionKey(info.id)]);
+        _notify();
+        return true;
+      });
 
   /// 게시판 안내: 받은 의뢰가 없으면 첫 칸에 쉬운 의뢰를 붙인다
   Future<void> prepareGuideErrand() async {
@@ -241,7 +318,9 @@ extension TutorialOps on AppController {
   bool get newGates => !_legacyGates;
 
   bool featureOpen(Feature f) =>
-      _legacyGates || player.level.level >= AppController.featureLevel[f]!;
+      _legacyGates ||
+      player.level.level >= AppController.featureLevel[f]! ||
+      (f == Feature.alchemy && _alchemyKept);
 
   /// 초반 재료만 떨어뜨리는지 (새로 시작한 사람 Lv.5까지, #129)
   bool get earlyLoot => !_legacyGates && player.level.level <= 5;
@@ -275,7 +354,33 @@ extension TutorialOps on AppController {
         'legacy': _legacyGates,
         'seen': _introsSeen.toList(),
         'hpTip': _hpTipShown,
+        'v28': true,
+        if (_harvestAll) 'harvestAll': true,
+        if (_alchemyKept) 'alchemyKept': true,
       });
+
+  /// 묶음 28 #181: 업데이트 때 이미 그 레벨을 넘은 사람은 열린 채집 자리·연금술을
+  /// 그대로 두고(잠그지 않음) 안내도 띄우지 않는다
+  Future<void> _migrateGates28() async {
+    final lv = player.level.level;
+    final seen = {..._introsSeen};
+    for (final f in [Feature.alchemy, Feature.ore, Feature.wood, Feature.relic]) {
+      if (lv >= AppController.featureLevel[f]!) {
+        seen
+          ..add(f.name)
+          ..add('opened:${f.name}');
+      }
+    }
+    _introsSeen = seen;
+    // 예전엔 Lv.7에 채집 자리가 한꺼번에 열렸다
+    _harvestAll = lv >= 7;
+    // 예전엔 연금술 공방이 처음부터 열려 있었다: 이미 쓴 사람은 그대로
+    _alchemyKept = _alc.discovered.isNotEmpty ||
+        _alc.brews.isNotEmpty ||
+        _alc.potions.isNotEmpty;
+    _gates28 = true;
+    await _saveGates();
+  }
 
   /// 처음으로 HP가 절반 아래가 됐을 때 한 번 회복 팁 (#141)
   bool takeHpTip() {

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -6,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../town/material_view.dart';
 import 'harvest_games.dart';
+import '../bulssi/bulssi_bubble.dart';
 import '../../theme/top_notice.dart';
 import '../../core/format.dart';
 
@@ -62,6 +65,11 @@ class HarvestSheet extends StatelessWidget {
     if (spot.kind == HarvestKind.relic && lore != null) {
       showTopNotice(context, '옛 이야기 · $lore',
           icon: Icons.menu_book_rounded, duration: const Duration(seconds: 6));
+    }
+    // 묶음 28 #181: 고대 유물 예언 조각 (처음 세 번)
+    final piece = c.takeProphecy();
+    if (piece != null && context.mounted) {
+      await showProphecy(context, piece);
     }
   }
 
@@ -299,6 +307,115 @@ class ToolRepairPanel extends StatelessWidget {
             ]),
           ],
         ],
+      ),
+    );
+  }
+}
+
+
+/// 예언 조각 (묶음 28 #181): 양피지가 펼쳐지고 → 글귀 → 정령 한마디
+Future<void> showProphecy(BuildContext context, int index) =>
+    showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xCC05060F),
+      builder: (d) => _ProphecyView(index: index),
+    );
+
+class _ProphecyView extends StatefulWidget {
+  const _ProphecyView({required this.index});
+
+  final int index;
+
+  @override
+  State<_ProphecyView> createState() => _ProphecyViewState();
+}
+
+class _ProphecyViewState extends State<_ProphecyView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1800))
+    ..forward();
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (text, spirit) = HarvestRules.prophecy[widget.index];
+    final w = math.min(340.0, MediaQuery.sizeOf(context).width - 32);
+    return Center(
+      child: Material(
+        type: MaterialType.transparency,
+        child: AnimatedBuilder(
+          animation: _a,
+          builder: (context, _) {
+            // 0~0.35 양피지가 옆으로 펼쳐짐 · 0.35~0.7 글귀 · 0.7~ 정령 한마디
+            final open = Curves.easeOutCubic
+                .transform((_a.value / 0.35).clamp(0.0, 1.0));
+            final textIn = ((_a.value - 0.35) / 0.35).clamp(0.0, 1.0);
+            final spiritIn = ((_a.value - 0.7) / 0.3).clamp(0.0, 1.0);
+            return Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('예언 조각 ${widget.index + 1}',
+                  key: const Key('prophecyTitle'),
+                  style: AppText.title(15, color: AppColors.goldBright)),
+              const SizedBox(height: 8),
+              ClipRect(
+                child: Align(
+                  widthFactor: 0.15 + 0.85 * open,
+                  child: SizedBox(
+                    width: w,
+                    child: Stack(children: [
+                      Positioned.fill(
+                        child: Image.asset('assets/images/board_note.webp',
+                            scale: 2.4,
+                            centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
+                            fit: BoxFit.fill,
+                            errorBuilder: (_, __, ___) => DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1E0B8),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                )),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(26, 30, 26, 30),
+                        child: Opacity(
+                          opacity: textIn,
+                          child: Text(text,
+                              key: const Key('prophecyText'),
+                              textAlign: TextAlign.center,
+                              style: AppText.title(17,
+                                      color: const Color(0xFF3A2614))
+                                  .copyWith(height: 1.6)),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Opacity(
+                opacity: spiritIn,
+                child: SizedBox(
+                    width: w,
+                    child: BulssiBubble(
+                        key: const Key('prophecySpirit'), line: spirit, size: 48)),
+              ),
+              const SizedBox(height: 10),
+              Opacity(
+                opacity: spiritIn,
+                child: TextButton(
+                  key: const Key('prophecyClose'),
+                  onPressed: spiritIn < 1 ? null : () => Navigator.pop(context),
+                  child: const Text('기록에 남겨 두기'),
+                ),
+              ),
+            ]);
+          },
+        ),
       ),
     );
   }

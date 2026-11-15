@@ -11,6 +11,8 @@ import '../town/material_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
 import '../../theme/top_notice.dart';
+import '../tutorial/feature_tour.dart'
+    show TourScreenMark, firstPotionPicked, firstPotionMadeTick;
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {
@@ -31,7 +33,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
-    return Scaffold(
+    return TourScreenMark(name: 'alchemy', child: Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
@@ -88,7 +90,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 
   // ───────────── 가마솥
@@ -97,6 +99,11 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
     final a = c.alchemy;
     final gold = c.cauldronGold;
     return [
+      // 묶음 28 #181: 첫 물약 안내 중이면 회복 물약 판이 맨 위에
+      if (c.firstPotionGuide) ...[
+        _FirstPotionPanel(controller: c),
+        const SizedBox(height: 10),
+      ],
       for (var i = 0; i < a.cauldrons; i++) ...[
         _CauldronCard(controller: c, slot: i),
         const SizedBox(height: 10),
@@ -260,6 +267,91 @@ class PotionIcon extends StatelessWidget {
       0.30 * b, 0.59 * b, 0.11 * b, 0, 0,
       0, 0, 0, 1, 0,
     ]);
+  }
+}
+
+/// 첫 물약 안내 판 (묶음 28 #181): 회복 물약 고르기 → 만들기 (바로 완성)
+class _FirstPotionPanel extends StatefulWidget {
+  const _FirstPotionPanel({required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<_FirstPotionPanel> createState() => _FirstPotionPanelState();
+}
+
+class _FirstPotionPanelState extends State<_FirstPotionPanel> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.controller;
+    final info = AlchemyRules.info(TutorialOps.firstPotion);
+    return ValueListenableBuilder<bool>(
+      valueListenable: firstPotionPicked,
+      builder: (context, picked, _) => OrnatePanel(
+        key: const Key('firstPotionPanel'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('첫 물약 만들기', style: AppText.title(17)),
+            const SizedBox(height: 8),
+            GestureDetector(
+              key: const Key('firstPotionPick'),
+              onTap: () => firstPotionPicked.value = true,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.slotBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: picked
+                          ? AppColors.goldBright
+                          : AppColors.gold.withValues(alpha: 0.4),
+                      width: picked ? 2 : 1),
+                ),
+                child: Row(children: [
+                  PotionIcon(potion: info.id, size: 40),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(info.name, style: AppText.title(16)),
+                        const SizedBox(height: 4),
+                        Wrap(spacing: 4, children: [
+                          for (final m in info.recipe) MaterialIcon(m, size: 24),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 10),
+            GoldButton(
+              key: const Key('firstPotionMake'),
+              label: '만들기',
+              height: 44,
+              onPressed: !picked || _busy
+                  ? null
+                  : () async {
+                      setState(() => _busy = true);
+                      final ok = await c.brewFirstPotion();
+                      if (!mounted) return;
+                      setState(() => _busy = false);
+                      if (ok) {
+                        firstPotionPicked.value = false;
+                        firstPotionMadeTick.value++;
+                      } else {
+                        showTopNotice(context, '재료가 모자라요.');
+                      }
+                    },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

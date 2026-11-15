@@ -176,6 +176,25 @@ class HarvestRules {
   /// 고대 유물 이야기 (묶음 13 C8: 보류. 실제 유산 연동·가상 이야기 모두 정해지면 채운다)
   static const List<String> relicLore = [];
 
+  /// 묶음 28 #181: 새로 시작한 사람에게 채집 자리가 열리는 레벨
+  static int openLevel(HarvestKind k) => switch (k) {
+        HarvestKind.flower || HarvestKind.mushroom => 5,
+        HarvestKind.herb => 7,
+        HarvestKind.ore || HarvestKind.gem => 8,
+        HarvestKind.wood || HarvestKind.water => 9,
+        HarvestKind.relic => 10,
+      };
+
+  /// 고대 유물 예언 조각 (글귀, 정령 한마디). 처음 세 번 캘 때 차례로 (2막 설정)
+  static const List<(String, String)> prophecy = [
+    ('저편의 빛이 다하는 날, 그 나라의 왕이 일어서리라.',
+        '이 글씨… 저쪽 세계 글자야. 뭔가 더 있을 것 같아.'),
+    ('왕은 잿빛을 두르고, 빛이 남은 세계의 문을 두드리리라.',
+        '잿빛… 바깥 안개랑 같은 색이야. 설마…'),
+    ('문이 깨지고 두 세계가 겹칠 때, 사람들은 그를 잿빛 군주라 부르리라.',
+        '잿빛 군주… 문을 깬 게 저쪽 세계의 왕이었다니…'),
+  ];
+
   /// 도구 수리: 금화 30 + 재료 1
   static const int repairGold = 30;
 

@@ -12,7 +12,12 @@ class MasteryState {
     this.top,
     this.leanAt,
     this.quietTitles = const [],
+    this.smithFloor,
   });
+
+  /// 대장간 좋은 등급 보너스 바닥값(%p). 예전 「만든 장비 10개마다 +1%p」로 센 값을
+  /// 처음 한 번 저장해 두고, 장비 종류 숙련도 보너스와 비교해 큰 쪽을 쓴다 (11-15 결정)
+  final double? smithFloor;
 
   /// 큰 숙련도 이름 → 쌓인 값
   final Map<String, double> big;
@@ -50,6 +55,7 @@ class MasteryState {
     String? top,
     DateTime? leanAt,
     List<String>? quietTitles,
+    double? smithFloor,
   }) =>
       MasteryState(
         big: big ?? this.big,
@@ -60,6 +66,7 @@ class MasteryState {
         top: top ?? this.top,
         leanAt: leanAt ?? this.leanAt,
         quietTitles: quietTitles ?? this.quietTitles,
+        smithFloor: smithFloor ?? this.smithFloor,
       );
 
   Map<String, dynamic> toJson() => {
@@ -71,6 +78,7 @@ class MasteryState {
         if (top != null) 'top': top,
         if (leanAt != null) 'leanAt': leanAt!.toIso8601String(),
         'quietTitles': quietTitles,
+        if (smithFloor != null) 'smithFloor': smithFloor,
       };
 
   static Map<String, double> _nums(Object? j) => {
@@ -94,5 +102,6 @@ class MasteryState {
         quietTitles: [
           for (final x in (j['quietTitles'] as List?) ?? const []) '$x'
         ],
+        smithFloor: (j['smithFloor'] as num?)?.toDouble(),
       );
 }

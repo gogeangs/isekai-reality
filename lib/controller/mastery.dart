@@ -50,9 +50,14 @@ extension MasteryOps on AppController {
   }
 
   /// 그 장비 종류를 만들 때 좋은 등급(파랑) +%p
-  double smithGradeBonus(EquipBase base) =>
+  double smithGradeBonus(EquipBase base) => math.max(
+      _mastery.smithFloor ?? 0,
       MasteryRules.smithBluePoints *
-      _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(base)));
+          _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(base))));
+
+  /// 예전 규칙(만든 장비 10개마다 +1%p, 최대 10)으로 센 바닥값
+  double get _legacySmithFloor =>
+      EquipmentRules.masteryBonus(_armory.crafts).toDouble();
 
   /// 그 장비 수리비 (조금 덜)
   int masteryRepairCost(EquipItem item) {
@@ -266,6 +271,11 @@ extension MasteryOps on AppController {
     if (j != null) {
       _mastery = MasteryState.fromJson(j);
       _masteryReady = true;
+      // 11-15: 바닥값이 없으면(iPhone 129 숙련도 저장본) 한 번 채운다
+      if (_mastery.smithFloor == null) {
+        _mastery = _mastery.copyWith(smithFloor: _legacySmithFloor);
+        await _saveMastery();
+      }
       return;
     }
     _mastery = _seedMastery();
@@ -289,6 +299,7 @@ extension MasteryOps on AppController {
       ],
       top: _topMastery()?.name,
       leanAt: _clock(),
+      smithFloor: _legacySmithFloor,
     );
     await _grantMasteryTitles(titles, quiet: true);
     await _saveMastery();

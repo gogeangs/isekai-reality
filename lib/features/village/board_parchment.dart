@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -28,14 +29,74 @@ const Color _stampRed = Color(0xFFB0352B);
 TextStyle noteTitle([double size = 16]) =>
     AppText.title(size, color: kInk).copyWith(height: 1.3);
 
-/// 나무 게시판: 판자 + 테두리 나무틀. 안쪽에 쪽지들을 놓는다
-class WoodBoard extends StatelessWidget {
+/// 나무 게시판: 판자 + 테두리 나무틀. 안쪽에 쪽지들을 놓는다.
+/// 묶음 28: board_bg 그림은 위(문장·등불)·아래(나무틀 끝)를 그대로 두고
+/// 가운데 판자만 세로로 이어 붙인다 (세로 9-slice). 그림이 없으면 코드로 그린 판자.
+class WoodBoard extends StatefulWidget {
   const WoodBoard({super.key, required this.child});
 
   final Widget child;
 
+  /// 그림에서 늘리지 않는 위·아래 높이 (그림 픽셀)
+  static const double artTop = 220, artBottom = 120, artWidth = 1024;
+
   @override
-  Widget build(BuildContext context) => Container(
+  State<WoodBoard> createState() => _WoodBoardState();
+}
+
+class _WoodBoardState extends State<WoodBoard> {
+  ui.Image? _art;
+  ImageStream? _stream;
+  late final ImageStreamListener _listener = ImageStreamListener(
+    (info, _) {
+      if (mounted) setState(() => _art = info.image);
+    },
+    onError: (_, __) {},
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final s = AssetImage(boardArt('board_bg'))
+        .resolve(createLocalImageConfiguration(context));
+    if (s.key != _stream?.key) {
+      _stream?.removeListener(_listener);
+      _stream = s..addListener(_listener);
+    }
+  }
+
+  @override
+  void dispose() {
+    _stream?.removeListener(_listener);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final art = _art;
+    if (art == null) return _fallback();
+    return LayoutBuilder(builder: (context, box) {
+      final s = box.maxWidth / art.width;
+      return Container(
+        key: const Key('woodBoard'),
+        decoration: const BoxDecoration(boxShadow: [
+          BoxShadow(
+              color: Color(0x99000000), blurRadius: 16, offset: Offset(0, 6)),
+        ]),
+        child: CustomPaint(
+          painter: _BoardArtPainter(art),
+          child: Padding(
+            // 위 문장·등불 아래부터, 양옆 나무틀 안쪽에
+            padding: EdgeInsets.fromLTRB(70 * s, WoodBoard.artTop * s,
+                70 * s, WoodBoard.artBottom * s + 6),
+            child: widget.child,
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _fallback() => Container(
         key: const Key('woodBoard'),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
@@ -49,31 +110,49 @@ class WoodBoard extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: Stack(children: [
             const Positioned.fill(child: CustomPaint(painter: _WoodPainter())),
-            Positioned.fill(
-              child: Image.asset(boardArt('board_bg'),
-                  fit: BoxFit.fitWidth,
-                  alignment: Alignment.topCenter,
-                  repeat: ImageRepeat.repeatY,
-                  errorBuilder: (_, __, ___) => const SizedBox()),
-            ),
-            // 나무틀 안쪽 그림자
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                        color: const Color(0x55000000), width: 2),
-                  ),
-                ),
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
-              child: child,
+              child: widget.child,
             ),
           ]),
         ),
       );
+}
+
+/// 게시판 그림: 위·아래는 그대로, 가운데 판자는 세로로 이어 붙인다
+class _BoardArtPainter extends CustomPainter {
+  _BoardArtPainter(this.art);
+
+  final ui.Image art;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = art.width.toDouble(), h = art.height.toDouble();
+    final s = size.width / w;
+    const top = WoodBoard.artTop, bottom = WoodBoard.artBottom;
+    final paint = Paint()..filterQuality = FilterQuality.medium;
+    final topDst = Rect.fromLTWH(0, 0, size.width, top * s);
+    final bottomDst =
+        Rect.fromLTWH(0, size.height - bottom * s, size.width, bottom * s);
+    // 가운데 판자 (그림 높이만큼씩 이어 붙임)
+    final midSrcH = h - top - bottom;
+    final midDstH = midSrcH * s;
+    var y = topDst.bottom;
+    canvas.save();
+    canvas.clipRect(Rect.fromLTRB(0, topDst.bottom, size.width, bottomDst.top));
+    while (y < bottomDst.top) {
+      canvas.drawImageRect(art, Rect.fromLTWH(0, top, w, midSrcH),
+          Rect.fromLTWH(0, y, size.width, midDstH), paint);
+      y += midDstH;
+    }
+    canvas.restore();
+    canvas.drawImageRect(art, Rect.fromLTWH(0, 0, w, top), topDst, paint);
+    canvas.drawImageRect(
+        art, Rect.fromLTWH(0, h - bottom, w, bottom), bottomDst, paint);
+  }
+
+  @override
+  bool shouldRepaint(_BoardArtPainter old) => old.art != art;
 }
 
 /// 가로 판자와 나뭇결 (임시 그림)
@@ -203,7 +282,8 @@ class ParchmentNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tilt = tiltOf(seed) * math.pi / 180;
-    final paper = Container(
+    // 그림이 없을 때 쓰는 종이 (코드로 그림)
+    final drawn = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -219,25 +299,46 @@ class ParchmentNote extends StatelessWidget {
           BoxShadow(color: Color(0x88000000), blurRadius: 8, offset: Offset(2, 4)),
         ],
       ),
+    );
+    final paper = ConstrainedBox(
+      // 늘린 쪽지의 귀퉁이 장식이 겹치지 않을 만큼은 높게
+      constraints: const BoxConstraints(minHeight: 78),
       child: Stack(children: [
+        // 묶음 28: 양피지 그림 (9-slice, 귀퉁이 장식은 늘리지 않음)
         Positioned.fill(
-          child: Image.asset(boardArt('board_note'),
-              centerSlice: const Rect.fromLTRB(90, 90, 710, 310),
-              fit: BoxFit.fill,
-              errorBuilder: (_, __, ___) => const SizedBox()),
+          child: Opacity(
+            opacity: faded ? 0.82 : 1,
+            child: Image.asset(boardArt('board_note'),
+                scale: 2.4,
+                centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
+                fit: BoxFit.fill,
+                errorBuilder: (_, __, ___) => drawn),
+          ),
         ),
+        if (edge != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                margin: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: edge!, width: 2),
+                ),
+              ),
+            ),
+          ),
         if (ribbon)
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: 6,
+            left: 10,
+            right: 10,
             child: Container(
               height: 7,
               decoration: const BoxDecoration(gradient: kGoldGradient),
             ),
           ),
         Padding(
-          padding: EdgeInsets.fromLTRB(14, ribbon ? 18 : 14, 14, 10),
+          padding: EdgeInsets.fromLTRB(18, ribbon ? 22 : 16, 18, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -261,8 +362,9 @@ class ParchmentNote extends StatelessWidget {
         child: Stack(clipBehavior: Clip.none, children: [
           paper,
           // 핀
+          // 옆에서 본 핀: 머리는 쪽지 위 가장자리, 바늘 끝은 쪽지 안쪽으로 살짝
           const Positioned(
-            top: -9,
+            top: -17,
             left: 0,
             right: 0,
             child: Center(child: BoardPin()),
@@ -279,8 +381,8 @@ class BoardPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 24,
-        height: 24,
+        width: 30,
+        height: 30,
         child: Image.asset(boardArt('board_pin'),
             errorBuilder: (_, __, ___) =>
                 const CustomPaint(painter: _PinPainter())),
@@ -504,7 +606,8 @@ class DoneStamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final w = small ? 64.0 : 84.0;
+    // 인장 그림(512×256) 비율에 맞춰
+    final w = small ? 72.0 : 96.0;
     final h = small ? 30.0 : 40.0;
     return Transform.rotate(
       angle: -0.24,

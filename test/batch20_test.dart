@@ -195,7 +195,10 @@ void main() {
       final c6 = await start(grown(5));
       expect(c6.player.level.level, greaterThanOrEqualTo(6));
       for (final f in Feature.values) {
-        expect(c6.featureOpen(f), isTrue, reason: f.name);
+        // 묶음 28 #181: Lv.7~10 기능은 그 레벨에
+        expect(c6.featureOpen(f),
+            c6.player.level.level >= AppController.featureLevel[f]!,
+            reason: f.name);
       }
     });
   });

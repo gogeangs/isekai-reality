@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -136,6 +136,12 @@ class TourScreenMark extends StatelessWidget {
   }
 }
 
+/// 공방 첫 물약 판에서 회복 물약을 골랐는지 (묶음 28 #181)
+final ValueNotifier<bool> firstPotionPicked = ValueNotifier<bool>(false);
+
+/// 첫 물약을 만들었을 때 안내에 알린다 (공방 화면이 부른다)
+final ValueNotifier<int> firstPotionMadeTick = ValueNotifier<int>(0);
+
 /// 상태 화면에서 빛낼 장비 칸 (Lv.3 안내 끝)
 final ValueNotifier<EquipSlot?> tourGlowSlot = ValueNotifier<EquipSlot?>(null);
 
@@ -235,6 +241,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     super.initState();
     b.addListener(_changed);
     tutorialMonsterRect.addListener(_changed);
+    firstPotionMadeTick.addListener(_potionDone);
     // 화면이 바뀐 뒤(카드를 고르는 등)마다 다시 본다. 바뀐 게 없으면 다시 그리지 않는다
     SchedulerBinding.instance.addPersistentFrameCallback((_) {
       if (!_alive || _queued) return;
@@ -254,11 +261,17 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _alive = false;
     b.removeListener(_changed);
     tutorialMonsterRect.removeListener(_changed);
+    firstPotionMadeTick.removeListener(_potionDone);
     _retry?.cancel();
     super.dispose();
   }
 
   void _changed() {
+    if (mounted) _queue();
+  }
+
+  void _potionDone() {
+    _potionMade = true;
     if (mounted) _queue();
   }
 
@@ -292,6 +305,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     tourGlowSlot.value = null;
     c.guideHunt = false;
     c.guideHarvest = false;
+    c.guideSpotId = null;
+    firstPotionPicked.value = false;
     _once.clear();
     await c.markFeatureIntro(f);
   }
@@ -337,7 +352,119 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         return _harvest(f);
       case Feature.lens:
         return _lens(f);
+      case Feature.alchemy:
+        return _alchemy(f);
+      case Feature.ore:
+        return _openSpot(f, const [HarvestTool.pickaxe]);
+      case Feature.wood:
+        return _openSpot(f, const [HarvestTool.axe, HarvestTool.rod]);
+      case Feature.relic:
+        return _openSpot(f, const [HarvestTool.brush]);
     }
+  }
+
+  // ───────────── 묶음 28 #181: Lv.8~10 새 채집 자리 (가볍게)
+  // 「새로 열렸어요」 카드 + 정령 한마디. 가까이에 새 채집 자리 하나가 생긴다.
+  // 그 도구가 없으면 마을 → 대장간 칸만 가리키고 끝 (도구 만들기는 스스로)
+
+  TourStep? _openSpot(Feature f, List<HarvestTool> tools) {
+    final line = _openedLines[f]!;
+    if (!c.featureAnnounced(f)) {
+      // 카드를 띄우려면 단계가 있어야 한다 (카드가 정령 한마디를 함께 보여 준다)
+      return TourStep(line, button: ('알겠어', () => _finish(f)));
+    }
+    final missing = tools.any((t) => c.toolDurability(t) <= 0);
+    if (!missing || b.top == 'smithy') {
+      _doOnce('end', () => _finish(f));
+      return null;
+    }
+    if (b.topIsPopup || b.top == null) return null;
+    return _toFacility('smithy', 'facility_smithy',
+        '도구가 있어야 캘 수 있어. 대장간에 가 보자!', '대장간을 눌러 봐!');
+  }
+
+  static const Map<Feature, String> _openedLines = {
+    Feature.alchemy: '약초 덤불을 찾았어! 약초로 물약도 만들 수 있대. 연금술 공방에 가 보자!',
+    Feature.ore: '저 바위, 반짝이는 게 보여? 곡괭이가 있으면 광석을 캘 수 있어!',
+    Feature.wood: '쓰러진 나무랑 물가도 보이기 시작했어. 도끼랑 낚싯대를 챙겨 볼까?',
+    Feature.relic: '땅속에서 오래된 빛이 느껴져… 고대 유물이야. 붓으로 조심조심 털어 보자.',
+  };
+
+  /// 첫 물약을 만들고 「완성」 한마디를 보여 주는 중
+  bool _potionMade = false;
+
+  /// 약초가 모자라 지도를 가리킨 뒤 (재료가 생길 때까지 기다린다)
+  bool _waitHerbs = false;
+
+  // ───────────── 묶음 28 #181: Lv.7 약초 덤불 + 연금술 공방 → 첫 물약
+  TourStep? _alchemy(Feature f) {
+    final line = _openedLines[f]!;
+    if (!c.featureAnnounced(f)) {
+      return TourStep(line, button: ('알겠어', () => _finish(f)));
+    }
+    _startedDone.putIfAbsent(f, () => c.alchemy.discovered.isNotEmpty);
+    if (_startedDone[f]!) {
+      _doOnce('end', () => _finish(f));
+      return null;
+    }
+    if (_potionMade) {
+      if (b.topIsPopup) return null;
+      return TourStep('첫 물약 완성! 위험할 때 전투에서 저절로 써 줄게.',
+          button: ('알겠어', () {
+            _potionMade = false;
+            _finish(f);
+          }));
+    }
+    // 약초를 캘 낫이 없으면 대장간만 가리키고 끝
+    if (c.toolDurability(HarvestTool.sickle) <= 0) {
+      if (b.top == 'smithy') {
+        _doOnce('end', () => _finish(f));
+        return null;
+      }
+      if (b.topIsPopup || b.top == null) return null;
+      return _toFacility('smithy', 'facility_smithy',
+          '약초를 캐려면 낫이 있어야 해. 대장간에 가 보자!', '대장간을 눌러 봐!');
+    }
+    final missing = c.firstPotionMissing;
+    if (missing.isNotEmpty) {
+      if (_waitHerbs) return null; // 재료가 생기면 이어서
+      if (b.topIsPopup || b.top == null) return null;
+      if (b.top != 'home' || b.tab != FeatureTourLayer.tMap) {
+        _doOnce('toMap', () => _goHome(FeatureTourLayer.tMap));
+        return const TourStep('', wait: true);
+      }
+      if (c.guideSpotId == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) c.guideSpotId = 'guide-herb';
+        });
+      }
+      final r = tutorialMonsterRect.value;
+      return TourStep('약초 덤불에서 약초를 모아 오자!',
+          hole: r,
+          round: true,
+          button: ('알겠어', () {
+            _waitHerbs = true;
+            c.guideSpotId = null;
+            _queue();
+          }));
+    }
+    _waitHerbs = false;
+    if (c.guideSpotId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) c.guideSpotId = null;
+      });
+    }
+    if (b.top != 'alchemy') {
+      if (b.topIsPopup || b.top == null) return null;
+      return _toFacility('alchemy', 'facility_alchemy',
+          '재료가 모였어! 연금술 공방에 가 보자.', '연금술 공방을 눌러 봐!');
+    }
+    if (b.topIsPopup) return null;
+    if (firstPotionPicked.value) {
+      return _here(const Key('firstPotionMake'), '좋아! 이제 만들어 보자.');
+    }
+    return _here(const Key('firstPotionPick'), '회복 물약을 골라 봐!',
+        label: '골라 보세요');
   }
 
   // ───────────── Lv.2 능력치 나누기 (묶음 25 #165): 상태 탭 → 스탯 → + → 확정
@@ -650,6 +777,10 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       Feature.board => ('의뢰 게시판', 'icon_board', '의뢰 게시판이 열렸어! 쉬운 의뢰부터 해 보자.'),
       Feature.harvest => ('채집', 'map_harvest_flower', '이제 꽃이랑 버섯을 딸 수 있어!'),
       Feature.lens => ('마법 돋보기', 'icon_lens', '마법 돋보기가 생겼어! 숨은 이세계 종족을 볼 수 있어.'),
+      Feature.alchemy => ('약초 덤불 · 연금술 공방', 'icon_alchemy', _openedLines[f]!),
+      Feature.ore => ('광석 바위 · 보석 광맥', 'map_harvest_gem', _openedLines[f]!),
+      Feature.wood => ('쓰러진 나무 · 물가', 'tool_axe_stone', _openedLines[f]!),
+      Feature.relic => ('고대 유물', 'map_harvest_relic', _openedLines[f]!),
     };
     return TourStep(line, opened: (name, icon), button: ('가 보기', () {
       // 묶음 22: 한 번만 (껐다 켜면 남은 안내 단계부터)

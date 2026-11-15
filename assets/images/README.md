@@ -209,3 +209,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | title_bridgeMaker | 2막 칭호 「다리를 놓은 자」 (512 → 개발이 160) |
 | 2026-11-15 | title_{smith,harvest,alchemy,combat}Adept | 숙련도 칭호 견습 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
 | 2026-11-15 | title_{walk,appraise,spirit,trade}Adept | 숙련도 칭호 견습 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |
+| 2026-11-15 | title_{smith,harvest,alchemy,combat}Master | 숙련도 칭호 장인 4 (#176, 시트에서 잘라 냄, 512 → 개발이 160) |

@@ -112,8 +112,9 @@ class _BoardScreenState extends State<BoardScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xE60B0D26), Color(0x990B0D26), Color(0x000B0D26)],
-                      stops: [0, 0.7, 1],
+                      // 아래로 지나가는 쪽지가 위쪽 글과 겹쳐 보이지 않게 머리 부분은 짙게
+                      colors: [Color(0xF20B0D26), Color(0xE00B0D26), Color(0x000B0D26)],
+                      stops: [0, 0.8, 1],
                     ),
                   ),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [

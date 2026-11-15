@@ -219,3 +219,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-15 | village_bg_end | 결말 뒤 마을 바탕 (village_bg 편집, 탑 불 켜짐·빛의 다리, 1536×1024) |
 | 2026-11-15 | village_fog | 2막 마을 잿빛 안개 겹침 (투명, 1536×1024) |
 | 2026-11-15 | village_{inn,shop,board,smithy} | 새 마을 건물 4 (시트에서 잘라 냄, 같은 비율·아래 맞춤, 512) |
+| 2026-11-15 | village_{alchemy,guild,shelter,market_build} | 새 마을 건물 4 (첫 시트와 거의 같은 비율, 아래 맞춤, 512) |

@@ -809,20 +809,24 @@ class _EntrySheet extends StatelessWidget {
                     const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             const SizedBox(height: 14),
             if (action != null) ...[action, const SizedBox(height: 8)],
+            // 묶음 33 #205: 버튼인 줄 알게 금테 테두리 버튼 + 휴지통, 「모두 버리기」만 붉은 테두리
             Row(children: [
-              if (count > 1)
+              if (count > 1) ...[
                 Expanded(
-                  child: TextButton(
+                  child: _DiscardButton(
+                    key: const Key('discardOne'),
+                    label: '1개 버리기',
                     onPressed: () => _discard(context, 1),
-                    child: const Text('1개 버리기',
-                        style: TextStyle(color: AppColors.textMuted)),
                   ),
                 ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
-                child: TextButton(
+                child: _DiscardButton(
+                  key: const Key('discardAll'),
+                  label: count > 1 ? '모두 버리기' : '버리기',
+                  danger: true,
                   onPressed: () => _discard(context, count),
-                  child: Text(count > 1 ? '모두 버리기' : '버리기',
-                      style: const TextStyle(color: AppColors.textMuted)),
                 ),
               ),
             ]),
@@ -1230,6 +1234,48 @@ class _TutorialGlowState extends State<TutorialGlow>
           ],
         ),
         child: child,
+      ),
+    );
+  }
+}
+
+/// 버리기 버튼 (금테·어두운 바탕 + 휴지통, [danger] 면 붉은 테두리)
+class _DiscardButton extends StatelessWidget {
+  const _DiscardButton(
+      {super.key, required this.label, required this.onPressed, this.danger = false});
+
+  final String label;
+  final VoidCallback onPressed;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final edge = danger ? const Color(0xFFC0473C) : AppColors.gold;
+    return Material(
+      color: const Color(0xFF1B1E4C),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: edge, width: 1.4),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.delete_outline_rounded,
+                size: 18, color: danger ? const Color(0xFFE07A6E) : AppColors.goldBright),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: danger ? const Color(0xFFF0A79C) : AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ]),
+        ),
       ),
     );
   }

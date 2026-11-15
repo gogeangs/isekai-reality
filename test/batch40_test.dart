@@ -25,6 +25,18 @@ String allText(WidgetTester tester) => [
       for (final w in tester.widgetList<KText>(find.byType(KText))) w.data,
     ].join('\n').replaceAll('\u2060', '');
 
+/// 긴 목록에서 칸을 찾아 화면 가운데로
+Future<void> reveal(WidgetTester tester, String key, double delta) async {
+  await tester.scrollUntilVisible(find.byKey(Key(key)), delta,
+      scrollable: find.descendant(
+          of: find.byKey(const Key('smithyList')),
+          matching: find.byType(Scrollable)));
+  Scrollable.ensureVisible(tester.element(find.byKey(Key(key))),
+      alignment: 0.5);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 void main() {
   Future<AppController> open(WidgetTester tester,
       {int gold = 5000,
@@ -258,10 +270,7 @@ void main() {
       expect(item.enabled, isFalse);
       await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.byKey(const Key('more_f')), 150,
-          scrollable: find.descendant(
-              of: find.byKey(const Key('smithyList')),
-              matching: find.byType(Scrollable)));
+      await reveal(tester, 'more_f', 150);
       await tester.tap(find.byKey(const Key('more_f')));
       await tester.pumpAndSettle();
       expect(find.text('마석과 재료 일부를 돌려받아요'), findsOneWidget);
@@ -315,28 +324,19 @@ void main() {
       await tester.tap(find.byKey(const Key('pick_apply_h_water')));
       await tester.pump();
       final gold = c.player.gold;
-      await tester.scrollUntilVisible(find.byKey(const Key('smith_apply_h')), 150,
-          scrollable: find.descendant(
-              of: find.byKey(const Key('smithyList')),
-              matching: find.byType(Scrollable)));
+      await reveal(tester, 'smith_apply_h', 150);
       await tester.tap(find.byKey(const Key('smith_apply_h')));
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 80)));
       await tester.pump();
       expect(c.player.gold, gold - SmithRules.gold(SmithAction.apply));
       // 코어가 없는 속성을 고르면 모자란 코어 한 줄
-      await tester.scrollUntilVisible(find.byKey(const Key('pick_apply_g_fire')), 150,
-          scrollable: find.descendant(
-              of: find.byKey(const Key('smithyList')),
-              matching: find.byType(Scrollable)));
+      await reveal(tester, 'pick_apply_g_fire', 150);
       await tester.tap(find.byKey(const Key('pick_apply_g_fire')));
       await tester.pump();
       expect(allText(tester), contains('1개 모자라요'));
       // 바꾸기를 누르면 고르기가 펼쳐짐
-      await tester.scrollUntilVisible(find.byKey(const Key('smith_change_w')), -150,
-          scrollable: find.descendant(
-              of: find.byKey(const Key('smithyList')),
-              matching: find.byType(Scrollable)));
+      await reveal(tester, 'smith_change_w', -150);
       await tester.tap(find.byKey(const Key('smith_change_w')));
       await tester.pump();
       expect(find.byKey(const Key('pick_change_w_water')), findsOneWidget);

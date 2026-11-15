@@ -98,7 +98,7 @@ Future<void> _smithy(WidgetTester tester, AppController c) async {
     key: _root,
     child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: SmithyScreen(controller: c)),
+        home: SmithyScreen(key: ObjectKey(c), controller: c)),
   ));
   await _settle(tester);
 }
@@ -111,6 +111,18 @@ Future<void> _tab(WidgetTester tester, int i) async {
 Future<void> _down(WidgetTester tester, double dy) async {
   await tester.drag(find.byKey(const Key('smithyList')), Offset(0, -dy));
   await _settle(tester, 4);
+}
+
+/// 긴 목록에서 칸을 찾아 화면 가운데로
+Future<void> reveal(WidgetTester tester, String key, double delta) async {
+  await tester.scrollUntilVisible(find.byKey(Key(key)), delta,
+      scrollable: find.descendant(
+          of: find.byKey(const Key('smithyList')),
+          matching: find.byType(Scrollable)));
+  Scrollable.ensureVisible(tester.element(find.byKey(Key(key))),
+      alignment: 0.5);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 void main() {
@@ -172,10 +184,7 @@ void main() {
         await _shot(tester, '${n}_10_속성');
         await tester.tap(find.byKey(const Key('smith_change_w')));
         await _settle(tester, 3);
-        await tester.scrollUntilVisible(find.byKey(const Key('pick_apply_g_fire')), 150,
-          scrollable: find.descendant(
-              of: find.byKey(const Key('smithyList')),
-              matching: find.byType(Scrollable)));
+        await reveal(tester, 'pick_apply_g_fire', 150);
         await tester.tap(find.byKey(const Key('pick_apply_g_fire')));
         await _settle(tester, 3);
         await _shot(tester, '${n}_11_속성_바꾸기_모자란코어');

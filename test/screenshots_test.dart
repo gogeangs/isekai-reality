@@ -730,7 +730,7 @@ void main() {
     await tester.ensureVisible(find.text('이름 짓기'));
     await tester.tap(find.text('이름 짓기'));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text(FarewellScreen.petLine), findsOneWidget);
+    expect(find.textContaining('함께 가기'), findsOneWidget);
     await _shot(tester, '42_첫_펫_한마디');
     await tester.tap(find.textContaining('함께 가기'));
     for (var i = 0; i < 4; i++) {

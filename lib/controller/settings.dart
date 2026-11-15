@@ -85,6 +85,7 @@ extension SettingsOps on AppController {
     _board = const BoardState();
     _armory = const Armory();
     _alloc = const StatAlloc();
+    _jobs = const JobState();
     _profile = const PlayerProfile(name: '각성자');
     _needsAwakening = true;
     _ageBlocked = false;

@@ -11,9 +11,10 @@ import '../town/shop_screen.dart';
 import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
+import '../jobs/guild_screen.dart';
 
 /// 마을 시설
-enum Facility { inn, shop, board, smithy, alchemy, market }
+enum Facility { inn, shop, board, guild, smithy, alchemy, market }
 
 class FacilityInfo {
   const FacilityInfo(this.facility, this.name, this.icon,
@@ -44,6 +45,8 @@ class VillageScreen extends StatelessWidget {
     FacilityInfo(Facility.inn, '여관', 'map_inn'),
     FacilityInfo(Facility.shop, '잡화상', 'map_store'),
     FacilityInfo(Facility.board, '의뢰 게시판', 'icon_board'),
+    // 묶음 30 #55: 길드 (Lv.15 직업 각성 뒤, 게시판 옆 창구. 그림은 나중에)
+    FacilityInfo(Facility.guild, '길드', 'icon_guild', inArt: false),
     FacilityInfo(Facility.smithy, '대장간', 'icon_smithy'),
     FacilityInfo(Facility.alchemy, '연금술 공방', 'icon_alchemy'),
     // 묶음 15 #113: 우체국은 빼고 우편은 위쪽 우편함 아이콘으로만
@@ -68,7 +71,7 @@ class VillageScreen extends StatelessWidget {
   List<FacilityInfo> get _shown => [
         // 묶음 22: 거래소는 기존 사용자에게도 숨김 (서버 #49 만들 때 연다)
         for (final f in facilities)
-          if (!f.open)
+          if (!f.open || (f.facility == Facility.guild && !controller.jobsOpen))
             ...[]
           else if (!controller.newGates)
             _lockLevel(f.facility) == null
@@ -105,6 +108,7 @@ class VillageScreen extends StatelessWidget {
       Facility.shop => ShopScreen(controller: controller),
       Facility.smithy => SmithyScreen(controller: controller),
       Facility.alchemy => AlchemyScreen(controller: controller),
+      Facility.guild => GuildScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -164,6 +168,7 @@ class _VillageArt extends StatelessWidget {
     Facility.board: Rect.fromLTWH(0.75, 0.47, 0.22, 0.24),
     Facility.alchemy: Rect.fromLTWH(0.44, 0.22, 0.23, 0.18),
     Facility.market: Rect.fromLTWH(0.70, 0.24, 0.24, 0.19),
+    Facility.guild: Rect.fromLTWH(0.72, 0.24, 0.22, 0.20),
   };
 
   @override
@@ -199,6 +204,13 @@ class _VillageArt extends StatelessWidget {
                           ),
                         ),
                     ])),
+            // 그림에 없는 건물(길드)은 아이콘을 그림 위에
+            for (final f in list)
+              if (!f.inArt)
+                Positioned.fromRect(
+                  rect: at(f.facility),
+                  child: Center(child: _BuildingIcon(icon: f.icon, size: 44)),
+                ),
             // 아래쪽 이름표가 잘 보이게 살짝 어둡게
             const IgnorePointer(
               child: DecoratedBox(
@@ -283,6 +295,7 @@ class _BuildingIcon extends StatelessWidget {
             'icon_smithy' => Icons.hardware_rounded,
             'icon_board' => Icons.assignment_rounded,
             'icon_alchemy' => Icons.science_rounded,
+            'icon_guild' => Icons.shield_rounded,
             'icon_post' => Icons.markunread_mailbox_rounded,
             _ => Icons.lock_outline_rounded,
           },

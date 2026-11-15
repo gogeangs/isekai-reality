@@ -66,6 +66,18 @@ class PetRules {
   /// 정령과 이별하는 레벨
   static const int farewellLevel = 11;
 
+  /// 빛 조각에서 태어나는 첫 펫 (묶음 29 #182): 숨은 주 속성에 맞춰.
+  /// 바람 까마귀 · 어둠 검은 고양이 · 독 두꺼비 · 빛 부엉이 · 불 꼬마 도마뱀,
+  /// 그 밖이거나 아직 없으면 호문쿨루스
+  static PetSpecies firstPetFor(Element? e) => switch (e) {
+        Element.wind => PetSpecies.crow,
+        Element.dark => PetSpecies.blackCat,
+        Element.poison => PetSpecies.toad,
+        Element.light => PetSpecies.owl,
+        Element.fire => PetSpecies.lizard,
+        _ => PetSpecies.homunculus,
+      };
+
   // ───────────────────────── 알
 
   /// Lv.11 전 필드 사냥에서 이길 때마다 (한 번만)
@@ -280,8 +292,8 @@ class PetRules {
       element: Element.poison,
       name: '두꺼비',
       grade: PetGrade.common,
-      special: '물가 몬스터 원정 MP -50%, 시간 -30%',
-      specialAdult: '물가 몬스터 원정 MP -60%, 시간 -30%',
+      special: '물가 몬스터 원정 기력 -50%, 시간 -30%',
+      specialAdult: '물가 몬스터 원정 기력 -60%, 시간 -30%',
       skill: PetSkill.tongue,
       skillName: '혀로 묶기',
       skillText: '피해 ×2.5, 몬스터가 한 턴 멈춰요',
@@ -306,8 +318,8 @@ class PetRules {
       element: Element.fire,
       name: '꼬마 도마뱀',
       grade: PetGrade.common,
-      special: '원정 MP -25%',
-      specialAdult: '원정 MP -35%',
+      special: '원정 기력 -25%',
+      specialAdult: '원정 기력 -35%',
       skill: PetSkill.ember,
       skillName: '작은 불씨',
       skillText: '피해 ×3, 화상 3턴',

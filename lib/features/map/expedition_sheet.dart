@@ -16,12 +16,13 @@ import '../battle/element_view.dart';
 import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../tutorial/spotlight.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 정령 원정을 보낼 수 없는 이유
 String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.ok => '',
       ExpeditionCheck.needsLocation => '위치를 켜야 보낼 수 있어요',
-      ExpeditionCheck.notEnoughMp => 'MP가 모자라요',
+      ExpeditionCheck.notEnoughMp => '기력이 모자라요',
       ExpeditionCheck.busy => '이미 원정 중이에요',
     };
 
@@ -294,7 +295,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                               : '${plan.distanceM.round()}m'
                                   '${!plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ' (날아서)'}'),
                       _InfoRow(
-                          label: 'MP',
+                          label: '기력',
                           value: '${plan.mpCost} 사용 (지금 ${c.mp} / '
                               '${c.mpMax})'),
                       _InfoRow(
@@ -306,7 +307,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                     const SizedBox(height: 6),
                     KText(
                       '${c.farewellDone ? '펫' : '정령'}은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
-                      '지면 MP만 쓰고 무사히 돌아와요.',
+                      '지면 기력만 쓰고 무사히 돌아와요.',
                       style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 12, height: 1.35),
                     ),
@@ -326,6 +327,8 @@ class _SpawnSheetState extends State<SpawnSheet> {
               ),
             ),
             const SizedBox(height: 10),
+            // 묶음 30 #55: 먼 길 안내 (이번 원정 더 멀리)
+            JobSkillBar(controller: c, places: const [SkillPlace.expeditionSend]),
             // 11-11 #64: 보낼 수 없으면 흐리게 (눌리지 않음)
             Opacity(
               opacity: plan.check == ExpeditionCheck.ok ? 1 : 0.4,
@@ -448,7 +451,7 @@ class ExpeditionCard extends StatelessWidget {
               const SizedBox(height: 2),
               KText(
                 '${_minutes(left.isNegative ? Duration.zero : left)} 뒤 도착 · '
-                'MP ${ex.mpCost} 사용 · ${comma(ex.distanceM.round())}m',
+                '기력 ${ex.mpCost} 사용 · ${comma(ex.distanceM.round())}m',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
               ),
             ],

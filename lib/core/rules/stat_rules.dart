@@ -22,7 +22,7 @@ class Stats {
   /// 민첩: 속도(먼저 공격)·회피
   final int agility;
 
-  /// 지능: 마법 공격(정령의 일격)·MP
+  /// 지능: 마법 공격(정령의 일격)·감정·연금술
   final int intellect;
 
   /// 체력: HP·방어
@@ -113,7 +113,7 @@ extension StatKindInfo on StatKind {
   String get role => switch (this) {
         StatKind.strength => '물리 공격',
         StatKind.agility => '먼저 공격·회피',
-        StatKind.intellect => '정령의 일격·MP',
+        StatKind.intellect => '정령의 일격·감정·연금술',
         StatKind.vitality => 'HP·받는 피해',
         StatKind.luck => '치명타·귀한 재료',
       };
@@ -257,9 +257,13 @@ class StatRules {
   static double modifierBonus(Stats s) =>
       (math.max(0, s.luck - start) * 0.001).clamp(0.0, 0.05).toDouble();
 
-  /// 최대 MP: 60 + 지능 10을 넘는 1마다 1
-  static int maxMp(Stats s) =>
-      RuleConstants.mpMax + math.max(0, s.intellect - start);
+  /// 기력 최대치(#183): 기본 60. 지능은 기력에 들어가지 않는다 (펫 보너스는 따로)
+  static int maxMp([Stats? s]) => RuleConstants.mpMax;
+
+  /// Lv.15 전 지능의 숨은 몫: 감정 드문 결과·연금술 결과에 조금 (지능 10을 넘는 1마다
+  /// +0.2%p, 최대 +6%p)
+  static double intellectCraftBonus(Stats s) =>
+      (math.max(0, s.intellect - start) * 0.002).clamp(0.0, 0.06).toDouble();
 
   /// 예전 이름: 전투력 (던전 입구에 보여 주는 숫자). 공격·HP를 합친 대략의 힘.
   static int combatPower({required int level, required Stats stats}) =>

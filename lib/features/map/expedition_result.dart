@@ -90,7 +90,7 @@ class ExpeditionResultCard extends StatelessWidget {
       ExpeditionOutcome.success =>
         '${josa(spiritName, '이/가')} ${josa(name, '을/를')} 사냥했어요!',
       ExpeditionOutcome.fail => '${josa(name, '이/가')} 너무 강했어요. '
-          '${josa(spiritName, '은/는')} MP만 쓰고 무사히 돌아왔어요.',
+          '${josa(spiritName, '은/는')} 기력만 쓰고 무사히 돌아왔어요.',
       ExpeditionOutcome.missed => '${josa(name, '이/가')} 재빨리 도망쳤어요. '
           '${josa(spiritName, '은/는')} 무사히 돌아왔어요.',
     };

@@ -284,7 +284,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     look: c.profile.look,
                     spiritKind: c.profile.spiritKind,
                     spiritName: c.firstSpiritName,
-                    pet: c.companionPet,
+                    pet: c.voicePet,
+                    // 묶음 30 #55: 주 직업(보조는 작게)
+                    job: c.mainJobLabel == null
+                        ? kNoJobLabel
+                        : [
+                            c.mainJobLabel!,
+                            if (c.subJobs.isNotEmpty)
+                              '(${c.subJobs.map((j) => JobRules.info(j).name).join(' · ')})',
+                          ].join(' '),
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,
@@ -349,7 +357,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   child: RecordsScreen(
                                       player: p,
                                       embedded: true,
-                                      prophecy: c.prophecyPieces)),
+                                      prophecy: c.prophecyPieces,
+                                      memory: switch (c.spiritMemory) {
+                                        final m? => (
+                                            name: c.firstSpiritName,
+                                            met: m.met,
+                                            days: m.days,
+                                            monsters: m.monsters,
+                                          ),
+                                        null => null,
+                                      })),
                             ],
                           ),
                   ),

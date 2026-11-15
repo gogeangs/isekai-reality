@@ -13,9 +13,13 @@ class RecordsScreen extends StatefulWidget {
       {super.key,
       required this.player,
       this.embedded = false,
-      this.prophecy = const []});
+      this.prophecy = const [],
+      this.memory});
 
   final PlayerState player;
+
+  /// 떠난 정령과의 추억 (묶음 29 #182): 처음 만난 날 · 함께한 날 수 · 함께 잡은 몬스터 수
+  final ({String name, DateTime met, int days, int monsters})? memory;
 
   /// 모은 고대 유물 글귀 (묶음 28 #181, 모은 것만)
   final List<String> prophecy;
@@ -179,6 +183,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 label: '새 칭호',
                 value: '$newTitles'),
           ]),
+          // 묶음 29 #182: 떠난 정령과의 추억
+          if (widget.memory case final m?) ...[
+            const SizedBox(height: 16),
+            Text('${josa(m.name, '와/과')}의 추억',
+                key: const Key('spiritMemory'), style: AppText.title(19)),
+            const SizedBox(height: 8),
+            OrnatePanel(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(children: [
+                _MemoryRow(
+                    label: '처음 만난 날',
+                    value: '${m.met.year}년 ${m.met.month}월 ${m.met.day}일'),
+                _MemoryRow(label: '함께한 날', value: '${m.days}일'),
+                _MemoryRow(label: '함께 잡은 몬스터', value: '${m.monsters}마리'),
+              ]),
+            ),
+          ],
           // 묶음 28 #181: 고대 유물 글귀 (모은 조각만, 늘어나는 방식)
           if (widget.prophecy.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -404,6 +425,30 @@ class _DashedLine extends StatelessWidget {
       ]);
     });
   }
+}
+
+class _MemoryRow extends StatelessWidget {
+  const _MemoryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(children: [
+          Expanded(
+            child: Text(label,
+                style:
+                    const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          ),
+          Text(value,
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      );
 }
 
 class _SummaryTile extends StatelessWidget {

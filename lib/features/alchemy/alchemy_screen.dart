@@ -13,6 +13,7 @@ import 'convert_panel.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart'
     show TourScreenMark, firstPotionPicked, firstPotionMadeTick;
+import '../jobs/job_skill_bar.dart';
 
 /// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
 class AlchemyScreen extends StatefulWidget {
@@ -54,6 +55,9 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                 _ => '남는 재료를 바꾸거나, 마석을 속성 마석으로 정제할 수 있어.',
               }),
               const SizedBox(height: 10),
+              JobSkillBar(
+                  controller: widget.controller,
+                  places: const [SkillPlace.alchemy]),
               Row(children: [
                 for (var i = 0; i < _tabs.length; i++) ...[
                   Expanded(

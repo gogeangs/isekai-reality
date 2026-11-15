@@ -585,6 +585,79 @@ class Battle {
   /// 방금 강타를 썼는지 (연출용)
   bool lastBash = false;
 
+  // ───────────── 직업 (묶음 30 #55, 숨은 규칙)
+
+  /// 전사: HP가 절반 아래면 주는 피해 더
+  double lowHpBoost = 0;
+
+  /// 잿빛 사냥꾼: 잿빛 몬스터에게 피해 더
+  double ashBoost = 0;
+
+  /// 치유사: 회복 물약 회복량 더
+  double healBoost = 0;
+
+  /// 힘의 일격: 다음 공격 피해 배율 (1이면 없음)
+  double nextHitMult = 1;
+
+  /// 급소 노리기: 다음 공격이 꼭 치명타
+  bool nextCrit = false;
+
+  /// 지금 몬스터가 잿빛 몬스터인지
+  bool get foeIsAsh =>
+      phase == BattlePhase.fighting && foe.monster.name.startsWith('ash');
+
+  /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). 쓸 수 없으면 false
+  bool useJobSkill(JobSkill s) {
+    if (phase != BattlePhase.fighting) return false;
+    switch (s) {
+      case JobSkill.powerStrike:
+        if (nextHitMult > 1) return false;
+        nextHitMult = JobRules.powerStrike;
+        lastEvent = '힘을 모았어요!';
+      case JobSkill.vitalStrike:
+        if (nextCrit) return false;
+        nextCrit = true;
+        lastEvent = '급소를 노려요!';
+      case JobSkill.healingLight:
+        if (playerHp >= playerMaxHp) return false;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + (playerMaxHp * JobRules.healingLight).round());
+        _healed(playerHp - before);
+        lastEvent = '치유의 빛!';
+      case JobSkill.jointAttack:
+        if (petSkill == null || skillChargeTicks >= skillUnavailable) {
+          return false;
+        }
+        if (skillReady) return false;
+        skillCharge = skillChargeTicks;
+        lastEvent = '합동 공격 준비!';
+      case JobSkill.ashPurge:
+        var dmg = _vary(playerAttack);
+        dmg = (dmg * (foeIsAsh ? JobRules.ashPurge : 1.5)).round();
+        lastDealt = dmg;
+        lastTaken = 0;
+        lastEvent = '잿빛 정화!';
+        _hitFoe(dmg);
+        _checkRage();
+      default:
+        return false;
+    }
+    return true;
+  }
+
+  /// 보통 공격에 직업 효과를 붙인다
+  int _jobHit(int dmg) {
+    var d = dmg.toDouble();
+    if (lowHpBoost > 0 && playerHp * 2 < playerMaxHp) d *= 1 + lowHpBoost;
+    if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
+    if (nextHitMult > 1) {
+      d *= nextHitMult;
+      nextHitMult = 1;
+    }
+    return math.max(1, d.round());
+  }
+
   /// 방어 태세
   bool useStance() {
     if (!stanceReady) return false;
@@ -657,8 +730,8 @@ class Battle {
       case null:
         if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
         final before = playerHp;
-        playerHp = math.min(
-            playerMaxHp, playerHp + (playerMaxHp * p.hpRatio).round());
+        playerHp = math.min(playerMaxHp,
+            playerHp + (playerMaxHp * p.hpRatio * (1 + healBoost)).round());
         _healed(playerHp - before);
     }
     _potionLeft[key] = potionLeft(key) - 1;
@@ -841,12 +914,13 @@ class Battle {
         _rng.nextDouble() < 0.25) {
       lastEvent = '눈부셔요!';
     } else {
-      var dmg = _vary(playerAttack);
+      var dmg = _jobHit(_vary(playerAttack));
       if (insightTurns > 0) {
         dmg = (dmg * (1 + PetRules.insightBonus(adult: petAdult))).round();
         insightTurns--;
       }
-      if (playerCrit > 0 && _rng.nextDouble() < playerCrit) {
+      if (nextCrit || (playerCrit > 0 && _rng.nextDouble() < playerCrit)) {
+        nextCrit = false;
         dmg = (dmg * StatRules.critMultiplier).round();
         lastEvent = '치명타!';
         lastCrit = true;

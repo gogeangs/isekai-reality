@@ -28,6 +28,7 @@ import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/map/expedition_result.dart';
 import 'package:isekai_reality/features/pets/farewell_screen.dart';
+import 'package:isekai_reality/features/jobs/guild_screen.dart';
 import 'package:isekai_reality/features/pets/pet_screen.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/features/town/bag_tab.dart';
@@ -707,21 +708,31 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     expect(find.byType(FarewellScreen), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
     await _shot(tester, '40_정령_이별1');
-    await tester.tap(find.text('다음'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('다음'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await _shot(tester, '40b_정령_이별_알');
-    await tester.tap(find.text('알을 깨운다'));
-    await tester.pump(const Duration(seconds: 1));
+    // 묶음 29 #182: 장면 5개 (대사 6줄), 건너뛰기 없음
+    expect(find.text('건너뛰기 ›'), findsNothing);
+    for (var i = 0; i < 6; i++) {
+      if (i == 2) await _shot(tester, '40b_정령_이별_같이');
+      if (i == 5) {
+        await tester.pump(const Duration(seconds: 2));
+        await _shot(tester, '40c_잿빛_눈빛');
+      }
+      await tester.tapAt(const Offset(200, 300));
+      await tester.pump(const Duration(milliseconds: 700));
+    }
+    await tester.pump(const Duration(milliseconds: 1500));
     await _shot(tester, '41_첫_펫_부화');
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
     await tester.enterText(find.byKey(const Key('petName')), '호호');
     await tester.pump(const Duration(milliseconds: 300));
     await tester.ensureVisible(find.text('이름 짓기'));
     await tester.tap(find.text('이름 짓기'));
     await tester.pump(const Duration(milliseconds: 500));
-    await _shot(tester, '42_정령_작별');
+    expect(find.textContaining('함께 가기'), findsOneWidget);
+    await _shot(tester, '42_첫_펫_한마디');
     await tester.tap(find.textContaining('함께 가기'));
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 300));
@@ -733,6 +744,80 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     await _shot(tester, '44_내_펫');
+  });
+
+  testWidgets('화면 미리보기: Lv.15 직업 각성·길드', (tester) async {
+    _phone(tester);
+    final born = DateTime(2026, 11, 1);
+    final c = AppController(
+      store: InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루'),
+        history: [
+          DailyRecord(
+              date: DateTime(2026, 11, 8),
+              gains: {'exp': LevelRules.totalExpToReach(15)}),
+        ],
+        json: {
+          'tutorial': {'step': TutorialStep.done.index},
+          'pets': PetState(
+            farewellAt: born,
+            firstSpiritName: '불씨',
+            firstSpiritKind: 'fire',
+            pets: [
+              Pet(uid: 'pet1', species: PetSpecies.owl, name: '부엉', bornAt: born)
+            ],
+            companion: 'pet1',
+            firstPet: 'pet1',
+            nextId: 2,
+          ).toJson(),
+          'mastery': {
+            'big': {'combat': 130, 'smith': 130, 'harvest': 50},
+          },
+        },
+      ),
+      health: FakeHealthSource(granted: false),
+      clock: () => DateTime(2026, 11, 8, 14),
+    );
+    await tester.pumpWidget(
+        RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
+    await c.init();
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    if (find.text('계속').evaluate().isNotEmpty) {
+      await tester.tap(find.text('계속').first);
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    expect(find.byType(JobAwakenScreen), findsOneWidget);
+    await _shot(tester, '47_직업_각성_한마디');
+    await tester.tap(find.byKey(const Key('jobAwakenGo')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await _shot(tester, '47b_직업_고르기');
+    await tester.tap(find.byKey(const Key('jobPick_warrior')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.byKey(const Key('jobPickMain')));
+    await tester.tap(find.byKey(const Key('jobPickMain')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.byKey(const Key('jobSub_herbalist')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.byKey(const Key('jobPickSub')));
+    await tester.tap(find.byKey(const Key('jobPickSub')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _shot(tester, '47c_직업_각성_끝');
+    expect(c.mainJob, JobId.warrior);
+    await tester.tap(find.byKey(const Key('jobAwakenDone')));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+        MaterialPageRoute<void>(builder: (_) => GuildScreen(controller: c)));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    await _shot(tester, '48_길드');
   });
 
   testWidgets('화면 미리보기: 펫 도감·알·원정', (tester) async {

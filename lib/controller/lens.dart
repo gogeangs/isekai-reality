@@ -46,7 +46,12 @@ extension LensOps on AppController {
       if (_random.nextDouble() < appraiseChance(LensRules.materialChance)) {
         mat = LensRules.info(races[_random.nextInt(races.length)]).material;
       }
-      note = _random.nextDouble() < appraiseChance(LensRules.noteChance);
+      note = _random.nextDouble() <
+          (appraiseChance(LensRules.noteChance) + intellectCraft) *
+              // 묶음 30: 감정사 → 드문 결과가 조금 더 (숨김)
+              (1 + JobRules.appraiserRare * jobTrait(JobId.appraiser));
+      // 묶음 30: 진실의 눈 → 이번 감정은 드문 결과(쪽지)가 꼭
+      if (await _consumeSkill(JobSkill.trueEye)) note = true;
     }
     await _save(today.copyWith(
       itemsUsed: free

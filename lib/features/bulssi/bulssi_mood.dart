@@ -108,9 +108,8 @@ class CompanionArt extends StatelessWidget {
   }
 }
 
-/// MP 이름: 정령이 떠난 뒤에는 펫들이 나눠 쓰는 「펫 MP」
-String mpLabel(BuildContext context) =>
-    BulssiScope.maybeOf(context)?.petSpecies != null ? '펫 MP' : '정령 MP';
+/// 원정에 쓰는 힘의 이름 (#183: 모든 레벨에서 「기력」)
+String mpLabel(BuildContext context) => '기력';
 
 /// 던전 스킬 이름: 정령의 일격, 또는 동행 펫의 스킬
 String skillLabel(BuildContext context) {

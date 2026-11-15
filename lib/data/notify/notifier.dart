@@ -96,8 +96,8 @@ class DeviceNotifier implements Notifier {
 
   static const _channel = AndroidNotificationDetails(
     'arca_spirit',
-    '정령 소식',
-    channelDescription: '정령 원정이 돌아오거나 여관 휴식이 끝나면 알려 줘요.',
+    '원정 소식',
+    channelDescription: '원정이 돌아오거나 여관 휴식이 끝나면 알려 줘요.',
     importance: Importance.high,
     priority: Priority.high,
   );

@@ -20,6 +20,7 @@ import 'photo_frame.dart';
 import 'race_filter_engine.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 마법 돋보기 「감정」 (11-11 #60): 카메라 → 감정 연출 → 종족 필터 → 사진(틀) → 저장·공유.
 /// 얼굴 인식은 휴대폰 안에서만 하고, 게임은 사진을 남기지 않는다.
@@ -426,6 +427,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 12)),
               const SizedBox(height: 10),
+              // 묶음 30 #55: 진실의 눈
+              JobSkillBar(controller: c, places: const [SkillPlace.lens]),
               GoldButton(
                 key: const Key('appraise'),
                 label: c.lensFreeToday ? '감정하기 (오늘 무료)' : '감정하기 (돋보기 1개)',

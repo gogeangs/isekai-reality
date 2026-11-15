@@ -28,6 +28,7 @@ import 'map_config.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/targets.dart';
 import '../lens/lens_screen.dart' show openLens;
+import '../jobs/job_skill_bar.dart';
 
 part 'map_overlays.dart';
 part 'naver_map_layer.dart';
@@ -144,6 +145,13 @@ class _MapScreenState extends State<MapScreen> {
             right: 70,
             top: top + 114,
             child: _BuffBar(controller: controller, buffs: buffs),
+          ),
+        // 묶음 30 #55: 직업 각성 뒤 MP 작게 + 지도에서 쓰는 스킬
+        if (!tut && controller.jobsOpen)
+          Positioned(
+            right: 14,
+            top: top + 150,
+            child: _JobMapButton(controller: controller),
           ),
         if (away)
           Positioned(

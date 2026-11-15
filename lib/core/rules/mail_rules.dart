@@ -48,7 +48,7 @@ class NpcLetter {
       '잡화상에 열 번이나 들러 줘서 고마워요! 요즘 물약이 잘 팔려서 기뻐요. 또 와요!');
 
   static const minaRumor = NpcLetter('npc_mina_lv3', MailRules.mina, '소문 하나',
-      '이제 Lv.3이 되었다면서요? 우리 가게에서 더 좋은 회복 물약과 마나 물약을 살 수 있어요.');
+      '이제 Lv.3이 되었다면서요? 우리 가게에서 더 좋은 회복 물약과 기력 물약을 살 수 있어요.');
 
   static const dorgunFirst = NpcLetter('npc_dorgun1', MailRules.dorgun, '첫 장비 축하하네',
       '자네가 처음 만든 장비를 봤네. 손이 제법이더군. 쇠붙이 몇 개 넣어 보내니 다음에도 써 보게.',

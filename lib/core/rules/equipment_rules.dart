@@ -178,7 +178,7 @@ class EquipmentRules {
       manaStones: 3,
       attack: 0.06,
       skillFaster: 1,
-      trait: '정령의 일격이 빨리 차올라요',
+      trait: '스킬 게이지가 빨리 차올라요',
       job: '현자',
       asset: 'equip_staff',
     ),

@@ -46,6 +46,12 @@ enum ShopItem {
   /// 마법 돋보기 「감정」: 카메라로 비춘 사람의 이세계 종족을 감정한다 (11-11 #60, 하루 3개).
   /// 예전 [magicLens](안개 걷기)와는 다른 물건이다.
   raceLens,
+
+  /// 작은 마나 물약 (묶음 30 #183): 새 MP 20% (하루 3개, Lv.15 직업 각성 뒤)
+  jobManaSmall,
+
+  /// 마나 물약: 새 MP 40%
+  jobMana,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -62,8 +68,12 @@ class ShopItemInfo {
     this.minLevel = 1,
     this.hpRatio = 0,
     this.mpRatio = 0,
+    this.jobMpRatio = 0,
     this.material,
   });
+
+  /// 새 MP(직업 스킬)를 채우는 비율 (묶음 30)
+  final double jobMpRatio;
 
   final ShopItem item;
   final String name;
@@ -116,7 +126,7 @@ enum UseCheck {
   /// 가방에 없다
   none,
 
-  /// HP·MP가 이미 가득
+  /// HP·기력이 이미 가득
   alreadyFull,
 
   /// 정령 물약·성장의 향을 오늘 이미 썼다, 원정 나침반을 써 두었다
@@ -164,8 +174,8 @@ class TownRules {
     ),
     ShopItemInfo(
       item: ShopItem.manaSmall,
-      name: '작은 마나 물약',
-      description: '가방에 넣어 두고, 마시면 정령 MP가 20% 차요.',
+      name: '작은 기력 물약',
+      description: '가방에 넣어 두고, 마시면 기력이 20% 차요.',
       price: 10,
       limit: ShopLimit.perDay,
       perLimit: 3,
@@ -174,14 +184,36 @@ class TownRules {
     ),
     ShopItemInfo(
       item: ShopItem.mana,
-      name: '마나 물약',
-      description: '가방에 넣어 두고, 마시면 정령 MP가 40% 차요.',
+      name: '기력 물약',
+      description: '가방에 넣어 두고, 마시면 기력이 40% 차요.',
       price: 30,
       limit: ShopLimit.perDay,
       perLimit: 3,
       minLevel: 3,
       mpRatio: 0.4,
       icon: 'potion_mana_2',
+    ),
+    ShopItemInfo(
+      item: ShopItem.jobManaSmall,
+      name: '작은 마나 물약',
+      description: '가방에 넣어 두고, 마시면 직업 스킬에 쓰는 MP가 20% 차요.',
+      price: 10,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      minLevel: 15,
+      jobMpRatio: 0.2,
+      icon: 'potion_jobmana_1',
+    ),
+    ShopItemInfo(
+      item: ShopItem.jobMana,
+      name: '마나 물약',
+      description: '가방에 넣어 두고, 마시면 직업 스킬에 쓰는 MP가 40% 차요.',
+      price: 30,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      minLevel: 15,
+      jobMpRatio: 0.4,
+      icon: 'potion_jobmana_2',
     ),
     ShopItemInfo(
       item: ShopItem.spareKey,
@@ -194,7 +226,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.bulssiPotion,
       name: '정령 물약',
-      description: '가방에 넣어 두고, 마신 날은 던전에서 정령의 일격이 빨리 차요.',
+      description: '가방에 넣어 두고, 마신 날은 던전에서 스킬 게이지가 빨리 차요.',
       price: 50,
       limit: ShopLimit.perDay,
       icon: 'potion_spirit_fire',
@@ -202,7 +234,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.expeditionCompass,
       name: '원정 나침반',
-      description: '가방에 넣어 두고, 쓰면 다음 정령 원정의 이동 시간이 절반이 돼요.',
+      description: '가방에 넣어 두고, 쓰면 다음 원정의 이동 시간이 절반이 돼요.',
       price: 50,
       limit: ShopLimit.perDay,
       icon: 'icon_expedition', // 지도 원정 아이콘과 같은 나침반 그림
@@ -410,6 +442,8 @@ class TownRules {
     ShopItem.expeditionCompass,
     ShopItem.purifyIncense,
     ShopItem.raceLens,
+    ShopItem.jobManaSmall,
+    ShopItem.jobMana,
   };
 
   static int usedOn(DailyRecord r, ShopItem item) =>
@@ -433,7 +467,7 @@ class TownRules {
     return n < 0 ? 0 : n;
   }
 
-  /// 가방에서 꺼내 쓸 수 있는지. [hpFull]·[mpFull] 은 지금 HP·MP가 가득인지.
+  /// 가방에서 꺼내 쓸 수 있는지. [hpFull]·[mpFull] 은 지금 HP·기력이 가득인지.
   static UseCheck canUse(
     List<DailyRecord> history,
     ShopItem item, {

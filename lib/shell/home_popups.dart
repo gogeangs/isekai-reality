@@ -14,7 +14,7 @@ extension _ShellPopups on _HomeShellState {
     _levelUpShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      // #102 레벨 업하면 HP·MP 가득 (창과 함께 한 번)
+      // #102 레벨 업하면 HP·기력 가득 (창과 함께 한 번)
       final before = await widget.controller.levelUpHeal();
       if (!mounted) return;
       await showDialog<void>(
@@ -57,7 +57,7 @@ extension _ShellPopups on _HomeShellState {
       if (c.justRested) {
         // 가벼운 알림은 위쪽 띠로만 (#131)
         showTopNotice(context,
-            '푹 쉬었어요 · HP·MP 가득, 휴식 보너스 경험치 +${RuleConstants.restBonusExp}');
+            '푹 쉬었어요 · HP·기력 가득, 휴식 보너스 경험치 +${RuleConstants.restBonusExp}');
         c.clearJustRested();
       } else {
         await _showExpeditionResults(done);
@@ -125,10 +125,15 @@ extension _ShellPopups on _HomeShellState {
     }
   }
 
-  /// Lv.11: 정령의 이별과 첫 펫 (11-11 #37). 레벨업·알림이 끝난 뒤에.
+  /// Lv.11: 정령의 이별 컷신과 첫 펫 (묶음 29 #182). 레벨업 창 바로 다음,
+  /// 칭호·원정·편지 같은 다른 창은 그 뒤로.
   void _maybeShowFarewell() {
     final c = widget.controller;
-    if (!c.farewellPending || _popupBusy || _ahead(3) || c.inTutorial) {
+    if (!c.farewellPending ||
+        _popupBusy ||
+        c.pendingLevelUp != null ||
+        c.holdNotices ||
+        c.inTutorial) {
       return;
     }
     _farewellShowing = true;
@@ -139,6 +144,40 @@ extension _ShellPopups on _HomeShellState {
           builder: (_) => FarewellScreen(controller: c)));
       _farewellShowing = false;
       _kick();
+    });
+  }
+
+  /// Lv.15 직업 각성 (묶음 30 #55): 레벨업 창(·이별 컷신) 바로 다음
+  void _maybeShowJobAwaken() {
+    final c = widget.controller;
+    if (!c.jobAwakenPending ||
+        _popupBusy ||
+        c.pendingLevelUp != null ||
+        c.holdNotices) {
+      return;
+    }
+    _jobShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => JobAwakenScreen(controller: c)));
+      _jobShowing = false;
+      _kick();
+    });
+  }
+
+  /// 새 직업 · 견습을 뗌 · 순례자가 찾은 물건 (위쪽 띠)
+  void _maybeShowJobNews() {
+    final c = widget.controller;
+    if (_popupBusy || _ahead(3) || c.holdNotices) return;
+    final find = c.takeJobFind();
+    final note = c.hasJobNotice ? c.takeJobNotice() : null;
+    if (note == null && !find) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (note != null) showTopNotice(context, note, icon: Icons.workspace_premium_rounded);
+      if (find) showTopNotice(context, '길에서 숨은 물건을 찾았어요!');
     });
   }
 

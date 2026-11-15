@@ -132,8 +132,29 @@ extension TutorialOps on AppController {
       for (final s in harvestSpots) {
         if (s.id == spotId) return (id: s.id, point: s.point);
       }
+      // 묶음 29: 젤리 안내 중 가까운 슬라임
+      for (final s in todaySpawns) {
+        if (s.id == spotId) return (id: s.id, point: s.point);
+      }
     }
     return null;
+  }
+
+  /// 묶음 29 #181: 젤리 안내에서 비출 가까운 슬라임 id. 근처에 없으면 안내 슬라임을 하나 둔다
+  String? nearestSlimeId() {
+    final here = _lastFix?.point ?? fallbackCenter;
+    if (here == null) return null;
+    FieldSpawn? best;
+    for (final s in todaySpawns) {
+      if (s.monster != MonsterId.slime) continue;
+      if (s.point.distanceTo(here) > 400) continue;
+      if (best == null || s.point.distanceTo(here) < best.point.distanceTo(here)) {
+        best = s;
+      }
+    }
+    if (best != null) return best.id;
+    guideHunt = true;
+    return guideSpawn?.id;
   }
 
   /// 안내가 지도에서 비출 채집 자리 (null 이면 끔)
@@ -142,6 +163,9 @@ extension TutorialOps on AppController {
     _guideSpotId = id;
     if (id != null) {
       for (final s in harvestSpots) {
+        if (s.id == id) requestMapFocus(s.point);
+      }
+      for (final s in todaySpawns) {
         if (s.id == id) requestMapFocus(s.point);
       }
     }
@@ -429,7 +453,7 @@ extension TutorialOps on AppController {
     if (!canFightNow || hp <= 0) return null;
     _stopResting();
     final p = player;
-    return Battle.forPlayer(
+    return _withJob(Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.fieldFoes(
@@ -442,7 +466,7 @@ extension TutorialOps on AppController {
       skillChargeTicks: _skillTicks(p),
       gear: gear,
       // 묶음 27 #176: 그 무기·그 몬스터 전투 숙련도 (숨김)
-      power: combatPower(monster: spawn.monster),
+      power: combatPower(monster: spawn.monster) * jobPower,
       petSkill: companionPet?.info.skill,
       petAdult: companionPet?.adult ?? false,
       potions: battlePotions,
@@ -454,7 +478,7 @@ extension TutorialOps on AppController {
       weaponPotion: weaponPotionElement,
       telegraphs: true,
       heroSkills: true,
-    );
+    ));
   }
 
   /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
@@ -582,6 +606,12 @@ extension TutorialOps on AppController {
       // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
       if (_masteryRoll(MasteryRules.monsterExtraLoot *
           _detailFrac(MasteryRules.monsterKey(monster)))) {
+        final d = LootRules.dropsOf(monster);
+        final extra = d.common[_random.nextInt(d.common.length)];
+        mats[extra] = (mats[extra] ?? 0) + 1;
+      }
+      // 묶음 30: 사냥꾼 → 필드 몬스터 재료 가끔 하나 더 (숨김)
+      if (_jobRoll(JobId.hunter, JobRules.hunterLoot)) {
         final d = LootRules.dropsOf(monster);
         final extra = d.common[_random.nextInt(d.common.length)];
         mats[extra] = (mats[extra] ?? 0) + 1;

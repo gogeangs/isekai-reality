@@ -11,6 +11,7 @@ import 'board_parchment.dart';
 import 'daily_quests.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart';
+import '../jobs/job_skill_bar.dart';
 
 /// 마을 의뢰 게시판 (11-10 #26): 오늘의 의뢰 · 주간 · 길드 · 긴급.
 /// 경험치는 오늘의·주간 의뢰만, 길드·긴급 의뢰는 금화·재료만 준다.
@@ -48,6 +49,8 @@ class BoardScreen extends StatelessWidget {
                         ? '긴급 의뢰가 붙었어! 오늘 자정까지야.'
                         : '오늘의 의뢰야. 길드 의뢰는 수락해야 시작돼!'),
                 const SizedBox(height: 12),
+                JobSkillBar(
+                    controller: controller, places: const [SkillPlace.board]),
                 WoodBoard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

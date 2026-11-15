@@ -403,7 +403,7 @@ class LockedJobPanel extends StatelessWidget {
 
   /// 직업 각성(#55)이 생기기 전에는 직업 이야기를 보이지 않는다 (묶음 26 #178:
   /// 정령 이별 전에는 펫·직업이 드러나지 않음)
-  static const bool jobsVisible = false;
+  static bool jobsVisible = false;
 
   @override
   Widget build(BuildContext context) => !jobsVisible

@@ -53,6 +53,78 @@ class _SpiritCornerState extends State<_SpiritCorner> {
   }
 }
 
+/// 지도 오른쪽 작은 MP 표시 · 누르면 지도에서 쓰는 직업 스킬 (묶음 30)
+class _JobMapButton extends StatelessWidget {
+  const _JobMapButton({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final on = [
+      for (final (s, _) in c.jobSkills)
+        if (c.skillTimedOn(s) || c.skillPending(s)) s,
+    ];
+    return GestureDetector(
+      key: const Key('mapJobMp'),
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.night,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (sheet) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('직업 스킬', style: AppText.title(18)),
+                const SizedBox(height: 10),
+                JobMpBar(controller: c),
+                const SizedBox(height: 12),
+                JobSkillBar(controller: c, places: const [
+                  SkillPlace.map,
+                  SkillPlace.nightMap,
+                  SkillPlace.anywhere,
+                  SkillPlace.petExpedition,
+                ]),
+                if (c.skillsAt(const [
+                  SkillPlace.map,
+                  SkillPlace.nightMap,
+                  SkillPlace.anywhere,
+                  SkillPlace.petExpedition,
+                ]).isEmpty)
+                  const KText('지도에서 쓰는 스킬은 없어요. 스킬은 그 일을 하는 곳에서 써요.',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ],
+            ),
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+        decoration: BoxDecoration(
+          color: const Color(0xE60B0D26),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kJobMpColor.withValues(alpha: 0.8)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(on.isEmpty ? Icons.bolt_rounded : Icons.auto_awesome,
+              size: 16, color: kJobMpColor),
+          const SizedBox(width: 4),
+          Text('MP ${c.jobMp}',
+              style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
+  }
+}
+
 /// 지금 걸린 물약 (11-11 #76): 작은 아이콘 + 남은 시간·전투·걸음
 class _BuffBar extends StatelessWidget {
   const _BuffBar({required this.controller, required this.buffs});
@@ -387,14 +459,14 @@ class _ExpeditionList extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            KText('${c.farewellDone ? '펫' : '정령'} 원정 · MP ${c.mp} / ${c.mpMax}',
+            KText('${c.farewellDone ? '펫' : '정령'} 원정 · 기력 ${c.mp} / ${c.mpMax}',
                 style: AppText.title(16)),
             const SizedBox(height: 4),
             Text(
               reachable.isEmpty
                   ? '근처에 남은 몬스터가 없어요.'
                   : '근처 몬스터 ${reachable.length}마리 · 가까운 곳부터 보여 드려요. '
-                      '100m마다 MP ${RuleConstants.expeditionMpPer100m}',
+                      '100m마다 기력 ${RuleConstants.expeditionMpPer100m}',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
             for (final s in reachable.take(5))

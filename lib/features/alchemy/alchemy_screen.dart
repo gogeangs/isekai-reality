@@ -7,7 +7,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/element_view.dart' show elementColor;
-import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
@@ -28,6 +27,9 @@ class AlchemyScreen extends StatefulWidget {
 
 class _AlchemyScreenState extends State<AlchemyScreen> {
   int _tab = 0;
+
+  /// 탭을 바꾼 뒤 마을 사람 말풍선 (탭 안내)
+  String? _tabLine;
   static const _tabs = ['가마솥', '레시피', '가공', '변환'];
 
   AppController get c => widget.controller;
@@ -48,16 +50,13 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                   title: '연금술 공방',
                   onBack: () => Navigator.of(context).maybePop()),
               const SizedBox(height: 6),
-              // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-              NpcHeader(controller: c, npc: Npc.eliel),
-              const SizedBox(height: 8),
-              BulssiLine(
-                  line: switch (_tab) {
-                0 => '넣는 순서가 딱 맞거나 귀한 재료를 쓰면 품질이 좋아져!',
-                1 => '한 번 만든 물약은 여기 적혀. 쪽지를 읽으면 재료를 알 수 있어.',
-                2 => '하위 재료 여러 개를 상위 재료로 바꿀 수 있어.',
-                _ => '남는 재료를 바꾸거나, 마석을 속성 마석으로 정제할 수 있어.',
-              }),
+              // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내 (탭을 바꾸면 그 탭 안내)
+              NpcHeader(
+                controller: c,
+                npc: Npc.eliel,
+                guide: VillageRules.alchemyGuide(0),
+                tabLine: _tabLine,
+              ),
               const SizedBox(height: 10),
               JobSkillBar(
                   controller: widget.controller,
@@ -70,7 +69,10 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                           width: double.infinity,
                           child: Text(_tabs[i], textAlign: TextAlign.center)),
                       selected: _tab == i,
-                      onSelected: (_) => setState(() => _tab = i),
+                      onSelected: (_) => setState(() {
+                        _tab = i;
+                        _tabLine = VillageRules.alchemyGuide(i);
+                      }),
                       selectedColor: AppColors.gold,
                       backgroundColor: AppColors.chipBg,
                       labelStyle: TextStyle(

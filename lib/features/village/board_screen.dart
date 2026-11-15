@@ -7,7 +7,6 @@ import '../../core/models/daily_record.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import 'board_parchment.dart';
 import 'daily_quests.dart';
@@ -49,13 +48,16 @@ class BoardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                NpcHeader(controller: controller, npc: Npc.hart),
-                const SizedBox(height: 8),
-                BulssiLine(
-                    line: urgent != null && !controller.board.urgentDone
-                        ? '긴급 의뢰가 붙었어! 오늘 자정까지야.'
-                        : '오늘의 의뢰야. 길드 의뢰는 수락해야 시작돼!'),
-                const SizedBox(height: 12),
+                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
+                NpcHeader(
+                  controller: controller,
+                  npc: Npc.hart,
+                  guide: VillageRules.boardGuide,
+                  situation: urgent != null && !controller.board.urgentDone
+                      ? VillageRules.boardUrgent
+                      : null,
+                ),
+                const SizedBox(height: 10),
                 JobSkillBar(
                     controller: controller, places: const [SkillPlace.board]),
                 WoodBoard(
@@ -106,6 +108,9 @@ class NoteGrid extends StatelessWidget {
 
   static const double gap = 10;
 
+  /// 줄 사이 (쪽지 위아래 여백 14 + 이것 = 핀이 튀어나온 높이 17 + 여유)
+  static const double rowGap = 14;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
         final w = (box.maxWidth - gap) / 2;
@@ -123,8 +128,9 @@ class NoteGrid extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var i = 0; i < children.length; i += 2)
+              // 묶음 38 #215: 줄 사이를 핀 높이 + 여유만큼 (아랫줄 핀이 윗줄을 덮지 않게)
               Padding(
-                padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+                padding: EdgeInsets.only(top: i == 0 ? 0 : rowGap),
                 child: IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,8 +174,8 @@ class NoteTitle extends StatelessWidget {
   /// 칸 폭 [cell] 에서 쓸 글씨 크기와 줄 수
   static (double, int) fit(String title, double cell, TextScaler scaler,
       {double size = 14}) {
-    // 칸 양옆 2 + 쪽지 안쪽 14 씩
-    final avail = cell - 4 - 28;
+    // 칸 양옆 2 + 보이는 종이 안쪽 여백 (묶음 38 #215)
+    final avail = cell - 4 - ParchmentNote.smallSide * 2;
     final tp = TextPainter(
       text: TextSpan(text: keepAll(title), style: noteTitle(size)),
       textDirection: TextDirection.ltr,
@@ -191,10 +197,12 @@ class NoteTitle extends StatelessWidget {
     if (w != null) {
       (s, lines) = fit(title, w, MediaQuery.textScalerOf(context), size: size);
     }
+    // 말줄임 없이: 한 줄이면 줄인 글씨로, 아니면 단어 단위로 줄바꿈
     return Text(keepAll(title),
         key: const Key('noteTitle'),
-        maxLines: lines,
-        overflow: TextOverflow.ellipsis,
+        maxLines: lines == 1 ? 1 : null,
+        softWrap: lines != 1,
+        overflow: TextOverflow.visible,
         style: noteTitle(s));
   }
 }
@@ -393,7 +401,8 @@ class _DailyPanel extends StatelessWidget {
         const SizedBox(height: 4),
         if (notes.isNotEmpty) NoteGrid(children: notes),
         if (!allDone) ...[
-          const SizedBox(height: 4),
+          // 보너스 쪽지 위도 핀 높이만큼 띄움
+          const SizedBox(height: NoteGrid.rowGap),
           AllDoneRow(done: false, streak: streak, count: quests.length),
         ],
       ],
@@ -922,8 +931,8 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
       ),
     );
 
-/// 이름판 바로 아래 작은 한 줄 설명 (나무 위 밝은 글씨, 묶음 37 #206).
-/// 넘치면 글씨를 줄여서라도 한 줄
+/// 이름판 바로 아래 작은 한 줄 설명 (묶음 37 #206). 묶음 38 #215: 나무판 위에서도 또렷하게
+/// 작은 어두운 반투명 띠 위에 밝은 글씨. 넘치면 글씨를 줄여서라도 한 줄
 class _BoardNote extends StatelessWidget {
   const _BoardNote(this.text, {super.key});
 
@@ -931,17 +940,23 @@ class _BoardNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(6, 4, 6, 0),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(text,
-              maxLines: 1,
-              style: const TextStyle(
-                  color: Color(0xFFEBD7AE),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 3)])),
+        padding: const EdgeInsets.fromLTRB(2, 5, 2, 0),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(9, 3, 9, 4),
+          decoration: BoxDecoration(
+            color: const Color(0xC21A0F06),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(text,
+                maxLines: 1,
+                style: const TextStyle(
+                    color: Color(0xFFF6E7C4),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+          ),
         ),
       );
 }

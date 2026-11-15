@@ -7,7 +7,6 @@ import '../../core/models/armory.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../town/material_view.dart';
 import '../alchemy/alchemy_screen.dart' show ProcessPanel;
 import '../alchemy/convert_panel.dart' show LockedJobPanel;
@@ -33,6 +32,9 @@ class SmithyScreen extends StatefulWidget {
 
 class _SmithyScreenState extends State<SmithyScreen> {
   int _tab = 0;
+
+  /// 탭을 바꾼 뒤 마을 사람 말풍선 (탭 안내)
+  String? _tabLine;
   MaterialId? _rare;
 
   AppController get c => widget.controller;
@@ -62,18 +64,14 @@ class _SmithyScreenState extends State<SmithyScreen> {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
-                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                NpcHeader(controller: c, npc: Npc.dorgun),
-                const SizedBox(height: 8),
-                BulssiLine(
-                    line: switch (_tab) {
-                  0 when c.firstWeaponFree =>
-                    '첫 무기는 내가 낼게! 마음에 드는 무기를 하나 골라 만들어 봐.',
-                  0 => '몬스터 재료로 장비를 만들 수 있어. 귀한 재료를 넣으면 좋은 등급이 잘 나와!',
-                  1 => '강화는 실패해도 장비가 부서지지 않아. 마석과 금화만 써.',
-                  4 => '보스 장비 조각과 보스 재료로 세트 장비를 만들어. 같은 세트를 모아 입을수록 힘이 깨어나!',
-                  _ => '닳은 장비는 고치고, 안 쓰는 장비는 분해해서 재료로 돌려받자.',
-                }),
+                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내 (탭을 바꾸면 그 탭 안내)
+                NpcHeader(
+                  controller: c,
+                  npc: Npc.dorgun,
+                  guide: VillageRules.smithyGuide(0),
+                  situation: c.firstWeaponFree ? VillageRules.smithyFree : null,
+                  tabLine: _tabLine,
+                ),
                 const SizedBox(height: 8),
                 // 묶음 30 #55: 대장간에서 쓰는 직업 스킬
                 JobSkillBar(controller: c, places: const [
@@ -96,7 +94,12 @@ class _SmithyScreenState extends State<SmithyScreen> {
                       child: _TabButton(
                         label: _tabs[i],
                         selected: _tab == i,
-                        onTap: () => setState(() => _tab = i),
+                        onTap: () => setState(() {
+                          _tab = i;
+                          _tabLine = i == 0 && c.firstWeaponFree
+                              ? VillageRules.smithyFree
+                              : VillageRules.smithyGuide(i);
+                        }),
                       ),
                     ),
                     if (i < _tabs.length - 1) const SizedBox(width: 6),

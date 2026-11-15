@@ -16,7 +16,11 @@ class OrnateNavBar extends StatelessWidget {
       required this.index,
       required this.onTap,
       this.dots = const {},
-      this.dimmed = const {}});
+      this.dimmed = const {},
+      this.overlay = false});
+
+  /// 그림 위에 얹을 때 (묶음 38 마을 탭): 바탕을 비우고 아래로 갈수록 어두운 그라데이션
+  final bool overlay;
 
   final int index;
   final ValueChanged<int> onTap;
@@ -48,9 +52,17 @@ class OrnateNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.deepNight,
-      ),
+      decoration: overlay
+          ? const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x000B0D26), Color(0xCC0B0D26)],
+              ),
+            )
+          : const BoxDecoration(
+              color: AppColors.deepNight,
+            ),
       child: SafeArea(
         top: false,
         child: Padding(

@@ -8,7 +8,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../pets/farewell_screen.dart' show showHatchSheet;
 import '../pets/pet_art.dart';
 import '../town/bag_tab.dart' show showBagEntry, EggEntry;
@@ -91,10 +90,11 @@ class _ShelterScreenState extends State<ShelterScreen> {
                     onBack: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(height: 6),
-                  NpcHeader(controller: c, npc: Npc.lumi),
-                  const SizedBox(height: 8),
-                  const BulssiLine(
-                      line: '알은 둥지에서 따뜻하게 지내. 원정에서 지친 펫은 여기서 쉬면 금방 나아!'),
+                  // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
+                  NpcHeader(
+                      controller: c,
+                      npc: Npc.lumi,
+                      guide: VillageRules.shelterGuide),
                   const SizedBox(height: 10),
                   // ───── 알 부화장
                   OrnatePanel(

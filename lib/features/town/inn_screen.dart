@@ -6,8 +6,6 @@ import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../bulssi/bulssi_bubble.dart';
-import '../bulssi/spirit_art.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../../theme/top_notice.dart';
 
@@ -19,15 +17,13 @@ class InnScreen extends StatelessWidget {
 
   final AppController controller;
 
-  static String bulssiLine(
+  /// 마르타 상황 안내 (가득 · 쉬는 중 · 오늘 이미 쉼). 없으면 null
+  static String? innSituation(
       {required bool resting, required bool restedToday, bool full = false}) {
-    // 11-10 C4: 이미 가득하면 회복이 아니라 휴식 보너스를 말한다
-    if (resting && full) {
-      return '기운은 벌써 가득해. 푹 쉬면 휴식 보너스를 받을 수 있어.';
-    }
-    if (resting) return '푹 쉬는 중이야. 다른 일 하다가 와도 돼. 다 쉬면 알려 줄게!';
-    if (restedToday) return '오늘은 이미 푹 쉬었어. 지치면 언제든 또 쉬어도 돼.';
-    return '오늘 하루 고생 많았어. 여기서 쉬면 HP와 기력이 가득 찰 거야.';
+    if (resting && full) return VillageRules.innFull;
+    if (resting) return VillageRules.innResting;
+    if (restedToday) return VillageRules.innRested;
+    return null;
   }
 
   static String left(Duration d) {
@@ -65,15 +61,13 @@ class InnScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 6),
-                // 묶음 35: 마을 사람 얼굴 + 한마디 (그 아래 정령 띠·기능은 그대로)
-                NpcHeader(controller: controller, npc: Npc.marta),
-                const SizedBox(height: 8),
-                BulssiLine(
-                  mood: resting ? SpiritMood.sleepy : SpiritMood.normal,
-                  line: bulssiLine(
-                      resting: resting,
-                      restedToday: today.rested,
-                      full: full),
+                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
+                NpcHeader(
+                  controller: controller,
+                  npc: Npc.marta,
+                  guide: VillageRules.innGuide,
+                  situation: innSituation(
+                      resting: resting, restedToday: today.rested, full: full),
                 ),
                 const SizedBox(height: 4),
                 // 묶음 26 #175: 그림을 줄이고 체크인·쉬는 중 버튼을 바로 아래에

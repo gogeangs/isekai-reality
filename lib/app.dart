@@ -392,8 +392,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 _noticeShowing = false;
                 _kick();
               }),
-          NightBackground(
-              header: true, child: VillageScreen(controller: controller)),
+          // 묶음 38 #211: 마을 그림이 화면 전체 (위쪽 탑 그림 띠·카드 테두리 없음)
+          VillageScreen(controller: controller),
           NightBackground(
             header: true,
             child: CodexScreen(
@@ -479,7 +479,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ),
           ]),
           backgroundColor: AppColors.deepNight,
+          // 묶음 38 #211: 마을 탭은 그림이 아래 탭 막대 뒤까지 깔린다
+          extendBody: _tab == tVillage,
           bottomNavigationBar: OrnateNavBar(
+            overlay: _tab == tVillage,
             index: _tab,
             dots: {
               if (_tab != tStatus &&

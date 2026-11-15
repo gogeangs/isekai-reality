@@ -166,6 +166,8 @@ void main() {
         Scrollable.ensureVisible(
             tester.element(find.byKey(const Key('firstWeapon_ironSpear'))),
             alignment: 0.5);
+        // 안내의 자동 스크롤(0.4초 간격, 최대 6번)이 끝날 때까지
+        await settle();
         await settle();
         await tester.tap(find.byKey(const Key('firstWeapon_ironSpear')));
         await settle();

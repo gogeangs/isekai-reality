@@ -63,11 +63,20 @@ extension VillageOps on AppController {
 
   // ───────────── 마을 사람
 
-  /// 이번에 들어갈 때 마을 사람 한마디 (처음이면 첫 줄). 부를 때마다 한 번 들어간 것으로 센다
-  String takeNpcLine(Npc n) {
+  /// 이번에 들어갈 때 마을 사람 한마디 (처음이면 첫 줄). 부를 때마다 한 번 들어간 것으로 센다.
+  /// 묶음 38 #213: 처음 만날 때 첫 줄 → [situation](상황 안내)이 있으면 그것 →
+  /// 그 밖엔 「그 막의 평소 대사」와 [guide](기본 안내)를 번갈아
+  String takeNpcLine(Npc n, {String? guide, String? situation}) {
     final met = _village.contains('met:${n.name}');
     final visits = _npcVisits[n.name] ?? 0;
-    final line = VillageRules.lineFor(n, act: villageAct, met: met, visits: visits);
+    if (met && situation != null) return situation;
+    final String line;
+    if (met && guide != null) {
+      final acts = VillageRules.linesFor(n, villageAct);
+      line = visits.isOdd ? guide : acts[(visits ~/ 2) % acts.length];
+    } else {
+      line = VillageRules.lineFor(n, act: villageAct, met: met, visits: visits);
+    }
     if (!met) {
       unawaited(_markVillage(['met:${n.name}']));
     } else {

@@ -281,6 +281,12 @@ class ParchmentNote extends StatelessWidget {
   /// 테두리 색 (긴급 의뢰는 빨강)
   final Color? edge;
 
+  /// 두 칸 쪽지 안 글·진행 줄의 좌우 여백 (보이는 종이 기준, 묶음 38 #215)
+  static const double smallSide = 22;
+
+  /// 핀이 쪽지 위로 튀어나온 높이 (줄 사이는 이보다 넉넉히)
+  static const double pinRise = 17;
+
   /// 이 쪽지의 기울기 (도)
   static double tiltOf(int seed) => ((seed * 37 + 11) % 9 - 4) * 0.45;
 
@@ -307,7 +313,7 @@ class ParchmentNote extends StatelessWidget {
     );
     final paper = ConstrainedBox(
       // 늘린 쪽지의 귀퉁이 장식이 겹치지 않을 만큼은 높게
-      constraints: BoxConstraints(minHeight: small ? 60 : 78),
+      constraints: BoxConstraints(minHeight: small ? 56 : 78),
       child: Stack(children: [
         // 묶음 28: 양피지 그림 (9-slice, 귀퉁이 장식은 늘리지 않음)
         Positioned.fill(
@@ -349,8 +355,10 @@ class ParchmentNote extends StatelessWidget {
             ),
           ),
         Padding(
+          // 묶음 38 #215: 둘레 투명 여백·찢긴 가장자리 안쪽 「보이는 종이」 기준으로
           padding: small
-              ? const EdgeInsets.fromLTRB(14, 15, 14, 10)
+              ? const EdgeInsets.fromLTRB(
+                  ParchmentNote.smallSide, 17, ParchmentNote.smallSide, 13)
               : EdgeInsets.fromLTRB(18, ribbon ? 22 : 16, 18, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

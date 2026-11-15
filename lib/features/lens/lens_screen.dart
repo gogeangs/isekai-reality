@@ -140,6 +140,9 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   /// 렌즈 사진을 받지 못했음 → 「렌즈 없이 찍기」를 보여 준다
   bool _snapFailed = false;
 
+  /// 찍은 사진 이름판에 쓴 종족 (렌즈 사진은 렌즈 종족만, 묶음 38 확인 답)
+  List<Race>? _photoRaces;
+
   /// 이번 감정 결과에 AR 렌즈가 있는 종족이 있는지 (있으면 렌즈로 찍기가 기본)
   bool get _hasLens => SnapLens.supports(_races ?? const []);
 
@@ -194,6 +197,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _working = false;
       if (png != null) {
         _png = png;
+        _photoRaces = races;
         _phase = _Phase.shot;
       }
     });
@@ -215,13 +219,16 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     if (races == null || _working) return;
     setState(() => _working = true);
     Uint8List? png;
+    final lensShown = SnapLens.lensRaces(races);
     try {
       await _engine.pause(); // Snap 카메라가 카메라를 쓰게 잠깐 놓는다
       final shot = await SnapLens.instance.shoot();
       if (shot != null) {
         final codec = await ui.instantiateImageCodec(shot);
         final frame = await codec.getNextFrame();
-        png = await PhotoFrame.compose(frame.image, races);
+        // 묶음 38: 렌즈 사진 이름판엔 렌즈 종족 이름만 (얼굴 모두 그 렌즈라서).
+        // 감정 결과(도감·경험치·보상·숙련도)는 실제대로 그대로
+        png = await PhotoFrame.compose(frame.image, lensShown);
         frame.image.dispose();
       }
     } catch (_) {
@@ -233,6 +240,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _working = false;
       if (png != null) {
         _png = png;
+        _photoRaces = lensShown;
         _phase = _Phase.shot;
       }
     });
@@ -276,7 +284,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     try {
       await LensOutput.sharer(
           png,
-          '마법 돋보기로 감정해 보니 ${PhotoFrame.raceLine(_races ?? const [])}! '
+          '마법 돋보기로 감정해 보니 ${PhotoFrame.raceLine(_photoRaces ?? _races ?? const [])}! '
           '#이세계가현실이라면',
           origin);
     } catch (_) {

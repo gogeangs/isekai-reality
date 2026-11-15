@@ -179,10 +179,13 @@ void main() {
     await tester.ensureVisible(note);
     await tester.pump();
     await tester.tap(note);
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     final accept = find.byKey(Key('errandAccept_$slot'));
     expect(accept, findsOneWidget);
     await tester.tap(accept);
+    await tester.pump();
     await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();

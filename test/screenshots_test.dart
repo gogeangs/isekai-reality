@@ -821,7 +821,7 @@ void main() {
     await _shot(tester, '48_길드');
     // 묶음 31 #198: 스킬 페이지 (전투 칸 · 고유 스킬 · 숙련 스킬)
     await c.markSkillIntro();
-    Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
+    Navigator.of(tester.element(find.byType(GuildScreen))).push(
         MaterialPageRoute<void>(builder: (_) => SkillScreen(controller: c)));
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 300));

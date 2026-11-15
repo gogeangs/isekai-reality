@@ -91,7 +91,12 @@ class AppController extends ChangeNotifier {
           // 예시 모드는 채집 도구를 이미 가졌다 (묶음 22)
           'harvest': {'granted': true},
           // 묶음 31: 예시 모드는 스킬 페이지 안내를 이미 본 것으로
-          'jobs': {'pageIntro': true},
+          'jobs': {
+            'v31': true,
+            'pageOpen': true,
+            'pageIntro': true,
+            'masteryShown': {for (final m in Mastery.values) m.name: 4},
+          },
         },
       ),
       health: FakeHealthSource(granted: false),

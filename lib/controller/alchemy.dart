@@ -108,17 +108,28 @@ extension AlchemyOps on AppController {
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(
             today.spends, {for (final e in need.entries) e.key.name: e.value})));
-    final minutes = match == null
-        ? AlchemyRules.suspiciousMinutes
-        : AlchemyRules.info(match.id).minutes;
+    var minutes = (match == null
+            ? AlchemyRules.suspiciousMinutes
+            : AlchemyRules.info(match.id).minutes)
+        .toDouble();
+    // 묶음 31: 연금술사 센 불 → 덜 끓음 · 즉석 연성 → 바로 완성 · 레시피 직감 → 처음 보는
+    // 조합이면 레시피 쪽지 (숨김)
+    minutes *= 1 - JobRules.alchemistTime * jobTrait(JobId.alchemist);
+    if (await _consumeSkill(JobSkill.instantBrew)) minutes = 0;
+    if (await _consumeSkill(JobSkill.recipeHunch) &&
+        (match == null || !recipeDiscovered(match.id))) {
+      await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    }
     final now = _clock();
-    final ready = now.add(Duration(minutes: minutes));
+    final ready = now.add(Duration(seconds: (minutes * 60).round()));
     await _saveAlc(_alc.copyWith(brews: {
       ..._alc.brews,
       slot: Brew(put: [for (final m in put) m.name], startedAt: now, readyAt: ready),
     }));
-    unawaited(notifier?.schedule(
-        200 + slot, ready, '물약이 다 끓었어요', '연금술 공방에서 가마솥을 확인해 보세요!'));
+    if (ready.isAfter(now)) {
+      unawaited(notifier?.schedule(
+          200 + slot, ready, '물약이 다 끓었어요', '연금술 공방에서 가마솥을 확인해 보세요!'));
+    }
     return true;
   });
 
@@ -154,8 +165,7 @@ extension AlchemyOps on AppController {
                   intellectCraft)
               ? 1
               : 0);
-      // 묶음 30: 연금술사 → 가끔 두 배, 연성 가속 → 하나 더 (숨김)
-      if (_jobRoll(JobId.alchemist, JobRules.alchemistDouble)) yields *= 2;
+      // 묶음 31: 풍성한 가마솥 → 하나 더 (숨김)
       if (await _consumeSkill(JobSkill.quickBrew)) yields += 1;
       // 묶음 32 #190: 호문쿨루스가 동행 중이면 가끔 하나 더 (따로 셈, 숨김)
       final comp = companionPet;

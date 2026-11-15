@@ -48,7 +48,13 @@ class StatusScreen extends StatelessWidget {
     this.season,
     this.now,
     this.jobMpBar,
+    this.onOpenSkills,
+    this.skillDot = false,
   });
+
+  /// 스킬 페이지 열기 (묶음 31 #198, 열린 뒤에만). 쓰지 않은 스킬 포인트가 있으면 점
+  final VoidCallback? onOpenSkills;
+  final bool skillDot;
 
   /// 직업 스킬 MP 막대 (묶음 30, 직업 각성 뒤에만)
   final Widget? jobMpBar;
@@ -247,13 +253,21 @@ class StatusScreen extends StatelessWidget {
                   jobMpBar: jobMpBar,
                 ),
                 const SizedBox(height: 12),
-                _StatsSection(
-                    stats: stats ?? player.stats,
-                    unspent: unspentPoints,
-                    // 묶음 15 #104: 스탯 분배는 Lv.2에 열린다
-                    locked: player.level.level < 2,
-                    // 묶음 20 #157: 열리기 전에는 숫자만 (누를 곳·자물쇠 없음)
-                    onOpen: player.level.level < 2 ? null : onOpenStats),
+                Row(children: [
+                  Expanded(
+                    child: _StatsSection(
+                        stats: stats ?? player.stats,
+                        unspent: unspentPoints,
+                        // 묶음 15 #104: 스탯 분배는 Lv.2에 열린다
+                        locked: player.level.level < 2,
+                        // 묶음 20 #157: 열리기 전에는 숫자만 (누를 곳·자물쇠 없음)
+                        onOpen: player.level.level < 2 ? null : onOpenStats),
+                  ),
+                  if (onOpenSkills != null) ...[
+                    const SizedBox(width: 6),
+                    _SkillsButton(onTap: onOpenSkills!, dot: skillDot),
+                  ],
+                ]),
               ],
             ),
           ),
@@ -755,6 +769,43 @@ class _StatsSection extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 「스킬」 버튼 (묶음 31 #198)
+class _SkillsButton extends StatelessWidget {
+  const _SkillsButton({required this.onTap, this.dot = false});
+
+  final VoidCallback onTap;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        key: const Key('skillsOpen'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: const Color(0xCC14163A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.8)),
+          ),
+          child: Stack(clipBehavior: Clip.none, children: [
+            const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.auto_awesome, size: 16, color: AppColors.goldBright),
+              SizedBox(width: 4),
+              Text('스킬',
+                  style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ]),
+            if (dot)
+              const Positioned(
+                  key: Key('skillsDot'), right: -8, top: -6, child: _Dot()),
+          ]),
+        ),
+      );
 }
 
 class _Dot extends StatelessWidget {

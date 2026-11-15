@@ -46,6 +46,12 @@ class LensRules {
   /// 한 사진에서 감정하는 얼굴 수
   static const int maxFaces = 5;
 
+  /// 넓은 시야(감정사 스킬)를 쓰는 동안 더 보는 얼굴 수
+  static const int wideViewFaces = 3;
+
+  /// 지금 화면이 보는 얼굴 수 (돋보기 화면이 넓은 시야일 때 바꾼다)
+  static int facesNow = maxFaces;
+
   static const List<RaceInfo> all = [
     RaceInfo(Race.elf, '엘프', '숲의 숨결이 느껴져요. 오래 사는 숲의 종족!',
         MaterialId.herb, 0xFF7FD48B),

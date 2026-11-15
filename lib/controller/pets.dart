@@ -70,10 +70,12 @@ extension PetsOps on AppController {
     };
   }
 
-  /// 친밀도 오르는 양 (공명이면 1.5배, 소수는 확률로)
+  /// 친밀도 오르는 양 (공명이면 1.5배, 조련사 교감이면 더, 소수는 확률로)
   int _bondGain(Pet p, int n) {
-    if (n <= 0 || !petResonant(p)) return n;
-    final x = n * PetRules.resonanceBond;
+    if (n <= 0) return n;
+    var x = n.toDouble();
+    if (petResonant(p)) x *= PetRules.resonanceBond;
+    x *= 1 + JobRules.tamerBond * jobTrait(JobId.tamer);
     final whole = x.floor();
     return whole + (_random.nextDouble() < x - whole ? 1 : 0);
   }
@@ -328,9 +330,17 @@ extension PetsOps on AppController {
       }
       return;
     }
+    // 묶음 31: 함께 달리기 → 잠시 동안 걸음 경험치 두 배 + 조금 더 친해짐 (숨김)
+    final run = skillTimedOn(JobSkill.runTogether);
+    var exp = _petGrowth(pet.uid, gained * PetRules.expPer100Steps);
+    var bond = pet.bond;
+    if (run) {
+      exp = (exp * (1 + JobRules.runTogether * skillPower(JobSkill.runTogether)))
+          .round();
+      bond = math.min(PetRules.maxBond, bond + gained ~/ 5);
+    }
     await _savePets(_pets
-        .replace(pet.copyWith(
-            exp: pet.exp + _petGrowth(pet.uid, gained * PetRules.expPer100Steps)))
+        .replace(pet.copyWith(exp: pet.exp + exp, bond: bond))
         .copyWith(stepsDay: day, stepsCounted: counted + gained * 100));
   }
 

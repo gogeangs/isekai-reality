@@ -164,10 +164,12 @@ class SmithRules {
   static const String failLine = '망치질이 빗나갔어요. 코어는 돌려드릴게요.';
 }
 
-// ═════════════════════════════ 직업 각성 (묶음 30 #55)
+// ═════════════════════════════ 직업 각성 (묶음 30 #55 · 묶음 31 #193~#198)
 //
-// Lv.15에 숨은 숙련도(#176)를 바탕으로 직업을 고른다. 고유 기술(저절로)과
-// 직업 스킬(새 MP로 씀)이 있다. 화면에는 배수·%·확률을 보이지 않는다.
+// Lv.15에 숨은 숙련도(#176)를 바탕으로 직업을 고른다. 직업마다 저절로 되는 고유 기술
+// 하나 + 스킬 트리(기본 ①→②·③→④, 복합·숨은 ①→②). ①은 공격 스킬(직업을 얻으면 열림),
+// 나머지는 Lv.15부터 레벨마다 2점씩 받는 스킬 포인트로 연다·강화한다(Lv.1~3).
+// 숙련도 단계마다 숙련 스킬(패시브 24 · 액티브 8)이 생긴다. 화면에 배수·%·확률 없음.
 
 /// 직업 24가지: 기본 8 · 복합 12 · 숨은 4
 enum JobId {
@@ -221,37 +223,47 @@ enum SkillPlace {
   anywhere,
 }
 
-/// 첫 직업 스킬 24개 (직업마다 하나). 나머지 칸은 나중에
+/// 직업 스킬 (이름은 저장 키. 묶음 30 스킬 이름은 그대로 두고 더한다)
 enum JobSkill {
-  focusForge,
-  bountyTouch,
-  quickBrew,
-  powerStrike,
-  pathFind,
-  trueEye,
-  cheer,
-  bargain,
-  masterBlade,
-  runeCarve,
-  polish,
-  healingLight,
-  vitalStrike,
-  excavate,
-  blessedSteps,
-  wanderingMarket,
-  negotiate,
-  jointAttack,
-  longRoad,
-  specialSale,
-  moonWalk,
-  lightResonance,
-  ashPurge,
-  artisanIntuition,
+  // 대장장이
+  hotHammer, focusForge, masterTouch, quickRepair,
+  // 채집가
+  thornVine, bountyTouch, harvestSense, rootPull,
+  // 연금술사
+  potionThrow, quickBrew, recipeHunch, instantBrew,
+  // 전사
+  rush, ironWall, warCry, drill,
+  // 탐험가
+  galeSlash, pathFind, farSight, windWalk,
+  // 감정사
+  weakStab, trueEye, wideView, memoryRead,
+  // 조련사
+  chargeOrder, cheer, snackPouch, eggWarm,
+  // 상인
+  coinToss, bargain, knack, regular,
+  // 복합 (① 공격 · ② 생활)
+  masterSlash, masterBlade,
+  runeBurst, runeCarve,
+  gemShard, polish,
+  healingLight, firstAid,
+  vitalStrike, track,
+  relicLight, excavate,
+  blessedStrike, blessedSteps,
+  bundleSwing, bigPack,
+  counterSlash, negotiate,
+  jointAttack, runTogether,
+  windBlade, longRoad,
+  poisonFlask, specialSale,
+  // 숨은
+  shadowSlash, moonWalk,
+  gatekeeperLight, lightResonance,
+  ashPurge, ashTrack,
+  artisanCombo, artisanIntuition,
 }
 
 /// 스킬이 어떻게 걸리는지
 enum SkillMode {
-  /// 쓰면 그 일을 할 때 한 번 (아이콘으로 보이고 앱을 꺼도 남음)
+  /// 쓰면 그 일을 할 때 한 번 (「준비됨」으로 보이고 앱을 꺼도 남음)
   next,
 
   /// 쓰면 일정 시간 동안
@@ -266,7 +278,7 @@ enum SkillMode {
 
 class JobSkillInfo {
   const JobSkillInfo(this.id, this.name, this.place, this.text, this.mp,
-      {this.mode = SkillMode.next, this.duration});
+      {this.mode = SkillMode.next, this.duration, this.attack = false});
 
   final JobSkill id;
   final String name;
@@ -275,10 +287,15 @@ class JobSkillInfo {
   /// 숫자 없는 한 줄 설명
   final String text;
 
-  /// 주 직업으로 쓸 때 MP
+  /// 주 직업 · Lv.1 로 쓸 때 MP
   final int mp;
   final SkillMode mode;
   final Duration? duration;
+
+  /// ① 공격 스킬 (몬스터에게 피해)
+  final bool attack;
+
+  bool get isBattle => place == SkillPlace.battle;
 }
 
 class JobInfo {
@@ -295,10 +312,25 @@ class JobInfo {
   /// 고유 기술 한 줄 (숫자 없이)
   final String trait;
 
-  /// 스킬 칸: 기본 4 · 복합·숨은 2. 지금은 첫 칸만 (null 은 빈 칸, 화면에 안 보임)
-  final List<JobSkill?> skills;
+  /// 스킬 트리: 기본 ①②③④ · 복합·숨은 ①②
+  final List<JobSkill> skills;
 
-  List<JobSkill> get openSkills => [for (final s in skills) if (s != null) s];
+  List<JobSkill> get openSkills => skills;
+}
+
+/// 숙련 스킬 (#197): 큰 숙련도 8가지 × 단계 4개. 익숙한·능숙한·장인은 패시브,
+/// 숙련된은 액티브 공격(MP 없이 몇 턴마다)
+class MasterySkillInfo {
+  const MasterySkillInfo(this.mastery, this.stage, this.name, this.text,
+      {this.active = false});
+
+  final Mastery mastery;
+  final MasteryStage stage;
+  final String name;
+  final String text;
+  final bool active;
+
+  String get key => '${mastery.name}:${stage.name}';
 }
 
 class JobRules {
@@ -319,10 +351,47 @@ class JobRules {
   static const double subTrait = 0.5;
   static const double apprenticeTrait = 0.5;
 
-  /// 보조 직업 스킬 MP 배율 (소수점 올림)
+  // ───────────── 스킬 포인트·레벨 (#195·#196, 숨은 값)
+
+  /// Lv.15부터 레벨이 오를 때마다 2점 (Lv.15 = 2점)
+  static int pointsFor(int level) =>
+      level >= awakenLevel ? 2 * (level - awakenLevel + 1) : 0;
+  static const int pointsPerLevel = 2;
+
+  static const int maxSkillLevel = 3;
+
+  /// 공격·전투 스킬은 단계마다 더 세짐 (Lv.2 ×1.25 · Lv.3 ×1.5)
+  static double levelPower(int lv) => 1 + 0.25 * (lv - 1).clamp(0, 2);
+
+  /// 생활 스킬은 단계마다 MP 덜 듦 (Lv.2 -15% · Lv.3 -30%)
+  static double levelMpCut(int lv) => 1 - 0.15 * (lv - 1).clamp(0, 2);
+
+  /// 트리에서 [s] 를 배우려면 먼저 무엇이 있어야 하는지
+  /// 기본: ① → ②·③, ② 또는 ③이 Lv.2 → ④ / 복합·숨은: ① → ②
+  static bool canLearn(JobSkill s, int Function(JobSkill) levelOf) {
+    final j = jobOf(s);
+    final i = info(j).skills.indexOf(s);
+    final tree = info(j).skills;
+    if (i == 0) return true;
+    if (levelOf(tree[0]) <= 0) return false;
+    if (i < 3) return true;
+    return levelOf(tree[1]) >= 2 || levelOf(tree[2]) >= 2;
+  }
+
+  /// 스킬의 직업
+  static JobId jobOf(JobSkill s) =>
+      jobs.firstWhere((j) => j.skills.contains(s)).id;
+
+  /// 그 직업의 ① 공격 스킬
+  static JobSkill firstOf(JobId j) => info(j).skills.first;
+
+  /// 이 스킬을 쓰는 MP (보조 1.5배·올림, 생활 스킬은 단계마다 덜, 장인의 직감이면 절반)
   static const double subSkillCost = 1.5;
-  static int skillCost(JobSkill s, {bool sub = false, bool half = false}) {
-    var c = skill(s).mp.toDouble();
+  static int skillCost(JobSkill s,
+      {bool sub = false, bool half = false, int level = 1}) {
+    final i = skill(s);
+    var c = i.mp.toDouble();
+    if (!i.attack && !i.isBattle) c = (c * levelMpCut(level)).roundToDouble();
     if (sub) c = (c * subSkillCost).ceilToDouble();
     if (half) c = (c / 2).ceilToDouble();
     return c.round();
@@ -337,36 +406,41 @@ class JobRules {
   static const double mpPerUnit = 0.10;
 
   // ───────────── 고유 기술 (장인 기준, 숨은 규칙)
-  static const double blacksmithSafe = 0.25; // 강화 실패 때 가끔 무사
+  static const double blacksmithWear = 0.5; // 튼튼한 손: 내구도가 덜 닳는 확률
   static const double herbalistSight = 0.5; // 채집 자리가 더 멀리서
-  static const double alchemistDouble = 0.10; // 물약이 가끔 2개
+  static const double alchemistTime = 0.25; // 센 불: 끓는 시간 덜
   static const double warriorLowHp = 0.10; // HP 절반 아래 피해
   static const double explorerPlace = 0.20; // 새 장소 보상
   static const double explorerGauge = 0.10; // 처음 가는 길 열쇠 게이지
-  static const double appraiserRare = 0.30; // 드문 결과 확률 ×1.3
-  static const double tamerTime = 0.15; // 펫 원정 시간 덜
+  static const int appraiserExtra = 1; // 밝은 눈: 하루 감정 +1
   static const double tamerGrowth = 0.20; // 펫 성장
-  static const double merchantDiscount = 0.30; // 하루 한 번 할인
-  static const double weaponsmithDamage = 0.08;
+  static const double tamerBond = 0.5; // 펫 친밀도 더 (확률로 +1)
+  static const int merchantQuests = 1; // 발 넓은 상인: 오늘의 의뢰 +1
+  static const double weaponsmithPerLevel = 0.015; // 강화 단계마다 피해
   static const double runesmithElement = 0.15;
-  static const double jewelerGrade = 10; // 장신구 좋은 등급 %p
+  static const double jewelerGrade = 10; // 보석 장비 좋은 등급 %p
+  static const double jewelerGem = 0.20; // 보석 채집 하나 더
   static const double healerHeal = 0.25;
-  static const double hunterLoot = 0.20;
-  static const int archaeologistExtra = 1;
-  static const double pilgrimFind = 0.15;
+  static const double hunterSpawns = 0.5; // 사냥감 냄새: 주변 몬스터 더 (마리 수 배율)
+  static const double archaeologistRelic = 0.5; // 옛 길: 유물 자리 더
+  static const int pilgrimVisits = 3; // 순례의 길: 일주일에 3번 넘게 간 곳
   static const int peddlerSteps = 5000;
   static const double peddlerGold = 0.10;
   static const double adventurerReward = 0.15;
+  static const double adventurerDungeon = 0.15;
   static const double beastKnightDamage = 0.08;
-  static const double pathfinderRange = 0.20;
-  static const double potionMerchantGold = 0.30;
+  static const double pathfinderFarM = 2000; // 먼 곳의 보물
+  static const double pathfinderReward = 0.5; // 이기면 재료 더 (확률)
+  static const double potionMerchantGold = 0.30; // 물약 판매(특가 판매와 함께)
+  static const double potionWholesale = 0.20; // 물약 도매: 싸게 삼
   static const double nightDamage = 0.10;
   static const double gateHeirGrowth = 0.30;
   static const double gateHeirMp = 0.10;
   static const double ashDamage = 0.10;
 
-  // ───────────── 직업 스킬 수치 (숨은 규칙)
-  static const double powerStrike = 2.0;
+  // ───────────── 직업 스킬 수치 (숨은 규칙, Lv.1 기준)
+  static const double focusForgeChance = 0.15; // 집중 단조: 성공 확률 더 (%p)
+  static const double masterTouchGrade = 25; // 명장의 손길: 좋은 등급 %p
   static const double healingLight = 0.30;
   static const double ashPurge = 3.0;
   static const double bargain = 0.20;
@@ -374,6 +448,13 @@ class JobRules {
   static const double specialSale = 2.0;
   static const double resonance = 0.30;
   static const double blessedSteps = 1.5;
+  static const int runeCarveGold = 100;
+  static const int snackBond = 20;
+  static const double firstAid = 0.25;
+  static const int bigPackSlots = 5;
+  static const double drillExp = 0.25;
+  static const double runTogether = 1.0; // 함께 달리기: 걸음 펫 경험치 두 배
+  static const double coinTossGold = 10;
 
   // ───────────── 숨은 직업 조건
   static const int nightWalkerSteps = 50000;
@@ -387,65 +468,75 @@ class JobRules {
 
   static const List<JobInfo> jobs = [
     JobInfo(JobId.blacksmith, '대장장이', JobKind.basic, [Mastery.smith],
-        '강화에 실패해도 가끔 무사해요', [JobSkill.focusForge, null, null, null]),
-    JobInfo(JobId.herbalist, '약초꾼', JobKind.basic, [Mastery.harvest],
-        '채집 자리가 더 멀리서 보여요', [JobSkill.bountyTouch, null, null, null]),
+        '내가 만들거나 고친 장비가 천천히 닳아요',
+        [JobSkill.hotHammer, JobSkill.focusForge, JobSkill.masterTouch, JobSkill.quickRepair]),
+    JobInfo(JobId.herbalist, '채집가', JobKind.basic, [Mastery.harvest],
+        '채집 자리가 더 멀리서 보여요',
+        [JobSkill.thornVine, JobSkill.bountyTouch, JobSkill.harvestSense, JobSkill.rootPull]),
     JobInfo(JobId.alchemist, '연금술사', JobKind.basic, [Mastery.alchemy],
-        '물약이 가끔 두 병 나와요', [JobSkill.quickBrew, null, null, null]),
+        '가마솥이 더 빨리 끓어요',
+        [JobSkill.potionThrow, JobSkill.quickBrew, JobSkill.recipeHunch, JobSkill.instantBrew]),
     JobInfo(JobId.warrior, '전사', JobKind.basic, [Mastery.combat],
-        '위험할수록 더 세게 싸워요', [JobSkill.powerStrike, null, null, null]),
+        '위험할수록 더 세게 싸워요',
+        [JobSkill.rush, JobSkill.ironWall, JobSkill.warCry, JobSkill.drill]),
     JobInfo(JobId.explorer, '탐험가', JobKind.basic, [Mastery.walk],
-        '새 장소와 처음 가는 길에서 더 얻어요', [JobSkill.pathFind, null, null, null]),
+        '새 장소와 처음 가는 길에서 더 얻어요',
+        [JobSkill.galeSlash, JobSkill.pathFind, JobSkill.farSight, JobSkill.windWalk]),
     JobInfo(JobId.appraiser, '감정사', JobKind.basic, [Mastery.appraise],
-        '돋보기로 드문 것을 더 잘 찾아요', [JobSkill.trueEye, null, null, null]),
+        '하루에 감정을 한 번 더 할 수 있어요',
+        [JobSkill.weakStab, JobSkill.trueEye, JobSkill.wideView, JobSkill.memoryRead]),
     JobInfo(JobId.tamer, '조련사', JobKind.basic, [Mastery.spirit],
-        '펫이 원정에서 빨리 돌아오고 빨리 자라요', [JobSkill.cheer, null, null, null]),
+        '펫이 빨리 자라고 빨리 친해져요',
+        [JobSkill.chargeOrder, JobSkill.cheer, JobSkill.snackPouch, JobSkill.eggWarm]),
     JobInfo(JobId.merchant, '상인', JobKind.basic, [Mastery.trade],
-        '하루 한 번 잡화상에서 싸게 사요', [JobSkill.bargain, null, null, null]),
+        '오늘의 의뢰가 하나 더 붙어요',
+        [JobSkill.coinToss, JobSkill.bargain, JobSkill.knack, JobSkill.regular]),
     JobInfo(JobId.weaponsmith, '무기 장인', JobKind.complex,
-        [Mastery.smith, Mastery.combat], '직접 만든 무기로 더 세게 싸워요',
-        [JobSkill.masterBlade, null]),
+        [Mastery.smith, Mastery.combat], '강화한 무기일수록 더 세게 싸워요',
+        [JobSkill.masterSlash, JobSkill.masterBlade]),
     JobInfo(JobId.runesmith, '룬 대장장이', JobKind.complex,
         [Mastery.smith, Mastery.alchemy], '장비를 만들 때 가끔 속성이 붙어요',
-        [JobSkill.runeCarve, null]),
+        [JobSkill.runeBurst, JobSkill.runeCarve]),
     JobInfo(JobId.jeweler, '보석 세공사', JobKind.complex,
-        [Mastery.smith, Mastery.appraise], '장신구가 좋은 등급으로 잘 나와요',
-        [JobSkill.polish, null]),
+        [Mastery.smith, Mastery.appraise], '보석을 쓰는 장비가 좋은 등급으로 잘 나오고, 보석을 더 캐요',
+        [JobSkill.gemShard, JobSkill.polish]),
     JobInfo(JobId.healer, '치유사', JobKind.complex,
         [Mastery.harvest, Mastery.alchemy], '회복 물약이 더 많이 채워 줘요',
-        [JobSkill.healingLight, null]),
+        [JobSkill.healingLight, JobSkill.firstAid]),
     JobInfo(JobId.hunter, '사냥꾼', JobKind.complex,
-        [Mastery.combat, Mastery.harvest], '필드 몬스터 재료를 가끔 더 얻어요',
-        [JobSkill.vitalStrike, null]),
+        [Mastery.combat, Mastery.harvest], '주변에 사냥감이 더 많이 보여요',
+        [JobSkill.vitalStrike, JobSkill.track]),
     JobInfo(JobId.archaeologist, '고고학자', JobKind.complex,
-        [Mastery.appraise, Mastery.harvest], '고대 유물에서 더 얻어요',
-        [JobSkill.excavate, null]),
+        [Mastery.appraise, Mastery.harvest], '고대 유물 자리를 더 자주 찾아요',
+        [JobSkill.relicLight, JobSkill.excavate]),
     JobInfo(JobId.pilgrim, '순례자', JobKind.complex,
-        [Mastery.walk, Mastery.appraise], '새 장소에서 가끔 숨은 물건을 찾아요',
-        [JobSkill.blessedSteps, null]),
+        [Mastery.walk, Mastery.appraise], '자주 가는 곳에 다시 가면 작은 선물이 있어요',
+        [JobSkill.blessedStrike, JobSkill.blessedSteps]),
     JobInfo(JobId.peddler, '행상인', JobKind.complex,
         [Mastery.trade, Mastery.walk], '많이 걸은 날은 더 비싸게 팔아요',
-        [JobSkill.wanderingMarket, null]),
+        [JobSkill.bundleSwing, JobSkill.bigPack]),
     JobInfo(JobId.adventurer, '모험가', JobKind.complex,
-        [Mastery.combat, Mastery.trade], '길드·긴급 의뢰 보상이 늘어요',
-        [JobSkill.negotiate, null]),
+        [Mastery.combat, Mastery.trade], '길드·긴급 의뢰와 던전 보상이 늘어요',
+        [JobSkill.counterSlash, JobSkill.negotiate]),
     JobInfo(JobId.beastKnight, '마수 기사', JobKind.complex,
         [Mastery.combat, Mastery.spirit], '펫과 함께 싸우면 더 세져요',
-        [JobSkill.jointAttack, null]),
+        [JobSkill.jointAttack, JobSkill.runTogether]),
     JobInfo(JobId.pathfinder, '길잡이', JobKind.complex,
-        [Mastery.walk, Mastery.spirit], '원정을 더 멀리 보낼 수 있어요',
-        [JobSkill.longRoad, null]),
+        [Mastery.walk, Mastery.spirit], '먼 곳 원정에서 이기면 더 가져와요',
+        [JobSkill.windBlade, JobSkill.longRoad]),
     JobInfo(JobId.potionMerchant, '물약 상인', JobKind.complex,
-        [Mastery.alchemy, Mastery.trade], '물약을 비싸게 팔아요',
-        [JobSkill.specialSale, null]),
+        [Mastery.alchemy, Mastery.trade], '잡화상에서 물약을 싸게 사요',
+        [JobSkill.poisonFlask, JobSkill.specialSale]),
     JobInfo(JobId.nightWalker, '밤의 산책자', JobKind.hidden, [],
-        '밤에 만나는 몬스터에게 더 세요', [JobSkill.moonWalk, null]),
+        '밤에 만나는 몬스터에게 더 세요', [JobSkill.shadowSlash, JobSkill.moonWalk]),
     JobInfo(JobId.gateHeir, '문지기의 후계자', JobKind.hidden, [],
-        '첫 펫이 빨리 자라고 원정 기력을 덜 써요', [JobSkill.lightResonance, null]),
+        '첫 펫이 빨리 자라고 원정 기력을 덜 써요',
+        [JobSkill.gatekeeperLight, JobSkill.lightResonance]),
     JobInfo(JobId.ashHunter, '잿빛 사냥꾼', JobKind.hidden, [],
-        '잿빛 몬스터에게 더 세요', [JobSkill.ashPurge, null]),
+        '잿빛 몬스터에게 더 세요', [JobSkill.ashPurge, JobSkill.ashTrack]),
     JobInfo(JobId.allCrafter, '만물 장인', JobKind.hidden, [],
-        '보조 직업의 고유 기술도 온전히 써요', [JobSkill.artisanIntuition, null]),
+        '보조 직업의 고유 기술도 온전히 써요',
+        [JobSkill.artisanCombo, JobSkill.artisanIntuition]),
   ];
 
   static JobInfo info(JobId id) => jobs[id.index];
@@ -457,62 +548,207 @@ class JobRules {
     return null;
   }
 
+  static JobSkill? parseSkill(String? name) {
+    for (final s in JobSkill.values) {
+      if (s.name == name) return s;
+    }
+    return null;
+  }
+
+  static const _b = SkillPlace.battle;
+  static const _min30 = Duration(minutes: 30);
+  static const _hour = Duration(hours: 1);
+
   static const List<JobSkillInfo> skills = [
+    // 대장장이
+    JobSkillInfo(JobSkill.hotHammer, '달군 망치', _b,
+        '크게 내리쳐 방어를 깨요. 잠시 더 큰 피해를 받게 돼요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.focusForge, '집중 단조', SkillPlace.smithyEnhance,
-        '이번 강화는 실패해도 무사해요', 30),
+        '이번 강화가 성공하기 쉬워지고, 실패해도 무사해요', 30),
+    JobSkillInfo(JobSkill.masterTouch, '명장의 손길', SkillPlace.smithyCraft,
+        '이번 장비가 한 단계 좋은 등급으로 나오기 쉬워요', 40),
+    JobSkillInfo(JobSkill.quickRepair, '응급 수리', SkillPlace.smithyWork,
+        '장비 하나를 수리비 없이 바로 고쳐요', 20, mode: SkillMode.instant),
+    // 채집가
+    JobSkillInfo(JobSkill.thornVine, '가시덩굴', _b,
+        '두 턴 동안 묶고 조금씩 피해를 줘요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.bountyTouch, '풍요의 손길', SkillPlace.harvest,
         '이번 채집이 풍성해져요', 20),
-    JobSkillInfo(JobSkill.quickBrew, '연성 가속', SkillPlace.alchemy,
+    JobSkillInfo(JobSkill.harvestSense, '채집 감각', SkillPlace.map,
+        '잠시 동안 완벽하게 캐기 쉬워요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.rootPull, '뿌리째 캐기', SkillPlace.harvest,
+        '이번 채집은 그 자리 남은 횟수를 쓰지 않아요', 30),
+    // 연금술사
+    JobSkillInfo(JobSkill.potionThrow, '물약 투척', _b,
+        '몬스터가 약한 속성의 물약이 터져요', 20,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.quickBrew, '풍성한 가마솥', SkillPlace.alchemy,
         '이번에 만드는 물약이 하나 더 나와요', 20),
-    JobSkillInfo(JobSkill.powerStrike, '힘의 일격', SkillPlace.battle,
-        '다음 공격이 아주 강해져요', 10, mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.recipeHunch, '레시피 직감', SkillPlace.alchemy,
+        '이번 실험에서 새 레시피를 찾기 쉬워요', 30),
+    JobSkillInfo(JobSkill.instantBrew, '즉석 연성', SkillPlace.alchemy,
+        '이번 물약은 끓는 시간 없이 바로 완성돼요', 30),
+    // 전사
+    JobSkillInfo(JobSkill.rush, '돌진', _b, '먼저 달려들어 크게 쳐요', 20,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.ironWall, '철벽', _b,
+        '잠시 받는 피해가 크게 줄고 막기가 넉넉해져요', 20,
+        mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.warCry, '전투 함성', _b,
+        '잠시 공격이 세지고 강타도 더 빨리 차요', 10,
+        mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.drill, '단련', SkillPlace.map,
+        '잠시 동안 사냥 경험치와 전투 숙련이 더 쌓여요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    // 탐험가
+    JobSkillInfo(JobSkill.galeSlash, '질풍 베기', _b,
+        '빠르게 치고 잠시 몸을 피해요', 10,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.pathFind, '길 찾기', SkillPlace.map,
-        '잠시 동안 주변에 숨은 채집 자리가 보여요', 20,
-        mode: SkillMode.timed, duration: Duration(minutes: 30)),
+        '잠시 동안 나에게만 보이는 채집 자리와 보물 상자가 근처에 생겨요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.farSight, '먼 눈', SkillPlace.map,
+        '잠시 동안 더 먼 곳의 몬스터와 채집 자리가 보여요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.windWalk, '바람 따라 걷기', SkillPlace.map,
+        '잠시 동안 주변의 안 가 본 장소가 지도에 보여요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    // 감정사
+    JobSkillInfo(JobSkill.weakStab, '약점 찌르기', _b,
+        '몬스터가 약한 곳을 찔러 크게 다치게 해요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.trueEye, '진실의 눈', SkillPlace.lens,
-        '이번 감정은 드문 결과가 꼭 나와요', 30),
+        '이번 감정에서 귀한 재료가 꼭 나와요', 30),
+    JobSkillInfo(JobSkill.wideView, '넓은 시야', SkillPlace.lens,
+        '잠시 동안 돋보기가 더 넓게 봐요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.memoryRead, '기억 읽기', SkillPlace.lens,
+        '이번 감정에서 레시피 쪽지가 꼭 나와요', 30),
+    // 조련사
+    JobSkillInfo(JobSkill.chargeOrder, '돌격 명령', _b,
+        '펫이 바로 달려들어 공격하고 펫 게이지가 조금 차요', 10,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.cheer, '응원', SkillPlace.petExpedition,
         '원정 간 펫이 서둘러 돌아와요', 20, mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.snackPouch, '간식 주머니', SkillPlace.anywhere,
+        '펫 하나와 크게 친해져요', 20, mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.eggWarm, '알 품기', SkillPlace.anywhere,
+        '품은 알이 깨어나기까지 남은 시간이 절반이 돼요', 30,
+        mode: SkillMode.instant),
+    // 상인
+    JobSkillInfo(JobSkill.coinToss, '금화 던지기', _b,
+        '금화를 던져 크게 맞혀요. 금화가 조금 들어요', 10,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.bargain, '대흥정', SkillPlace.shop,
         '이번 거래 하나를 싸게 사거나 비싸게 팔아요', 20),
+    JobSkillInfo(JobSkill.knack, '수완', SkillPlace.board,
+        '이번 의뢰 하나의 금화 보상이 두 배가 돼요', 20),
+    JobSkillInfo(JobSkill.regular, '단골 손님', SkillPlace.shop,
+        '하루 개수가 정해진 물건을 오늘 하나 더 살 수 있어요', 30),
+    // 복합
+    JobSkillInfo(JobSkill.masterSlash, '명검 베기', _b,
+        '무기로 크게 베어요. 강화한 무기일수록 더 세요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.masterBlade, '명검 벼리기', SkillPlace.smithyCraft,
-        '이번 무기가 좋은 등급으로 나오기 쉬워요', 30),
+        '이번 무기에 추가 능력치가 하나 더 붙어요', 30),
+    JobSkillInfo(JobSkill.runeBurst, '룬 폭발', _b,
+        '장비의 속성으로 크게 터뜨려요', 30,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.runeCarve, '룬 새기기', SkillPlace.smithyWork,
-        '장비 하나에 원하는 속성을 새겨요', 40, mode: SkillMode.instant),
+        '코어 없이 금화로 장비에 원하는 속성을 새겨요', 40,
+        mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.gemShard, '보석 파편', _b,
+        '보석 조각을 날려 다치게 하고 가끔 멈춰 세워요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.polish, '광택 내기', SkillPlace.smithyWork,
-        '장신구 하나의 능력치를 다시 굴려요', 30, mode: SkillMode.instant),
-    JobSkillInfo(JobSkill.healingLight, '치유의 빛', SkillPlace.battle,
-        'HP를 회복해요', 20, mode: SkillMode.battle),
-    JobSkillInfo(JobSkill.vitalStrike, '급소 노리기', SkillPlace.battle,
-        '다음 공격이 꼭 치명타', 10, mode: SkillMode.battle),
+        '장신구 능력치를 다시 굴리고, 이전 것과 새것 중 골라요', 30,
+        mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.healingLight, '치유의 빛', _b,
+        '빛으로 다치게 하고 그만큼 내 HP를 채워요', 20,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.firstAid, '응급 처치', SkillPlace.map,
+        '그 자리에서 HP를 조금 채워요', 20, mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.vitalStrike, '급소 사격', _b, '꼭 급소를 맞혀요', 10,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.track, '추적', SkillPlace.map,
+        '도감에서 만난 몬스터 하나가 잠시 뒤 근처에 나타나요', 20,
+        mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.relicLight, '고대 유물의 빛', _b,
+        '다치게 하고 다음 강한 공격을 막아 줘요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.excavate, '발굴', SkillPlace.relic,
         '이번 고대 유물에서 귀한 재료가 꼭 나와요', 30),
+    JobSkillInfo(JobSkill.blessedStrike, '축복의 일격', _b,
+        '다치게 하고 몇 턴 동안 HP가 조금씩 차요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.blessedSteps, '축복의 발걸음', SkillPlace.map,
         '잠시 동안 걸음 게이지가 빨리 차요', 20,
-        mode: SkillMode.timed, duration: Duration(minutes: 30)),
-    JobSkillInfo(JobSkill.wanderingMarket, '떠돌이 장터', SkillPlace.anywhere,
-        '마을에 가지 않고 그 자리에서 물건을 팔아요', 20,
-        mode: SkillMode.instant),
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.bundleSwing, '짐 보따리 휘두르기', _b,
+        '보따리로 후려쳐 가끔 놀라 멈추게 해요', 10,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.bigPack, '큰 짐 보따리', SkillPlace.anywhere,
+        '오늘 하루 가방 칸이 늘어나요', 20, mode: SkillMode.instant),
+    JobSkillInfo(JobSkill.counterSlash, '반격 베기', _b,
+        '바로 치고, 다음에 받는 공격 일부를 돌려줘요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.negotiate, '의뢰 협상', SkillPlace.board,
         '길드 의뢰 하나를 다른 의뢰로 바꿔요', 10, mode: SkillMode.instant),
-    JobSkillInfo(JobSkill.jointAttack, '합동 공격', SkillPlace.battle,
-        '펫 스킬을 바로 채워요', 20, mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.jointAttack, '합동 돌격', _b,
+        '나와 펫이 함께 공격하고 펫 게이지가 조금 차요', 20,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.runTogether, '함께 달리기', SkillPlace.map,
+        '잠시 동안 동행 펫과 걸으면 펫이 더 자라고 더 친해져요', 20,
+        mode: SkillMode.timed, duration: _min30),
+    JobSkillInfo(JobSkill.windBlade, '바람 칼날', _b,
+        '바람으로 베고 잠시 더 빨라져요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.longRoad, '먼 길 안내', SkillPlace.expeditionSend,
         '이번 원정을 더 멀리 보낼 수 있어요', 20),
+    JobSkillInfo(JobSkill.poisonFlask, '독 물약 뿌리기', _b,
+        '독을 뿌려 몇 턴 동안 계속 다치게 해요', 10,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.specialSale, '특가 판매', SkillPlace.shop,
         '이번 물약 판매 값이 크게 올라요', 20),
+    // 숨은
+    JobSkillInfo(JobSkill.shadowSlash, '그림자 베기', _b,
+        '그림자로 베고 한 턴 몸을 숨겨요. 밤에는 더 세요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.moonWalk, '달빛 걸음', SkillPlace.nightMap,
         '잠시 동안 주변에 밤 몬스터가 더 나타나요', 20,
-        mode: SkillMode.timed, duration: Duration(hours: 1)),
+        mode: SkillMode.timed, duration: _hour),
+    JobSkillInfo(JobSkill.gatekeeperLight, '문지기의 빛', _b,
+        '빛의 막으로 나를 지키고, 잿빛 몬스터를 크게 다치게 해요', 30,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.lightResonance, '빛의 공명', SkillPlace.anywhere,
         '펫의 기력을 채워 줘요', 30, mode: SkillMode.instant),
-    JobSkillInfo(JobSkill.ashPurge, '잿빛 정화', SkillPlace.battle,
-        '잿빛 몬스터의 보호를 깨고 큰 피해', 30, mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.ashPurge, '잿빛 정화', _b,
+        '잿빛 몬스터의 보호를 깨고 크게 다치게 해요', 30,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.ashTrack, '잿빛 추적', SkillPlace.map,
+        '잠시 동안 주변에 잿빛 몬스터가 더 나타나요', 20,
+        mode: SkillMode.timed, duration: _hour),
+    JobSkillInfo(JobSkill.artisanCombo, '장인의 연타', _b,
+        '내 직업 수만큼 여러 번 쳐요', 20,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.artisanIntuition, '장인의 직감', SkillPlace.anywhere,
         '다음에 쓰는 스킬 MP가 줄어요', 10),
   ];
 
-  static JobSkillInfo skill(JobSkill s) => skills[s.index];
+  static final Map<JobSkill, JobSkillInfo> _skillById = {
+    for (final s in skills) s.id: s,
+  };
+  static JobSkillInfo skill(JobSkill s) => _skillById[s]!;
+
+  /// 묶음 30 에서 빠진 스킬 (예전 저장 키 → 같은 자리 새 스킬. 없으면 null)
+  static JobSkill? legacySkill(String name) => switch (name) {
+        'powerStrike' => JobSkill.warCry, // 힘의 일격 → 전투 함성
+        'wanderingMarket' => JobSkill.bigPack, // 떠돌이 장터 → 큰 짐 보따리
+        _ => parseSkill(name),
+      };
 
   /// 열린 직업 (숨은 직업 조건은 [hidden] 으로 받는다)
   static Set<JobId> unlocked(MasteryStage Function(Mastery) stage,
@@ -536,6 +772,35 @@ class JobRules {
     return out;
   }
 
+  /// 길드 「곧 열릴 것 같은 직업」 (#192): 아직 없는 기본·복합 직업 중 조건에
+  /// 가장 가까운 것 2~3개. [value] 는 큰 숙련도 값 (화면엔 숫자 없음)
+  static List<JobId> nearJobs(double Function(Mastery) value,
+      Set<JobId> owned) {
+    double need(JobInfo j) {
+      final goal = j.kind == JobKind.basic
+          ? MasteryRules.bigSteps[MasteryStage.skilled.index]
+          : MasteryRules.bigSteps[MasteryStage.expert.index];
+      var left = 0.0;
+      for (final m in j.masteries) {
+        left += (goal - value(m)).clamp(0, goal) / goal;
+      }
+      return left / j.masteries.length;
+    }
+
+    final list = [
+      for (final j in jobs)
+        if (j.kind != JobKind.hidden && !owned.contains(j.id)) j,
+    ]..sort((a, b) => need(a).compareTo(need(b)));
+    return [for (final j in list.take(3)) j.id];
+  }
+
+  /// 힌트 문구: 「대장일과 전투를 더 해 보세요」
+  static String hintLine(JobId j) {
+    final ms = info(j).masteries.map((m) => m.label).toList();
+    if (ms.length == 1) return '${josaOf(ms.first, '을/를')} 더 해 보세요';
+    return '${josaOf(ms.first, '와/과')} ${josaOf(ms.last, '을/를')} 더 해 보세요';
+  }
+
   /// 큰 숙련도의 기본 직업
   static JobId basicOf(Mastery m) =>
       jobs.firstWhere((j) => j.kind == JobKind.basic && j.masteries.single == m).id;
@@ -543,4 +808,87 @@ class JobRules {
   /// 첫 펫 한마디
   static const String awakenLine = '이제 너만의 길을 찾을 때야. 길드에 가 보자!';
   static String newJobLine(String job) => '새 길이 열렸어! $job, 길드에서 확인해 봐.';
+
+  // ───────────── 숙련 스킬 (#197)
+
+  /// 액티브 숙련 스킬이 차는 턴 (강타처럼, MP 없음)
+  static const int masteryActiveTicks = 7;
+
+  static const List<MasterySkillInfo> masterySkills = [
+    // 대장일
+    MasterySkillInfo(Mastery.smith, MasteryStage.familiar, '손에 익은 망치', '장비를 만들 때 좋은 등급이 조금 더 잘 나와요'),
+    MasterySkillInfo(Mastery.smith, MasteryStage.skilled, '고른 담금질', '장비가 좋은 등급으로 더 잘 나오고 수리비가 덜 들어요'),
+    MasterySkillInfo(Mastery.smith, MasteryStage.expert, '망치 내려치기', '묵직하게 내려쳐 크게 다치게 해요', active: true),
+    MasterySkillInfo(Mastery.smith, MasteryStage.master, '장인의 손', '장비가 아주 좋은 등급으로 잘 나오고 수리비가 많이 덜 들어요'),
+    // 채집
+    MasterySkillInfo(Mastery.harvest, MasteryStage.familiar, '눈썰미', '채집할 때 가끔 하나 더 나와요'),
+    MasterySkillInfo(Mastery.harvest, MasteryStage.skilled, '가벼운 손', '하나 더 나오기 쉽고 도구가 가끔 닳지 않아요'),
+    MasterySkillInfo(Mastery.harvest, MasteryStage.expert, '덩굴 채찍', '덩굴로 때려 잠시 묶어 둬요', active: true),
+    MasterySkillInfo(Mastery.harvest, MasteryStage.master, '숲의 손', '채집이 늘 넉넉하고 도구가 잘 닳지 않아요'),
+    // 연금술
+    MasterySkillInfo(Mastery.alchemy, MasteryStage.familiar, '약초 다루기', '물약이 가끔 하나 더 나와요'),
+    MasterySkillInfo(Mastery.alchemy, MasteryStage.skilled, '고른 불', '물약이 더 잘 나오고 재료를 가끔 아껴요'),
+    MasterySkillInfo(Mastery.alchemy, MasteryStage.expert, '불꽃 플라스크', '불꽃 병을 던져 태워요', active: true),
+    MasterySkillInfo(Mastery.alchemy, MasteryStage.master, '연금술의 경지', '물약이 넉넉히 나오고 재료를 자주 아껴요'),
+    // 전투
+    MasterySkillInfo(Mastery.combat, MasteryStage.familiar, '몸에 밴 자세', '익숙한 무기와 몬스터에게 조금 더 세요'),
+    MasterySkillInfo(Mastery.combat, MasteryStage.skilled, '매서운 손', '익숙한 상대에게 더 세고 재료를 가끔 더 얻어요'),
+    MasterySkillInfo(Mastery.combat, MasteryStage.expert, '연속 베기', '여러 번 빠르게 베어요', active: true),
+    MasterySkillInfo(Mastery.combat, MasteryStage.master, '역전의 용사', '익숙한 상대에게 아주 세고 재료를 자주 더 얻어요'),
+    // 걷기·탐험
+    MasterySkillInfo(Mastery.walk, MasteryStage.familiar, '가벼운 발', '걸음 게이지와 새 장소 보상이 조금 늘어요'),
+    MasterySkillInfo(Mastery.walk, MasteryStage.skilled, '먼 길의 발', '걸음 게이지와 새 장소 보상이 더 늘어요'),
+    MasterySkillInfo(Mastery.walk, MasteryStage.expert, '도약 차기', '뛰어올라 차고 먼저 움직여요', active: true),
+    MasterySkillInfo(Mastery.walk, MasteryStage.master, '방랑자의 발걸음', '걸음 게이지와 새 장소 보상이 많이 늘어요'),
+    // 감정
+    MasterySkillInfo(Mastery.appraise, MasteryStage.familiar, '살피는 눈', '감정에서 재료·쪽지가 조금 더 잘 나와요'),
+    MasterySkillInfo(Mastery.appraise, MasteryStage.skilled, '꿰뚫는 눈', '감정에서 재료·쪽지가 더 잘 나와요'),
+    MasterySkillInfo(Mastery.appraise, MasteryStage.expert, '꿰뚫는 일격', '약점을 찔러 다치게 해요', active: true),
+    MasterySkillInfo(Mastery.appraise, MasteryStage.master, '진실을 보는 눈', '감정에서 재료·쪽지가 아주 잘 나와요'),
+    // 정령술
+    MasterySkillInfo(Mastery.spirit, MasteryStage.familiar, '호흡 맞추기', '원정 기력과 시간이 조금 덜 들어요'),
+    MasterySkillInfo(Mastery.spirit, MasteryStage.skilled, '통하는 마음', '원정 기력과 시간이 더 덜 들어요'),
+    MasterySkillInfo(Mastery.spirit, MasteryStage.expert, '빛 구슬', '빛 구슬을 날려 다치게 해요', active: true),
+    MasterySkillInfo(Mastery.spirit, MasteryStage.master, '하나 된 마음', '원정 기력과 시간이 많이 덜 들어요'),
+    // 장사·의뢰
+    MasterySkillInfo(Mastery.trade, MasteryStage.familiar, '셈이 빠른', '팔 때 금화와 의뢰 금화가 조금 늘어요'),
+    MasterySkillInfo(Mastery.trade, MasteryStage.skilled, '단골 만들기', '팔 때 금화와 의뢰 금화가 더 늘어요'),
+    MasterySkillInfo(Mastery.trade, MasteryStage.expert, '동전 튕기기', '동전을 튕겨 맞혀요. 금화가 조금 들어요', active: true),
+    MasterySkillInfo(Mastery.trade, MasteryStage.master, '이름난 상인', '팔 때 금화와 의뢰 금화가 많이 늘어요'),
+  ];
+
+  static MasterySkillInfo masterySkill(Mastery m, MasteryStage s) =>
+      masterySkills.firstWhere((x) => x.mastery == m && x.stage == s);
+
+  static MasterySkillInfo masteryActive(Mastery m) =>
+      masterySkill(m, MasteryStage.expert);
+
+  static MasterySkillInfo? masterySkillByKey(String key) {
+    for (final x in masterySkills) {
+      if (x.key == key) return x;
+    }
+    return null;
+  }
+
+  /// 지금 단계에서 가진 숙련 스킬: 가장 높은 패시브 하나(앞 단계는 새 것으로 바뀜) +
+  /// 숙련된 이상이면 액티브
+  static List<MasterySkillInfo> masterySkillsAt(Mastery m, MasteryStage st) {
+    if (st == MasteryStage.clumsy) return const [];
+    final passive = st == MasteryStage.expert ? MasteryStage.skilled : st;
+    return [
+      masterySkill(m, passive),
+      if (st.index >= MasteryStage.expert.index) masteryActive(m),
+    ];
+  }
+}
+
+/// 조사 붙이기 (규칙 파일에서 쓰는 작은 도움)
+String josaOf(String word, String pair) {
+  final parts = pair.split('/');
+  final swap = pair == '와/과';
+  final withB = swap ? parts[1] : parts[0];
+  final without = swap ? parts[0] : parts[1];
+  final c = word.runes.last;
+  final b = (c >= 0xAC00 && c <= 0xD7A3) ? (c - 0xAC00) % 28 : 0;
+  return '$word${b == 0 ? without : withB}';
 }

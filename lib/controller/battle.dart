@@ -107,6 +107,14 @@ extension BattleOps on AppController {
     // 던전 전용 재료 (11-11 #59)
     GatherRules.dungeon(run.cleared, _random)
         .forEach((k, v) => loot[k] = (loot[k] ?? 0) + v);
+    // 묶음 31: 모험가 → 던전 클리어 보상이 늘어남 (숨김)
+    final adv = JobRules.adventurerDungeon * jobTrait(JobId.adventurer);
+    if (run.cleared && adv > 0) {
+      for (final k in [...loot.keys]) {
+        final x = loot[k]! * (1 + adv);
+        loot[k] = x.floor() + (_random.nextDouble() < x - x.floor() ? 1 : 0);
+      }
+    }
     final fit = _fitBag(loot);
     final mats = fit.kept;
     await _save(today.copyWith(
@@ -176,24 +184,73 @@ extension BattleOps on AppController {
         land: lands?.kindAt);
   }
 
-  /// 묶음 30 달빛 걸음: 쓴 자리 둘레에 밤 몬스터가 더 (1시간)
+  /// 직업이 부르는 몬스터: 달빛 걸음(밤 몬스터) · 잿빛 추적(잿빛 몬스터) · 추적(고른
+  /// 몬스터 하나) · 사냥꾼 사냥감 냄새(그날 기준 자리 둘레에 더)
   List<FieldSpawn> _moonSpawns() {
-    if (!skillTimedOn(JobSkill.moonWalk)) return const [];
+    final out = <FieldSpawn>[];
     final m = _jobs.marks;
-    final lat = m['moonLat'], lng = m['moonLng'];
-    final until = _jobs.timed[JobSkill.moonWalk.name];
-    if (lat == null || lng == null || until == null) return const [];
-    return FieldMonsterRules.nearSpawns(area,
-        dayKey: 'moon${until.millisecondsSinceEpoch}',
-        anchor: GeoPoint(lat / 1e6, lng / 1e6),
-        count: 4,
-        roads: roads,
-        exclusions: exclusions,
-        level: player.level.level,
-        luckBonus: StatRules.modifierBonus(combatStats),
-        night: true,
-        favored: ElementRules.challengers(mainElement),
-        land: lands?.kindAt);
+    GeoPoint? at(String name, [String? old]) {
+      final lat = m['${name}Lat'] ?? (old == null ? null : m['${old}Lat']);
+      final lng = m['${name}Lng'] ?? (old == null ? null : m['${old}Lng']);
+      return lat == null || lng == null ? null : GeoPoint(lat / 1e6, lng / 1e6);
+    }
+
+    List<FieldSpawn> around(GeoPoint p, String key, int count, {bool night = false}) =>
+        FieldMonsterRules.nearSpawns(area,
+            dayKey: key,
+            anchor: p,
+            count: count,
+            roads: roads,
+            exclusions: exclusions,
+            level: player.level.level,
+            luckBonus: StatRules.modifierBonus(combatStats),
+            night: night || FieldMonsterRules.isNight(_clock()),
+            favored: ElementRules.challengers(mainElement),
+            land: lands?.kindAt);
+
+    final moonUntil = _jobs.timed[JobSkill.moonWalk.name];
+    final moonAt = at(JobSkill.moonWalk.name, 'moon');
+    if (skillTimedOn(JobSkill.moonWalk) && moonAt != null && moonUntil != null) {
+      out.addAll(around(moonAt, 'moon${moonUntil.millisecondsSinceEpoch}', 4,
+          night: true));
+    }
+    final ashUntil = _jobs.timed[JobSkill.ashTrack.name];
+    final ashAt = at(JobSkill.ashTrack.name);
+    if (skillTimedOn(JobSkill.ashTrack) && ashAt != null && ashUntil != null) {
+      for (final f in around(ashAt, 'ash${ashUntil.millisecondsSinceEpoch}', 3)) {
+        out.add(FieldSpawn(
+            id: f.id,
+            monster: MonsterId.ashSlime,
+            point: f.point,
+            modifiers: f.modifiers));
+      }
+    }
+    final trackUntil = _jobs.timed[JobSkill.track.name];
+    final trackAt = at('track');
+    final tm = m['trackMonster'];
+    if (skillTimedOn(JobSkill.track) &&
+        trackAt != null &&
+        trackUntil != null &&
+        tm != null &&
+        tm >= 0 &&
+        tm < MonsterId.values.length) {
+      final id = 'track-${trackUntil.millisecondsSinceEpoch}';
+      final mon = MonsterId.values[tm];
+      out.add(FieldSpawn(
+          id: id,
+          monster: mon,
+          point: trackAt,
+          modifiers: ModifierRules.roll(id, mon, player.level.level,
+              bonus: StatRules.modifierBonus(combatStats))));
+    }
+    // 묶음 31: 사냥꾼 → 주변에 사냥감이 더 (그날 기준 자리 둘레)
+    final hunt = (4 * JobRules.hunterSpawns * jobTrait(JobId.hunter)).round();
+    final day = DailyRecord.dayKeyOf(_clock());
+    final anchor = _nearAnchor;
+    if (hunt > 0 && anchor != null && _nearDay == day) {
+      out.addAll(around(anchor, '$day-hunt', hunt));
+    }
+    return out;
   }
 
   /// 그날 처음 위치를 잡은 곳을 기준 자리로 (하루 동안 고정)

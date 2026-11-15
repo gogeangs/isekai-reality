@@ -56,6 +56,8 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // 묶음 31: 넓은 시야를 쓰는 동안 얼굴을 더 본다
+    LensRules.facesNow = c.lensFaces;
     _start();
   }
 
@@ -81,7 +83,7 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _appraise() async {
-    final n = math.min(_engine.faces.value.length, LensRules.maxFaces);
+    final n = math.min(_engine.faces.value.length, LensRules.facesNow);
     if (n == 0) {
       _snack('얼굴이 보이지 않아요. 얼굴을 화면 가운데에 비춰 주세요.');
       return;

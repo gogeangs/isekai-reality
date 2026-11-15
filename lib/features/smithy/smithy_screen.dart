@@ -288,7 +288,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
     }
     final to = item.enhance + 1;
     final cost = EquipmentRules.enhanceCost(to);
-    final chance = (EquipmentRules.enhanceChance(to) * 100).round();
+    final chance = (c.enhanceChanceShown(to) * 100).round();
     return Row(children: [
       Expanded(
         child: KText(

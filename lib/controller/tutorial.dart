@@ -511,7 +511,13 @@ extension TutorialOps on AppController {
         mods: spawn.modifiers, count: battle.floors.length);
     // 묶음 27 #176: 직접 사냥해서 이기면 전투 숙련도 (그때 든 무기 · 그 몬스터)
     final w = _weaponKind;
-    await gainMastery(Mastery.combat, MasteryRules.fieldWin, details: [
+    await gainMastery(
+        Mastery.combat,
+        MasteryRules.fieldWin *
+            (skillTimedOn(JobSkill.drill)
+                ? 1 + JobRules.drillExp * skillPower(JobSkill.drill)
+                : 1),
+        details: [
       if (w != null) MasteryRules.weaponKey(w),
       MasteryRules.monsterKey(spawn.monster),
     ]);
@@ -587,6 +593,10 @@ extension TutorialOps on AppController {
     exp -= tiredExp;
     // 묶음 25 #171: Lv.5까지(잡는 순간 레벨) 필드 몬스터 경험치 두 배 (숨은 규칙)
     if (player.level.level <= 5) exp *= 2;
+    // 묶음 31: 단련 → 잠시 동안 사냥 경험치 더 (숨김)
+    if (skillTimedOn(JobSkill.drill)) {
+      exp = (exp * (1 + JobRules.drillExp * skillPower(JobSkill.drill))).round();
+    }
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;
@@ -607,12 +617,6 @@ extension TutorialOps on AppController {
       // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
       if (_masteryRoll(MasteryRules.monsterExtraLoot *
           _detailFrac(MasteryRules.monsterKey(monster)))) {
-        final d = LootRules.dropsOf(monster);
-        final extra = d.common[_random.nextInt(d.common.length)];
-        mats[extra] = (mats[extra] ?? 0) + 1;
-      }
-      // 묶음 30: 사냥꾼 → 필드 몬스터 재료 가끔 하나 더 (숨김)
-      if (_jobRoll(JobId.hunter, JobRules.hunterLoot)) {
         final d = LootRules.dropsOf(monster);
         final extra = d.common[_random.nextInt(d.common.length)];
         mats[extra] = (mats[extra] ?? 0) + 1;

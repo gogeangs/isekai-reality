@@ -245,7 +245,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     // 화면이 바뀐 뒤(카드를 고르는 등)마다 다시 본다. 바뀐 게 없으면 다시 그리지 않는다
     SchedulerBinding.instance.addPersistentFrameCallback((_) {
       if (!_alive || _queued) return;
-      if (_shownFeature == null && c.pendingFeatureIntro == null) return;
+      if (_shownFeature == null &&
+          c.pendingFeatureIntro == null &&
+          !c.skillIntroPending &&
+          !_skillMode) {
+        return;
+      }
       _queued = true;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         _queued = false;
@@ -785,6 +790,41 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   }
 
 
+  // ───────────── 묶음 31 #198 스킬 페이지가 열렸을 때: 카드 → 상태 → 스킬 → 전투 칸
+
+  /// 스킬 안내를 그리는 중인지
+  bool _skillMode = false;
+
+  /// 「새로 열렸어요」 카드를 넘겼는지 (앱을 끄면 다시 카드부터)
+  bool _skillCardSeen = false;
+
+  Future<void> _finishSkill() async {
+    _skillCardSeen = false;
+    await c.markSkillIntro();
+    _queue();
+  }
+
+  TourStep? _skillIntro() {
+    if (!_skillCardSeen) {
+      return TourStep('스킬 페이지가 열렸어! 전투에서 쓸 스킬을 고를 수 있어.',
+          opened: ('스킬', 'medal'), button: ('가 보기', () {
+        _skillCardSeen = true;
+        _queue();
+      }));
+    }
+    if (b.top == 'skills') {
+      if (b.topIsPopup) return null;
+      final r = rectOfKey(const Key('skillSlot_0'));
+      return TourStep('첫 스킬은 벌써 끼워 뒀어! 전투에서 눌러 써 봐.',
+          hole: r?.inflate(4),
+          wait: r == null,
+          button: ('알겠어요', _finishSkill));
+    }
+    if (b.top == null || b.topIsPopup) return null;
+    return _homeTarget(FeatureTourLayer.tStatus, const Key('skillsOpen'),
+        '상태에서 스킬을 볼 수 있어!', '여기 스킬을 눌러 봐!');
+  }
+
   TourStep _openedStep(Feature f) {
     final (name, icon, line) = switch (f) {
       Feature.stats => ('스탯', 'medal', ''),
@@ -806,7 +846,16 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   void _compute() {
     final f = c.pendingFeatureIntro;
     TourStep? step;
-    if (f == null) {
+    var skill = false;
+    if (f == null &&
+        c.skillIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready) {
+      skill = true;
+      step = _skillIntro();
+      if (step != null && step.wait) _scheduleRetry('skills:${step.line}');
+    } else if (f == null) {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
       step = _step(f);
@@ -824,10 +873,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       _scrollIntoView(f, step);
       if (step != null && step.line.isEmpty) step = null;
     }
-    if (!_same(step, _shown) || f != _shownFeature) {
+    if (!_same(step, _shown) || f != _shownFeature || skill != _skillMode) {
       setState(() {
         _shown = step;
         _shownFeature = f;
+        _skillMode = skill;
       });
     }
   }
@@ -840,6 +890,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         _queue();
         final step = _shown;
         final f = _shownFeature;
+        if (_skillMode && step != null && c.skillIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishSkill),
+          );
+        }
         if (step == null || f == null || c.pendingFeatureIntro != f) {
           return const SizedBox.shrink();
         }

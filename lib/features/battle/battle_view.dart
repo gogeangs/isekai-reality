@@ -48,10 +48,15 @@ class BattleView extends StatefulWidget {
     this.jobSkills = const [],
     this.jobMp,
     this.onJobSkill,
+    this.onMasterySkill,
   });
 
-  /// 직업 스킬 (묶음 30): 스킬과 MP 비용. 버튼을 누르면 [onJobSkill] 이 MP를 쓴다
-  final List<(JobSkill, int)> jobSkills;
+  /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
+  /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
+  final List<(JobSkill, int, double)> jobSkills;
+
+  /// 숙련 스킬을 썼을 때 (장사·의뢰 동전 튕기기 금화 등)
+  final Future<void> Function(Mastery)? onMasterySkill;
 
   /// 지금 MP
   final int Function()? jobMp;
@@ -363,7 +368,21 @@ class _BattleViewState extends State<BattleView> {
     _checkEnd();
   }
 
-  Future<void> _jobSkill(JobSkill s, int cost) async {
+  Future<void> _masterySkill(Mastery m) async {
+    if (_b.isOver) return;
+    var ok = false;
+    setState(() {
+      ok = _b.useMasterySkill(m);
+      if (ok) _record();
+    });
+    if (!ok) return;
+    await widget.onMasterySkill?.call(m);
+    if (widget.vibrate) HapticFeedback.mediumImpact();
+    if (mounted) setState(() {});
+    _checkEnd();
+  }
+
+  Future<void> _jobSkill(JobSkill s, int cost, double power) async {
     if (_b.isOver) return;
     final mp = widget.jobMp?.call() ?? 0;
     if (mp < cost) {
@@ -375,7 +394,7 @@ class _BattleViewState extends State<BattleView> {
     if (!probe) return;
     var ok = false;
     setState(() {
-      ok = _b.useJobSkill(s);
+      ok = _b.useJobSkill(s, power: power);
       if (ok) _record();
     });
     if (!ok) return;
@@ -636,17 +655,28 @@ class _BattleViewState extends State<BattleView> {
                 ]),
               ),
               const SizedBox(height: 10),
-              // 묶음 30 #55: 직업 스킬 (MP)
-              if (widget.jobSkills.isNotEmpty) ...[
+              // 묶음 31 #198: 전투 칸 2개 (직업 스킬 MP · 숙련 스킬 몇 턴마다)
+              if (widget.jobSkills.isNotEmpty ||
+                  (_b.heroSkills && _b.masteryActives.isNotEmpty)) ...[
                 Wrap(spacing: 8, runSpacing: 6, children: [
-                  for (final (sk, cost) in widget.jobSkills)
+                  for (final (sk, cost, power) in widget.jobSkills.take(2))
                     _JobSkillButton(
                       key: Key('battleJob_${sk.name}'),
                       name: JobRules.skill(sk).name,
                       cost: cost,
                       enough: (widget.jobMp?.call() ?? 0) >= cost,
-                      onPressed: () => _jobSkill(sk, cost),
+                      onPressed: () => _jobSkill(sk, cost, power),
                     ),
+                  if (_b.heroSkills)
+                    for (final m in _b.masteryActives
+                        .take(math.max(0, 2 - widget.jobSkills.length)))
+                      _MasterySkillButton(
+                        key: Key('battleMastery_${m.name}'),
+                        name: JobRules.masteryActive(m).name,
+                        ratio: _b.masteryRatio(m),
+                        ready: _b.masteryReady(m),
+                        onPressed: () => _masterySkill(m),
+                      ),
                 ]),
                 const SizedBox(height: 8),
               ],
@@ -2387,6 +2417,57 @@ class _JobSkillButton extends StatelessWidget {
               const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFFB27BFF)),
               const SizedBox(width: 4),
               Text('$name · MP $cost',
+                  style: const TextStyle(
+                      color: AppColors.text,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      );
+}
+
+/// 숙련 스킬 버튼 (MP 없이, 강타처럼 차오름)
+class _MasterySkillButton extends StatelessWidget {
+  const _MasterySkillButton({
+    super.key,
+    required this.name,
+    required this.ratio,
+    required this.ready,
+    required this.onPressed,
+  });
+
+  final String name;
+  final double ratio;
+  final bool ready;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+        opacity: ready ? 1 : 0.6,
+        child: GestureDetector(
+          onTap: ready ? onPressed : null,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+            decoration: BoxDecoration(
+              color: const Color(0xE614163A),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: ready ? AppColors.goldBright : AppColors.gold),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  value: ratio,
+                  strokeWidth: 3,
+                  color: AppColors.goldBright,
+                  backgroundColor: const Color(0x33FFFFFF),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(name,
                   style: const TextStyle(
                       color: AppColors.text,
                       fontSize: 13,

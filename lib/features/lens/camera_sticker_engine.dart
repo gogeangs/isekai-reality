@@ -150,7 +150,7 @@ class CameraStickerEngine implements RaceFilterEngine {
       if (_disposed) return;
       final meta = input.metadata!;
       _faces.value = [
-        for (final f in found.take(LensRules.maxFaces))
+        for (final f in found.take(LensRules.facesNow))
           _spot(f, meta.size, meta.rotation),
       ];
     } catch (_) {
@@ -230,7 +230,7 @@ class CameraStickerEngine implements RaceFilterEngine {
       final w = photo.width.toDouble(), h = photo.height.toDouble();
       final mirror = _front;
       var spots = <({Rect box, double roll})>[
-        for (final f in found.take(LensRules.maxFaces))
+        for (final f in found.take(LensRules.facesNow))
           (
             box: mirror
                 ? Rect.fromLTRB(w - f.boundingBox.right, f.boundingBox.top,

@@ -526,6 +526,7 @@ class AppController extends ChangeNotifier {
             el: (e.value as num).toDouble(),
       };
     }
+    final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
         ? {...player.titles}
         : {

@@ -788,7 +788,9 @@ extension ExpeditionOps on AppController {
     DateTime at(int h, [int sec = 1]) =>
         DateTime(dayStart.year, dayStart.month, dayStart.day, h, 0, sec);
     Future<int> win(DateTime a, DateTime b) async =>
-        end.isAfter(a) ? health.stepsBetween(a, end.isBefore(b) ? end : b) : 0;
+        end.isAfter(a)
+            ? await health.stepsBetween(a, end.isBefore(b) ? end : b)
+            : 0;
     final night = await win(at(0), at(5, 0)) +
         await win(at(19), DateTime(dayStart.year, dayStart.month, dayStart.day + 1));
     final dawn = await win(at(5), at(9, 0));

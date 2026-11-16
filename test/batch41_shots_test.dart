@@ -1,5 +1,6 @@
 // 묶음 41: 작은 iPhone(SE) · 큰 iPhone · Android 화면 미리보기 (build/screenshots/b41_*)
 // 글자 크기 기본·한 단계 크게(×1.12) 두 가지로 잡화상 사기·팔기를 찍는다.
+// 묶음 41 확인 답: 알림 띠가 떠 있는 채로 연달아 사기 · 팔고 바로 다른 줄 고르기 (b41n_*)
 
 import 'dart:convert';
 import 'dart:io';
@@ -10,8 +11,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/rules/rules.dart';
 
 import 'package:isekai_reality/features/town/shop_screen.dart';
+import 'package:isekai_reality/theme/top_notice.dart';
 
 import 'support/shop_seed.dart';
 
@@ -177,6 +180,43 @@ void main() {
         await tester.tap(find.byKey(const Key('shopTab_1')));
         await _settle(tester, 3);
         await _shot(tester, '${n}_11_팔기_마석4개');
+        expect(tester.takeException(), isNull);
+        await tester.pump(const Duration(seconds: 9));
+      });
+
+      testWidgets('b41n $n: 알림 띠가 떠 있어도 바로 누르기', (tester) async {
+        _device(tester, d, text: ts);
+        late AppController c;
+        await tester.runAsync(() async => c = await startShop(shopped: false));
+        await tester.pumpWidget(RepaintBoundary(
+          key: _root,
+          child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              builder: (context, child) => TopNoticeHost(child: child!),
+              home: ShopScreen(key: ObjectKey(c), controller: c)),
+        ));
+        await _settle(tester);
+        for (var k = 0; k < 2; k++) {
+          await tester.tap(find.byKey(const Key('shopItem_healSmall')));
+          await _settle(tester);
+          await tester.tap(find.byKey(const Key('buyConfirm')));
+          await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 80)));
+          await _settle(tester, 2);
+        }
+        await _shot(tester, '${n}_n1_연달아_2번_사기');
+        await tester.tap(find.byKey(const Key('shopTab_1')));
+        await _settle(tester, 3);
+        await tester.tap(find.byKey(const Key('sellRow_m:ironShard')));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('sellPicked')));
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 80)));
+        await _settle(tester, 2);
+        await tester.tap(find.byKey(const Key('sellRow_m:twig')));
+        await _settle(tester, 1);
+        await _shot(tester, '${n}_n2_팔고_바로_다른줄');
+        expect(c.bagCount(ShopItem.healSmall), 2);
         expect(tester.takeException(), isNull);
         await tester.pump(const Duration(seconds: 9));
       });

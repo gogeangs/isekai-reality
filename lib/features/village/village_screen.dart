@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/rules/rules.dart' show JobRules, VillageRules;
+import '../../core/rules/rules.dart' show JobRules, Npc, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';

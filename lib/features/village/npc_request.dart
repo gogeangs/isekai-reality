@@ -494,7 +494,7 @@ class NpcRequestPanel extends StatelessWidget {
               const SizedBox(height: 12),
               Text('마을 사람 부탁', style: AppText.title(16)),
               const SizedBox(height: 6),
-              for (final (n, r, p) in list)
+              for (final (n, _, p) in list)
                 GestureDetector(
                   key: Key('statusReq_${n.name}'),
                   behavior: HitTestBehavior.opaque,

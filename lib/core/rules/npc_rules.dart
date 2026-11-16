@@ -240,8 +240,8 @@ class NpcRules {
   /// 몬스터가 떨어뜨리는 재료
   static final Set<MaterialId> monsterMats = {
     for (final m in MonsterId.values) ...[
-      ...Materials.dropsOf(m).common,
-      Materials.dropsOf(m).rare,
+      ...LootRules.dropsOf(m).common,
+      LootRules.dropsOf(m).rare,
     ],
   };
 

@@ -9,7 +9,11 @@ extension PetsOps on AppController {
   bool get farewellDone => _pets.farewellDone;
 
   /// 데리고 다니는 펫 (정령이 떠나기 전에는 null)
-  Pet? get companionPet => _pets.farewellDone ? _pets.companionPet : null;
+  /// 묶음 43 #228: 훈련장에서 훈련 중인 펫은 동행·던전에 안 나온다
+  Pet? get companionPet => _pets.farewellDone &&
+          !petInTraining(_pets.companion)
+      ? _pets.companionPet
+      : null;
 
   /// 빛 조각에서 태어난 첫 펫 (묶음 29 #182). 이 펫만 말을 한다
   Pet? get firstPet {
@@ -397,7 +401,7 @@ extension PetsOps on AppController {
 
   /// 데리고 다닐 펫을 고른다
   Future<void> setCompanion(String uid) async {
-    if (_pets.byUid(uid) == null) return;
+    if (_pets.byUid(uid) == null || petInTraining(uid)) return;
     await _savePets(_pets.copyWith(companion: uid));
   }
 

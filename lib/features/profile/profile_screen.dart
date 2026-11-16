@@ -384,6 +384,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       prophecy: c.prophecyPieces,
                                       kingStory: c.kingStories,
                                       npcStories: c.npcStories,
+                                      trial: c.trainingOpen || c.trialEver > 0
+                                          ? (
+                                              week: c.trialBestThisWeek,
+                                              ever: c.trialEver,
+                                            )
+                                          : null,
                                       memory: switch (c.spiritMemory) {
                                         final m? => (
                                             name: c.firstSpiritName,

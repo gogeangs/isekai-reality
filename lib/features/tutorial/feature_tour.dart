@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, MaterialId;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, MaterialId, TrainingRules;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -249,6 +249,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           c.pendingFeatureIntro == null &&
           !c.skillIntroPending &&
           !c.shelterIntroPending &&
+          !c.trainingIntroPending &&
           !_skillMode) {
         return;
       }
@@ -822,6 +823,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _queue();
   }
 
+  Future<void> _finishTraining() async {
+    await c.markTrainingIntro();
+    _queue();
+  }
+
   Future<void> _finishSkill() async {
     _skillCardSeen = false;
     await c.markSkillIntro();
@@ -890,6 +896,17 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = TourStep('펫 쉼터가 열렸어! 알은 둥지에서, 지친 펫은 여기서 쉬어.',
           opened: ('펫 쉼터', 'village_shelter'),
           button: ('알겠어', _finishShelter));
+    } else if (f == null &&
+        c.trainingIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready &&
+        (b.top == null || b.top == 'home')) {
+      // 묶음 43 #228: 훈련장 「새로 열렸어요」 카드 (한 번만, 예전 Lv.13 이상 계정도)
+      skill = true;
+      step = TourStep(TrainingRules.openedLine,
+          opened: ('훈련장', 'village_training'),
+          button: ('알겠어', _finishTraining));
     } else if (f == null) {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
@@ -935,6 +952,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           return Material(
             type: MaterialType.transparency,
             child: _TourView(step: step, onSkip: _finishShelter),
+          );
+        }
+        if (_skillMode && step != null && c.trainingIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishTraining),
           );
         }
         if (step == null || f == null || c.pendingFeatureIntro != f) {

@@ -52,10 +52,14 @@ class BattleView extends StatefulWidget {
     this.onJobSkill,
     this.onMasterySkill,
     this.fit = false,
+    this.floorLabelOf,
   });
 
   /// 묶음 33 #202: 화면 남은 높이에 맞춰 전투 장면을 줄인다 (스크롤 없이 한 화면)
   final bool fit;
+
+  /// 묶음 43 훈련장: 층 이름 대신 쓰는 글 (「1판 · 허수아비」 등)
+  final String Function(Battle b)? floorLabelOf;
 
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
@@ -496,6 +500,7 @@ class _BattleViewState extends State<BattleView> {
       : _foeStatus.first.color;
 
   String get _floorLabel {
+    if (widget.floorLabelOf case final f?) return f(_b);
     if (_b.floors.length == 1) return '필드 전투';
     // 수식어 무리(필드): 몇 번째 마리인지
     if (!_b.floors.last.isBoss) {
@@ -1444,6 +1449,10 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                           monster: foe.monster,
                                           size: monSize,
                                           reveal: foe.reveal,
+                                          crystal: foe.monster ==
+                                                  MonsterId.dummyElement
+                                              ? elementColor(foe.element)
+                                              : null,
                                         )),
                           ),
                         ),
@@ -2289,10 +2298,14 @@ class MonsterPicture extends StatelessWidget {
     this.size = 64,
     this.defeated = false,
     this.reveal,
+    this.crystal,
   });
 
   final MonsterId monster;
   final double size;
+
+  /// 묶음 43 속성 허수아비: 가슴 수정에 그 속성 색
+  final Color? crystal;
 
   /// 묶음 34 잿빛 군주: 안개 판 위에 얼굴 판을 겹친다 (0 안개 ~ 1 얼굴)
   final double? reveal;
@@ -2321,6 +2334,11 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.ashFear => Icons.dark_mode_rounded,
         MonsterId.ashLonely => Icons.air_rounded,
         MonsterId.ashKing => Icons.cloud_rounded,
+        MonsterId.dummy ||
+        MonsterId.dummyHard ||
+        MonsterId.dummyElement =>
+          Icons.sports_martial_arts_rounded,
+        MonsterId.trainingGolem => Icons.smart_toy_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
@@ -2403,6 +2421,35 @@ class MonsterPicture extends StatelessWidget {
               semanticLabel: info.name,
             ),
     );
+    if (!defeated && crystal != null) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(fit: StackFit.expand, children: [
+          picture,
+          // 가슴 수정 자리 (그림 가운데, 위에서 약 45%)
+          Positioned(
+            key: const Key('dummyCrystal'),
+            left: size * 0.39,
+            top: size * 0.33,
+            width: size * 0.22,
+            height: size * 0.22,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [
+                    Colors.white.withValues(alpha: 0.9),
+                    crystal!.withValues(alpha: 0.85),
+                    crystal!.withValues(alpha: 0),
+                  ], stops: const [0, 0.45, 1]),
+                ),
+              ),
+            ),
+          ),
+        ]),
+      );
+    }
     if (!defeated) return picture;
     // 사냥한 몬스터는 쓰러지고 사라진다
     return Opacity(

@@ -60,6 +60,7 @@ extension VillageOps on AppController {
         'alchemy' => featureOpen(Feature.alchemy),
         'guild' => jobsOpen,
         'shelter' => shelterOpen,
+        'training' => trainingOpen,
         _ => false,
       };
 
@@ -90,6 +91,12 @@ extension VillageOps on AppController {
       for (final f in VillageRules.buildLevels.keys)
         if (facilityOpen(f)) 'built:$f',
     ]);
+  }
+
+  /// 묶음 43 #228: 예전 기록 Lv.13 이상은 훈련장을 완공 그림 그대로 (연출 없음, 카드는 한 번)
+  Future<void> _migrateBuilt43() async {
+    if (_village.contains('v43')) return;
+    await _markVillage(['v43', if (trainingOpen) 'built:training']);
   }
 
   /// 결말 뒤 탑 불꽃이 켜지는 연출을 아직 안 봤는지
@@ -154,6 +161,18 @@ extension VillageOps on AppController {
       !farewellPending;
 
   Future<void> markShelterIntro() => _markVillage(['shelterCard']);
+
+  /// 묶음 43 #228: 「새로 열렸어요」 훈련장 카드 (한 번만, 예전 Lv.13 이상 계정도)
+  bool get trainingIntroPending =>
+      trainingOpen &&
+      !_village.contains('trainingCard') &&
+      !inTutorial &&
+      pendingFeatureIntro == null &&
+      !skillIntroPending &&
+      !farewellPending &&
+      !shelterIntroPending;
+
+  Future<void> markTrainingIntro() => _markVillage(['trainingCard']);
 
   /// 지친 펫의 남은 시간 (지치지 않았으면 null)
   Duration? petTiredLeft(String uid) {

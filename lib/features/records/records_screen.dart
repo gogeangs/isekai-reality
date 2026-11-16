@@ -18,10 +18,14 @@ class RecordsScreen extends StatefulWidget {
       this.prophecy = const [],
       this.kingStory = const [],
       this.npcStories = const [],
+      this.trial,
       this.memory});
 
   /// 묶음 42 #226: 마을 사람 이야기 (만난 사람마다 조각 4개, 못 본 조각은 null)
   final List<(Npc, List<String?>)> npcStories;
+
+  /// 묶음 43 #228: 시련 최고 기록 (이번 주 · 지금까지, 훈련장 전엔 null)
+  final ({int week, int ever})? trial;
 
   /// 왕의 사연 (묶음 34): 쓰러뜨린 분신 순서대로 늘어난다
   final List<String> kingStory;
@@ -271,6 +275,23 @@ class _RecordsScreenState extends State<RecordsScreen> {
               ),
           ],
           NpcStoryRecords(stories: widget.npcStories),
+          if (widget.trial case final t?) ...[
+            const SizedBox(height: 16),
+            Text('시련 최고 기록',
+                key: const Key('trialRecords'), style: AppText.title(19)),
+            const SizedBox(height: 8),
+            OrnatePanel(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(children: [
+                _MemoryRow(
+                    label: '이번 주',
+                    value: t.week > 0 ? '${t.week}판' : '아직 없어요'),
+                _MemoryRow(
+                    label: '지금까지',
+                    value: t.ever > 0 ? '${t.ever}판' : '아직 없어요'),
+              ]),
+            ),
+          ],
           const SizedBox(height: 16),
           Text('하루별 기록', style: AppText.title(19)),
           const SizedBox(height: 8),

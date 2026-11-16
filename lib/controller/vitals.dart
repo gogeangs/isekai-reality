@@ -87,6 +87,8 @@ extension VitalsOps on AppController {
     _refreshing = true;
     try {
       await _refreshVitals();
+      // 묶음 43 #228: 끝난 펫 훈련
+      await _settlePetTraining();
     } catch (e, st) {
       // 묶음 16 #124: 시간에 따른 갱신이 실패해도 앱은 계속 (오류만 남긴다)
       await _logStartError(e, st);

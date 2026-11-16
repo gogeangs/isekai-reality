@@ -677,6 +677,15 @@ class Battle {
   static const int stanceLength = 3;
   static const double stanceTaken = 0.6;
 
+  /// 묶음 43 #228 훈련장 연습: 허수아비는 쓰러지지 않고 때리지 않는다. 준 피해를 모은다
+  bool practice = false;
+  int practiceDealt = 0;
+
+  /// 쓴 횟수 (훈련장 부탁: 강타 · 방어 태세 · 스킬)
+  int bashes = 0;
+  int stances = 0;
+  int skillsUsed = 0;
+
   int bashCharge = 0;
   int stanceCharge = 0;
   int stanceTurns = 0;
@@ -707,6 +716,7 @@ class Battle {
     lastDealt = dmg;
     lastTaken = 0;
     lastBash = true;
+    bashes++;
     _hitFoe(dmg);
     _checkRage();
     return true;
@@ -847,6 +857,12 @@ class Battle {
 
   /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). [power] 는 스킬 단계 세기. 쓸 수 없으면 false
   bool useJobSkill(JobSkill s, {double power = 1}) {
+    final ok = _useJobSkill(s, power: power);
+    if (ok) skillsUsed++;
+    return ok;
+  }
+
+  bool _useJobSkill(JobSkill s, {double power = 1}) {
     if (phase != BattlePhase.fighting || skillsLocked) return false;
     final p = power;
     switch (s) {
@@ -975,6 +991,7 @@ class Battle {
   /// 숙련 스킬 (MP 없이 몇 턴마다)
   bool useMasterySkill(Mastery m) {
     if (!masteryReady(m)) return false;
+    skillsUsed++;
     masteryCharge[m] = 0;
     _startSkill('${JobRules.masteryActive(m).name}!');
     switch (m) {
@@ -1032,6 +1049,7 @@ class Battle {
     if (!stanceReady) return false;
     stanceCharge = 0;
     stanceTurns = stanceLength;
+    stances++;
     lastEvent = '방어 태세!';
     lastDealt = 0;
     lastTaken = 0;
@@ -1422,6 +1440,7 @@ class Battle {
   }
 
   void _foeTurn() {
+    if (practice) return;
     final f = foe;
     if (foeBindTurns > 0) {
       foeBindTurns--;
@@ -1579,6 +1598,7 @@ class Battle {
   /// 스킬 '불씨의 일격'. 충전이 다 됐을 때만 쓸 수 있다.
   bool useSkill() {
     if (!skillReady) return false;
+    skillsUsed++;
     skillCharge = 0;
     lastWasSkill = true;
     lastEvent = null;
@@ -1688,6 +1708,10 @@ class Battle {
   static const notEffective = '효과가 별로인 것 같다…';
 
   void _hitFoe(int damage) {
+    if (practice) {
+      practiceDealt += damage;
+      return;
+    }
     foeHp = math.max(0, foeHp - damage);
     if (foeHp > 0) return;
     phase = floor == floors.length - 1

@@ -108,7 +108,7 @@ class AppController extends ChangeNotifier {
           'act2': {'announced': 6},
           // 묶음 35: 예시 모드는 마을 소개·쉼터 카드를 본 것으로 (넓은 마을 미리 보기는 켬)
           'village': {
-            'seen': ['intro', 'farewell', 'shelterCard'],
+            'seen': ['intro', 'farewell', 'shelterCard', 'trainingCard'],
           },
         },
       ),

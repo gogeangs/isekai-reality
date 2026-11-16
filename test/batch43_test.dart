@@ -208,6 +208,8 @@ void main() {
       trial: (week: 7, ever: 12),
     ))));
     await tester.pump();
+    await tester.scrollUntilVisible(find.byKey(const Key('trialRecords')), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.byKey(const Key('trialRecords')), findsOneWidget);
     await tester.pump(const Duration(seconds: 9));
   });

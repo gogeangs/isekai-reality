@@ -262,3 +262,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | village_alchemy_build{3,2,1} | 공사 중 연금술 공방 3단계 (#225, 한 장 시트에서 잘라 village_alchemy 받침에 맞춤, 512) |
 | 2026-11-16 | village_shelter_build{3,2,1} | 공사 중 펫 쉼터 3단계 (#225, 한 장 시트에서 잘라 village_shelter 받침에 맞춤, 512) |
 | 2026-11-16 | village_guild_build{3,2,1} | 공사 중 길드 3단계 (#225, 한 장 시트에서 잘라 village_guild 받침에 맞춤, 512) |
+| 2026-11-16 | village_training | 훈련장 건물 (#228, 다른 건물과 같은 크기·바닥 위치, 512) |

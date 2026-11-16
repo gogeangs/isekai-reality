@@ -122,8 +122,9 @@ class BagHoldSheet extends StatelessWidget {
                                 content: const KText('버린 것은 되찾을 수 없어요.'),
                                 actions: [
                                   TextButton(
+                                      key: const Key('bagHoldKeep'),
                                       onPressed: () => Navigator.of(d).pop(false),
-                                      child: const Text('취소')),
+                                      child: const Text('그대로 두기')),
                                   TextButton(
                                       key: const Key('bagHoldDropAllYes'),
                                       onPressed: () => Navigator.of(d).pop(true),

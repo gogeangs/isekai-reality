@@ -216,8 +216,11 @@ void main() {
     final sc = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(find.byKey(const Key('errandNote_0')), 200,
         scrollable: sc);
+    for (var i = 0; i < 3; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
     await tester.tap(find.byKey(const Key('errandNote_0')));
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }
     final seal = find.byKey(const Key('detailSeal'));

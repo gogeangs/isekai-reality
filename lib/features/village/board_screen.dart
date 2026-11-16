@@ -1148,8 +1148,9 @@ class _AbandonButton extends StatelessWidget {
               content: const KText('지금까지 센 것은 사라지고, 2시간 뒤 새 의뢰가 붙어요.'),
               actions: [
                 TextButton(
+                    key: const Key('errandAbandonNo'),
                     onPressed: () => Navigator.of(d).pop(false),
-                    child: const Text('취소')),
+                    child: const Text('계속하기')),
                 TextButton(
                     key: const Key('errandAbandonYes'),
                     onPressed: () => Navigator.of(d).pop(true),

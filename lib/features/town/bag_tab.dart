@@ -1414,7 +1414,7 @@ class BagHoldBanner extends StatelessWidget {
         const Icon(Icons.inventory_2_rounded, color: AppColors.goldBright, size: 22),
         const SizedBox(width: 8),
         Expanded(
-          child: KText('가방이 가득해 받지 못한 것 $n가지',
+          child: KText('받지 못한 것 $n가지',
               style: const TextStyle(
                   color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
         ),

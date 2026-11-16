@@ -13,7 +13,15 @@ class HarvestState {
     this.streak = 0,
     this.perfects = const {},
     this.relics = 0,
+    this.kindStreak = const {},
+    this.gamesSeen = const [],
   });
+
+  /// 묶음 46 #233: 종류마다 완벽 연속 (불꽃 아이콘, 숫자는 안 보임)
+  final Map<String, int> kindStreak;
+
+  /// 묶음 46 #234: 처음 해 본 미니게임 (처음만 큰 설명)
+  final List<String> gamesSeen;
 
   /// 도구 이름 → 내구도
   final Map<String, int> tools;
@@ -67,6 +75,8 @@ class HarvestState {
     int? streak,
     Map<String, int>? perfects,
     int? relics,
+    Map<String, int>? kindStreak,
+    List<String>? gamesSeen,
   }) =>
       HarvestState(
         tools: tools ?? this.tools,
@@ -78,6 +88,8 @@ class HarvestState {
         streak: streak ?? this.streak,
         perfects: perfects ?? this.perfects,
         relics: relics ?? this.relics,
+        kindStreak: kindStreak ?? this.kindStreak,
+        gamesSeen: gamesSeen ?? this.gamesSeen,
       );
 
   /// 가득 찬 자리는 지운다 (저장 크기를 줄인다)
@@ -96,6 +108,8 @@ class HarvestState {
         if (streak > 0) 'streak': streak,
         if (perfects.isNotEmpty) 'perfects': perfects,
         if (relics > 0) 'relics': relics,
+        if (kindStreak.isNotEmpty) 'kindStreak': kindStreak,
+        if (gamesSeen.isNotEmpty) 'gamesSeen': gamesSeen,
       };
 
   factory HarvestState.fromJson(Map<String, dynamic> j) {
@@ -119,6 +133,8 @@ class HarvestState {
       streak: (j['streak'] as num?)?.toInt() ?? 0,
       perfects: ints(j['perfects']),
       relics: (j['relics'] as num?)?.toInt() ?? 0,
+      kindStreak: ints(j['kindStreak']),
+      gamesSeen: [for (final x in (j['gamesSeen'] as List?) ?? const []) '$x'],
     );
   }
 }

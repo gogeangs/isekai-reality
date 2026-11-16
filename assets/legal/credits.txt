@@ -10,6 +10,10 @@ Sounds: Oculus Audio Pack 01 (Meta), CC BY 4.0, 일부 편집
 - 편집: 두 소리를 겹치고(타격·완벽한 막기), 길이를 줄이고 끝을 서서히 줄였습니다.
 - 받은 곳: GitHub facebookincubator/Meta-open-sound
 
+채집 효과음: Kenney (www.kenney.nl) "Interface Sounds" · "Impact Sounds" · "RPG Audio", CC0 1.0 (퍼블릭 도메인)
+- 라이선스: Creative Commons Zero 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+- 편집: 한 채널로 바꾸고, 광석 소리는 길이를 줄이고 끝을 서서히 줄였습니다.
+
 ## 글꼴
 고운바탕 (Gowun Batang), SIL Open Font License 1.1
 

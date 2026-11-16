@@ -12,7 +12,6 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
-import 'package:isekai_reality/theme/ornaments.dart';
 
 class _Location implements LocationSource {
   final _c = StreamController<LocationFix>.broadcast();

@@ -285,3 +285,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | harvest_relic_dirt | 유물 발굴 흙 덮개 만화풍으로 교체 (#234, 1024) |
 | 2026-11-17 | bg_harvest_herb | 채집 미니 게임 약초 덤불 배경 (#234, 1024×1536) |
 | 2026-11-17 | harvest_mushroom_bed | 채집 미니 게임 버섯 밭 판 (#234, 1024, 빈 자리 3×3 중심 x 293·507·721 / y 356·527·700) |
+| 2026-11-17 | harvest_herb_soil, harvest_wood_saw, harvest_water_bobber, harvest_water_fish | 채집 미니 게임 작은 소품 4종 (#234, 한 장에서 잘라 회색 안개 제거, 흙·톱·물고기 512×256, 찌 256×256) |

@@ -911,6 +911,12 @@ void main() {
     expect(saved, 1);
     // 11-11 #97: 도감 「종족」 대신 돋보기 안 감정 앨범
     expect(c.album, isNotEmpty);
+    // 위쪽 알림 띠가 앨범 버튼을 덮고 있으면 눌러 닫는다
+    if (find.byKey(const Key('topNotice')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('topNotice')));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+    }
     await tester.tap(find.byKey(const Key('lensAlbum')));
     await tester.pumpAndSettle();
     expect(find.text('사진 ${c.album.length}장'), findsOneWidget);

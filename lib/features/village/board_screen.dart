@@ -548,11 +548,11 @@ class _ErrandPanel extends StatelessWidget {
     final b = controller.board;
     return FoldingQuestPanel(
       done: b.doneToday >= BoardRules.errandsPerDay,
-      foldedText: '길드 의뢰 오늘 모두 완료 · ${b.doneToday}개',
+      foldedText: '조합 의뢰 오늘 모두 완료 · ${b.doneToday}개',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          BoardPlaque('길드 의뢰',
+          BoardPlaque('조합 의뢰',
               note: '오늘 ${b.doneToday} / ${BoardRules.errandsPerDay}'),
           const _BoardNote('수락하면 시작 · 끝내면 2시간 뒤 새 의뢰 · 자정에 모두 바뀌어요'),
           const SizedBox(height: 4),
@@ -618,7 +618,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
       final ready = s.readyAt;
       final String text;
       if (b.doneToday >= BoardRules.errandsPerDay) {
-        text = '오늘 길드 의뢰는 다 끝냈어요';
+        text = '오늘 조합 의뢰는 다 끝냈어요';
       } else if (ready != null && c.now.isBefore(ready)) {
         final left = ready.difference(c.now);
         text = '새 의뢰가 ${left.inHours > 0 ? '${left.inHours}시간 ' : ''}'
@@ -712,7 +712,7 @@ class _ErrandDetailState extends State<_ErrandDetail> {
             stamp: done
                 ? null
                 : s.accepted
-                    ? WaxSeal(key: ValueKey('seal_$slot'), stampIn: stampIn)
+                    ? WaxSeal(key: ValueKey('seal_$slot'), stampIn: stampIn, size: 42)
                     : null,
             title: t.title,
             line: switch ((_npcOf(t), s.accepted)) {
@@ -728,6 +728,17 @@ class _ErrandDetailState extends State<_ErrandDetail> {
             rewards: ErrandRewards(t: t),
             timeLeft: '자정까지 ${_untilMidnight(c.now)}',
             actions: [
+              // 묶음 47 #239: 「포기」는 왼쪽에 붉은 테두리 작은 버튼, 누르면 확인 창
+              if (s.accepted && !done) ...[
+                _AbandonButton(
+                  key: Key('errandAbandon_$slot'),
+                  onConfirmed: () async {
+                    await c.abandonErrand(slot);
+                    if (context.mounted) Navigator.of(context).maybePop();
+                  },
+                ),
+                const SizedBox(width: 16),
+              ],
               Expanded(
                 child: GoldButton(
                   key: Key(!s.accepted
@@ -763,17 +774,6 @@ class _ErrandDetailState extends State<_ErrandDetail> {
                           : null,
                 ),
               ),
-              if (s.accepted && !done) ...[
-                const SizedBox(width: 8),
-                TextButton(
-                  key: Key('errandAbandon_$slot'),
-                  onPressed: () async {
-                    await c.abandonErrand(slot);
-                    if (context.mounted) Navigator.of(context).maybePop();
-                  },
-                  child: const Text('포기', style: TextStyle(color: kInkSoft)),
-                ),
-              ],
             ],
           );
         },
@@ -819,12 +819,20 @@ class _DetailSheet extends StatelessWidget {
             child: ParchmentNote(
               seed: 0,
               edge: edge,
-              stamp: stamp,
+              // 묶음 47 #239: 상세 창에서는 인장을 이름 옆(오른쪽 위)에 — 아래 버튼을 가리지 않게
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(keepAll(title), style: noteTitle(19)),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(child: Text(keepAll(title), style: noteTitle(19))),
+                    if (stamp != null) ...[
+                      const SizedBox(width: 8),
+                      KeyedSubtree(
+                          key: const Key('detailSeal'),
+                          child: IgnorePointer(child: stamp!)),
+                    ],
+                  ]),
                   const SizedBox(height: 4),
                   Text(line,
                       style: const TextStyle(color: kInkSoft, fontSize: 13)),
@@ -956,7 +964,7 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
           return _DetailSheet(
             seed: 2,
             edge: const Color(0xFFB8322A),
-            stamp: b.urgentAccepted && !ready ? const WaxSeal() : null,
+            stamp: b.urgentAccepted && !ready ? const WaxSeal(size: 42) : null,
             title: u.quest.title,
             line: '긴급 의뢰예요. 오늘 자정까지만 붙어 있어요.',
             ratio: b.urgentAccepted ? progress / u.quest.target : null,
@@ -1113,4 +1121,46 @@ class ErrandRewards extends StatelessWidget {
         for (final e in t.materials.entries)
           (MaterialIcon(e.key, size: 15), '${Materials.info(e.key).name} ${e.value}'),
       ]);
+}
+
+
+/// 묶음 47 #239: 의뢰 포기 버튼 (붉은 테두리, 누르면 확인 창)
+class _AbandonButton extends StatelessWidget {
+  const _AbandonButton({super.key, required this.onConfirmed});
+
+  final Future<void> Function() onConfirmed;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFA8322A),
+          side: const BorderSide(color: Color(0xFFB8453A), width: 1.6),
+          backgroundColor: const Color(0x22B8453A),
+          minimumSize: const Size(64, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        onPressed: () async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (d) => GameAlert(
+              title: const Text('이 의뢰를 포기할까요?'),
+              content: const KText('지금까지 센 것은 사라지고, 2시간 뒤 새 의뢰가 붙어요.'),
+              actions: [
+                TextButton(
+                    key: const Key('errandAbandonNo'),
+                    onPressed: () => Navigator.of(d).pop(false),
+                    child: const Text('계속하기')),
+                TextButton(
+                    key: const Key('errandAbandonYes'),
+                    onPressed: () => Navigator.of(d).pop(true),
+                    child: const Text('포기하기')),
+              ],
+            ),
+          );
+          if (ok == true) await onConfirmed();
+        },
+        child: const Text('포기',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+      );
 }

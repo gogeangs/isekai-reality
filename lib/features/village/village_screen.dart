@@ -66,7 +66,7 @@ class VillageScreen extends StatefulWidget {
   /// 양옆 큰 공터 6곳은 새 건물 자리로 비워 둔다
   static const facilities = [
     FacilityInfo(Facility.alchemy, '연금술 공방', FacilityGroup.craft, (x: 635, y: 505, w: 132)),
-    FacilityInfo(Facility.guild, '길드', FacilityGroup.work, (x: 770, y: 505, w: 132)),
+    FacilityInfo(Facility.guild, '조합', FacilityGroup.work, (x: 770, y: 505, w: 132)),
     FacilityInfo(Facility.market, '거래소', FacilityGroup.rest, (x: 908, y: 505, w: 132)),
     FacilityInfo(Facility.inn, '여관', FacilityGroup.rest, (x: 635, y: 642, w: 132)),
     FacilityInfo(Facility.shop, '잡화상', FacilityGroup.rest, (x: 908, y: 642, w: 132)),

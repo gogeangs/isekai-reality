@@ -53,7 +53,7 @@ void main() {
   group('#176 확인 답', () {
     test('31번 대사', () {
       expect(MasteryRules.stageLine(Mastery.trade, MasteryStage.expert),
-          '길드에서도 네 이름을 알더라. 일 맡기기 든든하대!');
+          '조합에서도 네 이름을 알더라. 일 맡기기 든든하대!');
     });
 
     test('기존 계정: 대장간 좋은 등급은 예전 값(10개마다 +1%p)보다 줄지 않음', () async {

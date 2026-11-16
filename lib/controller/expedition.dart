@@ -126,22 +126,20 @@ extension ExpeditionOps on AppController {
   });
   }
 
-  /// 가방이 가득 차 금화로 바꾼 값 (알림을 띄우고 0으로)
-  int takeBagOverflow() {
-    final g = _bagOverflow;
-    _bagOverflow = 0;
-    return g;
-  }
-
-  int get pendingBagOverflow => _bagOverflow;
-
-  ({Map<MaterialId, int> kept, int gold}) _fitBag(
-      Map<MaterialId, int> incoming) {
-    if (incoming.isEmpty) return (kept: incoming, gold: 0);
-    final fit = BagRules.fit(
-        incoming: incoming, have: player.materials, freeSlots: bagFree);
-    _bagOverflow += fit.gold;
-    return fit;
+  /// 새로 얻은 재료 중 가방에 들어가는 만큼을 돌려준다 (넣는 건 부르는 쪽).
+  /// 묶음 47 #240: 남는 것은 금화로 바꾸지 않고 [over] 대로 — 「가방이 가득 찼어요」 창 또는 우편함
+  Future<Map<MaterialId, int>> _fitBag(Map<MaterialId, int> incoming,
+      {BagOver over = BagOver.hold, String? title}) async {
+    if (incoming.isEmpty) return incoming;
+    final s = _splitBag({
+      for (final e in incoming.entries)
+        if (e.value > 0) e.key.name: e.value,
+    });
+    await _bagOverflowTo(s.rest, over: over, title: title);
+    return {
+      for (final e in s.fit.entries)
+        if (Materials.byName(e.key) case final m?) m: e.value,
+    };
   }
 
   /// 재료를 버린다

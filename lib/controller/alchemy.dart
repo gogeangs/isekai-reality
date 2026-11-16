@@ -163,6 +163,7 @@ extension AlchemyOps on AppController {
     ];
     final brews = {..._alc.brews}..remove(slot);
     var a = _alc.copyWith(brews: brews);
+    var alcRest = const <String, int>{};
     final match = _brewMatch(put);
     BrewResult result;
     if (match == null) {
@@ -196,13 +197,16 @@ extension AlchemyOps on AppController {
               (q == PotionQuality.best ? AlchemistRules.bestBonusPoints : 0));
       if (info.shopItem != null &&
           (q == PotionQuality.normal || AlchemyRules.needsJobs(match.id))) {
-        // 잡화상과 같은 물약은 같은 물건으로 가방에
-        final today = await _todayRecord();
-        await _save(today.copyWith(
-            counters: DailyRecord.addCounts(today.counters,
-                {TownRules.giftKey(info.shopItem!): yields})));
+        // 잡화상과 같은 물약은 같은 물건으로 가방에.
+        // 묶음 47 #240: 가방이 가득하면 「가방이 가득 찼어요」 창으로
+        await _admitBag({'item:${info.shopItem!.name}': yields});
       } else {
-        a = a.add(AlchemyRules.keyOf(match.id, q), yields);
+        // 묶음 47 #240: 공방 물약은 팔 수 없어서, 가방이 가득하면 우편함에
+        final k = AlchemyRules.keyOf(match.id, q);
+        final sp = _splitBag({'alc:$k': yields});
+        final n = sp.fit['alc:$k'] ?? 0;
+        if (n > 0) a = a.add(k, n);
+        alcRest = sp.rest;
       }
       if (isNew) a = a.copyWith(discovered: [...a.discovered, match.id.name]);
       result = BrewResult(
@@ -213,6 +217,7 @@ extension AlchemyOps on AppController {
           discovered: isNew);
     }
     await _saveAlc(a);
+    await _bagOverflowTo(alcRest, over: BagOver.hold, title: '공방 물약');
     // 묶음 42 #226: 엘리엘 부탁 (물약 끓이기 · 처음 보는 레시피)
     await _npcTally(NpcTally.brew);
     if (result.discovered) await _npcTally(NpcTally.newRecipe);

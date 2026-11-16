@@ -119,7 +119,7 @@ class _GuildScreenState extends State<GuildScreen> {
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 30),
               children: [
                 OrnateTopBar(
-                    title: '길드', onBack: () => Navigator.of(context).maybePop()),
+                    title: '조합', onBack: () => Navigator.of(context).maybePop()),
                 const SizedBox(height: 6),
                 // 묶음 35: 길드 홀 그림 (띠처럼) + 길드장 세라
                 ClipRRect(
@@ -371,7 +371,7 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
           const SizedBox(height: 22),
           GoldButton(
               key: const Key('jobAwakenGo'),
-              label: '길드에 가기',
+              label: '조합에 가기',
               onPressed: () => setState(() => _step = 1)),
         ]),
       1 => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -380,7 +380,7 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
           KText(
               _apprentice
                   ? '아직 열린 직업이 없어요. 가장 익숙한 일의 견습으로 시작해요. 그 일에 더 익숙해지면 견습을 떼요.'
-                  : '지금까지 해 온 일로 열린 직업이에요. 주 직업 하나를 골라요. 나중에 길드에서 언제든 바꿀 수 있어요.',
+                  : '지금까지 해 온 일로 열린 직업이에요. 주 직업 하나를 골라요. 나중에 조합에서 언제든 바꿀 수 있어요.',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           const SizedBox(height: 12),
           for (final j in _choices)

@@ -159,7 +159,7 @@ void main() {
     await tester.pump();
     final text = allText(tester);
     expect(text, contains('오늘의 의뢰'));
-    expect(text, contains('길드 의뢰'));
+    expect(text, contains('조합 의뢰'));
     expect(text, isNot(contains('일일 퀘스트')));
     expect(text, isNot(contains('수시 의뢰')));
     expect(find.byKey(const Key('woodBoard')), findsOneWidget);

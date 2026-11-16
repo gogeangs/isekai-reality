@@ -175,7 +175,7 @@ void main() {
       expect(c.whetstones, 0);
       await c.acceptRequest(Npc.dorgun);
       expect(c.requestProgress(Npc.dorgun).map((p) => p.step.label),
-          contains(contains('잿빛 슬라임')));
+          contains('슬라임 2마리 잡기'));
       expect(cap, greaterThan(0));
     });
 

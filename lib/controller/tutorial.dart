@@ -527,7 +527,10 @@ extension TutorialOps on AppController {
     ]);
     // 묶음 42 #226: 세라·도르군 부탁 (필드 몬스터 · 잿빛 슬라임)
     await _npcTally(NpcTally.fieldKill);
-    if (spawn.monster == MonsterId.ashSlime) await _npcTally(NpcTally.ashKill);
+    // 묶음 47 #241: 속성 슬라임까지 슬라임 무리를 모두 셈
+    if (NpcTally.slimeKill(spawn.monster)) {
+      await _npcTally(NpcTally.ashKill);
+    }
     return exp;
   });
 
@@ -643,12 +646,11 @@ extension TutorialOps on AppController {
         extraMana ~/= 2;
         gold ~/= 2;
       }
-      // 가방이 가득하면 남는 재료는 금화로 (11-11 #48)
-      final fit = _fitBag(mats);
+      // 묶음 47 #240: 가방이 가득하면 남는 재료는 「가방이 가득 찼어요」 창으로
+      final kept = await _fitBag(mats);
       mats
         ..clear()
-        ..addAll(fit.kept);
-      gold += fit.gold;
+        ..addAll(kept);
     }
     final fieldMana = (RuleConstants.fieldUnits(n + 1) *
                 RuleConstants.crystalsPerFieldMonster)

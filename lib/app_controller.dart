@@ -41,6 +41,7 @@ import 'features/status/demo_data.dart';
 part 'controller/act2.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
+part 'controller/bag_hold.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
 part 'controller/drive.dart';
@@ -839,7 +840,9 @@ class AppController extends ChangeNotifier {
   /// 광고를 끝까지 보면 true. 앱이 채워 넣는다 (테스트·광고 없는 빌드는 null)
   Future<bool> Function(String placement)? watchAd;
 
-  int _bagOverflow = 0;
+  // 묶음 47 #240: 가방이 가득 찼을 때 (창을 띄울 차례 · 우편함에 맡긴 수)
+  bool _bagHoldNew = false;
+  int _bagMailed = 0;
 
   // ───────────────────────────────────────────── 스탯 5종 (11-11 #50)
 

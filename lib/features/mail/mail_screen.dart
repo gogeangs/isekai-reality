@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
+import '../../core/models/armory.dart';
 import '../../core/models/mail_state.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
@@ -45,7 +46,7 @@ class _MailScreenState extends State<MailScreen> {
               shrinkWrap: true,
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
               children: [
-                Text(cur.title, style: AppText.title(19)),
+                Text(mailText(cur.title), style: AppText.title(19)),
                 const SizedBox(height: 2),
                 Text('${cur.from} · ${cur.sentAt.month}월 ${cur.sentAt.day}일',
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -60,13 +61,13 @@ class _MailScreenState extends State<MailScreen> {
                 ],
                 const SizedBox(height: 10),
                 if (cur.body.isNotEmpty)
-                  KText(cur.body,
+                  KText(mailText(cur.body),
                       style: const TextStyle(color: AppColors.text, height: 1.5)),
-                if (cur.gifts.isNotEmpty) ...[
+                if (cur.gifts.isNotEmpty || cur.equips.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   OrnatePanel(
                     child: KText(
-                        '${cur.claimed ? '받은 선물' : '선물'}: ${giftLabel(c, cur.gifts)}'
+                        '${cur.claimed ? '받은 선물' : '선물'}: ${giftLabel(c, cur.gifts, cur.equips)}'
                         '${cur.expiresAt != null && !cur.claimed ? '\n${MailRules.daysLeft(cur.expiresAt!, now)}일 뒤 사라져요' : ''}',
                         style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
                   ),
@@ -144,7 +145,7 @@ class _MailScreenState extends State<MailScreen> {
                     },
                   ),
                   const SizedBox(height: 4),
-                  const Text('가방이 가득하면 넘치는 물건은 금화로 바꿔 받아요. 금화·마석은 언제나 받아요.',
+                  const Text('가방이 가득하면 들어가지 않는 물건은 우편에 남아요. 자리를 만든 뒤 다시 받아요. 금화·마석은 언제나 받아요.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   const SizedBox(height: 8),
@@ -219,7 +220,7 @@ class _MailRow extends StatelessWidget {
             : Icons.drafts_rounded;
     final sub = [
       m.from,
-      if (m.hasGifts) giftLabel(controller, m.gifts),
+      if (m.hasGifts) giftLabel(controller, m.gifts, m.equips),
       if (m.expiresAt != null && m.hasGifts)
         '${MailRules.daysLeft(m.expiresAt!, controller.now)}일 남음',
     ].join(' · ');
@@ -240,7 +241,7 @@ class _MailRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(m.title,
+              Text(mailText(m.title),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -283,8 +284,13 @@ class _RedDot extends StatelessWidget {
       );
 }
 
+/// 묶음 47 #237: 마을 「길드」는 「조합」으로 이름이 바뀜 — 예전에 받은 편지 글도 새 이름으로
+String mailText(String s) => s.replaceAll('길드', '조합');
+
 /// 선물 글 ('금화 100, 약초 3')
-String giftLabel(AppController c, Map<String, int> gifts) => [
+String giftLabel(AppController c, Map<String, int> gifts,
+        [List<EquipItem> equips = const []]) =>
+    [
       for (final e in gifts.entries)
         switch (e.key) {
           Wallet.gold => '금화 ${e.value}',
@@ -293,6 +299,8 @@ String giftLabel(AppController c, Map<String, int> gifts) => [
           'note' => '레시피 쪽지 ${e.value}',
           'tools' => '채집 도구 한 벌',
           'egg' => '알 ${e.value}',
+          final k when k.startsWith('alc:') =>
+            '${c.potionName(k.substring(4))} ${e.value}',
           final k when k.startsWith('item:') => () {
               for (final it in ShopItem.values) {
                 if (it.name == k.substring(5)) return '${c.itemName(it)} ${e.value}';
@@ -301,6 +309,7 @@ String giftLabel(AppController c, Map<String, int> gifts) => [
             }(),
           final k => '${Materials.byName(k) == null ? k : Materials.info(Materials.byName(k)!).name} ${e.value}',
         },
+      for (final e in equips) EquipmentRules.info(e.base).name,
     ].join(', ');
 
 /// 위쪽 우편 버튼 (새 우편이 있으면 빨간 점)

@@ -277,7 +277,7 @@ Future<void> _track(BuildContext context, AppController c) async {
 
 Future<void> _negotiate(BuildContext context, AppController c) async {
   final b = c.board;
-  final slot = await _pick<int>(context, '바꿀 길드 의뢰', [
+  final slot = await _pick<int>(context, '바꿀 조합 의뢰', [
     for (var i = 0; i < b.slots.length; i++)
       if (BoardRules.template(b.slots[i].templateId) case final t?) (i, t.title),
   ]);

@@ -56,7 +56,7 @@ class VillageRules {
         _ => '남는 재료를 바꾸거나, 마석을 속성 마석으로 정제할 수 있어요.',
       };
   static const boardUrgent = '긴급 의뢰가 붙었네. 오늘 자정까지일세.';
-  static const boardGuide = '오늘의 의뢰일세. 길드 의뢰는 수락해야 시작되네.';
+  static const boardGuide = '오늘의 의뢰일세. 조합 의뢰는 수락해야 시작되네.';
   static const shelterGuide =
       '알은 둥지에서 내가 따뜻하게 봐 줄게. 원정에서 지친 애들은 여기서 쉬면 금방 나아!';
 
@@ -113,7 +113,7 @@ class VillageRules {
         'smithy' => '대장간',
         'board' => '의뢰 게시판',
         'alchemy' => '연금술 공방',
-        'guild' => '길드',
+        'guild' => '조합',
         'shelter' => '펫 쉼터',
         'training' => '훈련장',
         _ => f,
@@ -181,11 +181,11 @@ class VillageRules {
     NpcInfo(
       id: Npc.sera,
       name: '세라',
-      role: '길드장',
-      first: '길드에 온 걸 환영한다. 네 길은 네가 고르는 거다.',
+      role: '조합장',
+      first: '조합에 온 걸 환영한다. 네 길은 네가 고르는 거다.',
       lines: {
         2: ['직업은 칭호가 아니라 약속이다. 잊지 마라.', '분신과 싸울 땐 서두르지 마라. 펫도 네 동료다.'],
-        3: ['잘 싸웠다, 각성자. 길드의 이름으로 경의를 표한다.', '이제 길드도 다리 너머를 준비해야겠군.'],
+        3: ['잘 싸웠다, 각성자. 조합의 이름으로 경의를 표한다.', '이제 조합도 다리 너머를 준비해야겠군.'],
       },
     ),
     NpcInfo(

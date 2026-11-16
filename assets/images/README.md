@@ -304,3 +304,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | pet_turtle_baby, pet_turtle_adult | 영웅 펫 이끼 거북 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
 | 2026-11-17 | pet_panther_baby, pet_panther_adult | 영웅 펫 달그림자 표범 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
 | 2026-11-17 | pet_whale_baby, pet_whale_adult | 영웅 펫 안개 고래 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
+| 2026-11-17 | pet_phoenix_baby, pet_phoenix_adult | 영웅 펫 잿불새 아기·성체 (#235, 한 장에서 잘라 붉은 번짐 정리, 같은 배율, 512) |

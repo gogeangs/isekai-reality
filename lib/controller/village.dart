@@ -37,6 +37,11 @@ extension VillageOps on AppController {
   /// 결말 뒤 탑 불꽃 → 이별 뒤 첫 마을 → 처음 넓어진 마을 순서
   String? get villageMoment {
     if (!_village.contains('intro')) return null;
+    // 묶음 44 #225: 열린 뒤 처음 마을에 오면 「○○이 다 지어졌어!」
+    final built = builtPending;
+    if (built.isNotEmpty) {
+      return VillageRules.builtLine(VillageRules.facilityName(built.first));
+    }
     if (villageAct == 3 && !_village.contains('lit')) return VillageRules.towerLit;
     if (farewellDone && !_village.contains('farewell')) {
       return VillageRules.afterFarewell(firstSpiritName);
@@ -45,12 +50,56 @@ extension VillageOps on AppController {
     return null;
   }
 
+  // ───────────── 묶음 44 #225: 공사 중 건물 · 완공 연출
+
+  /// 그 시설이 열렸는지 (시설 이름: inn · shop · smithy · board · alchemy · guild · shelter)
+  bool facilityOpen(String f) => switch (f) {
+        'inn' || 'shop' => true,
+        'smithy' => featureOpen(Feature.smithy),
+        'board' => featureOpen(Feature.board),
+        'alchemy' => featureOpen(Feature.alchemy),
+        'guild' => jobsOpen,
+        'shelter' => shelterOpen,
+        _ => false,
+      };
+
+  /// 안 열린 건물의 공사 단계 (1~3, 공사 그림이 없거나 열렸으면 null)
+  int? buildStage(String f) {
+    final at = VillageRules.buildLevels[f];
+    if (at == null || facilityOpen(f)) return null;
+    return VillageRules.buildStage(player.level.level, at);
+  }
+
+  /// 열린 뒤 아직 완공 연출을 안 본 건물
+  List<String> get builtPending => !_village.contains('intro')
+      ? const []
+      : [
+          for (final f in VillageRules.buildLevels.keys)
+            if (facilityOpen(f) && !_village.contains('built:$f')) f,
+        ];
+
+  /// 완공 연출을 봤다 (건물마다 한 번)
+  Future<void> markBuilt(List<String> fs) =>
+      _markVillage([for (final f in fs) 'built:$f']);
+
+  /// 예전 기록: 이미 열린 건물은 완공 그림 그대로 (연출 없음)
+  Future<void> _migrateBuilt44() async {
+    if (_village.contains('v44')) return;
+    await _markVillage([
+      'v44',
+      for (final f in VillageRules.buildLevels.keys)
+        if (facilityOpen(f)) 'built:$f',
+    ]);
+  }
+
   /// 결말 뒤 탑 불꽃이 켜지는 연출을 아직 안 봤는지
   bool get towerLightPending => villageAct == 3 && !_village.contains('lit');
 
   Future<void> markVillageMoment() async {
     final m = villageMoment;
     if (m == null) return;
+    // 완공 한마디는 [markBuilt] 가 따로 남긴다
+    if (builtPending.isNotEmpty) return;
     await _markVillage([
       if (m == VillageRules.towerLit) 'lit',
       if (m == VillageRules.wideLine) 'wide',

@@ -36,6 +36,10 @@ class FacilityInfo {
         Facility.market => 'market_build',
         _ => facility.name,
       }}.webp';
+
+  /// 묶음 44 #225: 공사 중 그림 (1 터 닦기 · 2 뼈대 · 3 거의 완성)
+  String buildAsset(int stage) =>
+      'assets/images/village_${facility.name}_build$stage.webp';
 }
 
 /// 하단 메뉴 '마을' 탭 (묶음 35 개편 · 묶음 38 #211 전체 화면).
@@ -89,11 +93,24 @@ class _VillageScreenState extends State<VillageScreen> {
   String? _moment;
   bool _lit = false;
 
+  /// 묶음 44 #225: 이번에 완공 연출을 보여 줄 건물
+  Set<Facility> _built = const {};
+
   @override
   void initState() {
     super.initState();
     _moment = controller.villageMoment;
     _lit = controller.towerLightPending;
+    final built = controller.builtPending;
+    if (built.isNotEmpty) {
+      _built = {
+        for (final f in Facility.values)
+          if (built.contains(f.name)) f,
+      };
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.markBuilt(built);
+      });
+    }
     if (_moment != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.markVillageMoment();
@@ -102,15 +119,11 @@ class _VillageScreenState extends State<VillageScreen> {
   }
 
   /// 이 시설이 열렸는지 (안 열린 건물은 그림에는 두되 어둡게, 이름표 없음)
-  bool _open(Facility f) => switch (f) {
-        Facility.inn || Facility.shop => true,
-        Facility.smithy => controller.featureOpen(Feature.smithy),
-        Facility.board => controller.featureOpen(Feature.board),
-        Facility.alchemy => controller.featureOpen(Feature.alchemy),
-        Facility.guild => controller.jobsOpen,
-        Facility.shelter => controller.shelterOpen,
-        Facility.market => false,
-      };
+  bool _open(Facility f) =>
+      f != Facility.market && controller.facilityOpen(f.name);
+
+  /// 묶음 44 #225: 안 열린 건물의 공사 단계 (1~3, 없으면 null)
+  int? _stage(Facility f) => controller.buildStage(f.name);
 
   /// 새 소식 (빨간 점): 게시판 보상 · 쉼터의 깨어날 알
   bool _news(Facility f) => switch (f) {
@@ -166,6 +179,16 @@ class _VillageScreenState extends State<VillageScreen> {
       return;
     }
     if (!_open(f.facility)) {
+      // 묶음 44 #225: 짓는 중인 건물
+      if (_stage(f.facility) != null) {
+        showTopNotice(
+            context,
+            f.facility == Facility.shelter
+                ? '짓는 중이에요 · 첫 펫과 함께 완공!'
+                : '짓는 중이에요 · ${_lockLabel(f.facility)}에 완공!',
+            icon: Icons.construction_rounded);
+        return;
+      }
       showTopNotice(
           context,
           f.facility == Facility.shelter
@@ -287,6 +310,8 @@ class _VillageScreenState extends State<VillageScreen> {
             open: _open,
             news: _news,
             ask: _ask,
+            stage: _stage,
+            built: _built,
             lockLabel: _lockLabel,
             lighting: _lit,
             towerGlow: _intro != null,
@@ -366,6 +391,8 @@ class _VillageArt extends StatefulWidget {
     required this.open,
     required this.news,
     required this.ask,
+    required this.stage,
+    required this.built,
     required this.lockLabel,
     required this.lighting,
     required this.towerGlow,
@@ -378,6 +405,10 @@ class _VillageArt extends StatefulWidget {
   final bool Function(Facility) open;
   final bool Function(Facility) news;
   final bool Function(Facility) ask;
+
+  /// 묶음 44 #225: 안 열린 건물의 공사 단계 · 이번에 완공 연출을 볼 건물
+  final int? Function(Facility) stage;
+  final Set<Facility> built;
   final String Function(Facility) lockLabel;
 
   /// 결말 뒤 처음: 탑 불꽃이 켜지는 연출
@@ -578,9 +609,21 @@ class _VillageArtState extends State<_VillageArt> {
     final sp = f.spot;
     // 건물 그림은 정사각형, 아래 3% 는 여백
     final rect = r(sp.x - sp.w / 2, sp.y - sp.w * 0.97, sp.w, sp.w);
-    final dim = !open && f.facility != Facility.market;
-    Widget pic = Image.asset(f.asset,
-        fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox());
+    final stage = open ? null : widget.stage(f.facility);
+    final dim = !open && f.facility != Facility.market && stage == null;
+    Widget pic = Image.asset(
+        stage != null ? f.buildAsset(stage) : f.asset,
+        key: stage != null ? Key('build${stage}_${f.facility.name}') : null,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const SizedBox());
+    // 묶음 44 #225: 열린 뒤 처음 → 공사 그림이 완공 그림으로 바뀌며 금빛으로 반짝 (1초쯤)
+    if (open && widget.built.contains(f.facility)) {
+      pic = _BuiltReveal(
+          key: Key('builtReveal_${f.facility.name}'),
+          from: f.buildAsset(3),
+          to: pic,
+          name: f.name);
+    }
     if (dim) {
       pic = ColorFiltered(
         colorFilter: const ColorFilter.mode(Color(0xFF3A3A55), BlendMode.modulate),
@@ -620,12 +663,18 @@ class _VillageArtState extends State<_VillageArt> {
     final market = f.facility == Facility.market;
     final sp = f.spot;
     final bottom = r(sp.x, sp.y, 0, 0);
+    // 묶음 44 #225: 짓는 중인 건물은 🔨 + 「Lv.7 완공」 (펫 쉼터 「첫 펫과 함께 완공」)
+    final building = !open && !market && widget.stage(f.facility) != null;
     // 안 열린 건물·거래소는 두 줄 (이름 / 열리는 때) — 작은 화면에서도 옆 이름표와 겹치지 않게
     final sub = market
         ? '준비 중'
         : open
             ? null
-            : widget.lockLabel(f.facility);
+            : building
+                ? f.facility == Facility.shelter
+                    ? '첫 펫과 함께 완공'
+                    : '${widget.lockLabel(f.facility)} 완공'
+                : widget.lockLabel(f.facility);
     const half = 80.0;
     return Positioned(
       left: bottom.left - half,
@@ -660,8 +709,14 @@ class _VillageArtState extends State<_VillageArt> {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   if (!open && !market) ...[
-                    const Icon(Icons.lock_rounded,
-                        size: 10, color: AppColors.textMuted),
+                    Icon(
+                        building
+                            ? Icons.construction_rounded
+                            : Icons.lock_rounded,
+                        size: 10,
+                        color: building
+                            ? AppColors.gold
+                            : AppColors.textMuted),
                     const SizedBox(width: 2),
                   ],
                   Text(f.name,
@@ -702,6 +757,84 @@ class _VillageArtState extends State<_VillageArt> {
       ),
     );
   }
+}
+
+/// 묶음 44 #225: 완공 연출 — 공사 그림이 완공 그림으로 바뀌며 금빛으로 반짝 + 「○○ 완공!」
+class _BuiltReveal extends StatelessWidget {
+  const _BuiltReveal(
+      {super.key, required this.from, required this.to, required this.name});
+
+  final String from;
+  final Widget to;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1600),
+        builder: (context, k, _) {
+          // 0~0.6 공사 → 완공, 반짝임은 가운데에서 가장 밝게, 글자는 끝까지 남다가 사라짐
+          final swap = (k / 0.6).clamp(0.0, 1.0);
+          final glow = math.sin(k * math.pi);
+          final label = k < 0.85 ? 1.0 : (1 - (k - 0.85) / 0.15);
+          return Stack(clipBehavior: Clip.none, children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: glow * 0.9,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(colors: [
+                        Color(0xFFFFF1B8),
+                        Color(0x88FFC94A),
+                        Color(0x00FFC94A),
+                      ], stops: [0, 0.4, 1]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Opacity(
+                opacity: 1 - swap,
+                child: Image.asset(from,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              ),
+            ),
+            Positioned.fill(child: Opacity(opacity: swap, child: to)),
+            Positioned(
+              left: -40,
+              right: -40,
+              top: -6 - 10 * k,
+              child: Opacity(
+                opacity: label.clamp(0.0, 1.0),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(8, 2, 8, 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE61A1636),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.goldBright),
+                      boxShadow: [
+                        BoxShadow(
+                            color: AppColors.gold.withValues(alpha: 0.7),
+                            blurRadius: 10),
+                      ],
+                    ),
+                    child: Text('$name 완공!',
+                        maxLines: 1,
+                        style: const TextStyle(
+                            color: AppColors.goldBright,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900)),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        },
+      );
 }
 
 class _AskMark extends StatelessWidget {

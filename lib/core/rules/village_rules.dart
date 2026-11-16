@@ -85,6 +85,41 @@ class VillageRules {
   /// 이 수부터 마을 그림을 좌우로 끌어서 둘러본다
   static const int wideFrom = 12;
 
+  // ───────────── 묶음 44 #225: 안 열린 건물은 「짓고 있는 모습」
+
+  /// 공사 중 그림이 있는 건물 (시설 이름)과 완공 레벨 (펫 쉼터는 첫 펫 Lv.11 기준)
+  static const Map<String, int> buildLevels = {
+    'smithy': 3,
+    'board': 4,
+    'alchemy': 7,
+    'shelter': 11,
+    'guild': 15,
+  };
+
+  /// 공사 단계: 1 터 닦기(완공 3레벨 이상 전) · 2 뼈대(2레벨 전) · 3 거의 완성(바로 전 레벨)
+  static int buildStage(int level, int openAt) {
+    final gap = openAt - level;
+    if (gap <= 1) return 3;
+    if (gap == 2) return 2;
+    return 1;
+  }
+
+  /// 시설 이름 → 화면 이름
+  static String facilityName(String f) => switch (f) {
+        'inn' => '여관',
+        'shop' => '잡화상',
+        'smithy' => '대장간',
+        'board' => '의뢰 게시판',
+        'alchemy' => '연금술 공방',
+        'guild' => '길드',
+        'shelter' => '펫 쉼터',
+        'training' => '훈련장',
+        _ => f,
+      };
+
+  /// 완공 연출 때 마을 배지 한마디
+  static String builtLine(String name) => '${josa(name, '이/가')} 다 지어졌어!';
+
   static const List<NpcInfo> npcs = [
     NpcInfo(
       id: Npc.marta,

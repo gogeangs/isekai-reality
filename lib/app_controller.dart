@@ -552,6 +552,8 @@ class AppController extends ChangeNotifier {
         if (e.value is num) renamed('${e.key}'): (e.value as num).toInt(),
     };
     _act2Ready = true;
+    // 묶음 44 #225: 이미 열린 건물은 완공 그림 그대로 (연출 없음)
+    await _migrateBuilt44();
     _checkAct2();
     // 묶음 42 #226: 마을 사람 친해지기 (없으면 지금까지 기록으로 시작 점수를 어림)
     await _loadNpc();

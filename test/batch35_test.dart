@@ -279,7 +279,7 @@ void main() {
       }
     });
 
-    testWidgets('묶음 38: 안 열린 건물은 자물쇠 + 열리는 때, 누르면 안내 · 거래소 준비 중',
+    testWidgets('묶음 38·44: 안 열린 건물은 짓는 모습 + 완공 때, 누르면 안내 · 거래소 준비 중',
         (tester) async {
       phone(tester);
       late AppController c;
@@ -288,14 +288,14 @@ void main() {
       await village(tester, c);
       Text sub(String n) =>
           tester.widget<Text>(find.byKey(Key('tagSub_$n')));
-      expect(sub('alchemy').data, 'Lv.7');
-      expect(sub('guild').data, 'Lv.15');
-      expect(sub('shelter').data, '첫 펫');
+      expect(sub('alchemy').data, 'Lv.7 완공');
+      expect(sub('guild').data, 'Lv.15 완공');
+      expect(sub('shelter').data, '첫 펫과 함께\n완공');
       expect(sub('market').data, '준비 중');
       expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
       await tester.tap(find.byKey(const Key('locked_alchemy')));
       await tester.pump();
-      expect(find.text('Lv.7에 열려요'), findsOneWidget);
+      expect(find.text('짓는 중이에요 · Lv.7에 완공!'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 

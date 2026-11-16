@@ -5,26 +5,49 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 /// 앱 안 알림 (11-11 #85): 화면 위쪽에서 내려왔다 올라가는 작은 금테 띠.
-/// 아래 메뉴·버튼을 가리지 않고, 겹치면 차례로 보여 준다. 누르면 [onTap].
+/// 아래 메뉴·버튼을 가리지 않는다(띠 밖은 그대로 눌림). 누르면 [onTap] 후 닫히고,
+/// 위로 밀어도 닫힌다.
+///
+/// 묶음 41 확인 답: 새 알림이 오면 앞 알림을 바로 바꿔 띄운다(쌓이지 않게).
+/// 다만 앱을 열 때·레벨업 뒤 소식(칭호·숙련 스킬 등)은 [showTopNoticeQueued] 로
+/// 띄워 차례를 지킨다(바뀐 소식은 그 뒤에 다시 나온다).
 ///
 /// 앱 맨 바깥(MaterialApp.builder)에 [TopNoticeHost] 가 있으면 그 위에 띄우고,
 /// 없으면(테스트처럼 화면 하나만 띄웠을 때) 기본 띠로 대신한다.
 void showTopNotice(BuildContext context, String text,
-    {VoidCallback? onTap, IconData? icon, Duration? duration, String? image}) {
+    {VoidCallback? onTap,
+    IconData? icon,
+    Duration? duration,
+    String? image,
+    bool queued = false}) {
   final host = TopNoticeHost._state;
   if (host != null && host.mounted) {
     host._add(_Notice(text, onTap, icon, duration ?? _durationFor(text),
-        image: image));
+        image: image, queued: queued));
     return;
   }
   ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(text)));
 }
 
+/// 차례를 지키는 소식 알림 (앱을 열 때·레벨업 뒤 칭호·숙련 스킬 등)
+void showTopNoticeQueued(BuildContext context, String text,
+        {VoidCallback? onTap, IconData? icon, Duration? duration, String? image}) =>
+    showTopNotice(context, text,
+        onTap: onTap,
+        icon: icon,
+        duration: duration,
+        image: image,
+        queued: true);
+
 Duration _durationFor(String text) =>
     Duration(milliseconds: (2200 + text.length * 45).clamp(2600, 5500));
 
 class _Notice {
-  _Notice(this.text, this.onTap, this.icon, this.duration, {this.image});
+  _Notice(this.text, this.onTap, this.icon, this.duration,
+      {this.image, this.queued = false});
+
+  /// 소식 알림: 앞 알림을 바꾸지 않고 차례를 기다린다
+  final bool queued;
 
   /// 묶음 35: 아이콘 대신 작은 그림 (예: 직업 문장)
   final String? image;
@@ -65,10 +88,28 @@ class _TopNoticeHostState extends State<TopNoticeHost> {
   }
 
   void _add(_Notice n) {
-    // 같은 글이 이미 줄에 있으면 또 넣지 않는다
-    if (_now?.text == n.text || _queue.any((q) => q.text == n.text)) return;
-    _queue.add(n);
-    if (_now == null) _next();
+    // 같은 글이 이미 떠 있으면 시간만 새로
+    if (_now?.text == n.text && _shown) {
+      _timer?.cancel();
+      _timer = Timer(n.duration, _hide);
+      return;
+    }
+    if (_queue.any((q) => q.text == n.text)) return;
+    if (n.queued) {
+      _queue.add(n);
+      if (_now == null) _next();
+      return;
+    }
+    // 묶음 41: 새 알림은 앞 알림을 바로 바꿔 띄운다. 앞의 것이 소식이면 뒤로 다시 미룸
+    final cur = _now;
+    if (cur != null && cur.queued) _queue.insert(0, cur);
+    _queue.removeWhere((q) => !q.queued);
+    _timer?.cancel();
+    setState(() {
+      _now = n;
+      _shown = true;
+    });
+    _timer = Timer(n.duration, _hide);
   }
 
   void _next() {
@@ -122,7 +163,10 @@ class _TopNoticeHostState extends State<TopNoticeHost> {
                       _hide();
                       tap?.call();
                     },
-                    onVerticalDragEnd: (_) => _hide(),
+                    // 위로 밀면 바로 닫힘
+                    onVerticalDragEnd: (d) {
+                      if ((d.primaryVelocity ?? 0) <= 0) _hide();
+                    },
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 520),
                       padding: const EdgeInsets.fromLTRB(12, 9, 14, 9),

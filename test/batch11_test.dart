@@ -69,15 +69,16 @@ void main() {
     await tester.pump();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('첫째 알림'), findsOneWidget);
-    expect(find.text('둘째 알림'), findsNothing);
-    expect(find.byType(SnackBar), findsNothing);
-    await tester.tap(find.byKey(const Key('topNotice')));
-    expect(tapped, 1);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    // 묶음 41: 새 알림이 앞 알림을 바로 바꿔 띄운다 (쌓이지 않음)
+    expect(find.text('첫째 알림'), findsNothing);
     expect(find.text('둘째 알림'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    // 눌러서 닫힘
+    await tester.tap(find.byKey(const Key('topNotice')));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('둘째 알림'), findsNothing);
+    expect(tapped, 0);
     await tester.pump(const Duration(seconds: 6));
     await tester.pump(const Duration(seconds: 1));
   });

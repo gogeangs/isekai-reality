@@ -56,7 +56,7 @@ extension _ShellPopups on _HomeShellState {
       if (!mounted) return;
       if (c.justRested) {
         // 가벼운 알림은 위쪽 띠로만 (#131)
-        showTopNotice(context,
+        showTopNoticeQueued(context,
             '푹 쉬었어요 · HP·기력 가득, 휴식 보너스 경험치 +${RuleConstants.restBonusExp}');
         c.clearJustRested();
       } else {
@@ -189,7 +189,7 @@ extension _ShellPopups on _HomeShellState {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !c.bridgePending) return;
         unawaited(c.markBridgeShown());
-        showTopNotice(context, Act2Rules.bridgeLine,
+        showTopNoticeQueued(context, Act2Rules.bridgeLine,
             icon: Icons.auto_awesome);
       });
     }
@@ -207,10 +207,10 @@ extension _ShellPopups on _HomeShellState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (note != null) {
-        showTopNotice(context, note,
+        showTopNoticeQueued(context, note,
             icon: Icons.workspace_premium_rounded, image: art);
       }
-      if (find) showTopNotice(context, '길에서 숨은 물건을 찾았어요!');
+      if (find) showTopNoticeQueued(context, '길에서 숨은 물건을 찾았어요!');
     });
   }
 
@@ -225,7 +225,7 @@ extension _ShellPopups on _HomeShellState {
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showTopNotice(context, c.farewellDone
+        showTopNoticeQueued(context, c.farewellDone
               ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
               : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
       });
@@ -279,7 +279,7 @@ extension _ShellPopups on _HomeShellState {
     if (c.takeNewPouch()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showTopNotice(context, '걷다가 주운 것들을 걸음 주머니에 담았어요. 가방에서 열어 보세요!');
+        showTopNoticeQueued(context, '걷다가 주운 것들을 걸음 주머니에 담았어요. 가방에서 열어 보세요!');
       });
     }
     final find = c.findOpen ? c.gather.findUntil : null;
@@ -308,7 +308,7 @@ extension _ShellPopups on _HomeShellState {
         if (open == true) {
           final r = await c.openFind();
           if (mounted && r != null) {
-            showTopNotice(context, gatherLine(r));
+            showTopNoticeQueued(context, gatherLine(r));
           }
         }
         _walkShowing = false;
@@ -322,7 +322,7 @@ extension _ShellPopups on _HomeShellState {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         c.markPetCodexAnnounced();
-        showTopNotice(context, '새 도감이 열렸어요', icon: Icons.menu_book_rounded,
+        showTopNoticeQueued(context, '새 도감이 열렸어요', icon: Icons.menu_book_rounded,
             onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
       });
     }
@@ -332,7 +332,7 @@ extension _ShellPopups on _HomeShellState {
       _shownMerchant = merchant;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showTopNotice(
+        showTopNoticeQueued(
             context, '떠돌이 상인이 왔어요 · ${c.merchantMinutesLeft}분',
             icon: Icons.storefront_rounded, onTap: () {
           final at = c.merchantPoint;
@@ -350,7 +350,7 @@ extension _ShellPopups on _HomeShellState {
     if (c.holdNotices || !c.takeHpTip()) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      showTopNotice(context, 'HP가 절반 아래야. 여관에서 쉬거나 물약을 마셔 봐!',
+      showTopNoticeQueued(context, 'HP가 절반 아래야. 여관에서 쉬거나 물약을 마셔 봐!',
           icon: Icons.favorite_rounded);
     });
   }
@@ -372,7 +372,7 @@ extension _ShellPopups on _HomeShellState {
       }
       // 묶음 27 #176: 예전 기록 시작 값으로 얻은 숙련도 칭호도 조용히 띠로
       if (c.titleIsQuiet(t)) {
-        showTopNotice(context, '새 칭호 「${TitleRules.info(t).name}」',
+        showTopNoticeQueued(context, '새 칭호 「${TitleRules.info(t).name}」',
             icon: Icons.military_tech_rounded);
       } else {
         await showTitleCelebration(context, c, t);
@@ -392,7 +392,7 @@ extension _ShellPopups on _HomeShellState {
       if (!mounted) return;
       final g = c.takeBagOverflow();
       if (g <= 0) return;
-      showTopNotice(context, '가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}');
+      showTopNoticeQueued(context, '가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}');
     });
   }
 

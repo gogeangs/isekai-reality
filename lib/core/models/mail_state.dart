@@ -1,3 +1,5 @@
+import 'armory.dart';
+
 /// 우편 종류 (11-11 #65)
 enum MailKind {
   /// 보상 우편 (못 받은 의뢰 보상, 운영 보상): 30일 뒤 사라진다
@@ -19,6 +21,7 @@ class MailItem {
     required this.title,
     this.body = '',
     this.gifts = const {},
+    this.equips = const [],
     required this.sentAt,
     this.expiresAt,
     this.claimed = false,
@@ -36,6 +39,9 @@ class MailItem {
 
   /// 선물: 'gold' · 'manaStone' · 'exp' · 'egg' · 'note' · 'item:<잡화상 물건>' · 재료 이름
   final Map<String, int> gifts;
+
+  /// 묶음 47 #240: 가방이 가득해 우편으로 맡긴 장비 (받으면 그대로 가방에)
+  final List<EquipItem> equips;
   final DateTime sentAt;
 
   /// 보상 우편이 사라지는 때 (편지·공지는 null)
@@ -43,15 +49,21 @@ class MailItem {
   final bool claimed;
   final bool read;
 
-  bool get hasGifts => gifts.isNotEmpty && !claimed;
+  bool get hasGifts => (gifts.isNotEmpty || equips.isNotEmpty) && !claimed;
 
-  MailItem copyWith({bool? claimed, bool? read}) => MailItem(
+  MailItem copyWith(
+          {bool? claimed,
+          bool? read,
+          Map<String, int>? gifts,
+          List<EquipItem>? equips}) =>
+      MailItem(
         id: id,
         kind: kind,
         from: from,
         title: title,
         body: body,
-        gifts: gifts,
+        gifts: gifts ?? this.gifts,
+        equips: equips ?? this.equips,
         sentAt: sentAt,
         expiresAt: expiresAt,
         claimed: claimed ?? this.claimed,
@@ -65,6 +77,7 @@ class MailItem {
         'title': title,
         'body': body,
         'gifts': gifts,
+        if (equips.isNotEmpty) 'equips': [for (final e in equips) e.toJson()],
         'sentAt': sentAt.toIso8601String(),
         if (expiresAt != null) 'expiresAt': expiresAt!.toIso8601String(),
         'claimed': claimed,
@@ -86,6 +99,11 @@ class MailItem {
         for (final e in ((raw['gifts'] as Map?) ?? const {}).entries)
           e.key as String: (e.value as num).toInt(),
       },
+      equips: [
+        for (final e in (raw['equips'] as List?) ?? const [])
+          if (e is Map)
+            if (EquipItem.fromJson(Map<String, dynamic>.from(e)) case final x?) x,
+      ],
       sentAt: sent,
       expiresAt: DateTime.tryParse(raw['expiresAt'] as String? ?? ''),
       claimed: raw['claimed'] as bool? ?? false,

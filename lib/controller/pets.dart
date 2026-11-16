@@ -154,6 +154,13 @@ extension PetsOps on AppController {
   /// 확률로 알 하나 (Lv.11 전에는 한 번만, 정령이 떠난 뒤에는 [chance])
   Future<bool> _maybeEgg(double chance, String source) async {
     if (_random.nextDouble() >= chance) return false;
+    // 묶음 47 #240: 정령이 떠난 뒤 가방이 가득하면 알은 우편함에 (팔 수 없어 잃지 않게).
+    // 떠나기 전 숨은 알은 그대로 (보이지 않아서)
+    if (_pets.farewellDone && bagFree <= 0) {
+      await _mailBagRest(const {'egg': 1}, title: '알 하나');
+      _notify();
+      return true;
+    }
     final p = _pets;
     await _savePets(p.copyWith(
       eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source, element: mainElement?.name)],
@@ -388,13 +395,24 @@ extension PetsOps on AppController {
     final given = _pets.boardEggWeeks.length;
     if (due <= given) return;
     var p = _pets;
+    // 묶음 47 #240: 의뢰 보상 알은 가방이 가득하면 우편함에
+    var free = bagFree;
+    var mailed = 0;
     for (var k = given; k < due; k++) {
+      final week = fullWeeks[(k + 1) * 2 - 1];
+      if (free <= 0) {
+        mailed++;
+        p = p.copyWith(boardEggWeeks: [...p.boardEggWeeks, week]);
+        continue;
+      }
+      free--;
       p = p.copyWith(
         eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board', element: mainElement?.name)],
         nextId: p.nextId + 1,
-        boardEggWeeks: [...p.boardEggWeeks, fullWeeks[(k + 1) * 2 - 1]],
+        boardEggWeeks: [...p.boardEggWeeks, week],
       );
     }
+    if (mailed > 0) await _mailBagRest({'egg': mailed}, title: '주간 의뢰 보상 알');
     await _savePets(p);
     _newEgg = true;
   }

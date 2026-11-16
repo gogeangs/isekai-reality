@@ -18,6 +18,7 @@ import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/village/npc_request.dart';
 import 'features/village/training_screen.dart' show TrainingStatusRow;
+import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
@@ -164,7 +165,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _walkShowing ||
       _farewellShowing ||
       _jobShowing ||
-      _endingShowing;
+      _endingShowing ||
+      _bagHoldShowing;
 
   /// 창 하나를 닫은 뒤 다음 차례 창을 볼 수 있게 다시 그린다
   void _kick() {
@@ -243,6 +245,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   DateTime? _shownMerchant;
 
   bool _titleShowing = false;
+  bool _bagHoldShowing = false; // 묶음 47 #240
   bool _petCodexNoticed = false;
 
   /// 앱으로 돌아올 때마다 걸음을 다시 읽는다

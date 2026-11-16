@@ -209,7 +209,7 @@ extension Act2Ops on AppController {
         );
       });
 
-  /// 유품 장비 한 부위 (가방이 가득해도 잃지 않게 그대로 넣는다)
+  /// 유품 장비 한 부위. 묶음 47 #240: 가방이 가득하면 잃지 않게 우편함에 맡긴다
   Future<EquipItem> _giveRelic(EquipBase base, Element? element) async {
     final a = _armory;
     final grade = EquipmentRules.rollGrade(_random, rare: true);
@@ -220,10 +220,8 @@ extension Act2Ops on AppController {
       extras: EquipmentRules.rollExtras(grade, _random),
       element: element,
     );
-    await _saveArmory(a.copyWith(
-      items: [...a.items, item],
-      nextId: a.nextId + 1,
-    ));
+    await _saveArmory(a.copyWith(nextId: a.nextId + 1));
+    await _giveEquipOrMail(item, title: '잿빛 왕의 유품');
     return item;
   }
 

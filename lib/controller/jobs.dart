@@ -1152,9 +1152,8 @@ extension JobOps on AppController {
       MaterialId.waterJelly,
       MaterialId.essence,
     ];
-    await _save(today.copyWith(
-        gains: DailyRecord.addCounts(
-            today.gains, {finds[_random.nextInt(finds.length)].name: 1})));
+    // 묶음 47 #240: 가방이 가득하면 「가방이 가득 찼어요」 창으로
+    await _admitBag({finds[_random.nextInt(finds.length)].name: 1});
     _jobFind = true;
   }
 

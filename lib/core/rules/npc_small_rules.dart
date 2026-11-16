@@ -390,7 +390,7 @@ class NpcSmallRules {
       npc: Npc.hart,
       asset: 'item_hartMapcase',
       name: '하르트의 낡은 지도통',
-      text: '길드 의뢰가 조금 더 빨리 새로 붙어요',
+      text: '조합 의뢰가 조금 더 빨리 새로 붙어요',
       say: '내 옛 지도에 빈칸이 많네. 함께 채워 주겠나?',
       stages: [
         NpcRelicStage('새 곳 두 군데를 다녀와 주게.', [

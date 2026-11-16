@@ -517,7 +517,7 @@ class JobRules {
         [Mastery.trade, Mastery.walk], '많이 걸은 날은 더 비싸게 팔아요',
         [JobSkill.bundleSwing, JobSkill.bigPack]),
     JobInfo(JobId.adventurer, '모험가', JobKind.complex,
-        [Mastery.combat, Mastery.trade], '길드·긴급 의뢰와 던전 보상이 늘어요',
+        [Mastery.combat, Mastery.trade], '조합·긴급 의뢰와 던전 보상이 늘어요',
         [JobSkill.counterSlash, JobSkill.negotiate]),
     JobInfo(JobId.beastKnight, '마수 기사', JobKind.complex,
         [Mastery.combat, Mastery.spirit], '펫과 함께 싸우면 더 세져요',
@@ -697,7 +697,7 @@ class JobRules {
         '바로 치고, 다음에 받는 공격 일부를 돌려줘요', 20,
         mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.negotiate, '의뢰 협상', SkillPlace.board,
-        '길드 의뢰 하나를 다른 의뢰로 바꿔요', 10, mode: SkillMode.instant),
+        '조합 의뢰 하나를 다른 의뢰로 바꿔요', 10, mode: SkillMode.instant),
     JobSkillInfo(JobSkill.jointAttack, '합동 돌격', _b,
         '나와 펫이 함께 공격하고 펫 게이지가 조금 차요', 20,
         mode: SkillMode.battle, attack: true),
@@ -807,8 +807,8 @@ class JobRules {
       jobs.firstWhere((j) => j.kind == JobKind.basic && j.masteries.single == m).id;
 
   /// 첫 펫 한마디
-  static const String awakenLine = '이제 너만의 길을 찾을 때야. 길드에 가 보자!';
-  static String newJobLine(String job) => '새 길이 열렸어! $job, 길드에서 확인해 봐.';
+  static const String awakenLine = '이제 너만의 길을 찾을 때야. 조합에 가 보자!';
+  static String newJobLine(String job) => '새 길이 열렸어! $job, 조합에서 확인해 봐.';
 
   // ───────────── 숙련 스킬 (#197)
 

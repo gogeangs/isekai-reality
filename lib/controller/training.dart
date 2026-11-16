@@ -140,7 +140,7 @@ extension TrainingOps on AppController {
           final m = TrainingRules.dailyMats[_random.nextInt(TrainingRules.dailyMats.length)];
           gifts[m.name] = 1 + _random.nextInt(2);
         }
-        final got = gifts.isEmpty ? <String>[] : await _applyGifts(gifts);
+        final got = gifts.isEmpty ? <String>[] : await _applyGifts(gifts, over: BagOver.hold);
         await _npcTally(NpcTally.dailyTraining);
         await _npcUse(Npc.garen);
         // 묶음 45 #231: 가렌 — 하루 훈련 3판을 넘겼을 때
@@ -252,7 +252,7 @@ extension TrainingOps on AppController {
           trialMarks: [...t.trialMarks, ...marks],
           trialEver: math.max(t.trialEver, n),
         ));
-        final got = gifts.isEmpty ? <String>[] : await _applyGifts(gifts);
+        final got = gifts.isEmpty ? <String>[] : await _applyGifts(gifts, over: BagOver.hold);
         if (title) {
           final today = await _todayRecord();
           await _save(today.copyWith(

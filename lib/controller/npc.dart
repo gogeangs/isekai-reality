@@ -292,7 +292,7 @@ extension NpcOps on AppController {
               spends: DailyRecord.addCounts(
                   today.spends, {for (final e in take.entries) e.key.name: e.value})));
         }
-        final got = await _applyGifts(r.gifts);
+        final got = await _applyGifts(r.gifts, title: '마을 사람 부탁 보상');
         final sp = r.special;
         if (sp != null) {
           got.addAll(await _grantSpecial(sp));
@@ -329,20 +329,18 @@ extension NpcOps on AppController {
             .copyWith(discovered: {...a.discovered, PotionId.dawnLight.name}.toList())
             .add(AlchemyRules.keyOf(PotionId.dawnLight, PotionQuality.normal), 1));
       case NpcSpecialKind.keys:
-        return _applyGifts(const {'item:spareKey': 3});
+        return _applyGifts(const {'item:spareKey': 3}, title: '마을 사람 특별 보상');
     }
     return [sp.name];
   }
 
+  /// 묶음 47 #240: 가방이 가득하면 우편함에 맡긴다
   Future<void> _grantNpcGear(EquipBase base) async {
     final a = _armory;
-    await _saveArmory(a.copyWith(
-      items: [
-        ...a.items,
+    await _saveArmory(a.copyWith(nextId: a.nextId + 1));
+    await _giveEquipOrMail(
         EquipItem(uid: 'eq${a.nextId}', base: base, grade: EquipGrade.white),
-      ],
-      nextId: a.nextId + 1,
-    ));
+        title: '마을 사람 특별 보상');
   }
 
   // ───────────── 특별 보상 (계속 듣는 것)

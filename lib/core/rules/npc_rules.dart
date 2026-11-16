@@ -128,10 +128,14 @@ class NpcTally {
   static const newPlace = 'newPlace'; // 새 장소
   static const enhance = 'enhance'; // 강화
   static const dungeon = 'dungeon'; // 던전 클리어 (보스까지)
-  static const ashKill = 'ashKill'; // 잿빛 슬라임 사냥
+  static const ashKill = 'ashKill'; // 슬라임 사냥 (묶음 47 #241: 속성 슬라임도)
+
+  /// 묶음 47 #241: 「슬라임 ○마리」 부탁에 세는 몬스터 — 슬라임과 속성 슬라임 모두
+  static bool slimeKill(MonsterId m) =>
+      m == MonsterId.ashSlime || Monsters.info(m).slimeKind;
   static const brew = 'brew'; // 물약 끓이기
   static const newRecipe = 'newRecipe'; // 처음 보는 물약 레시피
-  static const guildErrand = 'guildErrand'; // 길드 의뢰
+  static const guildErrand = 'guildErrand'; // 조합 의뢰
   static const urgent = 'urgent'; // 긴급 의뢰
   static const petExpedition = 'petExp'; // 첫 펫 원정
   static const jobSkill = 'jobSkill'; // 직업 스킬
@@ -415,7 +419,7 @@ class NpcRules {
       say: '보석 셋, 그리고 잿빛 놈들의 흔적. 새 틀에 넣을 거다. 마지막 부탁이다.',
       steps: [
         NpcRequestStep(RequestStepKind.deliver, 3, '보석 3개 가져오기', mats: gems),
-        NpcRequestStep(RequestStepKind.tally, 2, '잿빛 슬라임 2마리 잡기 (잿빛 재료)',
+        NpcRequestStep(RequestStepKind.tally, 2, '슬라임 2마리 잡기',
             key: NpcTally.ashKill),
       ],
       story: '새 틀을 만들어 두겠다. 탑에 불이 다시 켜지는 날, 그 불은 이 틀에 담길 거다.',
@@ -479,9 +483,9 @@ class NpcRules {
       index: 0,
       stage: FavorStage.known,
       level: 4,
-      say: '길드 의뢰가 밀려 있네. 세 건만 맡아 주겠나?',
+      say: '조합 의뢰가 밀려 있네. 세 건만 맡아 주겠나?',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 3, '길드 의뢰 3건 끝내기',
+        NpcRequestStep(RequestStepKind.tally, 3, '조합 의뢰 3건 끝내기',
             key: NpcTally.guildErrand),
       ],
       gifts: {'gold': 100},
@@ -774,8 +778,8 @@ class NpcRules {
           '앞으로 자네 의뢰엔 내가 조금씩 얹어 주겠네. 늙은이 마음이니 받아 두게.', {'gold': 150}),
     },
     Npc.sera: {
-      FavorStage.known: FavorLetter('길드에서',
-          '네가 길드에 자주 오는 걸 봤다. 작은 마나 물약을 보낸다.', {'item:jobManaSmall': 2}),
+      FavorStage.known: FavorLetter('조합에서',
+          '네가 조합에 자주 오는 걸 봤다. 작은 마나 물약을 보낸다.', {'item:jobManaSmall': 2}),
       FavorStage.close: FavorLetter('기사의 조언',
           '급히 가지 마라. 그러나 멈추지도 마라. 마석 몇 개 보낸다.', {'manaStone': 5}),
       FavorStage.best: FavorLetter('새로운 맹세',

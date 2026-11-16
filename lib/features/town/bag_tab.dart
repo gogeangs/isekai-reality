@@ -15,6 +15,7 @@ import '../battle/auto_use_window.dart';
 import '../lens/lens_screen.dart' show openLens;
 import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
+import 'bag_hold_sheet.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
 import '../../theme/top_notice.dart';
@@ -313,6 +314,11 @@ class _BagTabState extends State<BagTab> {
               const SizedBox(height: 8),
               PreciousPanel(controller: c),
             ],
+            // 묶음 47 #240: 가방이 가득해 받지 못하고 기다리는 것
+            if (c.hasBagHold) ...[
+              const SizedBox(height: 8),
+              BagHoldBanner(controller: c),
+            ],
             const SizedBox(height: 12),
             OrnatePanel(
               child: Column(
@@ -347,7 +353,7 @@ class _BagTabState extends State<BagTab> {
                   if (used > cap)
                     const Padding(
                       padding: EdgeInsets.only(top: 4),
-                      child: KText('칸보다 많이 들어 있어요. 새로 얻는 것은 금화로 바뀌어요.',
+                      child: KText('칸보다 많이 들어 있어요. 정리하면 새로 얻는 것을 받을 수 있어요.',
                           style: TextStyle(
                               color: AppColors.textMuted, fontSize: 12)),
                     ),
@@ -1247,11 +1253,16 @@ class _TutorialGlowState extends State<TutorialGlow>
 /// 버리기 버튼 (금테·어두운 바탕 + 휴지통, [danger] 면 붉은 테두리)
 class _DiscardButton extends StatelessWidget {
   const _DiscardButton(
-      {super.key, required this.label, required this.onPressed, this.danger = false});
+      {super.key,
+      required this.label,
+      required this.onPressed,
+      this.danger = false,
+      this.icon = Icons.delete_outline_rounded});
 
   final String label;
   final VoidCallback onPressed;
   final bool danger;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -1268,7 +1279,7 @@ class _DiscardButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(Icons.delete_outline_rounded,
+            Icon(icon,
                 size: 18, color: danger ? const Color(0xFFE07A6E) : AppColors.goldBright),
             const SizedBox(width: 4),
             Flexible(
@@ -1382,6 +1393,59 @@ class PreciousPanel extends StatelessWidget {
           ]),
         ],
       ),
+    );
+  }
+}
+
+
+/// 묶음 47 #240: 가방 탭 위 「받지 못한 것」 띠 — 「보기」(창) · 「다시 받기」
+class BagHoldBanner extends StatelessWidget {
+  const BagHoldBanner({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final n = c.bagHoldList.length;
+    return OrnatePanel(
+      key: const Key('bagHoldBanner'),
+      child: Row(children: [
+        const Icon(Icons.inventory_2_rounded, color: AppColors.goldBright, size: 22),
+        const SizedBox(width: 8),
+        Expanded(
+          child: KText('가방이 가득해 받지 못한 것 $n가지',
+              style: const TextStyle(
+                  color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+        ),
+        TextButton(
+          key: const Key('bagHoldView'),
+          onPressed: () => showBagHoldSheet(context, c),
+          child: const Text('보기',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        ),
+        const SizedBox(width: 2),
+        SizedBox(
+          width: 112,
+          child: _DiscardButton(
+          key: const Key('bagHoldRetry'),
+          label: '다시 받기',
+          icon: Icons.download_rounded,
+          onPressed: () async {
+            final before = c.bagHoldList.length;
+            final left = await c.retryHold();
+            if (!context.mounted) return;
+            showTopNotice(
+                context,
+                left == 0
+                    ? '모두 가방에 넣었어요!'
+                    : left < before
+                        ? '들어가는 만큼 넣었어요. 아직 $left가지가 남았어요.'
+                        : '가방에 빈칸이 없어요. 안 쓰는 것을 팔거나 정리해 주세요.');
+          },
+        ),
+        ),
+      ]),
     );
   }
 }

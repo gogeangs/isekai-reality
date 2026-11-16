@@ -49,29 +49,63 @@ extension MailOps on AppController {
   }
 
   /// 우편 선물을 받는다. 받은 것 글을 돌려준다 (못 받으면 null).
-  /// 가방이 가득하면 넘치는 물건은 금화로, 금화·마석·경험치는 늘 받는다.
+  /// 금화·마석·경험치는 늘 받는다. 묶음 47 #240: 가방에 들어가지 않는 것은
+  /// 금화로 바꾸지 않고 우편에 그대로 남겨 둔다 (자리가 나면 다시 받기)
   Future<String?> claimMail(String id) =>
       _serial(() async {
     final i = _mail.mails.indexWhere((m) => m.id == id);
     if (i < 0 || !_mail.mails[i].hasGifts) return null;
     final m = _mail.mails[i];
-    final got = await _applyGifts(m.gifts);
+    final r = await _applyGiftsSplit(m.gifts);
+    // 장비: 칸이 있는 만큼
+    final eqLeft = <EquipItem>[];
+    var a = _armory;
+    for (final e in m.equips) {
+      if (bagFree > 0) {
+        a = a.copyWith(items: [...a.items, e]);
+        await _saveArmory(a);
+        r.got.add(EquipmentRules.info(e.base).name);
+      } else {
+        eqLeft.add(e);
+      }
+    }
+    final done = r.left.isEmpty && eqLeft.isEmpty;
     // 11-11 #100: 받은 뒤에도 편지는 계속 보관한다 (보상 우편도 편지처럼)
     await _saveMail(_mail.copyWith(mails: [
       for (final x in _mail.mails)
-        if (x.id != id) x else x.copyWith(claimed: true, read: true),
+        if (x.id != id)
+          x
+        else if (done)
+          x.copyWith(claimed: true, read: true, gifts: m.gifts, equips: m.equips)
+        else
+          x.copyWith(read: true, gifts: r.left, equips: eqLeft),
     ]));
-    return got.join(', ');
+    if (!done) r.got.add('(가방이 가득해 ${r.left.length + eqLeft.length}가지는 우편에 남겨 뒀어요)');
+    return r.got.join(', ');
   });
 
-  /// 선물을 준다 (우편·마을 사람 부탁). 받은 것 글 목록을 돌려준다.
-  /// 가방이 가득하면 넘치는 물건은 금화로, 금화·마석·경험치는 늘 받는다.
-  Future<List<String>> _applyGifts(Map<String, int> gifts) async {
+  /// 선물을 준다 (우편·마을 사람 부탁 · 훈련장). 받은 것 글 목록을 돌려준다.
+  /// 금화·마석·경험치는 늘 받는다. 묶음 47 #240: 가방에 남는 자리가 없으면
+  /// [over] 대로 — 의뢰·이야기 보상은 우편함([BagOver.mail]), 그 밖은 「가방이 가득 찼어요」 창
+  Future<List<String>> _applyGifts(Map<String, int> gifts,
+      {BagOver over = BagOver.mail, String? title}) async {
+    final r = await _applyGiftsSplit(gifts);
+    if (r.left.isNotEmpty) {
+      await _bagOverflowTo(r.left, over: over, title: title);
+      r.got.add(over == BagOver.mail
+          ? '(가방이 가득해 ${r.left.length}가지는 우편함에)'
+          : '(가방이 가득해 ${r.left.length}가지는 받지 못했어요)');
+    }
+    return r.got;
+  }
+
+  /// 선물을 주고, 가방에 들어가지 못한 것([left])을 돌려준다
+  Future<({List<String> got, Map<String, int> left})> _applyGiftsSplit(
+      Map<String, int> gifts) async {
     final got = <String>[];
-    var gold = 0, mana = 0, exp = 0, notes = 0, eggs = 0;
+    var gold = 0, mana = 0, exp = 0, notes = 0;
     var tools = false;
-    final mats = <MaterialId, int>{};
-    final items = <ShopItem, int>{};
+    final bag = <String, int>{};
     gifts.forEach((k, v) {
       if (k == Wallet.gold) {
         gold += v;
@@ -81,70 +115,51 @@ extension MailOps on AppController {
         exp += v;
       } else if (k == 'note') {
         notes += v;
-      } else if (k == 'egg') {
-        eggs += v;
       } else if (k == 'tools') {
         tools = true;
-      } else if (k.startsWith('item:')) {
-        for (final it in ShopItem.values) {
-          if (it.name == k.substring(5)) items[it] = (items[it] ?? 0) + v;
-        }
-      } else if (Materials.byName(k) case final mat?) {
-        mats[mat] = (mats[mat] ?? 0) + v;
+      } else if (_bagKey(k)) {
+        bag[k] = (bag[k] ?? 0) + v;
       }
     });
-    // 물건: 칸이 없으면 금화로
-    final today = await _todayRecord();
-    final counters = <String, int>{};
-    var itemGold = 0;
-    for (final e in items.entries) {
-      var have = bagCount(e.key);
-      for (var n = 0; n < e.value; n++) {
-        if (_roomFor(have)) {
-          counters[TownRules.giftKey(e.key)] = (counters[TownRules.giftKey(e.key)] ?? 0) + 1;
-          have++;
-        } else {
-          itemGold += BagRules.itemPrice(e.key);
-        }
-      }
-      got.add('${itemName(e.key)} ${e.value}');
-    }
-    if (counters.isNotEmpty || exp > 0) {
+    final s = _splitBag(bag);
+    await _giveBag(s.fit);
+    if (gold > 0 || mana > 0 || exp > 0) {
+      final today = await _todayRecord();
       await _save(today.copyWith(
-        counters: DailyRecord.addCounts(today.counters, counters),
-        gains: exp > 0 ? DailyRecord.addCounts(today.gains, {Wallet.exp: exp}) : null,
+        gains: DailyRecord.addCounts(today.gains, {
+          if (gold > 0) Wallet.gold: gold,
+          if (mana > 0) Wallet.manaStone: mana,
+          if (exp > 0) Wallet.exp: exp,
+        }),
       ));
     }
-    if (gold + itemGold > 0 || mana > 0 || mats.isNotEmpty) {
-      await _grant(gold + itemGold, mana, mats);
-    }
-    if (notes > 0 || eggs > 0) {
-      final p = _pets;
-      await _savePets(p.copyWith(
-        recipeNotes: p.recipeNotes + notes,
-        eggs: [
-          ...p.eggs,
-          for (var n = 0; n < eggs; n++)
-            PetEgg(id: 'egg${p.nextId + n}', source: 'mail', element: mainElement?.name),
-        ],
-        nextId: p.nextId + eggs,
-        firstEggFound: p.firstEggFound || eggs > 0,
-      ));
+    if (notes > 0) {
+      await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + notes));
     }
     if (gold > 0) got.add('금화 $gold');
     if (mana > 0) got.add('마석 $mana');
     if (exp > 0) got.add('경험치 $exp');
-    for (final e in mats.entries) {
-      got.add('${Materials.info(e.key).name} ${e.value}');
+    for (final e in s.fit.entries) {
+      got.add('${_giftName(e.key)} ${e.value}');
     }
     if (tools) {
       await makeFirstTools(); // 이미 있으면 그대로
       got.add('채집 도구 한 벌');
     }
     if (notes > 0) got.add('레시피 쪽지 $notes');
-    if (eggs > 0) got.add('알 $eggs');
-    if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
-    return got;
+    return (got: got, left: s.rest);
+  }
+
+  /// 선물 키 → 이름
+  String _giftName(String k) {
+    if (k == 'egg') return '알';
+    if (k.startsWith('alc:')) return potionName(k.substring(4));
+    if (k.startsWith('item:')) {
+      final it = _shopItemNamed(k.substring(5));
+      return it == null ? k : itemName(it);
+    }
+    final m = Materials.byName(k);
+    return m == null ? k : Materials.info(m).name;
   }
 
   /// 모두 받기

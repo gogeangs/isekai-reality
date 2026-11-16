@@ -317,7 +317,7 @@ class TitleRules {
     TitleInfo(TitleId.spiritAdept, '정령의 벗', '원정을 꾸준히'),
     TitleInfo(TitleId.spiritMaster, '정령과 하나 된 자', '정령술의 장인'),
     TitleInfo(TitleId.tradeAdept, '떠돌이 상인', '장사와 의뢰를 꾸준히'),
-    TitleInfo(TitleId.tradeMaster, '길드의 해결사', '장사와 의뢰의 장인'),
+    TitleInfo(TitleId.tradeMaster, '조합의 해결사', '장사와 의뢰의 장인'),
     TitleInfo(TitleId.ashRage, '분노를 잠재운 자', '숨은 칭호'),
     TitleInfo(TitleId.ashSorrow, '슬픔을 달랜 자', '숨은 칭호'),
     TitleInfo(TitleId.ashGreed, '탐욕을 끊은 자', '숨은 칭호'),

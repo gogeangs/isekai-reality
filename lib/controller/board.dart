@@ -77,7 +77,8 @@ extension BoardOps on AppController {
       await _boardNoteDone(t);
       return true;
     }
-    await _grant(await _knackGold(errandGold(t.gold)), t.manaStones, t.materials);
+    await _grant(await _knackGold(errandGold(t.gold)), t.manaStones, t.materials,
+        over: BagOver.mail, title: '의뢰 보상: ${t.title}');
     await _count('errandDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
     await _maybeNote(AlchemyRules.noteFromErrand);
@@ -146,7 +147,8 @@ extension BoardOps on AppController {
           counters: DailyRecord.addCounts(today.counters, {'bonusKeys': 1})));
       await _grant(await _knackGold(errandGold(u.quest.gold)), 0, const {});
     } else {
-      await _grant(await _knackGold(errandGold(u.quest.gold)), 0, {u.rare: 1});
+      await _grant(await _knackGold(errandGold(u.quest.gold)), 0, {u.rare: 1},
+          over: BagOver.mail, title: '긴급 의뢰 보상');
     }
     await _count('urgentDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
@@ -164,17 +166,17 @@ extension BoardOps on AppController {
         counters: DailyRecord.addCounts(today.counters, {key: n})));
   }
 
-  Future<void> _grant(
-      int gold, int manaStones, Map<MaterialId, int> materials) async {
-    final fit = _fitBag(materials);
+  /// 금화·마석은 늘 받고, 재료는 가방에 들어가는 만큼.
+  /// 묶음 47 #240: 남는 재료는 [over] 대로 (의뢰 보상은 우편함)
+  Future<void> _grant(int gold, int manaStones, Map<MaterialId, int> materials,
+      {BagOver over = BagOver.hold, String? title}) async {
+    final kept = await _fitBag(materials, over: over, title: title);
     final today = await _todayRecord();
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
           today.gains,
           HuntReward.ledger(
-              extraManaStones: manaStones,
-              gold: gold + fit.gold,
-              materials: fit.kept)),
+              extraManaStones: manaStones, gold: gold, materials: kept)),
     ));
   }
 }

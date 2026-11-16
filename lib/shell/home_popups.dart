@@ -407,15 +407,37 @@ extension _ShellPopups on _HomeShellState {
     });
   }
 
-  /// 가방이 가득 차 새 재료를 금화로 바꿨을 때 (11-11 #48)
+  /// 묶음 47 #240: 가방이 가득 찼을 때.
+  /// 의뢰·이야기 보상 · 알 · 장비를 우편함에 맡겼으면 위쪽 띠로 알리고,
+  /// 들어가지 못한 재료·물건이 새로 생겼으면 「가방이 가득 찼어요」 창을 띄운다
+  /// (홈 화면이 맨 위일 때, 다른 창이 끝난 뒤. 튜토리얼 중에는 모아 둔다)
   void _maybeShowBagFull() {
     final c = widget.controller;
-    if (c.pendingBagOverflow <= 0) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final g = c.takeBagOverflow();
-      if (g <= 0) return;
-      showTopNoticeQueued(context, '가방이 가득 찼어요. 새로 얻은 재료는 금화로 바꿨어요. 금화 +${comma(g)}');
+    if (c.pendingBagMailed > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || c.takeBagMailed() <= 0) return;
+        showTopNoticeQueued(context, '가방이 가득 차서 우편함에 맡겨 뒀어요. 자리를 만든 뒤 받아 가세요.',
+            icon: Icons.mail_rounded);
+      });
+    }
+    if (!c.bagHoldNew ||
+        _popupBusy ||
+        _ahead(3) ||
+        c.holdNotices ||
+        c.inTutorial ||
+        !(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    _bagHoldShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !c.bagHoldNew) {
+        _bagHoldShowing = false;
+        return;
+      }
+      await showBagHoldSheet(context, c,
+          onOpenBag: () => _set(() => _openTab(_HomeShellState.tBag)));
+      _bagHoldShowing = false;
+      _kick();
     });
   }
 

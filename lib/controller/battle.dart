@@ -115,14 +115,13 @@ extension BattleOps on AppController {
         loot[k] = x.floor() + (_random.nextDouble() < x - x.floor() ? 1 : 0);
       }
     }
-    final fit = _fitBag(loot);
-    final mats = fit.kept;
+    final mats = await _fitBag(loot);
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],
       purifiedMonsterIds: _addMonsters(today, battle.purified),
       huntCounts: _addCounts(today, battle.purified),
       gains: DailyRecord.addCounts(today.gains,
-          HuntReward.ledger(materials: mats, gold: fit.gold)),
+          HuntReward.ledger(materials: mats)),
       counters: DailyRecord.addCounts(today.counters, {
         if (FieldMonsterRules.isNight(_clock()))
           'nightHunts': battle.purified.length,
@@ -139,7 +138,7 @@ extension BattleOps on AppController {
     _lastReward = HuntReward(
       exp: exp,
       manaStones: mana,
-      gold: fit.gold,
+      gold: 0,
       materials: mats,
     );
     // 묶음 27 #176: 던전 클리어는 전투 숙련도 크게 (그때 든 무기도)

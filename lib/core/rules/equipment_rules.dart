@@ -38,6 +38,8 @@ enum EquipBase {
   ironSword, woodAxe, ironSpear,
   // 묶음 34 2막: 「잿빛 왕의 유품」 (분신·본체를 처음 쓰러뜨리면)
   ashWeapon, ashCrown, ashBody, ashHands, ashFeet, ashAcc,
+  // 묶음 42 #226: 마을 사람 4번째 부탁의 특별 보상 (대장간에서 만들 수 없다)
+  martaScarf, seraBadge,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -322,7 +324,32 @@ class EquipmentRules {
   static final Map<EquipBase, EquipBaseInfo> _byId = {
     for (final e in all) e.id: e,
     for (final e in BossGearRules.infos) e.id: e,
+    for (final e in npcGear) e.id: e,
   };
+
+  /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)
+  static const List<EquipBaseInfo> npcGear = [
+    EquipBaseInfo(
+      id: EquipBase.martaScarf,
+      name: '마르타의 손뜨개 목도리',
+      slot: EquipSlot.accessory,
+      recipe: {},
+      maxHp: 0.08,
+      asset: 'equip_martaScarf',
+    ),
+    EquipBaseInfo(
+      id: EquipBase.seraBadge,
+      name: '세라의 휘장',
+      slot: EquipSlot.accessory,
+      recipe: {},
+      attack: 0.04,
+      reduce: 0.03,
+      asset: 'equip_seraBadge',
+    ),
+  ];
+
+  /// 마을 사람 특별 보상 장비인지
+  static bool isNpcGear(EquipBase id) => npcGear.any((e) => e.id == id);
 
   /// 보스 장비인지 (11-11 #82)
   static bool isBossGear(EquipBase id) => BossGearRules.setOf(id) != null;

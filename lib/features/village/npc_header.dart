@@ -4,6 +4,7 @@ import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'npc_request.dart';
 
 /// 시설 맨 위 마을 사람 (묶음 35): 금테 얼굴 + 이름·역할 + 한마디 말풍선.
 /// 처음 만날 때 한 줄(한 번), 그 뒤엔 그 막의 평소 대사 두 줄을 번갈아.
@@ -107,6 +108,8 @@ class _NpcHeaderState extends State<NpcHeader> {
                       size: const Size(8, 12), painter: _TailPainter()),
                 ),
               ]),
+              // 묶음 42 #226: 부탁 듣기 · 진행 · 다 했어요
+              NpcRequestBar(controller: widget.controller, npc: widget.npc),
             ],
           ),
         ),

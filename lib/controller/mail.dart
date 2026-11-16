@@ -55,12 +55,24 @@ extension MailOps on AppController {
     final i = _mail.mails.indexWhere((m) => m.id == id);
     if (i < 0 || !_mail.mails[i].hasGifts) return null;
     final m = _mail.mails[i];
+    final got = await _applyGifts(m.gifts);
+    // 11-11 #100: 받은 뒤에도 편지는 계속 보관한다 (보상 우편도 편지처럼)
+    await _saveMail(_mail.copyWith(mails: [
+      for (final x in _mail.mails)
+        if (x.id != id) x else x.copyWith(claimed: true, read: true),
+    ]));
+    return got.join(', ');
+  });
+
+  /// 선물을 준다 (우편·마을 사람 부탁). 받은 것 글 목록을 돌려준다.
+  /// 가방이 가득하면 넘치는 물건은 금화로, 금화·마석·경험치는 늘 받는다.
+  Future<List<String>> _applyGifts(Map<String, int> gifts) async {
     final got = <String>[];
     var gold = 0, mana = 0, exp = 0, notes = 0, eggs = 0;
     var tools = false;
     final mats = <MaterialId, int>{};
     final items = <ShopItem, int>{};
-    m.gifts.forEach((k, v) {
+    gifts.forEach((k, v) {
       if (k == Wallet.gold) {
         gold += v;
       } else if (k == Wallet.manaStone) {
@@ -132,13 +144,8 @@ extension MailOps on AppController {
     if (notes > 0) got.add('레시피 쪽지 $notes');
     if (eggs > 0) got.add('알 $eggs');
     if (itemGold > 0) got.add('(가방이 가득해 금화 $itemGold로)');
-    // 11-11 #100: 받은 뒤에도 편지는 계속 보관한다 (보상 우편도 편지처럼)
-    await _saveMail(_mail.copyWith(mails: [
-      for (final x in _mail.mails)
-        if (x.id != id) x else x.copyWith(claimed: true, read: true),
-    ]));
-    return got.join(', ');
-  });
+    return got;
+  }
 
   /// 모두 받기
   Future<int> claimAllMail() =>

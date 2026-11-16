@@ -59,6 +59,8 @@ enum PotionId {
   // 묶음 30 #183: 새 MP 마나 물약 (직업 각성 뒤에만)
   jobManaSmall,
   jobMana,
+  // 묶음 42 #226: 엘리엘 4번째 부탁의 레시피 (쪽지로는 안 나옴)
+  dawnLight,
 }
 
 enum PotionKind { heal, mana, care, buff, resist, special, weapon }
@@ -921,7 +923,22 @@ class AlchemyRules {
       shopItem: ShopItem.jobMana,
       icon: 'potion_jobmana_2',
     ),
+    // 묶음 42 #226: 엘리엘 4번째 부탁 보상 레시피 (쪽지·우연으로는 안 나옴)
+    const PotionInfo(
+      id: PotionId.dawnLight,
+      name: '여명의 빛 물약',
+      kind: PotionKind.heal,
+      description: 'HP와 기력이 모두 가득 차요.',
+      recipe: [MaterialId.lightCore, MaterialId.sunPollen, MaterialId.essence],
+      minutes: 90,
+      hpRatio: 1.0,
+      mpRatio: 1.0,
+      icon: 'potion_dawnLight',
+    ),
   ];
+
+  /// 부탁 보상으로만 배우는 물약 (쪽지 뽑기에서 빼고, 레시피를 배우기 전엔 끓여도 수상한 물약)
+  static bool rewardOnly(PotionId id) => id == PotionId.dawnLight;
 
   /// 직업 각성 뒤에만 보이는 물약 (묶음 30)
   static bool needsJobs(PotionId id) =>

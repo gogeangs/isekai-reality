@@ -194,6 +194,7 @@ extension Act2Ops on AppController {
           _act2 = _act2.copyWith(beaten: a.id.index + 1);
           await _saveAct2();
           await gainMastery(Mastery.combat, MasteryRules.dungeonClear);
+          await _npcTally(NpcTally.clone); // 묶음 42: 세라 부탁
           _checkAct2();
         }
         _notify();

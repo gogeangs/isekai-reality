@@ -117,6 +117,7 @@ extension SmithyOps on AppController {
     ));
     await gainMastery(Mastery.smith, MasteryRules.craft,
         details: [MasteryRules.smithKey(MasteryRules.smithKind(base))]);
+    await _npcUse(Npc.dorgun);
     return item;
   });
 
@@ -198,6 +199,7 @@ extension SmithyOps on AppController {
     ));
     await gainMastery(Mastery.smith, MasteryRules.craft,
         details: [MasteryRules.smithKey(MasteryRules.smithKind(base))]);
+    await _npcUse(Npc.dorgun);
     return BossCraftResult(item: item);
   });
 
@@ -222,10 +224,13 @@ extension SmithyOps on AppController {
   }
 
   /// 강화한다. 성공하면 true. 실패해도 장비는 그대로 (비용만 쓴다).
-  Future<bool?> enhance(String uid) =>
+  /// [whetstone]: 도르군의 숫돌로 꼭 성공 (묶음 42 #226)
+  Future<bool?> enhance(String uid, {bool whetstone = false}) =>
       _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null || canEnhance(item) != CraftCheck.ok) return null;
+    final sure = whetstone && whetstones > 0;
+    if (sure) await _useWhetstone();
     final to = item.enhance + 1;
     final cost = EquipmentRules.enhanceCost(to);
     final today = await _todayRecord();
@@ -235,9 +240,9 @@ extension SmithyOps on AppController {
     ));
     // 묶음 31 #193: 집중 단조 → 성공률이 오르고(화면 %에도), 실패해도 무사 (쓴 마석·금화를 돌려받음)
     final focus = await _consumeSkill(JobSkill.focusForge);
-    final ok = _random.nextDouble() <
-        EquipmentRules.enhanceChance(to) +
-            (focus ? focusForgeBoost : 0);
+    final ok = sure ||
+        _random.nextDouble() <
+            EquipmentRules.enhanceChance(to) + (focus ? focusForgeBoost : 0);
     var safe = false;
     if (!ok && focus) {
       safe = true;
@@ -255,6 +260,8 @@ extension SmithyOps on AppController {
     // 숙련도는 쌓이지만 강화 성공률에는 넣지 않는다 (화면 「성공 ○○%」와 같게)
     await gainMastery(Mastery.smith, MasteryRules.enhance,
         details: [MasteryRules.smithKey(MasteryRules.smithKind(item.base))]);
+    await _npcUse(Npc.dorgun);
+    await _npcTally(NpcTally.enhance);
     return ok;
   });
 
@@ -273,6 +280,7 @@ extension SmithyOps on AppController {
         item.copyWith(durability: EquipmentRules.maxDurability)));
     await gainMastery(Mastery.smith, MasteryRules.repair,
         details: [MasteryRules.smithKey(MasteryRules.smithKind(item.base))]);
+    await _npcUse(Npc.dorgun);
     return true;
   });
 
@@ -326,6 +334,7 @@ extension SmithyOps on AppController {
     if ((act == SmithAction.apply || act == SmithAction.change) && to != null) {
       await _gainElement(to, ElementRules.imbueScore);
     }
+    await _npcUse(Npc.dorgun);
     return SmithResult.ok;
   });
 
@@ -344,6 +353,7 @@ extension SmithyOps on AppController {
           if (e.value != uid) e.key: e.value,
       },
     ));
+    await _npcUse(Npc.dorgun);
     return true;
   });
 

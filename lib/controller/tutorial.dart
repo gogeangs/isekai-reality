@@ -525,6 +525,9 @@ extension TutorialOps on AppController {
       if (w != null) MasteryRules.weaponKey(w),
       MasteryRules.monsterKey(spawn.monster),
     ]);
+    // 묶음 42 #226: 세라·도르군 부탁 (필드 몬스터 · 잿빛 슬라임)
+    await _npcTally(NpcTally.fieldKill);
+    if (spawn.monster == MonsterId.ashSlime) await _npcTally(NpcTally.ashKill);
     return exp;
   });
 

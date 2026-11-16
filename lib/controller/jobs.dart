@@ -155,6 +155,7 @@ extension JobOps on AppController {
           stepsCounted: today?.steps ?? 0,
         ));
         await _checkSkillPage();
+        await _npcUse(Npc.sera);
         return true;
       });
 
@@ -168,6 +169,7 @@ extension JobOps on AppController {
         if (s == j.name) ...[if (old != null) old.name] else s,
     ];
     await _saveJobs(_jobs.copyWith(main: j.name, subs: subs));
+    await _npcUse(Npc.sera);
     return true;
   }
 
@@ -385,6 +387,7 @@ extension JobOps on AppController {
     await _saveJobs(_jobs.copyWith(
         learned: {..._jobs.learned, s.name: was + 1}));
     if (was == 0 && JobRules.skill(s).isBattle) await _fillLoadout('job:${s.name}');
+    await _npcUse(Npc.sera);
     return true;
   }
 
@@ -467,6 +470,7 @@ extension JobOps on AppController {
             ]
           : null,
     ));
+    await _npcTally(NpcTally.jobSkill); // 묶음 42: 세라 부탁
     return true;
   }
 

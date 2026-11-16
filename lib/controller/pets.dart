@@ -84,6 +84,7 @@ extension PetsOps on AppController {
     var x = n.toDouble();
     if (petResonant(p)) x *= PetRules.resonanceBond;
     x *= 1 + JobRules.tamerBond * jobTrait(JobId.tamer);
+    x *= lumiBond; // 묶음 42 #226: 루미와 단짝이면 친밀도 더 (숨김)
     final whole = x.floor();
     return whole + (_random.nextDouble() < x - whole ? 1 : 0);
   }
@@ -180,10 +181,15 @@ extension PetsOps on AppController {
     if (!_pets.farewellDone) return false;
     if (_pets.eggs.any((e) => e.incubatedAt != null)) return false;
     final now = _clock();
+    // 묶음 42 #226: 루미의 둥지 장식 → 알이 조금 더 빨리 깨어남 (품은 때를 앞당겨 둠)
+    final at = hasLumiNest
+        ? now.subtract(PetRules.hatchTime * NpcRules.nestFaster)
+        : now;
     await _savePets(_pets.copyWith(eggs: [
-      for (final e in _pets.eggs) e.id == eggId ? e.incubate(now) : e,
+      for (final e in _pets.eggs) e.id == eggId ? e.incubate(at) : e,
     ]));
-    unawaited(notifier?.schedule(NotifyId.hatch, now.add(PetRules.hatchTime),
+    await _npcUse(Npc.lumi);
+    unawaited(notifier?.schedule(NotifyId.hatch, at.add(PetRules.hatchTime),
         '알이 깨어나려 해요', '가방에서 알을 확인하고 이름을 지어 주세요!'));
     return true;
   }
@@ -228,6 +234,7 @@ extension PetsOps on AppController {
       for (final e in _pets.eggs) e.id == eggId ? e.incubate(done) : e,
     ]));
     unawaited(notifier?.cancel(NotifyId.hatch));
+    await _npcUse(Npc.lumi);
     return true;
   });
 
@@ -297,6 +304,7 @@ extension PetsOps on AppController {
       pets: [...p.pets, pet],
       nextId: p.nextId + 1,
     ));
+    await _npcTally(NpcTally.hatch);
     return pet;
   }
 
@@ -427,6 +435,7 @@ extension PetsOps on AppController {
     await _save(today.copyWith(
         itemsUsed: [...today.itemsUsed, ShopItem.bulssiPotion.name]));
     await _givePetExp(uid, PetRules.expSnack, bond: PetRules.bondPerSnack);
+    await _npcTally(NpcTally.snack);
     return true;
   });
 

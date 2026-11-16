@@ -35,6 +35,7 @@ extension BoardOps on AppController {
       baseline: BoardRules.counterValue(today, t.counter),
     );
     await _saveBoard(b.copyWith(slots: slots));
+    await _npcUse(Npc.hart);
   });
 
   /// 받을 수 있는 의뢰 보상 수 (묶음 16 #130 마을 탭 빨간 점)
@@ -73,6 +74,8 @@ extension BoardOps on AppController {
     slots[slot] =
         ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
     await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
+    await _npcUse(Npc.hart);
+    await _npcTally(NpcTally.guildErrand);
     return true;
   });
 
@@ -120,6 +123,7 @@ extension BoardOps on AppController {
       urgentAccepted: true,
       urgentBaseline: BoardRules.counterValue(today, u.quest.counter),
     ));
+    await _npcUse(Npc.hart);
   });
 
   Future<bool> claimUrgent() =>
@@ -140,6 +144,8 @@ extension BoardOps on AppController {
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
     await _maybeNote(AlchemyRules.noteFromErrand);
     await _saveBoard(b.copyWith(urgentDone: true));
+    await _npcUse(Npc.hart);
+    await _npcTally(NpcTally.urgent);
     return true;
   });
 

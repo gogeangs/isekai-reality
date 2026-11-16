@@ -50,7 +50,11 @@ class StatusScreen extends StatelessWidget {
     this.jobMpBar,
     this.onOpenSkills,
     this.skillDot = false,
+    this.requestPanel,
   });
+
+  /// 묶음 42 #226: 받은 마을 사람 부탁 (의뢰 칸)
+  final Widget? requestPanel;
 
   /// 스킬 페이지 열기 (묶음 31 #198, 열린 뒤에만). 쓰지 않은 스킬 포인트가 있으면 점
   final VoidCallback? onOpenSkills;
@@ -268,6 +272,7 @@ class StatusScreen extends StatelessWidget {
                     _SkillsButton(onTap: onOpenSkills!, dot: skillDot),
                   ],
                 ]),
+                if (requestPanel != null) requestPanel!,
               ],
             ),
           ),

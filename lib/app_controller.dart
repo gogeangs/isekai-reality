@@ -19,6 +19,7 @@ import 'core/models/job_state.dart';
 import 'core/models/lens_state.dart';
 import 'core/models/mail_state.dart';
 import 'core/models/mastery_state.dart';
+import 'core/models/npc_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
@@ -50,6 +51,7 @@ part 'controller/jobs.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
 part 'controller/mastery.dart';
+part 'controller/npc.dart';
 part 'controller/pets.dart';
 part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
@@ -551,6 +553,8 @@ class AppController extends ChangeNotifier {
     };
     _act2Ready = true;
     _checkAct2();
+    // 묶음 42 #226: 마을 사람 친해지기 (없으면 지금까지 기록으로 시작 점수를 어림)
+    await _loadNpc();
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -743,6 +747,11 @@ class AppController extends ChangeNotifier {
   static const _villageKey = 'village';
   Set<String> _village = {};
   Map<String, int> _npcVisits = {};
+
+  /// 묶음 42 #226: 마을 사람 친해지기 · 부탁 · 사연 ('npc')
+  static const _npcKey = 'npc';
+  NpcState _npc = const NpcState();
+  bool _npcReady = false;
 
   /// 방금 꺼낸 직업 소식의 문장 그림 (묶음 35)
   String? _jobNoticeArt;

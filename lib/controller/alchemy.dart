@@ -36,6 +36,12 @@ extension AlchemyOps on AppController {
   ({PotionId id, bool perfect})? _brewMatch(List<MaterialId> put) {
     final m = AlchemyRules.match(put);
     if (m != null && !jobsOpen && AlchemyRules.needsJobs(m.id)) return null;
+    // 묶음 42: 부탁 보상 레시피는 배우기 전엔 끓여도 되지 않는다
+    if (m != null &&
+        AlchemyRules.rewardOnly(m.id) &&
+        !_alc.discovered.contains(m.id.name)) {
+      return null;
+    }
     return m;
   }
 
@@ -49,6 +55,7 @@ extension AlchemyOps on AppController {
     final unknown = [
       for (final p in AlchemyRules.all)
         if (!p.public &&
+            !AlchemyRules.rewardOnly(p.id) &&
             !_alc.discovered.contains(p.id.name) &&
             !_alc.noted.contains(p.id.name) &&
             (jobsOpen || !AlchemyRules.needsJobs(p.id)))
@@ -58,6 +65,7 @@ extension AlchemyOps on AppController {
     final id = unknown[_random.nextInt(unknown.length)];
     await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes - 1));
     await _saveAlc(_alc.copyWith(noted: [..._alc.noted, id.name]));
+    await _npcTally(NpcTally.newRecipe);
     return id;
   }
 
@@ -103,6 +111,11 @@ extension AlchemyOps on AppController {
       final k = need.keys.first;
       need[k] = need[k]! - 1;
       if (need[k]! <= 0) need.remove(k);
+    } else if (match != null && need.isNotEmpty && _elielSaves) {
+      // 묶음 42 #226: 엘리엘과 단짝이면 가끔 재료 하나 덜 (숨김)
+      final k = need.keys.last;
+      need[k] = need[k]! - 1;
+      if (need[k]! <= 0) need.remove(k);
     }
     final today = await _todayRecord();
     await _save(today.copyWith(
@@ -130,6 +143,7 @@ extension AlchemyOps on AppController {
       unawaited(notifier?.schedule(
           200 + slot, ready, '물약이 다 끓었어요', '연금술 공방에서 가마솥을 확인해 보세요!'));
     }
+    await _npcUse(Npc.eliel);
     return true;
   });
 
@@ -199,6 +213,9 @@ extension AlchemyOps on AppController {
           discovered: isNew);
     }
     await _saveAlc(a);
+    // 묶음 42 #226: 엘리엘 부탁 (물약 끓이기 · 처음 보는 레시피)
+    await _npcTally(NpcTally.brew);
+    if (result.discovered) await _npcTally(NpcTally.newRecipe);
     await gainMastery(Mastery.alchemy, MasteryRules.brew,
         details: [if (match != null) MasteryRules.potionKey(match.id)]);
     // 묶음 32 #189: 속성 물약을 끓이면 그 속성 점수
@@ -666,6 +683,7 @@ extension AlchemyOps on AppController {
     ));
     unawaited(notifier?.schedule(
         260, ready, '변환이 끝났어요', '연금술 공방 변환대에서 꺼내 가세요!'));
+    await _npcUse(Npc.eliel);
     return true;
   });
 

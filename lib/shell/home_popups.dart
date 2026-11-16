@@ -228,6 +228,22 @@ extension _ShellPopups on _HomeShellState {
         if (mounted) showTopNoticeQueued(context, '${josa(trained, '이/가')} 훈련을 마쳤어요');
       });
     }
+    // 묶음 45 #231·#232: 마을 사람 작은 부탁 · 특별한 부탁 다음 단계 (위쪽 띠 한 번)
+    final stage = c.takeRelicStageNotice();
+    final small = c.takeSmallNotice();
+    if (stage != null || small != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (stage != null) {
+          showTopNoticeQueued(context,
+              '${VillageRules.npc(stage.$1).name} · 「${stage.$2}」');
+        }
+        if (small != null) {
+          showTopNoticeQueued(context,
+              '${josa(VillageRules.npc(small).name, '이/가')} 작은 부탁이 있대요');
+        }
+      });
+    }
     final egg = c.takeNewEgg();
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

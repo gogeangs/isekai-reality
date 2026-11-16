@@ -53,6 +53,7 @@ part 'controller/lens.dart';
 part 'controller/mail.dart';
 part 'controller/mastery.dart';
 part 'controller/npc.dart';
+part 'controller/npc_small.dart';
 part 'controller/pets.dart';
 part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
@@ -766,6 +767,12 @@ class AppController extends ChangeNotifier {
 
   /// 방금 훈련을 마친 펫 이름 (위쪽 띠 한 번)
   String? _petTrainedNotice;
+
+  /// 묶음 45 #232: 전용 퀘스트 다음 단계 한마디 (위쪽 띠 한 번)
+  (Npc, String)? _relicStageNotice;
+
+  /// 묶음 45 #231: 새 작은 부탁 (위쪽 띠 한 번)
+  Npc? _smallNotice;
 
   /// 방금 꺼낸 직업 소식의 문장 그림 (묶음 35)
   String? _jobNoticeArt;

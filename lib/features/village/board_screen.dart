@@ -276,7 +276,11 @@ class SmallNote extends StatelessWidget {
     this.edge,
     this.done = false,
     this.onTap,
+    this.npc,
   });
+
+  /// 묶음 45 #231: 마을 사람 쪽지면 그 사람 얼굴을 작게
+  final Npc? npc;
 
   final String title;
   final int seed;
@@ -305,7 +309,14 @@ class SmallNote extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          NoteTitle(title),
+          if (npc != null)
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              NpcFace(key: Key('noteFace_${npc!.name}'), npc: npc!, size: 26),
+              const SizedBox(width: 5),
+              Expanded(child: NoteTitle(title)),
+            ])
+          else
+            NoteTitle(title),
           if (ratio != null) ...[
             const SizedBox(height: 6),
             InkBar(ratio: ratio!.clamp(0.0, 1.0)),
@@ -640,6 +651,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
     final done = s.accepted && progress >= t.target;
     return SmallNote(
       key: Key('errandNote_$slot'),
+      npc: _npcOf(t),
       title: t.title,
       seed: slot + (s.templateId?.length ?? 0),
       ratio: s.accepted ? progress / t.target : null,
@@ -703,9 +715,12 @@ class _ErrandDetailState extends State<_ErrandDetail> {
                     ? WaxSeal(key: ValueKey('seal_$slot'), stampIn: stampIn)
                     : null,
             title: t.title,
-            line: s.accepted
-                ? '수락했어요. 끝내면 쪽지가 빛나요.'
-                : '수락하면 그때부터 세요.',
+            line: switch ((_npcOf(t), s.accepted)) {
+              (final n?, false) =>
+                '${josa(VillageRules.npc(n).name, '이/가')} 붙인 쪽지예요. 수락하면 그때부터 세요.',
+              (_, true) => '수락했어요. 끝내면 쪽지가 빛나요.',
+              _ => '수락하면 그때부터 세요.',
+            },
             ratio: s.accepted ? progress / t.target : null,
             progress: s.accepted
                 ? '${comma(progress)} / ${comma(t.target)}${t.unit}'
@@ -1067,6 +1082,10 @@ class _BonusBand extends StatelessWidget {
 }
 
 /// 길드 의뢰 보상 띠: 금화·마석·재료를 아이콘과 함께 (11-11 #46)
+/// 묶음 45 #231: 마을 사람 쪽지의 그 사람
+Npc? _npcOf(ErrandTemplate t) =>
+    Npc.values.where((n) => n.name == t.npc).firstOrNull;
+
 class ErrandRewards extends StatelessWidget {
   const ErrandRewards({super.key, required this.t});
 
@@ -1074,6 +1093,11 @@ class ErrandRewards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => NoteRewards(items: [
+        if (t.exp > 0)
+          (
+            const Icon(Icons.auto_awesome_rounded, size: 15, color: kInkSoft),
+            '경험치 ${t.exp}'
+          ),
         if (t.gold > 0)
           (
             const GameIcon('gold',

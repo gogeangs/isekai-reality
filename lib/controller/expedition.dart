@@ -182,7 +182,7 @@ extension ExpeditionOps on AppController {
       gains: DailyRecord.addCounts(
           today.gains, {
         Wallet.gold:
-            await _jobSellGold(tradeGold(n * BagRules.materialPrice(m)))
+            await _jobSellGold(_abacus(tradeGold(n * BagRules.materialPrice(m))))
       }),
     ));
     await _shopTraded();
@@ -201,7 +201,7 @@ extension ExpeditionOps on AppController {
           today.counters, {TownRules.dropKey(item): n}),
       gains: DailyRecord.addCounts(
           today.gains, {
-        Wallet.gold: await _jobSellGold(tradeGold(n * BagRules.itemPrice(item)),
+        Wallet.gold: await _jobSellGold(_abacus(tradeGold(n * BagRules.itemPrice(item))),
             potion: TownRules.info(item).hpRatio > 0 ||
                 TownRules.info(item).mpRatio > 0 ||
                 TownRules.info(item).jobMpRatio > 0)
@@ -222,7 +222,7 @@ extension ExpeditionOps on AppController {
     await _save(today.copyWith(
       gains: DailyRecord.addCounts(
           today.gains,
-          {Wallet.gold: await _jobSellGold(tradeGold(BagRules.equipPrice(item)))}),
+          {Wallet.gold: await _jobSellGold(_abacus(tradeGold(BagRules.equipPrice(item))))}),
     ));
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
@@ -242,7 +242,7 @@ extension ExpeditionOps on AppController {
       gains: DailyRecord.addCounts(today.gains,
           {
             Wallet.gold: await _jobSellGold(
-                tradeGold(count * RuleConstants.goldPerManaStone))
+                _abacus(tradeGold(count * RuleConstants.goldPerManaStone)))
           }),
     ));
     await _shopTraded();
@@ -319,6 +319,9 @@ extension ExpeditionOps on AppController {
       )));
     }
     await store.saveVitals(_vitals);
+    // 묶음 45 #232: 엘리엘의 별빛 플라스크 → 물약을 마셔도 가끔 병이 남음
+    final potion = info.hpRatio > 0 || info.mpRatio > 0 || info.jobMpRatio > 0;
+    if (potion && _bottleKept) return UseCheck.ok;
     final today = await _todayRecord();
     await _save(today.copyWith(itemsUsed: [...today.itemsUsed, item.name]));
     return UseCheck.ok;
@@ -706,8 +709,13 @@ extension ExpeditionOps on AppController {
       _clearShelterRest(pet.uid);
       await _savePets(_pets.copyWith(tired: {
         ..._pets.tired,
-        pet.uid: ex.arriveAt.add(PetRules.tiredFor),
+        // 묶음 45 #232: 루미의 호루라기 → 더 빨리 회복
+        pet.uid: ex.arriveAt.add(hasRelic(Npc.lumi)
+            ? NpcSmallRules.whistleTired
+            : PetRules.tiredFor),
       }));
+      // 묶음 45 #231: 루미 — 펫이 원정에서 졌을 때
+      await _smallTrigger(Npc.lumi);
     }
     // 묶음 33 #185: 골렘 → 져도 기력을 돌려받음
     if (!cleared && pet != null && PetRules.keepsMpOnLoss(pet.species)) {

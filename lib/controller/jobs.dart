@@ -1007,6 +1007,8 @@ extension JobOps on AppController {
 
   /// 전투에 직업 효과를 붙인다 (전사·잿빛 사냥꾼·치유사)
   Battle _withJob(Battle b) {
+    // 묶음 45 #232: 세라의 방패 문장 → 보스 큰 공격 막기가 조금 쉬워짐
+    if (hasRelic(Npc.sera)) b.guardEase = NpcSmallRules.crestGuard;
     // 묶음 31 #198: 전투 칸에 낀 숙련 스킬 (스킬 페이지가 열린 뒤)
     if (_jobs.pageOpen) {
       for (final e in battleLoadout) {

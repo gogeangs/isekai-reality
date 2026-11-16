@@ -397,6 +397,10 @@ extension HarvestOps on AppController {
     await _grant(0, 0, mats);
     // 묶음 42 #226: 마르타·엘리엘 부탁 (물가 · 고대 유물)
     if (s.kind == HarvestKind.water) await _npcTally(NpcTally.water);
+    // 묶음 45 #231: 작은 부탁 · 게시판 쪽지 (채집 모두 · 종류별)
+    await _npcTally(NpcTally.gather);
+    await _npcTally(NpcTally.gatherOf(s.kind.name));
+    await _count('harvest');
     if (relic) await _npcTally(NpcTally.relic);
     await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
         details: [if (hk != null) MasteryRules.harvestKey(hk)]);

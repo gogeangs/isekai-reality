@@ -629,10 +629,17 @@ class Battle {
   static const Duration guardWindow = Duration(milliseconds: 1000);
   static const Duration perfectFrom = Duration(milliseconds: 700);
 
-  static GuardResult? judgeGuard(Duration sinceWarning) {
-    if (sinceWarning.isNegative || sinceWarning > guardWindow) return null;
-    return sinceWarning >= perfectFrom ? GuardResult.perfect : GuardResult.block;
+  /// [ease]: 묶음 45 #232 세라의 방패 문장 → 막기 판정이 넉넉해짐 (완벽한 막기 폭은 그대로 끝 0.3초)
+  static GuardResult? judgeGuard(Duration sinceWarning, {double ease = 1}) {
+    final window = guardWindow * ease;
+    if (sinceWarning.isNegative || sinceWarning > window) return null;
+    return sinceWarning >= window - (guardWindow - perfectFrom)
+        ? GuardResult.perfect
+        : GuardResult.block;
   }
+
+  /// 막기 판정 배수 (세라의 방패 문장)
+  double guardEase = 1;
 
   static const double strongPowerUp = 1.5; // 4턴마다 힘을 모은다
   static const double bossBigHit = 2.0; // 보스 3턴마다 큰 공격

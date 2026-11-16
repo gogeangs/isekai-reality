@@ -130,6 +130,13 @@ extension VillageOps on AppController {
     if (met && situation != null) return situation;
     // 묶음 42 #226: 처음 만날 때 첫 줄 → 상황 안내 → 부탁 알림 → 번갈아
     if (met && requestOffer(n) != null) return NpcRules.askLine;
+    // 묶음 45 #231·#232: 특별한 부탁 · 작은 부탁 (게시판 쪽지를 여러 번 끝냈으면 그 말풍선)
+    if (met && relicOffer(n) != null) return NpcRules.askLine;
+    if (met && smallOffer(n) != null) {
+      return _npc.smallBoard.contains(n.name)
+          ? NpcSmallRules.boardAsk[n] ?? NpcRules.askLine
+          : NpcRules.askLine;
+    }
     final String line;
     // 단계가 오르면 그 사람 새 대사 2줄이 그 막의 평소 대사에 섞인다
     final acts = [...VillageRules.linesFor(n, villageAct), ...npcStageLines(n)];

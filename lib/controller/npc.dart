@@ -81,6 +81,8 @@ extension NpcOps on AppController {
     }
     await _addFavor(n, NpcRules.usePoints,
         base: s.copyWith(uses: {...s.uses, n.name: used + 1}));
+    // 묶음 45 #231: 미나 — 오늘 잡화상에서 여러 번 거래했을 때
+    if (n == Npc.mina && used + 1 == NpcRules.usesPerDay) await _smallTrigger(Npc.mina);
   }
 
   /// 점수를 더하고, 단계가 오르면 작은 선물 우편 한 통
@@ -118,6 +120,18 @@ extension NpcOps on AppController {
   Future<void> _npcTally(String key, [int n = 1]) async {
     if (!_npcReady || n <= 0) return;
     await _saveNpc(_npc.copyWith(tally: {..._npc.tally, key: (_npc.tally[key] ?? 0) + n}));
+    // 묶음 45 #231: 내 행동에 따라 마을 사람 작은 부탁
+    final who = switch (key) {
+      NpcTally.newPlace => Npc.mina,
+      NpcTally.brew || NpcTally.newRecipe => Npc.eliel,
+      NpcTally.guildErrand => Npc.hart,
+      NpcTally.dungeon || NpcTally.clone => Npc.sera,
+      NpcTally.hatch => Npc.lumi,
+      _ => null,
+    };
+    if (who != null) await _smallTrigger(who);
+    // 묶음 45 #232: 전용 퀘스트 다음 단계
+    await _advanceRelics();
   }
 
   /// 여관 휴식: 받은 부탁의 연속 휴식 날 + 오늘 3,000보 걷고 쉬기

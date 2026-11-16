@@ -216,6 +216,7 @@ extension AlchemyOps on AppController {
     // 묶음 42 #226: 엘리엘 부탁 (물약 끓이기 · 처음 보는 레시피)
     await _npcTally(NpcTally.brew);
     if (result.discovered) await _npcTally(NpcTally.newRecipe);
+    await _count('brew'); // 묶음 45: 게시판 엘리엘 쪽지
     await gainMastery(Mastery.alchemy, MasteryRules.brew,
         details: [if (match != null) MasteryRules.potionKey(match.id)]);
     // 묶음 32 #189: 속성 물약을 끓이면 그 속성 점수
@@ -342,12 +343,17 @@ extension AlchemyOps on AppController {
     var a = _alc;
     final used = <String>[];
     battle.potionsUsed.forEach((key, n) {
+      // 묶음 45 #232: 엘리엘의 별빛 플라스크 → 가끔 병이 남음 (한 병마다)
+      var spent = 0;
+      for (var i = 0; i < n; i++) {
+        if (!_bottleKept) spent++;
+      }
       if (key.startsWith('shop:')) {
-        for (var i = 0; i < n; i++) {
+        for (var i = 0; i < spent; i++) {
           used.add(key.substring(5));
         }
-      } else if (key.startsWith('alc:')) {
-        a = a.add(key.substring(4), -n);
+      } else if (key.startsWith('alc:') && spent > 0) {
+        a = a.add(key.substring(4), -spent);
       }
     });
     if (used.isNotEmpty) {
@@ -484,7 +490,8 @@ extension AlchemyOps on AppController {
       ]);
       _spotsKey = null; // 유인 물약이면 채집 자리를 다시 만든다
     }
-    await _saveAlc(a.add(key, -1));
+    // 묶음 45 #232: 엘리엘의 별빛 플라스크 → 가끔 병이 남음
+    await _saveAlc(_bottleKept ? a : a.add(key, -1));
     return null;
   });
 

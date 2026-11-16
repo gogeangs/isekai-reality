@@ -262,6 +262,8 @@ extension SmithyOps on AppController {
         details: [MasteryRules.smithKey(MasteryRules.smithKind(item.base))]);
     await _npcUse(Npc.dorgun);
     await _npcTally(NpcTally.enhance);
+    // 묶음 45 #231: 도르군 — 강화에 성공했을 때
+    if (ok) await _smallTrigger(Npc.dorgun);
     return ok;
   });
 
@@ -380,11 +382,15 @@ extension SmithyOps on AppController {
     if (worn.isEmpty) return;
     if (_jobRoll(JobId.blacksmith, JobRules.blacksmithWear)) return;
     var a = _armory;
+    var broke = false;
     for (final item in worn) {
-      a = a.replace(item.copyWith(
-          durability: math.max(0, item.durability - n)));
+      final d = math.max(0, item.durability - n);
+      if (d == 0 && item.durability > 0) broke = true;
+      a = a.replace(item.copyWith(durability: d));
     }
     _armory = a;
     await store.saveJson(AppController._armoryKey, a.toJson());
+    // 묶음 45 #231: 도르군 — 장비 내구도가 0이 됐을 때
+    if (broke) await _smallTrigger(Npc.dorgun);
   }
 }

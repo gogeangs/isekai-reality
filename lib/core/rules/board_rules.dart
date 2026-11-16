@@ -1,6 +1,7 @@
 import '../models/board_state.dart';
 import '../models/daily_record.dart';
 import 'materials.dart';
+import 'npc_small_rules.dart';
 import 'quest_rules.dart';
 import 'town_rules.dart';
 
@@ -15,6 +16,8 @@ class ErrandTemplate {
     this.manaStones = 0,
     this.materials = const {},
     this.unit = '',
+    this.npc,
+    this.exp = 0,
   });
 
   final String id;
@@ -28,7 +31,14 @@ class ErrandTemplate {
   final Map<MaterialId, int> materials;
   final String unit;
 
+  /// 묶음 45 #231: 마을 사람 쪽지면 그 사람 (Npc 이름)
+  final String? npc;
+
+  /// 마을 사람 쪽지 경험치
+  final int exp;
+
   String get rewardLabel => [
+        if (exp > 0) '경험치 $exp',
         if (gold > 0) '금화 $gold',
         if (manaStones > 0) '마석 $manaStones',
         for (final e in materials.entries)
@@ -189,7 +199,7 @@ class BoardRules {
       gold: 30);
 
   static ErrandTemplate? template(String? id) {
-    for (final t in [...errands, ...urgents, guideErrand]) {
+    for (final t in [...errands, ...urgents, guideErrand, ...NpcSmallRules.boardNotes]) {
       if (t.id == id) return t;
     }
     return null;
@@ -236,7 +246,9 @@ class BoardRules {
       (counterValue(today, t.counter) - baseline).clamp(0, t.target);
 
   /// 날짜가 바뀌었으면 새로 시작하고, 기다리던 빈 칸에 새 의뢰를 올린다
-  static BoardState refresh(BoardState s, DateTime now) {
+  /// [npcs]: 건물이 열린 마을 사람 (묶음 45 #231: 가끔 그 사람 쪽지가 붙는다)
+  static BoardState refresh(BoardState s, DateTime now,
+      {List<String> npcs = const []}) {
     final key = DailyRecord.dayKeyOf(now);
     var state = s.day == key
         ? s
@@ -256,11 +268,32 @@ class BoardRules {
       final holding = slots.where((x) => !x.empty).length;
       if (!ready || state.doneToday + holding >= errandsPerDay) continue;
       final taken = {for (final x in slots) x.templateId};
-      final pick = _pickErrand(key, seq, taken);
+      final pick = _pickNpcNote(key, seq, taken, npcs) ?? _pickErrand(key, seq, taken);
       seq++;
       slots[i] = ErrandSlot(templateId: pick.id);
     }
     return state.copyWith(slots: slots, seq: seq);
+  }
+
+  /// 묶음 45 #231: 길드 의뢰가 새로 붙을 때 가끔 마을 사람 쪽지 (같은 사람 쪽지는 한 장만)
+  static ErrandTemplate? _pickNpcNote(
+      String day, int seq, Set<String?> taken, List<String> npcs) {
+    if (npcs.isEmpty) return null;
+    final h = _hash('$day|npcNote|$seq');
+    if ((h % 10000) / 10000 >= NpcSmallRules.boardChance) return null;
+    final onBoard = {
+      for (final id in taken)
+        if (template(id)?.npc case final n?) n,
+    };
+    final free = [
+      for (final n in npcs)
+        if (!onBoard.contains(n)) n,
+    ];
+    if (free.isEmpty) return null;
+    final who = free[(h ~/ 10007) % free.length];
+    final notes = NpcSmallRules.notesOf(who);
+    if (notes.isEmpty) return null;
+    return notes[(h ~/ 131) % notes.length];
   }
 
   static ErrandTemplate _pickErrand(String day, int seq, Set<String?> taken) {

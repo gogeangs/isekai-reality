@@ -258,3 +258,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | village_bg_end | 세로 화면용 결말 뒤 바탕 (새 village_bg 편집, 구도 같음) |
 | 2026-11-16 | equip_martaScarf, equip_seraBadge, item_minaPouch, item_dorgunWhetstone, item_lumiNest, potion_dawnLight | 마을 사람 특별 보상 6종 (#226, 512) |
 | 2026-11-16 | village_smithy_build{3,2,1} | 공사 중 대장간 3단계 (#225, 한 장 시트에서 잘라 village_smithy 받침에 맞춤, 512) |
+| 2026-11-16 | village_board_build{3,2,1} | 공사 중 의뢰 게시판 3단계 (#225, 한 장 시트에서 잘라 village_board 받침에 맞춤, 512) |

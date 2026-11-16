@@ -923,6 +923,7 @@ void main() {
     expect(find.text('처음 만난 종족!'), findsWidgets);
     expect(find.textContaining('/ 8'), findsNothing);
     await _shot(tester, '52_감정_앨범');
+    await tester.pump(const Duration(seconds: 9));
   });
 
   testWidgets('화면 미리보기: 채집·승객·우편 (11-11)', (tester) async {

@@ -301,3 +301,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_harvest_relic | 채집 미니 게임 고대 유물 배경 (#234, 1024×1536) |
 | 2026-11-17 | pet_wolf_awake | 영웅 펫 은빛 늑대 각성 모습 (#235, pet_wolf_adult와 같은 크기·바닥 자리, 512) |
 | 2026-11-17 | title_forestKeeper, item_popoDew | 포포 특별 보상 칭호·이슬병 (#230, 한 장에서 잘라 512) |
+| 2026-11-17 | pet_turtle_baby, pet_turtle_adult | 영웅 펫 이끼 거북 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |

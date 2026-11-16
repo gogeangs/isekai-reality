@@ -272,3 +272,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | monster_dummyElement | 속성 허수아비 (#228, 가슴 수정 비움, monster_dummy와 받침 맞춤, 512) |
 | 2026-11-16 | monster_trainingGolem | 훈련 골렘 (#228, 512) |
 | 2026-11-16 | village_garden | 약초밭 건물 (#230, 다른 건물과 같은 크기·바닥 위치, 512) |
+| 2026-11-16 | village_garden_build{3,2,1} | 공사 중 약초밭 3단계 (#230, 한 장 시트에서 잘라 village_garden 받침에 맞춤, 512) |

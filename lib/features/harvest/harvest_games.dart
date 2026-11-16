@@ -261,7 +261,7 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
           TextButton(
               key: const Key('harvestQuitYes'),
               onPressed: () => Navigator.of(d).pop(true),
-              child: const Text('그만두기')),
+              child: const Text('빠른 채집으로')),
         ],
       ),
     );
@@ -520,7 +520,13 @@ class _HintLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => FittedBox(
         fit: BoxFit.scaleDown,
-        child: Text(text,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
+          decoration: BoxDecoration(
+            color: const Color(0x99070818),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(text,
             key: const Key('harvestHint'),
             maxLines: 1,
             style: const TextStyle(
@@ -528,6 +534,7 @@ class _HintLine extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
+        ),
       );
 }
 
@@ -2345,7 +2352,7 @@ class _ResultFx extends StatelessWidget {
             final list = (mats ?? const {}).entries.toList();
             return Stack(children: [
               Positioned.fill(
-                child: ColoredBox(color: Colors.black.withValues(alpha: 0.35 * burst)),
+                child: ColoredBox(color: Colors.black.withValues(alpha: 0.6 * burst)),
               ),
               // 금빛·은빛 터짐 (실패는 부드럽게 흩어짐)
               Positioned.fill(
@@ -2354,63 +2361,83 @@ class _ResultFx extends StatelessWidget {
                       k: k, center: c, color: glow, fail: fail, burst: burst),
                 ),
               ),
+              // 가운데: 결과 + 받은 재료 줄
               Positioned(
-                left: 0,
-                right: 0,
-                top: c.dy - 110,
+                left: 20,
+                right: 20,
+                top: c.dy - 80,
                 child: Opacity(
-                  opacity: (1 - fly * 0.6).clamp(0.0, 1.0),
-                  child: Text(gradeLabel(grade),
-                      key: const Key('harvestFxLabel'),
-                      textAlign: TextAlign.center,
-                      style: AppText.title(30, color: fail ? AppColors.textMuted : glow)
-                          .copyWith(shadows: [
-                        Shadow(color: glow.withValues(alpha: 0.8), blurRadius: 16),
-                      ])),
+                  opacity: burst,
+                  child: Transform.scale(
+                    scale: 0.85 + 0.15 * burst,
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(gradeLabel(grade),
+                          key: const Key('harvestFxLabel'),
+                          textAlign: TextAlign.center,
+                          style: AppText.title(34,
+                                  color: fail ? const Color(0xFFD8CBB4) : glow)
+                              .copyWith(shadows: [
+                            const Shadow(color: Colors.black, blurRadius: 6),
+                            Shadow(color: glow.withValues(alpha: 0.9), blurRadius: 18),
+                          ])),
+                      if (list.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          key: const Key('harvestFxMats'),
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xDD0B0D26),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: glow.withValues(alpha: 0.8)),
+                          ),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 12,
+                            runSpacing: 6,
+                            children: [
+                              for (final e in list)
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                                  MaterialIcon(e.key, size: 30),
+                                  const SizedBox(width: 4),
+                                  Text('${Materials.info(e.key).name} +${e.value}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800)),
+                                ]),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ]),
+                  ),
                 ),
               ),
-              // 받은 재료 아이콘이 튀어나와 가방 쪽으로
-              for (final (i, e) in list.indexed)
-                Positioned(
-                  left: Offset.lerp(
-                              c + Offset((i - (list.length - 1) / 2) * 64, -20 * burst),
-                              target,
-                              fly)!
-                          .dx -
-                      26,
-                  top: Offset.lerp(
-                              c + Offset((i - (list.length - 1) / 2) * 64, -20 * burst),
-                              target,
-                              fly)!
-                          .dy -
-                      26,
-                  child: Transform.scale(
-                    scale: (0.4 + burst * 0.8) * (1 - fly * 0.5),
-                    child: MaterialIcon(e.key, size: 52),
-                  ),
-                ),
-              if (list.isNotEmpty)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  top: c.dy + 70,
-                  child: Opacity(
-                    opacity: burst,
-                    child: Text(
-                      [
-                        for (final e in list)
-                          '${Materials.info(e.key).name} +${e.value}',
-                      ].join(' · '),
-                      key: const Key('harvestFxMats'),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 6)]),
+              // 받은 재료 아이콘이 튀어나와 가방 쪽(오른쪽 위)으로 날아감
+              if (!fail || list.isNotEmpty)
+                for (final (i, e) in list.indexed)
+                  if (fly > 0)
+                    Positioned(
+                      left: Offset.lerp(
+                                  c + Offset((i - (list.length - 1) / 2) * 56, 40),
+                                  target,
+                                  fly)!
+                              .dx -
+                          22,
+                      top: Offset.lerp(
+                                  c + Offset((i - (list.length - 1) / 2) * 56, 40),
+                                  target,
+                                  fly)!
+                              .dy -
+                          22,
+                      child: Opacity(
+                        opacity: (1 - fly * 0.4).clamp(0.0, 1.0),
+                        child: Transform.scale(
+                          scale: 1 - fly * 0.4,
+                          child: MaterialIcon(e.key, size: 44),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
             ]);
           });
         },

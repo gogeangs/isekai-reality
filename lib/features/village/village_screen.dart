@@ -672,7 +672,7 @@ class _VillageArtState extends State<_VillageArt> {
             ? null
             : building
                 ? f.facility == Facility.shelter
-                    ? '첫 펫과 함께 완공'
+                    ? '첫 펫과 함께\n완공'
                     : '${widget.lockLabel(f.facility)} 완공'
                 : widget.lockLabel(f.facility);
     const half = 80.0;
@@ -691,7 +691,7 @@ class _VillageArtState extends State<_VillageArt> {
           onTap: () => widget.onTap(f),
           child: Stack(clipBehavior: Clip.none, children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
+              padding: EdgeInsets.fromLTRB(building ? 5 : 7, 2, building ? 5 : 7, 2),
               decoration: BoxDecoration(
                 color: open
                     ? const Color(0xE61A1636)
@@ -731,10 +731,11 @@ class _VillageArtState extends State<_VillageArt> {
                 if (sub != null)
                   Text(sub,
                       key: Key('tagSub_${f.facility.name}'),
-                      maxLines: 1,
-                      style: const TextStyle(
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 9.5,
+                          fontSize: building ? 9 : 9.5,
                           height: 1.15,
                           fontWeight: FontWeight.w700)),
               ]),

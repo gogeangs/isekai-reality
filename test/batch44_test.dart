@@ -84,7 +84,7 @@ void main() {
     expect(find.byKey(const Key('build1_alchemy')), findsOneWidget);
     Text sub(String n) => tester.widget<Text>(find.byKey(Key('tagSub_$n')));
     expect(sub('smithy').data, 'Lv.3 완공');
-    expect(sub('shelter').data, '첫 펫과 함께 완공');
+    expect(sub('shelter').data, '첫 펫과 함께\n완공');
     await tester.tap(find.byKey(const Key('locked_smithy')));
     await tester.pump();
     expect(find.text('짓는 중이에요 · Lv.3에 완공!'), findsOneWidget);

@@ -290,7 +290,7 @@ void main() {
           tester.widget<Text>(find.byKey(Key('tagSub_$n')));
       expect(sub('alchemy').data, 'Lv.7 완공');
       expect(sub('guild').data, 'Lv.15 완공');
-      expect(sub('shelter').data, '첫 펫과 함께 완공');
+      expect(sub('shelter').data, '첫 펫과 함께\n완공');
       expect(sub('market').data, '준비 중');
       expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
       await tester.tap(find.byKey(const Key('locked_alchemy')));

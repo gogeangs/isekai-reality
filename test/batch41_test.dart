@@ -28,7 +28,8 @@ Future<void> reveal(WidgetTester tester, String list, String key,
     [double delta = 150]) async {
   await tester.scrollUntilVisible(find.byKey(Key(key)), delta,
       scrollable: find.descendant(
-          of: find.byKey(Key(list)), matching: find.byType(Scrollable)));
+          of: find.byKey(Key(list)), matching: find.byType(Scrollable))
+          .first);
   Scrollable.ensureVisible(tester.element(find.byKey(Key(key))),
       alignment: 0.5);
   await tester.pump();
@@ -215,6 +216,7 @@ void main() {
       expect(c.player.materialCount(MaterialId.ratHide), 1);
       expect(c.player.materialCount(MaterialId.ironShard), 0);
       // 귀한 재료는 확인
+      await reveal(tester, 'sellList', 'sellRow_m:glossyFur');
       await tester.tap(find.byKey(const Key('sellRow_m:glossyFur')));
       await tester.pump();
       await tester.tap(find.byKey(const Key('sellPicked')));

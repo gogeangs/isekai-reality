@@ -548,7 +548,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('facility_shop')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('금화'), findsWidgets);
+    expect(find.byKey(const Key('shopWallet')), findsOneWidget);
 
     // 마석 1개를 팔면 금화 10 (묶음 41 #227: 「팔기」 탭 맨 위)
     final gold = c.player.gold;
@@ -570,9 +570,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
         find.byKey(const Key('shopItem_bulssiPotion')), 200,
-        scrollable: find.descendant(
-            of: find.byKey(const Key('shopList')),
-            matching: find.byType(Scrollable)));
+        scrollable: find
+            .descendant(
+                of: find.byKey(const Key('shopList')),
+                matching: find.byType(Scrollable))
+            .first);
     await tester.pumpAndSettle();
     expect(find.text('펫 간식'), findsWidgets);
     await tester.tap(find.byKey(const Key('shopItem_bulssiPotion')));

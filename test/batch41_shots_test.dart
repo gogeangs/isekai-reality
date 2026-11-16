@@ -103,7 +103,8 @@ Future<void> _scrollTo(WidgetTester tester, String list, String key,
     {double delta = 150}) async {
   await tester.scrollUntilVisible(find.byKey(Key(key)), delta,
       scrollable: find.descendant(
-          of: find.byKey(Key(list)), matching: find.byType(Scrollable)));
+          of: find.byKey(Key(list)), matching: find.byType(Scrollable))
+          .first);
   Scrollable.ensureVisible(tester.element(find.byKey(Key(key))),
       alignment: 0.5);
   await _settle(tester, 3);
@@ -157,6 +158,7 @@ void main() {
         await tester.tap(find.byKey(const Key('shopTab_1')));
         await _settle(tester, 3);
         await tester.tap(find.byKey(const Key('sellRow_m:ratHide')));
+        await _scrollTo(tester, 'sellList', 'sellRow_m:glossyFur');
         await tester.tap(find.byKey(const Key('sellRow_m:glossyFur')));
         await _settle(tester, 2);
         await _shot(tester, '${n}_08_팔기_재료_골라팔기');

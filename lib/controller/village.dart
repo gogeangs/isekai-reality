@@ -69,11 +69,18 @@ extension VillageOps on AppController {
   String takeNpcLine(Npc n, {String? guide, String? situation}) {
     final met = _village.contains('met:${n.name}');
     final visits = _npcVisits[n.name] ?? 0;
+    // 묶음 42 #226: 시설에 들르면 친해지기 점수 (하루 한 번)
+    unawaited(_npcVisit(n));
     if (met && situation != null) return situation;
+    // 묶음 42 #226: 처음 만날 때 첫 줄 → 상황 안내 → 부탁 알림 → 번갈아
+    if (met && requestOffer(n) != null) return NpcRules.askLine;
     final String line;
+    // 단계가 오르면 그 사람 새 대사 2줄이 그 막의 평소 대사에 섞인다
+    final acts = [...VillageRules.linesFor(n, villageAct), ...npcStageLines(n)];
     if (met && guide != null) {
-      final acts = VillageRules.linesFor(n, villageAct);
       line = visits.isOdd ? guide : acts[(visits ~/ 2) % acts.length];
+    } else if (met) {
+      line = acts[visits % acts.length];
     } else {
       line = VillageRules.lineFor(n, act: villageAct, met: met, visits: visits);
     }
@@ -127,6 +134,7 @@ extension VillageOps on AppController {
           uid: end.isBefore(t) ? end : t,
         }));
         await _markVillage(['rest:$uid']);
+        await _npcUse(Npc.lumi);
         return true;
       });
 

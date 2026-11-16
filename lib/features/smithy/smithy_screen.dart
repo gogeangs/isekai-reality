@@ -506,6 +506,20 @@ class _SmithyScreenState extends State<SmithyScreen> {
             if (p.gold < cost.gold) (_ic('gold'), '금화 ${cost.gold - p.gold}'),
           ],
         ),
+      // 묶음 42 #226: 도르군의 숫돌 → 이번 강화는 꼭 성공 (마석·금화는 그대로 듦)
+      if (check == CraftCheck.ok && c.whetstones > 0) ...[
+        const SizedBox(height: 6),
+        FrameButton(
+          key: Key('whetstone_${item.uid}'),
+          label: '도르군의 숫돌로 강화 · 꼭 성공 (${c.whetstones}개)',
+          height: 38,
+          onPressed: () async {
+            final ok = await c.enhance(item.uid, whetstone: true);
+            if (!mounted || ok == null) return;
+            _snack('숫돌이 반짝! 강화 성공! ${item.info.name} +$to');
+          },
+        ),
+      ],
     ]);
   }
 

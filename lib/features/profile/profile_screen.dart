@@ -383,6 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       embedded: true,
                                       prophecy: c.prophecyPieces,
                                       kingStory: c.kingStories,
+                                      npcStories: c.npcStories,
                                       memory: switch (c.spiritMemory) {
                                         final m? => (
                                             name: c.firstSpiritName,

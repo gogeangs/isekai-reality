@@ -166,8 +166,13 @@ extension VitalsOps on AppController {
       await _fillJobMp(); // 묶음 30: 새 MP도 가득
       _justRested = true;
       final rec = await _todayRecord();
-      await store.upsert(
-          _withQuests(rec.copyWith(restsCompleted: rec.restsCompleted + 1)));
+      // 묶음 42 #226: 마르타와 단짝이면 휴식 보너스 경험치 조금 더 (숨김)
+      final bonus = martaRestBonus;
+      await store.upsert(_withQuests(rec.copyWith(
+          restsCompleted: rec.restsCompleted + 1,
+          gains: bonus > 0
+              ? DailyRecord.addCounts(rec.gains, {Wallet.exp: bonus})
+              : null)));
       _history = await store.loadHistory();
     }
 
@@ -234,6 +239,9 @@ extension VitalsOps on AppController {
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
+    // 묶음 42 #226: 마르타 친해지기 · 부탁 (연속 휴식 · 걷고 와서 쉬기)
+    await _npcUse(Npc.marta);
+    await _npcRested();
     unawaited(notifier?.schedule(
       NotifyId.rest,
       now.add(const Duration(hours: RuleConstants.restHours)),

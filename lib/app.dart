@@ -16,6 +16,7 @@ import 'features/drive/drive_overlay.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
+import 'features/village/npc_request.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
@@ -379,6 +380,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             look: controller.profile.look,
             season: SeasonRules.of(controller.now),
             now: controller.now,
+            requestPanel: NpcRequestPanel(controller: controller),
           ),
           NightBackground(header: true, child: BagTab(controller: controller)),
           MapScreen(

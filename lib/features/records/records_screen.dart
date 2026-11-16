@@ -5,7 +5,9 @@ import '../../core/models/daily_record.dart';
 import '../../core/models/player_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../core/rules/village_rules.dart';
 import '../bulssi/bulssi_bubble.dart';
+import '../village/npc_request.dart';
 
 /// 기록 (목업 구도): 이번 주 / 지난 주, 걸음·필드 몬스터·여관 휴식 그래프, 주간 요약 3칸.
 class RecordsScreen extends StatefulWidget {
@@ -15,7 +17,11 @@ class RecordsScreen extends StatefulWidget {
       this.embedded = false,
       this.prophecy = const [],
       this.kingStory = const [],
+      this.npcStories = const [],
       this.memory});
+
+  /// 묶음 42 #226: 마을 사람 이야기 (만난 사람마다 조각 4개, 못 본 조각은 null)
+  final List<(Npc, List<String?>)> npcStories;
 
   /// 왕의 사연 (묶음 34): 쓰러뜨린 분신 순서대로 늘어난다
   final List<String> kingStory;
@@ -264,6 +270,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 ]),
               ),
           ],
+          NpcStoryRecords(stories: widget.npcStories),
           const SizedBox(height: 16),
           Text('하루별 기록', style: AppText.title(19)),
           const SizedBox(height: 8),

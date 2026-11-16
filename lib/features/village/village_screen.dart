@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/rules/rules.dart' show JobRules, VillageRules;
+import '../../core/rules/rules.dart' show JobRules, Npc, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -117,6 +117,24 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.board => controller.questRewardsReady > 0,
         Facility.shelter => controller.shelterOpen && controller.readyEgg != null,
         _ => false,
+      };
+
+  /// 묶음 42 #226: 그 시설 마을 사람 (거래소는 없음)
+  static Npc? npcOf(Facility f) => switch (f) {
+        Facility.inn => Npc.marta,
+        Facility.shop => Npc.mina,
+        Facility.smithy => Npc.dorgun,
+        Facility.alchemy => Npc.eliel,
+        Facility.board => Npc.hart,
+        Facility.guild => Npc.sera,
+        Facility.shelter => Npc.lumi,
+        Facility.market => null,
+      };
+
+  /// 금빛 「!」: 받을 부탁 · 다 한 부탁 (빨간 점과 따로)
+  bool _ask(Facility f) => switch (npcOf(f)) {
+        final n? => controller.npcAttention(n),
+        null => false,
       };
 
   List<FacilityInfo> get _openList => [
@@ -268,6 +286,7 @@ class _VillageScreenState extends State<VillageScreen> {
             all: VillageScreen.facilities,
             open: _open,
             news: _news,
+            ask: _ask,
             lockLabel: _lockLabel,
             lighting: _lit,
             towerGlow: _intro != null,
@@ -346,6 +365,7 @@ class _VillageArt extends StatefulWidget {
     required this.all,
     required this.open,
     required this.news,
+    required this.ask,
     required this.lockLabel,
     required this.lighting,
     required this.towerGlow,
@@ -357,6 +377,7 @@ class _VillageArt extends StatefulWidget {
   final List<FacilityInfo> all;
   final bool Function(Facility) open;
   final bool Function(Facility) news;
+  final bool Function(Facility) ask;
   final String Function(Facility) lockLabel;
 
   /// 결말 뒤 처음: 탑 불꽃이 켜지는 연출
@@ -664,12 +685,49 @@ class _VillageArtState extends State<_VillageArt> {
               ]),
             ),
             if (open && widget.news(f.facility))
-              const Positioned(right: -5, top: -6, child: _RedDot()),
+              Positioned(
+                  left: widget.ask(f.facility) ? -5 : null,
+                  right: widget.ask(f.facility) ? null : -5,
+                  top: -6,
+                  child: const _RedDot()),
+            // 묶음 42 #226: 부탁 「!」 (오른쪽 위, 빨간 점은 왼쪽으로)
+            if (open && widget.ask(f.facility))
+              Positioned(
+                  key: Key('ask_${f.facility.name}'),
+                  right: -7,
+                  top: -8,
+                  child: const _AskMark()),
           ]),
         ),
       ),
     );
   }
+}
+
+class _AskMark extends StatelessWidget {
+  const _AskMark();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 15,
+        height: 15,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              colors: [Color(0xFFFFE7A3), Color(0xFFE0A93A)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter),
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFF6A4410), width: 1.2),
+          boxShadow: const [BoxShadow(color: Color(0xAAFFD36A), blurRadius: 6)],
+        ),
+        child: const Text('!',
+            style: TextStyle(
+                color: AppColors.goldInk,
+                fontSize: 11,
+                height: 1.0,
+                fontWeight: FontWeight.w900)),
+      );
 }
 
 class _RedDot extends StatelessWidget {

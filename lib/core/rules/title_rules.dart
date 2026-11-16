@@ -61,6 +61,14 @@ enum TitleId {
   ashFear,
   ashLonely,
   bridgeMaker,
+  // 묶음 42 #226: 마을 사람 4번째 부탁을 끝내면 (얻기 전엔 숨김)
+  npcMarta,
+  npcMina,
+  npcDorgun,
+  npcEliel,
+  npcHart,
+  npcSera,
+  npcLumi,
 }
 
 class TitleInfo {
@@ -126,6 +134,13 @@ class TitleRules {
       TitleId.ashFear => '잿그림자의 두려움을 이겨 냈어요',
       TitleId.ashLonely => '잿바람의 외로움을 안아 줬어요',
       TitleId.bridgeMaker => '잿빛 군주를 멈추고 문을 다리로 바꿨어요',
+      TitleId.npcMarta => '마르타의 마지막 부탁을 들어줬어요',
+      TitleId.npcMina => '미나의 마지막 부탁을 들어줬어요',
+      TitleId.npcDorgun => '도르군의 마지막 부탁을 들어줬어요',
+      TitleId.npcEliel => '엘리엘의 마지막 부탁을 들어줬어요',
+      TitleId.npcHart => '하르트의 마지막 부탁을 들어줬어요',
+      TitleId.npcSera => '세라의 마지막 부탁을 들어줬어요',
+      TitleId.npcLumi => '루미의 마지막 부탁을 들어줬어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -145,7 +160,21 @@ class TitleRules {
     TitleId.relicHunter,
     ...masteryTitles,
     ...ashTitles,
+    ...npcTitles,
   };
+
+  /// 마을 사람 칭호 (묶음 42 #226). 기록 counters 'ntitle:<이름>' 으로 얻는다
+  static const List<TitleId> npcTitles = [
+    TitleId.npcMarta,
+    TitleId.npcMina,
+    TitleId.npcDorgun,
+    TitleId.npcEliel,
+    TitleId.npcHart,
+    TitleId.npcSera,
+    TitleId.npcLumi,
+  ];
+
+  static String npcCounter(TitleId t) => 'ntitle:${t.name}';
 
   /// 2막 칭호 (묶음 34)와 그 몬스터: 처음 쓰러뜨리면
   static const Map<TitleId, MonsterId> ashTitleMonsters = {
@@ -285,6 +314,13 @@ class TitleRules {
     TitleInfo(TitleId.ashFear, '두려움을 이긴 자', '숨은 칭호'),
     TitleInfo(TitleId.ashLonely, '외로움을 안아 준 자', '숨은 칭호'),
     TitleInfo(TitleId.bridgeMaker, '다리를 놓은 자', '숨은 칭호'),
+    TitleInfo(TitleId.npcMarta, '여관의 단골', '숨은 칭호'),
+    TitleInfo(TitleId.npcMina, '행상의 길동무', '숨은 칭호'),
+    TitleInfo(TitleId.npcDorgun, '도르군의 제자', '숨은 칭호'),
+    TitleInfo(TitleId.npcEliel, '빛을 담는 이', '숨은 칭호'),
+    TitleInfo(TitleId.npcHart, '문지기의 후배', '숨은 칭호'),
+    TitleInfo(TitleId.npcSera, '근위 기사의 맹세', '숨은 칭호'),
+    TitleInfo(TitleId.npcLumi, '짐승들의 친구', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -390,6 +426,10 @@ class TitleRules {
     // 숨은 숙련도 칭호 (묶음 27 #176)
     for (final t in masteryTitles) {
       final k = masteryCounter(t);
+      if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
+    }
+    for (final t in npcTitles) {
+      final k = npcCounter(t);
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
     }
     final monsters =

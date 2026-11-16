@@ -70,6 +70,7 @@ extension ExploreOps on AppController {
     );
     await store.upsert(updated);
     _history = await store.loadHistory();
+    if (!visitedBefore) await _npcTally(NpcTally.newPlace); // 묶음 42: 미나 부탁
     // 묶음 32 #189: 물가 장소(정령의 호수)에 가면 물 점수
     if (place.kind == PlaceKind.spiritLake) {
       await _gainElement(Element.water, ElementRules.waterScore);

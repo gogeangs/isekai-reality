@@ -395,6 +395,9 @@ extension HarvestOps on AppController {
     }
     await _saveHarvest(h);
     await _grant(0, 0, mats);
+    // 묶음 42 #226: 마르타·엘리엘 부탁 (물가 · 고대 유물)
+    if (s.kind == HarvestKind.water) await _npcTally(NpcTally.water);
+    if (relic) await _npcTally(NpcTally.relic);
     await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
         details: [if (hk != null) MasteryRules.harvestKey(hk)]);
     if (relic) {

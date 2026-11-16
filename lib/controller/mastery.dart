@@ -71,8 +71,10 @@ extension MasteryOps on AppController {
   int masteryRepairCost(EquipItem item) {
     final base = EquipmentRules.repairCost(item);
     final f = _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(item.base)));
-    if (f <= 0 || base <= 0) return base;
-    return math.max(1, (base * (1 - MasteryRules.smithRepairCut * f)).round());
+    // 묶음 42 #226: 도르군과 단짝이면 수리비 덜 (숨김)
+    if (f <= 0 || base <= 0) return dorgunRepair(base);
+    return dorgunRepair(
+        math.max(1, (base * (1 - MasteryRules.smithRepairCut * f)).round()));
   }
 
   /// 확률 [chance] 로 한 번 굴린다. 효과가 없으면(0) 굴리지도 않는다 (다른 결과를 흔들지 않게)
@@ -96,8 +98,9 @@ extension MasteryOps on AppController {
     final f = _bigFrac(Mastery.trade);
     // 묶음 30: 모험가 → 길드·긴급 의뢰 보상 (숨김)
     final a = JobRules.adventurerReward * jobTrait(JobId.adventurer);
-    if ((f <= 0 && a <= 0) || gold <= 0) return gold;
-    return (gold * (1 + MasteryRules.errandGold * f) * (1 + a)).round();
+    // 묶음 42 #226: 하르트와 단짝이면 의뢰 금화 조금 더 (숨김)
+    if ((f <= 0 && a <= 0) || gold <= 0) return hartGold(gold);
+    return hartGold((gold * (1 + MasteryRules.errandGold * f) * (1 + a)).round());
   }
 
   /// 감정 재료·쪽지 확률 (감정)
@@ -135,7 +138,8 @@ extension MasteryOps on AppController {
       {List<String> details = const [], double detailAmount = 1}) async {
     if (amount <= 0 && details.isEmpty) return;
     // 묶음 30: 주 직업 ×1.5 · 보조 직업 ×1.2 (그 직업 숙련도)
-    final g = jobGrowth(m);
+    // 묶음 42 #226: 세라와 단짝이면 숙련도 조금 빨리 (숨김)
+    final g = jobGrowth(m) * seraMastery;
     amount *= g;
     detailAmount *= g;
     var s = _mastery;

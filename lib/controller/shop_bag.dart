@@ -30,7 +30,15 @@ extension ShopBagOps on AppController {
       await _save(t.copyWith(
           gains: DailyRecord.addCounts(t.gains, {Wallet.gold: back})));
     }
+    // 묶음 42 #226: 미나와 단짝이면 산 값 일부를 돌려받음 (숨김)
+    final mina = minaRefund(i.price);
+    if (mina > 0) {
+      final t = await _todayRecord();
+      await _save(t.copyWith(
+          gains: DailyRecord.addCounts(t.gains, {Wallet.gold: mina})));
+    }
     await _shopTraded();
+    await _npcUse(Npc.mina);
     // 묶음 27 #176: 잡화상 거래 1건마다 장사·의뢰 숙련도
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return PurchaseCheck.ok;
@@ -116,7 +124,8 @@ extension ShopBagOps on AppController {
       goldExpansions: _bag.goldExpansions,
       extraSlots: _bag.extraSlots,
       singleSlots: _bag.singleSlots) +
-      jobBagSlots;
+      jobBagSlots +
+      npcBagSlots; // 묶음 42: 미나의 짐 주머니
 
   /// 쓰고 있는 칸 (예전 저장본은 칸보다 많을 수 있다. 그래도 다 남긴다)
   int get bagUsed => BagRules.usedSlots(

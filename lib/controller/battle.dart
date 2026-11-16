@@ -147,6 +147,7 @@ extension BattleOps on AppController {
       final w = _weaponKind;
       await gainMastery(Mastery.combat, MasteryRules.dungeonClear,
           details: [if (w != null) MasteryRules.weaponKey(w)]);
+      await _npcTally(NpcTally.dungeon); // 묶음 42: 도르군·하르트 부탁
     }
     return exp;
   });

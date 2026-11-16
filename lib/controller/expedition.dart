@@ -186,6 +186,7 @@ extension ExpeditionOps on AppController {
       }),
     ));
     await _shopTraded();
+    await _npcUse(Npc.mina);
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -207,6 +208,7 @@ extension ExpeditionOps on AppController {
       }),
     ));
     await _shopTraded();
+    await _npcUse(Npc.mina);
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -225,6 +227,7 @@ extension ExpeditionOps on AppController {
     await _saveArmory(_armory.copyWith(
         items: [for (final i in _armory.items) if (i.uid != uid) i]));
     await _shopTraded();
+    await _npcUse(Npc.mina);
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -243,6 +246,8 @@ extension ExpeditionOps on AppController {
           }),
     ));
     await _shopTraded();
+    await _npcUse(Npc.mina);
+    await _npcTally(NpcTally.stoneSold, count);
     await gainMastery(Mastery.trade, MasteryRules.tradeOnce);
     return true;
   });
@@ -628,6 +633,10 @@ extension ExpeditionOps on AppController {
     // 묶음 27 #176: 정령술 숙련도 (이긴 원정 1, 진 원정 0.5)
     await gainMastery(Mastery.spirit,
         cleared ? MasteryRules.expeditionWin : MasteryRules.expeditionLoss);
+    // 묶음 42 #226: 하르트 부탁 (첫 펫과 원정)
+    if (pet != null && pet.uid == _pets.firstPet) {
+      await _npcTally(NpcTally.petExpedition);
+    }
     _lastExpeditionExp = cleared
         ? await _recordFieldPurify(ex.spawnId, monster, GeoPoint(ex.lat, ex.lng),
             mods: mods, count: battle.floors.length)

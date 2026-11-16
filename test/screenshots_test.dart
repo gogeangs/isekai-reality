@@ -947,6 +947,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
     await tester.pump(const Duration(milliseconds: 400));
     await _shot(tester, '54_채집_미니게임');
+    // 묶음 46: 처음 하는 미니게임은 큰 설명 → 「시작!」
+    if (find.byKey(const Key('gameStart')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const Key('gameStart')));
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.byKey(const Key('gameTap')));
       await tester.pump(const Duration(milliseconds: 300));

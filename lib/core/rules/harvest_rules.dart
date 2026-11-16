@@ -241,6 +241,20 @@ class HarvestRules {
 
   static HarvestKindInfo info(HarvestKind k) => all.firstWhere((i) => i.kind == k);
 
+  // ───────────── 묶음 46 #233: 미니게임 손맛 (숨은 값)
+
+  /// 버섯 고르기에 금빛 버섯이 나올 확률 (고르면 귀한 재료 꼭)
+  static const double goldMushroom = 0.12;
+
+  /// 꽃 따기 바람 세기 (판마다 흔들림 한 번 걸리는 시간, 평균은 예전 1.3초와 같게)
+  static const List<int> flowerWindMs = [1000, 1300, 1600];
+
+  /// 물가: 시작할 때 귀한 재료(큰 물고기 그림자)가 걸릴 확률 (좋음 판정과 같은 몫 + 도구 등급)
+  static double waterRareChance(int tier) => rareGood + tier * rarePerTier;
+
+  /// 결과 연출 길이 (눌러서 넘길 수 있음)
+  static const Duration resultFx = Duration(milliseconds: 1000);
+
   /// 도구의 대표 자리 (도구 이름·아이콘에 쓴다)
   static HarvestKindInfo ofTool(HarvestTool t) => switch (t) {
         HarvestTool.sickle => info(HarvestKind.herb),
@@ -281,7 +295,8 @@ class HarvestRules {
       ToolTier tier = ToolTier.stone,
       int streak = 0,
       Element? element,
-      int month = 1}) {
+      int month = 1,
+      bool? forceRare}) {
     final i = info(kind);
     var base = 1 + rng.nextInt(2);
     base += switch (grade) {
@@ -318,7 +333,9 @@ class HarvestRules {
       rareChance *= elementBoost;
     }
     final out = <MaterialId, int>{baseMat: math.max(1, (base * factor).floor())};
-    if (rng.nextDouble() < rareChance * factor) out[rare] = 1;
+    // 묶음 46 #233: 미니게임이 정한 귀한 재료 (금빛 버섯 · 큰 물고기 그림자) — true 꼭 · false 없음
+    final hit = rng.nextDouble() < rareChance * factor;
+    if (forceRare ?? hit) out[rare] = 1;
     return out;
   }
 

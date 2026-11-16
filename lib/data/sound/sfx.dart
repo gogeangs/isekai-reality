@@ -1,7 +1,25 @@
 import 'package:audioplayers/audioplayers.dart';
 
 /// 전투 효과음 (11-11 #75 확정). Oculus Audio Pack 01 (Meta), CC BY 4.0, 일부 편집.
-enum SfxKind { hit, crit, superEffective, block, perfect, victory, defeat }
+/// 채집 효과음 (묶음 46 #233): Kenney Interface · Impact · RPG Audio, CC0.
+enum SfxKind {
+  hit,
+  crit,
+  superEffective,
+  block,
+  perfect,
+  victory,
+  defeat,
+  // 채집
+  pluck,
+  ore,
+  gem,
+  saw,
+  drop,
+  brush,
+  harvestPerfect,
+  harvestFail,
+}
 
 extension on SfxKind {
   String get file => switch (this) {
@@ -12,6 +30,14 @@ extension on SfxKind {
         SfxKind.perfect => 'sfx/perfect.m4a',
         SfxKind.victory => 'sfx/victory.m4a',
         SfxKind.defeat => 'sfx/defeat.m4a',
+        SfxKind.pluck => 'sfx/h_pluck.m4a',
+        SfxKind.ore => 'sfx/h_ore.m4a',
+        SfxKind.gem => 'sfx/h_gem.m4a',
+        SfxKind.saw => 'sfx/h_saw.m4a',
+        SfxKind.drop => 'sfx/h_drop.m4a',
+        SfxKind.brush => 'sfx/h_brush.m4a',
+        SfxKind.harvestPerfect => 'sfx/h_perfect.m4a',
+        SfxKind.harvestFail => 'sfx/h_fail.m4a',
       };
 }
 

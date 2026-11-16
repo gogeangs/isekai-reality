@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
                     onChanged: controller.setVibrate,
                     title: const Text('진동',
                         style: TextStyle(color: AppColors.text, fontSize: 14)),
-                    subtitle: const Text('때리고 막을 때 손에 느껴져요',
+                    subtitle: const Text('때리고 막을 때, 채집할 때 손에 느껴져요',
                         style: TextStyle(
                             color: AppColors.textMuted, fontSize: 12)),
                   ),
@@ -130,9 +130,9 @@ class SettingsScreen extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                     value: controller.sound,
                     onChanged: controller.setSound,
-                    title: const Text('효과음',
+                    title: const Text('소리',
                         style: TextStyle(color: AppColors.text, fontSize: 14)),
-                    subtitle: const Text('때릴 때, 막을 때, 이기고 질 때 소리가 나요',
+                    subtitle: const Text('전투와 채집 효과음 · 휴대폰이 무음이면 나지 않아요',
                         style: TextStyle(
                             color: AppColors.textMuted, fontSize: 12)),
                   ),

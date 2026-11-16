@@ -53,9 +53,10 @@ class HarvestSheet extends StatelessWidget {
   final AppController controller;
   final HarvestSpot spot;
 
-  Future<void> _go(BuildContext context, HarvestGrade grade) async {
+  Future<void> _go(BuildContext context, HarvestGrade grade,
+      {Map<MaterialId, int>? done}) async {
     final c = controller;
-    final mats = await c.harvestAt(spot, grade);
+    final mats = done ?? await c.harvestAt(spot, grade);
     if (!context.mounted || mats == null) return;
     final line = [
       for (final e in mats.entries) '${Materials.info(e.key).name} +${e.value}',
@@ -161,12 +162,34 @@ class HarvestSheet extends StatelessWidget {
                       label: '미니게임 · ${info.game}',
                       onPressed: game == HarvestCheck.ok
                           ? () async {
-                              final g = await Navigator.of(context).push<HarvestGrade>(
-                                  MaterialPageRoute(
+                              final tier = c.toolTier(info.tool);
+                              final r = await Navigator.of(context)
+                                  .push<HarvestGameResult>(MaterialPageRoute(
                                       builder: (_) => HarvestGameScreen(
-                                          kind: spot.kind,
-                                          ease: c.harvestEase(spot.kind))));
-                              if (g != null && context.mounted) await _go(context, g);
+                                            kind: spot.kind,
+                                            ease: c.harvestEase(spot.kind),
+                                            toolAsset:
+                                                'tool_${info.tool.name}_${tier.name}',
+                                            toolName: '${tier.label} ${info.toolName}',
+                                            base: info.base,
+                                            first: c.harvestGameFirst(spot.kind),
+                                            streak: c.harvestKindStreak(spot.kind),
+                                            vibrate: c.vibrate,
+                                            sound: c.sound,
+                                            onStart: () =>
+                                                c.markHarvestGameSeen(spot.kind),
+                                            // 묶음 46: 결과 연출에서 받은 재료를 보여 주려고 화면 안에서 채집을 마친다
+                                            resolve: (p) => c.harvestAt(
+                                                spot, p.grade,
+                                                rare: p.rare),
+                                          )));
+                              if (r == null || !context.mounted) return;
+                              // 「그만두기」 → 빠른 채집
+                              if (r.quit) {
+                                await _go(context, HarvestGrade.quick);
+                              } else if (r.mats != null) {
+                                await _go(context, r.grade, done: r.mats);
+                              }
                             }
                           : null,
                     ),

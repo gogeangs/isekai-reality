@@ -223,6 +223,18 @@ extension HarvestOps on AppController {
   int harvestEase(HarvestKind k) =>
       _harvest.tierOf(HarvestRules.info(k).tool).index;
 
+  /// 묶음 46 #233: 같은 종류에서 완벽이 이어진 수 (불꽃 아이콘, 숫자는 안 보임)
+  int harvestKindStreak(HarvestKind k) => _harvest.kindStreak[k.name] ?? 0;
+
+  /// 묶음 46 #234: 이 미니게임을 처음 하는지 (처음만 큰 설명)
+  bool harvestGameFirst(HarvestKind k) => !_harvest.gamesSeen.contains(k.name);
+
+  Future<void> markHarvestGameSeen(HarvestKind k) async {
+    if (!harvestGameFirst(k)) return;
+    await _saveHarvest(
+        _harvest.copyWith(gamesSeen: [..._harvest.gamesSeen, k.name]));
+  }
+
   /// 채집가 직업 (#55 각성 뒤, 지금은 늘 false. 규칙만 준비)
   bool get gatherer => false;
 
@@ -292,7 +304,9 @@ extension HarvestOps on AppController {
   }
 
   /// 채집한다. [grade] 가 quick 이면 빠른 채집, 아니면 미니게임 결과.
-  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade) =>
+  /// [rare]: 묶음 46 미니게임이 정한 귀한 재료 (true 꼭 · false 없음 · null 보통처럼)
+  Future<Map<MaterialId, int>?> harvestAt(HarvestSpot s, HarvestGrade grade,
+          {bool? rare}) =>
       _serial(() async {
     final minigame = grade != HarvestGrade.quick;
     // 묶음 31: 채집 감각 → 잠시 동안 「좋음」이 가끔 「완벽」으로 (숨김)
@@ -331,7 +345,8 @@ extension HarvestOps on AppController {
         tier: h.tierOf(tool),
         streak: grade == HarvestGrade.perfect ? h.streak : 0,
         element: h.elementOf(tool),
-        month: now.month);
+        month: now.month,
+        forceRare: minigame ? rare : null);
     // 묶음 27 #176: 그 종류(약초·광석·나무) 채집 숙련도 → 가끔 하나 더, 도구가 가끔 안 닳음 (숨김)
     final hk = MasteryRules.harvestKind(s.kind);
     final hf = hk == null ? 0.0 : _detailFrac(MasteryRules.harvestKey(hk));
@@ -381,6 +396,15 @@ extension HarvestOps on AppController {
           ? {...h.perfects, s.kind.name: (h.perfects[s.kind.name] ?? 0) + 1}
           : h.perfects,
       relics: relic ? h.relics + 1 : h.relics,
+      // 묶음 46 #233: 같은 종류 완벽 연속 (불꽃)
+      kindStreak: minigame
+          ? {
+              ...h.kindStreak,
+              s.kind.name: grade == HarvestGrade.perfect
+                  ? (h.kindStreak[s.kind.name] ?? 0) + 1
+                  : 0,
+            }
+          : h.kindStreak,
     ).pruned(now);
     // 묶음 13 C8: 유물 이야기는 보류. 이야기 칸만 비우고 유물·재료는 그대로
     _lastRelicLore = relic && HarvestRules.relicLore.isNotEmpty

@@ -269,3 +269,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | equip_garenBand | 가렌의 훈련 완장 (#228 가렌 부탁 4번 보상, 512) |
 | 2026-11-16 | title_trialEndurer | 칭호 「시련을 견딘 자」 (#228, 512) |
 | 2026-11-16 | monster_dummyHard | 단단한 허수아비 (#228, monster_dummy와 받침 크기·자리 맞춤, 512) |
+| 2026-11-16 | monster_dummyElement | 속성 허수아비 (#228, 가슴 수정 비움, monster_dummy와 받침 맞춤, 512) |

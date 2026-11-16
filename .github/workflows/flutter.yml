@@ -14,7 +14,36 @@ permissions:
   contents: write
 
 jobs:
+  # 11-17: 그림(assets/images/**)·README 만 바꾼 push 는 테스트·캡처를 건너뛴다.
+  # main · 묶음 브랜치(wip/batch*) · pull request · 손으로 돌리기는 늘 전체 테스트.
+  # (WebP 바꾸기는 그림을 main 에 합칠 때 개발이 tool/optimize_images.py 로 하므로 따로 돌리지 않는다)
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.check.outputs.full }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: check
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          full=true
+          ref="${GITHUB_REF#refs/heads/}"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "$ref" != "main" ] && [[ "$ref" != wip/batch* ]] \
+             && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE" 2>/dev/null; then
+            other=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^assets/images/|(^|/)README[^/]*$' || true)
+            if [ -z "$other" ]; then full=false; fi
+          fi
+          echo "바뀐 곳이 그림·README 뿐이면 건너뜀 → full=$full"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

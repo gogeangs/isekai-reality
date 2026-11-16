@@ -281,3 +281,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | item_martaFlask, item_minaAbacus, item_dorgunAnvil, item_elielFlask | 마을 사람 전용 아이템 4종 (#232, 한 장 시트에서 잘라 같은 배율, 512) |
 | 2026-11-17 | item_hartMapcase, item_seraCrest, item_lumiWhistle, item_garenWeight | 마을 사람 전용 아이템 4종 (#232, 한 장 시트에서 잘라 같은 배율, 512) |
 | 2026-11-17 | harvest_relic_dirt | 유물 발굴 흙 덮개 (#234, 1024) |
+| 2026-11-17 | harvest_herb_plant, harvest_flower_stem | 채집 미니 게임 약초(뿌리까지)·줄기 꽃 (#234, 한 장에서 잘라 붉은 테두리 제거, 512×768) |

@@ -156,7 +156,7 @@ void main() {
       await tester.runAsync(() => c.acceptRequest(Npc.marta));
       await _page(
           tester,
-          StatusScreen(
+          Scaffold(body: StatusScreen(
             player: c.player,
             hp: c.hp,
             mp: c.mp,
@@ -164,7 +164,7 @@ void main() {
             mpMax: c.mpMax,
             armory: c.armory,
             requestPanel: NpcRequestPanel(controller: c),
-          ));
+          )));
       final sc = find.byType(Scrollable).first;
       await tester.drag(sc, const Offset(0, -900));
       await _settle(tester, 3);
@@ -211,9 +211,11 @@ void main() {
 
       await _page(
           tester,
-          NightBackground(
-              header: true,
-              child: RecordsScreen(player: c.player, npcStories: c.npcStories)));
+          Scaffold(
+              body: NightBackground(
+                  header: true,
+                  child: RecordsScreen(
+                      player: c.player, npcStories: c.npcStories))));
       final list = find.byType(Scrollable).first;
       await tester.scrollUntilVisible(
           find.byKey(const Key('npcStoryRecords')), 200,

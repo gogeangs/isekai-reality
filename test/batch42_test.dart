@@ -51,7 +51,7 @@ void main() {
     });
 
     test('단계가 오르면 작은 선물 우편 한 통 · 새 대사 2줄이 섞임', () async {
-      final c = await startNpc(npc: _npc(points: {'marta': 4}));
+      final c = await startNpc(npc: _npc(points: {'marta': 4}, done: {'marta': 1}));
       expect(c.favorStage(Npc.marta), FavorStage.stranger);
       expect(c.npcStageLines(Npc.marta), isEmpty);
       c.takeNpcLine(Npc.marta);

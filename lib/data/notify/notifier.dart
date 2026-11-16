@@ -29,11 +29,12 @@ class NotifyId {
   static const int merchant = 5;
   static const int letter = 6;
   static const int quest = 7;
+  static const int petTraining = 8;
 
   /// 알림을 누르면 갈 곳
   static NotifyTarget targetOf(int id) => switch (id) {
         expedition || >= 100 && < 200 => NotifyTarget.expedition,
-        rest => NotifyTarget.status,
+        rest || petTraining => NotifyTarget.status,
         hatch => NotifyTarget.bag,
         letter => NotifyTarget.mail,
         quest => NotifyTarget.board,

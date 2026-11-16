@@ -26,6 +26,7 @@ String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.notEnoughMp => '기력이 모자라요',
       ExpeditionCheck.busy => '이미 원정 중이에요',
       ExpeditionCheck.tired => '지쳐서 쉬는 중이에요',
+      ExpeditionCheck.training => '훈련장에서 훈련 중이에요',
     };
 
 /// 원정 펫 칩 이름 (묶음 35: 지친 펫은 남은 시간)
@@ -33,6 +34,9 @@ String _petLabel(AppController c, Pet p) {
   if (c.isAway(p.uid)) return '${p.name} (원정 중)';
   final t = c.petTiredLeft(p.uid);
   if (t != null) return '${p.name} · 지쳐서 쉬는 중 · ${_minutes(t)} 남음';
+  // 묶음 43 #228: 훈련장에 맡긴 펫
+  final tr = c.petTrainingLeft(p.uid);
+  if (tr != null) return '${p.name} · 훈련 중 · ${_minutes(tr)} 남음';
   return p.name;
 }
 
@@ -290,7 +294,8 @@ class _SpawnSheetState extends State<SpawnSheet> {
                             ]),
                             selected: p.uid == chosen,
                             onSelected: c.isAway(p.uid) ||
-                                    c.petTiredLeft(p.uid) != null
+                                    c.petTiredLeft(p.uid) != null ||
+                                    c.petInTraining(p.uid)
                                 ? null
                                 : (_) => setState(() => _petUid = p.uid),
                             selectedColor: AppColors.gold,

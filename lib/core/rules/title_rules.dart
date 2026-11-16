@@ -69,6 +69,9 @@ enum TitleId {
   npcHart,
   npcSera,
   npcLumi,
+  // 묶음 43 #228: 가렌 마지막 부탁 · 시련 15판 (얻기 전엔 숨김)
+  npcGaren,
+  trialEndurer,
 }
 
 class TitleInfo {
@@ -141,6 +144,8 @@ class TitleRules {
       TitleId.npcHart => '하르트의 마지막 부탁을 들어줬어요',
       TitleId.npcSera => '세라의 마지막 부탁을 들어줬어요',
       TitleId.npcLumi => '루미의 마지막 부탁을 들어줬어요',
+      TitleId.npcGaren => '가렌의 마지막 부탁을 들어줬어요',
+      TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -161,6 +166,7 @@ class TitleRules {
     ...masteryTitles,
     ...ashTitles,
     ...npcTitles,
+    TitleId.trialEndurer,
   };
 
   /// 마을 사람 칭호 (묶음 42 #226). 기록 counters 'ntitle:<이름>' 으로 얻는다
@@ -172,9 +178,13 @@ class TitleRules {
     TitleId.npcHart,
     TitleId.npcSera,
     TitleId.npcLumi,
+    TitleId.npcGaren,
   ];
 
   static String npcCounter(TitleId t) => 'ntitle:${t.name}';
+
+  /// 묶음 43: 시련 15판 칭호 기록 칸
+  static const String trialCounter = 'trial15';
 
   /// 2막 칭호 (묶음 34)와 그 몬스터: 처음 쓰러뜨리면
   static const Map<TitleId, MonsterId> ashTitleMonsters = {
@@ -321,6 +331,8 @@ class TitleRules {
     TitleInfo(TitleId.npcHart, '문지기의 후배', '숨은 칭호'),
     TitleInfo(TitleId.npcSera, '근위 기사의 맹세', '숨은 칭호'),
     TitleInfo(TitleId.npcLumi, '짐승들의 친구', '숨은 칭호'),
+    TitleInfo(TitleId.npcGaren, '문지기 기사단의 후예', '숨은 칭호'),
+    TitleInfo(TitleId.trialEndurer, '시련을 견딘 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -431,6 +443,10 @@ class TitleRules {
     for (final t in npcTitles) {
       final k = npcCounter(t);
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
+    }
+    // 묶음 43 #228: 시련에서 처음 15판을 넘기면
+    if (history.any((d) => (d.counters[trialCounter] ?? 0) > 0)) {
+      result.add(TitleId.trialEndurer);
     }
     final monsters =
         history.fold<int>(0, (s, d) => s + d.fieldMonstersPurified);

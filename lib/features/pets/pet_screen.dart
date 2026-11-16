@@ -145,6 +145,11 @@ class _PetCard extends StatelessWidget {
     final info = pet.info;
     final companion = c.companionPet?.uid == pet.uid;
     final away = c.isAway(pet.uid);
+    // 묶음 43 #228: 훈련장에 맡긴 펫
+    final train = c.petTrainingLeft(pet.uid);
+    final trainText = train == null
+        ? ''
+        : ' · 훈련 중 · ${train.inHours > 0 ? '${train.inHours}시간 ' : ''}${train.inMinutes % 60 + (train.inHours == 0 && train.inMinutes == 0 ? 1 : 0)}분 남음';
     final maxed = pet.level >= PetRules.maxLevel;
     final into = PetRules.expInto(pet.exp);
     final need = PetRules.expToNext(pet.level);
@@ -178,7 +183,7 @@ class _PetCard extends StatelessWidget {
                   ]),
                   Text(
                       '${info.name}${info.grade == PetGrade.rare ? ' · 희귀' : ''} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
-                      '${companion ? ' · 동행' : ''}${away ? ' · 원정 중' : ''}',
+                      '${companion ? ' · 동행' : ''}${away ? ' · 원정 중' : ''}$trainText',
                       style: const TextStyle(
                           color: AppColors.goldBright, fontSize: 12)),
                   const SizedBox(height: 4),
@@ -218,7 +223,8 @@ class _PetCard extends StatelessWidget {
                 child: FrameButton(
                   label: '데리고 다니기',
                   height: 40,
-                  onPressed: () => c.setCompanion(pet.uid),
+                  onPressed:
+                      train != null ? null : () => c.setCompanion(pet.uid),
                 ),
               ),
             if (!companion) const SizedBox(width: 6),

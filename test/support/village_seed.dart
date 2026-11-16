@@ -10,7 +10,10 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 final vt0 = DateTime(2026, 11, 16, 10);
 
 Future<AppController> startVillage(int level,
-    {Map<String, dynamic>? village, bool farewell = false, Map<String, dynamic>? more}) async {
+    {Map<String, dynamic>? village,
+    bool farewell = false,
+    Map<String, dynamic>? more,
+    DateTime Function()? clock}) async {
   final c = AppController(
     store: InMemoryRecordStore(
       profile: const PlayerProfile(
@@ -50,7 +53,7 @@ Future<AppController> startVillage(int level,
       },
     ),
     health: FakeHealthSource(stepsByDay: const {}),
-    clock: () => vt0,
+    clock: clock ?? () => vt0,
   )..mailSources = const [];
   await c.init();
   return c;

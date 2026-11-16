@@ -139,6 +139,13 @@ class NpcTally {
   static const fieldKill = 'fieldKill'; // 필드 몬스터
   static const snack = 'snack'; // 펫 간식
   static const hatch = 'hatch'; // 알 깨우기
+  // 묶음 43 #228: 훈련장 (가렌)
+  static const practiceBash = 'practiceBash'; // 연습에서 강타
+  static const practiceStance = 'practiceStance'; // 연습에서 방어 태세
+  static const practiceSkill = 'practiceSkill'; // 연습에서 스킬
+  static const dailyTraining = 'dailyTraining'; // 하루 훈련 (하루 한 번)
+  static const trial10 = 'trial10'; // 시련에서 10판 넘기기
+  static const petTraining = 'petTraining'; // 펫 훈련
 }
 
 /// 마을 사람 부탁 · 사연 · 친해지기 규칙 (묶음 42 #226, 문서 「아르카 마을 사람 이야기」).
@@ -196,6 +203,8 @@ class NpcRules {
 
   /// 루미: 펫 친밀도
   static const double lumiBond = 1.25;
+
+  /// 가렌: 하루 훈련 보상 (금화) — [TrainingRules.garenGold]
 
   // ───────────── 특별 보상 크기 (숨은 값)
 
@@ -600,6 +609,60 @@ class NpcRules {
       special: NpcSpecial(NpcSpecialKind.nest, TitleId.npcLumi, '루미의 둥지 장식',
           '알이 조금 더 빨리 깨어나요', 'item_lumiNest'),
     ),
+    // 가렌 (훈련장, Lv.13 · 묶음 43 #228). 부탁 말은 개발 초안
+    NpcRequest(
+      npc: Npc.garen,
+      index: 0,
+      stage: FavorStage.known,
+      level: 13,
+      say: '허수아비부터다! 연습에서 강타, 방어 태세, 스킬을 한 번씩 써 봐라!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 1, '연습에서 강타 쓰기', key: NpcTally.practiceBash),
+        NpcRequestStep(RequestStepKind.tally, 1, '연습에서 방어 태세 쓰기',
+            key: NpcTally.practiceStance),
+        NpcRequestStep(RequestStepKind.tally, 1, '연습에서 스킬 쓰기', key: NpcTally.practiceSkill),
+      ],
+      gifts: {'gold': 100},
+      story: '이 훈련장은 문지기 기사단 신병들이 땀 흘리던 곳이다. 하르트 녀석도 여기서 굴렀지!',
+    ),
+    NpcRequest(
+      npc: Npc.garen,
+      index: 1,
+      stage: FavorStage.close,
+      level: 14,
+      say: '몸은 하루아침에 안 만들어진다! 하루 훈련을 사흘 해 와라!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 3, '하루 훈련 3일 하기', key: NpcTally.dailyTraining),
+      ],
+      gifts: {'item:heal': 2},
+      story: '문이 깨지던 날, 난 신병 다섯을 데리고 문 앞에 있었다. 이 다리는 그날 얻은 거다.',
+    ),
+    NpcRequest(
+      npc: Npc.garen,
+      index: 2,
+      stage: FavorStage.close,
+      level: 16,
+      say: '시련에 나가 봐라! 열 판은 넘겨야 내 제자라 할 수 있다!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 1, '시련에서 10판 넘기기', key: NpcTally.trial10),
+      ],
+      gifts: {'labyrinthCore': 1},
+      story: '넷은 데리고 나왔다. 한 녀석… 테오만 문 저편에 남았지. 마르타 얼굴을 볼 면목이 없다.',
+    ),
+    NpcRequest(
+      npc: Npc.garen,
+      index: 3,
+      stage: FavorStage.best,
+      level: 18,
+      say: '펫도 함께 단련해라! 그리고 잿빛 분신 하나를 쓰러뜨리고 와라!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 3, '펫 훈련 3번 하기', key: NpcTally.petTraining),
+        NpcRequestStep(RequestStepKind.clone, 1, '잿빛 분신 하나 쓰러뜨리기'),
+      ],
+      story: '다리가 놓이면 내가 제일 먼저 건너가 그 녀석을 데려오겠다. …그때까지 네가 내 대신 강해져라!',
+      special: NpcSpecial(NpcSpecialKind.band, TitleId.npcGaren, '가렌의 훈련 완장',
+          '장신구 · 문지기 기사단 교관의 완장', 'equip_garenBand'),
+    ),
   ];
 
   static List<NpcRequest> of(Npc n) => [
@@ -650,6 +713,11 @@ class NpcRules {
       FavorStage.known: ['또 왔네! 애들이 네 냄새를 기억해!', '쓰다듬는 법이 늘었어. 애들이 좋아해!'],
       FavorStage.close: ['너랑 있으면 애들이 꼬리를 더 세게 흔들어!', '내 비밀 간식 숨긴 곳, 너한테만 알려 줄게.'],
       FavorStage.best: ['너는 이제 우리 무리야! 바람도 너를 좋아했을 거야.', '애들이 너만 보면 달려가. 나보다 더 좋아하는 것 같아!'],
+    },
+    Npc.garen: {
+      FavorStage.known: ['오, 또 왔구나! 발걸음이 가벼워졌다!', '팔에 힘이 붙었다! 허수아비가 겁먹겠다!'],
+      FavorStage.close: ['너를 보면 신병 시절 하르트가 떠오른다! 그 녀석보다는 낫다!', '힘들면 쉬어도 된다! 다만 포기는 하지 마라!'],
+      FavorStage.best: ['너라면 기사단 깃발을 맡겨도 되겠다!', '오늘 훈련 보상은 내가 조금 더 챙겨 두마! 비밀이다!'],
     },
   };
 
@@ -717,6 +785,14 @@ class NpcRules {
           '비밀 간식 나눠 줄게. 애들한테 줘!', {'item:bulssiPotion': 2}),
       FavorStage.best: FavorLetter('우리 무리에게',
           '너는 이제 우리 무리야! 애들이랑 더 빨리 친해질 거야.', {'item:bulssiPotion': 3}),
+    },
+    Npc.garen: {
+      FavorStage.known: FavorLetter('자세가 좋아졌다',
+          '처음보다 자세가 훨씬 낫다! 땀 흘린 뒤에 마셔라!', {'item:healSmall': 2}),
+      FavorStage.close: FavorLetter('신병 명부에 올렸다',
+          '네 이름을 기사단 신병 명부에 적어 뒀다! 마석 몇 개 보낸다!', {'manaStone': 5}),
+      FavorStage.best: FavorLetter('내 대신 강해져라',
+          '이제 너는 내 제자다! 앞으로 하루 훈련 보상은 조금 더 챙겨 주마!', {'gold': 150}),
     },
   };
 }

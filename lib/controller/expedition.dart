@@ -462,6 +462,8 @@ extension ExpeditionOps on AppController {
       check = ExpeditionCheck.busy;
     } else if (pet != null && _pets.isTired(pet.uid, _clock())) {
       check = ExpeditionCheck.tired;
+    } else if (pet != null && petInTraining(pet.uid)) {
+      check = ExpeditionCheck.training;
     } else if (activeExpeditions.any((e) => e.spawnId == spawn.id)) {
       check = ExpeditionCheck.busy;
     } else if (mp < cost) {

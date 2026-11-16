@@ -38,3 +38,4 @@ export 'town_rules.dart';
 export 'vital_rules.dart';
 export 'village_rules.dart';
 export 'npc_rules.dart';
+export 'training_rules.dart';

@@ -252,7 +252,8 @@ void main() {
             farewell: true, village: {'seen': ['intro', 'farewell']})));
         await village(tester, c);
         final screen = tester.getRect(find.byKey(const Key('villageArt')));
-        for (final f in Facility.values) {
+        // 묶음 43: 훈련장은 오른쪽 공터 (처음 화면 밖, 끌어서 봄)
+        for (final f in Facility.values.where((f) => f != Facility.training)) {
           final r = tester.getRect(find.byKey(Key('building_${f.name}')));
           expect(r.left, greaterThanOrEqualTo(screen.left - 1), reason: '$size ${f.name}');
           expect(r.right, lessThanOrEqualTo(screen.right + 1), reason: '$size ${f.name}');

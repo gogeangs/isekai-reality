@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/rules/rules.dart' show JobRules, Npc, VillageRules;
+import '../../core/rules/rules.dart' show JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -14,10 +14,11 @@ import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
 import 'shelter_screen.dart';
+import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
 
 /// 마을 시설 (묶음 35: 펫 쉼터 추가)
-enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market }
+enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training }
 
 /// 시설 모아 보기 묶음 (쉬기·사고팔기 / 만들기 / 의뢰·직업 / 펫·마을)
 enum FacilityGroup { rest, craft, work, pet }
@@ -70,6 +71,8 @@ class VillageScreen extends StatefulWidget {
     FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 635, y: 772, w: 132)),
     FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 770, y: 772, w: 132)),
     FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 908, y: 772, w: 132)),
+    // 묶음 43 #228: 오른쪽 가운데 공터 (처음 화면 밖, 끌어서 보거나 완공 때 그쪽으로)
+    FacilityInfo(Facility.training, '훈련장', FacilityGroup.work, (x: 1168, y: 652, w: 160)),
   ];
 
   static const groupNames = {
@@ -132,6 +135,10 @@ class _VillageScreenState extends State<VillageScreen> {
         _ => false,
       };
 
+  /// 묶음 43 #228: 은은한 점 (오늘 하루 훈련 전)
+  bool _soft(Facility f) =>
+      f == Facility.training && controller.trainingDailyPending;
+
   /// 묶음 42 #226: 그 시설 마을 사람 (거래소는 없음)
   static Npc? npcOf(Facility f) => switch (f) {
         Facility.inn => Npc.marta,
@@ -141,6 +148,7 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.board => Npc.hart,
         Facility.guild => Npc.sera,
         Facility.shelter => Npc.lumi,
+        Facility.training => Npc.garen,
         Facility.market => null,
       };
 
@@ -170,6 +178,7 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.alchemy => 'Lv.${AppController.featureLevel[Feature.alchemy]}',
         Facility.guild => 'Lv.${JobRules.awakenLevel}',
         Facility.shelter => '첫 펫',
+        Facility.training => 'Lv.${TrainingRules.openLevel}',
         _ => '',
       };
 
@@ -204,6 +213,7 @@ class _VillageScreenState extends State<VillageScreen> {
       Facility.alchemy => AlchemyScreen(controller: controller),
       Facility.guild => GuildScreen(controller: controller),
       Facility.shelter => ShelterScreen(controller: controller),
+      Facility.training => TrainingScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -310,8 +320,16 @@ class _VillageScreenState extends State<VillageScreen> {
             open: _open,
             news: _news,
             ask: _ask,
+            soft: _soft,
             stage: _stage,
             built: _built,
+            // 묶음 43: 화면 밖 건물(훈련장)이 완공되면 그쪽으로 맞춰 들어온다
+            focusX: _built.contains(Facility.training)
+                ? VillageScreen.facilities
+                    .firstWhere((f) => f.facility == Facility.training)
+                    .spot
+                    .x
+                : null,
             lockLabel: _lockLabel,
             lighting: _lit,
             towerGlow: _intro != null,
@@ -391,6 +409,8 @@ class _VillageArt extends StatefulWidget {
     required this.open,
     required this.news,
     required this.ask,
+    required this.soft,
+    this.focusX,
     required this.stage,
     required this.built,
     required this.lockLabel,
@@ -405,6 +425,10 @@ class _VillageArt extends StatefulWidget {
   final bool Function(Facility) open;
   final bool Function(Facility) news;
   final bool Function(Facility) ask;
+
+  /// 묶음 43 #228: 은은한 점 (빨간 점과 따로) · 처음 맞출 가로 자리 (그림 픽셀)
+  final bool Function(Facility) soft;
+  final double? focusX;
 
   /// 묶음 44 #225: 안 열린 건물의 공사 단계 · 이번에 완공 연출을 볼 건물
   final int? Function(Facility) stage;
@@ -458,7 +482,8 @@ class _VillageArtState extends State<_VillageArt> {
         _placedFor = Size(w, h);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scroll.hasClients) {
-            _scroll.jumpTo((cl.center.dx * s - w / 2).clamp(0.0, _max));
+            _scroll.jumpTo(
+                ((widget.focusX ?? cl.center.dx) * s - w / 2).clamp(0.0, _max));
           }
         });
       }
@@ -740,6 +765,13 @@ class _VillageArtState extends State<_VillageArt> {
                           fontWeight: FontWeight.w700)),
               ]),
             ),
+            // 묶음 43 #228: 오늘 하루 훈련 전이면 은은한 금빛 점 (왼쪽 위)
+            if (open && widget.soft(f.facility) && !widget.news(f.facility))
+              Positioned(
+                  key: Key('soft_${f.facility.name}'),
+                  left: -5,
+                  top: -5,
+                  child: const SoftDot()),
             if (open && widget.news(f.facility))
               Positioned(
                   left: widget.ask(f.facility) ? -5 : null,
@@ -861,6 +893,24 @@ class _AskMark extends StatelessWidget {
                 fontSize: 11,
                 height: 1.0,
                 fontWeight: FontWeight.w900)),
+      );
+}
+
+/// 은은한 금빛 점 (묶음 43: 오늘 할 일이 남았을 때, 빨간 점보다 약하게)
+class SoftDot extends StatelessWidget {
+  const SoftDot({super.key, this.size = 9});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xCCF3D27A),
+          shape: BoxShape.circle,
+          boxShadow: const [BoxShadow(color: Color(0x88F3D27A), blurRadius: 5)],
+        ),
       );
 }
 

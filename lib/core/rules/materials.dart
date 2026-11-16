@@ -495,6 +495,10 @@ class LootRules {
         MonsterId.ashFear ||
         MonsterId.ashLonely ||
         MonsterId.ashKing ||
+        MonsterId.dummy ||
+        MonsterId.dummyHard ||
+        MonsterId.dummyElement ||
+        MonsterId.trainingGolem ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

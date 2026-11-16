@@ -17,6 +17,7 @@ import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/village/npc_request.dart';
+import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/level_up/level_up_dialog.dart';
@@ -380,7 +381,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             look: controller.profile.look,
             season: SeasonRules.of(controller.now),
             now: controller.now,
-            requestPanel: NpcRequestPanel(controller: controller),
+            requestPanel: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 묶음 43 #228: 오늘 하루 훈련 전이면 은은한 점 한 줄
+                TrainingStatusRow(controller: controller),
+                NpcRequestPanel(controller: controller),
+              ],
+            ),
           ),
           NightBackground(header: true, child: BagTab(controller: controller)),
           MapScreen(

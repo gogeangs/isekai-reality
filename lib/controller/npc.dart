@@ -47,6 +47,7 @@ extension NpcOps on AppController {
         Npc.eliel => featureOpen(Feature.alchemy),
         Npc.sera => jobsOpen,
         Npc.lumi => shelterOpen,
+        Npc.garen => facilityOpen('training'),
       };
 
   /// 오늘 칸 (날이 바뀌면 들른 사람·쓴 횟수를 비움)
@@ -301,7 +302,7 @@ extension NpcOps on AppController {
       case NpcSpecialKind.badge:
         await _grantNpcGear(EquipBase.seraBadge);
       case NpcSpecialKind.band:
-        break;
+        await _grantNpcGear(EquipBase.garenBand);
       case NpcSpecialKind.pouch:
         await _saveNpc(_npc.copyWith(perks: {..._npc.perks, 'minaPouch'}.toList()));
       case NpcSpecialKind.nest:
@@ -379,6 +380,9 @@ extension NpcOps on AppController {
   /// 루미: 펫 친밀도 더
   double get lumiBond => _bestWith(Npc.lumi) ? NpcRules.lumiBond : 1;
 
+  /// 가렌: 하루 훈련 금화 더 (묶음 43)
+  double get garenGold => _bestWith(Npc.garen) ? TrainingRules.garenGold : 1;
+
   // ───────────── 기록 탭 「마을 사람 이야기」
 
   /// 만난 사람마다 사연 4조각 (아직 못 본 조각은 null)
@@ -426,6 +430,7 @@ extension NpcOps on AppController {
       Npc.hart: errands * 2,
       Npc.sera: jobsOpen ? 5 : 0,
       Npc.lumi: shelterOpen ? _pets.pets.length * 3 : 0,
+      Npc.garen: 0,
     };
     final pts = <String, int>{
       for (final e in seed.entries)

@@ -221,6 +221,13 @@ extension _ShellPopups on _HomeShellState {
     final letter = c.pendingLetter;
     var ready = c.farewellDone ? c.readyEgg : null;
     if (ready != null && _promptedEggs.contains(ready.id)) ready = null;
+    // 묶음 43 #228: 펫 훈련이 끝나면 위쪽 띠 한 번
+    final trained = c.takePetTrainedNotice();
+    if (trained != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showTopNoticeQueued(context, '${josa(trained, '이/가')} 훈련을 마쳤어요');
+      });
+    }
     final egg = c.takeNewEgg();
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

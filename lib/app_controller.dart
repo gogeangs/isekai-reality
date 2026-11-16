@@ -23,6 +23,7 @@ import 'core/models/npc_state.dart';
 import 'core/models/pet_state.dart';
 import 'core/models/player_state.dart';
 import 'core/models/stat_alloc.dart';
+import 'core/models/training_state.dart';
 import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
 import 'data/health/health_source.dart';
@@ -57,6 +58,7 @@ part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
 part 'controller/smithy.dart';
 part 'controller/stats.dart';
+part 'controller/training.dart';
 part 'controller/tutorial.dart';
 part 'controller/village.dart';
 part 'controller/vitals.dart';
@@ -106,7 +108,7 @@ class AppController extends ChangeNotifier {
           'act2': {'announced': 6},
           // 묶음 35: 예시 모드는 마을 소개·쉼터 카드를 본 것으로 (넓은 마을 미리 보기는 켬)
           'village': {
-            'seen': ['intro', 'farewell', 'shelterCard'],
+            'seen': ['intro', 'farewell', 'shelterCard', 'trainingCard'],
           },
         },
       ),
@@ -554,9 +556,12 @@ class AppController extends ChangeNotifier {
     _act2Ready = true;
     // 묶음 44 #225: 이미 열린 건물은 완공 그림 그대로 (연출 없음)
     await _migrateBuilt44();
+    await _migrateBuilt43();
     _checkAct2();
     // 묶음 42 #226: 마을 사람 친해지기 (없으면 지금까지 기록으로 시작 점수를 어림)
     await _loadNpc();
+    // 묶음 43 #228: 훈련장 (하루 훈련 · 펫 훈련 · 시련)
+    _training = await _load(_trainingKey, TrainingState.fromJson, const TrainingState());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -754,6 +759,13 @@ class AppController extends ChangeNotifier {
   static const _npcKey = 'npc';
   NpcState _npc = const NpcState();
   bool _npcReady = false;
+
+  /// 묶음 43 #228: 훈련장 ('training')
+  static const _trainingKey = 'training';
+  TrainingState _training = const TrainingState();
+
+  /// 방금 훈련을 마친 펫 이름 (위쪽 띠 한 번)
+  String? _petTrainedNotice;
 
   /// 방금 꺼낸 직업 소식의 문장 그림 (묶음 35)
   String? _jobNoticeArt;
@@ -1028,7 +1040,7 @@ class BrewResult {
 
 /// 정령 원정을 보낼 수 있는지
 /// 묶음 35: tired = 원정에서 져서 쉬는 중인 펫
-enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy, tired }
+enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy, tired, training }
 
 /// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
 /// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·

@@ -27,7 +27,9 @@ void main() {
     test('건물 8채는 3×3 묶음 안 서로 다른 칸, 가운데(우물)는 비움', () {
       const cl = VillageScreen.cluster;
       final cells = <String>{};
-      for (final f in VillageScreen.facilities) {
+      // 묶음 43: 훈련장은 오른쪽 공터 (3×3 밖)
+      for (final f in VillageScreen.facilities
+          .where((f) => f.facility != Facility.training)) {
         final sp = f.spot;
         expect(sp.x - sp.w / 2, greaterThanOrEqualTo(cl.left - 1), reason: f.name);
         expect(sp.x + sp.w / 2, lessThanOrEqualTo(cl.right + 1), reason: f.name);

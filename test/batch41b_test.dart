@@ -51,8 +51,8 @@ void main() {
   });
 
   testWidgets('잡화상: 알림이 떠 있어도 바로 또 사고, 팔고 바로 다른 줄 고르기', (tester) async {
-    tester.view.physicalSize = const Size(750, 1334);
-    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(1290, 2796);
+    tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     late AppController c;
     await tester.runAsync(() async => c = await startShop(shopped: false));

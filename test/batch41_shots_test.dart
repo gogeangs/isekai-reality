@@ -207,12 +207,14 @@ void main() {
         await _shot(tester, '${n}_n1_연달아_2번_사기');
         await tester.tap(find.byKey(const Key('shopTab_1')));
         await _settle(tester, 3);
+        await _scrollTo(tester, 'sellList', 'sellRow_m:ironShard');
         await tester.tap(find.byKey(const Key('sellRow_m:ironShard')));
         await tester.pump();
         await tester.tap(find.byKey(const Key('sellPicked')));
         await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 80)));
         await _settle(tester, 2);
+        await _scrollTo(tester, 'sellList', 'sellRow_m:twig');
         await tester.tap(find.byKey(const Key('sellRow_m:twig')));
         await _settle(tester, 1);
         await _shot(tester, '${n}_n2_팔고_바로_다른줄');

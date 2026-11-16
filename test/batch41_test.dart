@@ -215,7 +215,9 @@ void main() {
       expect(find.byKey(const Key('sellConfirmYes')), findsNothing);
       expect(c.player.materialCount(MaterialId.ratHide), 1);
       expect(c.player.materialCount(MaterialId.ironShard), 0);
-      // 귀한 재료는 확인
+      // 귀한 재료는 확인 (위쪽 알림 띠가 지나간 뒤에)
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
       await reveal(tester, 'sellList', 'sellRow_m:glossyFur');
       await tester.tap(find.byKey(const Key('sellRow_m:glossyFur')));
       await tester.pump();

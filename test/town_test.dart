@@ -576,7 +576,7 @@ void main() {
                 matching: find.byType(Scrollable))
             .first);
     await tester.pumpAndSettle();
-    expect(find.text('펫 간식'), findsWidgets);
+    expect(c.itemName(ShopItem.bulssiPotion), '펫 간식');
     await tester.tap(find.byKey(const Key('shopItem_bulssiPotion')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('buyPlus')), findsNothing);

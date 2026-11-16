@@ -25,6 +25,7 @@ Future<AppController> startNpc({
   List<DailyRecord> more = const [],
   Map<String, int> todaySteps = const {},
   DateTime Function()? clock,
+  Map<String, dynamic> json = const {},
 }) async {
   final c = AppController(
     store: InMemoryRecordStore(
@@ -48,6 +49,7 @@ Future<AppController> startNpc({
           ],
         },
         if (npc != null) 'npc': npc,
+        ...json,
       },
     ),
     health: FakeHealthSource(stepsByDay: todaySteps),

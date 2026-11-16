@@ -30,73 +30,142 @@ String npcRewardLabel(AppController c, NpcRequest r) => [
       if (r.special != null) '특별한 선물',
     ].join(' · ');
 
-/// 시설 맨 위 마을 사람 아래 한 줄: 「부탁 듣기」 · 진행 · 「다 했어요」
+/// 묶음 45: 부탁 종류마다 색 (큰 부탁 금빛 · 작은 부탁 하늘빛 · 특별한 부탁 보랏빛)
+({List<Color> fill, Color edge, Color glow, Color ink, String label}) askLook(
+        AskKind k) =>
+    switch (k) {
+      AskKind.big => (
+          fill: const [Color(0xFFFFE7A3), Color(0xFFE0A93A)],
+          edge: const Color(0xFF6A4410),
+          glow: const Color(0xAAFFD36A),
+          ink: AppColors.goldInk,
+          label: '부탁',
+        ),
+      AskKind.small => (
+          fill: const [Color(0xFFD8F4FF), Color(0xFF5DB6E4)],
+          edge: const Color(0xFF1C4A68),
+          glow: const Color(0xAA8FD8FF),
+          ink: const Color(0xFF0E2A40),
+          label: '작은 부탁',
+        ),
+      AskKind.special => (
+          fill: const [Color(0xFFF0DEFF), Color(0xFFA06EE6)],
+          edge: const Color(0xFF3E1F6E),
+          glow: const Color(0xAAC9A2FF),
+          ink: const Color(0xFF2A1048),
+          label: '특별한 부탁',
+        ),
+    };
+
+/// 시설 맨 위 마을 사람 아래 한 줄: 부탁마다 「부탁 듣기」 · 진행 · 「다 했어요」
+/// (묶음 45: 큰 부탁 · 특별한 부탁 · 작은 부탁이 함께 있을 수 있다)
 class NpcRequestBar extends StatelessWidget {
   const NpcRequestBar({super.key, required this.controller, required this.npc});
 
   final AppController controller;
   final Npc npc;
 
+  Widget _chip(BuildContext context, AskKind kind) {
+    final c = controller;
+    final offered = switch (kind) {
+      AskKind.big => c.requestOffer(npc) != null,
+      AskKind.small => c.smallOffer(npc) != null,
+      AskKind.special => c.relicOffer(npc) != null,
+    };
+    final active = switch (kind) {
+      AskKind.big => c.requestActive(npc) != null,
+      AskKind.small => c.smallActive(npc) != null,
+      AskKind.special => c.relicActive(npc) != null,
+    };
+    if (!offered && !active) return const SizedBox.shrink();
+    final ready = switch (kind) {
+      AskKind.big => c.requestReady(npc),
+      AskKind.small => c.smallReady(npc),
+      AskKind.special => c.relicReady(npc),
+    };
+    final tag = kind == AskKind.big ? '' : '_${kind.name}';
+    if (offered) {
+      return _SmallGold(
+        key: Key('npcAsk_${npc.name}$tag'),
+        kind: kind,
+        label: kind == AskKind.big ? '부탁 듣기' : askLook(kind).label,
+        icon: kind == AskKind.special
+            ? Icons.star_rounded
+            : Icons.priority_high_rounded,
+        onTap: () => showNpcRequestSheet(context, c, npc, kind: kind),
+      );
+    }
+    if (ready) {
+      return _SmallGold(
+        key: Key('npcDone_${npc.name}$tag'),
+        kind: kind,
+        label: '다 했어요',
+        icon: Icons.check_rounded,
+        onTap: () => finishNpcAsk(context, c, npc, kind),
+      );
+    }
+    final p = switch (kind) {
+      AskKind.big => c.requestProgress(npc),
+      AskKind.small => c.smallProgress(npc),
+      AskKind.special => c.relicProgress(npc),
+    };
+    if (p.isEmpty) return const SizedBox.shrink();
+    final first = p.firstWhere((x) => !x.done, orElse: () => p.first);
+    final look = askLook(kind);
+    final head = switch (kind) {
+      AskKind.big => '부탁',
+      AskKind.small => '작은 부탁',
+      AskKind.special => '특별한 부탁 ${c.relicStage(npc) + 1}단계',
+    };
+    return GestureDetector(
+      key: Key('npcReq_${npc.name}$tag'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showNpcRequestSheet(context, c, npc, kind: kind),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
+        decoration: BoxDecoration(
+          color: const Color(0xCC0B0D26),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: look.fill.last.withValues(alpha: 0.8)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(
+              kind == AskKind.special
+                  ? Icons.star_rounded
+                  : Icons.assignment_rounded,
+              size: 14,
+              color: look.fill.first),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              '$head · ${first.step.label} ${comma(first.shown)}/${comma(first.step.need)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Color(0xFFE6DCC4),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
-          final c = controller;
-          final offer = c.requestOffer(npc);
-          final active = c.requestActive(npc);
-          if (offer == null && active == null) return const SizedBox.shrink();
-          final ready = c.requestReady(npc);
-          final Widget child;
-          if (offer != null) {
-            child = _SmallGold(
-              key: Key('npcAsk_${npc.name}'),
-              label: '부탁 듣기',
-              icon: Icons.priority_high_rounded,
-              onTap: () => showNpcRequestSheet(context, c, npc),
-            );
-          } else if (ready) {
-            child = _SmallGold(
-              key: Key('npcDone_${npc.name}'),
-              label: '다 했어요',
-              icon: Icons.check_rounded,
-              onTap: () => finishNpcRequest(context, c, npc),
-            );
-          } else {
-            final p = c.requestProgress(npc);
-            final first = p.firstWhere((x) => !x.done, orElse: () => p.first);
-            child = GestureDetector(
-              key: Key('npcReq_${npc.name}'),
-              behavior: HitTestBehavior.opaque,
-              onTap: () => showNpcRequestSheet(context, c, npc),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xCC0B0D26),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.assignment_rounded,
-                      size: 14, color: AppColors.goldBright),
-                  const SizedBox(width: 5),
-                  Flexible(
-                    child: Text(
-                      '부탁 · ${first.step.label} ${comma(first.shown)}/${comma(first.step.need)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Color(0xFFE6DCC4),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ]),
-              ),
-            );
-          }
+          final chips = [
+            for (final k in AskKind.values) _chip(context, k),
+          ].where((w) => w is! SizedBox).toList();
+          if (chips.isEmpty) return const SizedBox.shrink();
           return Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Align(alignment: Alignment.centerLeft, child: child),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(spacing: 6, runSpacing: 6, children: chips),
+            ),
           );
         },
       );
@@ -104,49 +173,127 @@ class NpcRequestBar extends StatelessWidget {
 
 class _SmallGold extends StatelessWidget {
   const _SmallGold(
-      {super.key, required this.label, required this.icon, required this.onTap});
+      {super.key,
+      required this.label,
+      required this.icon,
+      required this.onTap,
+      this.kind = AskKind.big});
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final AskKind kind;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-                colors: [Color(0xFFFFE7A3), Color(0xFFE0A93A)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF8A5A14)),
-            boxShadow: [
-              BoxShadow(color: AppColors.gold.withValues(alpha: 0.5), blurRadius: 8),
-            ],
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 15, color: AppColors.goldInk),
-            const SizedBox(width: 4),
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.goldInk,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800)),
-          ]),
+  Widget build(BuildContext context) {
+    final look = askLook(kind);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: look.fill,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: look.edge),
+          boxShadow: [BoxShadow(color: look.glow, blurRadius: 8)],
         ),
-      );
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: look.ink),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  color: look.ink, fontSize: 13.5, fontWeight: FontWeight.w800)),
+        ]),
+      ),
+    );
+  }
 }
 
-/// 부탁 창: 얼굴 · 부탁 말 · 할 일(진행) · 보상 · 「받기」·「나중에」 (받은 뒤엔 진행만)
-Future<void> showNpcRequestSheet(
-    BuildContext context, AppController c, Npc npc) {
-  final offer = c.requestOffer(npc);
-  final r = offer ?? c.requestActive(npc);
-  if (r == null) return Future.value();
+/// 부탁 창 안에 보여 줄 것 (종류마다)
+class _AskView {
+  const _AskView({
+    required this.offered,
+    required this.say,
+    required this.steps,
+    required this.progress,
+    required this.reward,
+    required this.ready,
+    this.stages = const [],
+    this.stage = 0,
+    this.relic,
+  });
+
+  final bool offered;
+  final String say;
+  final List<NpcRequestStep> steps;
+  final List<NpcStepProgress> progress;
+  final String reward;
+  final bool ready;
+
+  /// 특별한 부탁: 단계 이름(할 일 줄) · 지금 단계
+  final List<String> stages;
+  final int stage;
+  final NpcRelic? relic;
+}
+
+_AskView? _viewOf(AppController c, Npc npc, AskKind kind) {
+  switch (kind) {
+    case AskKind.big:
+      final offer = c.requestOffer(npc);
+      final r = offer ?? c.requestActive(npc);
+      if (r == null) return null;
+      return _AskView(
+        offered: offer != null,
+        say: r.say,
+        steps: r.steps,
+        progress: offer == null ? c.requestProgress(npc) : const [],
+        reward: npcRewardLabel(c, r),
+        ready: offer == null && c.requestReady(npc),
+      );
+    case AskKind.small:
+      final offer = c.smallOffer(npc);
+      final s = offer ?? c.smallActive(npc);
+      if (s == null) return null;
+      return _AskView(
+        offered: offer != null,
+        say: c.smallSay(npc),
+        steps: s.steps,
+        progress: offer == null ? c.smallProgress(npc) : const [],
+        reward: '경험치 ${NpcSmallRules.smallExp}',
+        ready: offer == null && c.smallReady(npc),
+      );
+    case AskKind.special:
+      final offer = c.relicOffer(npc);
+      final r = offer ?? c.relicActive(npc);
+      if (r == null) return null;
+      final stage = offer == null ? c.relicStage(npc) : 0;
+      return _AskView(
+        offered: offer != null,
+        say: offer != null ? r.say : r.stages[stage].line,
+        steps: r.stages[stage].steps,
+        progress: offer == null ? c.relicProgress(npc) : const [],
+        reward: r.name,
+        ready: offer == null && c.relicReady(npc),
+        stages: [
+          for (final st in r.stages) st.steps.map((x) => x.label).join(' · '),
+        ],
+        stage: stage,
+        relic: r,
+      );
+  }
+}
+
+/// 부탁 창: 얼굴 · 부탁 말 · 할 일(진행) · 보상 · 「받기」·「나중에」 (받은 뒤엔 진행만).
+/// 묶음 45: 작은 부탁 · 특별한 부탁도 같은 창 (이름 옆 표시, 특별한 부탁은 단계)
+Future<void> showNpcRequestSheet(BuildContext context, AppController c, Npc npc,
+    {AskKind kind = AskKind.big}) {
+  if (_viewOf(c, npc, kind) == null) return Future.value();
   final info = VillageRules.npc(npc);
+  final look = askLook(kind);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -157,10 +304,8 @@ Future<void> showNpcRequestSheet(
       child: ListenableBuilder(
         listenable: c,
         builder: (context, _) {
-          final progress = offer == null
-              ? c.requestProgress(npc)
-              : const <NpcStepProgress>[];
-          final ready = offer == null && c.requestReady(npc);
+          final v = _viewOf(c, npc, kind);
+          if (v == null) return const SizedBox(height: 40);
           return SingleChildScrollView(
             key: const Key('npcRequestSheet'),
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
@@ -184,6 +329,21 @@ Future<void> showNpcRequestSheet(
                       ],
                     ),
                   ),
+                  if (kind != AskKind.big)
+                    Container(
+                      key: Key('askTag_${kind.name}'),
+                      padding: const EdgeInsets.fromLTRB(9, 4, 9, 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: look.fill),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: look.edge),
+                      ),
+                      child: Text(look.label,
+                          style: TextStyle(
+                              color: look.ink,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)),
+                    ),
                 ]),
                 const SizedBox(height: 12),
                 Container(
@@ -193,7 +353,7 @@ Future<void> showNpcRequestSheet(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFB08A4A)),
                   ),
-                  child: KText(r.say,
+                  child: KText(v.say,
                       key: const Key('npcRequestSay'),
                       style: const TextStyle(
                           color: Color(0xFF3A2614),
@@ -208,13 +368,31 @@ Future<void> showNpcRequestSheet(
                         fontSize: 13,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
-                for (final (i, s) in r.steps.indexed)
-                  _StepRow(
-                    key: Key('npcStep_$i'),
-                    label: s.label,
-                    have: offer == null ? progress[i].shown : null,
-                    need: s.need,
-                  ),
+                if (v.stages.isNotEmpty)
+                  // 특별한 부탁: 단계를 차례대로 (지난 단계는 체크, 다음 단계는 흐리게)
+                  for (final (i, label) in v.stages.indexed)
+                    if (i == v.stage && !v.offered)
+                      for (final (j, s) in v.steps.indexed)
+                        _StepRow(
+                          key: Key('npcStep_$j'),
+                          label: '${i + 1}단계 · ${s.label}',
+                          have: v.progress[j].shown,
+                          need: s.need,
+                        )
+                    else
+                      _StageRow(
+                        key: Key('npcStage_$i'),
+                        label: '${i + 1}단계 · $label',
+                        done: !v.offered && i < v.stage,
+                      )
+                else
+                  for (final (i, s) in v.steps.indexed)
+                    _StepRow(
+                      key: Key('npcStep_$i'),
+                      label: s.label,
+                      have: v.offered ? null : v.progress[i].shown,
+                      need: s.need,
+                    ),
                 const SizedBox(height: 10),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('보상',
@@ -223,8 +401,18 @@ Future<void> showNpcRequestSheet(
                           fontSize: 13,
                           fontWeight: FontWeight.w800)),
                   const SizedBox(width: 10),
+                  if (v.relic != null) ...[
+                    Image.asset('assets/images/${v.relic!.asset}.webp',
+                        width: 22,
+                        height: 22,
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.card_giftcard_rounded,
+                            size: 18,
+                            color: AppColors.goldBright)),
+                    const SizedBox(width: 6),
+                  ],
                   Expanded(
-                    child: Text(npcRewardLabel(c, r),
+                    child: Text(v.reward,
                         key: const Key('npcReward'),
                         style: const TextStyle(
                             color: AppColors.text,
@@ -232,7 +420,10 @@ Future<void> showNpcRequestSheet(
                             fontWeight: FontWeight.w700)),
                   ),
                 ]),
-                if (r.steps.any((s) => s.kind == RequestStepKind.deliver)) ...[
+                if (v.steps.any((s) => s.kind == RequestStepKind.deliver) ||
+                    (v.relic?.stages.last.steps
+                            .any((s) => s.kind == RequestStepKind.deliver) ??
+                        false)) ...[
                   const SizedBox(height: 6),
                   const Text('가져오는 재료는 「다 했어요」를 누를 때 건네요.',
                       style: TextStyle(
@@ -241,7 +432,7 @@ Future<void> showNpcRequestSheet(
                           fontWeight: FontWeight.w600)),
                 ],
                 const SizedBox(height: 16),
-                if (offer != null)
+                if (v.offered)
                   Row(children: [
                     Expanded(
                       child: FrameButton(
@@ -259,13 +450,20 @@ Future<void> showNpcRequestSheet(
                         height: 48,
                         fontSize: 18,
                         onPressed: () async {
-                          await c.acceptRequest(npc);
+                          switch (kind) {
+                            case AskKind.big:
+                              await c.acceptRequest(npc);
+                            case AskKind.small:
+                              await c.acceptSmall(npc);
+                            case AskKind.special:
+                              await c.acceptRelic(npc);
+                          }
                           if (sheet.mounted) Navigator.of(sheet).pop();
                         },
                       ),
                     ),
                   ])
-                else if (ready)
+                else if (v.ready)
                   GoldButton(
                     key: const Key('npcDoneSheet'),
                     label: '다 했어요',
@@ -273,7 +471,7 @@ Future<void> showNpcRequestSheet(
                     fontSize: 18,
                     onPressed: () {
                       Navigator.of(sheet).pop();
-                      finishNpcRequest(context, c, npc);
+                      finishNpcAsk(context, c, npc, kind);
                     },
                   )
                 else
@@ -290,6 +488,30 @@ Future<void> showNpcRequestSheet(
       ),
     ),
   );
+}
+
+class _StageRow extends StatelessWidget {
+  const _StageRow({super.key, required this.label, required this.done});
+
+  final String label;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(children: [
+          Icon(done ? Icons.check_circle_rounded : Icons.circle_outlined,
+              size: 18, color: done ? _ok : AppColors.textMuted),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    color: done ? AppColors.text : AppColors.textMuted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      );
 }
 
 class _StepRow extends StatelessWidget {
@@ -328,6 +550,156 @@ class _StepRow extends StatelessWidget {
     );
   }
 }
+
+/// 「다 했어요」 (종류마다)
+Future<void> finishNpcAsk(
+    BuildContext context, AppController c, Npc npc, AskKind kind) async {
+  switch (kind) {
+    case AskKind.big:
+      return finishNpcRequest(context, c, npc);
+    case AskKind.small:
+      final done = await c.completeSmall(npc);
+      if (done == null || !context.mounted) return;
+      await showNpcThanksDialog(context, npc, done.thanks, got: done.got);
+      // 가끔 그 사람 전용 퀘스트(특별한 부탁)가 바로 이어짐
+      if (done.relicOffered && context.mounted) {
+        await showNpcRequestSheet(context, c, npc, kind: AskKind.special);
+      }
+    case AskKind.special:
+      final r = await c.completeRelic(npc);
+      if (r == null || !context.mounted) return;
+      await showNpcRelicDialog(context, r);
+  }
+}
+
+/// 작은 부탁을 끝냈을 때 고맙다는 한마디 (사연 없음)
+Future<void> showNpcThanksDialog(BuildContext context, Npc npc, String thanks,
+    {List<String> got = const []}) {
+  final info = VillageRules.npc(npc);
+  return showDialog<void>(
+    context: context,
+    barrierColor: const Color(0xCC05060F),
+    builder: (d) => Dialog(
+      key: const Key('npcThanksDialog'),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        NpcFace(npc: npc, size: 84),
+        const SizedBox(height: 8),
+        Text(info.name, style: AppText.title(20)),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3E7CC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFB08A4A), width: 1.5),
+          ),
+          child: KText('「$thanks」',
+              key: const Key('npcThanksText'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Color(0xFF3A2614),
+                  fontSize: 15.5,
+                  height: 1.5,
+                  fontWeight: FontWeight.w700)),
+        ),
+        if (got.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text('받은 것 · ${got.join(', ')}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: AppColors.goldBright,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700)),
+        ],
+        const SizedBox(height: 14),
+        GoldButton(
+          key: const Key('npcThanksOk'),
+          label: '천만에요',
+          height: 50,
+          fontSize: 18,
+          onPressed: () => Navigator.of(d).pop(),
+        ),
+      ]),
+    ),
+  );
+}
+
+/// 특별한 부탁을 끝냈을 때: 전용 아이템 (가방 「소중한 물건」)
+Future<void> showNpcRelicDialog(BuildContext context, NpcRelic r) =>
+    showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xCC05060F),
+      builder: (d) => Dialog(
+        key: const Key('npcRelicDialog'),
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 26),
+        child: OrnatePanel(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              NpcFace(npc: r.npc, size: 40),
+              const SizedBox(width: 8),
+              Flexible(
+                child: KText('「${r.done}」',
+                    style: const TextStyle(
+                        color: AppColors.text,
+                        fontSize: 13.5,
+                        height: 1.4,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  const Color(0xFFC9A2FF).withValues(alpha: 0.55),
+                  Colors.transparent,
+                ]),
+              ),
+              child: Image.asset('assets/images/${r.asset}.webp',
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.card_giftcard_rounded,
+                      size: 56,
+                      color: AppColors.goldBright)),
+            ),
+            const SizedBox(height: 10),
+            Text(r.name,
+                key: const Key('npcRelicName'),
+                textAlign: TextAlign.center,
+                style: AppText.title(18)),
+            const SizedBox(height: 4),
+            KText(r.text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 13.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            const Text('가방 「소중한 물건」에 넣었어요',
+                style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 14),
+            GoldButton(
+              key: const Key('npcRelicOk'),
+              label: '고마워요',
+              height: 50,
+              fontSize: 18,
+              onPressed: () => Navigator.of(d).pop(),
+            ),
+          ]),
+        ),
+      ),
+    );
 
 /// 「다 했어요」: 보상 → 사연 한 조각(대사 창) → (4번째면) 특별 보상
 Future<void> finishNpcRequest(
@@ -475,7 +847,8 @@ Future<void> showNpcSpecialDialog(BuildContext context, NpcSpecial sp) =>
       ),
     );
 
-/// 상태 탭 의뢰 칸: 받은 마을 사람 부탁 (마을 사람 얼굴로 게시판 의뢰와 구분)
+/// 상태 탭 의뢰 칸: 받은 마을 사람 부탁 (마을 사람 얼굴로 게시판 의뢰와 구분).
+/// 묶음 45: 작은 부탁 · 특별한 부탁(단계 진행)도 함께
 class NpcRequestPanel extends StatelessWidget {
   const NpcRequestPanel({super.key, required this.controller});
 
@@ -485,7 +858,7 @@ class NpcRequestPanel extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
-          final list = controller.activeRequests;
+          final list = controller.activeAsks;
           if (list.isEmpty) return const SizedBox.shrink();
           return Column(
             key: const Key('statusRequests'),
@@ -494,11 +867,14 @@ class NpcRequestPanel extends StatelessWidget {
               const SizedBox(height: 12),
               Text('마을 사람 부탁', style: AppText.title(16)),
               const SizedBox(height: 6),
-              for (final (n, _, p) in list)
+              for (final a in list)
                 GestureDetector(
-                  key: Key('statusReq_${n.name}'),
+                  key: Key(a.kind == AskKind.big
+                      ? 'statusReq_${a.npc.name}'
+                      : 'statusReq_${a.npc.name}_${a.kind.name}'),
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => showNpcRequestSheet(context, controller, n),
+                  onTap: () => showNpcRequestSheet(context, controller, a.npc,
+                      kind: a.kind),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 6),
                     padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
@@ -506,21 +882,31 @@ class NpcRequestPanel extends StatelessWidget {
                       color: const Color(0xCC12142E),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppColors.gold.withValues(alpha: 0.5)),
+                          color: askLook(a.kind).fill.last.withValues(alpha: 0.6)),
                     ),
                     child: Row(children: [
-                      NpcFace(npc: n, size: 34),
+                      NpcFace(npc: a.npc, size: 34),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(VillageRules.npc(n).name,
-                                style: const TextStyle(
-                                    color: AppColors.goldBright,
+                            Text(
+                                switch (a.kind) {
+                                  AskKind.big => VillageRules.npc(a.npc).name,
+                                  AskKind.small =>
+                                    '${VillageRules.npc(a.npc).name} · 작은 부탁',
+                                  AskKind.special =>
+                                    '${VillageRules.npc(a.npc).name} · 특별한 부탁 '
+                                        '${a.stage + 1}/${a.stages}단계',
+                                },
+                                style: TextStyle(
+                                    color: a.kind == AskKind.big
+                                        ? AppColors.goldBright
+                                        : askLook(a.kind).fill.first,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800)),
-                            for (final x in p)
+                            for (final x in a.progress)
                               Text(
                                   '${x.step.label} ${comma(x.shown)}/${comma(x.step.need)}',
                                   maxLines: 1,
@@ -534,7 +920,8 @@ class NpcRequestPanel extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (p.every((x) => x.done))
+                      if (a.ready &&
+                          (a.kind != AskKind.special || a.stage == a.stages - 1))
                         const Text('다 했어요!',
                             style: TextStyle(
                                 color: _ok,

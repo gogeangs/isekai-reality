@@ -75,6 +75,18 @@ class NpcState {
     this.tally = const {},
     this.whetstones = 0,
     this.perks = const [],
+    this.smallOffer = const {},
+    this.smallBoard = const [],
+    this.small = const {},
+    this.smallDone = const {},
+    this.smallLast = const {},
+    this.boardDone = const {},
+    this.relicMiss = const {},
+    this.relicOffer = const [],
+    this.relic = const {},
+    this.relics = const [],
+    this.walkDay,
+    this.walkSteps = 0,
   });
 
   /// 마을 사람마다 숨은 점수
@@ -103,6 +115,36 @@ class NpcState {
   /// 계속 듣는 특별 보상 ('minaPouch' · 'lumiNest')
   final List<String> perks;
 
+  // ───────────── 묶음 45 #231·#232
+
+  /// 받을 수 있는 작은 부탁 (사람 → 작은 부탁 번호)
+  final Map<String, int> smallOffer;
+
+  /// 게시판 쪽지를 여러 번 끝내서 생긴 작은 부탁 (「자주 해결」 말풍선)
+  final List<String> smallBoard;
+
+  /// 받은 작은 부탁 (사람마다 하나, index = 작은 부탁 번호)
+  final Map<String, ActiveRequest> small;
+
+  /// 끝낸 작은 부탁 수 · 마지막으로 준 작은 부탁 번호 (같은 걸 연달아 주지 않게)
+  final Map<String, int> smallDone;
+  final Map<String, int> smallLast;
+
+  /// 끝낸 게시판 마을 사람 쪽지 수
+  final Map<String, int> boardDone;
+
+  /// 전용 퀘스트가 안 나온 횟수 (확률이 조금씩 오름)
+  final Map<String, int> relicMiss;
+
+  /// 받을 수 있는 전용 퀘스트 · 받은 전용 퀘스트(index = 단계) · 받은 전용 아이템
+  final List<String> relicOffer;
+  final Map<String, ActiveRequest> relic;
+  final List<String> relics;
+
+  /// 전용 아이템 걷기 효과를 센 날 · 그날 센 걸음
+  final String? walkDay;
+  final int walkSteps;
+
   int pointsOf(String npc) => points[npc] ?? 0;
   int doneOf(String npc) => done[npc] ?? 0;
 
@@ -117,6 +159,18 @@ class NpcState {
     Map<String, int>? tally,
     int? whetstones,
     List<String>? perks,
+    Map<String, int>? smallOffer,
+    List<String>? smallBoard,
+    Map<String, ActiveRequest>? small,
+    Map<String, int>? smallDone,
+    Map<String, int>? smallLast,
+    Map<String, int>? boardDone,
+    Map<String, int>? relicMiss,
+    List<String>? relicOffer,
+    Map<String, ActiveRequest>? relic,
+    List<String>? relics,
+    String? walkDay,
+    int? walkSteps,
   }) =>
       NpcState(
         points: points ?? this.points,
@@ -129,6 +183,18 @@ class NpcState {
         tally: tally ?? this.tally,
         whetstones: whetstones ?? this.whetstones,
         perks: perks ?? this.perks,
+        smallOffer: smallOffer ?? this.smallOffer,
+        smallBoard: smallBoard ?? this.smallBoard,
+        small: small ?? this.small,
+        smallDone: smallDone ?? this.smallDone,
+        smallLast: smallLast ?? this.smallLast,
+        boardDone: boardDone ?? this.boardDone,
+        relicMiss: relicMiss ?? this.relicMiss,
+        relicOffer: relicOffer ?? this.relicOffer,
+        relic: relic ?? this.relic,
+        relics: relics ?? this.relics,
+        walkDay: walkDay ?? this.walkDay,
+        walkSteps: walkSteps ?? this.walkSteps,
       );
 
   Map<String, dynamic> toJson() => {
@@ -143,6 +209,20 @@ class NpcState {
         'tally': tally,
         'whet': whetstones,
         'perks': perks,
+        if (smallOffer.isNotEmpty) 'sOffer': smallOffer,
+        if (smallBoard.isNotEmpty) 'sBoard': smallBoard,
+        if (small.isNotEmpty)
+          'small': {for (final e in small.entries) e.key: e.value.toJson()},
+        if (smallDone.isNotEmpty) 'sDone': smallDone,
+        if (smallLast.isNotEmpty) 'sLast': smallLast,
+        if (boardDone.isNotEmpty) 'bDone': boardDone,
+        if (relicMiss.isNotEmpty) 'rMiss': relicMiss,
+        if (relicOffer.isNotEmpty) 'rOffer': relicOffer,
+        if (relic.isNotEmpty)
+          'relic': {for (final e in relic.entries) e.key: e.value.toJson()},
+        if (relics.isNotEmpty) 'relics': relics,
+        if (walkDay != null) 'walkDay': walkDay,
+        if (walkSteps > 0) 'walk': walkSteps,
       };
 
   static Map<String, int> _ints(Object? raw) => {
@@ -164,5 +244,22 @@ class NpcState {
         tally: _ints(j['tally']),
         whetstones: ((j['whet'] as num?) ?? 0).toInt(),
         perks: [for (final x in (j['perks'] as List?) ?? const []) '$x'],
+        smallOffer: _ints(j['sOffer']),
+        smallBoard: [for (final x in (j['sBoard'] as List?) ?? const []) '$x'],
+        small: _actives(j['small']),
+        smallDone: _ints(j['sDone']),
+        smallLast: _ints(j['sLast']),
+        boardDone: _ints(j['bDone']),
+        relicMiss: _ints(j['rMiss']),
+        relicOffer: [for (final x in (j['rOffer'] as List?) ?? const []) '$x'],
+        relic: _actives(j['relic']),
+        relics: [for (final x in (j['relics'] as List?) ?? const []) '$x'],
+        walkDay: j['walkDay'] as String?,
+        walkSteps: ((j['walk'] as num?) ?? 0).toInt(),
       );
+
+  static Map<String, ActiveRequest> _actives(Object? raw) => {
+        for (final e in ((raw as Map?) ?? const {}).entries)
+          if (ActiveRequest.fromJson(e.value) case final a?) '${e.key}': a,
+      };
 }

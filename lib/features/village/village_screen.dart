@@ -3,7 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
-import '../../core/rules/rules.dart' show JobRules, Npc, TrainingRules, VillageRules;
+import '../../core/rules/rules.dart'
+    show AskKind, JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -13,6 +14,7 @@ import '../town/shop_screen.dart';
 import '../smithy/smithy_screen.dart';
 import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
+import 'npc_request.dart' show askLook;
 import 'shelter_screen.dart';
 import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
@@ -152,10 +154,10 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.market => null,
       };
 
-  /// 금빛 「!」: 받을 부탁 · 다 한 부탁 (빨간 점과 따로)
-  bool _ask(Facility f) => switch (npcOf(f)) {
-        final n? => controller.npcAttention(n),
-        null => false,
+  /// 「!」: 큰 부탁은 금빛, 특별한 부탁은 보랏빛 별, 작은 부탁은 하늘빛 (빨간 점과 따로)
+  AskKind? _ask(Facility f) => switch (npcOf(f)) {
+        final n? => controller.npcAskKind(n),
+        null => null,
       };
 
   List<FacilityInfo> get _openList => [
@@ -424,7 +426,7 @@ class _VillageArt extends StatefulWidget {
   final List<FacilityInfo> all;
   final bool Function(Facility) open;
   final bool Function(Facility) news;
-  final bool Function(Facility) ask;
+  final AskKind? Function(Facility) ask;
 
   /// 묶음 43 #228: 은은한 점 (빨간 점과 따로) · 처음 맞출 가로 자리 (그림 픽셀)
   final bool Function(Facility) soft;
@@ -774,17 +776,17 @@ class _VillageArtState extends State<_VillageArt> {
                   child: const SoftDot()),
             if (open && widget.news(f.facility))
               Positioned(
-                  left: widget.ask(f.facility) ? -5 : null,
-                  right: widget.ask(f.facility) ? null : -5,
+                  left: widget.ask(f.facility) != null ? -5 : null,
+                  right: widget.ask(f.facility) != null ? null : -5,
                   top: -6,
                   child: const _RedDot()),
             // 묶음 42 #226: 부탁 「!」 (오른쪽 위, 빨간 점은 왼쪽으로)
-            if (open && widget.ask(f.facility))
+            if (widget.ask(f.facility) case final k? when open)
               Positioned(
                   key: Key('ask_${f.facility.name}'),
                   right: -7,
                   top: -8,
-                  child: const _AskMark()),
+                  child: _AskMark(kind: k)),
           ]),
         ),
       ),
@@ -871,29 +873,37 @@ class _BuiltReveal extends StatelessWidget {
 }
 
 class _AskMark extends StatelessWidget {
-  const _AskMark();
+  const _AskMark({required this.kind});
+
+  final AskKind kind;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 15,
-        height: 15,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFFFFE7A3), Color(0xFFE0A93A)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter),
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF6A4410), width: 1.2),
-          boxShadow: const [BoxShadow(color: Color(0xAAFFD36A), blurRadius: 6)],
-        ),
-        child: const Text('!',
-            style: TextStyle(
-                color: AppColors.goldInk,
-                fontSize: 11,
-                height: 1.0,
-                fontWeight: FontWeight.w900)),
-      );
+  Widget build(BuildContext context) {
+    final look = askLook(kind);
+    return Container(
+      key: Key('askKind_${kind.name}'),
+      width: 15,
+      height: 15,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+            colors: look.fill,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter),
+        shape: BoxShape.circle,
+        border: Border.all(color: look.edge, width: 1.2),
+        boxShadow: [BoxShadow(color: look.glow, blurRadius: 6)],
+      ),
+      child: kind == AskKind.special
+          ? Icon(Icons.star_rounded, size: 11, color: look.ink)
+          : Text('!',
+              style: TextStyle(
+                  color: look.ink,
+                  fontSize: 11,
+                  height: 1.0,
+                  fontWeight: FontWeight.w900)),
+    );
+  }
 }
 
 /// 은은한 금빛 점 (묶음 43: 오늘 할 일이 남았을 때, 빨간 점보다 약하게)

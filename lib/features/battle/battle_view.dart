@@ -229,7 +229,7 @@ class _BattleViewState extends State<BattleView> {
       _warnClock
         ..reset()
         ..start();
-      final window = Battle.guardWindow + const Duration(milliseconds: 60);
+      final window = Battle.guardWindow * _b.guardEase + const Duration(milliseconds: 60);
       if (next < window) next = window;
     } else {
       _warning = false;
@@ -322,7 +322,7 @@ class _BattleViewState extends State<BattleView> {
   /// 화면 아무 곳이나 누르면 막기 (예고 하나에 한 번만, 일찍 눌러도 벌 없음)
   void _onPointer(PointerDownEvent _) {
     if (!_warning || _tapped || _b.isOver) return;
-    final r = Battle.judgeGuard(_warnClock.elapsed);
+    final r = Battle.judgeGuard(_warnClock.elapsed, ease: _b.guardEase);
     if (r == null) return;
     if (_b.guard(perfect: r == GuardResult.perfect)) {
       _tapped = true;

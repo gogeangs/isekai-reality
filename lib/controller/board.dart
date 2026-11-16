@@ -4,7 +4,8 @@ part of '../app_controller.dart';
 extension BoardOps on AppController {
 
   /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
-  BoardState get board => BoardRules.refresh(_board, _clock());
+  BoardState get board =>
+      BoardRules.refresh(_board, _clock(), npcs: _openNpcNames);
 
   Future<void> _saveBoard(BoardState b) async {
     _board = b;
@@ -66,13 +67,20 @@ extension BoardOps on AppController {
     if (t == null || !s.accepted || errandProgress(slot) < t.target) {
       return false;
     }
+    final slots = [...b.slots];
+    slots[slot] =
+        ErrandSlot(readyAt: _clock().add(_errandCooldown));
+    // 묶음 45 #231: 마을 사람 쪽지 → 그 사람 친밀도 + 경험치 조금 (금화 없음)
+    if (t.npc != null) {
+      await _count('errandDone');
+      await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
+      await _boardNoteDone(t);
+      return true;
+    }
     await _grant(await _knackGold(errandGold(t.gold)), t.manaStones, t.materials);
     await _count('errandDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
     await _maybeNote(AlchemyRules.noteFromErrand);
-    final slots = [...b.slots];
-    slots[slot] =
-        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
     await _saveBoard(b.copyWith(slots: slots, doneToday: b.doneToday + 1));
     await _npcUse(Npc.hart);
     await _npcTally(NpcTally.guildErrand);
@@ -103,7 +111,7 @@ extension BoardOps on AppController {
     final b = board;
     final slots = [...b.slots];
     slots[slot] =
-        ErrandSlot(readyAt: _clock().add(BoardRules.errandCooldown));
+        ErrandSlot(readyAt: _clock().add(_errandCooldown));
     await _saveBoard(b.copyWith(slots: slots));
   }
 

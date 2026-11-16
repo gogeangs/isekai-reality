@@ -89,6 +89,21 @@ extension VitalsOps on AppController {
       await _refreshVitals();
       // 묶음 43 #228: 끝난 펫 훈련
       await _settlePetTraining();
+      // 묶음 45 #232: 걸으면 듣는 전용 아이템 · 전용 퀘스트 다음 단계
+      await _relicWalk();
+      await _advanceRelics();
+      // 묶음 45 #231: 마르타 — 하루 8,000보를 넘긴 날 (하루 한 번)
+      final today = player.today;
+      if (today != null &&
+          today.steps >= NpcSmallRules.martaSteps &&
+          !_village.contains('walk8k:${today.dayKey}')) {
+        _village = {
+          for (final k in _village)
+            if (!k.startsWith('walk8k:')) k,
+        };
+        await _markVillage(['walk8k:${today.dayKey}']);
+        await _smallTrigger(Npc.marta);
+      }
     } catch (e, st) {
       // 묶음 16 #124: 시간에 따른 갱신이 실패해도 앱은 계속 (오류만 남긴다)
       await _logStartError(e, st);
@@ -167,6 +182,8 @@ extension VitalsOps on AppController {
       await store.saveVitals(v);
       await _fillJobMp(); // 묶음 30: 새 MP도 가득
       _justRested = true;
+      // 묶음 45 #231: 마르타 — 여관에서 쉬고 일어날 때
+      await _smallTrigger(Npc.marta);
       final rec = await _todayRecord();
       // 묶음 42 #226: 마르타와 단짝이면 휴식 보너스 경험치 조금 더 (숨김)
       final bonus = martaRestBonus;

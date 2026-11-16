@@ -146,6 +146,9 @@ class NpcTally {
   static const dailyTraining = 'dailyTraining'; // 하루 훈련 (하루 한 번)
   static const trial10 = 'trial10'; // 시련에서 10판 넘기기
   static const petTraining = 'petTraining'; // 펫 훈련
+  // 묶음 45 #231: 작은 부탁
+  static const gather = 'gather'; // 채집 (모두)
+  static String gatherOf(String kind) => 'gather:$kind'; // 채집 종류별
 }
 
 /// 마을 사람 부탁 · 사연 · 친해지기 규칙 (묶음 42 #226, 문서 「아르카 마을 사람 이야기」).

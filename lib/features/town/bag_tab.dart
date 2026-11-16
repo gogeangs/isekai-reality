@@ -308,6 +308,11 @@ class _BagTabState extends State<BagTab> {
                 ]),
               ),
             ],
+            // 묶음 45 #232: 소중한 물건 (마을 사람 전용 아이템, 가방 칸을 쓰지 않음 · 팔기·버리기 없음)
+            if (c.ownedRelics.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              PreciousPanel(controller: c),
+            ],
             const SizedBox(height: 12),
             OrnatePanel(
               child: Column(
@@ -1276,6 +1281,106 @@ class _DiscardButton extends StatelessWidget {
             ),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+
+/// 묶음 45 #232: 가방 「소중한 물건」 칸 — 가지고만 있으면 효과 (팔기·거래·버리기 안 됨)
+class PreciousPanel extends StatelessWidget {
+  const PreciousPanel({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = controller.ownedRelics;
+    return OrnatePanel(
+      key: const Key('preciousPanel'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Icon(Icons.auto_awesome_rounded,
+                size: 18, color: Color(0xFFC9A2FF)),
+            const SizedBox(width: 6),
+            Text('소중한 물건', style: AppText.title(15)),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('가방 칸을 쓰지 않아요',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final r in items)
+              GestureDetector(
+                key: Key('precious_${r.npc.name}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (d) => GameAlert(
+                    title: Text(r.name, style: AppText.title(18)),
+                    content: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Image.asset('assets/images/${r.asset}.webp',
+                          height: 96,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                      const SizedBox(height: 8),
+                      KText(r.text,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              color: AppColors.text, fontSize: 14, height: 1.4)),
+                      const SizedBox(height: 6),
+                      const KText('가지고 있으면 효과가 있어요. 팔거나 버릴 수 없어요.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: AppColors.textMuted, fontSize: 12)),
+                    ]),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.of(d).pop(),
+                          child: const Text('닫기')),
+                    ],
+                  ),
+                ),
+                child: SizedBox(
+                  width: 66,
+                  child: Column(children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC1A1238),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA06EE6)),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x66C9A2FF), blurRadius: 8),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Image.asset('assets/images/${r.asset}.webp',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.card_giftcard_rounded,
+                              color: AppColors.goldBright)),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(r.name,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 10.5,
+                            height: 1.2,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ),
+          ]),
+        ],
       ),
     );
   }

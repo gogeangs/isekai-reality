@@ -143,6 +143,8 @@ extension TrainingOps on AppController {
         final got = gifts.isEmpty ? <String>[] : await _applyGifts(gifts);
         await _npcTally(NpcTally.dailyTraining);
         await _npcUse(Npc.garen);
+        // 묶음 45 #231: 가렌 — 하루 훈련 3판을 넘겼을 때
+        if (n >= 3) await _smallTrigger(Npc.garen);
         _notify();
         return DailyTrainingResult(cleared: n, got: got);
       });
@@ -257,6 +259,8 @@ extension TrainingOps on AppController {
               counters: DailyRecord.addCounts(today.counters, {TitleRules.trialCounter: 1})));
         }
         if (n >= 10) await _npcTally(NpcTally.trial10);
+        // 묶음 45 #231: 가렌 — 시련 기록을 넘었을 때
+        if (newBest && n > 0) await _smallTrigger(Npc.garen);
         await _npcUse(Npc.garen);
         _notify();
         return TrialResult(

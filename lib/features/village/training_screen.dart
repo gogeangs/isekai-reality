@@ -652,6 +652,11 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
         onFastChanged: _c.setFastBattle,
         onAutoChanged: (hp, cure) => _c.setAutoUse(hpPercent: hp, cure: cure),
         floorLabelOf: _floorLabel,
+        counterOf: switch (widget.mode) {
+          TrainingMode.practice => (_) => '연습',
+          TrainingMode.daily => null,
+          TrainingMode.trial => (b) => '${b.purified.length}판',
+        },
         aura: switch (_c.gear.sets.look) {
           final set? => Color(BossGearRules.info(set).aura),
           null => null,

@@ -68,7 +68,8 @@ extension TrainingOps on AppController {
 
   // ───────────── 전투 만들기
 
-  Battle _trainingBattle(List<Foe> floors, {bool potions = false}) {
+  Battle _trainingBattle(List<Foe> floors,
+      {bool potions = false, bool telegraphs = true}) {
     final p = player;
     return _withJob(Battle.forPlayer(
       level: p.level.level,
@@ -90,7 +91,7 @@ extension TrainingOps on AppController {
       skillElement: companionPet?.element,
       mainElement: mainElement,
       weaponPotion: weaponPotionElement,
-      telegraphs: true,
+      telegraphs: telegraphs,
       heroSkills: true,
     ));
   }
@@ -100,8 +101,10 @@ extension TrainingOps on AppController {
   /// 허수아비 연습: 쓰러지지 않고 때리지 않는다. HP·내구도·MP·기력·보상 모두 그대로
   Battle? startPractice(DummyKind kind, {Element? element}) {
     if (!trainingOpen) return null;
+    // 허수아비는 때리지 않으니 큰 공격 예고(막기)도 없음
     final b = _trainingBattle(
-        [TrainingRules.practiceFoe(kind, player.level.level, element: element)]);
+        [TrainingRules.practiceFoe(kind, player.level.level, element: element)],
+        telegraphs: false);
     b.practice = true;
     return b;
   }

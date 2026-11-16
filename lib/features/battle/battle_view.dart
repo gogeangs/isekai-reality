@@ -53,6 +53,7 @@ class BattleView extends StatefulWidget {
     this.onMasterySkill,
     this.fit = false,
     this.floorLabelOf,
+    this.counterOf,
   });
 
   /// 묶음 33 #202: 화면 남은 높이에 맞춰 전투 장면을 줄인다 (스크롤 없이 한 화면)
@@ -60,6 +61,9 @@ class BattleView extends StatefulWidget {
 
   /// 묶음 43 훈련장: 층 이름 대신 쓰는 글 (「1판 · 허수아비」 등)
   final String Function(Battle b)? floorLabelOf;
+
+  /// 묶음 43 훈련장: 정화한 수 자리에 쓰는 글 (시련은 「○판」)
+  final String Function(Battle b)? counterOf;
 
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
@@ -499,6 +503,9 @@ class _BattleViewState extends State<BattleView> {
       ? null
       : _foeStatus.first.color;
 
+  String get _counter =>
+      widget.counterOf?.call(_b) ?? '${_b.purified.length} / ${_b.floors.length}';
+
   String get _floorLabel {
     if (widget.floorLabelOf case final f?) return f(_b);
     if (_b.floors.length == 1) return '필드 전투';
@@ -803,7 +810,7 @@ class _BattleViewState extends State<BattleView> {
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
-                                  '${_b.purified.length} / ${_b.floors.length}',
+                                  _counter,
                                   style: AppText.title(19,
                                       color: AppColors.text)),
                             ),
@@ -897,7 +904,7 @@ class _BattleViewState extends State<BattleView> {
   Widget _counterRow() => Row(children: [
         const GameIcon('mana_stone', size: 20),
         const SizedBox(width: 4),
-        Text('${_b.purified.length} / ${_b.floors.length}',
+        Text(_counter,
             style: AppText.title(15, color: AppColors.text)),
         const Spacer(),
         InkWell(

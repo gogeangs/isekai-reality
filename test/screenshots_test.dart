@@ -349,13 +349,9 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '22_잡화상');
     expect(find.text('가방 열기'), findsNothing); // 11-11 #99
-    await tester.ensureVisible(find.text('재료·물건·장비 팔기'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('재료·물건·장비 팔기'));
+    await tester.tap(find.byKey(const Key('shopTab_1')));
     await tester.pumpAndSettle();
     await _shot(tester, '22c_잡화상_팔기');
-    Navigator.of(tester.element(find.byType(BottomSheet))).pop();
-    await tester.pumpAndSettle();
     Navigator.of(tester.element(find.byType(ShopScreen))).pop();
     await tester.pumpAndSettle();
 

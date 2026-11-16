@@ -12,7 +12,6 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
-import 'package:isekai_reality/theme/ornaments.dart';
 
 class _Location implements LocationSource {
   final _c = StreamController<LocationFix>.broadcast();
@@ -549,12 +548,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('facility_shop')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('금화'), findsWidgets);
+    expect(find.byKey(const Key('shopWallet')), findsOneWidget);
 
-    // 마석 1개를 팔면 금화 10
+    // 마석 1개를 팔면 금화 10 (묶음 41 #227: 「팔기」 탭 맨 위)
     final gold = c.player.gold;
     final stones = c.player.manaStones;
-    await tester.tap(find.text('1개 팔기'));
+    await tester.tap(find.byKey(const Key('shopTab_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('stoneSell_0')));
     await tester.pumpAndSettle();
     expect(c.player.manaStones, stones - 1);
     expect(c.player.gold, gold + 10);
@@ -562,24 +563,27 @@ void main() {
     await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
 
-    // 정령 물약 = 예시 모드(Lv.14, 정령과 헤어짐)에서는 펫 간식
-    await tester.scrollUntilVisible(find.text('펫 간식'), 200,
-        scrollable: find.byType(Scrollable).first);
+    // 정령 물약 = 예시 모드(Lv.14, 정령과 헤어짐)에서는 펫 간식. 하루 1개라 바로 확인 창
+    await tester.tap(find.byKey(const Key('shopTab_0')));
     await tester.pumpAndSettle();
-    final buy = find
-        .descendant(
-            of: find.ancestor(
-                of: find.text('펫 간식'), matching: find.byType(OrnatePanel)),
-            matching: find.text('50'))
-        .first;
-    await tester.ensureVisible(buy);
+    await tester.tap(find.byKey(const Key('shopChip_potion')));
     await tester.pumpAndSettle();
-    await tester.tap(buy);
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('shopItem_bulssiPotion')), 200,
+        scrollable: find
+            .descendant(
+                of: find.byKey(const Key('shopList')),
+                matching: find.byType(Scrollable))
+            .first);
+    await tester.pumpAndSettle();
+    expect(c.itemName(ShopItem.bulssiPotion), '펫 간식');
+    await tester.tap(find.byKey(const Key('shopItem_bulssiPotion')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('buyPlus')), findsNothing);
+    await tester.tap(find.byKey(const Key('buyConfirm')));
     await tester.pumpAndSettle();
     expect(c.player.gold, gold + 10 - 50);
-    await tester.scrollUntilVisible(
-        find.textContaining('다시 살 수 있어요 · '), 200,
-        scrollable: find.byType(Scrollable).first);
-    expect(find.textContaining('다시 살 수 있어요 · '), findsOneWidget);
+    // 다 산 물건은 흐리게 맨 아래 「내일 다시」
+    expect(find.byKey(const Key('again_bulssiPotion')), findsOneWidget);
   });
 }

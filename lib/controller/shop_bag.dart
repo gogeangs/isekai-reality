@@ -60,6 +60,53 @@ extension ShopBagOps on AppController {
         extraLimit: skillPending(JobSkill.regular) ? 1 : 0);
   }
 
+  /// 묶음 41 #227: 이번 기간(오늘·이번 주)에 더 살 수 있는 개수 (단골 손님 몫 포함)
+  int shopLeft(ShopItem item) {
+    final i = TownRules.info(item);
+    final extra = skillPending(JobSkill.regular) ? 1 : 0;
+    return math.max(
+        0, i.perLimit + extra - TownRules.boughtInLimit(_history, item));
+  }
+
+  /// 묶음 41 #227: 한 번에 살 수 있는 가장 많은 개수
+  /// (남은 개수 · 금화 · 가방 빈칸 중 가장 적은 수). 살 수 없으면 0
+  int shopMaxBuy(ShopItem item, {bool? hasLocation}) {
+    if (canBuy(item, hasLocation: hasLocation) != PurchaseCheck.ok) return 0;
+    final i = TownRules.info(item);
+    var n = math.min(shopLeft(item), player.gold ~/ math.max(1, i.price));
+    // 가방에 들어가는 물건은 칸을 본다 (같은 칸에 [BagRules.stackMax] 개까지)
+    final mat = i.material;
+    if (mat != null || TownRules.bagItems.contains(item)) {
+      var have = mat != null ? player.materialCount(mat) : bagCount(item);
+      var free = bagFree;
+      var fit = 0;
+      while (fit < n) {
+        final stacks = have > 0 && have % BagRules.stackMax != 0;
+        if (!stacks) {
+          if (free <= 0) break;
+          free--;
+        }
+        have++;
+        fit++;
+      }
+      n = fit;
+    }
+    return math.max(0, n);
+  }
+
+  /// 묶음 41 #227: [n] 개를 한 번에 산다 (규칙은 하나씩 살 때와 같다).
+  /// 산 개수와 마지막 판정을 돌려준다.
+  Future<(int, PurchaseCheck)> buyMany(ShopItem item, int n) async {
+    var bought = 0;
+    var last = PurchaseCheck.ok;
+    for (var k = 0; k < n; k++) {
+      last = await buy(item);
+      if (last != PurchaseCheck.ok) break;
+      bought++;
+    }
+    return (bought, last);
+  }
+
   /// [have] 개 있는 것에 하나 더 넣을 자리가 있는지
   bool _roomFor(int have) =>
       (have > 0 && have % BagRules.stackMax != 0) || bagFree > 0;

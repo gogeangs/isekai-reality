@@ -242,6 +242,8 @@ void main() {
       await tester.tap(find.byKey(const Key('npcReq_dorgun_special')));
       await _settle(tester);
       await _shot(tester, '${n}_10_특별한부탁_단계');
+      await tester.tap(find.byKey(const Key('npcClose')));
+      await _settle(tester);
 
       late AppController c2;
       await tester.runAsync(() async => c2 = await startNpc(

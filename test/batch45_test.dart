@@ -118,10 +118,10 @@ void main() {
         await c.sellManaStones(1);
       }
       expect(c.npcState.smallOffer['mina'], first);
-      // 대장간이 안 열린 도르군은 안 나옴
-      final c2 = await startNpc(level: 1, npc: _npc(extra: {'sOffer': {'dorgun': 0}}));
-      expect(c2.smallOffer(Npc.dorgun), isNull);
-      expect(c2.npcAskKind(Npc.dorgun), isNull);
+      // 건물이 안 열린 사람(길드 세라)은 안 나옴
+      final c2 = await startNpc(level: 1, npc: _npc(extra: {'sOffer': {'sera': 0}}));
+      expect(c2.smallOffer(Npc.sera), isNull);
+      expect(c2.npcAskKind(Npc.sera), isNull);
     });
 
     test('받고 다 하면: 재료를 건네고 친밀도 +2 · 경험치 · 고맙다는 한마디 (사연 없음)', () async {

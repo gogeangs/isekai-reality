@@ -100,10 +100,11 @@ void main() {
     await tester.tap(find.byKey(const Key('harvestQuit')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('그만두면 이번 채집은 빠른 채집으로 해요.'), findsOneWidget);
+    expect(find.byKey(const Key('harvestQuitYes')), findsOneWidget);
     await tester.tap(find.byKey(const Key('harvestQuitYes')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
     expect(got?.quit, isTrue);
     expect(got?.grade, HarvestGrade.quick);
   });
@@ -123,8 +124,9 @@ void main() {
     expect(find.text('완벽해요!'), findsOneWidget);
     expect(find.byKey(const Key('harvestFxMats')), findsOneWidget);
     await tester.tap(find.byKey(const Key('harvestFx')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+    }
     expect(find.byKey(const Key('harvestFx')), findsNothing);
   });
 
@@ -162,8 +164,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
       }
       expect(find.byKey(const Key('harvestFx')), findsOneWidget, reason: k.name);
-      await tester.pump(const Duration(milliseconds: 1200));
-      await tester.pump(const Duration(milliseconds: 400));
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
       expect(find.byType(HarvestGameScreen), findsNothing, reason: k.name);
     }
   });

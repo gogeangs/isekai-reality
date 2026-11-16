@@ -122,6 +122,7 @@ HarvestGameScreen _game(HarvestKind k,
       debugRare: rare,
       debugResult: result,
       debugMats: mats,
+      debugHold: true,
     );
 
 const _names = {

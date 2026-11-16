@@ -132,7 +132,12 @@ class HarvestGameScreen extends StatefulWidget {
     this.debugRare,
     this.debugResult,
     this.debugMats,
+    this.debugHold = false,
   });
+
+  /// 미리보기용: 결과 연출 뒤에도 닫지 않음
+  @visibleForTesting
+  final bool debugHold;
 
   /// 미리보기(시험·캡처)용: 금빛 버섯 · 큰 물고기 그림자를 꼭 (null 이면 보통)
   @visibleForTesting
@@ -228,7 +233,7 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
   }
 
   void _maybeClose() {
-    if (!mounted || _closed || !_fxDone || !_resolved) return;
+    if (!mounted || _closed || !_fxDone || !_resolved || widget.debugHold) return;
     _closed = true;
     Navigator.of(context).pop(HarvestGameResult(_play!.grade, mats: _mats));
   }

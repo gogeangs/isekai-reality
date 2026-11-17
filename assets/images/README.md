@@ -421,3 +421,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | title_morvalLamp, title_guardMemory, title_aurelLamp, title_fiveLamps, title_phoenixHonor | 모르발·아우렐·3막 끝 칭호 5종, 시트 분할 512 |
 | 2026-11-18 | monster_partyGolem, monster_partyHydra, monster_partyWyvern, monster_partyKraken | 파티 보스 4종, 붉은 테두리 정리·시트 분할 512 |
 | 2026-11-18 | flag_party, flag_emb_sword/paw/lantern/tower/leaf/star/moon/wing | 파티 깃발 바탕(흰 천·금 깃대)과 문양 8종(흰색+금 테두리, 색 입혀 쓰는 용도), 512 |
+| 2026-11-18 | equip_partyWeapon/Head/Body/Hands/Feet/Acc | 파티 보스 세트 「동행」 6부위(청록 천·금 테두리·발자국 고리 문양), 512 |

@@ -92,7 +92,7 @@ extension AlchemyOps on AppController {
   /// 가마솥 [slot] 에 재료를 넣고 끓인다 (넣은 순서가 중요)
   Future<bool> startBrew(int slot, List<MaterialId> put) =>
       _serial(() async {
-    if (slot < 0 || slot >= _alc.cauldrons || _alc.brews.containsKey(slot)) {
+    if (slot < 0 || slot >= cauldronCount || _alc.brews.containsKey(slot)) {
       return false;
     }
     if (put.isEmpty || put.length > AlchemyRules.maxIngredients) return false;
@@ -128,6 +128,8 @@ extension AlchemyOps on AppController {
     // 묶음 31: 연금술사 센 불 → 덜 끓음 · 즉석 연성 → 바로 완성 · 레시피 직감 → 처음 보는
     // 조합이면 레시피 쪽지 (숨김)
     minutes *= 1 - JobRules.alchemistTime * jobTrait(JobId.alchemist);
+    // 묶음 54: 연금술 공방 ★2 → 끓는 시간이 짧아짐 (숨김)
+    if (_star(Building.alchemy, 2)) minutes *= BuildingRules.brewTime;
     if (await _consumeSkill(JobSkill.instantBrew)) minutes = 0;
     if (await _consumeSkill(JobSkill.recipeHunch) &&
         (match == null || !recipeDiscovered(match.id))) {

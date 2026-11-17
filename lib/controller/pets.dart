@@ -197,7 +197,9 @@ extension PetsOps on AppController {
   /// 알을 품는다 (정령이 떠난 뒤에만, 한 번에 하나)
   Future<bool> incubateEgg(String eggId) async {
     if (!_pets.farewellDone) return false;
-    if (_pets.eggs.any((e) => e.incubatedAt != null)) return false;
+    // 묶음 54: 펫 쉼터 ★3 → 알 두 개를 함께
+    if (!canIncubateMore) return false;
+    if (_pets.eggs.any((e) => e.id == eggId && e.incubatedAt != null)) return false;
     final now = _clock();
     // 묶음 42 #226: 루미의 둥지 장식 → 알이 조금 더 빨리 깨어남 (품은 때를 앞당겨 둠)
     final at = hasLumiNest

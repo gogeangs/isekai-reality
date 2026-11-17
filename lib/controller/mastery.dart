@@ -61,7 +61,9 @@ extension MasteryOps on AppController {
       // 묶음 30: 보석 세공사 → 장신구 좋은 등급 (숨김)
       (EquipmentRules.info(base).slot == EquipSlot.accessory
           ? JobRules.jewelerGrade * jobTrait(JobId.jeweler)
-          : 0);
+          : 0) +
+      // 묶음 54: 대장간 ★2 → 좋은 등급이 조금 더 (숨김)
+      (_star(Building.smithy, 2) ? BuildingRules.smithGrade : 0);
 
   /// 예전 규칙(만든 장비 10개마다 +1%p, 최대 10)으로 센 바닥값
   double get _legacySmithFloor =>
@@ -69,7 +71,11 @@ extension MasteryOps on AppController {
 
   /// 그 장비 수리비 (조금 덜)
   int masteryRepairCost(EquipItem item) {
-    final base = EquipmentRules.repairCost(item);
+    var base = EquipmentRules.repairCost(item);
+    // 묶음 54: 대장간 ★3 → 수리비 덜 (숨김)
+    if (_star(Building.smithy, 3) && base > 1) {
+      base = math.max(1, (base * BuildingRules.smithRepair).round());
+    }
     final f = _detailFrac(MasteryRules.smithKey(MasteryRules.smithKind(item.base)));
     // 묶음 42 #226: 도르군과 단짝이면 수리비 덜 (숨김)
     if (f <= 0 || base <= 0) return dorgunRepair(base);
@@ -95,6 +101,8 @@ extension MasteryOps on AppController {
 
   /// 의뢰 보상 금화 (장사·의뢰)
   int errandGold(int gold) {
+    // 묶음 54: 게시판 ★3 → 의뢰 보상 조금 더 (숨김)
+    if (_star(Building.board, 3)) gold = (gold * BuildingRules.boardGold).round();
     final f = _bigFrac(Mastery.trade);
     // 묶음 30: 모험가 → 길드·긴급 의뢰 보상 (숨김)
     final a = JobRules.adventurerReward * jobTrait(JobId.adventurer);
@@ -139,7 +147,10 @@ extension MasteryOps on AppController {
     if (amount <= 0 && details.isEmpty) return;
     // 묶음 30: 주 직업 ×1.5 · 보조 직업 ×1.2 (그 직업 숙련도)
     // 묶음 42 #226: 세라와 단짝이면 숙련도 조금 빨리 (숨김)
-    final g = jobGrowth(m) * seraMastery;
+    final g = jobGrowth(m) *
+        seraMastery *
+        // 묶음 54: 조합 ★3 → 숙련도 조금 더 빨리 (숨김)
+        (_star(Building.guild, 3) ? BuildingRules.guildMastery : 1);
     amount *= g;
     detailAmount *= g;
     var s = _mastery;

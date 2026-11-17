@@ -40,7 +40,10 @@ extension GardenOps on AppController {
   bool get gardenOpen => player.level.level >= GardenRules.openLevel;
 
   /// 밭 칸 수 (포포 부탁을 끝낼수록 3 → 6)
-  int get gardenPlotCount => GardenRules.plotsFor(_npc.doneOf(Npc.popo.name));
+  /// 묶음 54: 약초밭 ★2 → 한 칸 더
+  int get gardenPlotCount =>
+      GardenRules.plotsFor(_npc.doneOf(Npc.popo.name)) +
+      (_star(Building.garden, 2) ? 1 : 0);
 
   /// 포포의 이슬병
   bool get _dew => hasRelic(Npc.popo);
@@ -57,8 +60,14 @@ extension GardenOps on AppController {
       slot: slot,
       seed: seed,
       walked: _walkedSince(p),
-      need: GardenRules.need(seed, dew: _dew),
+      need: _gardenNeed(seed),
     );
+  }
+
+  /// 다 자라는 데 드는 걸음 (묶음 54: 약초밭 ★3 → 조금 빨리, 숨김)
+  int _gardenNeed(MaterialId seed) {
+    final n = GardenRules.need(seed, dew: _dew);
+    return _star(Building.garden, 3) ? (n * BuildingRules.gardenNeed).round() : n;
   }
 
   List<GardenPlotView> get gardenPlots =>
@@ -103,6 +112,11 @@ extension GardenOps on AppController {
         var n = GardenRules.harvestCount;
         if (_masteryRoll(GardenRules.masteryExtra * _bigFrac(Mastery.harvest))) n++;
         if (_bestWith(Npc.popo) && _random.nextDouble() < GardenRules.popoExtra) n++;
+        // 묶음 54: 약초밭 ★3 → 가끔 두 배 (숨김)
+        if (_star(Building.garden, 3) &&
+            _random.nextDouble() < BuildingRules.gardenDouble) {
+          n *= 2;
+        }
         await _saveGarden(_garden.copyWith(
           plots: {..._garden.plots}..remove(slot),
           harvested: _garden.harvested + 1,

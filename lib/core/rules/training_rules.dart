@@ -127,6 +127,8 @@ class TrainingRules {
   static Map<String, int> trialReward(int mark) => switch (mark) {
         5 => const {'manaStone': 3, 'ironShard': 3},
         10 => const {'manaStone': 5, 'ironIngot': 1},
+        // 묶음 54: 훈련장 ★3 → 20판 보상
+        20 => const {'manaStone': 12, 'manaOre': 1},
         _ => const {'manaStone': 8, 'labyrinthStone': 2},
       };
 

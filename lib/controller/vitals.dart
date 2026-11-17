@@ -190,6 +190,8 @@ extension VitalsOps on AppController {
       await store.saveVitals(v);
       await _fillJobMp(); // 묶음 30: 새 MP도 가득
       _justRested = true;
+      // 묶음 54: 여관 ★3 → 쉬고 나면 잠시 경험치 조금 더
+      await _innRested();
       // 묶음 45 #231: 마르타 — 여관에서 쉬고 일어날 때
       await _smallTrigger(Npc.marta);
       final rec = await _todayRecord();
@@ -247,6 +249,8 @@ extension VitalsOps on AppController {
     // 묶음 48 #230: 주간 의뢰를 모두 끝낸 주 → 빛나는 씨앗
     await _checkGardenGlow();
     await _checkWalkEvents();
+    // 묶음 54: 다 고친 건물
+    await _settleBuildings();
     _notify();
   }
 
@@ -263,8 +267,13 @@ extension VitalsOps on AppController {
     if (resting) return false;
     await refreshVitals();
     final now = _clock();
+    // 묶음 54: 여관 ★2 → 쉬는 시간이 짧아짐 (처음부터 조금 쉰 것으로, 숨김)
+    final start = _star(Building.inn, 2)
+        ? now.subtract(const Duration(hours: RuleConstants.restHours) *
+            BuildingRules.innHead)
+        : now;
     _vitals = _vitals.copyWith(
-        restStartedAt: now, restHp0: hp, restMp0: mp);
+        restStartedAt: start, restHp0: hp, restMp0: mp);
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
@@ -273,7 +282,7 @@ extension VitalsOps on AppController {
     await _npcRested();
     unawaited(notifier?.schedule(
       NotifyId.rest,
-      now.add(const Duration(hours: RuleConstants.restHours)),
+      start.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
       'HP와 $companionName의 기력이 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
     ));

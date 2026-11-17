@@ -19,7 +19,8 @@ extension ShopBagOps on AppController {
     ));
     // 묶음 31: 단골 손님 → 하루 개수를 넘겨 산 거면 이번에 쓴다
     final i = TownRules.info(item);
-    if (TownRules.boughtInLimit(_history, item) > i.perLimit) {
+    final starExtra = _shopExtra(item) - (skillPending(JobSkill.regular) ? 1 : 0);
+    if (TownRules.boughtInLimit(_history, item) > i.perLimit + starExtra) {
       await _consumeSkill(JobSkill.regular);
     }
     // 묶음 31: 물약 상인 물약 도매 · 대흥정 → 산 값 일부를 돌려받는다 (숨김)
@@ -50,9 +51,21 @@ extension ShopBagOps on AppController {
         for (final i in TownRules.items)
           if ((i.item != ShopItem.raceLens || featureOpen(Feature.lens)) &&
               // 묶음 30: 마나 물약은 직업 각성 뒤에만 (그 전엔 MP가 없다)
-              (i.jobMpRatio <= 0 || jobsOpen))
+              (i.jobMpRatio <= 0 || jobsOpen) &&
+              // 묶음 54: 잡화상 ★2 물건 · ★3 그날 특별한 물건
+              (!TownRules.star2Items.contains(i.item) || _star(Building.shop, 2)) &&
+              (!TownRules.specials.contains(i.item) ||
+                  (_star(Building.shop, 3) &&
+                      TownRules.specialOf(DailyRecord.dayKeyOf(_clock())) == i.item)))
             i,
       ];
+
+  /// 묶음 54: 잡화상 ★3 → 하루 살 수 있는 개수 +1 (특별한 물건은 그대로 하나)
+  int _shopExtra(ShopItem item) =>
+      (skillPending(JobSkill.regular) ? 1 : 0) +
+      (_star(Building.shop, 3) && !TownRules.specials.contains(item)
+          ? BuildingRules.shopExtraLimit
+          : 0);
 
   PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {
     final mat = TownRules.info(item).material;
@@ -65,13 +78,13 @@ extension ShopBagOps on AppController {
         hasLocation: hasLocation ?? _lastFix != null,
         level: player.level.level,
         bagRoom: have < 0 || _roomFor(have),
-        extraLimit: skillPending(JobSkill.regular) ? 1 : 0);
+        extraLimit: _shopExtra(item));
   }
 
   /// 묶음 41 #227: 이번 기간(오늘·이번 주)에 더 살 수 있는 개수 (단골 손님 몫 포함)
   int shopLeft(ShopItem item) {
     final i = TownRules.info(item);
-    final extra = skillPending(JobSkill.regular) ? 1 : 0;
+    final extra = _shopExtra(item);
     return math.max(
         0, i.perLimit + extra - TownRules.boughtInLimit(_history, item));
   }

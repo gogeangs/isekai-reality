@@ -877,10 +877,11 @@ class EggSheet extends StatelessWidget {
               '따뜻한 기운이 느껴지는 알이에요. 정령이 무언가 알고 있는 것 같아요.',
               style: TextStyle(color: AppColors.text, fontSize: 14)));
         } else if (e.incubatedAt == null) {
-          final busy = c.pets.eggs.any((x) => x.incubatedAt != null);
+          final busy = !c.canIncubateMore;
           children.addAll([
             KText(
-                '품으면 ${PetRules.hatchTime.inHours}시간 뒤 깨어나요. 알은 한 번에 하나씩 품을 수 있어요.',
+                '품으면 ${PetRules.hatchTime.inHours}시간 뒤 깨어나요. '
+                '알은 한 번에 ${c.eggSlots >= 2 ? '두 개까지' : '하나씩'} 품을 수 있어요.',
                 style: const TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 12),
             GoldButton(

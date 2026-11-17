@@ -278,7 +278,7 @@ extension CloudOps on AppController {
       final now = _clock().toUtc();
       if (useServer) {
         final phone = phoneSummary;
-        await s.keep(uid, token, await store.exportAll(),
+        await s.keep(uid, token, BackupScrub.scrub(await store.exportAll()),
             level: phone.level, lastDay: phone.lastDay, from: 'phone');
         _cloud = _cloud.copyWith(choosing: false, keptAt: now);
         await _saveCloud();
@@ -323,7 +323,8 @@ extension CloudOps on AppController {
     try {
       final token = await a.idToken();
       if (token == null) return CloudBackup.offline;
-      final snap = await store.exportAll();
+      // 묶음 54: 서버로 보내는 기록은 위치를 덜어 냄 (이 휴대폰 기록은 그대로)
+      final snap = BackupScrub.scrub(await store.exportAll());
       final h = _hashOf(snap);
       if (!force && h == _cloud.hash) return CloudBackup.unchanged;
       final sum = phoneSummary;

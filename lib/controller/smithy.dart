@@ -213,7 +213,12 @@ extension SmithyOps on AppController {
   double enhanceChanceShown(int to) => math.min(
       1.0,
       EquipmentRules.enhanceChance(to) +
+          _smithEnhance +
           (skillPending(JobSkill.focusForge) ? focusForgeBoost : 0));
+
+  /// 묶음 54: 대장간 ★3 → 강화가 조금 쉬워짐 (화면 %에도)
+  double get _smithEnhance =>
+      _star(Building.smithy, 3) ? BuildingRules.smithEnhance : 0;
 
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
@@ -244,7 +249,9 @@ extension SmithyOps on AppController {
     final focus = await _consumeSkill(JobSkill.focusForge);
     final ok = sure ||
         _random.nextDouble() <
-            EquipmentRules.enhanceChance(to) + (focus ? focusForgeBoost : 0);
+            EquipmentRules.enhanceChance(to) +
+                _smithEnhance +
+                (focus ? focusForgeBoost : 0);
     var safe = false;
     if (!ok && focus) {
       safe = true;

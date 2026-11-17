@@ -16,6 +16,7 @@ import 'core/models/daily_record.dart';
 import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
 import 'core/models/tavern_state.dart';
+import 'core/models/building_state.dart';
 import 'core/models/act3_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
@@ -31,6 +32,7 @@ import 'core/models/stat_alloc.dart';
 import 'core/models/training_state.dart';
 import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
+import 'data/cloud/backup_scrub.dart';
 import 'data/cloud/backup_server.dart';
 import 'data/cloud/cloud_auth.dart';
 import 'data/health/health_source.dart';
@@ -54,6 +56,7 @@ part 'controller/bag_hold.dart';
 part 'controller/cloud.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
+part 'controller/buildings.dart';
 part 'controller/drive.dart';
 part 'controller/expedition.dart';
 part 'controller/explore.dart';
@@ -613,6 +616,8 @@ class AppController extends ChangeNotifier {
     _tavern = await _load(_tavernKey, TavernState.fromJson, const TavernState());
     // 묶음 52 #243: 3막 (없으면 처음부터, 3막이 열리기 전 걸음은 셈하지 않음)
     _act3 = await _load(_act3Key, Act3State.fromJson, const Act3State());
+    // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
+    _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -830,6 +835,10 @@ class AppController extends ChangeNotifier {
   /// 묶음 51 #242: 주점 ('tavern')
   static const _tavernKey = 'tavern';
   TavernState _tavern = const TavernState();
+
+  /// 묶음 54: 건물 레벨업 ('buildings')
+  static const _buildingsKey = 'buildings';
+  BuildingState _buildings = const BuildingState();
 
   /// 마지막으로 예약한 섬 알림 때 (같으면 다시 예약하지 않음)
   DateTime? _skyNoticeAt;

@@ -106,7 +106,6 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
   // ───────────── 가마솥
 
   List<Widget> _cauldrons(BuildContext context) {
-    final a = c.alchemy;
     final gold = c.cauldronGold;
     return [
       // 묶음 28 #181: 첫 물약 안내 중이면 회복 물약 판이 맨 위에
@@ -114,7 +113,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
         _FirstPotionPanel(controller: c),
         const SizedBox(height: 10),
       ],
-      for (var i = 0; i < a.cauldrons; i++) ...[
+      for (var i = 0; i < c.cauldronCount; i++) ...[
         _CauldronCard(controller: c, slot: i),
         const SizedBox(height: 10),
       ],

@@ -34,6 +34,9 @@ class NotifyId {
   /// 묶음 50 #146: 하늘에 섬이 떠오름
   static const int highland = 9;
 
+  /// 묶음 54: 건물을 다 고침
+  static const int building = 10;
+
   /// 알림을 누르면 갈 곳
   static NotifyTarget targetOf(int id) => switch (id) {
         expedition || >= 100 && < 200 => NotifyTarget.expedition,

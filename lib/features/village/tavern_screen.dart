@@ -201,11 +201,11 @@ class _TavernScreenState extends State<TavernScreen> {
           const SizedBox(height: 4),
           KText(
               eaten == null
-                  ? '하루 한 번, 셋 중 하나를 골라요. 오늘 자정까지 걸을 때만 효과가 있어요.'
+                  ? '하루 한 번, ${c.mealMenu.length == 4 ? '넷' : '셋'} 중 하나를 골라요. 오늘 자정까지 걸을 때만 효과가 있어요.'
                   : '오늘은 ${josa(TavernRules.meal(eaten).name, '을/를')} 먹었어요. 내일 또 와요.',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
           const SizedBox(height: 8),
-          for (final m in TavernRules.meals) _mealRow(m, eaten),
+          for (final m in c.mealMenu) _mealRow(m, eaten),
         ],
       ),
     );

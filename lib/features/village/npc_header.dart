@@ -4,6 +4,7 @@ import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'building_upgrade.dart';
 import 'npc_request.dart';
 
 /// 시설 맨 위 마을 사람 (묶음 35): 금테 얼굴 + 이름·역할 + 한마디 말풍선.
@@ -110,6 +111,8 @@ class _NpcHeaderState extends State<NpcHeader> {
               ]),
               // 묶음 42 #226: 부탁 듣기 · 진행 · 다 했어요
               NpcRequestBar(controller: widget.controller, npc: widget.npc),
+              // 묶음 54: 건물 레벨업 (결말 뒤)
+              BuildingUpgradeBar(controller: widget.controller, npc: widget.npc),
             ],
           ),
         ),

@@ -35,7 +35,12 @@ extension ShopGroupInfo on ShopGroup {
         ShopItem.ironShard ||
         ShopItem.twig ||
         ShopItem.herb ||
-        ShopItem.herbSeed =>
+        ShopItem.herbSeed ||
+        ShopItem.hardWood ||
+        ShopItem.tannedLeather ||
+        ShopItem.specialPearl ||
+        ShopItem.specialRune ||
+        ShopItem.specialKnot =>
           ShopGroup.material,
         ShopItem.expeditionCompass ||
         ShopItem.purifyIncense ||
@@ -80,7 +85,12 @@ class ShopScreen extends StatefulWidget {
         ShopItem.ironShard ||
         ShopItem.twig ||
         ShopItem.herb ||
-        ShopItem.herbSeed =>
+        ShopItem.herbSeed ||
+        ShopItem.hardWood ||
+        ShopItem.tannedLeather ||
+        ShopItem.specialPearl ||
+        ShopItem.specialRune ||
+        ShopItem.specialKnot =>
           '${josa(TownRules.info(item).name, '을/를')} 재료 주머니에 넣었어요.',
         ShopItem.healSmall ||
         ShopItem.heal ||

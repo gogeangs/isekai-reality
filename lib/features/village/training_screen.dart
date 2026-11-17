@@ -230,7 +230,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
   List<Widget> _dailyTab() {
     final done = c.dailyTrainingDone;
     return [
-      const _Note('하루 한 번 · 세 판을 이어서 · 자정에 다시'),
+      _Note(c.buildingStar(Building.training) >= 2 && c.buildingsOpen
+          ? '하루 두 번 · 세 판을 이어서 · 자정에 다시'
+          : '하루 한 번 · 세 판을 이어서 · 자정에 다시'),
       const SizedBox(height: 8),
       OrnatePanel(
         key: const Key('dailyPanel'),
@@ -269,7 +271,12 @@ class _TrainingScreenState extends State<TrainingScreen> {
       const SizedBox(height: 12),
       GoldButton(
         key: const Key('dailyStart'),
-        label: done ? '오늘 훈련 끝 · 내일 다시' : '하루 훈련 시작',
+        label: done
+            ? '오늘 훈련 끝 · 내일 다시'
+            // 묶음 54: 훈련장 ★2 → 한 번 더
+            : c.dailyTrainingExtra
+                ? '한 번 더 훈련하기'
+                : '하루 훈련 시작',
         height: 52,
         fontSize: 18,
         onPressed: done || !c.trainingOpen
@@ -411,8 +418,8 @@ class _TrainingScreenState extends State<TrainingScreen> {
               key: const Key('trialBest'),
               style: AppText.title(19, color: AppColors.goldBright)),
           const SizedBox(height: 8),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            for (final m in TrainingRules.trialMarks) ...[
+          Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 6, children: [
+            for (final m in c.trialMarks)
               Container(
                 key: Key('trialMark_$m'),
                 padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
@@ -437,8 +444,6 @@ class _TrainingScreenState extends State<TrainingScreen> {
                           fontWeight: FontWeight.w800)),
                 ]),
               ),
-              if (m != TrainingRules.trialMarks.last) const SizedBox(width: 8),
-            ],
           ]),
           const SizedBox(height: 6),
           const KText('이번 주에 처음 넘기면 재료와 마석을 받아요',

@@ -284,16 +284,19 @@ class BoardRules {
   /// 날짜가 바뀌었으면 새로 시작하고, 기다리던 빈 칸에 새 의뢰를 올린다
   /// [npcs]: 건물이 열린 마을 사람 (묶음 45 #231: 가끔 그 사람 쪽지가 붙는다)
   static BoardState refresh(BoardState s, DateTime now,
-      {List<String> npcs = const [], bool region = false}) {
+      {List<String> npcs = const [], bool region = false, int extra = 0}) {
+    // 묶음 54: 게시판 ★2 → 칸 하나 · 하루 의뢰 하나 더
+    final nSlots = errandSlots + extra;
+    final perDay = errandsPerDay + extra;
     final key = DailyRecord.dayKeyOf(now);
     var state = s.day == key
         ? s
         : BoardState(
             day: key,
-            slots: List.filled(errandSlots, const ErrandSlot()),
+            slots: List.filled(nSlots, const ErrandSlot()),
           );
     final slots = [...state.slots];
-    while (slots.length < errandSlots) {
+    while (slots.length < nSlots) {
       slots.add(const ErrandSlot());
     }
     var seq = state.seq;
@@ -302,7 +305,7 @@ class BoardRules {
       if (!slot.empty) continue;
       final ready = slot.readyAt == null || !now.isBefore(slot.readyAt!);
       final holding = slots.where((x) => !x.empty).length;
-      if (!ready || state.doneToday + holding >= errandsPerDay) continue;
+      if (!ready || state.doneToday + holding >= perDay) continue;
       final taken = {for (final x in slots) x.templateId};
       final pick = _pickNpcNote(key, seq, taken, npcs) ??
           (region ? _pickRegion(key, seq, taken) : null) ??

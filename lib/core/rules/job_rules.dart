@@ -802,6 +802,28 @@ class JobRules {
     return '${josaOf(ms.first, '와/과')} ${josaOf(ms.last, '을/를')} 더 해 보세요';
   }
 
+  /// 묶음 54: 조합 ★2 → 더 자세한 힌트 (숙련도마다 얼마나 왔는지, 숫자 없이)
+  /// 「대장일은 거의 다 왔어요 · 전투는 아직 갈 길이 멀어요」
+  static String detailLine(JobId j, double Function(Mastery) value) {
+    final ji = info(j);
+    final goal = ji.kind == JobKind.basic
+        ? MasteryRules.bigSteps[MasteryStage.skilled.index]
+        : MasteryRules.bigSteps[MasteryStage.expert.index];
+    String how(Mastery m) {
+      final left = (goal - value(m)).clamp(0, goal) / goal;
+      return left <= 0
+          ? '충분해요'
+          : left < 0.25
+              ? '거의 다 왔어요'
+              : left < 0.6
+                  ? '절반쯤 왔어요'
+                  : '아직 갈 길이 멀어요';
+    }
+
+    return [for (final m in ji.masteries) '${josaOf(m.label, '은/는')} ${how(m)}']
+        .join(' · ');
+  }
+
   /// 큰 숙련도의 기본 직업
   static JobId basicOf(Mastery m) =>
       jobs.firstWhere((j) => j.kind == JobKind.basic && j.masteries.single == m).id;

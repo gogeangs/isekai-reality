@@ -276,7 +276,6 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
   @override
   Widget build(BuildContext context) {
     final info = HarvestRules.info(widget.kind);
-    final size = MediaQuery.sizeOf(context);
     final ctl = _GameCtl(
         ease: widget.ease,
         feel: _feel,
@@ -291,11 +290,9 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
         backgroundColor: AppColors.deepNight,
         body: Stack(children: [
           // 위쪽 60%: 그 자리 풍경, 아래로 갈수록 어둡게
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: size.height * 0.6,
+          // 묶음 48: 새 배경(세로 2:3, 위 풍경 · 아래 땅)은 화면 전체에.
+          // 아래 40% 땅 위에 버튼·막대가 온다
+          Positioned.fill(
             child: _img(_bgOf(widget.kind),
                 key: const Key('harvestBg'),
                 fit: BoxFit.cover,
@@ -308,13 +305,13 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0x66070818),
-                      const Color(0x33070818),
-                      const Color(0xCC070818),
-                      AppColors.deepNight,
+                    colors: const [
+                      Color(0x88070818),
+                      Color(0x22070818),
+                      Color(0x33070818),
+                      Color(0x99070818),
                     ],
-                    stops: const [0, 0.25, 0.5, 0.62],
+                    stops: const [0, 0.25, 0.6, 1],
                   ),
                 ),
               ),
@@ -2520,7 +2517,7 @@ class _PitClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final c = size.center(Offset.zero);
-    final rx = size.width * 0.49, ry = size.height * 0.47;
+    final rx = size.width * 0.45, ry = size.height * 0.45;
     final path = Path();
     const n = 48;
     for (var i = 0; i <= n; i++) {

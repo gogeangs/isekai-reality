@@ -437,3 +437,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | skill_manaShield, skill_elementBurst, skill_grandMagic, skill_aegis, skill_purify, skill_holyLight, skill_miracle, skill_ambush, skill_steal | 직업 개편 스킬 아이콘 9 (마법사 3·사제 4·도적 2, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |
 | 2026-11-18 | skill_poisonBlade, skill_smokeBomb, skill_shadowFlurry, skill_shieldBash, skill_guard, skill_taunt, skill_lanceCharge, skill_paladinOath, skill_anvilDrop | 직업 개편 스킬 아이콘 9 (도적 3·기사 5·대장장이 1, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |
 | 2026-11-18 | skill_acidFlask, skill_pollenCloud, skill_dazzleLens, skill_scaleWeight, skill_whistleSignal | 직업 개편 생산 직업 스킬 아이콘 5 (#249, 노랑 번짐 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | title_pair_{weaponsmith,runesmith,jeweler,potionMerchant,peddler,beastKnight} | 직업 개편 특별 짝 칭호 6 (금 고리 두 개 「짝」 표시, #249, 지금 칭호와 같은 크기, 512) |

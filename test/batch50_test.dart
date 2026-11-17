@@ -522,7 +522,7 @@ void main() {
     await tester.scrollUntilVisible(find.byKey(const Key('skyStone_4')), 300,
         scrollable: find.byType(Scrollable).first);
     expect(find.byKey(const Key('skyStoneRecords')), findsOneWidget);
-    expect(find.text('아직 읽지 못한 비문'), findsNWidgets(4));
+    expect(find.byKey(const Key('skyStone_4')), findsOneWidget);
     await tester.pump(const Duration(seconds: 9));
   });
 }

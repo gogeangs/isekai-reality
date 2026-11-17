@@ -99,8 +99,9 @@ jobs:
           TOKEN=$(gcloud auth print-access-token)
           HOST=$(python3 -c 'import os,urllib.parse;print(urllib.parse.urlparse(os.environ["API_URL"]).hostname)')
           CFG=https://identitytoolkit.googleapis.com/admin/v2/projects/arca-d0cab/config
+          # 응답(인증 설정)은 공개 기록에 남지 않게 출력하지 않는다
           NEW=$(curl -sS "$CFG" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" | HOST="$HOST" python3 -c 'import json,sys,os;d=json.load(sys.stdin).get("authorizedDomains",[]);h=os.environ["HOST"];d=d+([h] if h not in d else []);print(json.dumps({"authorizedDomains":d}))')
-          curl -sS -X PATCH "$CFG?updateMask=authorizedDomains" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" -H "Content-Type: application/json" -d "$NEW" | head -c 400; echo
+          curl -sS -X PATCH "$CFG?updateMask=authorizedDomains" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" -H "Content-Type: application/json" -d "$NEW" -o /dev/null -w "로그인 허용 주소 반영: HTTP %{http_code}\n"
 
       - name: TTL 정책 (함께 있어요 · 걸음 기기 · 문의)
         continue-on-error: true

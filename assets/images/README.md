@@ -414,3 +414,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | equip_morval{Weapon,Head,Body,Hands,Feet,Acc} | 모르발 근위 세트 6부위, 시트 분할 512 |
 | 2026-11-18 | monster_cultPriests, monster_ashCaptain, monster_ashBeasts | 모르발 보스 3종 다시(굵은 선·짐승 털 반 검정/반 잿빛), 덮어쓰기 512 |
 | 2026-11-18 | monster_salamander, monster_ifrit, monster_koboldrake, monster_cultFlamePriest | 아우렐 일반 몬스터 4종, 시트 분할 512 |
+| 2026-11-18 | monster_youngRedDragon, monster_orben, monster_orbenAsh, monster_phoenixMother | 아우렐 보스 4종(새끼 레드 드래곤·오르벤 1단계·마지막 단계·불사조 어미), 넓은 색 번짐 정리 512 |

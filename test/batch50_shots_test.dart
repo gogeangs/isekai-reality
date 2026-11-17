@@ -133,7 +133,9 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await _shot(tester, '${n}_01_첫장면_주인공');
       await tester.tapAt(const Offset(100, 200));
-      await tester.pump(const Duration(seconds: 4));
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
       await _shot(tester, '${n}_02_첫장면_첫펫');
       await tester.runAsync(
           () async => c.handleFix(LocationFix(point: c.skyIsland!.point)));
@@ -199,8 +201,12 @@ void main() {
                     ),
                   )));
       await tester.tap(find.byKey(const Key('open')));
-      await tester.pump(const Duration(seconds: 2));
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
       await _shot(tester, '${n}_09_비문');
+      await tester.tap(find.byKey(const Key('skyStoneClose')));
+      await _settle(tester);
       await _page(
           tester,
           Scaffold(
@@ -211,7 +217,7 @@ void main() {
                     padding: const EdgeInsets.all(14),
                     child: BossGearTab(controller: c)),
               )));
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2400));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -6000));
       await _settle(tester);
       await _shot(tester, '${n}_10_대장간_하이랜드세트');
       await _page(
@@ -222,7 +228,8 @@ void main() {
               body: SafeArea(
                   child: RecordsScreen(
                       player: c.player, skyStones: c.skyInscriptions))));
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+      await tester.scrollUntilVisible(find.byKey(const Key('skyStone_4')), 300,
+          scrollable: find.byType(Scrollable).first);
       await _settle(tester);
       await _shot(tester, '${n}_11_기록_비문');
       await tester.pump(const Duration(seconds: 9));

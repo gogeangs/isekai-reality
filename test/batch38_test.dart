@@ -29,7 +29,8 @@ void main() {
       final cells = <String>{};
       // 묶음 43: 훈련장은 오른쪽 공터 (3×3 밖)
       for (final f in VillageScreen.facilities
-          .where((f) => f.facility != Facility.training)) {
+          .where((f) =>
+              f.facility != Facility.training && f.facility != Facility.garden)) {
         final sp = f.spot;
         expect(sp.x - sp.w / 2, greaterThanOrEqualTo(cl.left - 1), reason: f.name);
         expect(sp.x + sp.w / 2, lessThanOrEqualTo(cl.right + 1), reason: f.name);

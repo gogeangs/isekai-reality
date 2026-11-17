@@ -113,11 +113,19 @@ enum MaterialId {
   gemPoison,
   ancientShard,
   relicSeal,
+  // 묶음 48 #230 약초밭 씨앗 (흔한 · 보통 · 보통 · 귀한)
+  herbSeed,
+  flowerSeed,
+  sporeSeed,
+  glowSeed,
 }
 
 class MaterialInfo {
   const MaterialInfo(this.id, this.name, this.description,
-      {this.rare = false, this.price, this.processed = false});
+      {this.rare = false, this.price, this.processed = false, this.image});
+
+  /// 그림 이름이 mat_<이름> 이 아닐 때 (묶음 48 씨앗: seed_○○)
+  final String? image;
 
   /// 판매 값을 따로 정한 재료 (가공 재료)
   final int? price;
@@ -133,7 +141,7 @@ class MaterialInfo {
   final bool rare;
 
   /// assets/images/<asset>.png (그림이 없으면 아이콘으로 대신)
-  String get asset => 'assets/images/mat_${id.name}.webp';
+  String get asset => 'assets/images/${image ?? 'mat_${id.name}'}.webp';
 }
 
 /// 지갑의 키: 마석·금화 (재료는 [MaterialId] 이름)
@@ -266,6 +274,15 @@ class Materials {
     MaterialInfo(MaterialId.gemPoison, '독 보석', '독의 기운이 담긴 초록 보석.', rare: true),
     MaterialInfo(MaterialId.ancientShard, '옛 토기 조각', '고대 유물 자리에서 붓으로 털어 낸 토기 조각.'),
     MaterialInfo(MaterialId.relicSeal, '고대 인장', '오래전 이세계의 문양이 새겨진 인장.', rare: true, price: 120),
+    // 묶음 48 #230 약초밭 씨앗 (약초밭에 심으면 걸음으로 자라요)
+    MaterialInfo(MaterialId.herbSeed, '약초 씨앗', '약초밭에 심으면 걸을수록 자라 약초가 돼요.',
+        price: 8, image: 'seed_herb'),
+    MaterialInfo(MaterialId.flowerSeed, '꽃 씨앗', '약초밭에 심으면 걸을수록 자라 그 계절 꽃잎이 돼요.',
+        price: 12, image: 'seed_flower'),
+    MaterialInfo(MaterialId.sporeSeed, '버섯 포자', '약초밭에 심으면 걸을수록 자라 그늘버섯이 돼요.',
+        price: 12, image: 'seed_flower'),
+    MaterialInfo(MaterialId.glowSeed, '빛나는 씨앗', '저쪽 숲에서 온 귀한 씨앗. 오래 걸으면 햇살 꽃가루가 돼요.',
+        price: 40, image: 'seed_glow'),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),

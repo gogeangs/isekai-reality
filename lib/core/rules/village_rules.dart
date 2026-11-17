@@ -1,7 +1,7 @@
 import '../format.dart';
 
 /// 마을 사람 (묶음 35): 시설마다 한 사람, 모두 틈에 걸린 저쪽 세계 사람
-enum Npc { marta, mina, dorgun, eliel, hart, sera, lumi, garen }
+enum Npc { marta, mina, dorgun, eliel, hart, sera, lumi, garen, popo }
 
 class NpcInfo {
   const NpcInfo({
@@ -57,6 +57,7 @@ class VillageRules {
       };
   static const boardUrgent = '긴급 의뢰가 붙었네. 오늘 자정까지일세.';
   static const boardGuide = '오늘의 의뢰일세. 조합 의뢰는 수락해야 시작되네.';
+  static const gardenGuide = '씨앗을 심고 걸으면 자라요! 한 걸음이 밭 모든 칸에 함께 닿아요!';
   static const shelterGuide =
       '알은 둥지에서 내가 따뜻하게 봐 줄게. 원정에서 지친 애들은 여기서 쉬면 금방 나아!';
 
@@ -96,6 +97,8 @@ class VillageRules {
     'guild': 15,
     // 묶음 43 #228: Lv.10 터 닦기 · 11 뼈대 · 12 거의 완성 · 13 완공
     'training': 13,
+    // 묶음 48 #230: Lv.6 터 닦기 · 7 뼈대 · 8 거의 완성 · 9 완공
+    'garden': 9,
   };
 
   /// 공사 단계: 1 터 닦기(완공 3레벨 이상 전) · 2 뼈대(2레벨 전) · 3 거의 완성(바로 전 레벨)
@@ -116,6 +119,7 @@ class VillageRules {
         'guild' => '조합',
         'shelter' => '펫 쉼터',
         'training' => '훈련장',
+        'garden' => '약초밭',
         _ => f,
       };
 
@@ -207,6 +211,18 @@ class VillageRules {
       lines: {
         2: ['자세가 무너지면 마음도 무너진다! 허리부터 펴라!', '이 다리로도 너 하나쯤은 가르칠 수 있다! 걱정 마라!'],
         3: ['탑에 불이 켜졌다! 오늘은 나도 지팡이를 내려놓고 싶구나!', '다리 너머로 갈 날이 머지않았다! 그날을 위해 단련해 둬라!'],
+      },
+    ),
+    // 묶음 48 #230: 약초밭 (Lv.9). 평소 대사는 개발 초안
+    NpcInfo(
+      id: Npc.popo,
+      name: '포포',
+      role: '약초밭 정원사',
+      first: '와아, 손님이에요! 저는 포포, 이 밭의 정원사예요! 씨앗 심어 볼래요?!',
+      lines: {
+        1: ['걸을 때마다 새싹이 쑥쑥! 발걸음은 최고의 물뿌리개예요!', '이 흙, 냄새 맡아 봤어요? 저쪽 숲 냄새랑 조금 닮았어요!'],
+        2: ['안개가 밭까지 오면 어쩌죠? 그래도 새싹들은 씩씩해요!', '빛이 모자라면 씨앗이 잠들어요. 그러니까 많이 걸어 주세요!'],
+        3: ['탑에 불이 켜졌어요! 새싹들이 다 그쪽으로 고개를 돌렸어요!', '다리 너머 숲에 심을 씨앗, 벌써 주머니에 챙겨 뒀어요!'],
       },
     ),
   ];

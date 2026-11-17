@@ -113,6 +113,11 @@ class MaterialIcon extends StatelessWidget {
           Icons.diamond_rounded,
         MaterialId.ancientShard => Icons.account_balance_rounded,
         MaterialId.relicSeal => Icons.verified_rounded,
+        MaterialId.herbSeed ||
+        MaterialId.flowerSeed ||
+        MaterialId.sporeSeed ||
+        MaterialId.glowSeed =>
+          Icons.grass_rounded,
       };
 
   @override

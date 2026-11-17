@@ -45,7 +45,7 @@ void main() {
         expect(t.gold, 0);
         expect(BoardRules.template(t.id), same(t));
       }
-      expect(NpcSmallRules.relics, hasLength(8));
+      expect(NpcSmallRules.relics, hasLength(9)); // 묶음 48 포포
       // 여러 날을 돌려 보면 가끔 마을 사람 쪽지가 붙는다
       final npcs = [for (final n in Npc.values) n.name];
       var npcNotes = 0, total = 0;

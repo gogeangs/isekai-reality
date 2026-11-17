@@ -52,6 +52,9 @@ enum ShopItem {
 
   /// 마나 물약: 새 MP 40%
   jobMana,
+
+  /// 약초 씨앗 (묶음 48 #230): 약초밭에 심는 흔한 씨앗 (하루 3개, Lv.9)
+  herbSeed,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -276,6 +279,17 @@ class TownRules {
       perLimit: 5,
       icon: 'mat_herb',
       material: MaterialId.herb,
+    ),
+    ShopItemInfo(
+      item: ShopItem.herbSeed,
+      name: '약초 씨앗',
+      description: '약초밭에 심으면 걸을수록 자라 약초가 돼요.',
+      price: 20,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      minLevel: 9,
+      icon: 'seed_herb',
+      material: MaterialId.herbSeed,
     ),
     ShopItemInfo(
       item: ShopItem.raceLens,

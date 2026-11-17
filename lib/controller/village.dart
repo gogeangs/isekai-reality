@@ -61,6 +61,7 @@ extension VillageOps on AppController {
         'guild' => jobsOpen,
         'shelter' => shelterOpen,
         'training' => trainingOpen,
+        'garden' => gardenOpen,
         _ => false,
       };
 

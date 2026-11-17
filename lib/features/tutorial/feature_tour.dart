@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, MaterialId, TrainingRules;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, GardenRules, MaterialId, TrainingRules;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -250,6 +250,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           !c.skillIntroPending &&
           !c.shelterIntroPending &&
           !c.trainingIntroPending &&
+          !c.gardenIntroPending &&
           !_skillMode) {
         return;
       }
@@ -828,6 +829,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _queue();
   }
 
+  Future<void> _finishGarden() async {
+    await c.markGardenIntro();
+    _queue();
+  }
+
   Future<void> _finishSkill() async {
     _skillCardSeen = false;
     await c.markSkillIntro();
@@ -907,6 +913,17 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = TourStep(TrainingRules.openedLine,
           opened: ('훈련장', 'village_training'),
           button: ('알겠어', _finishTraining));
+    } else if (f == null &&
+        c.gardenIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready &&
+        (b.top == null || b.top == 'home')) {
+      // 묶음 48 #230: 약초밭 「새로 열렸어요」 카드 (한 번만, 예전 Lv.9 이상 계정도)
+      skill = true;
+      step = TourStep(GardenRules.openedLine,
+          opened: ('약초밭', 'village_garden'),
+          button: ('알겠어', _finishGarden));
     } else if (f == null) {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
@@ -958,6 +975,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           return Material(
             type: MaterialType.transparency,
             child: _TourView(step: step, onSkip: _finishTraining),
+          );
+        }
+        if (_skillMode && step != null && c.gardenIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishGarden),
           );
         }
         if (step == null || f == null || c.pendingFeatureIntro != f) {

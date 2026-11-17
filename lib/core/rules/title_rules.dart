@@ -72,6 +72,8 @@ enum TitleId {
   // 묶음 43 #228: 가렌 마지막 부탁 · 시련 15판 (얻기 전엔 숨김)
   npcGaren,
   trialEndurer,
+  // 묶음 48 #230: 포포 마지막 부탁 (그림 title_forestKeeper)
+  forestKeeper,
 }
 
 class TitleInfo {
@@ -145,6 +147,7 @@ class TitleRules {
       TitleId.npcSera => '세라의 마지막 부탁을 들어줬어요',
       TitleId.npcLumi => '루미의 마지막 부탁을 들어줬어요',
       TitleId.npcGaren => '가렌의 마지막 부탁을 들어줬어요',
+      TitleId.forestKeeper => '포포의 마지막 부탁을 들어줬어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       _ => '새 칭호를 얻었어요',
     };
@@ -179,6 +182,7 @@ class TitleRules {
     TitleId.npcSera,
     TitleId.npcLumi,
     TitleId.npcGaren,
+    TitleId.forestKeeper,
   ];
 
   static String npcCounter(TitleId t) => 'ntitle:${t.name}';
@@ -333,6 +337,7 @@ class TitleRules {
     TitleInfo(TitleId.npcLumi, '짐승들의 친구', '숨은 칭호'),
     TitleInfo(TitleId.npcGaren, '문지기 기사단의 후예', '숨은 칭호'),
     TitleInfo(TitleId.trialEndurer, '시련을 견딘 자', '숨은 칭호'),
+    TitleInfo(TitleId.forestKeeper, '숲을 기르는 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)

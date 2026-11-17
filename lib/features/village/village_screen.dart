@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show AskKind, JobRules, Npc, TrainingRules, VillageRules;
+    show AskKind, GardenRules, JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -16,11 +16,12 @@ import '../alchemy/alchemy_screen.dart';
 import 'board_screen.dart';
 import 'npc_request.dart' show askLook;
 import 'shelter_screen.dart';
+import 'garden_screen.dart';
 import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
 
 /// 마을 시설 (묶음 35: 펫 쉼터 추가)
-enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training }
+enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training, garden }
 
 /// 시설 모아 보기 묶음 (쉬기·사고팔기 / 만들기 / 의뢰·직업 / 펫·마을)
 enum FacilityGroup { rest, craft, work, pet }
@@ -75,6 +76,8 @@ class VillageScreen extends StatefulWidget {
     FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 908, y: 772, w: 132)),
     // 묶음 43 #228: 오른쪽 가운데 공터 (처음 화면 밖, 끌어서 보거나 완공 때 그쪽으로)
     FacilityInfo(Facility.training, '훈련장', FacilityGroup.work, (x: 1168, y: 652, w: 160)),
+    // 묶음 48 #230: 왼쪽 가운데 공터 (훈련장 맞은편, 처음 화면 밖)
+    FacilityInfo(Facility.garden, '약초밭', FacilityGroup.pet, (x: 368, y: 652, w: 160)),
   ];
 
   static const groupNames = {
@@ -134,8 +137,20 @@ class _VillageScreenState extends State<VillageScreen> {
   bool _news(Facility f) => switch (f) {
         Facility.board => controller.questRewardsReady > 0,
         Facility.shelter => controller.shelterOpen && controller.readyEgg != null,
+        // 묶음 48 #230: 다 자란 칸
+        Facility.garden => controller.gardenReady > 0,
         _ => false,
       };
+
+  /// 묶음 43·48: 화면 밖 건물(훈련장·약초밭)이 완공되면 그쪽으로 맞춰 들어온다
+  double? get _focusX {
+    for (final f in const [Facility.garden, Facility.training]) {
+      if (_built.contains(f)) {
+        return VillageScreen.facilities.firstWhere((x) => x.facility == f).spot.x;
+      }
+    }
+    return null;
+  }
 
   /// 묶음 43 #228: 은은한 점 (오늘 하루 훈련 전)
   bool _soft(Facility f) =>
@@ -151,6 +166,7 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.guild => Npc.sera,
         Facility.shelter => Npc.lumi,
         Facility.training => Npc.garen,
+        Facility.garden => Npc.popo,
         Facility.market => null,
       };
 
@@ -181,6 +197,7 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.guild => 'Lv.${JobRules.awakenLevel}',
         Facility.shelter => '첫 펫',
         Facility.training => 'Lv.${TrainingRules.openLevel}',
+        Facility.garden => 'Lv.${GardenRules.openLevel}',
         _ => '',
       };
 
@@ -216,6 +233,7 @@ class _VillageScreenState extends State<VillageScreen> {
       Facility.guild => GuildScreen(controller: controller),
       Facility.shelter => ShelterScreen(controller: controller),
       Facility.training => TrainingScreen(controller: controller),
+      Facility.garden => GardenScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -326,12 +344,7 @@ class _VillageScreenState extends State<VillageScreen> {
             stage: _stage,
             built: _built,
             // 묶음 43: 화면 밖 건물(훈련장)이 완공되면 그쪽으로 맞춰 들어온다
-            focusX: _built.contains(Facility.training)
-                ? VillageScreen.facilities
-                    .firstWhere((f) => f.facility == Facility.training)
-                    .spot
-                    .x
-                : null,
+            focusX: _focusX,
             lockLabel: _lockLabel,
             lighting: _lit,
             towerGlow: _intro != null,

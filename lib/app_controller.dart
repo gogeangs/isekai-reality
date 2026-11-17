@@ -12,6 +12,7 @@ import 'core/models/armory.dart';
 import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
+import 'core/models/garden_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -47,6 +48,7 @@ part 'controller/board.dart';
 part 'controller/drive.dart';
 part 'controller/expedition.dart';
 part 'controller/explore.dart';
+part 'controller/garden.dart';
 part 'controller/gather.dart';
 part 'controller/harvest.dart';
 part 'controller/jobs.dart';
@@ -110,7 +112,7 @@ class AppController extends ChangeNotifier {
           'act2': {'announced': 6},
           // 묶음 35: 예시 모드는 마을 소개·쉼터 카드를 본 것으로 (넓은 마을 미리 보기는 켬)
           'village': {
-            'seen': ['intro', 'farewell', 'shelterCard', 'trainingCard'],
+            'seen': ['intro', 'farewell', 'shelterCard', 'trainingCard', 'gardenCard'],
           },
         },
       ),
@@ -564,6 +566,9 @@ class AppController extends ChangeNotifier {
     await _loadNpc();
     // 묶음 43 #228: 훈련장 (하루 훈련 · 펫 훈련 · 시련)
     _training = await _load(_trainingKey, TrainingState.fromJson, const TrainingState());
+    // 묶음 48 #230: 약초밭 (예전 Lv.9 이상은 완공 그림 그대로)
+    _garden = await _load(_gardenKey, GardenState.fromJson, const GardenState());
+    await _migrateBuilt48();
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -765,6 +770,10 @@ class AppController extends ChangeNotifier {
   /// 묶음 43 #228: 훈련장 ('training')
   static const _trainingKey = 'training';
   TrainingState _training = const TrainingState();
+
+  /// 묶음 48 #230: 약초밭 ('garden')
+  static const _gardenKey = 'garden';
+  GardenState _garden = const GardenState();
 
   /// 방금 훈련을 마친 펫 이름 (위쪽 띠 한 번)
   String? _petTrainedNotice;

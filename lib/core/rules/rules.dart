@@ -40,3 +40,4 @@ export 'village_rules.dart';
 export 'npc_rules.dart';
 export 'npc_small_rules.dart';
 export 'training_rules.dart';
+export 'garden_rules.dart';

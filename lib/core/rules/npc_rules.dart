@@ -56,7 +56,7 @@ class NpcRequestStep {
 }
 
 /// 부탁을 끝내야 받는 특별한 것 (4번째 부탁)
-enum NpcSpecialKind { scarf, pouch, whetstone, dawnLight, keys, badge, nest, band }
+enum NpcSpecialKind { scarf, pouch, whetstone, dawnLight, keys, badge, nest, band, garden }
 
 class NpcSpecial {
   const NpcSpecial(this.kind, this.title, this.name, this.text, this.asset);
@@ -153,6 +153,10 @@ class NpcTally {
   // 묶음 45 #231: 작은 부탁
   static const gather = 'gather'; // 채집 (모두)
   static String gatherOf(String kind) => 'gather:$kind'; // 채집 종류별
+  // 묶음 48 #230: 약초밭 (포포)
+  static const gardenHarvest = 'gardenHarvest'; // 약초밭에서 거두기
+  static const gardenGlow = 'gardenGlow'; // 빛나는 씨앗을 다 키워 거두기
+  static const seedFound = 'seedFound'; // 채집하다 찾은 씨앗
 }
 
 /// 마을 사람 부탁 · 사연 · 친해지기 규칙 (묶음 42 #226, 문서 「아르카 마을 사람 이야기」).
@@ -670,6 +674,53 @@ class NpcRules {
       special: NpcSpecial(NpcSpecialKind.band, TitleId.npcGaren, '가렌의 훈련 완장',
           '장신구 · 문지기 기사단 교관의 완장', 'equip_garenBand'),
     ),
+    // 포포 (약초밭, Lv.9 · 묶음 48 #230). 부탁 말은 개발 초안
+    NpcRequest(
+      npc: Npc.popo,
+      index: 0,
+      stage: FavorStage.known,
+      level: 9,
+      say: '씨앗 하나만 심어서 끝까지 키워 줄래요?! 걸으면 걸을수록 쑥쑥 커요!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 1, '씨앗 하나 심어서 다 키우기',
+            key: NpcTally.gardenHarvest),
+      ],
+      gifts: {'herbSeed': 3},
+      story: '저쪽 세계 숲은 아주아주 컸어요! 나무가 하늘까지 닿았다니까요!',
+    ),
+    NpcRequest(
+      npc: Npc.popo,
+      index: 1,
+      stage: FavorStage.close,
+      level: 10,
+      say: '채집하다 보면 씨앗이 가끔 떨어져 있어요! 두 개만 찾아 줄래요? 밭을 한 칸 넓힐게요!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 2, '채집하다 씨앗 2개 찾기', key: NpcTally.seedFound),
+      ],
+      story: '빛이 꺼지기 시작하자 숲이 하나씩 잠들었어요. 저는 씨앗 주머니만 꼭 안고 도망쳤죠.',
+    ),
+    NpcRequest(
+      npc: Npc.popo,
+      index: 2,
+      stage: FavorStage.close,
+      level: 13,
+      say: '밭에 물을 주려면 발걸음이 많이 필요해요! 하루에 6,000보, 할 수 있죠?!',
+      steps: [NpcRequestStep(RequestStepKind.daySteps, 6000, '하루 6,000보 걷기 (밭에 물 주기)')],
+      story: '이 씨앗들이 마지막이에요. 여기서 키워서, 언젠가 꼭 돌려보내고 싶어요.',
+    ),
+    NpcRequest(
+      npc: Npc.popo,
+      index: 3,
+      stage: FavorStage.best,
+      level: 17,
+      say: '빛나는 씨앗을 하나 끝까지 키워 줄래요? 저쪽 숲에서 가장 소중한 씨앗이에요!',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 1, '빛나는 씨앗 하나 다 키우기', key: NpcTally.gardenGlow),
+      ],
+      story: '다리가 생기면… 이 밭의 씨앗을 저쪽 숲에 심으러 갈 거예요. 그때 같이 가 줄래요?!',
+      special: NpcSpecial(NpcSpecialKind.garden, TitleId.forestKeeper, '약초밭 6칸째 · 빛나는 씨앗 2',
+          '포포가 아끼던 마지막 밭 한 칸과 빛나는 씨앗', 'seed_glow'),
+    ),
   ];
 
   static List<NpcRequest> of(Npc n) => [
@@ -725,6 +776,11 @@ class NpcRules {
       FavorStage.known: ['오, 또 왔구나! 발걸음이 가벼워졌다!', '팔에 힘이 붙었다! 허수아비가 겁먹겠다!'],
       FavorStage.close: ['너를 보면 신병 시절 하르트가 떠오른다! 그 녀석보다는 낫다!', '힘들면 쉬어도 된다! 다만 포기는 하지 마라!'],
       FavorStage.best: ['너라면 기사단 깃발을 맡겨도 되겠다!', '오늘 훈련 보상은 내가 조금 더 챙겨 두마! 비밀이다!'],
+    },
+    Npc.popo: {
+      FavorStage.known: ['또 왔어요?! 새싹들이 손님 발소리를 알아들어요!', '오늘은 몇 걸음 걸었어요? 밭이 벌써 궁금해해요!'],
+      FavorStage.close: ['손님 덕분에 밭이 반짝반짝해요! 진짜예요!', '씨앗 주머니에 손님 이름도 적어 뒀어요. 소중한 사람 칸에요!'],
+      FavorStage.best: ['손님은 이제 우리 숲 식구예요! 나무들도 그렇게 말할 거예요!', '거둘 때 하나씩 더 몰래 넣어 둘게요! 쉿, 비밀이에요!'],
     },
   };
 
@@ -800,6 +856,14 @@ class NpcRules {
           '네 이름을 기사단 신병 명부에 적어 뒀다! 마석 몇 개 보낸다!', {'manaStone': 5}),
       FavorStage.best: FavorLetter('내 대신 강해져라',
           '이제 너는 내 제자다! 앞으로 하루 훈련 보상은 조금 더 챙겨 주마!', {'gold': 150}),
+    },
+    Npc.popo: {
+      FavorStage.known: FavorLetter('새싹이 인사해요',
+          '밭에 자주 와 줘서 고마워요! 새로 받은 씨앗 하나 넣었어요!', {'herbSeed': 2}),
+      FavorStage.close: FavorLetter('꽃이 피었어요',
+          '손님이 걸어 준 덕분에 꽃이 피었어요! 꽃 씨앗 나눠 드려요!', {'flowerSeed': 2}),
+      FavorStage.best: FavorLetter('숲의 식구에게',
+          '이제 손님은 우리 숲 식구예요! 아끼던 버섯 포자도 드릴게요!', {'sporeSeed': 3}),
     },
   };
 }

@@ -15,6 +15,7 @@ class CodexScreen extends StatefulWidget {
   const CodexScreen({
     super.key,
     required this.purifiedMonsters,
+    this.highlandOpen = false,
     this.huntCounts = const {},
     this.modHunts = const {},
     this.petsSeen = const {},
@@ -41,6 +42,9 @@ class CodexScreen extends StatefulWidget {
 
   /// 한 번이라도 사냥한 몬스터
   final Set<MonsterId> purifiedMonsters;
+
+  /// 묶음 50 확인 답: 하이랜드 6칸은 Lv.17(하이랜드가 열린 뒤)부터. 만난 칸은 언제나 보인다
+  final bool highlandOpen;
 
   /// 종류별 사냥한 마릿수
   final Map<MonsterId, int> huntCounts;
@@ -107,7 +111,13 @@ class _CodexScreenState extends State<CodexScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     final tab = widget.petsOpen ? _tab : 0;
-    final all = Monsters.codex;
+    final all = [
+      for (final m in Monsters.codex)
+        if (!m.highland ||
+            widget.highlandOpen ||
+            purifiedMonsters.contains(m.id))
+          m,
+    ];
     final have = [for (final m in all) if (purifiedMonsters.contains(m.id)) m];
     final records = [
       for (final e in modHunts.entries)

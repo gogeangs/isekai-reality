@@ -35,9 +35,9 @@ extension SmithyOps on AppController {
   CraftCheck canCraft(EquipBase base, {MaterialId? rare}) {
     final info = EquipmentRules.info(base);
     final p = player;
-    if (_isFreeCraft(base, rare)) {
-      return bagFree <= 0 ? CraftCheck.bagFull : CraftCheck.ok;
-    }
+    // 묶음 48: 첫 무기 무료(Lv.3 안내)는 가방이 가득해도 만들 수 있게 — 안내가 막히지 않게,
+    // 만들자마자 입으면 칸을 차지하지 않는다
+    if (_isFreeCraft(base, rare)) return CraftCheck.ok;
     for (final e in info.recipe.entries) {
       if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
     }

@@ -1218,25 +1218,28 @@ class _MushroomGameState extends State<_MushroomGame> with _Clock {
                         ),
                       )),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: GridView.count(
-                    crossAxisCount: 3,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 6,
-                    crossAxisSpacing: 6,
-                    children: [
-                      for (var i = 0; i < 9; i++)
-                        _MushroomCell(
+                // 묶음 48: 버섯 밭 판 그림의 3×3 빈자리에 버섯을 얹음 (그림 비율 자리)
+                LayoutBuilder(builder: (context, box) {
+                  final w = box.maxWidth, h = box.maxHeight;
+                  const xs = [0.285, 0.495, 0.705], ys = [0.35, 0.515, 0.685];
+                  final cw = w * 0.2, ch = h * 0.16;
+                  return Stack(children: [
+                    for (var i = 0; i < 9; i++)
+                      Positioned(
+                        left: xs[i % 3] * w - cw / 2,
+                        top: ys[i ~/ 3] * h - ch * 0.62,
+                        width: cw,
+                        height: ch,
+                        child: _MushroomCell(
                           key: Key('mushroom_$i'),
                           poison: _poison[i],
                           golden: i == _golden,
                           picked: _picked.contains(i),
                           onTap: () => _pick(i),
                         ),
-                    ],
-                  ),
-                ),
+                      ),
+                  ]);
+                }),
               ]),
             ),
           ),
@@ -1601,13 +1604,13 @@ class _GemGameState extends State<_GemGame> with _Clock {
   @override
   void initState() {
     super.initState();
-    // 원석 둘레를 도는 금 6점
+    // 원석 둘레를 도는 금 6점 (묶음 48: 광맥 벽 금빛 테 위)
     final start = _rng.nextDouble() * math.pi * 2;
     _pts = [
       for (var i = 0; i < 6; i++)
         Offset(
-            0.5 + math.cos(start + i * math.pi / 3) * (0.33 + _rng.nextDouble() * 0.06),
-            0.5 + math.sin(start + i * math.pi / 3) * (0.33 + _rng.nextDouble() * 0.06)),
+            0.5 + math.cos(start + i * math.pi / 3) * (0.21 + _rng.nextDouble() * 0.04),
+            0.507 + math.sin(start + i * math.pi / 3) * (0.21 + _rng.nextDouble() * 0.04)),
     ];
     startClock(60 + 10 * widget.ctl.ease, widget.ctl.paused, _end);
   }
@@ -1667,11 +1670,13 @@ class _GemGameState extends State<_GemGame> with _Clock {
                           ),
                         )),
                   ),
-                  // 가운데 원석: 깎을수록 밝아짐
-                  Center(
+                  // 가운데 원석: 깎을수록 밝아짐. 묶음 48: 광맥 벽 금빛 테 안 빈 홈에 얹음
+                  Positioned(
+                    left: w * (0.5 - 0.135),
+                    top: h * (0.507 - 0.135),
+                    width: w * 0.27,
+                    height: h * 0.27,
                     child: Container(
-                      width: w * 0.44,
-                      height: h * 0.44,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
@@ -2224,9 +2229,19 @@ class _RelicGameState extends State<_RelicGame> with _Clock {
                   key: const Key('brushArea'),
                   onPanUpdate: (d) => _brush(d.localPosition, size),
                   onTapDown: (d) => _brush(d.localPosition, size),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
+                  // 묶음 48: 흙판 그림(칸 전체)을 구덩이 모양으로 잘라 덮개로 씀
+                  child: ClipPath(
+                    key: const Key('relicPit'),
+                    clipper: _PitClipper(),
                     child: Stack(children: [
+                      // 구덩이 바닥 (유물 둘레가 비어 보이지 않게)
+                      const Positioned.fill(
+                          child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                  gradient: RadialGradient(colors: [
+                        Color(0xFF6B4A2C),
+                        Color(0xFF3A2414),
+                      ])))),
                       // 묻혀 있던 유물 + 옛 글씨 (금빛)
                       Positioned.fill(
                         child: _img('harvest_relic_pot',
@@ -2497,4 +2512,27 @@ class _FxPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_FxPainter o) => o.k != k;
+}
+
+
+/// 묶음 48: 유물 구덩이 모양 (조금 울퉁불퉁한 둥근 구덩이)
+class _PitClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final c = size.center(Offset.zero);
+    final rx = size.width * 0.49, ry = size.height * 0.47;
+    final path = Path();
+    const n = 48;
+    for (var i = 0; i <= n; i++) {
+      final t = i / n * math.pi * 2;
+      // 가장자리를 살짝 들쭉날쭉하게 (늘 같은 모양)
+      final k = 1 + 0.035 * math.sin(t * 5) + 0.02 * math.sin(t * 11 + 1);
+      final p = Offset(c.dx + math.cos(t) * rx * k, c.dy + math.sin(t) * ry * k);
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+    }
+    return path..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

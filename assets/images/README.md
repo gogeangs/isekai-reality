@@ -424,3 +424,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | equip_partyWeapon/Head/Body/Hands/Feet/Acc | 파티 보스 세트 「동행」 6부위(청록 천·금 테두리·발자국 고리 문양), 512 |
 | 2026-11-18 | pet_pegasus_baby, pet_pegasus_adult | 전설 펫 페가수스 「아스트라」 아기·성체 (한 장에서 잘라 같은 배율, 512) |
 | 2026-11-18 | pet_behemoth_baby, pet_behemoth_adult | 전설 펫 베히모스 「고르」 아기·성체 (한 장에서 잘라 붉은 번짐 정리, 같은 배율, 512) |
+| 2026-11-18 | pet_nightmare_baby, pet_nightmare_adult | 전설 펫 나이트메어 「셰이드」 아기·성체 (한 장에서 잘라 같은 배율, 떠다니는 보라 연기 포함, 512) |

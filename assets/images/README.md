@@ -380,3 +380,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_elowin_vinepath | 엘로윈 필드 배경 잿빛 덩굴 숲길, 1024 |
 | 2026-11-17 | monster_treant, monster_giantSpider, monster_dryad, monster_woodWolf | 엘로윈 일반 몬스터 4종 다시(굵은 선), 덮어쓰기 512 |
 | 2026-11-17 | village_tavern_2 | 주점 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | equip_elowin{Weapon,Head,Body,Hands,Feet,Acc} | 엘로윈 나무지기 세트 6부위, 반투명 얼룩 배경 제거·시트 분할 512 |

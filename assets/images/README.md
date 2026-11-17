@@ -387,3 +387,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | equip_elowinStaff, uniq_momoWreath, uniq_arbelDagger, uniq_elderHeart | 엘로윈 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리 512 |
 | 2026-11-17 | bg_elowin_spring | 엘로윈 필드 배경 멈춘 샘물 연못, 1024 |
 | 2026-11-17 | uniq_arbelDagger | 아르벨의 잎새 단검 다시(꽉 찬 잎 날·얇은 빛), 덮어쓰기 512 |
+| 2026-11-17 | bg_elowin_mushroom | 엘로윈 필드 배경 버섯 안개 언덕, 1024 |

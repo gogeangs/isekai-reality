@@ -359,3 +359,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | monster_orcMerc, monster_koboldMiner, monster_gargoyle, monster_livingArmor | 셀레니아 일반 몬스터 4종, 시트 분할 512 (발밑 흙 그림자 포함, 선이 거친 편) |
 | 2026-11-17 | map_region_aurel | 아우렐 지역 지도 1024×1536. 장소 대략 위치(x,y): 왕도에서 오는 길 510,1430 · 순례자 천막촌 420,1030 · 재 내리는 순례길 130,700 · 용암 협곡 830,760 · 불꽃 제단 150,400 · 산꼭대기 성소(여명의 근원) 560,230 · 불새 둥지 920,230 |
 | 2026-11-17 | equip_seleniaAxe, uniq_grumHammer, uniq_blackLantern, uniq_stardustBoots | 셀레니아 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리, 512 |
+| 2026-11-17 | village_garden_2 | 약초밭 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |

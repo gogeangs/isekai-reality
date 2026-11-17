@@ -313,3 +313,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | scene_highland_first | 하이랜드 첫 만남 장면 (#146, 852×1846) |
 | 2026-11-17 | title_skyWalker, title_guardianTrust, title_kingdomWitness | 하이랜드 칭호 3종 (#146, 한 장에서 잘라 같은 테두리 크기, 512 → 개발이 160으로) |
 | 2026-11-17 | bg_highland_wind | 하이랜드 바람 섬 구름 초원 배경 (#146, 1024) |
+| 2026-11-17 | item_skyFeather, mat_skyStone, mat_cloudCrystal, mat_stormCore, mat_sunDew, mat_frostCrystal, mat_fallsPearl | 하이랜드 하늘 깃털·재료 6종 (#146, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율, 512) |

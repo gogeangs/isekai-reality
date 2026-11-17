@@ -316,3 +316,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | item_skyFeather, mat_skyStone, mat_cloudCrystal, mat_stormCore, mat_sunDew, mat_frostCrystal, mat_fallsPearl | 하이랜드 하늘 깃털·재료 6종 (#146, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율, 512) |
 | 2026-11-17 | bg_highland_thunder | 하이랜드 번개 섬 폭풍 배경 (#146, 1024) |
 | 2026-11-17 | monster_guard{Wind,Thunder,Light,Ice,Water}, monster_stoneSoldier | 하이랜드 수호자 석상 5종 + 석상 병사 (#146, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율·바닥 맞춤, 512) |
+| 2026-11-17 | bg_highland_light | 하이랜드 빛 섬 햇살 정원 배경 (#146, 1024) |

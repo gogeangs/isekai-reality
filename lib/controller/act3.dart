@@ -102,12 +102,16 @@ extension Act3Ops on AppController {
     final day = today.dayKey;
     final from = _act3.walkDay == day ? _act3.walkSteps : 0;
     final delta = today.steps - from;
+    final before = _act3;
     var s = _act3;
     if (delta > 0) {
       final rem = s.energyRem + delta;
       var add = rem ~/ Act3Rules.energyStepUnit * Act3Rules.energyPerStep;
       // 묶음 57 #244 아스트라(페가수스)와 걸으면 여정 기력이 조금 더 (숨김)
       if (add > 0 && _heroWith(PetSpecies.pegasus)) add += (add * PetRules.pegasusEnergy).ceil();
+      _act3 = s;
+      _regionWalk(delta);
+      s = _act3;
       s = s.copyWith(
         walkDay: day,
         walkSteps: today.steps,
@@ -128,7 +132,7 @@ extension Act3Ops on AppController {
     if (want > got) {
       s = s.copyWith(tickets: s.tickets + want - got, ticketGot: want);
     }
-    if (!identical(s, _act3)) {
+    if (!identical(s, before)) {
       _act3 = s;
       await _saveAct3();
       _notify();
@@ -323,7 +327,7 @@ extension Act3Ops on AppController {
     if (a.skills.contains(slot) || slot < 0 || slot > 3) return false;
     if (a.isStory &&
         Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), slot) &&
-        !garenRosterDone) {
+        !allyQuestDone(StoryAlly.values.byName(a.story!))) {
       return false;
     }
     final pre = switch (slot) {
@@ -454,7 +458,8 @@ extension Act3Ops on AppController {
   Battle? startEncounter(A3Enc e) {
     if (!act3Open || hp <= 0 || _act3.energy < e.energy) return null;
     final lv = player.level.level;
-    final floors = [for (final m in e.foes) _a3Foe(m, e.kind, lv)];
+    final reg = RegionRules.byPlace(e.place ?? '');
+    final floors = [for (final m in e.foes) _a3Foe(m, e.kind, lv, reg)];
     if (e.energy > 0) {
       _act3 = _act3.copyWith(energy: _act3.energy - e.energy);
       unawaited(_saveAct3());
@@ -490,21 +495,37 @@ extension Act3Ops on AppController {
   /// 묶음 57 #244: 루체(유니콘)와 함께면 3막에서 져도 한 번 그 자리에서 다시 일어남
   Battle _withUnicorn(Battle b) {
     if (_heroWith(PetSpecies.unicorn)) b.revives += 1;
+    // 묶음 57 지역 2~5 이름 있는 장비 (숨김)
+    bool worn(EquipBase x) => _armory.items.any((i) => i.base == x && _armory.isWorn(i));
+    if (worn(EquipBase.uniqPhoenixCharm)) b.revives += RegionRules.phoenixCharmRevive;
+    final h = _clock().hour;
+    if (worn(EquipBase.uniqMoonFang) && (h >= 19 || h < 6)) b.dealMult *= 1 + RegionRules.moonFangNight;
+    final w = _armory.wornIn(EquipSlot.weapon);
+    if (w?.base == EquipBase.uniqGrumHammer) {
+      b.dealMult *= 1 + RegionRules.grumHammerPerLevel * w!.enhance;
+    }
     return b;
   }
 
-  Foe _a3Foe(MonsterId m, A3Kind k, int lv) {
+  Foe _a3Foe(MonsterId m, A3Kind k, int lv, [RegionContent? reg]) {
     final (hpX, atkX) = switch (k) {
       A3Kind.mid => (BaldrinRules.midHp, BaldrinRules.midAtk),
       A3Kind.lamp => (BaldrinRules.lampHp, BaldrinRules.lampAtk),
       A3Kind.den => (BaldrinRules.denHp, BaldrinRules.denAtk),
       _ => (Act3Rules.fieldHp, Act3Rules.fieldAttack),
     };
-    final b = BattleRules.fieldFoe(level: math.max(lv, Act3Rules.openLevel), monster: m);
+    // 묶음 57: 지역 2~5는 그 지역 레벨 · 지역마다 조금 더 · 심층은 층마다 더
+    final regionLv = reg == null ? Act3Rules.openLevel : Act3Rules.region(reg.region).level;
+    final b = BattleRules.fieldFoe(level: math.max(lv, regionLv), monster: m);
+    var scale = reg == null ? 1.0 : RegionRules.hpScale(reg.region);
+    if (reg != null && regionFloorNow(reg) > reg.floors.length &&
+        (k == A3Kind.floor || k == A3Kind.mid)) {
+      scale *= RegionRules.deepScale(regionFloorNow(reg));
+    }
     return Foe(
       monster: m,
-      maxHp: math.max(1, (b.maxHp * hpX).round()),
-      attack: math.max(1, (b.attack * atkX).round()),
+      maxHp: math.max(1, (b.maxHp * hpX * scale).round()),
+      attack: math.max(1, (b.attack * atkX * (1 + (scale - 1) / 2)).round()),
       defense: b.defense,
       speed: b.speed,
     );
@@ -523,14 +544,17 @@ extension Act3Ops on AppController {
     );
     await _saveArmory(a.copyWith(nextId: a.nextId + 1));
     await _giveEquipOrMail(item, title: '저쪽 세계 전리품');
-    if (BaldrinRules.uniques.contains(base)) {
+    if (BaldrinRules.uniques.contains(base) ||
+        RegionRules.all.any((r) => r.uniques.contains(base))) {
       _act3 = _act3.copyWith(found: {..._act3.found, base.name});
     }
     return item;
   }
 
-  Future<EquipItem> _a3Normal() => _a3Gear(
-      Act3Rules.baldrinGear[_random.nextInt(Act3Rules.baldrinGear.length)]);
+  Future<EquipItem> _a3Normal([RegionContent? r]) {
+    final pool = r?.gear ?? Act3Rules.baldrinGear;
+    return _a3Gear(pool[_random.nextInt(pool.length)], element: r?.weaponElement);
+  }
 
   /// 이름 있는 장비 하나 (아직 없는 것 먼저)
   Future<EquipItem> _a3Unique(List<EquipBase> from) {
@@ -554,6 +578,7 @@ extension Act3Ops on AppController {
           _notify();
           return const Act3FightResult(won: false);
         }
+        final reg = RegionRules.byPlace(e.place ?? '');
         final boss = e.kind == A3Kind.mid || e.kind == A3Kind.lamp || e.kind == A3Kind.den;
         final exp = switch (e.kind) {
           A3Kind.mid => RuleConstants.fieldMonsterExp * BaldrinRules.midExp,
@@ -561,11 +586,15 @@ extension Act3Ops on AppController {
           A3Kind.den => RuleConstants.fieldMonsterExp * BaldrinRules.denExp,
           _ => Act3Rules.fieldExp * battle.floors.length,
         };
-        final gold = boss
+        var gold = boss
             ? BaldrinRules.bossGoldMin +
                 _random.nextInt(BaldrinRules.bossGoldMax - BaldrinRules.bossGoldMin + 1)
             : Act3Rules.fieldGoldMin +
                 _random.nextInt(Act3Rules.fieldGoldMax - Act3Rules.fieldGoldMin + 1);
+        // 묶음 57: 흑등 상회의 빛 등불 — 이기면 금화 조금 더 (숨김)
+        if (_armory.items.any((i) => i.base == EquipBase.uniqBlackLantern && _armory.isWorn(i))) {
+          gold = (gold * (1 + RegionRules.blackLanternGold)).round();
+        }
         final today = await _todayRecord();
         await _save(today.copyWith(
           gains: DailyRecord.addCounts(today.gains, {'exp': exp, Wallet.gold: gold}),
@@ -581,17 +610,27 @@ extension Act3Ops on AppController {
           _ => Act3Rules.gearDrop,
         };
         for (var k = 0; k < (battle.extraLoot ? 2 : 1); k++) {
-          if (_random.nextDouble() < gearChance) items.add(await _a3Normal());
+          if (_random.nextDouble() < gearChance) items.add(await _a3Normal(reg));
         }
         // 이름 있는 장비 (아주 드물게, 숨은 보스는 처음 한 번 꼭)
-        final firstDen = e.kind == A3Kind.den && !_act3.has('denBoss');
-        final uChance = switch (e.kind) {
+        final firstDen = e.kind == A3Kind.den &&
+            !_act3.has(reg == null ? 'denBoss' : '${reg.prefix}:hiddenBoss');
+        final uChance = reg != null
+            ? switch (e.kind) {
+                A3Kind.lamp => RegionRules.uniqLamp,
+                A3Kind.mid => RegionRules.uniqMid,
+                A3Kind.den => firstDen ? 1.0 : RegionRules.uniqHidden,
+                _ => 0.0,
+              }
+            : switch (e.kind) {
           A3Kind.lamp => BaldrinRules.uniqLamp,
           A3Kind.mid => BaldrinRules.uniqMid,
           A3Kind.den => firstDen ? 1.0 : BaldrinRules.uniqDen,
           _ => 0.0,
         };
-        if (_random.nextDouble() < uChance) {
+        if (reg != null && _random.nextDouble() < uChance) {
+          items.add(await _a3Unique(reg.uniques));
+        } else if (reg == null && _random.nextDouble() < uChance) {
           items.add(await _a3Unique(switch (e.kind) {
             A3Kind.den => const [EquipBase.uniqWindPendant],
             A3Kind.lamp => const [EquipBase.uniqVolkHelm, EquipBase.uniqTeoSpear],
@@ -615,13 +654,24 @@ extension Act3Ops on AppController {
           // 마을 사람 동료는 함께 싸우면 친해지기 점수 (하루 쓰기 한도 안)
           if (a.story == StoryAlly.lian.name) await _npcUse(Npc.lian);
           if (a.story == StoryAlly.garen.name) await _npcUse(Npc.garen);
+          // 묶음 57: 바르칸 · 포포 · 세라도 마을 사람 친해지기와 이어짐
+          if (a.story == StoryAlly.barkan.name) await _npcUse(Npc.barkan);
+          if (a.story == StoryAlly.popo.name) await _npcUse(Npc.popo);
+          if (a.story == StoryAlly.sera.name) await _npcUse(Npc.sera);
         }
         final first = !s.firstFight &&
             battle.floors.first.monster == MonsterId.goblinRaider &&
             e.kind == A3Kind.field;
         _act3 = s.copyWith(firstFight: s.firstFight || first, wins: s.wins + 1);
-        // 장소·퀘스트 진행
-        switch (e.kind) {
+        // 묶음 57: 지역 2~5
+        var lampNow = false;
+        if (reg != null) {
+          final (t, l) = await _regionAfterWin(reg, e, lines);
+          tickets += t;
+          lampNow = l;
+        }
+        // 장소·퀘스트 진행 (발드린)
+        if (reg == null) switch (e.kind) {
           case A3Kind.field:
             if (e.place == 'baldrin_ashplain') _sideStep(SideQuest.beacon, lines, '봉화대에 다시 불을 붙였어요');
             if (e.place == 'baldrin_wallroad') _sideStep(SideQuest.roster, lines, '무너진 돌 틈에서 신병 이름표를 찾았어요');
@@ -667,7 +717,7 @@ extension Act3Ops on AppController {
                   counters: DailyRecord.addCounts(
                       t.counters, {TitleRules.skyCounter(TitleId.windMemory): 1})));
             }
-          case A3Kind.floor:
+          case A3Kind.floor || A3Kind.event:
             break;
         }
         if (tickets > 0) _act3 = _act3.copyWith(tickets: _act3.tickets + tickets);
@@ -683,7 +733,7 @@ extension Act3Ops on AppController {
           firstFight: first,
           lines: lines,
           tickets: tickets,
-          lamp: e.kind == A3Kind.lamp && tickets >= BaldrinRules.lampTickets,
+          lamp: lampNow || (reg == null && e.kind == A3Kind.lamp && tickets >= BaldrinRules.lampTickets),
         );
       });
 

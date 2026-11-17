@@ -64,6 +64,11 @@ class BossGearTab extends StatelessWidget {
           _RegionWeapon(controller: c),
           const SizedBox(height: 10),
         ],
+        // 묶음 57: 지역 2~5 무기
+        for (final r in c.litRegionWeapons) ...[
+          _RegionWeapon(controller: c, region: r),
+          const SizedBox(height: 10),
+        ],
         const LockedJobPanel(
           title: '대장장이',
           lines: ['보스 장비가 덜 실패해요', '금화가 덜 들어요'],
@@ -372,29 +377,33 @@ class _PartRow extends StatelessWidget {
 
 /// 지역 무기 「관문의 빛 창」 (빈 갑주 조각 + 철 주괴 + 마석 + 금화)
 class _RegionWeapon extends StatelessWidget {
-  const _RegionWeapon({required this.controller});
+  const _RegionWeapon({required this.controller, this.region});
 
   final AppController controller;
+  final RegionContent? region;
 
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final info = EquipmentRules.info(EquipBase.baldrinSpear);
+    final r = region;
+    final base = r?.weapon ?? EquipBase.baldrinSpear;
+    final info = EquipmentRules.info(base);
+    final elName = (r?.weaponElement ?? Element.light).label;
     return OrnatePanel(
-      key: const Key('regionWeapon'),
+      key: Key(r == null ? 'regionWeapon' : 'regionWeapon_${r.prefix}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const EquipIcon(base: EquipBase.baldrinSpear, size: 56),
+            EquipIcon(base: base, size: 56),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(info.name, style: AppText.title(16)),
-                  const KText('발드린 관문의 지역 무기 · 빛 속성 창',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  KText('${r == null ? '발드린 관문' : Act3Rules.region(r.region).name}의 지역 무기 · $elName 속성',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 ],
               ),
             ),
@@ -408,18 +417,18 @@ class _RegionWeapon extends StatelessWidget {
                 Text('${c.player.materialCount(e.key)}/${e.value}',
                     style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
               ]),
-            Text('마석 ${info.manaStones} · 금화 ${BaldrinRules.spearGold}',
+            Text('마석 ${info.manaStones} · 금화 ${r == null ? BaldrinRules.spearGold : RegionRules.weaponGold}',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
           ]),
           const SizedBox(height: 8),
           GoldButton(
-            key: const Key('craftSpear'),
+            key: Key(r == null ? 'craftSpear' : 'craftRegion_${r.prefix}'),
             label: '만들기',
             height: 44,
             fontSize: 18,
-            onPressed: c.spearCraftable
+            onPressed: (r == null ? c.spearCraftable : c.regionWeaponCraftable(r))
                 ? () async {
-                    final it = await c.craftSpear();
+                    final it = r == null ? await c.craftSpear() : await c.craftRegionWeapon(r);
                     if (it != null && context.mounted) {
                       await showDialog<void>(
                         context: context,

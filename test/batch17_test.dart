@@ -24,8 +24,6 @@ void main() {
           if (!File(m.group(1)!).existsSync()) missing.add(m.group(1)!);
         }
       }
-      // 묶음 56: 그림이 오면 바로 쓰는 자리 (오기 전엔 화면이 색 깃발을 그림)
-      missing.remove('assets/images/flag_party.webp');
       expect(missing, isEmpty);
     });
   });

@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import '../models/armory.dart';
 import 'act2_rules.dart';
+import 'act3_rules.dart';
 import 'baldrin_rules.dart';
+import 'region_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'highland_rules.dart';
@@ -375,15 +377,8 @@ class BossGearRules {
         ),
   ];
 
-  /// 그림이 오기 전 잠시 쓰는 그림 (묶음 56 「동행」 세트 — 같은 이름 그림이 오면 지움)
-  static const Map<EquipBase, String> _tempArt = {
-    EquipBase.partyWeapon: 'equip_spear',
-    EquipBase.partyHead: 'equip_cap',
-    EquipBase.partyBody: 'equip_armor',
-    EquipBase.partyHands: 'equip_gloves',
-    EquipBase.partyFeet: 'equip_boots',
-    EquipBase.partyAcc: 'equip_stone_charm',
-  };
+  /// 묶음 57: 「동행」 세트 그림이 와서 임시 그림은 없음
+  static const Map<EquipBase, String> _tempArt = {};
 
   // ───────────── 만들기 (대장간 NPC, 숫자는 제안값)
 
@@ -510,6 +505,8 @@ class SetBonus {
     var skyFeather = false;
     // 묶음 53 #243: 「발드린 문지기」 일반 세트 · 지역 1 이름 있는 장비 (숨김)
     var baldrin = 0;
+    // 묶음 57: 지역 2~5 일반 세트 (지역마다 따로 셈)
+    final regionSets = <Region, int>{};
     var guardFlash = 0.0;
     var petFaster = 0;
     var partyBoss = 0.0;
@@ -529,8 +526,21 @@ class SetBonus {
           ashDealt += BaldrinRules.teoAsh;
         case EquipBase.uniqWindPendant:
           petFaster = BaldrinRules.windFaster;
+        case EquipBase.uniqTeoCloak:
+          ashTaken += RegionRules.teoCloakAsh;
         default:
-          break;
+          for (final r in RegionRules.all) {
+            if (r.gear.contains(it.base)) regionSets[r.region] = (regionSets[r.region] ?? 0) + 1;
+          }
+      }
+    }
+    for (final n in regionSets.values) {
+      if (n >= 6) {
+        ashTaken += RegionRules.set6Taken;
+        ashDealt += RegionRules.set6Dealt;
+      } else {
+        if (n >= 2) ashTaken += RegionRules.set2Taken;
+        if (n >= 4) ashDealt += RegionRules.set4Dealt;
       }
     }
     if (baldrin >= 6) {

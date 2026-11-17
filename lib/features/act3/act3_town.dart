@@ -8,6 +8,7 @@ import '../../theme/top_notice.dart';
 import '../smithy/equipment_view.dart';
 import '../town/shop_screen.dart' show ShopItemIcon, ShopScreen;
 import 'act3_screen.dart';
+import 'region_screens.dart';
 
 /// 대사 한 줄의 말하는 이 (얼굴 · 이름)
 ({String name, String? face}) speakerOf(AppController c, String who) => switch (who) {
@@ -18,7 +19,30 @@ import 'act3_screen.dart';
       'garen' => (name: '가렌', face: 'assets/images/npc_garen.webp'),
       'lian' => (name: '리안', face: 'assets/images/npc_lian.webp'),
       'marta' => (name: '마르타', face: 'assets/images/npc_marta.webp'),
-      _ => (name: c.firstPet?.name ?? '펫', face: null),
+      // 묶음 57: 지역 2~5 사람 · 이야기 동료
+      'nia' => (name: '니아', face: 'assets/images/npc_nia.webp'),
+      'barkan' => (name: '바르칸', face: 'assets/images/npc_barkan.webp'),
+      'popo' => (name: '포포', face: 'assets/images/npc_popo.webp'),
+      'sera' => (name: '세라', face: 'assets/images/npc_sera.webp'),
+      'teo' => (name: '테오', face: 'assets/images/npc_teo.webp'),
+      'kaspar' => (name: '카스파르', face: 'assets/images/npc_kaspar.webp'),
+      'orben' => (name: '오르벤', face: 'assets/images/npc_orben.webp'),
+      _ => _regionSpeaker(c, who),
+    };
+
+({String name, String? face}) _regionSpeaker(AppController c, String who) {
+  for (final r in RegionRules.all) {
+    for (final p in r.residents) {
+      if (p.id == who) return (name: p.name, face: p.faceAsset);
+    }
+  }
+  return (name: c.firstPet?.name ?? '펫', face: null);
+}
+
+/// 지금 지역의 마을 화면 (발드린은 피난민 야영지)
+Widget townFor(AppController c) => switch (c.regionNow) {
+      final r? => RegionTownScreen(controller: c, region: r),
+      null => TownScreen(controller: c),
     };
 
 Widget _face(String? asset, {double size = 44}) => ClipOval(
@@ -394,9 +418,13 @@ class TownScreen extends StatelessWidget {
 
 /// 문지기 지하 요새 (5층). 층마다 싸움 1~2번 → 갈림길 하나 → 다음 층
 class FortScreen extends StatefulWidget {
-  const FortScreen({super.key, required this.controller, this.tick = const Duration(milliseconds: 900)});
+  const FortScreen(
+      {super.key, required this.controller, this.region, this.tick = const Duration(milliseconds: 900)});
 
   final AppController controller;
+
+  /// 묶음 57: 지역 2~5 던전 (null 이면 발드린 지하 요새)
+  final RegionContent? region;
   final Duration tick;
 
   @override
@@ -405,13 +433,18 @@ class FortScreen extends StatefulWidget {
 
 class _FortScreenState extends State<FortScreen> {
   AppController get c => widget.controller;
+  RegionContent? get r => widget.region;
+  int get _now => r == null ? c.floorNow : c.regionFloorNow(r!);
+  int get _best => r == null ? c.floorBest : c.regionFloorBest(r!);
+  List<FloorInfo> get _floors => r?.floors ?? BaldrinRules.floors;
+  FloorInfo get _floor => r == null ? BaldrinRules.floors[c.floorNow - 1] : c.regionFloor(r!, _now);
 
   /// 층 싸움을 다 이겨 갈림길을 고를 차례
   bool _branching = false;
   String? _branchText;
 
   Future<void> _enter() async {
-    final fights = c.enterFloor();
+    final fights = r == null ? c.enterFloor() : c.regionEnterFloor(r!);
     if (fights == null) {
       showTopNotice(context, c.hp <= 0 ? 'HP가 없어요 · 천막 여관에서 쉬어요' : '여정 기력이 모자라요');
       return;
@@ -423,35 +456,43 @@ class _FortScreenState extends State<FortScreen> {
       if (r == null || !r.won) {
         // 졌을 때: 야영지로 (도달한 층은 그대로)
         await Navigator.of(context)
-            .pushReplacement(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+            .pushReplacement(MaterialPageRoute<void>(builder: (_) => townFor(c)));
         return;
       }
       if (r.lamp && mounted) {
         await Navigator.of(context).push(MaterialPageRoute<void>(
-            fullscreenDialog: true, builder: (_) => LampScreen(controller: c)));
+            fullscreenDialog: true, builder: (_) => LampScreen(controller: c, region: widget.region)));
+        if (widget.region case final reg? when mounted) await afterRegionLamp(context, c, reg);
       }
     }
     if (mounted) setState(() => _branching = true);
   }
 
   Future<void> _branch(Branch b) async {
-    final r = await c.takeBranch(b);
+    final reg = widget.region;
+    final r = reg == null ? await c.takeBranch(b) : await c.regionTakeBranch(reg, b);
     if (!mounted) return;
     if (r.fight case final f?) {
       final res = await runEncounter(context, c, f, tick: widget.tick);
       if (!mounted) return;
       if (res == null || !res.won) {
         await Navigator.of(context)
-            .pushReplacement(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+            .pushReplacement(MaterialPageRoute<void>(builder: (_) => townFor(c)));
         return;
       }
     }
-    await c.clearFloor();
+    String? more;
+    if (reg == null) {
+      await c.clearFloor();
+    } else {
+      more = await c.regionClearFloor(reg);
+    }
     if (!mounted) return;
     setState(() {
       _branching = false;
       _branchText = [
         r.text,
+        if (more != null) more,
         if (r.gold > 0) '금화 +${r.gold}',
         for (final it in r.items) EquipmentRules.info(it.base).name,
         if (r.hpLost > 0) 'HP -${r.hpLost}',
@@ -469,27 +510,46 @@ class _FortScreenState extends State<FortScreen> {
       body: ListenableBuilder(
         listenable: c,
         builder: (context, _) {
-          final f = BaldrinRules.floors[c.floorNow - 1];
+          final f = _floor;
+          final deep = f.n > _floors.length;
+          final bossName = Monsters.info(f.foes.first).name;
           return ListView(
             padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 24),
             children: [
               OrnateTopBar(
-                  title: '문지기 지하 요새',
+                  title: r?.dungeonName ?? '문지기 지하 요새',
                   onBack: _branching ? null : () => Navigator.of(context).maybePop()),
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.asset(BaldrinRules.dungeonBg,
+                  child: Image.asset(r?.dungeonBg ?? BaldrinRules.dungeonBg,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF2A2C4A))),
                 ),
               ),
               const SizedBox(height: 10),
               // 층 표시 (끝낸 층 금빛)
+              if (deep)
+                Row(children: [
+                  const Icon(Icons.stairs_rounded, color: AppColors.goldBright),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text('심층 ${f.n}층 · 가장 깊이 ${c.regionDeepBest(r!)}층',
+                        key: const Key('deepFloor'),
+                        style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
+                  ),
+                  if (!_branching)
+                    TextButton(
+                      key: const Key('leaveDeep'),
+                      onPressed: () => c.leaveDeep(r!),
+                      child: const Text('1층으로'),
+                    ),
+                ])
+              else
               Row(children: [
-                for (final fl in BaldrinRules.floors)
+                for (final fl in _floors)
                   Expanded(
                     child: Container(
                       key: Key('floor_${fl.n}'),
@@ -497,9 +557,9 @@ class _FortScreenState extends State<FortScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: fl.n <= c.floorBest ? const Color(0x55E8C77A) : const Color(0x22FFFFFF),
+                        color: fl.n <= _best ? const Color(0x55E8C77A) : const Color(0x22FFFFFF),
                         border: Border.all(
-                            color: fl.n == c.floorNow ? AppColors.goldBright : Colors.transparent,
+                            color: fl.n == _now ? AppColors.goldBright : Colors.transparent,
                             width: 1.4),
                       ),
                       child: Column(children: [
@@ -564,7 +624,17 @@ class _FortScreenState extends State<FortScreen> {
                 Text('${f.n}층 · ${f.name}', style: AppText.title(17)),
                 const SizedBox(height: 4),
                 KText(
-                    f.lamp
+                    r != null
+                        ? (f.lamp
+                            ? (c.regionLit(r!.region)
+                                ? '등불의 방. 잿빛이 다시 $bossName의 꼴로 뭉치고 있어요.'
+                                : '등불의 방. 꺼진 등불 앞에 $bossName이(가) 버티고 있어요.')
+                            : f.boss
+                                ? '$bossName이(가) 길을 막고 있어요.'
+                                : deep
+                                    ? '심층. 내려갈수록 몬스터가 세져요. 5층마다 보스가 있어요.'
+                                    : '층마다 싸움을 이기면 갈림길이 나와요. 중간에 나가도 이 층부터 다시 해요.')
+                    : f.lamp
                         ? (c.baldrinLit
                             ? '등불의 방. 잿빛 찌꺼기가 다시 갑옷 꼴로 뭉치고 있어요.'
                             : '등불의 방. 거대한 빈 갑주가 꺼진 등불을 끌어안고 있어요.')
@@ -681,9 +751,12 @@ class LetterChoiceScreen extends StatelessWidget {
 
 /// 등불을 켬: 지역 지도가 밝아지는 연출 + 열리는 것
 class LampScreen extends StatefulWidget {
-  const LampScreen({super.key, required this.controller});
+  const LampScreen({super.key, required this.controller, this.region});
 
   final AppController controller;
+
+  /// 묶음 57: 지역 2~5 (null 이면 발드린)
+  final RegionContent? region;
 
   @override
   State<LampScreen> createState() => _LampScreenState();
@@ -699,7 +772,9 @@ class _LampScreenState extends State<LampScreen> {
   }
 
   Future<void> _step() async {
-    final total = BaldrinRules.lampLines.length + BaldrinRules.lampUnlocks.length;
+    final r = widget.region;
+    final total = (r?.lampLines ?? BaldrinRules.lampLines).length +
+        (r?.lampUnlocks ?? BaldrinRules.lampUnlocks).length;
     while (mounted && _shown < total) {
       await Future<void>.delayed(const Duration(milliseconds: 700));
       if (mounted) setState(() => _shown++);
@@ -709,8 +784,9 @@ class _LampScreenState extends State<LampScreen> {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
-    final lines = BaldrinRules.lampLines;
-    final unlocks = BaldrinRules.lampUnlocks;
+    final r = widget.region;
+    final lines = r?.lampLines ?? BaldrinRules.lampLines;
+    final unlocks = r?.lampUnlocks ?? BaldrinRules.lampUnlocks;
     return Scaffold(
       key: const Key('lampScreen'),
       backgroundColor: AppColors.deepNight,
@@ -720,7 +796,7 @@ class _LampScreenState extends State<LampScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: FrameButton(
             key: const Key('lampClose'),
-            label: '관문으로',
+            label: r == null ? '관문으로' : '${r.townName}(으)로',
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -728,7 +804,8 @@ class _LampScreenState extends State<LampScreen> {
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, pad.top + 10, 16, 16),
         children: [
-          Text('관문의 등불이 켜졌어요', textAlign: TextAlign.center, style: AppText.title(22)),
+          Text(r == null ? '관문의 등불이 켜졌어요' : '${Act3Rules.region(r.region).name}의 등불이 켜졌어요',
+              textAlign: TextAlign.center, style: AppText.title(22)),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
@@ -741,7 +818,8 @@ class _LampScreenState extends State<LampScreen> {
               ),
               child: AspectRatio(
                 aspectRatio: 1024 / 1100,
-                child: Image.asset(widget.controller.currentRegion.map,
+                child: Image.asset(
+                    r == null ? widget.controller.currentRegion.map : Act3Rules.region(r.region).map,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF2A2C4A))),
@@ -806,7 +884,6 @@ class UniqueBookScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     final pad = MediaQuery.paddingOf(context);
-    final got = BaldrinRules.uniques.where(c.uniqueFound).length;
     return Scaffold(
       key: const Key('uniqueBookScreen'),
       backgroundColor: AppColors.deepNight,
@@ -815,39 +892,42 @@ class UniqueBookScreen extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 24),
           children: [
             OrnateTopBar(title: '이름 있는 장비', onBack: () => Navigator.of(context).maybePop()),
-            const SizedBox(height: 8),
-            Text('발드린 관문 $got / ${BaldrinRules.uniques.length}', style: AppText.title(16)),
             const SizedBox(height: 4),
             const KText('보스 · 숨은 보스 · 보물 상자에서 아주 드물게 나와요.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-            const SizedBox(height: 8),
-            for (final b in BaldrinRules.uniques) ...[
-              OrnatePanel(
-                key: Key('unique_${b.name}'),
-                child: c.uniqueFound(b)
-                    ? Row(children: [
-                        EquipIcon(base: b, grade: EquipGrade.orange, size: 56),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(EquipmentRules.info(b).name, style: AppText.title(16)),
-                              KText(BaldrinRules.stories[b]!,
-                                  style: const TextStyle(color: AppColors.text, fontSize: 12.5, height: 1.4)),
-                              Text(BaldrinRules.uniqueEffects[b]!,
-                                  style: const TextStyle(color: AppColors.goldBright, fontSize: 12)),
-                            ],
+            for (final book in c.uniqueBook) ...[
+              const SizedBox(height: 10),
+              Text('${book.name} ${book.items.where(c.uniqueFound).length} / ${book.items.length}',
+                  style: AppText.title(16)),
+              const SizedBox(height: 6),
+              for (final b in book.items) ...[
+                OrnatePanel(
+                  key: Key('unique_${b.name}'),
+                  child: c.uniqueFound(b)
+                      ? Row(children: [
+                          EquipIcon(base: b, grade: EquipGrade.orange, size: 56),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(EquipmentRules.info(b).name, style: AppText.title(16)),
+                                KText(book.stories[b] ?? '',
+                                    style: const TextStyle(color: AppColors.text, fontSize: 12.5, height: 1.4)),
+                                Text(book.effects[b] ?? '',
+                                    style: const TextStyle(color: AppColors.goldBright, fontSize: 12)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ])
-                    : const Row(children: [
-                        Icon(Icons.help_outline_rounded, color: AppColors.textMuted, size: 40),
-                        SizedBox(width: 10),
-                        Text('???', style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
-                      ]),
-              ),
-              const SizedBox(height: 8),
+                        ])
+                      : const Row(children: [
+                          Icon(Icons.help_outline_rounded, color: AppColors.textMuted, size: 40),
+                          SizedBox(width: 10),
+                          Text('???', style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
+                        ]),
+                ),
+                const SizedBox(height: 8),
+              ],
             ],
           ],
         ),

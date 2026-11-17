@@ -88,9 +88,19 @@ class MasteryRules {
   static String? weaponKind(EquipBase? base) => switch (base) {
         EquipBase.dagger ||
         EquipBase.hornDagger ||
-        EquipBase.nightWeapon =>
+        EquipBase.nightWeapon ||
+        EquipBase.uniqArbelDagger ||
+        EquipBase.uniqMoonFang =>
           'dagger',
-        EquipBase.staff || EquipBase.flameWeapon => 'staff',
+        EquipBase.staff ||
+        EquipBase.flameWeapon ||
+        EquipBase.elowinStaff ||
+        EquipBase.uniqNaomiStaff =>
+          'staff',
+        EquipBase.morvalWeapon || EquipBase.morvalSword => 'sword',
+        EquipBase.seleniaWeapon || EquipBase.seleniaAxe || EquipBase.uniqGrumHammer => 'axe',
+        EquipBase.elowinWeapon || EquipBase.aurelWeapon => 'spear',
+        EquipBase.aurelBow => 'bow',
         EquipBase.ironSword ||
         EquipBase.wardenWeapon ||
         EquipBase.frostWeapon ||

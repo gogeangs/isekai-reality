@@ -54,6 +54,7 @@ import 'features/status/demo_data.dart';
 part 'controller/act2.dart';
 part 'controller/act3.dart';
 part 'controller/act3_region.dart';
+part 'controller/act3_regions.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';

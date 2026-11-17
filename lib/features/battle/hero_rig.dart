@@ -26,13 +26,23 @@ enum WeaponKind { sword, axe, dagger, spear, staff, bow }
 WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
       EquipBase.dagger ||
       EquipBase.hornDagger ||
-      EquipBase.nightWeapon =>
+      EquipBase.nightWeapon ||
+      EquipBase.uniqArbelDagger ||
+      EquipBase.uniqMoonFang =>
         WeaponKind.dagger,
-      EquipBase.staff || EquipBase.flameWeapon => WeaponKind.staff,
-      EquipBase.ironSword => WeaponKind.sword,
-      EquipBase.woodAxe => WeaponKind.axe,
-      EquipBase.ironSpear => WeaponKind.spear,
-      EquipBase.bow => WeaponKind.bow,
+      EquipBase.staff ||
+      EquipBase.flameWeapon ||
+      EquipBase.elowinStaff ||
+      EquipBase.uniqNaomiStaff =>
+        WeaponKind.staff,
+      EquipBase.ironSword || EquipBase.morvalWeapon || EquipBase.morvalSword => WeaponKind.sword,
+      EquipBase.woodAxe ||
+      EquipBase.seleniaWeapon ||
+      EquipBase.seleniaAxe ||
+      EquipBase.uniqGrumHammer =>
+        WeaponKind.axe,
+      EquipBase.ironSpear || EquipBase.elowinWeapon || EquipBase.aurelWeapon => WeaponKind.spear,
+      EquipBase.bow || EquipBase.aurelBow => WeaponKind.bow,
       EquipBase.wardenWeapon ||
       EquipBase.frostWeapon ||
       EquipBase.ashWeapon ||

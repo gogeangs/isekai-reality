@@ -6,6 +6,7 @@ import 'baldrin_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
+import 'region_rules.dart';
 import 'stat_rules.dart';
 
 /// 장비 부위 6칸
@@ -54,6 +55,15 @@ enum EquipBase {
   partyWeapon, partyHead, partyBody, partyHands, partyFeet, partyAcc,
   // 묶음 57 #249: 플레이어 무기 「활」 (Lv.15부터 대장간 · 잡화상)
   bow,
+  // 묶음 57 #243: 3막 지역 2~5 일반 장비 6부위 · 이름 있는 장비 3 · 지역 무기
+  seleniaWeapon, seleniaHead, seleniaBody, seleniaHands, seleniaFeet, seleniaAcc,
+  uniqGrumHammer, uniqBlackLantern, uniqStardustBoots, seleniaAxe,
+  elowinWeapon, elowinHead, elowinBody, elowinHands, elowinFeet, elowinAcc,
+  uniqMomoWreath, uniqArbelDagger, uniqElderHeart, elowinStaff,
+  morvalWeapon, morvalHead, morvalBody, morvalHands, morvalFeet, morvalAcc,
+  uniqLucyFlower, uniqKingCloak, uniqMoonFang, morvalSword,
+  aurelWeapon, aurelHead, aurelBody, aurelHands, aurelFeet, aurelAcc,
+  uniqTeoCloak, uniqNaomiStaff, uniqPhoenixCharm, aurelBow,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -358,6 +368,7 @@ class EquipmentRules {
     for (final e in npcGear) e.id: e,
     for (final e in Act3Rules.gearInfos) e.id: e,
     for (final e in BaldrinRules.gearInfos) e.id: e,
+    for (final e in RegionRules.gearInfos) e.id: e,
   };
 
   /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)

@@ -585,7 +585,7 @@ class AllyDetailScreen extends StatelessWidget {
                           equipped: a.slot == i,
                           quest: a.isStory &&
                               Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), i) &&
-                              !c.garenRosterDone,
+                              !c.allyQuestDone(StoryAlly.values.byName(a.story!)),
                           canUnlock: c.canUnlockSkill(a, i),
                           cost: Act3Rules.skillCost(i),
                           onUnlock: () => c.unlockAllySkill(a.id, i),

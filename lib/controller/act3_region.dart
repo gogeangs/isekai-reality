@@ -16,6 +16,9 @@ enum A3Kind {
   /// 메인 ③ 성벽길 · 한나 퀘스트 하피 둥지
   wall,
   nest,
+
+  /// 묶음 57 지역 2~5: 메인 ③ 사건 싸움
+  event,
 }
 
 /// 3막 싸움 하나
@@ -431,9 +434,16 @@ extension Act3RegionOps on AppController {
       if (s.has('lamp') && (n == Npc.lian || n == Npc.mina)) ...BaldrinRules.afterLamp,
       if (s.has('lamp') && n == Npc.hart) BaldrinRules.hartAfterLamp,
       if (s.has('denBoss') && n == Npc.lumi) BaldrinRules.lumiAfterDen,
+      if (s.has('act3End') && n == Npc.marta) RegionRules.martaAfterEnd,
+      if (s.has('act3End') && n == Npc.hart) RegionRules.hartAfterEnd,
     ];
   }
 
   /// 현실 지도에 섞일 3막 몬스터 (등불을 켠 지역의 일반 몬스터)
-  List<MonsterId> get lampMonsters => baldrinLit ? BaldrinRules.normals : const [];
+  /// 묶음 57: 등불을 켠 지역 2~5 몬스터도 섞임
+  List<MonsterId> get lampMonsters => [
+        if (baldrinLit) ...BaldrinRules.normals,
+        for (final r in RegionRules.all)
+          if (_act3.has('${r.prefix}:lamp')) ...r.normals,
+      ];
 }

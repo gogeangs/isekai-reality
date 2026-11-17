@@ -34,12 +34,18 @@ enum RequestStepKind {
 
   /// 받은 뒤 새로 쓰러뜨린 분신 (모두 쓰러뜨린 뒤 받으면 이미 끝난 것으로)
   clone,
+
+  /// 묶음 51: 받은 날부터 하루 [NpcRequestStep.min] 보 이상 걸은 날이 며칠 이어졌는지
+  dayStreak,
 }
 
 /// 부탁 할 일 하나
 class NpcRequestStep {
   const NpcRequestStep(this.kind, this.need, this.label,
-      {this.key = '', this.mats = const {}, this.distinct = false});
+      {this.key = '', this.mats = const {}, this.distinct = false, this.min = 0});
+
+  /// [RequestStepKind.dayStreak] 의 하루 걸음 (이만큼 이상 걸은 날)
+  final int min;
 
   final RequestStepKind kind;
   final int need;
@@ -56,7 +62,7 @@ class NpcRequestStep {
 }
 
 /// 부탁을 끝내야 받는 특별한 것 (4번째 부탁)
-enum NpcSpecialKind { scarf, pouch, whetstone, dawnLight, keys, badge, nest, band, garden }
+enum NpcSpecialKind { scarf, pouch, whetstone, dawnLight, keys, badge, nest, band, garden, knot, seal }
 
 class NpcSpecial {
   const NpcSpecial(this.kind, this.title, this.name, this.text, this.asset);
@@ -157,6 +163,8 @@ class NpcTally {
   static const gardenHarvest = 'gardenHarvest'; // 약초밭에서 거두기
   static const gardenGlow = 'gardenGlow'; // 빛나는 씨앗을 다 키워 거두기
   static const seedFound = 'seedFound'; // 채집하다 찾은 씨앗
+  // 묶음 51 #242: 주점 (리안)
+  static const meal = 'meal'; // 주점에서 한 끼
 }
 
 /// 마을 사람 부탁 · 사연 · 친해지기 규칙 (묶음 42 #226, 문서 「아르카 마을 사람 이야기」).
@@ -265,8 +273,17 @@ class NpcRules {
     ],
   };
 
-  static Set<MaterialId> matsOf(NpcRequestStep s) =>
-      s.mats.isEmpty ? monsterMats : s.mats;
+  static Set<MaterialId> matsOf(NpcRequestStep s) => s.mats.isEmpty
+      ? monsterMats
+      : identical(s.mats, anyMatsMarker)
+          ? anyMats
+          : s.mats;
+
+  /// 묶음 51 바르칸 「서로 다른 재료 5종」: 가방의 재료 무엇이든 (가공 재료·하늘 깃털 빼고)
+  static final Set<MaterialId> anyMats = {
+    for (final m in Materials.all)
+      if (!m.processed && m.id != MaterialId.skyFeather) m.id,
+  };
 
   // ───────────── 부탁 28 (사람마다 4개, 차례대로)
 
@@ -721,7 +738,108 @@ class NpcRules {
       special: NpcSpecial(NpcSpecialKind.garden, TitleId.forestKeeper, '약초밭 6칸째 · 빛나는 씨앗 2',
           '포포가 아끼던 마지막 밭 한 칸과 빛나는 씨앗', 'seed_glow'),
     ),
+    // 리안 (주점, 결말 뒤 · 묶음 51 #242). 레벨 문턱 없음 (결말 뒤라서)
+    NpcRequest(
+      npc: Npc.lian,
+      index: 0,
+      stage: FavorStage.known,
+      level: 1,
+      say: '주점 첫 손님이 되어 주세요! 오늘 5,000보만 걷고 와서 한잔해요. 물이요, 물.',
+      steps: [NpcRequestStep(RequestStepKind.daySteps, 5000, '하루 5,000보 걷기')],
+      gifts: {'gold': 100},
+      story: '제 틈엔 마을이 없었어요. 배낭 하나 메고, 정령이랑 둘이서만 걸었죠.',
+    ),
+    NpcRequest(
+      npc: Npc.lian,
+      index: 1,
+      stage: FavorStage.close,
+      level: 1,
+      say: '제 틈의 길도 이어졌을까요? 안 가 본 곳 세 군데만 같이 확인해 줘요.',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 3, '안 가 본 곳 3곳 다녀오기', key: NpcTally.newPlace),
+      ],
+      gifts: {'item:heal': 2},
+      story: '분노 분신까지는 어떻게든 쓰러뜨렸어요. 그런데 슬픔 분신 앞에서 몇 달을 멈춰 있었어요.',
+    ),
+    NpcRequest(
+      npc: Npc.lian,
+      index: 2,
+      stage: FavorStage.close,
+      level: 1,
+      say: '같이 걷는 연습이요. 펫이랑 함께 8,000보, 천천히 걸어 봐요.',
+      steps: [NpcRequestStep(RequestStepKind.stepsSince, 8000, '펫과 함께 8,000보 걷기')],
+      gifts: {'manaStone': 8},
+      story: '그때 알았어요. 저 혼자서는 문 앞까지 못 간다는 걸. 그래서 매일 걸으면서 누군가 해내기를 기다렸어요.',
+    ),
+    NpcRequest(
+      npc: Npc.lian,
+      index: 3,
+      stage: FavorStage.best,
+      level: 1,
+      say: '일주일 동안 하루도 빠짐없이요. 매일 3,000보, 우리 같이 해 봐요.',
+      steps: [
+        NpcRequestStep(RequestStepKind.dayStreak, 7, '7일 이어서 매일 3,000보 걷기', min: 3000),
+      ],
+      story: '틈이 이어지던 날, 처음으로 다른 사람 발소리를 들었어요. …그래서 이 주점을 열었어요. 아무도 혼자 걷지 않게.',
+      special: NpcSpecial(NpcSpecialKind.knot, TitleId.walkTogether, '리안의 배낭 매듭',
+          '장신구 · 걸을 때 기력이 조금 더 빨리 차요', 'equip_lianKnot'),
+    ),
+    // 바르칸 (거래소, 결말 뒤 · 묶음 51 #229). 서버 없이 되는 할 일만
+    NpcRequest(
+      npc: Npc.barkan,
+      index: 0,
+      stage: FavorStage.known,
+      level: 1,
+      say: '장터 둘레 길부터 익히게. 하루 6,000보면 길이 눈에 들어올 걸세.',
+      steps: [NpcRequestStep(RequestStepKind.daySteps, 6000, '하루 6,000보 걷기')],
+      gifts: {'gold': 120},
+      story: '우리 상단은 저쪽 세계 큰 장터를 누볐네. 별가루며 빛 보석이며, 없는 게 없었지.',
+    ),
+    NpcRequest(
+      npc: Npc.barkan,
+      index: 1,
+      stage: FavorStage.close,
+      level: 1,
+      say: '상단 견본이 필요하네. 서로 다른 재료 다섯 가지만 가져오게.',
+      steps: [
+        NpcRequestStep(RequestStepKind.deliver, 5, '서로 다른 재료 5종 가져오기',
+            mats: anyMatsMarker, distinct: true),
+      ],
+      gifts: {'manaStone': 8},
+      story: '미나 할머니는 내 가장 오랜 거래 상대였지. 셈은 나보다 빨랐어, 허허.',
+    ),
+    NpcRequest(
+      npc: Npc.barkan,
+      index: 2,
+      stage: FavorStage.close,
+      level: 1,
+      say: '수레 바퀴를 손봐야겠어. 나무 두 번 캐 오고, 철 주괴 하나만 구해 주게.',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 2, '나무 2번 캐기', key: 'gather:wood'),
+        NpcRequestStep(RequestStepKind.deliver, 1, '철 주괴 1개 가져오기',
+            mats: {MaterialId.ironIngot}),
+      ],
+      gifts: {'item:heal': 2},
+      story: '문이 깨지던 날, 그 집안은 이쪽 틈에 걸리고 수레만 내 장터에 남았네. 언젠가 돌려주려고 날마다 닦아 두었지.',
+    ),
+    NpcRequest(
+      npc: Npc.barkan,
+      index: 3,
+      stage: FavorStage.best,
+      level: 1,
+      say: '새 교역로를 그리세. 안 가 본 곳 다섯 군데, 그리고 하루 10,000보일세.',
+      steps: [
+        NpcRequestStep(RequestStepKind.tally, 5, '안 가 본 곳 5곳 다녀오기', key: NpcTally.newPlace),
+        NpcRequestStep(RequestStepKind.daySteps, 10000, '하루 10,000보 걷기'),
+      ],
+      story: '빛을 빼앗던 시절엔 장사도 숨이 막혔지. 이제는 나눠서 사고팔면 되네. 그게 장사꾼이 바라던 다리일세.',
+      special: NpcSpecial(NpcSpecialKind.seal, TitleId.merchantFriend, '바르칸의 상단 인장',
+          '소중한 물건 · 거래소에 물건을 올릴 때 드는 금화가 줄어요', 'item_barkanSeal'),
+    ),
   ];
+
+  /// 바르칸 「서로 다른 재료 5종」 표시 (실제 재료는 [anyMats])
+  static const Set<MaterialId> anyMatsMarker = {MaterialId.skyFeather};
 
   static List<NpcRequest> of(Npc n) => [
         for (final r in requests)
@@ -781,6 +899,16 @@ class NpcRules {
       FavorStage.known: ['또 왔어요?! 새싹들이 손님 발소리를 알아들어요!', '오늘은 몇 걸음 걸었어요? 밭이 벌써 궁금해해요!'],
       FavorStage.close: ['손님 덕분에 밭이 반짝반짝해요! 진짜예요!', '씨앗 주머니에 손님 이름도 적어 뒀어요. 소중한 사람 칸에요!'],
       FavorStage.best: ['손님은 이제 우리 숲 식구예요! 나무들도 그렇게 말할 거예요!', '거둘 때 하나씩 더 몰래 넣어 둘게요! 쉿, 비밀이에요!'],
+    },
+    Npc.lian: {
+      FavorStage.known: ['또 왔네요. 자리 비워 뒀어요, 창가 쪽으로.', '오늘 걸음은 어땠어요? 저는 오늘 길을 두 번 잃었어요.'],
+      FavorStage.close: ['당신 발소리는 이제 문 열기 전에 알아요.', '같이 걸을 사람 명단 맨 위에 당신 이름 적어 뒀어요.'],
+      FavorStage.best: ['당신이 있어서 이 주점을 연 보람이 있어요. 진짜로요.', '한 끼는 조금 넉넉히 담았어요. 오래 든든할 거예요.'],
+    },
+    Npc.barkan: {
+      FavorStage.known: ['오, 또 왔구먼. 발소리가 장사꾼 귀엔 금화 소리지.', '미나 녀석이 자네 칭찬을 늘어놓더군.'],
+      FavorStage.close: ['자네 이름은 상단 장부 맨 앞에 적어 두었네.', '흥정하는 눈이 제법이야. 우리 상단에 들어오겠나? 허허, 농담일세.'],
+      FavorStage.best: ['자네라면 내 수레 열쇠를 맡겨도 되겠어.', '자네한테 수수료를 다 받으면 내가 장사꾼이 아니지.'],
     },
   };
 
@@ -864,6 +992,22 @@ class NpcRules {
           '손님이 걸어 준 덕분에 꽃이 피었어요! 꽃 씨앗 나눠 드려요!', {'flowerSeed': 2}),
       FavorStage.best: FavorLetter('숲의 식구에게',
           '이제 손님은 우리 숲 식구예요! 아끼던 버섯 포자도 드릴게요!', {'sporeSeed': 3}),
+    },
+    Npc.lian: {
+      FavorStage.known: FavorLetter('주점 단골 1호',
+          '또 와 줘서 고마워요. 주점 첫 단골이에요! 오늘 밥값 조금 넣어 뒀어요.', {'gold': 40}),
+      FavorStage.close: FavorLetter('같이 걷는 사람에게',
+          '요즘 당신이랑 걸은 날이 제일 즐거워요. 지칠 때 마셔요.', {'item:heal': 1}),
+      FavorStage.best: FavorLetter('혼자가 아니었던 사람에게',
+          '틈 저편에서 혼자 걷던 때가 거짓말 같아요. 고마워요. 진짜로요.', {'manaStone': 8}),
+    },
+    Npc.barkan: {
+      FavorStage.known: FavorLetter('첫 인사일세',
+          '허허, 다리 건너 첫 손님에게 인사를 안 할 수 있나. 받아 두게.', {'gold': 50}),
+      FavorStage.close: FavorLetter('상단 장부에 올렸네',
+          '자네 이름을 상단 장부에 올렸네. 기념일세.', {'manaStone': 5}),
+      FavorStage.best: FavorLetter('상단의 벗에게',
+          '셈은 정확히, 인심은 넉넉히. 이번엔 인심 쪽일세, 허허.', {'gold': 200}),
     },
   };
 }

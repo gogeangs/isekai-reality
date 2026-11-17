@@ -42,6 +42,8 @@ enum EquipBase {
   skyWeapon, skyHead, skyBody, skyHands, skyFeet, skyAcc,
   // 묶음 42 #226: 마을 사람 4번째 부탁의 특별 보상 (대장간에서 만들 수 없다)
   martaScarf, seraBadge, garenBand,
+  // 묶음 51 #242: 리안의 배낭 매듭 (걸을 때 기력이 조금 더 빨리 참)
+  lianKnot,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -356,6 +358,15 @@ class EquipmentRules {
       recipe: {},
       attack: 0.05,
       asset: 'equip_garenBand',
+    ),
+    // 묶음 51 #242: 리안의 배낭 매듭 (효과는 걸을 때 기력, 숨은 값)
+    EquipBaseInfo(
+      id: EquipBase.lianKnot,
+      name: '리안의 배낭 매듭',
+      slot: EquipSlot.accessory,
+      recipe: {},
+      maxHp: 0.03,
+      asset: 'equip_lianKnot',
     ),
   ];
 

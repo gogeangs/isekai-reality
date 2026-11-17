@@ -308,6 +308,8 @@ extension NpcSmallOps on AppController {
         for (final name in _npc.relics)
           if (Npc.values.where((x) => x.name == name).firstOrNull case final n?)
             NpcSmallRules.relicOf(n),
+        // 묶음 51: 바르칸 4번째 부탁의 상단 인장
+        if (hasBarkanSeal) NpcSmallRules.barkanSeal,
       ];
 
   /// 엘리엘의 별빛 플라스크: 물약을 마셔도 병이 남는지 (마실 때마다 굴림)

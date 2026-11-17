@@ -303,7 +303,7 @@ void main() {
   });
 
   test('부탁 28개(+ 묶음 43 가렌 4) · 사람마다 4개 · 단계 대사·선물 우편 모두', () {
-    expect(NpcRules.requests, hasLength(36)); // 묶음 48 포포 4
+    expect(NpcRules.requests, hasLength(44)); // 묶음 48 포포 4 · 묶음 51 리안·바르칸 8
     for (final n in Npc.values) {
       final l = NpcRules.of(n);
       expect(l, hasLength(4));

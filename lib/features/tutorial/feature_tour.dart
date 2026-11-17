@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, GardenRules, MaterialId, TrainingRules;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, GardenRules, MaterialId, TavernRules, TrainingRules;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -251,6 +251,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           !c.shelterIntroPending &&
           !c.trainingIntroPending &&
           !c.gardenIntroPending &&
+          !c.tavernIntroPending &&
           !_skillMode) {
         return;
       }
@@ -834,6 +835,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _queue();
   }
 
+  Future<void> _finishTavern() async {
+    await c.markTavernIntro();
+    _queue();
+  }
+
   Future<void> _finishSkill() async {
     _skillCardSeen = false;
     await c.markSkillIntro();
@@ -924,6 +930,17 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = TourStep(GardenRules.openedLine,
           opened: ('약초밭', 'village_garden'),
           button: ('알겠어', _finishGarden));
+    } else if (f == null &&
+        c.tavernIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready &&
+        (b.top == null || b.top == 'home')) {
+      // 묶음 51 #242: 주점 「새로 열렸어요」 카드 (만남 장면 뒤 한 번)
+      skill = true;
+      step = TourStep(TavernRules.openedLine,
+          opened: ('주점', 'village_tavern'),
+          button: ('알겠어', _finishTavern));
     } else if (f == null) {
       if (tourGlowSlot.value != null) tourGlowSlot.value = null;
     } else if (!b.paused && !c.holdNotices && c.ready) {
@@ -981,6 +998,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
           return Material(
             type: MaterialType.transparency,
             child: _TourView(step: step, onSkip: _finishGarden),
+          );
+        }
+        if (_skillMode && step != null && c.tavernIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishTavern),
           );
         }
         if (step == null || f == null || c.pendingFeatureIntro != f) {

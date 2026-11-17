@@ -14,6 +14,7 @@ import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
+import 'core/models/tavern_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -63,6 +64,7 @@ part 'controller/npc_small.dart';
 part 'controller/pets.dart';
 part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
+part 'controller/tavern.dart';
 part 'controller/smithy.dart';
 part 'controller/stats.dart';
 part 'controller/training.dart';
@@ -574,6 +576,8 @@ class AppController extends ChangeNotifier {
     await _migrateBuilt48();
     // 묶음 50 #146: 하이랜드 (없으면 처음부터. 예전 Lv.17 이상은 첫 섬이 뜰 때 첫 장면 한 번)
     _highland = await _load(_highlandKey, HighlandState.fromJson, const HighlandState());
+    // 묶음 51 #242: 주점 (없으면 처음부터. 만남·거래소는 마을 기록 'meet'·'market')
+    _tavern = await _load(_tavernKey, TavernState.fromJson, const TavernState());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -783,6 +787,10 @@ class AppController extends ChangeNotifier {
   /// 묶음 50 #146: 하이랜드 ('highland')
   static const _highlandKey = 'highland';
   HighlandState _highland = const HighlandState();
+
+  /// 묶음 51 #242: 주점 ('tavern')
+  static const _tavernKey = 'tavern';
+  TavernState _tavern = const TavernState();
 
   /// 마지막으로 예약한 섬 알림 때 (같으면 다시 예약하지 않음)
   DateTime? _skyNoticeAt;

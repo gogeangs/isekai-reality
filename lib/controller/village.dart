@@ -62,6 +62,9 @@ extension VillageOps on AppController {
         'shelter' => shelterOpen,
         'training' => trainingOpen,
         'garden' => gardenOpen,
+        // 묶음 51: 주점은 만남 장면 뒤 · 거래소는 그다음 마을 방문
+        'tavern' => tavernOpen,
+        'market' => marketOpen,
         _ => false,
       };
 
@@ -78,6 +81,8 @@ extension VillageOps on AppController {
       : [
           for (final f in VillageRules.buildLevels.keys)
             if (facilityOpen(f) && !_village.contains('built:$f')) f,
+          // 묶음 51 #229: 거래소 완공 (공사 그림 한 장 → 완공 그림)
+          if (marketOpen && !_village.contains('built:market')) 'market',
         ];
 
   /// 완공 연출을 봤다 (건물마다 한 번)
@@ -129,6 +134,11 @@ extension VillageOps on AppController {
     // 묶음 42 #226: 시설에 들르면 친해지기 점수 (하루 한 번)
     unawaited(_npcVisit(n));
     if (met && situation != null) return situation;
+    // 묶음 51 #229: 거래소가 완공된 날 미나 말풍선 (한 번)
+    if (met && n == Npc.mina) {
+      final b = _takeMinaBarkan();
+      if (b != null) return b;
+    }
     // 묶음 49 #235: 루미·포포·세라가 영웅 펫을 처음 볼 때 한마디 (한 번)
     if (met) {
       final r = takeHeroReaction(n);

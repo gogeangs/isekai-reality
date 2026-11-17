@@ -78,6 +78,9 @@ enum TitleId {
   skyWalker,
   guardianTrust,
   kingdomWitness,
+  // 묶음 51: 리안 · 바르칸 마지막 부탁 (얻기 전엔 숨김)
+  walkTogether,
+  merchantFriend,
 }
 
 class TitleInfo {
@@ -152,6 +155,8 @@ class TitleRules {
       TitleId.npcLumi => '루미의 마지막 부탁을 들어줬어요',
       TitleId.npcGaren => '가렌의 마지막 부탁을 들어줬어요',
       TitleId.forestKeeper => '포포의 마지막 부탁을 들어줬어요',
+      TitleId.walkTogether => '리안의 마지막 부탁을 들어줬어요',
+      TitleId.merchantFriend => '바르칸의 마지막 부탁을 들어줬어요',
       TitleId.skyWalker => '하늘에 뜬 섬에 처음 올랐어요',
       TitleId.guardianTrust => '하이랜드 수호자 다섯을 모두 쓰러뜨렸어요',
       TitleId.kingdomWitness => '하이랜드의 비문 다섯을 모두 모았어요',
@@ -200,6 +205,8 @@ class TitleRules {
     TitleId.npcLumi,
     TitleId.npcGaren,
     TitleId.forestKeeper,
+    TitleId.walkTogether,
+    TitleId.merchantFriend,
   ];
 
   static String npcCounter(TitleId t) => 'ntitle:${t.name}';
@@ -355,6 +362,8 @@ class TitleRules {
     TitleInfo(TitleId.npcGaren, '문지기 기사단의 후예', '숨은 칭호'),
     TitleInfo(TitleId.trialEndurer, '시련을 견딘 자', '숨은 칭호'),
     TitleInfo(TitleId.forestKeeper, '숲을 기르는 자', '숨은 칭호'),
+    TitleInfo(TitleId.walkTogether, '함께 걷는 자', '숨은 칭호'),
+    TitleInfo(TitleId.merchantFriend, '상단의 벗', '숨은 칭호'),
     TitleInfo(TitleId.skyWalker, '하늘을 걸은 자', '숨은 칭호'),
     TitleInfo(TitleId.guardianTrust, '수호자들이 인정한 자', '숨은 칭호'),
     TitleInfo(TitleId.kingdomWitness, '잊힌 왕국의 증인', '숨은 칭호'),

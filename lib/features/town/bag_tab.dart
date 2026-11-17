@@ -1329,7 +1329,9 @@ class PreciousPanel extends StatelessWidget {
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final r in items)
               GestureDetector(
-                key: Key('precious_${r.npc.name}'),
+                key: Key(r.stages.isEmpty
+                    ? 'precious_${r.asset}'
+                    : 'precious_${r.npc.name}'),
                 behavior: HitTestBehavior.opaque,
                 onTap: () => showDialog<void>(
                   context: context,

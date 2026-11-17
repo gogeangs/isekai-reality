@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -17,11 +19,16 @@ import 'board_screen.dart';
 import 'npc_request.dart' show askLook;
 import 'shelter_screen.dart';
 import 'garden_screen.dart';
+import 'tavern_screen.dart';
 import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
 
 /// 마을 시설 (묶음 35: 펫 쉼터 추가)
-enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training, garden }
+/// 묶음 51: 주점 (결말 뒤 만남 장면 다음 바로 열림, 그 전엔 빈 공터)
+enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training, garden, tavern }
+
+/// 마을 탭을 열 때마다 1씩 (묶음 51: 마을 「방문」 — 만남 장면 · 거래소 완공을 방문마다 나눔)
+final ValueNotifier<int> villageVisits = ValueNotifier<int>(0);
 
 /// 시설 모아 보기 묶음 (쉬기·사고팔기 / 만들기 / 의뢰·직업 / 펫·마을)
 enum FacilityGroup { rest, craft, work, pet }
@@ -36,23 +43,26 @@ class FacilityInfo {
   /// 마을 바탕(village_bg 1536×1024) 위 건물 자리: 가운데 x, 아래 y, 너비 (그림 픽셀)
   final ({double x, double y, double w}) spot;
 
-  String get asset => 'assets/images/village_${switch (facility) {
-        Facility.market => 'market_build',
-        _ => facility.name,
-      }}.webp';
+  /// 묶음 51 #229: 거래소는 완공 전엔 공사 그림 한 장 (village_market_build)
+  String get asset => 'assets/images/village_${facility.name}.webp';
+  static const String marketBuild = 'assets/images/village_market_build.webp';
 
   /// 묶음 44 #225: 공사 중 그림 (1 터 닦기 · 2 뼈대 · 3 거의 완성)
-  String buildAsset(int stage) =>
-      'assets/images/village_${facility.name}_build$stage.webp';
+  String buildAsset(int stage) => facility == Facility.market
+      ? marketBuild
+      : 'assets/images/village_${facility.name}_build$stage.webp';
 }
 
 /// 하단 메뉴 '마을' 탭 (묶음 35 개편 · 묶음 38 #211 전체 화면).
 /// 마을 그림이 화면 전체를 채우고(높이에 맞춤), 처음부터 좌우로 끌어서 둘러본다.
 /// 건물마다 아래에 작은 이름표(#212). 막(이별 전 · 2막 · 결말 뒤)마다 바탕이 바뀐다.
 class VillageScreen extends StatefulWidget {
-  const VillageScreen({super.key, required this.controller});
+  const VillageScreen({super.key, required this.controller, this.visits});
 
   final AppController controller;
+
+  /// 마을 탭을 열 때마다 바뀌는 수 (앱에서는 [villageVisits]). 없으면 화면을 만들 때 한 번 들른 것으로
+  final ValueListenable<int>? visits;
 
   /// 마을 바탕 크기 (그림 픽셀)
   static const Size art = Size(1536, 1024);
@@ -78,6 +88,8 @@ class VillageScreen extends StatefulWidget {
     FacilityInfo(Facility.training, '훈련장', FacilityGroup.work, (x: 1168, y: 652, w: 160)),
     // 묶음 48 #230: 왼쪽 가운데 공터 (훈련장 맞은편, 처음 화면 밖)
     FacilityInfo(Facility.garden, '약초밭', FacilityGroup.pet, (x: 368, y: 652, w: 160)),
+    // 묶음 51 #242: 왼쪽 위 공터 (탑으로 가는 길 옆, 결말 뒤 만남 장면 다음에 생김)
+    FacilityInfo(Facility.tavern, '주점', FacilityGroup.rest, (x: 405, y: 492, w: 150)),
   ];
 
   static const groupNames = {
@@ -104,17 +116,44 @@ class _VillageScreenState extends State<VillageScreen> {
   /// 묶음 44 #225: 이번에 완공 연출을 보여 줄 건물
   Set<Facility> _built = const {};
 
+  /// 탑 불꽃 연출을 다시 시작하는 번호 (방문마다)
+  int _lightRun = 0;
+  bool _meetShowing = false;
+
   @override
   void initState() {
     super.initState();
+    final v = widget.visits;
+    if (v == null) {
+      _visit();
+    } else {
+      v.addListener(_onVisit);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.visits?.removeListener(_onVisit);
+    super.dispose();
+  }
+
+  void _onVisit() {
+    if (mounted) setState(_visit);
+  }
+
+  /// 마을에 들어올 때: 거래소 완공(만남 다음 방문) → 완공 연출 · 한마디 → 결말 뒤 탑 불꽃 → 만남 장면
+  void _visit() {
+    unawaited(controller.villageVisit());
     _moment = controller.villageMoment;
-    _lit = controller.towerLightPending;
+    final meet = controller.meetPending;
+    _lit = controller.towerLightPending || meet;
+    if (_lit) _lightRun++;
     final built = controller.builtPending;
+    _built = {
+      for (final f in Facility.values)
+        if (built.contains(f.name)) f,
+    };
     if (built.isNotEmpty) {
-      _built = {
-        for (final f in Facility.values)
-          if (built.contains(f.name)) f,
-      };
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.markBuilt(built);
       });
@@ -124,11 +163,28 @@ class _VillageScreenState extends State<VillageScreen> {
         controller.markVillageMoment();
       });
     }
+    // 묶음 51 #242: 탑 불꽃이 켜진 뒤 화면이 탑 아래로 내려가며 만남 장면 (한 번)
+    if (meet) {
+      Future<void>.delayed(const Duration(milliseconds: 1400), () async {
+        if (!mounted || _meetShowing || !controller.meetPending) return;
+        _meetShowing = true;
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => MeetScreen(controller: controller)));
+        _meetShowing = false;
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   /// 이 시설이 열렸는지 (안 열린 건물은 그림에는 두되 어둡게, 이름표 없음)
-  bool _open(Facility f) =>
-      f != Facility.market && controller.facilityOpen(f.name);
+  bool _open(Facility f) => controller.facilityOpen(f.name);
+
+  /// 마을 그림에 그리는 건물 (주점은 열린 뒤에만 — 그 전엔 빈 공터)
+  List<FacilityInfo> get _shown => [
+        for (final f in VillageScreen.facilities)
+          if (f.facility != Facility.tavern || controller.tavernOpen) f,
+      ];
 
   /// 묶음 44 #225: 안 열린 건물의 공사 단계 (1~3, 없으면 null)
   int? _stage(Facility f) => controller.buildStage(f.name);
@@ -167,7 +223,8 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.shelter => Npc.lumi,
         Facility.training => Npc.garen,
         Facility.garden => Npc.popo,
-        Facility.market => null,
+        Facility.tavern => Npc.lian,
+        Facility.market => Npc.barkan,
       };
 
   /// 「!」: 큰 부탁은 금빛, 특별한 부탁은 보랏빛 별, 작은 부탁은 하늘빛 (빨간 점과 따로)
@@ -202,7 +259,7 @@ class _VillageScreenState extends State<VillageScreen> {
       };
 
   void _enter(FacilityInfo f) {
-    if (f.facility == Facility.market) {
+    if (f.facility == Facility.market && !_open(f.facility)) {
       showTopNotice(context, '거래소는 준비 중이에요', icon: Icons.construction_rounded);
       return;
     }
@@ -234,6 +291,8 @@ class _VillageScreenState extends State<VillageScreen> {
       Facility.shelter => ShelterScreen(controller: controller),
       Facility.training => TrainingScreen(controller: controller),
       Facility.garden => GardenScreen(controller: controller),
+      Facility.tavern => TavernScreen(controller: controller),
+      Facility.market => MarketScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
@@ -336,7 +395,7 @@ class _VillageScreenState extends State<VillageScreen> {
           child: _VillageArt(
             key: const Key('villageArt'),
             act: c.villageAct,
-            all: VillageScreen.facilities,
+            all: _shown,
             open: _open,
             news: _news,
             ask: _ask,
@@ -347,6 +406,7 @@ class _VillageScreenState extends State<VillageScreen> {
             focusX: _focusX,
             lockLabel: _lockLabel,
             lighting: _lit,
+            lightRun: _lightRun,
             towerGlow: _intro != null,
             bottomPad: pad.bottom,
             onTap: _enter,
@@ -430,6 +490,7 @@ class _VillageArt extends StatefulWidget {
     required this.built,
     required this.lockLabel,
     required this.lighting,
+    this.lightRun = 0,
     required this.towerGlow,
     required this.bottomPad,
     required this.onTap,
@@ -452,6 +513,9 @@ class _VillageArt extends StatefulWidget {
 
   /// 결말 뒤 처음: 탑 불꽃이 켜지는 연출
   final bool lighting;
+
+  /// 묶음 51: 방문마다 탑 불꽃 연출을 다시 시작하는 번호
+  final int lightRun;
 
   /// 소개 중: 탑을 금빛 테두리로
   final bool towerGlow;
@@ -583,6 +647,7 @@ class _VillageArtState extends State<_VillageArt> {
           rect: r(t.left - 120, t.top - 60, t.width + 240, t.height + 120),
           child: IgnorePointer(
             child: TweenAnimationBuilder<double>(
+              key: ValueKey(widget.lightRun),
               tween: Tween(begin: 0, end: 1),
               duration: const Duration(milliseconds: 1100),
               builder: (context, k, _) => Opacity(
@@ -652,7 +717,11 @@ class _VillageArtState extends State<_VillageArt> {
     final stage = open ? null : widget.stage(f.facility);
     final dim = !open && f.facility != Facility.market && stage == null;
     Widget pic = Image.asset(
-        stage != null ? f.buildAsset(stage) : f.asset,
+        stage != null
+            ? f.buildAsset(stage)
+            : f.facility == Facility.market && !open
+                ? FacilityInfo.marketBuild
+                : f.asset,
         key: stage != null ? Key('build${stage}_${f.facility.name}') : null,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => const SizedBox());
@@ -684,9 +753,7 @@ class _VillageArtState extends State<_VillageArt> {
             label: f.name,
             child: GestureDetector(
               // 열린 시설만 안내·시험이 찾는 이름 (facility_○○)
-              key: open && f.facility != Facility.market
-                  ? Key('facility_${f.facility.name}')
-                  : null,
+              key: open ? Key('facility_${f.facility.name}') : null,
               behavior: HitTestBehavior.opaque,
               onTap: () => widget.onTap(f),
             ),
@@ -700,7 +767,8 @@ class _VillageArtState extends State<_VillageArt> {
   /// 거래소 「거래소 · 준비 중」. 빨간 점은 이름표 오른쪽 위
   Widget _tag(FacilityInfo f, Rect Function(double, double, double, double) r) {
     final open = widget.open(f.facility);
-    final market = f.facility == Facility.market;
+    // 묶음 51: 거래소는 완공되면 다른 건물과 같은 이름표
+    final market = f.facility == Facility.market && !open;
     final sp = f.spot;
     final bottom = r(sp.x, sp.y, 0, 0);
     // 묶음 44 #225: 짓는 중인 건물은 🔨 + 「Lv.7 완공」 (펫 쉼터 「첫 펫과 함께 완공」)

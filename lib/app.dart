@@ -152,6 +152,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     }
     if (i == tVillage) _seenRewards = c.questRewardsReady;
     if (_tab != i) spiritTabVisits.value++;
+    // 묶음 51: 마을 탭에 들어올 때마다 한 번 「방문」
+    if (i == tVillage && _tab != i) villageVisits.value++;
     _tab = i;
     tourBridge.tab = i;
   }
@@ -407,7 +409,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 _kick();
               }),
           // 묶음 38 #211: 마을 그림이 화면 전체 (위쪽 탑 그림 띠·카드 테두리 없음)
-          VillageScreen(controller: controller),
+          VillageScreen(controller: controller, visits: villageVisits),
           NightBackground(
             header: true,
             child: CodexScreen(

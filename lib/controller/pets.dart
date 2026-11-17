@@ -320,9 +320,10 @@ extension PetsOps on AppController {
       uid: 'pet${p.nextId}',
       species: s,
       // 영웅 펫은 정해진 이름으로 (펫 탭에서 바꿀 수 있음)
+      // 묶음 51: 마을 사람 이름(리안 등)은 펫 이름으로 쓰지 않는다
       name: hero
           ? PetRules.heroName(s)
-          : name.trim().isEmpty
+          : name.trim().isEmpty || npcNameReserved(name)
               ? PetRules.info(s).name
               : name.trim(),
       bornAt: _clock(),
@@ -442,11 +443,17 @@ extension PetsOps on AppController {
   }
 
   /// 펫 이름을 바꾼다 (무료)
-  Future<void> renamePet(String uid, String name) async {
+  /// 이름을 바꿨으면 true. 마을 사람 이름(리안 등)은 쓸 수 없다 (묶음 51)
+  Future<bool> renamePet(String uid, String name) async {
     final pet = _pets.byUid(uid);
-    if (pet == null || name.trim().isEmpty) return;
+    if (pet == null || name.trim().isEmpty || npcNameReserved(name)) return false;
     await _savePets(_pets.replace(pet.copyWith(name: name.trim())));
+    return true;
   }
+
+  /// 마을 사람 이름인지 (각성자·펫 이름으로 못 씀)
+  bool npcNameReserved(String name) =>
+      VillageRules.npcs.any((n) => n.name == name.trim());
 
   /// 재료를 먹이로 준다 (일반 +3, 귀한 +15, 친밀도 +1)
   Future<bool> feedMaterial(String uid, MaterialId m) =>

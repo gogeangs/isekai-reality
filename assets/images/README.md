@@ -327,3 +327,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | item_barkanSeal, equip_lianKnot, food_stew, food_honeyBread, food_skewer | 주점 아이콘 5종(바르칸 인장·리안 매듭·고기 스튜·꿀빵·매운 꼬치), 시트 분할·붉은 테두리 정리, 512 |
 | 2026-11-17 | scene_meet_lian | 리안 만남 장면 2 「리안이 다가옴」, 852×1846 |
 | 2026-11-17 | title_merchantFriend, title_walkTogether | 칭호 「상단의 벗」·「함께 걷는 자」, 시트 분할 512 |
+| 2026-11-17 | npc_nia, npc_teo | 3막 이야기 동료 얼굴(니아·테오), 시트 분할·창 끝 붉은 테두리 정리, 아래 맞춤 512 |

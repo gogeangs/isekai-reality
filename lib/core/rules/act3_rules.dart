@@ -336,6 +336,20 @@ class Act3Rules {
   /// 가렌 스킬 ④는 동료 퀘스트 「신병 다섯의 명부」로 열림 (지역 1 묶음)
   static bool lockedByQuest(StoryAlly a, int slot) => a == StoryAlly.garen && slot == 3;
 
+  /// 직업에 잘 맞는 무기 (묶음 53 확정: 전사 검·도끼 / 궁수 활 / 마법사·사제 지팡이 / 도적 단검 / 기사 검·창).
+  /// 활은 아직 활 장비가 없어 지역 5 「여명의 불꽃 활」 때 더함
+  static const Map<AllyJob, Set<String>> jobWeapons = {
+    AllyJob.warrior: {'sword', 'axe'},
+    AllyJob.archer: {'bow'},
+    AllyJob.mage: {'staff'},
+    AllyJob.priest: {'staff'},
+    AllyJob.rogue: {'dagger'},
+    AllyJob.knight: {'sword', 'spear'},
+  };
+
+  /// 잘 맞는 무기를 들면 공격 + (숨김)
+  static const double fitBonus = 0.10;
+
   // ───────────── 이름 없는 동료 (모험가 · 용병)
 
   static const Map<AllyRace, String> raceNames = {

@@ -290,7 +290,9 @@ extension BattleOps on AppController {
             level: player.level.level,
             luckBonus: modLuckBonus,
             favored: ElementRules.challengers(mainElement),
-            land: lands?.kindAt)
+            land: lands?.kindAt,
+            lampMonsters: lampMonsters,
+            lampShare: BaldrinRules.realMapShare)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .followedBy(_tutorialSpawns(center))
         .followedBy([if (guideSpawn != null) guideSpawn!])

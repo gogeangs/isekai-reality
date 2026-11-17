@@ -99,7 +99,11 @@ class MasteryRules {
         EquipBase.baldrinWeapon =>
           'sword',
         EquipBase.woodAxe || EquipBase.groveWeapon => 'axe',
-        EquipBase.ironSpear || EquipBase.stormWeapon => 'spear',
+        EquipBase.ironSpear ||
+        EquipBase.stormWeapon ||
+        EquipBase.uniqTeoSpear ||
+        EquipBase.baldrinSpear =>
+          'spear',
         null => null,
         _ => EquipmentRules.info(base).slot == EquipSlot.weapon
             ? base.name

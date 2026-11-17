@@ -327,7 +327,8 @@ extension CloudOps on AppController {
       final h = _hashOf(snap);
       if (!force && h == _cloud.hash) return CloudBackup.unchanged;
       final sum = phoneSummary;
-      final info = await s.upload(uid, token, snap, level: sum.level, lastDay: sum.lastDay);
+      final info = await s.upload(uid, token, snap,
+          level: sum.level, lastDay: sum.lastDay, device: await deviceId());
       _cloud = _cloud.copyWith(lastBackup: info.updatedAt ?? _clock(), hash: h);
       await _saveCloud();
       // 7일 지난 보관본 정리
@@ -421,6 +422,17 @@ extension CloudOps on AppController {
     _cloud = _cloud.copyWith(cancelledDelete: false);
     unawaited(_saveCloud());
     _notify();
+  }
+
+  /// 이 휴대폰의 무작위 기기 ID (처음 한 번 만들고 그대로, 백업 · 「모두 지우기」에 안 들어감).
+  /// 운영정책: 같은 휴대폰에서 로그인한 계정끼리 거래 · 파티 · 길드를 막을 때 씀 (서버 때)
+  Future<String> deviceId() async {
+    final saved = await store.loadSide('deviceId');
+    if (saved != null && saved.length >= 16) return saved;
+    final r = math.Random.secure();
+    final id = List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    await store.saveSide('deviceId', id);
+    return id;
   }
 
   /// 계정 삭제 · 고르지 않은 기록 보관 기간

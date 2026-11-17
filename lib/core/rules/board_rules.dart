@@ -18,7 +18,11 @@ class ErrandTemplate {
     this.unit = '',
     this.npc,
     this.exp = 0,
+    this.tickets = 0,
   });
+
+  /// 묶음 53: 3막 지역 의뢰 — 모집권
+  final int tickets;
 
   final String id;
   final String title;
@@ -39,6 +43,7 @@ class ErrandTemplate {
 
   String get rewardLabel => [
         if (exp > 0) '경험치 $exp',
+        if (tickets > 0) '모집권 $tickets',
         if (gold > 0) '금화 $gold',
         if (manaStones > 0) '마석 $manaStones',
         for (final e in materials.entries)
@@ -160,6 +165,37 @@ class BoardRules {
         gold: 60),
   ];
 
+  /// 묶음 53 #243: 3막이 열리면 붙는 지역 의뢰 (발드린 관문). 세는 수는 3막 싸움 · 요새 층
+  static const List<ErrandTemplate> regionErrands = [
+    ErrandTemplate(
+        id: 'baldrinHunt3',
+        title: '발드린 관문 몬스터 3번 물리치기',
+        counter: 'act3Fight',
+        target: 3,
+        unit: '번',
+        gold: 60,
+        materials: {MaterialId.ironShard: 2}),
+    ErrandTemplate(
+        id: 'baldrinFloor2',
+        title: '문지기 지하 요새 2층 내려가기',
+        counter: 'act3Floor',
+        target: 2,
+        unit: '층',
+        gold: 70,
+        tickets: 1),
+    ErrandTemplate(
+        id: 'baldrinPatrol5',
+        title: '관문 순찰: 다리 너머에서 5번 싸우기',
+        counter: 'act3Fight',
+        target: 5,
+        unit: '번',
+        gold: 90,
+        manaStones: 2),
+  ];
+
+  /// 지역 의뢰가 붙을 확률 (3막이 열렸을 때, 새 의뢰마다)
+  static const double regionChance = 0.35;
+
   // ───────────────────────── 긴급 (하루 25%, 오전 9시~오후 6시에 떠서 자정까지)
 
   static const double urgentChance = 0.25;
@@ -199,7 +235,7 @@ class BoardRules {
       gold: 30);
 
   static ErrandTemplate? template(String? id) {
-    for (final t in [...errands, ...urgents, guideErrand, ...NpcSmallRules.boardNotes]) {
+    for (final t in [...errands, ...urgents, guideErrand, ...NpcSmallRules.boardNotes, ...regionErrands]) {
       if (t.id == id) return t;
     }
     return null;
@@ -248,7 +284,7 @@ class BoardRules {
   /// 날짜가 바뀌었으면 새로 시작하고, 기다리던 빈 칸에 새 의뢰를 올린다
   /// [npcs]: 건물이 열린 마을 사람 (묶음 45 #231: 가끔 그 사람 쪽지가 붙는다)
   static BoardState refresh(BoardState s, DateTime now,
-      {List<String> npcs = const []}) {
+      {List<String> npcs = const [], bool region = false}) {
     final key = DailyRecord.dayKeyOf(now);
     var state = s.day == key
         ? s
@@ -268,7 +304,9 @@ class BoardRules {
       final holding = slots.where((x) => !x.empty).length;
       if (!ready || state.doneToday + holding >= errandsPerDay) continue;
       final taken = {for (final x in slots) x.templateId};
-      final pick = _pickNpcNote(key, seq, taken, npcs) ?? _pickErrand(key, seq, taken);
+      final pick = _pickNpcNote(key, seq, taken, npcs) ??
+          (region ? _pickRegion(key, seq, taken) : null) ??
+          _pickErrand(key, seq, taken);
       seq++;
       slots[i] = ErrandSlot(templateId: pick.id);
     }
@@ -294,6 +332,13 @@ class BoardRules {
     final notes = NpcSmallRules.notesOf(who);
     if (notes.isEmpty) return null;
     return notes[(h ~/ 131) % notes.length];
+  }
+
+  static ErrandTemplate? _pickRegion(String day, int seq, Set<String?> taken) {
+    final h = _hash('$day|region|$seq');
+    if ((h % 10000) / 10000 >= regionChance) return null;
+    final free = [for (final t in regionErrands) if (!taken.contains(t.id)) t];
+    return free.isEmpty ? null : free[(h ~/ 10007) % free.length];
   }
 
   static ErrandTemplate _pickErrand(String day, int seq, Set<String?> taken) {

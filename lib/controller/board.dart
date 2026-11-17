@@ -5,7 +5,7 @@ extension BoardOps on AppController {
 
   /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
   BoardState get board =>
-      BoardRules.refresh(_board, _clock(), npcs: _openNpcNames);
+      BoardRules.refresh(_board, _clock(), npcs: _openNpcNames, region: act3Open);
 
   Future<void> _saveBoard(BoardState b) async {
     _board = b;
@@ -79,6 +79,11 @@ extension BoardOps on AppController {
     }
     await _grant(await _knackGold(errandGold(t.gold)), t.manaStones, t.materials,
         over: BagOver.mail, title: '의뢰 보상: ${t.title}');
+    // 묶음 53: 3막 지역 의뢰 → 모집권
+    if (t.tickets > 0) {
+      _act3 = _act3.copyWith(tickets: _act3.tickets + t.tickets);
+      await _saveAct3();
+    }
     await _count('errandDone');
     await gainMastery(Mastery.trade, MasteryRules.errandDone);
     await _maybeNote(AlchemyRules.noteFromErrand);

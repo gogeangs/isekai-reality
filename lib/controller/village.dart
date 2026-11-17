@@ -134,6 +134,11 @@ extension VillageOps on AppController {
     // 묶음 42 #226: 시설에 들르면 친해지기 점수 (하루 한 번)
     unawaited(_npcVisit(n));
     if (met && situation != null) return situation;
+    // 묶음 53 #243: 은빛 털을 루미에게 보이면 바람의 굴이 열림 (한 번)
+    if (met && n == Npc.lumi && hasSilverFur && !denOpen) {
+      unawaited(showFurToLumi());
+      return BaldrinRules.lumiFur;
+    }
     // 묶음 51 #229: 거래소가 완공된 날 미나 말풍선 (한 번)
     if (met && n == Npc.mina) {
       final b = _takeMinaBarkan();
@@ -155,7 +160,12 @@ extension VillageOps on AppController {
     }
     final String line;
     // 단계가 오르면 그 사람 새 대사 2줄이 그 막의 평소 대사에 섞인다
-    final acts = [...VillageRules.linesFor(n, villageAct), ...npcStageLines(n)];
+    final acts = [
+      ...VillageRules.linesFor(n, villageAct),
+      ...npcStageLines(n),
+      // 묶음 53: 3막 큰 고르기 · 등불 · 바람의 굴 뒤 새 대사
+      ...act3NpcLines(n),
+    ];
     if (met && guide != null) {
       line = visits.isOdd ? guide : acts[(visits ~/ 2) % acts.length];
     } else if (met) {

@@ -52,6 +52,11 @@ class BossGearTab extends StatelessWidget {
           _RelicCard(controller: c),
           const SizedBox(height: 10),
         ],
+        // 묶음 53 #243: 3막 지역 무기 (등불을 켜면)
+        if (c.baldrinLit) ...[
+          _RegionWeapon(controller: c),
+          const SizedBox(height: 10),
+        ],
         const LockedJobPanel(
           title: '대장장이',
           lines: ['보스 장비가 덜 실패해요', '금화가 덜 들어요'],
@@ -344,6 +349,81 @@ class _PartRow extends StatelessWidget {
           child: Text(has ? '또 만들기' : '만들기'),
         ),
       ]),
+    );
+  }
+}
+
+/// 지역 무기 「관문의 빛 창」 (빈 갑주 조각 + 철 주괴 + 마석 + 금화)
+class _RegionWeapon extends StatelessWidget {
+  const _RegionWeapon({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final info = EquipmentRules.info(EquipBase.baldrinSpear);
+    return OrnatePanel(
+      key: const Key('regionWeapon'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const EquipIcon(base: EquipBase.baldrinSpear, size: 56),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(info.name, style: AppText.title(16)),
+                  const KText('발드린 관문의 지역 무기 · 빛 속성 창',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Wrap(spacing: 10, runSpacing: 4, children: [
+            for (final e in info.recipe.entries)
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                MaterialIcon(e.key, size: 22),
+                const SizedBox(width: 3),
+                Text('${c.player.materialCount(e.key)}/${e.value}',
+                    style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+              ]),
+            Text('마석 ${info.manaStones} · 금화 ${BaldrinRules.spearGold}',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+          ]),
+          const SizedBox(height: 8),
+          GoldButton(
+            key: const Key('craftSpear'),
+            label: '만들기',
+            height: 44,
+            fontSize: 18,
+            onPressed: c.spearCraftable
+                ? () async {
+                    final it = await c.craftSpear();
+                    if (it != null && context.mounted) {
+                      await showDialog<void>(
+                        context: context,
+                        builder: (d) => GameAlert(
+                          title: Text(info.name),
+                          content: Row(children: [
+                            EquipIcon(base: it.base, grade: it.grade, size: 56),
+                            const SizedBox(width: 10),
+                            Expanded(child: EquipName(it, size: 15)),
+                          ]),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(d), child: const Text('좋아요')),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }

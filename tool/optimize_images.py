@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent / 'assets' / 'images'
 # 목록에 없으면 크기는 그대로 (형식만 WebP).
 MAX_SIDE: list[tuple[str, int]] = [
     ('equip_', 256),      # 장비 아이콘: 가장 크게 96
+    ('uniq_', 256),       # 이름 있는 장비 아이콘 (묶음 53)
     ('mat_', 192),        # 재료: 가장 크게 64
     ('potion_', 160),     # 물약: 40~56
     ('stat_', 160),       # 스탯 메달: 52

@@ -138,7 +138,44 @@ class Act3State {
     this.region = 0,
     this.firstFight = false,
     this.wins = 0,
+    this.flags = const {},
+    this.quests = const {},
+    this.prog = const {},
+    this.floorBest = 0,
+    this.floorNow = 1,
+    this.choice,
+    this.lunch = 0,
+    this.innDay,
+    this.found = const {},
   });
+
+  /// 묶음 53 지역 1: 이야기 표시 ('volk' ② · 'letter' ③ · 'lamp' ⑤ · 'fur' 은빛 털 · 'den' 굴 열림 ·
+  /// 'denBoss' 숨은 보스 · 'dungeon' 던전 처음 끝냄 · 'dew' 빛 이슬 · 'met:volk' 주민 만남 · 'stall' 노점 커짐 · 'spear' 지역 무기)
+  final Set<String> flags;
+
+  /// 서브 퀘스트: 1 받음 · 2 끝냄 (SideQuest 이름)
+  final Map<String, int> quests;
+
+  /// 서브 퀘스트 진행 수
+  final Map<String, int> prog;
+
+  /// 지하 요새: 끝낸 가장 깊은 층 · 다음에 들어갈 층
+  final int floorBest;
+  final int floorNow;
+
+  /// 큰 고르기 「테오의 편지」: 'marta' · 'garen'
+  final String? choice;
+
+  /// 마르타의 도시락 개수
+  final int lunch;
+
+  /// 천막 여관에서 여정 기력을 받은 날
+  final String? innDay;
+
+  /// 한 번이라도 얻은 이름 있는 장비 (모음)
+  final Set<String> found;
+
+  bool has(String f) => flags.contains(f);
 
   final bool opened;
 
@@ -202,6 +239,15 @@ class Act3State {
     int? region,
     bool? firstFight,
     int? wins,
+    Set<String>? flags,
+    Map<String, int>? quests,
+    Map<String, int>? prog,
+    int? floorBest,
+    int? floorNow,
+    String? choice,
+    int? lunch,
+    String? innDay,
+    Set<String>? found,
   }) =>
       Act3State(
         opened: opened ?? this.opened,
@@ -222,7 +268,18 @@ class Act3State {
         region: region ?? this.region,
         firstFight: firstFight ?? this.firstFight,
         wins: wins ?? this.wins,
+        flags: flags ?? this.flags,
+        quests: quests ?? this.quests,
+        prog: prog ?? this.prog,
+        floorBest: floorBest ?? this.floorBest,
+        floorNow: floorNow ?? this.floorNow,
+        choice: choice ?? this.choice,
+        lunch: lunch ?? this.lunch,
+        innDay: innDay ?? this.innDay,
+        found: found ?? this.found,
       );
+
+  Act3State flag(String f) => copyWith(flags: {...flags, f});
 
   Act3State replaceAlly(AllyData a) =>
       copyWith(allies: [for (final x in allies) x.id == a.id ? a : x]);
@@ -247,6 +304,15 @@ class Act3State {
         if (region > 0) 'region': region,
         if (firstFight) 'firstFight': true,
         if (wins > 0) 'wins': wins,
+        if (flags.isNotEmpty) 'flags': flags.toList(),
+        if (quests.isNotEmpty) 'quests': quests,
+        if (prog.isNotEmpty) 'prog': prog,
+        if (floorBest > 0) 'floorBest': floorBest,
+        if (floorNow != 1) 'floorNow': floorNow,
+        if (choice != null) 'choice': choice,
+        if (lunch > 0) 'lunch': lunch,
+        if (innDay != null) 'innDay': innDay,
+        if (found.isNotEmpty) 'found': found.toList(),
       };
 
   static Act3State fromJson(Map<String, dynamic> j) => Act3State(
@@ -271,7 +337,22 @@ class Act3State {
         region: ((j['region'] as num?) ?? 0).toInt(),
         firstFight: j['firstFight'] == true,
         wins: ((j['wins'] as num?) ?? 0).toInt(),
+        flags: {for (final f in (j['flags'] as List?) ?? const []) '$f'},
+        quests: _ints(j['quests']),
+        prog: _ints(j['prog']),
+        floorBest: ((j['floorBest'] as num?) ?? 0).toInt(),
+        floorNow: ((j['floorNow'] as num?) ?? 1).toInt().clamp(1, 5),
+        choice: j['choice'] as String?,
+        lunch: ((j['lunch'] as num?) ?? 0).toInt(),
+        innDay: j['innDay'] as String?,
+        found: {for (final f in (j['found'] as List?) ?? const []) '$f'},
       );
+
+  static Map<String, int> _ints(Object? raw) => {
+        if (raw is Map)
+          for (final e in raw.entries)
+            if (e.value is num) '${e.key}': (e.value as num).toInt(),
+      };
 }
 
 /// 처음 값 (규칙 파일과 같은 수, 모델이 규칙을 가져오지 않게 따로 둠)

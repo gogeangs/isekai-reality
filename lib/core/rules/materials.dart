@@ -126,6 +126,8 @@ enum MaterialId {
   sunDew,
   frostCrystal,
   fallsPearl,
+  // 묶음 53 #243: 잿빛 빈 갑주 조각 (지역 무기 「관문의 빛 창」 재료)
+  hollowPlate,
 }
 
 class MaterialInfo {
@@ -308,6 +310,9 @@ class Materials {
         rare: true, price: 80),
     MaterialInfo(MaterialId.fallsPearl, '폭포 진주', '폭포 계곡의 수호자가 나눠 준 맑은 진주.',
         rare: true, price: 80),
+    MaterialInfo(MaterialId.hollowPlate, '빈 갑주 조각',
+        '잿빛 빈 갑주가 무너질 때 남은 갑옷 조각. 대장간에서 「관문의 빛 창」을 만들 때 써요.',
+        rare: true, price: 60),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),

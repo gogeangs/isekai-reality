@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../models/armory.dart';
 import 'act2_rules.dart';
+import 'baldrin_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
 import 'highland_rules.dart';
@@ -410,7 +411,15 @@ class SetBonus {
     this.ashTaken = 0,
     this.skyTaken = 0,
     this.skyFeather = false,
+    this.guardFlash = 0,
+    this.petFaster = 0,
   });
+
+  /// 묶음 53: 볼크의 금 간 투구 — 막을 때 적이 멈출 확률 (숨김)
+  final double guardFlash;
+
+  /// 묶음 53: 바람의 은빛 목걸이 — 펫 게이지가 이만큼 빨리 참 (틱)
+  final int petFaster;
 
   /// 하이랜드 수호 기사 (묶음 50): 4개 — 하늘 속성 공격에 받는 피해 감소 (숨김)
   final double skyTaken;
@@ -446,6 +455,36 @@ class SetBonus {
     var ashTaken = 0.0;
     var skyTaken = 0.0;
     var skyFeather = false;
+    // 묶음 53 #243: 「발드린 문지기」 일반 세트 · 지역 1 이름 있는 장비 (숨김)
+    var baldrin = 0;
+    var guardFlash = 0.0;
+    var petFaster = 0;
+    for (final it in worn) {
+      switch (it.base) {
+        case EquipBase.baldrinWeapon ||
+              EquipBase.baldrinHead ||
+              EquipBase.baldrinBody ||
+              EquipBase.baldrinHands ||
+              EquipBase.baldrinFeet ||
+              EquipBase.baldrinAcc:
+          baldrin++;
+        case EquipBase.uniqVolkHelm:
+          guardFlash = BaldrinRules.volkFlash;
+        case EquipBase.uniqTeoSpear:
+          ashDealt += BaldrinRules.teoAsh;
+        case EquipBase.uniqWindPendant:
+          petFaster = BaldrinRules.windFaster;
+        default:
+          break;
+      }
+    }
+    if (baldrin >= 6) {
+      ashTaken += BaldrinRules.set6Taken;
+      ashDealt += BaldrinRules.set6Dealt;
+    } else {
+      if (baldrin >= 2) ashTaken += BaldrinRules.set2Taken;
+      if (baldrin >= 4) ashDealt += BaldrinRules.set4Dealt;
+    }
     c.forEach((s, n) {
       final info = BossGearRules.info(s);
       if (s == BossSet.sky) {
@@ -460,11 +499,11 @@ class SetBonus {
       }
       if (s == BossSet.ash) {
         // 2개 받는 피해 ↓ · 4개 주는 피해 ↑ · 6개 둘 다 더
-        if (n >= 2) ashTaken = Act2Rules.setTaken2;
-        if (n >= 4) ashDealt = Act2Rules.setDealt4;
+        if (n >= 2) ashTaken += Act2Rules.setTaken2;
+        if (n >= 4) ashDealt += Act2Rules.setDealt4;
         if (n >= 6) {
-          ashTaken = Act2Rules.setTaken6;
-          ashDealt = Act2Rules.setDealt6;
+          ashTaken += Act2Rules.setTaken6 - Act2Rules.setTaken2;
+          ashDealt += Act2Rules.setDealt6 - Act2Rules.setDealt4;
           ab.add(info.ability);
           look = s;
         }
@@ -485,6 +524,8 @@ class SetBonus {
         ashDealt: ashDealt,
         ashTaken: ashTaken,
         skyTaken: skyTaken,
-        skyFeather: skyFeather);
+        skyFeather: skyFeather,
+        guardFlash: guardFlash,
+        petFaster: petFaster);
   }
 }

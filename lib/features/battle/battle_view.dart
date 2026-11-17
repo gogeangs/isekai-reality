@@ -2854,6 +2854,9 @@ class _AllyCard extends StatelessWidget {
                   ? Icon(Icons.person_rounded, size: 22, color: color)
                   : Image.asset(face,
                       fit: BoxFit.cover,
+                      alignment: face.contains('ally_job_')
+                          ? const Alignment(0, -0.8)
+                          : Alignment.center,
                       errorBuilder: (_, __, ___) =>
                           Icon(Icons.person_rounded, size: 22, color: color)),
             ),

@@ -334,3 +334,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | equip_baldrin{Weapon,Head,Body,Hands,Feet,Acc} | 발드린 문지기 세트 6부위, 시트 분할 512 |
 | 2026-11-17 | monster_goblinRaider, monster_skeletonGuard, monster_harpy, monster_ogre | 발드린 일반 몬스터 4종, 시트 분할 512 |
 | 2026-11-17 | town_baldrin | 발드린 피난민 야영지 마을 그림, 1254→1024 |
+| 2026-11-17 | monster_ashHounds, monster_ashArmor, monster_ashWolfAlpha | 발드린 보스 3종(사냥개 무리·빈 갑주·늑대 우두머리), 분홍·붉은 테두리 정리, 512 |

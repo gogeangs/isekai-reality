@@ -607,6 +607,8 @@ extension TutorialOps on AppController {
     if (skillTimedOn(JobSkill.drill)) {
       exp = (exp * (1 + JobRules.drillExp * skillPower(JobSkill.drill))).round();
     }
+    // 묶음 51 #242: 주점 매운 꼬치 → 그날 사냥 경험치 조금 더 (숨김)
+    if (_skewerExp != 1) exp = (exp * _skewerExp).round();
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;

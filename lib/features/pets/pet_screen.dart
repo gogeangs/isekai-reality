@@ -97,7 +97,12 @@ class _PetCard extends StatelessWidget {
       ),
     );
     text.dispose();
-    if (name != null) await controller.renamePet(pet.uid, name);
+    if (name == null) return;
+    final ok = await controller.renamePet(pet.uid, name);
+    // 묶음 51: 마을 사람 이름은 펫 이름으로 쓸 수 없다
+    if (!ok && name.trim().isNotEmpty && context.mounted) {
+      showTopNotice(context, '마을 사람 이름은 쓸 수 없어요', icon: Icons.info_outline_rounded);
+    }
   }
 
   Future<void> _release(BuildContext context) async {

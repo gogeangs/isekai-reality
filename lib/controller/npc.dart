@@ -49,6 +49,8 @@ extension NpcOps on AppController {
         Npc.lumi => shelterOpen,
         Npc.garen => facilityOpen('training'),
         Npc.popo => facilityOpen('garden'),
+        Npc.lian => tavernOpen,
+        Npc.barkan => marketOpen,
       };
 
   /// 오늘 칸 (날이 바뀌면 들른 사람·쓴 횟수를 비움)
@@ -131,6 +133,10 @@ extension NpcOps on AppController {
       _ => null,
     };
     if (who != null) await _smallTrigger(who);
+    // 묶음 51 #229: 바르칸 — 나무·광석을 캘 때
+    if (key == NpcTally.gatherOf('wood') || key == NpcTally.gatherOf('ore')) {
+      await _smallTrigger(Npc.barkan);
+    }
     // 묶음 45 #232: 전용 퀘스트 다음 단계
     await _advanceRelics();
   }
@@ -220,6 +226,11 @@ extension NpcOps on AppController {
       case RequestStepKind.clone:
         if (a.clonesDone) return s.need;
         return (_npc.tally[NpcTally.clone] ?? 0) - (a.base[NpcTally.clone] ?? 0);
+      case RequestStepKind.dayStreak:
+        return _longestRun([
+          for (final r in _daysSince(a.day))
+            if (r.steps >= s.min) r.dayKey,
+        ]);
     }
   }
 
@@ -335,6 +346,10 @@ extension NpcOps on AppController {
             .add(AlchemyRules.keyOf(PotionId.dawnLight, PotionQuality.normal), 1));
       case NpcSpecialKind.keys:
         return _applyGifts(const {'item:spareKey': 3}, title: '마을 사람 특별 보상');
+      case NpcSpecialKind.knot:
+        await _grantNpcGear(EquipBase.lianKnot);
+      case NpcSpecialKind.seal:
+        await _saveNpc(_npc.copyWith(perks: {..._npc.perks, 'barkanSeal'}.toList()));
       case NpcSpecialKind.garden:
         // 묶음 48 #230: 밭 6칸째(부탁 수로 정해짐) + 빛나는 씨앗 2
         final got = await _applyGifts({MaterialId.glowSeed.name: 2},
@@ -454,6 +469,8 @@ extension NpcOps on AppController {
       Npc.lumi: shelterOpen ? _pets.pets.length * 3 : 0,
       Npc.garen: 0,
       Npc.popo: 0,
+      Npc.lian: 0,
+      Npc.barkan: 0,
     };
     final pts = <String, int>{
       for (final e in seed.entries)

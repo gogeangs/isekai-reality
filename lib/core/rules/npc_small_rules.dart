@@ -176,6 +176,19 @@ class NpcSmallRules {
     ErrandTemplate(
         id: 'npc_popo_1', npc: 'popo', title: '2,000보 더 걷기',
         counter: 'steps', target: 2000, unit: '보', exp: boardExp),
+    // 묶음 51 #242·#229
+    ErrandTemplate(
+        id: 'npc_lian_0', npc: 'lian', title: '3,000보 더 걷기',
+        counter: 'steps', target: 3000, unit: '보', exp: boardExp),
+    ErrandTemplate(
+        id: 'npc_lian_1', npc: 'lian', title: '몬스터 3마리 사냥',
+        counter: 'huntAll', target: 3, unit: '마리', exp: boardExp),
+    ErrandTemplate(
+        id: 'npc_barkan_0', npc: 'barkan', title: '채집 3번',
+        counter: 'harvest', target: 3, unit: '번', exp: boardExp),
+    ErrandTemplate(
+        id: 'npc_barkan_1', npc: 'barkan', title: '2,500보 더 걷기',
+        counter: 'steps', target: 2500, unit: '보', exp: boardExp),
   ];
 
   /// 그 사람 쪽지들
@@ -195,6 +208,8 @@ class NpcSmallRules {
     Npc.lumi: '게시판 쪽지 네가 다 했지? 헤헤, 하나만 더 부탁할게!',
     Npc.garen: '게시판 쪽지를 네가 다 해치웠다며! 하나 더 맡겨 주마!',
     Npc.popo: '게시판 쪽지 다 해 준 거 손님이죠?! 하나만 더 부탁해도 돼요?',
+    Npc.lian: '게시판 쪽지, 당신이 다 해 줬죠? 역시요. 하나만 더 부탁해도 돼요?',
+    Npc.barkan: '게시판 쪽지를 자네가 다 처리했다지? 허허, 하나 더 맡기겠네.',
   };
 
   // ───────────── 작은 부탁 (사람마다 3개 중 하나, 개발 초안)
@@ -311,6 +326,33 @@ class NpcSmallRules {
         NpcRequestStep(RequestStepKind.deliver, 2, '꽃·버섯 2개 가져오기',
             mats: NpcRules.flowerMushroom),
       ], '씨앗이 잔뜩 들었어요! 고마워요!'),
+    ],
+    // 묶음 51 #242 리안 (한 끼 먹을 때 · 소문 들을 때)
+    Npc.lian: [
+      NpcSmall('같이 걸을 사람을 찾는 중이에요. 2,000보만 먼저 걸어 볼래요?', [
+        NpcRequestStep(RequestStepKind.stepsSince, 2000, '2,000보 걷기'),
+      ], '발소리가 좋네요. 기억해 둘게요.'),
+      NpcSmall('주점 탁자에 올릴 꽃이 필요해요. 꽃이나 버섯 두 개만요?', [
+        NpcRequestStep(RequestStepKind.deliver, 2, '꽃·버섯 2개 가져오기',
+            mats: NpcRules.flowerMushroom),
+      ], '탁자가 환해졌어요. 고마워요!'),
+      NpcSmall('소문 확인 좀 도와줄래요? 필드 몬스터 세 마리요.', [
+        NpcRequestStep(RequestStepKind.tally, 3, '필드 몬스터 3마리 잡기',
+            key: NpcTally.fieldKill),
+      ], '소문이 맞았네요. 역시 당신이에요.'),
+    ],
+    // 묶음 51 #229 바르칸 (나무·광석을 캘 때)
+    Npc.barkan: [
+      NpcSmall('수레에 실을 짐이 모자라구먼. 채집 두 번만 해 오게.', [
+        NpcRequestStep(RequestStepKind.tally, 2, '채집 2번', key: NpcTally.gather),
+      ], '허허, 수레가 묵직해졌네. 고맙네.'),
+      NpcSmall('장터 둘레가 궁금하네. 2,500보만 걸어 보고 오게.', [
+        NpcRequestStep(RequestStepKind.stepsSince, 2500, '2,500보 걷기'),
+      ], '길 이야기는 장사꾼한테 금화나 마찬가지일세.'),
+      NpcSmall('철 조각 두 개만 구해 주겠나? 저울추를 새로 달아야겠어.', [
+        NpcRequestStep(RequestStepKind.deliver, 2, '철 조각 2개 가져오기',
+            mats: {MaterialId.ironShard}),
+      ], '셈은 정확히! 이제 저울이 바로 서는구먼.'),
     ],
   };
 
@@ -504,7 +546,60 @@ class NpcSmallRules {
       ],
       done: '이슬병 완성! 이걸 가지고 있으면 밭이 덜 목말라해요!',
     ),
+    // 묶음 51 #242
+    NpcRelic(
+      npc: Npc.lian,
+      asset: 'item_lianCompass',
+      name: '리안의 낡은 나침반',
+      text: '주점 한 끼가 조금 싸져요',
+      say: '혼자 걸을 때 쓰던 나침반이 있어요. 바늘이 좀 이상한데… 같이 고쳐 볼래요?',
+      stages: [
+        NpcRelicStage('바늘이 길을 잊었나 봐요. 새 곳 두 군데를 같이 찾아봐요.', [
+          NpcRequestStep(RequestStepKind.tally, 2, '새 장소 2곳 다녀오기',
+              key: NpcTally.newPlace),
+        ]),
+        NpcRelicStage('바늘이 떨려요. 4,000보 걸으면서 맞춰 봐요.', [
+          NpcRequestStep(RequestStepKind.stepsSince, 4000, '4,000보 걷기'),
+        ]),
+        NpcRelicStage('마지막으로 주점에서 한 끼 먹고 와요. 배가 든든해야 길을 잃지 않죠.', [
+          NpcRequestStep(RequestStepKind.tally, 1, '주점에서 한 끼 먹기', key: NpcTally.meal),
+        ]),
+      ],
+      done: '자, 이제 당신 거예요. 어디서든 주점으로 돌아오는 길을 알려 줄 거예요.',
+    ),
+    // 묶음 51 #229
+    NpcRelic(
+      npc: Npc.barkan,
+      asset: 'item_barkanPurse',
+      name: '바르칸의 동전 주머니',
+      text: '걸으면 가끔 금화를 주워요',
+      say: '허허, 낡은 동전 주머니가 하나 있는데 말일세. 같이 손볼 텐가?',
+      stages: [
+        NpcRelicStage('장터 둘레를 한 바퀴 돌게. 3,000보일세.', [
+          NpcRequestStep(RequestStepKind.stepsSince, 3000, '3,000보 걷기'),
+        ]),
+        NpcRelicStage('주머니 끈이 낡았구먼. 나무 한 번 캐 오게.', [
+          NpcRequestStep(RequestStepKind.tally, 1, '나무 1번 캐기', key: 'gather:wood'),
+        ]),
+        NpcRelicStage('마지막일세. 철 조각 두 개만 가져오게.', [
+          NpcRequestStep(RequestStepKind.deliver, 2, '철 조각 2개 가져오기',
+              mats: {MaterialId.ironShard}),
+        ]),
+      ],
+      done: '이 주머니는 돌고 도는 금화를 잘 붙잡지. 가져가게, 허허.',
+    ),
   ];
+
+  /// 묶음 51 바르칸 4번째 부탁 특별 보상 (가방 「소중한 물건」, 효과는 거래소가 열릴 때)
+  static const NpcRelic barkanSeal = NpcRelic(
+    npc: Npc.barkan,
+    asset: 'item_barkanSeal',
+    name: '바르칸의 상단 인장',
+    text: '거래소에 물건을 올릴 때 드는 금화가 줄어요',
+    say: '',
+    stages: [],
+    done: '',
+  );
 
   static NpcRelic relicOf(Npc n) => relics.firstWhere((r) => r.npc == n);
 }

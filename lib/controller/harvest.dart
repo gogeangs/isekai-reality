@@ -17,7 +17,7 @@ extension HarvestOps on AppController {
     // 묶음 28 #181: 막 열린 채집 자리 하나는 그날 내 가까이에 (안내 자리)
     final spots = _baseHarvestSpots();
     final guides = _guideHarvestSpots();
-    final path = [..._pathFindSpots(), ..._skySpots()];
+    final path = [..._pathFindSpots(), ..._skySpots(), ..._breadSpots()];
     if (guides.isEmpty && path.isEmpty) return spots;
     return [...path, ...guides, ...spots];
   }

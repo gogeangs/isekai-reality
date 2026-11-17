@@ -1,7 +1,8 @@
 import '../format.dart';
 
 /// 마을 사람 (묶음 35): 시설마다 한 사람, 모두 틈에 걸린 저쪽 세계 사람
-enum Npc { marta, mina, dorgun, eliel, hart, sera, lumi, garen, popo }
+/// 묶음 51: 리안(주점, 먼저 온 각성자) · 바르칸(거래소, 다리를 건너온 상인) — 결말 뒤
+enum Npc { marta, mina, dorgun, eliel, hart, sera, lumi, garen, popo, lian, barkan }
 
 class NpcInfo {
   const NpcInfo({
@@ -120,6 +121,8 @@ class VillageRules {
         'shelter' => '펫 쉼터',
         'training' => '훈련장',
         'garden' => '약초밭',
+        'tavern' => '주점',
+        'market' => '거래소',
         _ => f,
       };
 
@@ -225,7 +228,35 @@ class VillageRules {
         3: ['탑에 불이 켜졌어요! 새싹들이 다 그쪽으로 고개를 돌렸어요!', '다리 너머 숲에 심을 씨앗, 벌써 주머니에 챙겨 뒀어요!'],
       },
     ),
+    // 묶음 51 #242: 주점 (결말 뒤 만남 장면 다음). 첫 만남은 만남 장면이라 첫 줄은 짧게
+    NpcInfo(
+      id: Npc.lian,
+      name: '리안',
+      role: '먼저 온 각성자',
+      first: '어서 와요! 주점은 처음이죠? 편하게 앉아요. 오늘은 제가 살게요… 아니, 다음에요.',
+      lines: {
+        3: ['오늘도 걸었어요? 발이 피곤하면 여기서 쉬어 가요.', '혼자 걷는 길도 좋지만, 같이 걸으면 더 멀리 가요.'],
+      },
+    ),
+    // 묶음 51 #229: 거래소 (리안 만남 다음 마을 방문에 완공)
+    NpcInfo(
+      id: Npc.barkan,
+      name: '바르칸',
+      role: '상단 우두머리',
+      first: '허허, 다리가 놓였다길래 제일 먼저 건너왔지! 바르칸일세. 저쪽 큰 장터에서 상단을 꾸린다네.',
+      lines: {
+        3: ['물건은 돌고 돌아야 값이 나지. 쌓아 두면 먼지만 앉아.', '셈은 정확히, 인심은 넉넉히. 그게 우리 상단 규칙일세.'],
+      },
+    ),
   ];
+
+  // ───────────── 묶음 51 #242·#229: 주점 · 거래소 (결말 뒤)
+
+  static const tavernGuide = '피곤하면 앉아 가요. 소문도 듣고, 한 끼 먹고 가면 오늘 걸음이 가벼워져요.';
+  static const marketGuide = '장부를 정리하는 중일세. 각성자들이 더 모이면 장을 열겠네.';
+
+  /// 거래소가 완공된 날 미나 말풍선 (한 번)
+  static const minaBarkan = '바르칸 할아버지가… 할머니 수레를 끌고 왔어요!';
 
   static NpcInfo npc(Npc n) => npcs[n.index];
 

@@ -105,6 +105,7 @@ extension MailOps on AppController {
     final got = <String>[];
     var gold = 0, mana = 0, exp = 0, notes = 0;
     var tools = false;
+    var foot = 0, recruit = 0;
     final bag = <String, int>{};
     gifts.forEach((k, v) {
       if (k == Wallet.gold) {
@@ -117,6 +118,10 @@ extension MailOps on AppController {
         notes += v;
       } else if (k == 'tools') {
         tools = true;
+      } else if (k == 'footTicket') {
+        foot += v;
+      } else if (k == 'recruit') {
+        recruit += v;
       } else if (_bagKey(k)) {
         bag[k] = (bag[k] ?? 0) + v;
       }
@@ -147,6 +152,16 @@ extension MailOps on AppController {
       got.add('채집 도구 한 벌');
     }
     if (notes > 0) got.add('레시피 쪽지 $notes');
+    // 묶음 56: 발자국 표 · 모집권 (문의 답 · 파티 보상)
+    if (foot > 0) {
+      await _savePartyLocal(_partyLocal.copyWith(tickets: _partyLocal.tickets + foot));
+      got.add('발자국 표 $foot');
+    }
+    if (recruit > 0) {
+      _act3 = _act3.copyWith(tickets: _act3.tickets + recruit);
+      await _saveAct3();
+      got.add('모집권 $recruit');
+    }
     return (got: got, left: s.rest);
   }
 

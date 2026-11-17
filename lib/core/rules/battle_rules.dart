@@ -559,7 +559,8 @@ class Battle {
         case BossSetAbility.stoneSkin ||
               BossSetAbility.regrow ||
               BossSetAbility.ashBane ||
-              BossSetAbility.skyKnight:
+              BossSetAbility.skyKnight ||
+              BossSetAbility.companion:
           break;
       }
     }
@@ -1599,6 +1600,13 @@ class Battle {
   int ticks = 0;
   BattlePhase phase = BattlePhase.fighting;
 
+  /// 묶음 56: 이 턴이 지나면 끝 (파티 보스) · 그렇게 끝났는지
+  int? tickLimit;
+  bool timeUp = false;
+
+  /// 지금 층 몬스터에게 준 피해 (파티 보스: 한 판에 준 피해)
+  int get dealtToFoe => math.max(0, foe.maxHp - foeHp);
+
   /// 마지막으로 준 피해와 받은 피해 (화면 연출용)
   int lastDealt = 0;
   int lastTaken = 0;
@@ -1671,6 +1679,12 @@ class Battle {
     }
     ticks++;
     floorTicks++;
+    // 묶음 56: 파티 보스 한 판은 정해진 턴까지 (그때까지 준 피해만 셈)
+    if (tickLimit != null && ticks > tickLimit!) {
+      timeUp = true;
+      phase = BattlePhase.escaped;
+      return;
+    }
     lastWasSkill = false;
     lastBash = false;
     lastGuard = null;

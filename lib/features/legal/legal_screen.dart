@@ -5,7 +5,10 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 
 enum LegalDoc {
-  privacy('개인정보처리방침', 'assets/legal/privacy.txt'),
+  privacy('개인정보 처리방침', 'assets/legal/privacy.txt'),
+  // 묶음 56 #248: 설정 → 운영정책 · 이용약관 (내용은 문서 확정 뒤)
+  operation('운영정책', 'assets/legal/operation.txt'),
+  terms('이용약관', 'assets/legal/terms.txt'),
   locationTerms('위치기반서비스 이용약관', 'assets/legal/location_terms.txt'),
   credits('만든 사람들', 'assets/legal/credits.txt');
 

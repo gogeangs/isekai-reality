@@ -209,6 +209,16 @@ class _SetPainter extends CustomPainter {
           final p = Offset(c.dx + (x0 - 0.5) * rx * 1.9, size.height * (0.1 + ph * 0.8));
           _star(canvas, p, 2.5, color.withValues(alpha: 0.9 * math.sin(ph * math.pi)));
         }
+      case BossSet.party:
+        // 동행 (묶음 56): 네 빛(보스 재료 색)이 둘레를 나란히 돈다
+        const cols = [Color(0xFFD9B98A), Color(0xFF6FD3E8), Color(0xFFB58CFF), Color(0xFF7FA8FF)];
+        for (var i = 0; i < 4; i++) {
+          final a = (i / 4 + t * 0.6) * math.pi * 2;
+          final p = c + Offset(math.cos(a) * rx * 0.95, math.sin(a) * ry * 0.5);
+          canvas.drawCircle(p, 4.5, Paint()
+            ..color = cols[i]
+            ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3));
+        }
       case BossSet.ash:
         // 잿가루: 발밑에서 천천히 떠올라 흩어진다 (묶음 34 잿빛 왕의 유품)
         for (var i = 0; i < _n + 2; i++) {

@@ -1,0 +1,115 @@
+# 묶음 56: Cloud Functions 배포 (firebase/functions 가 바뀔 때). 서비스 계정으로 firebase-tools.
+# 필요한 저장소 비밀값: FIREBASE_SERVICE_ACCOUNT
+name: 서버 함수 배포
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "wip/**"]
+    paths:
+      - "firebase/functions/**"
+      - "firebase/firebase.json"
+      - ".github/workflows/functions.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functions-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 서비스 계정 파일
+        run: |
+          if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT 가 없어요"; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          python3 -c 'import json,os;print("서비스 계정:", json.load(open(os.environ["RUNNER_TEMP"]+"/sa.json"))["client_email"])'
+
+      - name: 필요한 API 켜기
+        run: |
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+          gcloud services enable firebaseextensions.googleapis.com cloudfunctions.googleapis.com \
+            cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
+            eventarc.googleapis.com pubsub.googleapis.com cloudscheduler.googleapis.com \
+            --project arca-d0cab --quiet
+
+      - name: 함수 시험
+        working-directory: firebase/functions
+        run: |
+          npm ci || npm install
+          npm test
+
+      - name: 운영 페이지용 웹 앱 설정
+        continue-on-error: true
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          API=https://firebase.googleapis.com/v1beta1/projects/arca-d0cab
+          APP=$(curl -sS "$API/webApps" -H "Authorization: Bearer $TOKEN" | python3 -c 'import json,sys;a=json.load(sys.stdin).get("apps",[]);print(a[0]["appId"] if a else "")')
+          if [ -z "$APP" ]; then
+            curl -sS -X POST "$API/webApps" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"displayName":"arca admin"}' | head -c 300; echo
+            sleep 20
+            APP=$(curl -sS "$API/webApps" -H "Authorization: Bearer $TOKEN" | python3 -c 'import json,sys;a=json.load(sys.stdin).get("apps",[]);print(a[0]["appId"] if a else "")')
+          fi
+          if [ -z "$APP" ]; then echo "::warning::웹 앱을 만들지 못했어요"; exit 0; fi
+          CFG=$(curl -sS "$API/webApps/$APP/config" -H "Authorization: Bearer $TOKEN" | python3 -c 'import json,sys;c=json.load(sys.stdin);print(json.dumps({k:c.get(k) for k in ["apiKey","authDomain","projectId","appId"]}))')
+          echo "WEB_CONFIG=$CFG" >> "$GITHUB_ENV"
+          echo "웹 앱: $APP"
+
+      - name: 함수 배포 (gcloud, 2세대 · 서울)
+        run: |
+          CRON_KEY=$(python3 -c 'import secrets;print(secrets.token_hex(24))')
+          echo "::add-mask::$CRON_KEY"
+          printf 'CRON_KEY: "%s"\nADMIN_EMAILS: "%s"\nWEB_CONFIG: %s\n' "$CRON_KEY" "$ADMIN_EMAILS" "$(python3 -c 'import json,os;print(json.dumps(os.environ.get("WEB_CONFIG","{}")))')" > "$RUNNER_TEMP/env.yaml"
+          gcloud functions deploy api --gen2 --runtime nodejs22 --region asia-northeast3 \
+            --source firebase/functions --entry-point api --trigger-http --allow-unauthenticated \
+            --memory 512Mi --max-instances 10 --env-vars-file "$RUNNER_TEMP/env.yaml" --project arca-d0cab --quiet
+          rm -f "$RUNNER_TEMP/env.yaml"
+          URL=$(gcloud functions describe api --gen2 --region asia-northeast3 --project arca-d0cab --format='value(serviceConfig.uri)')
+          echo "함수 주소: $URL"
+          echo "API_URL=$URL" >> "$GITHUB_ENV"
+          echo "CRON_KEY=$CRON_KEY" >> "$GITHUB_ENV"
+          curl -sS "$URL/ping"; echo
+
+      - name: 매일 계정 삭제 정리 (Cloud Scheduler, 새벽 4시)
+        continue-on-error: true
+        run: |
+          ARGS=(--location asia-northeast3 --schedule "0 4 * * *" --time-zone "Asia/Seoul" --uri "$API_URL/cron/daily" --http-method POST --update-headers "X-Cron-Key=$CRON_KEY" --project arca-d0cab --quiet)
+          if gcloud scheduler jobs describe arca-daily --location asia-northeast3 --project arca-d0cab >/dev/null 2>&1; then
+            gcloud scheduler jobs update http arca-daily "${ARGS[@]}"
+          else
+            gcloud scheduler jobs create http arca-daily --location asia-northeast3 --schedule "0 4 * * *" --time-zone "Asia/Seoul" --uri "$API_URL/cron/daily" --http-method POST --headers "X-Cron-Key=$CRON_KEY" --project arca-d0cab --quiet
+          fi
+
+      - name: 운영 페이지 로그인 허용 주소
+        continue-on-error: true
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          HOST=$(python3 -c 'import os,urllib.parse;print(urllib.parse.urlparse(os.environ["API_URL"]).hostname)')
+          CFG=https://identitytoolkit.googleapis.com/admin/v2/projects/arca-d0cab/config
+          # 응답(인증 설정)은 공개 기록에 남지 않게 출력하지 않는다
+          NEW=$(curl -sS "$CFG" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" | HOST="$HOST" python3 -c 'import json,sys,os;d=json.load(sys.stdin).get("authorizedDomains",[]);h=os.environ["HOST"];d=d+([h] if h not in d else []);print(json.dumps({"authorizedDomains":d}))')
+          curl -sS -X PATCH "$CFG?updateMask=authorizedDomains" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" -H "Content-Type: application/json" -d "$NEW" -o /dev/null -w "로그인 허용 주소 반영: HTTP %{http_code}\n"
+
+      - name: TTL 정책 (함께 있어요 · 걸음 기기 · 문의)
+        continue-on-error: true
+        run: |
+          for g in presence dayclaims inquiryDays inquiries inquiryPhotos; do
+            gcloud firestore fields ttls update expireAt --collection-group=$g --enable-ttl --project=arca-d0cab --async --quiet || echo "::warning::TTL($g) 실패"
+          done
+
+      - name: 서비스 계정 파일 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

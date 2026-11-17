@@ -227,15 +227,29 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     // 묶음 55 #245: 10분마다 조용히 백업 (로그인했을 때만, 바뀐 게 없으면 안 올림)
     _backupTick = Timer.periodic(const Duration(minutes: 10), (_) {
       widget.controller.autoBackup();
+      // 묶음 56: 파티 소식 · 문의 답 우편도 같은 때에
+      _serverNews();
     });
+    // 처음 켤 때 한 번 (불러오기가 끝난 뒤)
+    _newsTimer = Timer(const Duration(seconds: 3), _serverNews);
   }
 
   Timer? _backupTick;
+  Timer? _newsTimer;
+
+  /// 묶음 56: 문의 답 우편 · 파티 소식 (인터넷이 없으면 조용히 넘어감)
+  Future<void> _serverNews() async {
+    final c = widget.controller;
+    if (!mounted || !c.ready || c.needsAwakening) return;
+    await c.checkInquiryInbox();
+    await c.refreshParty();
+  }
 
   @override
   void dispose() {
     _tick?.cancel();
     _backupTick?.cancel();
+    _newsTimer?.cancel();
     _tapSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -264,6 +278,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && widget.controller.ready) {
       widget.controller.sync();
       widget.controller.refreshServerTime();
+      _serverNews();
     }
     // 묶음 55 #245: 앱을 닫을 때(뒤로 갈 때) 조용히 백업
     if (state == AppLifecycleState.paused) widget.controller.autoBackup();

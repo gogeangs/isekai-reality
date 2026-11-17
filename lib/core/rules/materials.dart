@@ -128,6 +128,11 @@ enum MaterialId {
   fallsPearl,
   // 묶음 53 #243: 잿빛 빈 갑주 조각 (지역 무기 「관문의 빛 창」 재료)
   hollowPlate,
+  // 묶음 56 #236: 파티 보스 재료 (대장간 「동행」 세트)
+  golemCore,
+  hydraScale,
+  wyvernClaw,
+  krakenPearl,
 }
 
 class MaterialInfo {
@@ -313,6 +318,15 @@ class Materials {
     MaterialInfo(MaterialId.hollowPlate, '빈 갑주 조각',
         '잿빛 빈 갑주가 무너질 때 남은 갑옷 조각. 대장간에서 「관문의 빛 창」을 만들 때 써요.',
         rare: true, price: 60),
+    // 묶음 56 #236: 파티 보스 재료
+    MaterialInfo(MaterialId.golemCore, '골렘의 심장돌',
+        '거대 골렘 가슴에서 빛나던 돌. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
+    MaterialInfo(MaterialId.hydraScale, '히드라 비늘',
+        '물빛으로 반짝이는 단단한 비늘. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
+    MaterialInfo(MaterialId.wyvernClaw, '와이번 발톱',
+        '잿빛이 걷힌 날카로운 발톱. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
+    MaterialInfo(MaterialId.krakenPearl, '크라켄 진주',
+        '깊은 바다빛을 머금은 큰 진주. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
@@ -561,6 +575,11 @@ class LootRules {
         MonsterId.ashHounds ||
         MonsterId.ashArmor ||
         MonsterId.ashWolfAlpha ||
+        // 묶음 56: 파티 보스는 보스 재료를 따로 준다
+        MonsterId.partyGolem ||
+        MonsterId.partyHydra ||
+        MonsterId.partyWyvern ||
+        MonsterId.partyKraken ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

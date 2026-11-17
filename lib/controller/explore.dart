@@ -31,6 +31,8 @@ extension ExploreOps on AppController {
   /// 위치가 바뀔 때: 가까운 장소를 방문으로 기록한다 (안개는 11-10에 없앴다)
   Future<void> handleFix(LocationFix fix) {
     _lastFix = fix; // 위치는 바로 (기록 저장만 줄 세운다)
+    // 묶음 56: 파티원이 가까이 있는지 (몇 분에 한 번, 100m 칸만)
+    unawaited(partyNearPing());
     return _serial(() async {
     await _anchorNear(fix.point);
     await _riftOnFix(fix.point);

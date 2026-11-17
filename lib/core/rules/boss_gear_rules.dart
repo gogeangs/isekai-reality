@@ -8,11 +8,13 @@ import 'equipment_rules.dart';
 import 'highland_rules.dart';
 import 'materials.dart';
 import 'monsters.dart';
+import 'party_rules.dart';
 
 /// 보스 장비 세트 (11-11 #82). 보스마다 6부위 한 벌.
 /// 묶음 34: ash = 「잿빛 왕의 유품」 (만들 수 없고 분신·본체에게서만 얻는다)
 /// 묶음 50: sky = 「하이랜드 수호 기사」 (하늘 돌 조각 + 섬 결정으로 만든다)
-enum BossSet { warden, flame, frost, grove, night, storm, ash, sky }
+/// 묶음 56: party = 파티 보스 세트 「동행」 (파티 보스 재료로 만든다)
+enum BossSet { warden, flame, frost, grove, night, storm, ash, sky, party }
 
 /// 6개 세트 효과 (보스 고유 능력, 확률·배율은 숨김)
 enum BossSetAbility {
@@ -39,6 +41,9 @@ enum BossSetAbility {
 
   /// 하이랜드 수호 기사 (묶음 50): 섬이 조금 더 오래 떠 있다
   skyKnight,
+
+  /// 「동행」 (묶음 56): 파티 보스에게 더 세고, 함께 있을 때 더 자란다
+  companion,
 }
 
 class BossSetInfo {
@@ -266,8 +271,31 @@ class BossGearRules {
     ],
   );
 
-  /// 만들 수 있는 보스 세트 + 유품 세트 + 하이랜드 세트
-  static const List<BossSetInfo> allSets = [...sets, relicSet, skySet];
+  /// 「동행」 (묶음 56 #236): 대장간 보스 장비 탭. 부위마다 파티 보스 재료 + 금화
+  static const BossSetInfo partySet = BossSetInfo(
+    id: BossSet.party,
+    name: '동행 세트',
+    boss: MonsterId.partyGolem,
+    element: Element.light,
+    material: MaterialId.golemCore,
+    ability: BossSetAbility.companion,
+    abilityName: '함께 걷는 길',
+    abilityText: '파티 보스에게 주는 피해가 더 커져요',
+    look: '함께 걷는 이',
+    lookText: '네 가지 보스 재료가 어깨 망토에서 빛나는 모습',
+    aura: 0xFFFFE3B0,
+    parts: [
+      (EquipBase.partyWeapon, '동행의 깃발창', '파티 깃발을 매단 창, 네 보스의 재료로 벼림'),
+      (EquipBase.partyHead, '골렘돌 투구', '이마에 골렘의 심장돌을 박은 투구'),
+      (EquipBase.partyBody, '진주 비늘 갑옷', '크라켄 진주와 골렘돌로 엮은 갑옷'),
+      (EquipBase.partyHands, '비늘 발톱 장갑', '히드라 비늘에 와이번 발톱을 단 장갑'),
+      (EquipBase.partyFeet, '바람 발톱 장화', '와이번 발톱 장식이 달린 가벼운 장화'),
+      (EquipBase.partyAcc, '네 빛의 목걸이', '보스 재료 넷을 하나씩 꿴 목걸이'),
+    ],
+  );
+
+  /// 만들 수 있는 보스 세트 + 유품 세트 + 하이랜드 세트 + 동행 세트
+  static const List<BossSetInfo> allSets = [...sets, relicSet, skySet, partySet];
 
   /// 부위 하나를 만드는 데 드는 재료와 금화 (하이랜드 세트는 부위마다 결정이 다르다)
   static ({Map<MaterialId, int> mats, int gold}) partCost(EquipBase base,
@@ -276,6 +304,10 @@ class BossGearRules {
     if (setOf(base) == BossSet.sky) {
       final c = HighlandRules.partCost(slot);
       return (mats: c.mats, gold: blacksmith ? (c.gold * 0.7).round() : c.gold);
+    }
+    if (setOf(base) == BossSet.party) {
+      final i = _slots.indexOf(slot);
+      return (mats: PartyRules.partCost(i), gold: PartyRules.partGold(i));
     }
     final set = info(setOf(base) ?? BossSet.warden);
     final c = cost(slot, blacksmith: blacksmith);
@@ -286,8 +318,13 @@ class BossGearRules {
   }
 
   /// 실패하면 잃는 조각 (보스 장비 조각 · 하이랜드는 하늘 돌 조각)
-  static MaterialId shardOf(EquipBase base) =>
-      setOf(base) == BossSet.sky ? MaterialId.skyStone : MaterialId.bossShard;
+  static MaterialId shardOf(EquipBase base) => switch (setOf(base)) {
+        BossSet.sky => MaterialId.skyStone,
+        // 동행 세트: 그 부위에 드는 첫 보스 재료
+        BossSet.party =>
+          PartyRules.partCost(_slots.indexOf(EquipmentRules.info(base).slot)).keys.first,
+        _ => MaterialId.bossShard,
+      };
 
   static BossSetInfo info(BossSet s) => allSets.firstWhere((x) => x.id == s);
 
@@ -334,9 +371,19 @@ class BossGearRules {
           attack: baseStat(_slots[i]).attack,
           reduce: baseStat(_slots[i]).reduce,
           maxHp: baseStat(_slots[i]).maxHp,
-          asset: 'equip_${s.parts[i].$1.name}',
+          asset: _tempArt[s.parts[i].$1] ?? 'equip_${s.parts[i].$1.name}',
         ),
   ];
+
+  /// 그림이 오기 전 잠시 쓰는 그림 (묶음 56 「동행」 세트 — 같은 이름 그림이 오면 지움)
+  static const Map<EquipBase, String> _tempArt = {
+    EquipBase.partyWeapon: 'equip_spear',
+    EquipBase.partyHead: 'equip_cap',
+    EquipBase.partyBody: 'equip_armor',
+    EquipBase.partyHands: 'equip_gloves',
+    EquipBase.partyFeet: 'equip_boots',
+    EquipBase.partyAcc: 'equip_stone_charm',
+  };
 
   // ───────────── 만들기 (대장간 NPC, 숫자는 제안값)
 
@@ -413,7 +460,13 @@ class SetBonus {
     this.skyFeather = false,
     this.guardFlash = 0,
     this.petFaster = 0,
+    this.partyBoss = 0,
+    this.togetherExp = 0,
   });
+
+  /// 묶음 56: 「동행」 — 파티 보스에게 주는 피해 · 함께 있을 때 사냥 경험치 (숨김)
+  final double partyBoss;
+  final double togetherExp;
 
   /// 묶음 53: 볼크의 금 간 투구 — 막을 때 적이 멈출 확률 (숨김)
   final double guardFlash;
@@ -459,6 +512,8 @@ class SetBonus {
     var baldrin = 0;
     var guardFlash = 0.0;
     var petFaster = 0;
+    var partyBoss = 0.0;
+    var togetherExp = 0.0;
     for (final it in worn) {
       switch (it.base) {
         case EquipBase.baldrinWeapon ||
@@ -497,6 +552,17 @@ class SetBonus {
         }
         return;
       }
+      if (s == BossSet.party) {
+        // 2개 파티 보스 피해 · 4개 함께 있을 때 경험치 · 6개 파티 보스 피해 더 + 모습
+        if (n >= 2) partyBoss = PartyRules.set2Boss;
+        if (n >= 4) togetherExp = PartyRules.set4Together;
+        if (n >= 6) {
+          partyBoss = PartyRules.set6Boss;
+          ab.add(info.ability);
+          look = s;
+        }
+        return;
+      }
       if (s == BossSet.ash) {
         // 2개 받는 피해 ↓ · 4개 주는 피해 ↑ · 6개 둘 다 더
         if (n >= 2) ashTaken += Act2Rules.setTaken2;
@@ -526,6 +592,8 @@ class SetBonus {
         skyTaken: skyTaken,
         skyFeather: skyFeather,
         guardFlash: guardFlash,
-        petFaster: petFaster);
+        petFaster: petFaster,
+        partyBoss: partyBoss,
+        togetherExp: togetherExp);
   }
 }

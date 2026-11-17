@@ -47,6 +47,13 @@ class BossGearTab extends StatelessWidget {
             ? _SetCard(controller: c, set: BossGearRules.skySet)
             : const _HiddenSet(set: BossGearRules.skySet),
         const SizedBox(height: 10),
+        // 묶음 56 #236: 파티 보스 세트 「동행」 (파티 보스 재료가 하나라도 생기면 보인다)
+        if (c.partyOpen) ...[
+          c.bossSetOpen(BossSet.party)
+              ? _SetCard(controller: c, set: BossGearRules.partySet)
+              : const _HiddenSet(set: BossGearRules.partySet),
+          const SizedBox(height: 10),
+        ],
         // 묶음 34: 잿빛 왕의 유품 (만들 수 없음, 분신·본체에게서). 하나라도 얻으면 보인다
         if (BossGearRules.relicSet.parts.any((x) => c.hasBossPart(x.$1))) ...[
           _RelicCard(controller: c),
@@ -225,6 +232,16 @@ class _Effects extends StatelessWidget {
   Widget build(BuildContext context) {
     const style = TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4);
     final el = set.element.label;
+    if (set.id == BossSet.party) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const KText('2개 · 파티 보스에게 주는 피해가 조금 커져요', style: style),
+          const KText('4개 · 파티원과 함께 있을 때 사냥 경험치가 조금 더', style: style),
+          KText('6개 · 「${set.look}」 모습 · ${set.abilityText}', style: style),
+        ],
+      );
+    }
     if (set.id == BossSet.sky) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

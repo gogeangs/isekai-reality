@@ -11,6 +11,7 @@ import '../battle/auto_use_window.dart';
 import '../legal/legal_screen.dart';
 import '../lens/album_files.dart';
 import 'account_section.dart';
+import 'inquiry_screen.dart';
 import '../../theme/top_notice.dart';
 
 /// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
@@ -202,9 +203,31 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          // 묶음 56 #248: 문의 (로그인 안 해도 됨, 답은 게임 안 우편)
           _Section(
-            title: '약관',
+            title: '문의',
             children: [
+              _Row(
+                key: const Key('settingsInquiry'),
+                label: '문의하기',
+                value: '',
+                onTap: () => InquiryScreen.open(context, controller),
+              ),
+            ],
+          ),
+          _Section(
+            title: '약관 · 정책',
+            children: [
+              _Row(
+                label: LegalDoc.operation.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.operation),
+              ),
+              _Row(
+                label: LegalDoc.terms.title,
+                value: '',
+                onTap: () => LegalScreen.open(context, LegalDoc.terms),
+              ),
               _Row(
                 label: LegalDoc.privacy.title,
                 value: '',
@@ -344,7 +367,8 @@ class _Note extends StatelessWidget {
 
 class _Row extends StatelessWidget {
   const _Row(
-      {required this.label,
+      {super.key,
+      required this.label,
       required this.value,
       this.onTap,
       this.danger = false});

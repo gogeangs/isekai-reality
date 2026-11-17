@@ -367,7 +367,8 @@ void main() {
           home: TavernScreen(controller: c)));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('npc_lian')), findsOneWidget);
-      expect(find.byKey(const Key('tavernPartySoon')), findsOneWidget);
+      // 묶음 56: 「파티 · 준비 중」 칸 → 「파티」 탭
+      expect(find.byKey(const Key('tavernTab_party')), findsOneWidget);
       await tester.tap(find.byKey(const Key('tavernHear')));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await tester.pump(const Duration(milliseconds: 300));

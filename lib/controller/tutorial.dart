@@ -611,6 +611,12 @@ extension TutorialOps on AppController {
     if (_skewerExp != 1) exp = (exp * _skewerExp).round();
     // 묶음 54: 여관 ★3 → 쉬고 일어난 뒤 잠시 사냥 경험치 조금 더 (숨김)
     if (innExpOn) exp = (exp * BuildingRules.innExp).round();
+    // 묶음 56 #236: 파티원이 가까이 있으면(함께 있어요) 경험치 · 재료 조금 더 + 「함께 잡은 몬스터」
+    final together = partyNear;
+    if (together) {
+      exp = (exp * (PartyRules.togetherExp + gear.sets.togetherExp)).round();
+      await _countTogether();
+    }
     // 기본 마석 1개는 규칙(하루 5마리)으로 계산하고, 나머지는 기록에 더한다
     final mats = <MaterialId, int>{};
     var extraMana = 0, gold = 0;
@@ -631,6 +637,11 @@ extension TutorialOps on AppController {
       // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
       if (_masteryRoll(MasteryRules.monsterExtraLoot *
           _detailFrac(MasteryRules.monsterKey(monster)))) {
+        final d = LootRules.dropsOf(monster);
+        final extra = d.common[_random.nextInt(d.common.length)];
+        mats[extra] = (mats[extra] ?? 0) + 1;
+      }
+      if (together && _random.nextDouble() < PartyRules.togetherMat) {
         final d = LootRules.dropsOf(monster);
         final extra = d.common[_random.nextInt(d.common.length)];
         mats[extra] = (mats[extra] ?? 0) + 1;

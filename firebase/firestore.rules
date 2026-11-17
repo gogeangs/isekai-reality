@@ -1,0 +1,12 @@
+rules_version = '2';
+// 묶음 55 #245: 내 기록(users/{내 uid})과 그 아래 조각만 읽고 쓴다. 다른 사람 것은 못 봄.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{rest=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}

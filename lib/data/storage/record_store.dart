@@ -136,6 +136,34 @@ abstract class RecordStore {
 
   /// 모든 기록·프로필·탐험 기록을 지운다 (데이터 동의 철회)
   Future<void> clearAll();
+
+  /// 묶음 55 #245: 기록 전체 (백업용). 값은 문자열 또는 문자열 목록.
+  /// 로그인 · 서버 시간 같은 이 휴대폰만의 값([loadSide])은 들어가지 않는다
+  Future<Map<String, Object>> exportAll();
+
+  /// 기록 전체를 [data] 로 바꾼다 (복원). 이 휴대폰만의 값은 그대로
+  Future<void> importAll(Map<String, Object> data);
+
+  /// 이 휴대폰만의 값 (로그인 상태 · 서버 시간 차이). 백업 · 「모두 지우기」에 안 들어감
+  Future<String?> loadSide(String key);
+  Future<void> saveSide(String key, String? value);
+}
+
+/// 백업 스냅숏 키 (SharedPreferences 와 같은 이름을 쓴다)
+class SnapshotKeys {
+  SnapshotKeys._();
+  static const profile = 'profile.v1';
+  static const history = 'history.v1';
+  static const vitals = 'vitals.v1';
+  static const cells = 'cells.';
+  static const json = 'json.';
+
+  static bool isRecord(String key) =>
+      key == profile ||
+      key == history ||
+      key == vitals ||
+      key.startsWith(cells) ||
+      key.startsWith(json);
 }
 
 /// 테스트·예시용 메모리 저장소
@@ -199,6 +227,55 @@ class InMemoryRecordStore implements RecordStore {
     _cells.clear();
     _json.clear();
     _vitals = const Vitals();
+  }
+
+  final Map<String, String> _side = {};
+
+  @override
+  Future<String?> loadSide(String key) async => _side[key];
+
+  @override
+  Future<void> saveSide(String key, String? value) async {
+    if (value == null) {
+      _side.remove(key);
+    } else {
+      _side[key] = value;
+    }
+  }
+
+  @override
+  Future<Map<String, Object>> exportAll() async => {
+        if (_profile != null) SnapshotKeys.profile: jsonEncode(_profile!.toJson()),
+        SnapshotKeys.history:
+            jsonEncode([for (final r in await loadHistory()) r.toJson()]),
+        SnapshotKeys.vitals: jsonEncode(_vitals.toJson()),
+        for (final e in _cells.entries)
+          '${SnapshotKeys.cells}${e.key}.v1': e.value.toList(),
+        for (final e in _json.entries) '${SnapshotKeys.json}${e.key}': jsonEncode(e.value),
+      };
+
+  @override
+  Future<void> importAll(Map<String, Object> data) async {
+    await clearAll();
+    for (final e in data.entries) {
+      final k = e.key, v = e.value;
+      if (k == SnapshotKeys.profile && v is String) {
+        _profile = PlayerProfile.fromJson(Map<String, dynamic>.from(jsonDecode(v) as Map));
+      } else if (k == SnapshotKeys.history && v is String) {
+        for (final r in jsonDecode(v) as List) {
+          final d = DailyRecord.fromJson(Map<String, dynamic>.from(r as Map));
+          _records[d.dayKey] = d;
+        }
+      } else if (k == SnapshotKeys.vitals && v is String) {
+        _vitals = Vitals.fromJson(Map<String, dynamic>.from(jsonDecode(v) as Map));
+      } else if (k.startsWith(SnapshotKeys.cells) && v is List) {
+        final area = k.substring(SnapshotKeys.cells.length).replaceAll(RegExp(r'\.v1$'), '');
+        _cells[area] = {for (final c in v) '$c'};
+      } else if (k.startsWith(SnapshotKeys.json) && v is String) {
+        _json[k.substring(SnapshotKeys.json.length)] =
+            Map<String, dynamic>.from(jsonDecode(v) as Map);
+      }
+    }
   }
 }
 
@@ -341,13 +418,118 @@ class SharedPrefsRecordStore implements RecordStore {
   Future<void> clearAll() async {
     final prefs = await _prefs;
     for (final key in prefs.getKeys().toList()) {
-      if (key == _profileKey ||
-          key == _historyKey ||
-          key == _vitalsKey ||
-          key.startsWith('cells.') ||
-          key.startsWith('json.')) {
+      if (SnapshotKeys.isRecord(key)) {
         await prefs.remove(key);
       }
     }
+  }
+
+  @override
+  Future<String?> loadSide(String key) async => (await _prefs).getString('side.$key');
+
+  @override
+  Future<void> saveSide(String key, String? value) async {
+    final prefs = await _prefs;
+    if (value == null) {
+      await prefs.remove('side.$key');
+    } else {
+      await prefs.setString('side.$key', value);
+    }
+  }
+
+  @override
+  Future<Map<String, Object>> exportAll() async {
+    final prefs = await _prefs;
+    await prefs.reload();
+    final out = <String, Object>{};
+    for (final key in prefs.getKeys()) {
+      if (!SnapshotKeys.isRecord(key)) continue;
+      final v = prefs.get(key);
+      if (v is String) {
+        out[key] = v;
+      } else if (v is List) {
+        out[key] = [for (final x in v) '$x'];
+      }
+    }
+    return out;
+  }
+
+  @override
+  Future<void> importAll(Map<String, Object> data) async {
+    final prefs = await _prefs;
+    await clearAll();
+    for (final e in data.entries) {
+      if (!SnapshotKeys.isRecord(e.key)) continue;
+      final v = e.value;
+      if (v is String) {
+        await prefs.setString(e.key, v);
+      } else if (v is List) {
+        await prefs.setStringList(e.key, [for (final x in v) '$x']);
+      }
+    }
+  }
+}
+
+/// 묶음 55 #245: 서버 기록으로 바꾼 뒤 예전 컨트롤러가 더는 쓰지 못하게 막는 저장소
+class RetirableStore implements RecordStore {
+  RetirableStore(this.inner);
+
+  final RecordStore inner;
+
+  /// true 면 쓰기를 모두 무시한다 (읽기는 그대로)
+  bool retired = false;
+
+  @override
+  Future<PlayerProfile?> loadProfile() => inner.loadProfile();
+  @override
+  Future<void> saveProfile(PlayerProfile profile) async {
+    if (!retired) await inner.saveProfile(profile);
+  }
+
+  @override
+  Future<List<DailyRecord>> loadHistory() => inner.loadHistory();
+  @override
+  Future<void> upsert(DailyRecord record) async {
+    if (!retired) await inner.upsert(record);
+  }
+
+  @override
+  Future<Set<String>> loadRevealedCells(String areaId) => inner.loadRevealedCells(areaId);
+  @override
+  Future<void> saveRevealedCells(String areaId, Set<String> cells) async {
+    if (!retired) await inner.saveRevealedCells(areaId, cells);
+  }
+
+  @override
+  Future<Vitals> loadVitals() => inner.loadVitals();
+  @override
+  Future<void> saveVitals(Vitals vitals) async {
+    if (!retired) await inner.saveVitals(vitals);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> loadJson(String key) => inner.loadJson(key);
+  @override
+  Future<void> saveJson(String key, Map<String, dynamic> value) async {
+    if (!retired) await inner.saveJson(key, value);
+  }
+
+  @override
+  Future<void> clearAll() async {
+    if (!retired) await inner.clearAll();
+  }
+
+  @override
+  Future<Map<String, Object>> exportAll() => inner.exportAll();
+  @override
+  Future<void> importAll(Map<String, Object> data) async {
+    if (!retired) await inner.importAll(data);
+  }
+
+  @override
+  Future<String?> loadSide(String key) => inner.loadSide(key);
+  @override
+  Future<void> saveSide(String key, String? value) async {
+    if (!retired) await inner.saveSide(key, value);
   }
 }

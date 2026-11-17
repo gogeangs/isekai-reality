@@ -13,6 +13,8 @@ import 'app_controller.dart';
 import 'core/rules/exclusion_index.dart';
 import 'core/rules/place_grid.dart';
 import 'core/rules/road_mask.dart';
+import 'data/cloud/backup_server.dart';
+import 'data/cloud/cloud_auth.dart';
 import 'data/route/route_tile_source.dart';
 import 'data/health/device_health_source.dart';
 import 'data/location/location_source.dart';
@@ -20,6 +22,7 @@ import 'data/notify/notifier.dart';
 import 'data/sound/sfx.dart';
 import 'data/storage/record_store.dart';
 import 'features/map/map_config.dart';
+import 'theme/app_colors.dart';
 
 /// 예시 데이터로 실행: flutter run --dart-define=DEMO=true
 /// 네이버 지도 사용: --dart-define=NAVER_MAP_CLIENT_ID=발급받은ID
@@ -41,17 +44,11 @@ Future<void> main() async {
     );
   }
 
-  final controller = kDemoMode
-      ? AppController.demo()
-      : AppController(
-          store: SharedPrefsRecordStore(),
-          health: DeviceHealthSource(),
-          location: DeviceLocationSource(),
-          notifier: DeviceNotifier(),
-          // 실제 앱은 위치를 알기 전에는 몬스터를 두지 않는다
-          fallbackCenter: null,
-        );
-  if (!kDemoMode) controller.routeTiles = GithubRouteTiles();
+  // 묶음 55 #245: 로그인 · 백업 · 서버 시간 (설정값이 없는 빌드는 지금처럼 휴대폰 기록만)
+  final cloud = kDemoMode ? null : await FirebaseCloudAuth.start();
+  final clock = ServerClock();
+  final host = AppBinder(cloud: cloud, clock: clock);
+  final controller = host.make(null);
   try {
     controller.roads = RoadMask.tryParse(
         await rootBundle.loadString('assets/data/road_mask.json'));
@@ -67,8 +64,99 @@ Future<void> main() async {
     // 자료가 없으면 이름을 아는 제외 구역만 쓴다
   }
   Sfx.init(); // 기다리지 않는다 (소리 준비가 늦어도 화면은 바로)
-  runApp(IsekaiRealityApp(controller: controller));
+  runApp(AppHost(host: host, first: controller));
   controller.init();
+}
+
+/// 컨트롤러를 만들고, 서버 기록으로 바꾼 뒤에는 새로 만든다 (묶음 55 #245)
+class AppBinder {
+  AppBinder({required this.cloud, required this.clock});
+
+  final CloudAuth? cloud;
+  final ServerClock clock;
+  RetirableStore? _store;
+  VoidCallback? onSwap;
+  AppController? current;
+
+  AppController make(AppController? from) {
+    _store = RetirableStore(SharedPrefsRecordStore());
+    final c = kDemoMode
+        ? AppController.demo()
+        : AppController(
+            store: _store!,
+            health: DeviceHealthSource(),
+            location: DeviceLocationSource(),
+            notifier: DeviceNotifier(),
+            // 실제 앱은 위치를 알기 전에는 몬스터를 두지 않는다
+            fallbackCenter: null,
+            clock: clock.now,
+          );
+    if (!kDemoMode) {
+      c.routeTiles = GithubRouteTiles();
+      c.serverClock = clock;
+      if (cloud != null) {
+        c.cloudAuth = cloud;
+        c.backupServer = FirestoreBackupServer();
+      }
+      c.onRestored = () => _restart(c);
+    }
+    if (from != null) {
+      c.roads = from.roads;
+      c.exclusions = from.exclusions;
+      c.lands = from.lands;
+    }
+    current = c;
+    return c;
+  }
+
+  Future<void> _restart(AppController old) async {
+    _store?.retired = true;
+    old.retire();
+    make(old);
+    onSwap?.call();
+  }
+}
+
+/// 묶음 55: 서버 기록을 받아 오면 앱을 새 기록으로 다시 띄운다
+class AppHost extends StatefulWidget {
+  const AppHost({super.key, required this.host, required this.first});
+
+  final AppBinder host;
+  final AppController first;
+
+  @override
+  State<AppHost> createState() => _AppHostState();
+}
+
+class _AppHostState extends State<AppHost> {
+  late AppController _c = widget.first;
+  int _gen = 0;
+  bool _swapping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.host.onSwap = _swap;
+  }
+
+  void _swap() {
+    // 한 프레임 비우고(예전 화면을 모두 내린 뒤) 새 컨트롤러로
+    setState(() => _swapping = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _c = widget.host.current!;
+        _gen++;
+        _swapping = false;
+      });
+      _c.init();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _swapping
+      ? const ColoredBox(color: AppColors.deepNight)
+      : IsekaiRealityApp(key: ValueKey(_gen), controller: _c);
 }
 
 /// 장소 종류 격자를 풀어 컨트롤러에 넣는다 (없거나 틀리면 예전처럼 고르게)

@@ -10,6 +10,7 @@ import '../../theme/ornaments.dart';
 import '../battle/auto_use_window.dart';
 import '../legal/legal_screen.dart';
 import '../lens/album_files.dart';
+import 'account_section.dart';
 import '../../theme/top_notice.dart';
 
 /// 설정: 이름 · 정령 이름 · 데이터 삭제 · 제외 구역 요청 · 앱 정보
@@ -31,6 +32,8 @@ class SettingsScreen extends StatelessWidget {
         children: [
           OrnateTopBar(title: '설정', onBack: onBack),
           const SizedBox(height: 8),
+          // 묶음 55 #245: 로그인 · 백업 · 계정 삭제
+          _Section(title: '계정', children: [AccountSection(controller: controller)]),
           _Section(
             title: '알림',
             children: [
@@ -156,7 +159,7 @@ class SettingsScreen extends StatelessWidget {
           _Section(
             title: '내 데이터',
             children: [
-              const _Note('걸음과 위치 기록은 휴대폰에만 저장돼요'),
+              const _Note('기록은 휴대폰에 저장돼요. 로그인하면 서버에도 백업해요'),
               const _Note('감정 앨범 사진은 이 휴대폰에만 있고, 앱을 지우면 사라질 수 있어요'),
               _Row(
                 label: '자세히 보기',
@@ -378,13 +381,14 @@ class DataInfoScreen extends StatelessWidget {
   const DataInfoScreen({super.key});
 
   static const _paras = [
-    '걸음은 휴대폰 안에서만 계산하고 밖으로 보내지 않아요.',
-    '위치는 앱을 보고 있을 때만 쓰고, 방문 기록과 밝힌 지도는 휴대폰에만 저장해요.',
+    '걸음은 휴대폰 안에서 계산해요. 로그인했을 때만 하루 걸음 수가 게임 기록과 함께 백업돼요.',
+    '위치는 앱을 보고 있을 때만 써요. 방문 기록과 밝힌 지도는 휴대폰에 저장하고, 로그인했을 때만 게임 기록과 함께 백업해요.',
     '마법 돋보기는 카메라 화면에서 얼굴의 위치만 휴대폰 안에서 찾아 장식을 붙여요. 얼굴 사진이나 얼굴 정보를 밖으로 보내지 않아요.',
     '감정할 때마다 장식을 붙인 사진 한 장이 「감정 앨범」에 남아요. 이 사진은 휴대폰 안 앱 폴더에만 있고 서버로 보내지 않아요. 앨범에서 언제든 지울 수 있고, 앱을 지우면 함께 사라질 수 있어요.',
     '「저장」이나 「공유」를 눌렀을 때만 휴대폰 사진 앨범이나 고른 앱으로 가요.',
     '건강 앱·위치·알림·카메라·사진 권한은 휴대폰 설정에서 언제든 끌 수 있어요.',
     '설정의 「모든 기록 지우고 처음부터」를 누르면 이 앱에 저장된 기록이 모두 지워져요. 건강 앱의 원래 기록은 그대로예요.',
+    '로그인하면 게임 기록(레벨 · 하루 기록 · 밝힌 지도 칸 등)을 서버(Google Firebase, 서울)에 백업해요. 앱을 닫을 때와 10분마다 올리고, 계정 삭제를 요청하면 7일 뒤 지워져요.',
   ];
 
   @override

@@ -1,0 +1,51 @@
+# 묶음 55 #245: Firestore 보안 규칙을 서비스 계정으로 배포한다 (firebase/firestore.rules 가 바뀔 때).
+# 계정 삭제 요청 뒤 7일이 지나면 Firestore TTL 이 expireAt 칸을 보고 스스로 지우게 정책도 켠다.
+# 필요한 저장소 비밀값: FIREBASE_SERVICE_ACCOUNT (서비스 계정 JSON 전체)
+name: Firestore 규칙 배포
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "firebase/**"
+      - ".github/workflows/firestore.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 서비스 계정 파일
+        run: |
+          if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT 가 없어 건너뜁니다."; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: 규칙 배포
+        working-directory: firebase
+        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project arca-d0cab --non-interactive
+
+      - name: 계정 삭제용 TTL 정책 (expireAt)
+        continue-on-error: true
+        run: |
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+          for g in users parts; do
+            gcloud firestore fields ttls update expireAt --collection-group=$g \
+              --enable-ttl --project=arca-d0cab --async --quiet || echo "::warning::TTL 정책($g)을 켜지 못했어요"
+          done
+
+      - name: 서비스 계정 파일 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

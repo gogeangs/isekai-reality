@@ -18,7 +18,7 @@ info = plistlib.loads(info_path.read_bytes())
 info.update({
     "CFBundleDisplayName": "이세계가 현실이라면?",
     "NSHealthShareUsageDescription":
-        "걸음 수로 상태창의 레벨과 던전 열쇠를 계산해요. 건강 데이터는 휴대폰 밖으로 보내지 않아요.",
+        "걸음 수로 상태창의 레벨과 던전 열쇠를 계산해요. 로그인해 백업하면 하루 걸음 수가 게임 기록과 함께 저장돼요.",
     "NSHealthUpdateUsageDescription": "건강 앱에 기록을 쓰지 않아요. 읽기만 해요.",
     "NSLocationWhenInUseUsageDescription":
         "동네의 잿빛 안개를 걷고 가까운 이세계 장소를 찾을 때 위치를 써요. 앱을 보고 있을 때만 사용해요.",

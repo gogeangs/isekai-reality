@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -30,6 +31,8 @@ import 'core/models/stat_alloc.dart';
 import 'core/models/training_state.dart';
 import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
+import 'data/cloud/backup_server.dart';
+import 'data/cloud/cloud_auth.dart';
 import 'data/health/health_source.dart';
 import 'data/location/location_source.dart';
 import 'data/mail/mail_source.dart';
@@ -47,6 +50,7 @@ part 'controller/act3.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
+part 'controller/cloud.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
 part 'controller/drive.dart';
@@ -156,6 +160,23 @@ class AppController extends ChangeNotifier {
 
   /// 원정 길 조각 (11-11 #42). 없으면 원정은 직선으로 날아간다.
   RouteTileSource routeTiles = const NoRouteTiles();
+
+  /// 묶음 55 #245: 로그인 · 기록 백업 · 서버 시간 (Firebase 설정이 없는 빌드 · 테스트는 null)
+  CloudAuth? cloudAuth;
+  BackupServer? backupServer;
+  ServerClock? serverClock;
+
+  /// 서버 기록으로 바꾼 뒤 앱을 처음부터 다시 띄움 (main 이 정함, 없으면 그 자리에서 다시 읽음)
+  Future<void> Function()? onRestored;
+  CloudState _cloud = const CloudState();
+  bool _cloudBusy = false;
+  BackupInfo? _serverChoice;
+
+  /// 앱을 새 기록으로 다시 띄울 때 예전 컨트롤러를 멈춘다 (위치 구독 끊기)
+  void retire() {
+    _locationSub?.cancel();
+    _locationSub = null;
+  }
 
   /// 위치를 아직 모를 때 몬스터를 둘 자리 (예시·테스트용, 실제 앱은 null)
   final GeoPoint? fallbackCenter;
@@ -361,6 +382,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> _init() async {
     _loadIssues.clear();
+    // 묶음 55 #245: 로그인 상태 · 마지막 서버 시간 차이 (그 뒤 서버 시간을 새로 받음)
+    await _loadCloud();
+    unawaited(refreshServerTime());
     _ageBlocked = await _load(_ageKey, (j) => j['blocked'] == true, false);
     final saved = await store.loadProfile();
     if (saved == null) {

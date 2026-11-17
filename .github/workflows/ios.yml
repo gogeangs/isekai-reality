@@ -26,6 +26,7 @@ on:
       - "assets/**"
       - "pubspec.yaml"
       - "tool/prepare_ios.py"
+      - "tool/firebase_setup.py"
       - ".github/workflows/ios.yml"
 
 permissions:
@@ -105,11 +106,16 @@ jobs:
 
       - name: ios 폴더 만들기와 설정
         if: steps.check.outputs.ready == 'true'
+        env:
+          # 묶음 55 #245: Firebase 설정 (값은 빌드 기록에 찍지 않는다)
+          FIREBASE_IOS_PLIST: ${{ secrets.FIREBASE_IOS_PLIST }}
+          FIREBASE_ANDROID_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
         run: |
           flutter create --platforms ios --org kr.itso --project-name isekai_reality .
           python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
           python3 tool/optimize_images.py
           python3 tool/prepare_ios.py
+          python3 tool/firebase_setup.py ios
 
       - name: API 키 파일
         if: steps.check.outputs.ready == 'true'
@@ -133,7 +139,8 @@ jobs:
             --dart-define=ADS_REAL=${{ inputs.real_ads == true && '1' || '0' }} \
             --dart-define=ADMOB_REWARDED_IOS="${ADMOB_REWARDED_IOS:-ca-app-pub-3940256099942544/1712485313}" \
             --dart-define=ADMOB_REWARDED_ANDROID="${ADMOB_REWARDED_ANDROID:-ca-app-pub-3940256099942544/5224354917}" \
-            --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt
+            --dart-define=SNAP_STAGE=staging \
+            $(cat build/firebase_defines.txt 2>/dev/null) 2>&1 | tee build-output.txt
           exit ${PIPESTATUS[0]}
 
       - name: 서명하고 TestFlight 로 올리기

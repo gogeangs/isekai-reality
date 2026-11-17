@@ -29,6 +29,10 @@ dependencies:
   path_provider: ^2.1.0
   # 11-11 #75 전투 효과음 (Oculus Audio Pack 01, CC BY 4.0)
   audioplayers: ^6.1.0
+  # 묶음 55 #245: 로그인 (Apple · Google). 기록 백업은 Firestore REST 로 (패키지 없이)
+  firebase_core: ">=4.0.0 <6.0.0"
+  firebase_auth: ">=6.0.0 <8.0.0"
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:

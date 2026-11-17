@@ -21,6 +21,7 @@ on:
       - "assets/**"
       - "pubspec.yaml"
       - "tool/prepare_android.py"
+      - "tool/firebase_setup.py"
       - ".github/workflows/android.yml"
 
 permissions:
@@ -56,10 +57,21 @@ jobs:
           SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
           SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
           ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
+          # 묶음 55 #245: 고정 서명 키 · Firebase 설정 (값은 빌드 기록에 찍지 않는다)
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          FIREBASE_ANDROID_JSON: ${{ secrets.FIREBASE_ANDROID_JSON }}
+          FIREBASE_IOS_PLIST: ${{ secrets.FIREBASE_IOS_PLIST }}
         run: |
           python3 -m pip install --quiet pillow
           python3 tool/optimize_images.py
           python3 tool/prepare_android.py
+          python3 tool/firebase_setup.py android
+          if [ -f android/app/upload.jks ]; then
+            echo "서명 키 지문 (Firebase 에 넣는 값):"
+            keytool -list -v -keystore android/app/upload.jks -alias upload \
+              -storepass "$ANDROID_KEYSTORE_PASSWORD" | grep -E "SHA1:|SHA256:"
+          fi
 
       - name: APK 만들기
         env:
@@ -72,6 +84,7 @@ jobs:
           ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
           ADMOB_REWARDED_IOS: ${{ vars.ADMOB_REWARDED_IOS }}
           ADMOB_REWARDED_ANDROID: ${{ vars.ADMOB_REWARDED_ANDROID }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         shell: bash
         run: |
           # 요즘 Android 휴대폰(64비트 ARM)용만 만들어 파일 크기를 줄인다
@@ -87,7 +100,8 @@ jobs:
             --dart-define=ADS_REAL=${{ inputs.real_ads == true && '1' || '0' }} \
             --dart-define=ADMOB_REWARDED_IOS="${ADMOB_REWARDED_IOS:-ca-app-pub-3940256099942544/1712485313}" \
             --dart-define=ADMOB_REWARDED_ANDROID="${ADMOB_REWARDED_ANDROID:-ca-app-pub-3940256099942544/5224354917}" \
-            --dart-define=SNAP_STAGE=staging 2>&1 | tee build-output.txt
+            --dart-define=SNAP_STAGE=staging \
+            $(cat build/firebase_defines.txt 2>/dev/null) 2>&1 | tee build-output.txt
           status=${PIPESTATUS[0]}
           [ $status -eq 0 ] && cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk isekai-reality.apk
           exit $status

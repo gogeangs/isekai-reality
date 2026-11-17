@@ -169,4 +169,32 @@ else:
 """ + g
             root_groovy.write_text(g)
 
+# 묶음 55 #245: 고정 서명 키 (저장소 비밀값 ANDROID_KEYSTORE_B64 · ANDROID_KEYSTORE_PASSWORD).
+# 없으면 지금처럼 디버그 키. 키 파일은 빌드 서버의 android/ 안에만 두고(저장소에 안 올라감),
+# 비밀번호는 빌드 설정 파일에 적지 않고 환경 변수로만 읽는다 (android-log 에 빌드 설정이 남기 때문)
+import base64
+ks = os.environ.get("ANDROID_KEYSTORE_B64", "").strip()
+if ks and os.environ.get("ANDROID_KEYSTORE_PASSWORD"):
+    (app / "upload.jks").write_bytes(base64.b64decode(ks))
+    kts = app / "build.gradle.kts"
+    if kts.exists():
+        g = kts.read_text()
+        if 'create("release")' not in g:
+            g = g.replace("    buildTypes {", """    signingConfigs {
+        create("release") {
+            storeFile = file("upload.jks")
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = "upload"
+            keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        }
+    }
+
+    buildTypes {""", 1)
+            g = g.replace('signingConfig = signingConfigs.getByName("debug")',
+                          'signingConfig = signingConfigs.getByName("release")', 1)
+            kts.write_text(g)
+    print("고정 서명 키로 서명")
+else:
+    print("서명 키 비밀값이 없어 디버그 키로 서명")
+
 print("android/ 준비 완료")

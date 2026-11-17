@@ -17,7 +17,7 @@ extension HarvestOps on AppController {
     // 묶음 28 #181: 막 열린 채집 자리 하나는 그날 내 가까이에 (안내 자리)
     final spots = _baseHarvestSpots();
     final guides = _guideHarvestSpots();
-    final path = _pathFindSpots();
+    final path = [..._pathFindSpots(), ..._skySpots()];
     if (guides.isEmpty && path.isEmpty) return spots;
     return [...path, ...guides, ...spots];
   }
@@ -65,7 +65,8 @@ extension HarvestOps on AppController {
   }
 
   /// 길 찾기 보물 상자인지 (도구 없이 연다)
-  bool isTreasure(HarvestSpot s) => s.id.startsWith('pf-chest-');
+  bool isTreasure(HarvestSpot s) =>
+      s.id.startsWith('pf-chest-') || _isSkyChest(s);
 
   /// 방금 연 보물 상자의 금화
   int get lastTreasureGold => _lastTreasureGold;
@@ -77,6 +78,8 @@ extension HarvestOps on AppController {
         if (fix == null || s.point.distanceTo(fix.point) > HarvestRules.reachM) {
           return null;
         }
+        // 묶음 49 #235: 무가 찾은 하늘 상자
+        if (_isSkyChest(s)) return _openSky(s);
         final key = int.tryParse(s.id.substring('pf-chest-'.length));
         if (key == null || _jobs.marks['pfChestOpened'] == key % 1000000000) {
           return null;
@@ -202,11 +205,12 @@ extension HarvestOps on AppController {
     return best;
   }
 
-  int harvestCharges(HarvestSpot s) => _harvest.chargesOf(s.id, _clock());
+  int harvestCharges(HarvestSpot s) =>
+      _harvest.chargesOf(s.id, _clock(), recharge: _spotRecharge);
 
   /// 다음 하나가 차기까지
   Duration? harvestRefill(HarvestSpot s) =>
-      _harvest.spots[s.id]?.untilNext(_clock());
+      _harvest.spots[s.id]?.untilNext(_clock(), recharge: _spotRecharge);
 
   /// 도구 내구도 (처음 채집 전에는 새 도구로 친다)
   /// 묶음 23: 도구를 가지고 있을 때만 센다 (없으면 0, 「도구 필요」 규칙)
@@ -389,7 +393,9 @@ extension HarvestOps on AppController {
     if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
     final keepCharge = await _consumeSkill(JobSkill.rootPull);
     h = h.copyWith(
-      spots: keepCharge ? h.spots : {...h.spots, s.id: charge.use(now)},
+      spots: keepCharge
+          ? h.spots
+          : {...h.spots, s.id: charge.use(now, recharge: _spotRecharge)},
       tools: minigame && !keepTool
           ? {...h.tools, tool.name: math.max(0, h.durability(tool) - 1)}
           : h.tools,

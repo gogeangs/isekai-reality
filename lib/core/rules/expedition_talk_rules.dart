@@ -127,5 +127,24 @@ class ExpeditionTalkRules {
         PetSpecies.golem => going
             ? const ['…천천히, 하지만 확실히', '쿵, 쿵, 출발']
             : const ['…돌아왔어. 쿵.'],
+        // 묶음 49 #235 영웅 펫
+        PetSpecies.wolf => going
+            ? const ['바람을 타고 다녀올게!', '아우우— 출발!']
+            : const ['바람처럼 돌아왔어!'],
+        PetSpecies.turtle => going
+            ? const ['천천히 가도 꼭 이기고 올게', '등딱지 단단히!']
+            : const ['이끼에 재료를 잔뜩 붙여 왔어'],
+        PetSpecies.panther => going
+            ? const ['그림자를 밟고 다녀올게', '…소리 없이 간다']
+            : const ['아무도 모르게 돌아왔어'],
+        PetSpecies.whale => going
+            ? const ['안개를 헤엄쳐 갈게~', '뿌우— 출발!']
+            : const ['구름 위를 한 바퀴 돌고 왔어~'],
+        PetSpecies.phoenix => going
+            ? const ['불씨는 꺼지지 않아!', '날개에 불 붙었다!']
+            : const ['조금 그을렸지만 더 뜨거워졌어!'],
+        PetSpecies.stag => going
+            ? const ['새벽빛을 따라갈게', '뿔이 반짝반짝, 출발!']
+            : const ['햇살을 한 아름 가져왔어'],
       };
 }

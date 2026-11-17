@@ -79,6 +79,12 @@ class Pet {
   bool get adult => level >= PetRules.adultLevel;
   PetSpeciesInfo get info => PetRules.info(species);
 
+  /// 영웅 펫인지 (묶음 49 #235)
+  bool get hero => PetRules.isHero(species);
+
+  /// 영웅 펫이 단짝(친밀도 100)이 되면 「각성 모습」
+  bool get awake => hero && bond >= PetRules.maxBond;
+
   Pet copyWith({String? name, int? exp, int? bond}) => Pet(
         uid: uid,
         species: species,
@@ -134,7 +140,31 @@ class PetState {
     this.seenSpecies = const [],
     this.firstPet,
     this.tired = const {},
+    this.heroMiss = 0,
+    this.heroDay,
+    this.heroLat,
+    this.heroLng,
+    this.heroWalk = 0,
+    this.skyDay,
+    this.heroMet = const [],
   });
+
+  // ───────────── 묶음 49 #235 영웅 펫
+
+  /// Lv.15 뒤 영웅 펫이 안 나온 부화 수 (확률이 조금씩 오름)
+  final int heroMiss;
+
+  /// 영웅 펫 동행 효과의 그날 기준 자리 (그날 처음 위치) · 그날 센 이른 아침 걸음
+  final String? heroDay;
+  final double? heroLat;
+  final double? heroLng;
+  final int heroWalk;
+
+  /// 무: 하늘에서 떨어진 재료 상자를 연 날
+  final String? skyDay;
+
+  /// 영웅 펫을 보고 한마디 한 마을 사람
+  final List<String> heroMet;
 
   /// 묶음 35 지침: 원정에서 진 펫이 풀리는 때 (uid → 시각). 지친 동안 원정은 못 감
   final Map<String, DateTime> tired;
@@ -225,8 +255,22 @@ class PetState {
     List<String>? seenSpecies,
     String? firstPet,
     Map<String, DateTime>? tired,
+    int? heroMiss,
+    String? heroDay,
+    double? heroLat,
+    double? heroLng,
+    int? heroWalk,
+    String? skyDay,
+    List<String>? heroMet,
   }) =>
       PetState(
+        heroMiss: heroMiss ?? this.heroMiss,
+        heroDay: heroDay ?? this.heroDay,
+        heroLat: heroLat ?? this.heroLat,
+        heroLng: heroLng ?? this.heroLng,
+        heroWalk: heroWalk ?? this.heroWalk,
+        skyDay: skyDay ?? this.skyDay,
+        heroMet: heroMet ?? this.heroMet,
         eggs: eggs ?? this.eggs,
         pets: pets ?? this.pets,
         companion: companion ?? this.companion,
@@ -273,6 +317,13 @@ class PetState {
         if (firstPet != null) 'firstPet': firstPet,
         if (tired.isNotEmpty)
           'tired': {for (final e in tired.entries) e.key: e.value.toIso8601String()},
+        if (heroMiss > 0) 'heroMiss': heroMiss,
+        if (heroDay != null) 'heroDay': heroDay,
+        if (heroLat != null) 'heroLat': heroLat,
+        if (heroLng != null) 'heroLng': heroLng,
+        if (heroWalk > 0) 'heroWalk': heroWalk,
+        if (skyDay != null) 'skyDay': skyDay,
+        if (heroMet.isNotEmpty) 'heroMet': heroMet,
       };
 
   factory PetState.fromJson(Map<String, dynamic> j) {
@@ -308,6 +359,13 @@ class PetState {
         for (final e in ((j['tired'] as Map?) ?? const {}).entries)
           if (DateTime.tryParse('${e.value}') case final t?) '${e.key}': t,
       },
+      heroMiss: (j['heroMiss'] as num?)?.toInt() ?? 0,
+      heroDay: j['heroDay'] as String?,
+      heroLat: (j['heroLat'] as num?)?.toDouble(),
+      heroLng: (j['heroLng'] as num?)?.toDouble(),
+      heroWalk: (j['heroWalk'] as num?)?.toInt() ?? 0,
+      skyDay: j['skyDay'] as String?,
+      heroMet: strings(j['heroMet']),
     );
   }
 }

@@ -51,6 +51,7 @@ part 'controller/explore.dart';
 part 'controller/garden.dart';
 part 'controller/gather.dart';
 part 'controller/harvest.dart';
+part 'controller/hero_pets.dart';
 part 'controller/jobs.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';

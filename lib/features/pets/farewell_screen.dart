@@ -93,6 +93,14 @@ class FarewellScreen extends StatefulWidget {
         PetSpecies.kelpie => '물결',
         PetSpecies.mimic => '덥석',
         PetSpecies.golem => '바위',
+        // 묶음 49 #235 영웅 펫은 정해진 이름
+        PetSpecies.wolf ||
+        PetSpecies.turtle ||
+        PetSpecies.panther ||
+        PetSpecies.whale ||
+        PetSpecies.phoenix ||
+        PetSpecies.stag =>
+          PetRules.heroName(s),
       };
 
   /// 첫 펫의 마지막 한마디 (Lv.15 직업 각성 복선)
@@ -466,6 +474,15 @@ Future<void> showHatchSheet(
                 Text('${born!.info.name} ${born!.name}${josa(born!.name, '이/가').substring(born!.name.length)} 태어났어요!',
                     textAlign: TextAlign.center,
                     style: AppText.title(19, color: AppColors.goldBright)),
+                // 묶음 49 #235: 영웅 펫은 깨어날 때 한 줄
+                if (born!.hero)
+                  Padding(
+                    key: const Key('heroBorn'),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('아주 드문 영웅 펫이에요!',
+                        textAlign: TextAlign.center,
+                        style: AppText.title(15, color: AppColors.goldBright)),
+                  ),
                 const SizedBox(height: 6),
                 KText('원정 특기: ${born!.info.special}',
                     textAlign: TextAlign.center,

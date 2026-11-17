@@ -79,6 +79,13 @@ extension PetsOps on AppController {
       PetSpecies.direwolf =>
         spawn.modifiers.isNotEmpty || Monsters.info(spawn.monster).isBoss,
       PetSpecies.mimic || PetSpecies.golem => false,
+      // 묶음 49 #235 영웅 펫
+      PetSpecies.wolf || PetSpecies.stag => far,
+      PetSpecies.whale => _waterside(route) ||
+          VitalRules.expeditionCost(dist) >= PetRules.costlyMp,
+      PetSpecies.panther => FieldMonsterRules.isNight(_clock()),
+      PetSpecies.phoenix || PetSpecies.turtle =>
+        spawn.modifiers.isNotEmpty || Monsters.info(spawn.monster).isBoss,
     };
   }
 
@@ -301,19 +308,30 @@ extension PetsOps on AppController {
       if (e.id == eggId) egg = e;
     }
     if (egg == null || !eggReady(egg)) return null;
+    // 묶음 49 #235: Lv.15부터 아주 드물게 영웅 펫 (안 나오면 다음 알부터 조금씩 오름)
+    final heroOn = player.level.level >= PetRules.heroLevel;
     final s = species ??
         PetRules.rollSpecies(_random,
-            element: ElementRules.parse(egg.element), alchemyTop: alchemyIsTop);
+            element: ElementRules.parse(egg.element),
+            alchemyTop: alchemyIsTop,
+            heroChance: heroOn ? PetRules.heroChance(p.heroMiss) : 0);
+    final hero = PetRules.isHero(s);
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: s,
-      name: name.trim().isEmpty ? PetRules.info(s).name : name.trim(),
+      // 영웅 펫은 정해진 이름으로 (펫 탭에서 바꿀 수 있음)
+      name: hero
+          ? PetRules.heroName(s)
+          : name.trim().isEmpty
+              ? PetRules.info(s).name
+              : name.trim(),
       bornAt: _clock(),
     );
     await _savePets(p.copyWith(
       eggs: [for (final e in p.eggs) if (e.id != eggId) e],
       pets: [...p.pets, pet],
       nextId: p.nextId + 1,
+      heroMiss: hero ? 0 : (heroOn && species == null ? p.heroMiss + 1 : p.heroMiss),
     ));
     await _npcTally(NpcTally.hatch);
     return pet;

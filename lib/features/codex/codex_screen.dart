@@ -394,12 +394,14 @@ class _PetCodex extends StatelessWidget {
                   PetArt(species: info.id, adult: true, size: 120),
                 ]),
                 const SizedBox(height: 8),
-                Text(info.grade == PetGrade.rare ? '${info.name} · 희귀' : info.name,
+                Text('${info.name}${petGradeTag(info.grade)}',
                     textAlign: TextAlign.center,
                     style: AppText.title(22, color: AppColors.goldBright)),
                 const SizedBox(height: 10),
                 // 묶음 32 #184: 숫자 없이 문장으로, 성체는 한 줄로
                 _Fact(label: '원정 특기', value: info.special),
+                // 묶음 49 #235: 영웅 펫 함께 걸을 때
+                if (info.walk != null) _Fact(label: '함께 걸을 때', value: info.walk!),
                 _Fact(
                     label: '던전 스킬',
                     value: '${info.skillName} · ${info.skillText}'),

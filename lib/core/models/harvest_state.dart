@@ -62,8 +62,8 @@ class HarvestState {
   bool mastered(HarvestKind k) =>
       (perfects[k.name] ?? 0) >= HarvestRules.masteryPerfects;
 
-  int chargesOf(String spotId, DateTime now) =>
-      spots[spotId]?.current(now) ?? HarvestRules.maxCharges;
+  int chargesOf(String spotId, DateTime now, {Duration? recharge}) =>
+      spots[spotId]?.current(now, recharge: recharge) ?? HarvestRules.maxCharges;
 
   HarvestState copyWith({
     Map<String, int>? tools,

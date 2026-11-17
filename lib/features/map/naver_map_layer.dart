@@ -150,6 +150,8 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       'w:${c.skillTimedOn(JobSkill.windWalk)}',
       // 묶음 34: 잿빛 틈 (자리·닫힘)
       'r:${c.riftPoint?.lat},${c.riftPoint?.lng},${c.riftClosedToday}',
+      // 묶음 50: 하늘에 뜬 섬 (섬·자리·오름·닫힘)
+      's:${c.skyIsland?.isle.index},${c.skyIsland?.point.lat},${c.skyIsland?.climbed},${c.skyIsland?.cleared}',
     ].join('|');
     if (_drawnSpawns == spawns.length &&
         _drawnFix == fixKey &&
@@ -269,6 +271,25 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
           ..setGlobalZIndex(255000)
           ..setOnTapListener((_) {
             if (mounted) openRift(context, c);
+          }),
+      // 묶음 50 #146 하늘에 뜬 섬: 걸어서 섬 아래까지 가면 오른다
+      if (c.skyIsland case final sky?)
+        NMarker(
+          id: 'highland',
+          position: _ll(sky.point),
+          icon: NOverlayImage.fromAssetImage(sky.info.marker),
+          size: const Size(66, 66),
+          anchor: const NPoint(0.5, 0.5),
+          alpha: sky.cleared ? 0.55 : 1,
+          caption: NOverlayCaption(
+            text: sky.cleared ? '${sky.info.place} · 문이 닫혔어요' : sky.info.place,
+            color: const Color(0xFFE3F2FF),
+            haloColor: AppColors.abyss,
+          ),
+        )
+          ..setGlobalZIndex(255001)
+          ..setOnTapListener((_) {
+            if (mounted) openSkyIsland(context, c);
           }),
       // 떠돌이 상인 (11-11 #84): 누르면 거리와 상관없이 바로 상점
       if (merchantAt != null)

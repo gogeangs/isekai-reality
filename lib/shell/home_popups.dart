@@ -192,6 +192,19 @@ extension _ShellPopups on _HomeShellState {
         showTopNoticeQueued(context, Act2Rules.bridgeLine,
             icon: Icons.auto_awesome);
       });
+      return;
+    }
+    // 묶음 50 #146: 처음 하늘에 섬이 뜨면 짧은 장면 한 번 (예전 Lv.17 이상도)
+    if (c.highlandScenePending) {
+      _endingShowing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => HighlandSceneScreen(controller: c)));
+        _endingShowing = false;
+        _kick();
+      });
     }
   }
 

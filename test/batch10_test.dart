@@ -33,7 +33,7 @@ void main() {
   group('#82 보스 장비 규칙', () {
     test('6세트 × 6부위 = 36종, 부위·이름이 모두 있다', () {
       // 묶음 34: 잿빛 왕의 유품 6부위가 더해져 42종 (만드는 세트는 그대로 6)
-      expect(BossGearRules.infos, hasLength(42));
+      expect(BossGearRules.infos, hasLength(48));
       expect(BossGearRules.sets, hasLength(6));
       for (final s in BossGearRules.sets) {
         expect(s.parts.map((p) => EquipmentRules.info(p.$1).slot).toList(),

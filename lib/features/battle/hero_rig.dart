@@ -34,7 +34,8 @@ WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
       EquipBase.ironSpear => WeaponKind.spear,
       EquipBase.wardenWeapon ||
       EquipBase.frostWeapon ||
-      EquipBase.ashWeapon =>
+      EquipBase.ashWeapon ||
+      EquipBase.skyWeapon =>
         WeaponKind.sword,
       EquipBase.groveWeapon => WeaponKind.axe,
       EquipBase.stormWeapon => WeaponKind.spear,

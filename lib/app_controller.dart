@@ -13,6 +13,7 @@ import 'core/models/bag_state.dart';
 import 'core/models/board_state.dart';
 import 'core/models/daily_record.dart';
 import 'core/models/garden_state.dart';
+import 'core/models/highland_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -52,6 +53,7 @@ part 'controller/garden.dart';
 part 'controller/gather.dart';
 part 'controller/harvest.dart';
 part 'controller/hero_pets.dart';
+part 'controller/highland.dart';
 part 'controller/jobs.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
@@ -570,6 +572,8 @@ class AppController extends ChangeNotifier {
     // 묶음 48 #230: 약초밭 (예전 Lv.9 이상은 완공 그림 그대로)
     _garden = await _load(_gardenKey, GardenState.fromJson, const GardenState());
     await _migrateBuilt48();
+    // 묶음 50 #146: 하이랜드 (없으면 처음부터. 예전 Lv.17 이상은 첫 섬이 뜰 때 첫 장면 한 번)
+    _highland = await _load(_highlandKey, HighlandState.fromJson, const HighlandState());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -775,6 +779,13 @@ class AppController extends ChangeNotifier {
   /// 묶음 48 #230: 약초밭 ('garden')
   static const _gardenKey = 'garden';
   GardenState _garden = const GardenState();
+
+  /// 묶음 50 #146: 하이랜드 ('highland')
+  static const _highlandKey = 'highland';
+  HighlandState _highland = const HighlandState();
+
+  /// 마지막으로 예약한 섬 알림 때 (같으면 다시 예약하지 않음)
+  DateTime? _skyNoticeAt;
 
   /// 방금 훈련을 마친 펫 이름 (위쪽 띠 한 번)
   String? _petTrainedNotice;

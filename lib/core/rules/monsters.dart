@@ -48,6 +48,13 @@ enum MonsterId {
   dummyHard,
   dummyElement,
   trainingGolem,
+  // 묶음 50 #146 하이랜드: 수호자 다섯 · 작은 석상 병사 (지도 밖, 도감 끝 칸)
+  guardWind,
+  guardThunder,
+  guardLight,
+  guardIce,
+  guardWater,
+  stoneSoldier,
 }
 
 /// 전투 성향 (도감 설명)
@@ -103,7 +110,11 @@ class MonsterInfo {
     this.slimeKind = false,
     this.tint,
     this.element,
+    this.highland = false,
   });
+
+  /// 묶음 50 하이랜드 몬스터: 도감 끝 칸 (도감 완성 칭호 개수에는 넣지 않음)
+  final bool highland;
 
   /// 속성 (무속성은 null, 11-11 #63)
   final Element? element;
@@ -164,9 +175,11 @@ class Monsters {
 
   /// 도감 칸 (묶음 23 #168): 하늘 슬라임이 맨 앞, 그 뒤 지금 나오는 몬스터.
   /// 도감 완성 칭호는 [all] 로 세어 하늘 슬라임은 넣지 않는다
+  /// 묶음 50: 하이랜드 6칸은 도감 끝에 (하늘 슬라임처럼 칭호 개수에는 넣지 않음)
   static List<MonsterInfo> get codex => [
-        for (final m in _all) if (m.codexOnly) m,
+        for (final m in _all) if (m.codexOnly && !m.highland) m,
         ...all,
+        for (final m in _all) if (m.highland) m,
       ];
 
   /// 도감에 보이는 몬스터인지
@@ -534,6 +547,83 @@ class Monsters {
       traitText: '본체',
       isBoss: true,
       retired: true,
+    ),
+    // 묶음 50 #146 하이랜드: 옛 왕국이 만든 석상들 (지도 밖 · 도감 끝 칸)
+    MonsterInfo(
+      id: MonsterId.guardWind,
+      element: Element.wind,
+      name: '구름 날개 석상 기사',
+      habitat: '하이랜드 · 구름 초원',
+      huntLine: '석상 기사가 창을 거뒀어. 우리를 인정해 준 것 같아.',
+      description: '구름 초원을 지키는 날개 달린 석상 기사. 돌아올 왕을 기다리며 길을 막고 선다.',
+      traitText: '수호자: 회오리를 일으켜 두 번씩 움직여요',
+      isBoss: true,
+      retired: true,
+      codexOnly: true,
+      highland: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.guardThunder,
+      element: Element.thunder,
+      name: '뇌운 석상 사자',
+      habitat: '하이랜드 · 뇌운 봉우리',
+      huntLine: '석상 사자가 고개를 숙였어. 먹구름이 걷혔어.',
+      description: '뇌운 봉우리의 석상 사자. 갈기에 먹구름을 두르고 하늘의 성벽을 지킨다.',
+      traitText: '수호자: 큰 번개를 예고해요. 방어 태세로 막아요',
+      isBoss: true,
+      retired: true,
+      codexOnly: true,
+      highland: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.guardLight,
+      element: Element.light,
+      name: '정원지기 석상 거인',
+      habitat: '하이랜드 · 햇살 정원',
+      huntLine: '석상 거인이 꽃밭으로 물러났어. 햇살이 따뜻해.',
+      description: '해가 지지 않는 정원을 돌보던 석상 거인. 몸 곳곳에 꽃이 피어 있다.',
+      traitText: '수호자: 체력이 절반 아래로 내려가면 햇살로 크게 회복해요',
+      isBoss: true,
+      retired: true,
+      codexOnly: true,
+      highland: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.guardIce,
+      element: Element.ice,
+      name: '서리 갑주 석상 기사',
+      habitat: '하이랜드 · 서리 성채',
+      huntLine: '서리 갑옷이 녹아내렸어. 기사가 길을 비켜 줬어.',
+      description: '서리 성채의 문을 지키는 석상 기사. 얼음 갑옷과 방패로 몸을 감싼다.',
+      traitText: '수호자: 서리 갑옷으로 피해를 줄여요. 강타로 깨요',
+      isBoss: true,
+      retired: true,
+      codexOnly: true,
+      highland: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.guardWater,
+      element: Element.water,
+      name: '폭포 석상 뱀',
+      habitat: '하이랜드 · 폭포 계곡',
+      huntLine: '석상 뱀이 폭포 속으로 돌아갔어. 물소리가 잔잔해.',
+      description: '폭포 계곡에 몸을 감은 석상 뱀. 비늘 사이로 맑은 물이 흐른다.',
+      traitText: '수호자: 거센 물살로 나에게 걸린 좋은 효과를 씻어 내요',
+      isBoss: true,
+      retired: true,
+      codexOnly: true,
+      highland: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.stoneSoldier,
+      name: '작은 석상 병사',
+      habitat: '하이랜드 · 다섯 섬',
+      huntLine: '석상 병사가 자리로 돌아갔어. 하늘 돌 조각이 떨어졌어.',
+      description: '섬 곳곳의 길목을 지키는 작은 석상 병사. 섬마다 빛깔이 조금씩 달라요.',
+      traitText: '섬의 속성을 띠어요',
+      retired: true,
+      codexOnly: true,
+      highland: true,
     ),
     // 묶음 43 #228: 훈련장 (지도·도감 밖)
     MonsterInfo(

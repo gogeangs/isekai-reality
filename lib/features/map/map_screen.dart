@@ -31,6 +31,7 @@ import '../tutorial/targets.dart';
 import '../lens/lens_screen.dart' show openLens;
 import '../jobs/job_skill_bar.dart';
 import '../act2/ash_battle_screen.dart' show openRift;
+import '../highland/highland_screen.dart' show openSkyIsland;
 
 part 'map_overlays.dart';
 part 'naver_map_layer.dart';

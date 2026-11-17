@@ -31,6 +31,9 @@ class NotifyId {
   static const int quest = 7;
   static const int petTraining = 8;
 
+  /// 묶음 50 #146: 하늘에 섬이 떠오름
+  static const int highland = 9;
+
   /// 알림을 누르면 갈 곳
   static NotifyTarget targetOf(int id) => switch (id) {
         expedition || >= 100 && < 200 => NotifyTarget.expedition,

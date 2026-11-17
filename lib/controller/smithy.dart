@@ -131,22 +131,23 @@ extension SmithyOps on AppController {
   bool get lastEnhanceSafe => _lastEnhanceSafe;
 
   /// 이 세트의 보스를 잡아 봤는지 (못 잡은 보스의 세트는 그림자로 숨김)
-  bool bossSetOpen(BossSet s) =>
-      purifiedEver.contains(BossGearRules.info(s).boss);
+  bool bossSetOpen(BossSet s) => s == BossSet.sky
+      // 묶음 50: 하이랜드 수호자를 하나라도 쓰러뜨리면
+      ? _highland.beaten.isNotEmpty
+      : purifiedEver.contains(BossGearRules.info(s).boss);
 
   /// 이 부위를 이미 만든 적이 있는지 (가진 것 중에)
   bool hasBossPart(EquipBase base) => _armory.items.any((i) => i.base == base);
 
   CraftCheck canCraftBoss(EquipBase base) {
     final set = BossGearRules.setOf(base);
-    if (set == null || !bossSetOpen(set)) return CraftCheck.materials;
-    final info = BossGearRules.info(set);
-    final c = BossGearRules.cost(EquipmentRules.info(base).slot,
-        blacksmith: blacksmith);
-    final p = player;
-    if (p.materialCount(MaterialId.bossShard) < c.shards ||
-        p.materialCount(info.material) < c.mats) {
+    if (set == null || !bossSetOpen(set) || set == BossSet.ash) {
       return CraftCheck.materials;
+    }
+    final c = BossGearRules.partCost(base, blacksmith: blacksmith);
+    final p = player;
+    for (final e in c.mats.entries) {
+      if (p.materialCount(e.key) < e.value) return CraftCheck.materials;
     }
     if (p.gold < c.gold) return CraftCheck.gold;
     if (bagFree <= 0) return CraftCheck.bagFull;
@@ -160,14 +161,14 @@ extension SmithyOps on AppController {
     if (canCraftBoss(base) != CraftCheck.ok) return null;
     final set = BossGearRules.info(BossGearRules.setOf(base)!);
     final slot = EquipmentRules.info(base).slot;
-    final c = BossGearRules.cost(slot, blacksmith: blacksmith);
+    final c = BossGearRules.partCost(base, blacksmith: blacksmith);
     final failed = _random.nextDouble() < BossGearRules.failChance(blacksmith: blacksmith);
     final today = await _todayRecord();
     if (failed) {
       final loss = BossGearRules.failLoss(slot, blacksmith: blacksmith);
       await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {
-          MaterialId.bossShard.name: loss.shards,
+          BossGearRules.shardOf(base).name: loss.shards,
           Wallet.gold: loss.gold,
         }),
       ));
@@ -175,8 +176,7 @@ extension SmithyOps on AppController {
           line: BossGearRules.failLines[_random.nextInt(BossGearRules.failLines.length)]);
     }
     final used = <String, int>{
-      MaterialId.bossShard.name: c.shards,
-      set.material.name: c.mats,
+      for (final e in c.mats.entries) e.key.name: e.value,
     };
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {...used, Wallet.gold: c.gold}),
@@ -190,7 +190,9 @@ extension SmithyOps on AppController {
       grade: grade,
       extras: EquipmentRules.rollExtras(grade, _random),
       materialsUsed: used,
-      element: set.element,
+      element: set.id == BossSet.sky
+          ? HighlandRules.partElement(slot)
+          : set.element,
     );
     await _saveArmory(a.copyWith(
       items: [...a.items, item],

@@ -5,6 +5,7 @@ import 'alchemy_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
+import 'highland_rules.dart';
 import 'job_rules.dart';
 import 'mastery_rules.dart';
 import 'modifier_rules.dart';
@@ -26,7 +27,15 @@ class Foe {
     this.forceElement,
     this.move,
     this.reveal,
+    this.sky,
+    this.tint,
   });
+
+  /// 묶음 50 #146: 하이랜드 수호자의 특별한 공격
+  final SkyMove? sky;
+
+  /// 묶음 50 #146: 그림에 살짝 입히는 색 (석상 병사는 섬 속성 색, ARGB)
+  final int? tint;
 
   /// 묶음 34: 몬스터 속성 대신 쓰는 속성 (잿빛 군주는 감정 단계마다 바뀐다)
   final Element? forceElement;
@@ -250,6 +259,7 @@ class Battle {
     this.setAbilities = const {},
     this.ashDealt = 0,
     this.ashTaken = 0,
+    this.skyTaken = 0,
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -328,6 +338,7 @@ class Battle {
       setAbilities: gear.sets.abilities,
       ashDealt: gear.sets.ashDealt,
       ashTaken: gear.sets.ashTaken,
+      skyTaken: gear.sets.skyTaken,
       attackElement: gear.attackElement,
       skillElement: skillElement,
       guardElements: gear.guardElements,
@@ -488,7 +499,8 @@ class Battle {
           }
         case BossSetAbility.stoneSkin ||
               BossSetAbility.regrow ||
-              BossSetAbility.ashBane:
+              BossSetAbility.ashBane ||
+              BossSetAbility.skyKnight:
           break;
       }
     }
@@ -499,6 +511,94 @@ class Battle {
   /// 잿빛 왕의 유품 세트: 잿빛 몬스터에게 주는 피해 증가 · 받는 피해 감소
   final double ashDealt;
   final double ashTaken;
+
+  /// 묶음 50: 하이랜드 수호 기사 세트 4개 — 바람·번개·빛·얼음·물 공격에 받는 피해 감소
+  final double skyTaken;
+
+  // ───────────── 하이랜드 수호자 (묶음 50 #146, 숨은 규칙)
+
+  /// 회오리: 두 번씩 움직이는 남은 턴
+  int whirlTurns = 0;
+
+  /// 낙뢰: 떨어지기까지 남은 턴 (0이면 예고 없음)
+  int boltIn = 0;
+
+  /// 햇살 치유를 썼는지 (한 번만)
+  bool sunHealed = false;
+
+  /// 서리 갑옷 남은 턴 (받는 피해가 크게 줄어든다, 강타로 깬다)
+  int frostTurns = 0;
+
+  /// 낙뢰가 다가오는지 (화면 표시)
+  bool get boltComing => boltIn > 0 && phase == BattlePhase.fighting;
+
+  /// 서리 갑옷을 둘렀는지 (화면 표시)
+  bool get frosted => frostTurns > 0 && phase == BattlePhase.fighting;
+
+  void _clearSkyMoves() {
+    whirlTurns = 0;
+    boltIn = 0;
+    sunHealed = false;
+    frostTurns = 0;
+  }
+
+  /// 틱 처음: 하이랜드 수호자의 특별한 공격
+  void _skyMove() {
+    final m = foe.sky;
+    if (m == null) return;
+    final t = floorTicks;
+    final line = HighlandRules.ofMove(m)?.moveLine;
+    switch (m) {
+      case SkyMove.whirl:
+        if (whirlTurns <= 0 && t % HighlandRules.whirlEvery == 2) {
+          whirlTurns = HighlandRules.whirlLength;
+          lastMove = line;
+        }
+      case SkyMove.bolt:
+        if (boltIn > 0) {
+          boltIn--;
+          if (boltIn == 0) _boltStrike();
+        } else if (t % HighlandRules.boltEvery == 4) {
+          boltIn = HighlandRules.boltDelay;
+          lastMove = line;
+        }
+      case SkyMove.sunHeal:
+        if (!sunHealed && foeHp < foe.maxHp * HighlandRules.sunHealBelow) {
+          sunHealed = true;
+          foeHp = math.min(foe.maxHp,
+              foeHp + math.max(1, (foe.maxHp * HighlandRules.sunHeal).round()));
+          lastMove = line;
+        }
+      case SkyMove.frostArmor:
+        if (frostTurns <= 0 && t % HighlandRules.frostEvery == 1) {
+          frostTurns = HighlandRules.frostLength;
+          lastMove = line;
+        }
+      case SkyMove.wash:
+        if (t % HighlandRules.washEvery == 3) {
+          var any = false;
+          while (_stealBuff()) {
+            any = true;
+          }
+          if (any) lastMove = line;
+        }
+    }
+  }
+
+  /// 낙뢰가 떨어진다: 방어 태세면 거의 막는다
+  void _boltStrike() {
+    if (practice) return;
+    var atk = foe.attack * HighlandRules.boltPower;
+    final blocked = stanceTurns > 0;
+    if (blocked) atk *= HighlandRules.boltBlocked;
+    if (damageTaken != 1) atk *= damageTaken;
+    if (skyTaken > 0) atk *= 1 - skyTaken;
+    final taken = _vary(math.max(1, atk.round()));
+    lastTaken += taken;
+    playerHp = math.max(0, playerHp - taken);
+    lastMove = blocked ? '방어 태세로 낙뢰를 막아 냈어요!' : '낙뢰가 떨어졌어요!';
+    if (playerHp == 0 && !_revive()) phase = BattlePhase.failed;
+  }
 
   /// 이번 틱에 분신이 쓴 특별한 공격 문장 (없으면 null)
   String? lastMove;
@@ -716,6 +816,11 @@ class Battle {
     bashCharge = 0;
     lastWasSkill = false;
     lastEvent = '강타!';
+    // 묶음 50: 강타로 서리 갑옷을 깬다
+    if (frostTurns > 0) {
+      frostTurns = 0;
+      lastEvent = '강타! 서리 갑옷이 깨졌어요!';
+    }
     var dmg = (_vary(playerAttack) * bashMultiplier).round();
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     dmg = _elemental(dmg, weaponPotion ?? attackElement,
@@ -1263,6 +1368,7 @@ class Battle {
       lastWasSkill = false;
       lastEvent = null;
       _clearAshMoves();
+      _clearSkyMoves();
       // 묶음 34: 잿빛 군주는 감정 단계가 바뀔 때 한 줄
       lastMove = foe.move == null ? null : Act2Rules.ofMove(foe.move!)?.kingLine;
       _prepareStrong();
@@ -1280,12 +1386,14 @@ class Battle {
     lastMove = null;
     if (skillLockTurns > 0) skillLockTurns--;
     _ashMove();
+    lastDealt = 0;
+    lastTaken = 0;
+    _skyMove();
+    if (isOver) return;
     // 이번 틱의 몬스터 첫 공격이 예고된 강한 공격인지
     _strongNow = _strongNext;
     _strongNowMult = _strongNextMult;
     _strongNext = false;
-    lastDealt = 0;
-    lastTaken = 0;
     final f = foe;
     final foeFirst = f.has(ModifierId.hungry) ||
         f.speed * (enraged ? bossRageSpeed : 1) > playerSpeed;
@@ -1355,6 +1463,13 @@ class Battle {
       }
     }
 
+    // 묶음 50 회오리: 그동안 한 번 더 움직인다
+    if (whirlTurns > 0) {
+      whirlTurns--;
+      _foeTurn();
+      if (isOver) return;
+    }
+
     // 작은 불씨: 몬스터 화상 (최대 체력 2%)
     if (foeBurnTurns > 0) {
       foeBurnTurns--;
@@ -1406,6 +1521,7 @@ class Battle {
     if (freezeImmune > 0) freezeImmune--;
     if (stanceTurns > 0) stanceTurns--;
     if (wallTurns > 0) wallTurns--;
+    if (frostTurns > 0) frostTurns--;
     if (foeBreakTurns > 0) foeBreakTurns--;
     if (regenTurns > 0 && playerHp < playerMaxHp) {
       regenTurns--;
@@ -1493,6 +1609,11 @@ class Battle {
     }
     if (stolenTurns > 0) atk *= Act2Rules.stolenAttack;
     if (ashTaken > 0 && foeIsAsh) atk *= 1 - ashTaken;
+    if (skyTaken > 0 &&
+        f.element != null &&
+        HighlandRules.skyElements.contains(f.element)) {
+      atk *= 1 - skyTaken;
+    }
     if (stanceTurns > 0) atk *= stanceTaken;
     if (wallTurns > 0) atk *= wallTaken;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
@@ -1763,6 +1884,12 @@ class Battle {
     if (practice) {
       practiceDealt += damage;
       return;
+    }
+    // 묶음 50 서리 갑옷: 받는 피해를 크게 줄인다 (화면 숫자도 줄인 값)
+    if (frostTurns > 0) {
+      final cut = math.max(1, (damage * HighlandRules.frostTaken).round());
+      if (lastDealt >= damage) lastDealt -= damage - cut;
+      damage = cut;
     }
     foeHp = math.max(0, foeHp - damage);
     if (foeHp > 0) return;

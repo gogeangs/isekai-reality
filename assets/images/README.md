@@ -384,3 +384,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | npc_arbel, npc_momo, npc_doto, npc_ellaDryad | 엘로윈 주민 얼굴 4종, 시트 분할·아래 맞춤 512 |
 | 2026-11-17 | village_tavern_3 | 주점 ★3, ★2와 같은 땅 너비·아래(496) 맞춤 512 |
 | 2026-11-17 | food_mushroomSoup | 주점 ★2 새 한 끼 버섯 수프, 512 |
+| 2026-11-17 | equip_elowinStaff, uniq_momoWreath, uniq_arbelDagger, uniq_elderHeart | 엘로윈 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리 512 |

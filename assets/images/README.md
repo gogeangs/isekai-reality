@@ -345,3 +345,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | equip_baldrinSpear, uniq_volkHelm, uniq_teoSpear, uniq_windPendant | 관문의 빛 창·발드린 이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리(물체 둘레 얇은 주황 빛만 남김), 512 |
 | 2026-11-17 | bg_baldrin_windden | 발드린 숨은 장소 배경 바람의 굴, 1024 |
 | 2026-11-17 | monster_harpy | 하피 다시(사람 얼굴+새 날개·발톱), 덮어쓰기 512 |
+| 2026-11-17 | ally_job_warrior, ally_job_archer | 이름 없는 동료 전사·궁수 전신, 같은 배율·발끝 y=1012, 768×1024 |

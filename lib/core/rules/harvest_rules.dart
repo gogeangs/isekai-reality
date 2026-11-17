@@ -78,27 +78,30 @@ class SpotCharge {
   final int charges;
   final DateTime at;
 
-  /// 지금 남은 횟수
-  int current(DateTime now) {
+  /// 지금 남은 횟수. [recharge] 하나가 다시 차는 시간 (묶음 49 모스: 조금 빨리)
+  int current(DateTime now, {Duration? recharge}) {
+    final r = recharge ?? HarvestRules.recharge;
     if (charges >= HarvestRules.maxCharges) return HarvestRules.maxCharges;
-    final gained = now.difference(at).inSeconds ~/ HarvestRules.recharge.inSeconds;
+    final gained = now.difference(at).inSeconds ~/ r.inSeconds;
     return math.min(HarvestRules.maxCharges, charges + math.max(0, gained));
   }
 
   /// 다음 하나가 차기까지 (가득이면 null)
-  Duration? untilNext(DateTime now) {
-    if (current(now) >= HarvestRules.maxCharges) return null;
-    final passed = now.difference(at).inSeconds % HarvestRules.recharge.inSeconds;
-    return Duration(seconds: HarvestRules.recharge.inSeconds - passed);
+  Duration? untilNext(DateTime now, {Duration? recharge}) {
+    final r = recharge ?? HarvestRules.recharge;
+    if (current(now, recharge: r) >= HarvestRules.maxCharges) return null;
+    final passed = now.difference(at).inSeconds % r.inSeconds;
+    return Duration(seconds: r.inSeconds - passed);
   }
 
   /// 하나 쓴 뒤
-  SpotCharge use(DateTime now) {
-    final c = current(now);
+  SpotCharge use(DateTime now, {Duration? recharge}) {
+    final r = recharge ?? HarvestRules.recharge;
+    final c = current(now, recharge: r);
     if (c >= HarvestRules.maxCharges) return SpotCharge(charges: c - 1, at: now);
     // 차오르는 시계는 이어서 간다
-    final gained = now.difference(at).inSeconds ~/ HarvestRules.recharge.inSeconds;
-    final from = at.add(HarvestRules.recharge * gained);
+    final gained = now.difference(at).inSeconds ~/ r.inSeconds;
+    final from = at.add(r * gained);
     return SpotCharge(charges: c - 1, at: from);
   }
 

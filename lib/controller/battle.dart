@@ -32,7 +32,8 @@ extension BattleOps on AppController {
     final p = player;
     if (p.gauge.keysAvailable <= 0 || !canFightNow || hp <= 0) return null;
     _stopResting();
-    return _withJob(Battle.forPlayer(
+    // 묶음 49 #235: 엠버와 함께면 던전에서 한 번 되살아남
+    return _withPhoenix(_withJob(Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
       floors: BattleRules.dungeonFloors(
@@ -55,7 +56,7 @@ extension BattleOps on AppController {
       weaponPotion: weaponPotionElement,
       telegraphs: true,
       heroSkills: true,
-    ));
+    )));
   }
 
   int _skillTicks(PlayerState p) {
@@ -250,6 +251,8 @@ extension BattleOps on AppController {
     if (hunt > 0 && anchor != null && _nearDay == day) {
       out.addAll(around(anchor, '$day-hunt', hunt));
     }
+    // 묶음 49 #235: 녹턴(밤 몬스터) · 엠버(잿빛 몬스터)
+    out.addAll(_heroSpawns(around));
     return out;
   }
 

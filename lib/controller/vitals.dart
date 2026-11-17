@@ -92,6 +92,8 @@ extension VitalsOps on AppController {
       // 묶음 45 #232: 걸으면 듣는 전용 아이템 · 전용 퀘스트 다음 단계
       await _relicWalk();
       await _advanceRelics();
+      // 묶음 49 #235: 여명 — 이른 아침 걸음으로 HP·기력
+      await _heroWalk();
       // 묶음 45 #231: 마르타 — 하루 8,000보를 넘긴 날 (하루 한 번)
       final today = player.today;
       if (today != null &&

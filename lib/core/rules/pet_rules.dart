@@ -4,8 +4,8 @@ import 'element_rules.dart';
 import 'materials.dart';
 import 'modifier_rules.dart';
 
-/// 펫 등급. 이번에는 일반만 들어가고, 희귀·전설은 자리만 둔다 (11-11 #38).
-enum PetGrade { common, rare, legend }
+/// 펫 등급: 일반 · 희귀(묶음 33 #185) · 영웅(묶음 49 #235)
+enum PetGrade { common, rare, hero }
 
 /// 펫 종류. 이름은 저장 키라 바꾸지 않는다.
 /// 희귀(아기 그리핀·다이어울프·드레이크·켈피·미믹·골렘), 전설(아기 페가수스·유니콘·
@@ -24,6 +24,13 @@ enum PetSpecies {
   kelpie,
   mimic,
   golem,
+  // 묶음 49 #235 영웅 펫 (바람 · 모스 · 녹턴 · 무 · 엠버 · 여명)
+  wolf,
+  turtle,
+  panther,
+  whale,
+  phoenix,
+  stag,
 }
 
 /// 펫의 던전 스킬 종류
@@ -41,6 +48,13 @@ enum PetSkill {
   tideWrap,
   ambush,
   stoneWall,
+  // 묶음 49 #235 영웅 펫
+  galeFang,
+  mossShell,
+  shadowPounce,
+  tidalSong,
+  rebirthFlame,
+  dawnHalo,
 }
 
 class PetSpeciesInfo {
@@ -56,7 +70,11 @@ class PetSpeciesInfo {
     required this.skillTextAdult,
     required this.favorite,
     this.element,
+    this.walk,
   });
+
+  /// 영웅 펫: 동행 중 걸을 때 함께하는 효과 (문장만, 묶음 49 #235)
+  final String? walk;
 
   /// 기본 속성 (11-11 #63, 호문쿨루스는 무속성 null)
   final Element? element;
@@ -77,8 +95,9 @@ class PetSpeciesInfo {
   /// 좋아하는 재료 (돌려보낼 때 남긴다)
   final MaterialId favorite;
 
-  String asset({required bool adult}) =>
-      'assets/images/pet_${id.name}_${adult ? 'adult' : 'baby'}.webp';
+  /// [awake]: 영웅 펫이 단짝(친밀도 100)이 되면 「각성 모습」 (묶음 49 #235)
+  String asset({required bool adult, bool awake = false}) =>
+      'assets/images/pet_${id.name}_${awake ? 'awake' : adult ? 'adult' : 'baby'}.webp';
 }
 
 /// 펫 규칙 (11-11 제안서 3 확정 값)
@@ -193,13 +212,78 @@ class PetRules {
 
   static bool isRare(PetSpecies s) => info(s).grade == PetGrade.rare;
 
-  /// 부화할 펫: 10%는 희귀 6종, 나머지는 일반 6종 (각 1몫, 정령 짝은 2몫,
-  /// 주 속성 펫 3배, 연금술 1등이면 호문쿨루스 3배)
+  // ───────────────────────── 영웅 펫 (묶음 49 #235, 숨은 값)
+
+  static const List<PetSpecies> heroSpecies = [
+    PetSpecies.wolf,
+    PetSpecies.turtle,
+    PetSpecies.panther,
+    PetSpecies.whale,
+    PetSpecies.phoenix,
+    PetSpecies.stag,
+  ];
+
+  static bool isHero(PetSpecies s) => info(s).grade == PetGrade.hero;
+
+  /// 이 레벨(직업 각성)부터 알에서 영웅 펫이 나옴
+  static const int heroLevel = 15;
+
+  /// 처음 1%, 안 나올 때마다 +0.5%p (최대 10%)
+  static const double heroBase = 0.01;
+  static const double heroStep = 0.005;
+  static const double heroMax = 0.10;
+  static double heroChance(int misses) =>
+      math.min(heroMax, heroBase + heroStep * misses);
+
+  /// 영웅 펫의 정해진 이름 (펫 탭에서 바꿀 수 있음)
+  static String heroName(PetSpecies s) => switch (s) {
+        PetSpecies.wolf => '바람',
+        PetSpecies.turtle => '모스',
+        PetSpecies.panther => '녹턴',
+        PetSpecies.whale => '무',
+        PetSpecies.phoenix => '엠버',
+        PetSpecies.stag => '여명',
+        _ => info(s).name,
+      };
+
+  /// 바람: 동행 중이면 원정 간 다른 펫이 조금 빨리 돌아옴 (이동 시간 배율)
+  static const double wolfOthersTravel = 0.90;
+
+  /// 모스: 동행 중이면 채집 자리가 조금 빨리 다시 참 (다시 차는 시간 배율)
+  static const double turtleRecharge = 0.80;
+
+  /// 녹턴: 밤에 동행하면 나에게만 보이는 몬스터 (그날 처음 자리 둘레)
+  static const int pantherNightSpawns = 3;
+
+  /// 무: 동행하고 그날 이만큼 걸으면 지도에 하늘에서 떨어진 재료 상자 하나 (하루 한 번)
+  static const int whaleSkySteps = 2000;
+  static const int whaleSkyGoldMin = 20, whaleSkyGoldMax = 60;
+
+  /// 엠버: 동행 중이면 잿빛 몬스터를 찾아냄 (그날 처음 자리 둘레) + 던전에서 한 번 되살아남
+  static const int phoenixAshSpawns = 2;
+  static const double phoenixRevive = 0.30;
+
+  /// 여명: 이른 아침(새벽 5~9시) 동행하며 1,000보마다 HP·기력 조금
+  static const double stagHp = 0.04;
+  static const int stagMp = 4;
+  static bool isDawn(DateTime t) => t.hour >= 5 && t.hour < 9;
+
+  /// 부화할 펫: [heroChance] 로 영웅 6종, 그다음 10%는 희귀 6종, 나머지는 일반 6종
+  /// (각 1몫, 정령 짝은 2몫, 주 속성 펫 3배, 연금술 1등이면 호문쿨루스 3배)
   static PetSpecies rollSpecies(math.Random rng,
-      {PetSpecies? favored, Element? element, bool alchemyTop = false}) {
-    final rare = rng.nextDouble() < rareChance;
+      {PetSpecies? favored,
+      Element? element,
+      bool alchemyTop = false,
+      double heroChance = 0}) {
+    // 영웅 확률이 없으면 굴리지도 않는다 (다른 결과를 흔들지 않게)
+    final hero = heroChance > 0 && rng.nextDouble() < heroChance;
+    final rare = !hero && rng.nextDouble() < rareChance;
     final pool = [
-      for (final s in rare ? rareSpecies : commonSpecies) ...[
+      for (final s in hero
+          ? heroSpecies
+          : rare
+              ? rareSpecies
+              : commonSpecies) ...[
         s,
         if (s == favored) s,
         // 알을 얻을 때의 주 속성 (11-11 #63): 그 속성 펫이 3배
@@ -303,6 +387,9 @@ class PetRules {
       // 묶음 33 #185: 그리핀 빨리, 켈피 다른 원정도 조금 빨리
       PetSpecies.griffin => 1 - (adult ? 0.35 : 0.25) * m,
       PetSpecies.kelpie => 1 - (adult ? 0.15 : 0.10) * m,
+      // 묶음 49 #235 영웅 펫
+      PetSpecies.wolf => 1 - (adult ? 0.40 : 0.30) * m,
+      PetSpecies.stag => 1 - (adult ? 0.25 : 0.18) * m,
       _ => 1,
     };
   }
@@ -320,6 +407,11 @@ class PetRules {
     if (s == PetSpecies.kelpie && waterside) {
       return 1 - (adult ? 0.70 : 0.60) * m;
     }
+    // 묶음 49 #235 영웅 펫
+    if (s == PetSpecies.whale) {
+      return 1 - (waterside ? (adult ? 0.80 : 0.70) : (adult ? 0.45 : 0.35)) * m;
+    }
+    if (s == PetSpecies.phoenix) return 1 - (adult ? 0.35 : 0.25) * m;
     return 1;
   }
 
@@ -333,7 +425,9 @@ class PetRules {
           ? 1 - 0.30 * bondMultiplier(bond, resonant: resonant)
           : s == PetSpecies.kelpie && waterside
               ? 1 - 0.40 * bondMultiplier(bond, resonant: resonant)
-              : 1;
+              : s == PetSpecies.whale && waterside
+                  ? 1 - 0.50 * bondMultiplier(bond, resonant: resonant)
+                  : 1;
 
   /// 원정 전투력 배율 (부엉이 항상, 검은 고양이 밤)
   static double powerFactor(PetSpecies s,
@@ -350,12 +444,25 @@ class PetRules {
     if (s == PetSpecies.griffin) return 1 + (adult ? 0.15 : 0.10) * m;
     if (s == PetSpecies.direwolf) return 1 + (adult ? 0.25 : 0.18) * m;
     if (s == PetSpecies.drake) return 1 + (adult ? 0.15 : 0.10) * m;
+    // 묶음 49 #235 영웅 펫
+    if (s == PetSpecies.wolf) return 1 + (adult ? 0.22 : 0.15) * m;
+    if (s == PetSpecies.panther) {
+      return 1 + (night ? (adult ? 0.45 : 0.35) : (adult ? 0.18 : 0.12)) * m;
+    }
+    if (s == PetSpecies.phoenix) return 1 + (adult ? 0.30 : 0.22) * m;
     return 1;
   }
 
   /// 원정 성공 때 더 가져오는 재료 수 (호문쿨루스: +2, 성체는 가끔 +3. 묶음 32 #190)
   static int extraMaterials(PetSpecies s, math.Random rng,
       {required bool adult, int bond = 0}) {
+    // 묶음 49 #235: 모스 2 (성체 가끔 3) · 여명 1 (성체 가끔 2)
+    if (s == PetSpecies.turtle) {
+      return adult && rng.nextDouble() < 0.5 * bondMultiplier(bond) ? 3 : 2;
+    }
+    if (s == PetSpecies.stag) {
+      return adult && rng.nextDouble() < 0.5 * bondMultiplier(bond) ? 2 : 1;
+    }
     if (s == PetSpecies.direwolf) {
       // 묶음 33 #185: 다이어울프 이기면 재료 더 (성체는 가끔 하나 더)
       if (adult && rng.nextDouble() < 0.5 * bondMultiplier(bond)) return 2;
@@ -372,7 +479,8 @@ class PetRules {
   static const int mimicGoldMin = 30, mimicGoldMax = 80;
 
   /// 골렘: 원정에서 져도 기력을 돌려받음
-  static bool keepsMpOnLoss(PetSpecies s) => s == PetSpecies.golem;
+  static bool keepsMpOnLoss(PetSpecies s) =>
+      s == PetSpecies.golem || s == PetSpecies.turtle;
 
   /// 「잘 맞아요」(#188): 먼 목표 · 기력이 많이 드는 원정 기준 (숨은 값)
   static const double farM = 1000;
@@ -401,6 +509,13 @@ class PetRules {
         PetSkill.tideWrap => adult ? 3.5 : 3.0,
         PetSkill.ambush => adult ? 3.5 : 3.0,
         PetSkill.stoneWall => 2.5,
+        // 묶음 49 #235 영웅 펫 (희귀보다 한 단계 세게)
+        PetSkill.galeFang => adult ? 6.5 : 5.5,
+        PetSkill.mossShell => 3.0,
+        PetSkill.shadowPounce => adult ? 5.0 : 4.5,
+        PetSkill.tidalSong => adult ? 4.0 : 3.5,
+        PetSkill.rebirthFlame => adult ? 6.0 : 5.0,
+        PetSkill.dawnHalo => adult ? 3.5 : 3.0,
       };
 
   /// 번개 발톱이 멈추게 할 확률 · 깜짝 물기가 아주 크게 물 확률·배율 (숨은 값)
@@ -414,7 +529,19 @@ class PetRules {
   static int stoneWallHits({required bool adult}) => adult ? 6 : 5;
 
   /// 스킬 충전 틱 (쪼기만 4, 나머지는 기본 5)
-  static int? skillChargeTicks(PetSkill s) => s == PetSkill.peck ? 4 : null;
+  static int? skillChargeTicks(PetSkill s) => switch (s) {
+        PetSkill.peck => 4,
+        PetSkill.galeFang => 3, // 묶음 49: 질풍 송곳니는 더 빨리
+        _ => null,
+      };
+
+  /// 영웅 펫 던전 스킬 (숨은 값): 그림자 덮치기 묶을 확률 · 고래 노래 회복 ·
+  /// 되살림 불꽃 타는 턴 · 이끼 등딱지 막는 횟수 · 새벽 햇무리 회복
+  static const double pounceBind = 0.30;
+  static const double songHeal = 0.12;
+  static const int rebirthTurns = 5;
+  static int mossHits({required bool adult}) => adult ? 8 : 7;
+  static const double haloHeal = 0.06;
 
   /// 약점 간파: 3턴 동안 각성자 피해 +20% (성체 +30%)
   static double insightBonus({required bool adult}) => adult ? 0.30 : 0.20;
@@ -425,7 +552,7 @@ class PetRules {
 
   // ───────────────────────── 정보
 
-  static PetSpeciesInfo info(PetSpecies s) => _info[s]!;
+  static PetSpeciesInfo info(PetSpecies s) => _info[s] ?? _heroInfo[s]!;
 
   static PetSpecies? byName(String name) {
     for (final s in PetSpecies.values) {
@@ -590,6 +717,93 @@ class PetRules {
       skillText: '아주 오래 막는 보호막을 쳐요',
       skillTextAdult: '아주 오래 막는 보호막을 쳐요',
       favorite: MaterialId.gemEarth,
+    ),
+  };
+
+  static const Map<PetSpecies, PetSpeciesInfo> _heroInfo = {
+    PetSpecies.wolf: PetSpeciesInfo(
+      id: PetSpecies.wolf,
+      element: Element.wind,
+      name: '은빛 늑대',
+      grade: PetGrade.hero,
+      special: '원정을 아주 빨리 다녀오고 잘 싸워요',
+      specialAdult: '원정을 더 빨리 다녀오고 더 잘 싸워요',
+      walk: '함께 걸으면 원정 간 다른 펫이 조금 빨리 돌아와요',
+      skill: PetSkill.galeFang,
+      skillName: '질풍 송곳니',
+      skillText: '바람처럼 빨리 차고 아주 세게 물어요',
+      skillTextAdult: '바람처럼 빨리 차고 아주 세게 물어요',
+      favorite: MaterialId.gemWind,
+    ),
+    PetSpecies.turtle: PetSpeciesInfo(
+      id: PetSpecies.turtle,
+      element: Element.earth,
+      name: '이끼 거북',
+      grade: PetGrade.hero,
+      special: '원정에서 져도 기력을 잃지 않고, 이기면 재료를 많이 가져와요',
+      specialAdult: '원정에서 져도 기력을 잃지 않고, 이기면 재료를 더 많이 가져와요',
+      walk: '함께 걸으면 채집 자리가 조금 빨리 다시 차요',
+      skill: PetSkill.mossShell,
+      skillName: '이끼 등딱지',
+      skillText: '아주 오래 버티는 보호막을 쳐요',
+      skillTextAdult: '아주 오래 버티는 보호막을 쳐요',
+      favorite: MaterialId.gemEarth,
+    ),
+    PetSpecies.panther: PetSpeciesInfo(
+      id: PetSpecies.panther,
+      element: Element.dark,
+      name: '달그림자 표범',
+      grade: PetGrade.hero,
+      special: '원정에서 잘 싸우고, 밤 원정에 아주 강해요',
+      specialAdult: '원정에서 더 잘 싸우고, 밤 원정에 더 강해요',
+      walk: '밤에 함께 걸으면 나에게만 보이는 몬스터가 나타나요',
+      skill: PetSkill.shadowPounce,
+      skillName: '그림자 덮치기',
+      skillText: '꼭 급소를 노리고 가끔 묶어 둬요',
+      skillTextAdult: '꼭 급소를 노리고 가끔 묶어 둬요',
+      favorite: MaterialId.gemDark,
+    ),
+    PetSpecies.whale: PetSpeciesInfo(
+      id: PetSpecies.whale,
+      element: Element.water,
+      name: '안개 고래',
+      grade: PetGrade.hero,
+      special: '물가 원정이 아주 가볍고 빠르고, 다른 원정도 기력을 덜 써요',
+      specialAdult: '물가 원정이 아주 가볍고 빠르고, 다른 원정도 기력을 더 덜 써요',
+      walk: '함께 걸으면 가끔 지도에 하늘에서 떨어진 재료가 보여요',
+      skill: PetSkill.tidalSong,
+      skillName: '고래 노래',
+      skillText: '몬스터를 묶고 내 HP를 넉넉히 채워요',
+      skillTextAdult: '몬스터를 묶고 내 HP를 넉넉히 채워요',
+      favorite: MaterialId.gemWater,
+    ),
+    PetSpecies.phoenix: PetSpeciesInfo(
+      id: PetSpecies.phoenix,
+      element: Element.fire,
+      name: '잿불새',
+      grade: PetGrade.hero,
+      special: '원정에서 아주 잘 싸우고, 기력을 덜 써요',
+      specialAdult: '원정에서 더 잘 싸우고, 기력을 더 덜 써요',
+      walk: '함께 걸으면 잿빛 몬스터를 찾아내고, 던전에서 한 번 되살려 줘요',
+      skill: PetSkill.rebirthFlame,
+      skillName: '되살림 불꽃',
+      skillText: '크게 태우고 불이 오래 타요',
+      skillTextAdult: '크게 태우고 불이 오래 타요',
+      favorite: MaterialId.gemFire,
+    ),
+    PetSpecies.stag: PetSpeciesInfo(
+      id: PetSpecies.stag,
+      element: Element.light,
+      name: '새벽 사슴',
+      grade: PetGrade.hero,
+      special: '원정을 빨리 다녀오고, 이기면 재료를 더 가져와요',
+      specialAdult: '원정을 더 빨리 다녀오고, 이기면 재료를 더 많이 가져와요',
+      walk: '이른 아침에 함께 걸으면 HP와 기력이 조금씩 차요',
+      skill: PetSkill.dawnHalo,
+      skillName: '새벽 햇무리',
+      skillText: '약점을 비춰 내 공격이 잠시 세지고 HP를 조금 채워요',
+      skillTextAdult: '약점을 비춰 내 공격이 잠시 세지고 HP를 조금 채워요',
+      favorite: MaterialId.gemLight,
     ),
   };
 

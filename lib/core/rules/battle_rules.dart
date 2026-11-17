@@ -1390,7 +1390,7 @@ class Battle {
       poisonTurns--;
       lastTaken += p;
       playerHp = math.max(0, playerHp - p);
-      if (playerHp == 0) {
+      if (playerHp == 0 && !_revive()) {
         phase = BattlePhase.failed;
         return;
       }
@@ -1596,7 +1596,22 @@ class Battle {
       foeHp = math.min(f.maxHp, foeHp + math.max(1, (taken * 0.3).round()));
     }
     if (f.has(ModifierId.sticky)) playerSpeed = baseSpeed * 0.8;
-    if (playerHp == 0) phase = BattlePhase.failed;
+    if (playerHp == 0 && !_revive()) phase = BattlePhase.failed;
+  }
+
+  /// 묶음 49 #235: 엠버(잿불새)와 함께한 던전 — 쓰러지면 한 번 되살아남
+  int revives = 0;
+
+  /// 되살아난 횟수 (결과·시험용)
+  int revived = 0;
+
+  bool _revive() {
+    if (revives <= 0) return false;
+    revives--;
+    revived++;
+    playerHp = math.max(1, (playerMaxHp * PetRules.phoenixRevive).round());
+    lastEvent = '엠버의 불꽃으로 되살아났어요!';
+    return true;
   }
 
   /// 돌진하는: 이번 층에서 이미 돌진했는지
@@ -1654,6 +1669,36 @@ class Battle {
       case PetSkill.stoneWall:
         shieldHits = PetRules.stoneWallHits(adult: petAdult);
         lastEvent = '돌 방벽!';
+      // 묶음 49 #235 영웅 펫
+      case PetSkill.galeFang:
+        lastEvent = '질풍 송곳니!';
+      case PetSkill.mossShell:
+        shieldHits = PetRules.mossHits(adult: petAdult);
+        lastEvent = '이끼 등딱지!';
+      case PetSkill.shadowPounce:
+        dmg = (dmg * StatRules.critMultiplier).round();
+        lastEvent = '치명타!';
+        if (_rng.nextDouble() < PetRules.pounceBind) {
+          _foeBound = true;
+          lastEvent = '덮쳐서 묶었어요!';
+        }
+      case PetSkill.tidalSong:
+        _foeBound = true;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + math.max(1, (playerMaxHp * PetRules.songHeal).round()));
+        _healed(playerHp - before);
+        lastEvent = '고래 노래!';
+      case PetSkill.rebirthFlame:
+        foeBurnTurns = PetRules.rebirthTurns;
+        lastEvent = '화상!';
+      case PetSkill.dawnHalo:
+        insightTurns = PetRules.insightTurns;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + math.max(1, (playerMaxHp * PetRules.haloHeal).round()));
+        _healed(playerHp - before);
+        lastEvent = '새벽 햇무리!';
       case PetSkill.peck || null:
         break;
     }

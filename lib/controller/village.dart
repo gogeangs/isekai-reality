@@ -129,6 +129,11 @@ extension VillageOps on AppController {
     // 묶음 42 #226: 시설에 들르면 친해지기 점수 (하루 한 번)
     unawaited(_npcVisit(n));
     if (met && situation != null) return situation;
+    // 묶음 49 #235: 루미·포포·세라가 영웅 펫을 처음 볼 때 한마디 (한 번)
+    if (met) {
+      final r = takeHeroReaction(n);
+      if (r != null) return r;
+    }
     // 묶음 42 #226: 처음 만날 때 첫 줄 → 상황 안내 → 부탁 알림 → 번갈아
     if (met && requestOffer(n) != null) return NpcRules.askLine;
     // 묶음 45 #231·#232: 특별한 부탁 · 작은 부탁 (게시판 쪽지를 여러 번 끝냈으면 그 말풍선)

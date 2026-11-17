@@ -434,7 +434,8 @@ extension ExpeditionOps on AppController {
       final t = PetRules.travelTimeFactor(pet.species,
               adult: pet.adult, bond: pet.bond, resonant: res) *
           PetRules.waterTimeFactor(pet.species,
-              adult: pet.adult, bond: pet.bond, waterside: water, resonant: res);
+              adult: pet.adult, bond: pet.bond, waterside: water, resonant: res) *
+          _wolfTravel(pet); // 묶음 49 #235: 바람과 함께면 다른 펫이 조금 빨리
       base = Duration(seconds: (base.inSeconds * t).round());
     }
     // 묶음 27 #176: 정령술 숙련도 → MP 조금 덜, 시간 조금 짧게 (숨김)

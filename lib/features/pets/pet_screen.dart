@@ -182,7 +182,7 @@ class _PetCard extends StatelessWidget {
                     ),
                   ]),
                   Text(
-                      '${info.name}${info.grade == PetGrade.rare ? ' · 희귀' : ''} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
+                      '${info.name}${petGradeTag(info.grade)} · Lv.${pet.level} · ${pet.adult ? '성체' : '아기'}'
                       '${companion ? ' · 동행' : ''}${away ? ' · 원정 중' : ''}$trainText',
                       style: const TextStyle(
                           color: AppColors.goldBright, fontSize: 12)),
@@ -206,7 +206,9 @@ class _PetCard extends StatelessWidget {
           KText(
               '원정 특기 · ${pet.adult ? info.specialAdult : info.special}\n'
               '던전 스킬 · ${info.skillName}: ${pet.adult ? info.skillTextAdult : info.skillText}'
-              '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요. 자라면 더 좋아져요.'}',
+              '${info.walk == null ? '' : '\n함께 걸을 때 · ${info.walk}'}'
+              '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요. 자라면 더 좋아져요.'}'
+              '${pet.hero && !pet.awake ? '\n단짝이 되면 각성 모습을 보여 줘요.' : ''}',
               style: const TextStyle(color: AppColors.text, fontSize: 12)),
           // 묶음 32 #191: 기운 공명
           if (c.petResonant(pet))

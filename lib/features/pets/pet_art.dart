@@ -4,6 +4,13 @@ import '../../core/models/pet_state.dart';
 import '../../core/rules/pet_rules.dart';
 import '../../theme/app_colors.dart';
 
+/// 등급 꼬리표: 「 · 희귀」 · 「 · 영웅」 (일반은 없음)
+String petGradeTag(PetGrade g) => switch (g) {
+      PetGrade.rare => ' · 희귀',
+      PetGrade.hero => ' · 영웅',
+      PetGrade.common => '',
+    };
+
 /// 펫 색 (빛, 그림이 없을 때 아이콘 색)
 Color petColor(PetSpecies s) => switch (s) {
       PetSpecies.crow => const Color(0xFF9AA6D8),
@@ -18,6 +25,13 @@ Color petColor(PetSpecies s) => switch (s) {
       PetSpecies.kelpie => const Color(0xFF5EC8F0),
       PetSpecies.mimic => const Color(0xFFD9B36A),
       PetSpecies.golem => const Color(0xFFB8A27A),
+      // 묶음 49 #235 영웅 펫
+      PetSpecies.wolf => const Color(0xFFCFE8FF),
+      PetSpecies.turtle => const Color(0xFF8FCB6A),
+      PetSpecies.panther => const Color(0xFFA98BFF),
+      PetSpecies.whale => const Color(0xFF9FD8F5),
+      PetSpecies.phoenix => const Color(0xFFFF8A3D),
+      PetSpecies.stag => const Color(0xFFFFE08A),
     };
 
 IconData petIcon(PetSpecies s) => switch (s) {
@@ -33,26 +47,40 @@ IconData petIcon(PetSpecies s) => switch (s) {
       PetSpecies.kelpie => Icons.waves_rounded,
       PetSpecies.mimic => Icons.inventory_2_rounded,
       PetSpecies.golem => Icons.landscape_rounded,
+      PetSpecies.wolf => Icons.air_rounded,
+      PetSpecies.turtle => Icons.eco_rounded,
+      PetSpecies.panther => Icons.nightlight_round,
+      PetSpecies.whale => Icons.cloud_rounded,
+      PetSpecies.phoenix => Icons.local_fire_department_rounded,
+      PetSpecies.stag => Icons.wb_sunny_rounded,
     };
 
 /// 펫 그림 (pet_<종류>_baby/adult.png). 그림이 오기 전에는 아이콘으로.
 class PetArt extends StatelessWidget {
   const PetArt(
-      {super.key, required this.species, this.adult = false, this.size = 64});
+      {super.key,
+      required this.species,
+      this.adult = false,
+      this.awake = false,
+      this.size = 64});
 
   PetArt.of(Pet pet, {super.key, this.size = 64})
       : species = pet.species,
-        adult = pet.adult;
+        adult = pet.adult,
+        awake = pet.awake;
 
   final PetSpecies species;
   final bool adult;
+
+  /// 묶음 49 #235: 영웅 펫 단짝 「각성 모습」
+  final bool awake;
   final double size;
 
   @override
   Widget build(BuildContext context) {
     final info = PetRules.info(species);
     return Image.asset(
-      info.asset(adult: adult),
+      info.asset(adult: adult, awake: awake),
       width: size,
       height: size,
       fit: BoxFit.contain,

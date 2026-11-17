@@ -427,3 +427,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | pet_nightmare_baby, pet_nightmare_adult | 전설 펫 나이트메어 「셰이드」 아기·성체 (한 장에서 잘라 같은 배율, 떠다니는 보라 연기 포함, 512) |
 | 2026-11-18 | pet_leviathan_baby, pet_leviathan_adult | 전설 펫 리바이어던 「마레」 아기·성체 (한 장에서 잘라 붉은 번짐 정리, 같은 배율, 물방울 포함, 512) |
 | 2026-11-18 | pet_dragon_baby, pet_dragon_adult | 전설 펫 드래곤 「이그니스」 아기·성체 (한 장에서 잘라 같은 배율, 입김 불꽃 포함, 512) |
+| 2026-11-18 | pet_unicorn_baby, pet_unicorn_adult | 전설 펫 유니콘 「루체」 아기·성체 (한 장에서 잘라 노랑·붉은 번짐 정리, 같은 배율, 512) |

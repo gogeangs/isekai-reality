@@ -365,3 +365,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | monster_orcCaptain, monster_ashCart, monster_metalColossus | 셀레니아 보스 3종(오크 용병 대장·잿빛 수레 괴물·고대 금속 거인), 시트 분할 512 |
 | 2026-11-17 | bg_selenia_caravan | 셀레니아 필드 배경 대상의 길, 1024 |
 | 2026-11-17 | npc_eni, npc_grum, npc_oscar, npc_mir, npc_kaspar | 셀레니아 주민 얼굴 5종, 시트 분할·아래 맞춤 512 |
+| 2026-11-17 | bg_selenia_mine | 셀레니아 필드 배경 버려진 광산, 1024 |

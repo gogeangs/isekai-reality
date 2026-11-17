@@ -49,7 +49,10 @@ jobs:
       - name: 함수 시험
         working-directory: firebase/functions
         run: |
-          - name: 운영 페이지용 웹 앱 설정
+          npm ci || npm install
+          npm test
+
+      - name: 운영 페이지용 웹 앱 설정
         continue-on-error: true
         run: |
           TOKEN=$(gcloud auth print-access-token)

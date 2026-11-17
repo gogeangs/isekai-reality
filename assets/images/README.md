@@ -361,3 +361,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | equip_seleniaAxe, uniq_grumHammer, uniq_blackLantern, uniq_stardustBoots | 셀레니아 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리, 512 |
 | 2026-11-17 | village_garden_2 | 약초밭 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
 | 2026-11-17 | monster_orcMerc, monster_koboldMiner, monster_gargoyle, monster_livingArmor | 셀레니아 일반 몬스터 4종 다시(매끈한 선·발밑 흙 없음), 덮어쓰기 512 |
+| 2026-11-17 | town_selenia | 셀레니아 마을 그림(불 꺼진 대장터 + 흑등 상회 거리), 1024 |

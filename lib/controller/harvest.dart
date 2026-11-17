@@ -384,6 +384,9 @@ extension HarvestOps on AppController {
       final r = HarvestRules.info(s.kind).rare;
       mats[r] = math.max(1, mats[r] ?? 0);
     }
+    // 묶음 48 #230: 약초밭이 열린 뒤 약초·꽃·버섯 채집에서 가끔 그 자리의 씨앗
+    final seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
+    if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
     final keepCharge = await _consumeSkill(JobSkill.rootPull);
     h = h.copyWith(
       spots: keepCharge ? h.spots : {...h.spots, s.id: charge.use(now)},
@@ -426,6 +429,10 @@ extension HarvestOps on AppController {
     await _npcTally(NpcTally.gatherOf(s.kind.name));
     await _count('harvest');
     if (relic) await _npcTally(NpcTally.relic);
+    if (seed != null) {
+      await _npcTally(NpcTally.seedFound);
+      await _seeSeeds([seed]);
+    }
     await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
         details: [if (hk != null) MasteryRules.harvestKey(hk)]);
     if (relic) {

@@ -48,6 +48,7 @@ extension NpcOps on AppController {
         Npc.sera => jobsOpen,
         Npc.lumi => shelterOpen,
         Npc.garen => facilityOpen('training'),
+        Npc.popo => facilityOpen('garden'),
       };
 
   /// 오늘 칸 (날이 바뀌면 들른 사람·쓴 횟수를 비움)
@@ -306,6 +307,10 @@ extension NpcOps on AppController {
           done: {..._npc.done, n.name: _npc.doneOf(n.name) + 1},
         ));
         await _addFavor(n, NpcRules.requestPoints);
+        // 묶음 48 #230: 포포 2·3번 부탁은 약초밭 칸이 늘어남 (4번은 특별 보상에 적힘)
+        if (n == Npc.popo && (r.index == 1 || r.index == 2)) {
+          got.add('약초밭 $gardenPlotCount칸째');
+        }
         return NpcRequestDone(request: r, got: got, special: sp);
       });
 
@@ -330,6 +335,11 @@ extension NpcOps on AppController {
             .add(AlchemyRules.keyOf(PotionId.dawnLight, PotionQuality.normal), 1));
       case NpcSpecialKind.keys:
         return _applyGifts(const {'item:spareKey': 3}, title: '마을 사람 특별 보상');
+      case NpcSpecialKind.garden:
+        // 묶음 48 #230: 밭 6칸째(부탁 수로 정해짐) + 빛나는 씨앗 2
+        final got = await _applyGifts({MaterialId.glowSeed.name: 2},
+            title: '마을 사람 특별 보상');
+        return ['약초밭 ${GardenRules.maxPlots}칸째', ...got];
     }
     return [sp.name];
   }
@@ -443,6 +453,7 @@ extension NpcOps on AppController {
       Npc.sera: jobsOpen ? 5 : 0,
       Npc.lumi: shelterOpen ? _pets.pets.length * 3 : 0,
       Npc.garen: 0,
+      Npc.popo: 0,
     };
     final pts = <String, int>{
       for (final e in seed.entries)

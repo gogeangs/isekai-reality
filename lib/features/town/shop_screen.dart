@@ -32,7 +32,10 @@ extension ShopGroupInfo on ShopGroup {
         ShopItem.jobMana ||
         ShopItem.bulssiPotion =>
           ShopGroup.potion,
-        ShopItem.ironShard || ShopItem.twig || ShopItem.herb =>
+        ShopItem.ironShard ||
+        ShopItem.twig ||
+        ShopItem.herb ||
+        ShopItem.herbSeed =>
           ShopGroup.material,
         ShopItem.expeditionCompass ||
         ShopItem.purifyIncense ||
@@ -76,7 +79,8 @@ class ShopScreen extends StatefulWidget {
           '성장의 향을 가방에 넣었어요. 몬스터를 잡으러 가는 날 피워요!',
         ShopItem.ironShard ||
         ShopItem.twig ||
-        ShopItem.herb =>
+        ShopItem.herb ||
+        ShopItem.herbSeed =>
           '${josa(TownRules.info(item).name, '을/를')} 재료 주머니에 넣었어요.',
         ShopItem.healSmall ||
         ShopItem.heal ||
@@ -105,6 +109,7 @@ class ShopScreen extends StatefulWidget {
       ShopItem.ironShard => '무기 재료',
       ShopItem.twig => '지팡이 재료',
       ShopItem.herb => '회복 물약 재료',
+      ShopItem.herbSeed => '약초밭에 심는 씨앗',
       _ => '',
     };
   }

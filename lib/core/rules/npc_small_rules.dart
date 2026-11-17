@@ -169,6 +169,13 @@ class NpcSmallRules {
     ErrandTemplate(
         id: 'npc_garen_1', npc: 'garen', title: '3,000보 더 걷기',
         counter: 'steps', target: 3000, unit: '보', exp: boardExp),
+    // 묶음 48 #230
+    ErrandTemplate(
+        id: 'npc_popo_0', npc: 'popo', title: '채집 2번',
+        counter: 'harvest', target: 2, unit: '번', exp: boardExp),
+    ErrandTemplate(
+        id: 'npc_popo_1', npc: 'popo', title: '2,000보 더 걷기',
+        counter: 'steps', target: 2000, unit: '보', exp: boardExp),
   ];
 
   /// 그 사람 쪽지들
@@ -187,6 +194,7 @@ class NpcSmallRules {
     Npc.sera: '게시판 쪽지는 네가 다 했다고 들었다. 하나 더 맡긴다.',
     Npc.lumi: '게시판 쪽지 네가 다 했지? 헤헤, 하나만 더 부탁할게!',
     Npc.garen: '게시판 쪽지를 네가 다 해치웠다며! 하나 더 맡겨 주마!',
+    Npc.popo: '게시판 쪽지 다 해 준 거 손님이죠?! 하나만 더 부탁해도 돼요?',
   };
 
   // ───────────── 작은 부탁 (사람마다 3개 중 하나, 개발 초안)
@@ -290,6 +298,19 @@ class NpcSmallRules {
         NpcRequestStep(RequestStepKind.tally, 4, '필드 몬스터 4마리 잡기',
             key: NpcTally.fieldKill),
       ], '그래, 그게 실전이다! 잘했다!'),
+    ],
+    Npc.popo: [
+      NpcSmall('밭에 물 줄 시간이에요! 2,500보만 걸어 줄래요?', [
+        NpcRequestStep(RequestStepKind.stepsSince, 2500, '2,500보 걷기'),
+      ], '촉촉해졌어요! 새싹들이 고맙대요!'),
+      NpcSmall('밭에서 하나만 거둬 줄래요? 다음 씨앗을 심을 자리가 필요해요!', [
+        NpcRequestStep(RequestStepKind.tally, 1, '약초밭에서 1번 거두기',
+            key: NpcTally.gardenHarvest),
+      ], '와아, 잘 자랐다! 손님 손이 최고예요!'),
+      NpcSmall('꽃이나 버섯 두 개만 보여 줄래요? 씨앗을 받아 볼래요!', [
+        NpcRequestStep(RequestStepKind.deliver, 2, '꽃·버섯 2개 가져오기',
+            mats: NpcRules.flowerMushroom),
+      ], '씨앗이 잔뜩 들었어요! 고마워요!'),
     ],
   };
 
@@ -461,6 +482,27 @@ class NpcSmallRules {
         ]),
       ],
       done: '가져가라! 걸을 때마다 몸이 싸움을 기억할 거다!',
+    ),
+    // 묶음 48 #230
+    NpcRelic(
+      npc: Npc.popo,
+      asset: 'item_popoDew',
+      name: '포포의 이슬병',
+      text: '약초밭이 조금 덜 걸어도 자라요',
+      say: '저쪽 숲의 새벽 이슬을 담는 병이 있어요! 같이 채워 볼래요?!',
+      stages: [
+        NpcRelicStage('이슬은 새벽 공기를 좋아해요! 먼저 3,000보 걸어 주세요!', [
+          NpcRequestStep(RequestStepKind.stepsSince, 3000, '3,000보 걷기'),
+        ]),
+        NpcRelicStage('이제 맑은 물이 필요해요! 물가에서 한 번만요!', [
+          NpcRequestStep(RequestStepKind.tally, 1, '물가 채집 1번', key: NpcTally.water),
+        ]),
+        NpcRelicStage('마지막! 밭에서 하나 거두면 이슬이 내려앉아요!', [
+          NpcRequestStep(RequestStepKind.tally, 1, '약초밭에서 1번 거두기',
+              key: NpcTally.gardenHarvest),
+        ]),
+      ],
+      done: '이슬병 완성! 이걸 가지고 있으면 밭이 덜 목말라해요!',
     ),
   ];
 

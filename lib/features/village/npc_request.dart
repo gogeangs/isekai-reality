@@ -27,6 +27,8 @@ String npcGiftLabel(AppController c, String k, int v) {
 
 String npcRewardLabel(AppController c, NpcRequest r) => [
       for (final e in r.gifts.entries) npcGiftLabel(c, e.key, e.value),
+      // 묶음 48 #230: 포포 2·3번 부탁은 약초밭이 한 칸 넓어짐
+      if (r.npc == Npc.popo && (r.index == 1 || r.index == 2)) '약초밭 한 칸 더',
       if (r.special != null) '특별한 선물',
     ].join(' · ');
 

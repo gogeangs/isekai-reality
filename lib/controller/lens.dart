@@ -64,6 +64,13 @@ extension LensOps on AppController {
       note = _random.nextDouble() <
           appraiseChance(LensRules.noteChance) + intellectCraft;
     }
+    // 묶음 48 #230: 약초밭이 열린 뒤 감정 보상으로 가끔 빛나는 씨앗
+    if (rewarded &&
+        mat == null &&
+        gardenOpen &&
+        _random.nextDouble() < GardenRules.appraiseGlow) {
+      mat = MaterialId.glowSeed;
+    }
     // 묶음 31: 진실의 눈 → 귀한 재료 꼭 · 기억 읽기 → 레시피 쪽지 꼭
     if (await _consumeSkill(JobSkill.trueEye)) {
       mat ??= LensRules.info(races[_random.nextInt(races.length)]).material;
@@ -101,7 +108,10 @@ extension LensOps on AppController {
           (_lens.day == day ? _lens.rewardedToday : 0) + (rewarded ? 1 : 0),
     );
     await store.saveJson(AppController._lensKey, _lens.toJson());
-    if (mat != null) await _grant(0, 0, {mat: 1});
+    if (mat != null) {
+      await _grant(0, 0, {mat: 1});
+      await _seeSeeds([mat]);
+    }
     if (note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     await gainMastery(Mastery.appraise, MasteryRules.appraiseOnce);
     _notify();

@@ -236,6 +236,8 @@ extension VitalsOps on AppController {
     await _jobSteps();
     await _checkAura();
     await _checkBoardEggs();
+    // 묶음 48 #230: 주간 의뢰를 모두 끝낸 주 → 빛나는 씨앗
+    await _checkGardenGlow();
     await _checkWalkEvents();
     _notify();
   }

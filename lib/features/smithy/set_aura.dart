@@ -171,6 +171,44 @@ class _SetPainter extends CustomPainter {
                 ..color = color
                 ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2.5));
         }
+      case BossSet.sky:
+        // 돌아온 왕의 기사 (묶음 50): 등 뒤로 빛나는 날개 망토가 천천히 퍼덕인다
+        final flap = math.sin(t * math.pi * 2 * 3) * 0.08;
+        for (final side in const [-1.0, 1.0]) {
+          for (var k = 0; k < 5; k++) {
+            final a = (-0.15 - k * 0.16 - flap) * math.pi;
+            final len = rx * (0.95 - k * 0.11);
+            final base = c + Offset(side * rx * 0.12, -ry * 0.35);
+            final tip = base +
+                Offset(side * math.cos(a).abs() * len, math.sin(a) * len * 0.75);
+            final path = Path()
+              ..moveTo(base.dx, base.dy)
+              ..quadraticBezierTo(
+                  (base.dx + tip.dx) / 2, base.dy - len * 0.25, tip.dx, tip.dy)
+              ..quadraticBezierTo(
+                  (base.dx + tip.dx) / 2 + side * 6, (base.dy + tip.dy) / 2 + 10,
+                  base.dx, base.dy + 6);
+            canvas.drawPath(
+                path,
+                Paint()
+                  ..color = color.withValues(alpha: 0.22 + 0.06 * k)
+                  ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+            canvas.drawPath(
+                path,
+                Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 1.4
+                  ..color = color.withValues(alpha: 0.75)
+                  ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 2));
+          }
+        }
+        // 깃털 반짝임이 천천히 내려온다
+        for (var i = 0; i < 6; i++) {
+          final x0 = rnd.nextDouble();
+          final ph = (t * 0.6 + rnd.nextDouble()) % 1;
+          final p = Offset(c.dx + (x0 - 0.5) * rx * 1.9, size.height * (0.1 + ph * 0.8));
+          _star(canvas, p, 2.5, color.withValues(alpha: 0.9 * math.sin(ph * math.pi)));
+        }
       case BossSet.ash:
         // 잿가루: 발밑에서 천천히 떠올라 흩어진다 (묶음 34 잿빛 왕의 유품)
         for (var i = 0; i < _n + 2; i++) {

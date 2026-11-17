@@ -1460,6 +1460,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                                   MonsterId.dummyElement
                                               ? elementColor(foe.element)
                                               : null,
+                                          tint: foe.tint,
                                         )),
                           ),
                         ),
@@ -2306,10 +2307,14 @@ class MonsterPicture extends StatelessWidget {
     this.defeated = false,
     this.reveal,
     this.crystal,
+    this.tint,
   });
 
   final MonsterId monster;
   final double size;
+
+  /// 묶음 50 석상 병사: 섬 속성 색을 살짝 입힌다 (ARGB)
+  final int? tint;
 
   /// 묶음 43 속성 허수아비: 가슴 수정에 그 속성 색
   final Color? crystal;
@@ -2346,6 +2351,12 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.dummyElement =>
           Icons.sports_martial_arts_rounded,
         MonsterId.trainingGolem => Icons.smart_toy_rounded,
+        MonsterId.guardWind => Icons.air_rounded,
+        MonsterId.guardThunder => Icons.bolt_rounded,
+        MonsterId.guardLight => Icons.wb_sunny_rounded,
+        MonsterId.guardIce => Icons.ac_unit_rounded,
+        MonsterId.guardWater => Icons.waves_rounded,
+        MonsterId.stoneSoldier => Icons.shield_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
@@ -2428,6 +2439,14 @@ class MonsterPicture extends StatelessWidget {
               semanticLabel: info.name,
             ),
     );
+    if (!defeated && tint != null) {
+      return ColorFiltered(
+        key: const Key('monsterTint'),
+        colorFilter: ColorFilter.mode(
+            Color(tint!).withValues(alpha: 0.38), BlendMode.srcATop),
+        child: picture,
+      );
+    }
     if (!defeated && crystal != null) {
       return SizedBox(
         width: size,

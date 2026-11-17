@@ -118,6 +118,14 @@ enum MaterialId {
   flowerSeed,
   sporeSeed,
   glowSeed,
+  // 묶음 50 #146 하이랜드: 하늘 깃털 · 하늘 돌 조각 · 섬 결정 다섯
+  skyFeather,
+  skyStone,
+  cloudCrystal,
+  stormCore,
+  sunDew,
+  frostCrystal,
+  fallsPearl,
 }
 
 class MaterialInfo {
@@ -283,6 +291,23 @@ class Materials {
         price: 12, image: 'seed_flower'),
     MaterialInfo(MaterialId.glowSeed, '빛나는 씨앗', '저쪽 숲에서 온 귀한 씨앗. 오래 걸으면 햇살 꽃가루가 돼요.',
         price: 40, image: 'seed_glow'),
+    // 묶음 50 #146 하이랜드
+    MaterialInfo(MaterialId.skyFeather, '하늘 깃털',
+        '하늘에 뜬 섬에 오를 때 하나 써요. 걷다 보면 바람에 실려 와요.',
+        price: 10, image: 'item_skyFeather'),
+    MaterialInfo(MaterialId.skyStone, '하늘 돌 조각',
+        '하이랜드 석상에서 떨어진 하얀 돌. 하이랜드 수호 기사 장비에 써요.',
+        price: 15),
+    MaterialInfo(MaterialId.cloudCrystal, '구름 결정', '구름 초원의 수호자가 나눠 준 결정.',
+        rare: true, price: 80),
+    MaterialInfo(MaterialId.stormCore, '뇌운 핵', '뇌운 봉우리의 수호자가 나눠 준 번개 구슬.',
+        rare: true, price: 80),
+    MaterialInfo(MaterialId.sunDew, '햇살 이슬', '햇살 정원의 수호자가 나눠 준 금빛 이슬.',
+        rare: true, price: 80),
+    MaterialInfo(MaterialId.frostCrystal, '서리 결정', '서리 성채의 수호자가 나눠 준 얼음 결정.',
+        rare: true, price: 80),
+    MaterialInfo(MaterialId.fallsPearl, '폭포 진주', '폭포 계곡의 수호자가 나눠 준 맑은 진주.',
+        rare: true, price: 80),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
@@ -516,6 +541,13 @@ class LootRules {
         MonsterId.dummyHard ||
         MonsterId.dummyElement ||
         MonsterId.trainingGolem ||
+        // 묶음 50 하이랜드: 하늘 재료는 섬 보상에서 따로 준다
+        MonsterId.guardWind ||
+        MonsterId.guardThunder ||
+        MonsterId.guardLight ||
+        MonsterId.guardIce ||
+        MonsterId.guardWater ||
+        MonsterId.stoneSoldier ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

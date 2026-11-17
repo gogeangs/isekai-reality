@@ -4,12 +4,14 @@ import '../models/armory.dart';
 import 'act2_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
+import 'highland_rules.dart';
 import 'materials.dart';
 import 'monsters.dart';
 
 /// 보스 장비 세트 (11-11 #82). 보스마다 6부위 한 벌.
 /// 묶음 34: ash = 「잿빛 왕의 유품」 (만들 수 없고 분신·본체에게서만 얻는다)
-enum BossSet { warden, flame, frost, grove, night, storm, ash }
+/// 묶음 50: sky = 「하이랜드 수호 기사」 (하늘 돌 조각 + 섬 결정으로 만든다)
+enum BossSet { warden, flame, frost, grove, night, storm, ash, sky }
 
 /// 6개 세트 효과 (보스 고유 능력, 확률·배율은 숨김)
 enum BossSetAbility {
@@ -33,6 +35,9 @@ enum BossSetAbility {
 
   /// 잿빛 왕의 유품 (묶음 34): 잿빛 몬스터에게 더 세고 덜 다친다
   ashBane,
+
+  /// 하이랜드 수호 기사 (묶음 50): 섬이 조금 더 오래 떠 있다
+  skyKnight,
 }
 
 class BossSetInfo {
@@ -237,8 +242,51 @@ class BossGearRules {
     ],
   );
 
-  /// 만들 수 있는 보스 세트 + 유품 세트
-  static const List<BossSetInfo> allSets = [...sets, relicSet];
+  /// 「하이랜드 수호 기사」 (묶음 50 #146): 대장간 보스 장비 탭. 부위마다 하늘 돌 조각 + 그 부위 결정
+  static const BossSetInfo skySet = BossSetInfo(
+    id: BossSet.sky,
+    name: '하이랜드 수호 기사',
+    boss: MonsterId.guardWind,
+    element: Element.wind,
+    material: MaterialId.skyStone,
+    ability: BossSetAbility.skyKnight,
+    abilityName: '돌아온 왕의 기사',
+    abilityText: '하늘에 뜬 섬이 조금 더 오래 머물러요',
+    look: '돌아온 왕의 기사',
+    lookText: '등 뒤로 빛나는 날개 망토가 펼쳐진 모습',
+    aura: 0xFFDDF3FF,
+    parts: [
+      (EquipBase.skyWeapon, '뇌운 기사검', '날개 장식 칼자루에 뇌운 핵을 박은 기사검'),
+      (EquipBase.skyHead, '햇살 날개 투구', '이마에 햇살 이슬이 빛나는 날개 투구'),
+      (EquipBase.skyBody, '서리 수호 갑옷', '서리 결정을 두른 하늘빛 망토 갑옷'),
+      (EquipBase.skyHands, '폭포 진주 건틀릿', '손등에 폭포 진주를 박은 하얀 건틀릿'),
+      (EquipBase.skyFeet, '구름 걸음 장화', '걸을 때마다 구름 결이 감도는 날개 장화'),
+      (EquipBase.skyAcc, '다섯 섬의 목걸이', '다섯 섬의 결정을 하나씩 단 날개 목걸이'),
+    ],
+  );
+
+  /// 만들 수 있는 보스 세트 + 유품 세트 + 하이랜드 세트
+  static const List<BossSetInfo> allSets = [...sets, relicSet, skySet];
+
+  /// 부위 하나를 만드는 데 드는 재료와 금화 (하이랜드 세트는 부위마다 결정이 다르다)
+  static ({Map<MaterialId, int> mats, int gold}) partCost(EquipBase base,
+      {bool blacksmith = false}) {
+    final slot = EquipmentRules.info(base).slot;
+    if (setOf(base) == BossSet.sky) {
+      final c = HighlandRules.partCost(slot);
+      return (mats: c.mats, gold: blacksmith ? (c.gold * 0.7).round() : c.gold);
+    }
+    final set = info(setOf(base) ?? BossSet.warden);
+    final c = cost(slot, blacksmith: blacksmith);
+    return (
+      mats: {MaterialId.bossShard: c.shards, set.material: c.mats},
+      gold: c.gold,
+    );
+  }
+
+  /// 실패하면 잃는 조각 (보스 장비 조각 · 하이랜드는 하늘 돌 조각)
+  static MaterialId shardOf(EquipBase base) =>
+      setOf(base) == BossSet.sky ? MaterialId.skyStone : MaterialId.bossShard;
 
   static BossSetInfo info(BossSet s) => allSets.firstWhere((x) => x.id == s);
 
@@ -360,7 +408,15 @@ class SetBonus {
     this.look,
     this.ashDealt = 0,
     this.ashTaken = 0,
+    this.skyTaken = 0,
+    this.skyFeather = false,
   });
+
+  /// 하이랜드 수호 기사 (묶음 50): 4개 — 하늘 속성 공격에 받는 피해 감소 (숨김)
+  final double skyTaken;
+
+  /// 2개: 걸을 때 하늘 깃털이 조금 더 잘 모임
+  final bool skyFeather;
 
   /// 잿빛 왕의 유품 (묶음 34): 잿빛 몬스터에게 주는 피해 증가 · 받는 피해 감소 (숨김)
   final double ashDealt;
@@ -388,8 +444,20 @@ class SetBonus {
     BossSet? look;
     var ashDealt = 0.0;
     var ashTaken = 0.0;
+    var skyTaken = 0.0;
+    var skyFeather = false;
     c.forEach((s, n) {
       final info = BossGearRules.info(s);
+      if (s == BossSet.sky) {
+        // 2개 깃털 · 4개 하늘 속성 피해 ↓ · 6개 모습 + 섬이 더 오래
+        if (n >= 2) skyFeather = true;
+        if (n >= 4) skyTaken = HighlandRules.setTaken4;
+        if (n >= 6) {
+          ab.add(info.ability);
+          look = s;
+        }
+        return;
+      }
       if (s == BossSet.ash) {
         // 2개 받는 피해 ↓ · 4개 주는 피해 ↑ · 6개 둘 다 더
         if (n >= 2) ashTaken = Act2Rules.setTaken2;
@@ -415,6 +483,8 @@ class SetBonus {
         abilities: ab,
         look: look,
         ashDealt: ashDealt,
-        ashTaken: ashTaken);
+        ashTaken: ashTaken,
+        skyTaken: skyTaken,
+        skyFeather: skyFeather);
   }
 }

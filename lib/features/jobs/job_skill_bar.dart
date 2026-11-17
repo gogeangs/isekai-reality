@@ -268,7 +268,9 @@ Future<void> _snack(BuildContext context, AppController c) async {
 Future<void> _track(BuildContext context, AppController c) async {
   final m = await _pick<MonsterId>(context, '쫓을 몬스터', [
     for (final x in MonsterId.values)
-      if (c.purifiedEver.contains(x) && !Monsters.info(x).isBoss)
+      if (c.purifiedEver.contains(x) &&
+          !Monsters.info(x).isBoss &&
+          !Monsters.info(x).retired)
         (x, Monsters.info(x).name),
   ]);
   if (m == null || !context.mounted) return;

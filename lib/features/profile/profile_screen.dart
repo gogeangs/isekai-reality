@@ -383,6 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       embedded: true,
                                       prophecy: c.prophecyPieces,
                                       kingStory: c.kingStories,
+                                      skyStones: c.skyInscriptions,
                                       npcStories: c.npcStories,
                                       trial: c.trainingOpen || c.trialEver > 0
                                           ? (

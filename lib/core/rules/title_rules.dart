@@ -74,6 +74,10 @@ enum TitleId {
   trialEndurer,
   // 묶음 48 #230: 포포 마지막 부탁 (그림 title_forestKeeper)
   forestKeeper,
+  // 묶음 50 #146 하이랜드: 처음 섬에 오름 · 수호자 다섯 · 비문 다섯 (얻기 전엔 숨김)
+  skyWalker,
+  guardianTrust,
+  kingdomWitness,
 }
 
 class TitleInfo {
@@ -148,6 +152,9 @@ class TitleRules {
       TitleId.npcLumi => '루미의 마지막 부탁을 들어줬어요',
       TitleId.npcGaren => '가렌의 마지막 부탁을 들어줬어요',
       TitleId.forestKeeper => '포포의 마지막 부탁을 들어줬어요',
+      TitleId.skyWalker => '하늘에 뜬 섬에 처음 올랐어요',
+      TitleId.guardianTrust => '하이랜드 수호자 다섯을 모두 쓰러뜨렸어요',
+      TitleId.kingdomWitness => '하이랜드의 비문 다섯을 모두 모았어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       _ => '새 칭호를 얻었어요',
     };
@@ -170,7 +177,17 @@ class TitleRules {
     ...ashTitles,
     ...npcTitles,
     TitleId.trialEndurer,
+    ...skyTitles,
   };
+
+  /// 하이랜드 칭호 (묶음 50 #146). 기록 counters 'stitle:<이름>' 으로 얻는다
+  static const List<TitleId> skyTitles = [
+    TitleId.skyWalker,
+    TitleId.guardianTrust,
+    TitleId.kingdomWitness,
+  ];
+
+  static String skyCounter(TitleId t) => 'stitle:${t.name}';
 
   /// 마을 사람 칭호 (묶음 42 #226). 기록 counters 'ntitle:<이름>' 으로 얻는다
   static const List<TitleId> npcTitles = [
@@ -338,6 +355,9 @@ class TitleRules {
     TitleInfo(TitleId.npcGaren, '문지기 기사단의 후예', '숨은 칭호'),
     TitleInfo(TitleId.trialEndurer, '시련을 견딘 자', '숨은 칭호'),
     TitleInfo(TitleId.forestKeeper, '숲을 기르는 자', '숨은 칭호'),
+    TitleInfo(TitleId.skyWalker, '하늘을 걸은 자', '숨은 칭호'),
+    TitleInfo(TitleId.guardianTrust, '수호자들이 인정한 자', '숨은 칭호'),
+    TitleInfo(TitleId.kingdomWitness, '잊힌 왕국의 증인', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -447,6 +467,11 @@ class TitleRules {
     }
     for (final t in npcTitles) {
       final k = npcCounter(t);
+      if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
+    }
+    // 묶음 50 #146: 하이랜드
+    for (final t in skyTitles) {
+      final k = skyCounter(t);
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
     }
     // 묶음 43 #228: 시련에서 처음 15판을 넘기면

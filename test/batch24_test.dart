@@ -233,7 +233,7 @@ void main() {
   test('#168 하늘 슬라임은 도감 첫 칸, 칭호 개수는 그대로', () {
     final codex = Monsters.codex;
     expect(codex.first.id, MonsterId.slime);
-    expect(codex.length, Monsters.all.length + 1);
+    expect(codex.length, Monsters.all.length + 7); // 묶음 50: 하이랜드 6칸은 끝에
     expect(Monsters.all.any((m) => m.id == MonsterId.slime), isFalse);
     expect(Monsters.inCodex(MonsterId.slime), isTrue);
     expect(Monsters.inCodex(MonsterId.roughWaterSpirit), isFalse);

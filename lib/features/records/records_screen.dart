@@ -17,6 +17,7 @@ class RecordsScreen extends StatefulWidget {
       this.embedded = false,
       this.prophecy = const [],
       this.kingStory = const [],
+      this.skyStones = const [],
       this.npcStories = const [],
       this.trial,
       this.memory});
@@ -29,6 +30,9 @@ class RecordsScreen extends StatefulWidget {
 
   /// 왕의 사연 (묶음 34): 쓰러뜨린 분신 순서대로 늘어난다
   final List<String> kingStory;
+
+  /// 묶음 50 #146 하이랜드 비문 다섯 (1~5번 자리, 못 얻은 자리는 null). 하나도 없으면 빈 목록
+  final List<String?> skyStones;
 
   final PlayerState player;
 
@@ -270,6 +274,44 @@ class _RecordsScreenState extends State<RecordsScreen> {
                             fontSize: 14,
                             height: 1.5,
                             fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+          ],
+          // 묶음 50: 하이랜드 비문 (얻은 자리만 글, 나머지는 빈 돌판)
+          if (widget.skyStones.any((t) => t != null)) ...[
+            const SizedBox(height: 16),
+            Text('하이랜드의 비문',
+                key: const Key('skyStoneRecords'), style: AppText.title(19)),
+            const SizedBox(height: 8),
+            for (final (i, t) in widget.skyStones.indexed)
+              Container(
+                key: Key('skyStone_$i'),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                decoration: BoxDecoration(
+                  color: t == null
+                      ? const Color(0x33D9E6F2)
+                      : const Color(0xFFDDE7F0),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0x998CA3BA)),
+                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${i + 1}',
+                      style: AppText.title(15,
+                          color: t == null
+                              ? AppColors.textMuted
+                              : const Color(0xFF3A4A5C))),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: KText(t ?? '아직 읽지 못한 비문',
+                        style: TextStyle(
+                            color: t == null
+                                ? AppColors.textMuted
+                                : const Color(0xFF22303D),
+                            fontSize: 14,
+                            height: 1.5,
+                            fontWeight: t == null ? FontWeight.w400 : FontWeight.w600)),
                   ),
                 ]),
               ),

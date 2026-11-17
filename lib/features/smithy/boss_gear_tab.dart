@@ -42,6 +42,11 @@ class BossGearTab extends StatelessWidget {
               : _HiddenSet(set: s),
           const SizedBox(height: 10),
         ],
+        // 묶음 50 #146: 하이랜드 수호 기사 (수호자를 하나라도 쓰러뜨리면 보인다)
+        c.bossSetOpen(BossSet.sky)
+            ? _SetCard(controller: c, set: BossGearRules.skySet)
+            : const _HiddenSet(set: BossGearRules.skySet),
+        const SizedBox(height: 10),
         // 묶음 34: 잿빛 왕의 유품 (만들 수 없음, 분신·본체에게서). 하나라도 얻으면 보인다
         if (BossGearRules.relicSet.parts.any((x) => c.hasBossPart(x.$1))) ...[
           _RelicCard(controller: c),
@@ -215,6 +220,17 @@ class _Effects extends StatelessWidget {
   Widget build(BuildContext context) {
     const style = TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4);
     final el = set.element.label;
+    if (set.id == BossSet.sky) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const KText('2개 · 걸을 때 하늘 깃털이 조금 더 잘 모여요', style: style),
+          const KText('4개 · 바람·번개·빛·얼음·물 속성 공격에 받는 피해가 줄어요',
+              style: style),
+          KText('6개 · 「${set.look}」 모습 · ${set.abilityText}', style: style),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,7 +294,7 @@ class _PartRow extends StatelessWidget {
     final p = c.player;
     final info = EquipmentRules.info(base);
     final has = c.hasBossPart(base);
-    final cost = BossGearRules.cost(info.slot, blacksmith: c.blacksmith);
+    final cost = BossGearRules.partCost(base, blacksmith: c.blacksmith);
     final check = c.canCraftBoss(base);
     String need(int have, int want) => '$have/$want';
     return Padding(
@@ -308,11 +324,14 @@ class _PartRow extends StatelessWidget {
                       size: 14, color: AppColors.goldBright),
                 ],
               ]),
-              Text(
-                  '${EquipmentRules.slotLabel(info.slot)} · 조각 '
-                  '${need(p.materialCount(MaterialId.bossShard), cost.shards)} · '
-                  '${Materials.info(set.material).name} '
-                  '${need(p.materialCount(set.material), cost.mats)} · 금화 ${cost.gold}',
+              KText(
+                  [
+                    EquipmentRules.slotLabel(info.slot),
+                    for (final e in cost.mats.entries)
+                      '${e.key == MaterialId.bossShard ? '조각' : Materials.info(e.key).name} '
+                          '${need(p.materialCount(e.key), e.value)}',
+                    '금화 ${cost.gold}',
+                  ].join(' · '),
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],
           ),

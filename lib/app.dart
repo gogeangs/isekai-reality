@@ -28,6 +28,7 @@ import 'features/tutorial/targets.dart';
 import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
 import 'features/act2/ash_battle_screen.dart' show EndingScreen;
+import 'features/highland/highland_screen.dart' show HighlandSceneScreen;
 import 'features/jobs/guild_screen.dart';
 import 'features/jobs/job_skill_bar.dart';
 import 'features/jobs/skill_screen.dart';

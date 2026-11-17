@@ -118,6 +118,14 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.sporeSeed ||
         MaterialId.glowSeed =>
           Icons.grass_rounded,
+        MaterialId.skyFeather => Icons.air_rounded,
+        MaterialId.skyStone => Icons.landscape_rounded,
+        MaterialId.cloudCrystal ||
+        MaterialId.stormCore ||
+        MaterialId.sunDew ||
+        MaterialId.frostCrystal ||
+        MaterialId.fallsPearl =>
+          Icons.diamond_rounded,
       };
 
   @override

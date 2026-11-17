@@ -638,6 +638,8 @@ extension TutorialOps on AppController {
               factor)
           .floor();
       gold = b.gold;
+      // 묶음 50 #146: 날개 달린 몬스터가 가끔 하늘 깃털
+      _wingFeather(monster, mats);
       if (half) {
         for (final k in [...mats.keys]) {
           final v = mats[k]! ~/ 2;

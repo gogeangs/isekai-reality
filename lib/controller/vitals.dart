@@ -94,6 +94,8 @@ extension VitalsOps on AppController {
       await _advanceRelics();
       // 묶음 49 #235: 여명 — 이른 아침 걸음으로 HP·기력
       await _heroWalk();
+      // 묶음 50 #146: 걸음으로 하늘 깃털 · 다음 섬 알림
+      await _highlandWalk();
       // 묶음 45 #231: 마르타 — 하루 8,000보를 넘긴 날 (하루 한 번)
       final today = player.today;
       if (today != null &&

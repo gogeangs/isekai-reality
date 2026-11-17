@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show AskKind, JobRules, Npc, TrainingRules, VillageRules;
+    show AskKind, GardenRules, JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';

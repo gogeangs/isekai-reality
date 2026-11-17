@@ -114,7 +114,7 @@ jobs:
           flutter create --platforms ios --org kr.itso --project-name isekai_reality .
           python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
           python3 tool/optimize_images.py
-          python3 tool/prepare_ios.py
+          UNIVERSAL_LINKS='${{ vars.UNIVERSAL_LINKS }}' python3 tool/prepare_ios.py
           python3 tool/firebase_setup.py ios
 
       - name: API 키 파일

@@ -60,11 +60,12 @@ info["FlutterDeepLinkingEnabled"] = False  # app_links 가 링크를 받는다
 
 info_path.write_bytes(plistlib.dumps(info))
 
-# 2. HealthKit 권한 (entitlements) + 묶음 57 파티 초대 Universal Links (저장소 변수 UNIVERSAL_LINKS=off 면 뺌)
+# 2. HealthKit 권한 (entitlements) + 묶음 57 파티 초대 Universal Links
+#    (앱 ID에 Associated Domains 를 켠 뒤 저장소 변수 UNIVERSAL_LINKS=on 일 때만 넣음 — 안 켜면 내보내기가 실패함)
 ent = runner / "Runner.entitlements"
 ents = {"com.apple.developer.healthkit": True,
         "com.apple.developer.healthkit.access": []}
-if os.environ.get("UNIVERSAL_LINKS", "on") != "off":
+if os.environ.get("UNIVERSAL_LINKS", "") == "on":
     ents["com.apple.developer.associated-domains"] = ["applinks:api-ujbfnvvalq-du.a.run.app"]
 ent.write_bytes(plistlib.dumps(ents))
 

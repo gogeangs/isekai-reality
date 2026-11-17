@@ -427,12 +427,15 @@ class _PartyTabState extends State<PartyTab> {
         ),
         if (got)
           const Text('받음', style: TextStyle(color: AppColors.textMuted, fontSize: 12.5))
+        else if (!reached)
+          Text('${comma((v.walkGoals[i] - v.walkTotal).clamp(0, 1 << 30))}보 더',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
         else
           SizedBox(
             height: 32,
             child: FilledButton(
               key: Key('partyWalkClaim_$i'),
-              onPressed: reached && !c.partyBusy ? () => _claim('walk', tier: i) : null,
+              onPressed: c.partyBusy ? null : () => _claim('walk', tier: i),
               style: FilledButton.styleFrom(
                   backgroundColor: AppColors.gold, padding: const EdgeInsets.symmetric(horizontal: 12)),
               child: const Text('받기', style: TextStyle(color: AppColors.goldInk, fontWeight: FontWeight.w800)),

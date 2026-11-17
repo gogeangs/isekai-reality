@@ -162,6 +162,8 @@ void main() {
       await tester.tap(find.byKey(const Key('partyStyleOpen')));
       await _settle(tester, 4);
       await _shot(tester, '${n}_07_꾸미기');
+      Navigator.of(tester.element(find.byKey(const Key('partyStyleSheet')))).pop();
+      await _settle(tester, 4);
       late Battle b;
       await tester.runAsync(() async {
         b = c.startPartyBoss()!;

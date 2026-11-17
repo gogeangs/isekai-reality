@@ -407,3 +407,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | equip_aurel{Weapon,Head,Body,Hands,Feet,Acc} | 아우렐 순례 세트 6부위, 시트 분할 512 |
 | 2026-11-18 | equip_morvalSword, uniq_lucyFlower, uniq_kingCloak, uniq_moonFang | 모르발 지역 무기·이름 있는 장비 3, 얇은 주황 테두리만, 붉은 얼룩 정리 512 |
 | 2026-11-18 | monster_spiderQueen, monster_ashElder, monster_ashTortoise | 엘로윈 보스 3종(거미 여왕·잿빛 고목·잿빛 거북), 진한 붉은 테두리 정리·시트 분할 512 |
+| 2026-11-18 | monster_vampireBat, monster_wraith, monster_ghoul, monster_cultZealot | 모르발 일반 몬스터 4종, 분홍·파랑 테두리 정리·시트 분할 512 |

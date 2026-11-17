@@ -309,3 +309,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | pet_phoenix_awake, pet_whale_awake, pet_panther_awake, pet_turtle_awake | 영웅 펫 각성 모습 4종 (#235, 뿌연 빛무리 제거, 512) |
 | 2026-11-17 | pet_stag_awake | 영웅 펫 새벽 사슴 각성 모습 (#235, 뿌연 빛무리 제거·해돋이 원판 유지, 512) |
 | 2026-11-17 | pet_map_{wolf,turtle,panther,whale,phoenix,stag} | 영웅 펫 지도 메달 6종 (#235, 한 장에서 잘라 같은 크기, 512 → 개발이 128로) |
+| 2026-11-17 | map_highland | 하이랜드 지도 섬 표시 (#146, 512 → 개발이 160으로, 하늘색은 개발이 속성마다 바꿈) |

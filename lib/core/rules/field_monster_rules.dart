@@ -59,6 +59,8 @@ class FieldMonsterRules {
     double luckBonus = 0,
     Set<Element> favored = const {},
     LandKind? Function(GeoPoint)? land,
+    List<MonsterId> lampMonsters = const [],
+    double lampShare = 0,
   }) {
     final key = '${day.year}-${day.month}-${day.day}';
     final spawns = <FieldSpawn>[];
@@ -149,12 +151,21 @@ class FieldMonsterRules {
             ));
         if (p == null) continue;
         final id = '$key#${r}_$c';
-        final monster = night && butterflyRoll < nightButterflyShare
+        var monster = night && butterflyRoll < nightButterflyShare
             ? MonsterId.shadowButterfly
             : pickCommon(kindRoll, elementRoll,
                 night: night,
                 favored: favored,
                 landFavored: landElements(land?.call(p)));
+        // 묶음 53 #243: 등불을 켠 지역의 몬스터가 가끔 (예전 난수 순서는 그대로 두고 맨 뒤에 굴림)
+        if (lampMonsters.isNotEmpty) {
+          final lr = rng.nextDouble();
+          if (lr < lampShare) {
+            monster = lampMonsters[(lr / lampShare * lampMonsters.length)
+                .floor()
+                .clamp(0, lampMonsters.length - 1)];
+          }
+        }
         spawns.add(FieldSpawn(
           id: id,
           monster: monster,

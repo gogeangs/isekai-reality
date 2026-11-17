@@ -311,6 +311,7 @@ class Battle {
     this.setAbilities = const {},
     this.ashDealt = 0,
     this.ashTaken = 0,
+    this.guardFlash = 0,
     this.skyTaken = 0,
     this.allies = const [],
   })  : floors = List.unmodifiable(floors),
@@ -354,7 +355,9 @@ class Battle {
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
-    final petTicks = petSkill == null ? null : PetRules.skillChargeTicks(petSkill);
+    final petBase = petSkill == null ? null : PetRules.skillChargeTicks(petSkill);
+    final petTicks =
+        petBase == null ? null : math.max(1, petBase - gear.sets.petFaster);
     final baseTicks = petTicks != null && skillChargeTicks < skillUnavailable
         ? math.min(skillChargeTicks, petTicks)
         : skillChargeTicks;
@@ -392,6 +395,7 @@ class Battle {
       setAbilities: gear.sets.abilities,
       ashDealt: gear.sets.ashDealt,
       ashTaken: gear.sets.ashTaken,
+      guardFlash: gear.sets.guardFlash,
       skyTaken: gear.sets.skyTaken,
       attackElement: gear.attackElement,
       skillElement: skillElement,
@@ -566,6 +570,9 @@ class Battle {
   /// 잿빛 왕의 유품 세트: 잿빛 몬스터에게 주는 피해 증가 · 받는 피해 감소
   final double ashDealt;
   final double ashTaken;
+
+  /// 묶음 53: 볼크의 금 간 투구 — 막을 때 적이 멈출 확률 (숨김)
+  final double guardFlash;
 
   /// 묶음 50: 하이랜드 수호 기사 세트 4개 — 바람·번개·빛·얼음·물 공격에 받는 피해 감소
   final double skyTaken;
@@ -1969,10 +1976,12 @@ class Battle {
         lastDealt = counterDmg;
         _hitFoe(counterDmg);
         _checkRage();
+        if (guardFlash > 0) _maybeStun(guardFlash);
         return;
       }
       atk *= blockTaken;
       lastEvent = '막았다!';
+      if (guardFlash > 0) _maybeStun(guardFlash);
     }
     final taken = _vary(math.max(1, atk.round()));
     lastTaken += taken;

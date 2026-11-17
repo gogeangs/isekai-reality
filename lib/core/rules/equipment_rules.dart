@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../models/armory.dart';
 import 'act3_rules.dart';
+import 'baldrin_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
@@ -47,6 +48,8 @@ enum EquipBase {
   lianKnot,
   // 묶음 52 #243: 3막 지역 1 「발드린 문지기」 (저쪽 몬스터가 떨어뜨림, 만들 수 없음)
   baldrinWeapon, baldrinHead, baldrinBody, baldrinHands, baldrinFeet, baldrinAcc,
+  // 묶음 53 #243: 지역 1 이름 있는 장비 셋 · 지역 무기 「관문의 빛 창」
+  uniqVolkHelm, uniqTeoSpear, uniqWindPendant, baldrinSpear,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -333,6 +336,7 @@ class EquipmentRules {
     for (final e in BossGearRules.infos) e.id: e,
     for (final e in npcGear) e.id: e,
     for (final e in Act3Rules.gearInfos) e.id: e,
+    for (final e in BaldrinRules.gearInfos) e.id: e,
   };
 
   /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)

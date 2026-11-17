@@ -14,6 +14,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart' show SpiritMood;
 import '../smithy/equipment_view.dart';
 import '../village/tavern_screen.dart';
+import 'act3_town.dart';
 
 /// 3막에 들어간다 (마을의 다리 · 지도 「여정」): 처음이면 다리 장면부터
 Future<void> openJourney(BuildContext context, AppController c) async {
@@ -196,6 +197,35 @@ class _Act3ScreenState extends State<Act3Screen> {
           ],
         ),
       ),
+      if (c.lunchCount > 0) ...[
+        const SizedBox(width: 6),
+        GestureDetector(
+          key: const Key('eatLunch'),
+          onTap: () async {
+            final ok = await c.eatLunch();
+            if (!mounted) return;
+            showTopNotice(
+                context,
+                ok
+                    ? '마르타의 도시락을 먹었어요 · 여정 기력 +${BaldrinRules.lunchEnergy}'
+                    : '여정 기력이 가득해요');
+          },
+          child: Stack(clipBehavior: Clip.none, children: [
+            Image.asset(BaldrinRules.lunchImage,
+                width: 34,
+                height: 34,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.lunch_dining_rounded, color: AppColors.goldBright)),
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: Text('${c.lunchCount}',
+                  style: const TextStyle(
+                      color: AppColors.goldBright, fontSize: 11, fontWeight: FontWeight.w900)),
+            ),
+          ]),
+        ),
+      ],
       const SizedBox(width: 10),
       // 데려가는 동료 (누르면 「아르카 마을 주점에서 바꿀 수 있어요」)
       for (final a in c.partyAllies)
@@ -292,6 +322,10 @@ class AllyFace extends StatelessWidget {
             ? Icon(Icons.person_rounded, color: color, size: size * 0.7)
             : Image.asset(look.face!,
                 fit: BoxFit.cover,
+                // 직업 그림(전신)은 얼굴 쪽만
+                alignment: look.face!.contains('ally_job_')
+                    ? const Alignment(0, -0.8)
+                    : Alignment.center,
                 errorBuilder: (_, __, ___) =>
                     Icon(Icons.person_rounded, color: color, size: size * 0.7)),
       ),
@@ -335,7 +369,11 @@ class _RegionMap extends StatelessWidget {
                   left: p.x * w - 44,
                   top: p.y * h - 26,
                   width: 88,
-                  child: _PlaceMark(place: p, onTap: () => showPlaceSheet(context, c, p.id)),
+                  child: _PlaceMark(
+                      place: p,
+                      name: placeName(c, p),
+                      alert: placeAlert(c, p.id),
+                      onTap: () => showPlaceSheet(context, c, p.id)),
                 ),
             ]),
           ),
@@ -345,10 +383,26 @@ class _RegionMap extends StatelessWidget {
   }
 }
 
+/// 장소 아이콘 위 「!」 (할 이야기 · 보고할 퀘스트가 있는 곳)
+bool placeAlert(AppController c, String id) => switch (id) {
+      'baldrin_town' => c.volkTalkPending ||
+          [for (final q in SideQuest.values) c.sideReady(q)].any((x) => x) ||
+          Resident.values.any((r) => c.residentOffer(r) != null),
+      'baldrin_ashplain' => c.mainStep == 0,
+      'baldrin_wallroad' => c.wallPending,
+      'baldrin_wolfhill' => c.nestPending,
+      'baldrin_fort' => c.dungeonOpen && !c.baldrinLit,
+      'baldrin_windden' => c.denOpen && !c.denCleared,
+      _ => false,
+    };
+
 class _PlaceMark extends StatelessWidget {
-  const _PlaceMark({required this.place, required this.onTap});
+  const _PlaceMark(
+      {required this.place, required this.name, required this.onTap, this.alert = false});
 
   final PlaceInfo place;
+  final String name;
+  final bool alert;
   final VoidCallback onTap;
 
   @override
@@ -372,7 +426,25 @@ class _PlaceMark extends StatelessWidget {
             border: Border.all(color: AppColors.goldBright, width: 1.4),
             boxShadow: const [BoxShadow(color: Color(0x99000000), blurRadius: 6)],
           ),
-          child: Icon(icon, size: 19, color: AppColors.goldBright),
+          child: Stack(clipBehavior: Clip.none, children: [
+            Center(child: Icon(icon, size: 19, color: AppColors.goldBright)),
+            if (alert)
+              Positioned(
+                right: -4,
+                top: -6,
+                child: Container(
+                  key: Key('placeAlert_${place.id}'),
+                  width: 16,
+                  height: 16,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFE0533F), shape: BoxShape.circle),
+                  child: const Text('!',
+                      style: TextStyle(
+                          color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+                ),
+              ),
+          ]),
         ),
         const SizedBox(height: 2),
         Container(
@@ -381,7 +453,7 @@ class _PlaceMark extends StatelessWidget {
             color: const Color(0xD9101024),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(place.name,
+          child: Text(name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -392,71 +464,178 @@ class _PlaceMark extends StatelessWidget {
   }
 }
 
-/// 장소를 눌렀을 때: 필드는 싸우기, 마을·던전은 다음 이야기, 숨은 장소는 ???
-Future<void> showPlaceSheet(BuildContext context, AppController c, String id) {
+/// 3막 싸움 하나를 한다 (끝나면 결과). 지면 야영지로
+Future<Act3FightResult?> runEncounter(BuildContext context, AppController c, A3Enc e,
+    {Duration tick = const Duration(milliseconds: 900)}) async {
+  final r = await Navigator.of(context).push<Act3FightResult>(MaterialPageRoute(
+      builder: (_) => Act3BattleScreen(controller: c, encounter: e, tickInterval: tick)));
+  if (r != null && !r.won && context.mounted && e.kind != A3Kind.floor &&
+      e.kind != A3Kind.mid && e.kind != A3Kind.lamp) {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+  }
+  return r;
+}
+
+/// 장소 이름 (바람의 굴은 열리기 전엔 ???)
+String placeName(AppController c, PlaceInfo p) =>
+    p.kind == SpotKind.hidden && c.denOpen ? '바람의 굴' : p.name;
+
+/// 장소를 눌렀을 때: 마을 · 요새는 그 화면으로, 필드는 싸우기 + 이야기 · 퀘스트, 숨은 장소는 ???
+Future<void> showPlaceSheet(BuildContext context, AppController c, String id) async {
   final p = Act3Rules.place(id);
-  if (p == null) return Future.value();
-  return showModalBottomSheet<void>(
+  if (p == null) return;
+  if (p.kind == SpotKind.town) {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+    return;
+  }
+  if (p.kind == SpotKind.dungeon && c.dungeonOpen) {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => FortScreen(controller: c)));
+    return;
+  }
+  if (!context.mounted) return;
+  final go = await showModalBottomSheet<A3Enc>(
     context: context,
     backgroundColor: AppColors.night,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (sheet) => SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         key: Key('placeSheet_$id'),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(p.name, style: AppText.title(19)),
-            const SizedBox(height: 8),
-            if (p.monster case final m?) ...[
-              Row(children: [
-                MonsterPicture(monster: m, size: 76),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(Monsters.info(m).name,
-                          style: const TextStyle(
-                              color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800)),
-                      KText(Monsters.info(m).description,
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                    ],
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              GoldButton(
-                key: const Key('placeFight'),
-                label: c.journeyEnergy < Act3Rules.energyField
-                    ? '여정 기력이 모자라요 · 걸으면 차요'
-                    : c.hp <= 0
-                        ? 'HP가 없어요 · 쉬고 오세요'
-                        : '싸우기 · 여정 기력 ${Act3Rules.energyField}',
-                onPressed: c.canFieldFight(id)
-                    ? () {
-                        Navigator.of(sheet).pop();
-                        Navigator.of(context).push(MaterialPageRoute<void>(
-                            builder: (_) => Act3BattleScreen(controller: c, placeId: id)));
-                      }
-                    : null,
-              ),
-            ] else
-              KText(
-                  switch (p.kind) {
-                    SpotKind.hidden => '아직 길을 찾지 못한 곳이에요.',
-                    SpotKind.town => '피난민들이 천막을 치고 사는 야영지예요. 곧 문을 열어 줄 거예요.',
-                    _ => '잿빛이 기어 나오는 요새예요. 곧 들어갈 수 있어요.',
-                  },
-                  style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.45)),
-          ],
+          children: _placeBody(sheet, c, p),
         ),
       ),
     ),
   );
+  if (go == null || !context.mounted) return;
+  final r = await runEncounter(context, c, go);
+  if (!context.mounted || r == null || !r.won) return;
+  if (go.kind == A3Kind.wall && c.choicePending) {
+    await openLetterChoice(context, c);
+  }
+}
+
+String _energyLabel(AppController c, int cost, String what) => c.journeyEnergy < cost
+    ? '여정 기력이 모자라요 · 걸으면 차요'
+    : c.hp <= 0
+        ? 'HP가 없어요 · 천막 여관에서 쉬어요'
+        : '$what · 여정 기력 $cost';
+
+List<Widget> _placeBody(BuildContext sheet, AppController c, PlaceInfo p) {
+  Widget fight(Key key, String label, A3Enc e) => Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: GoldButton(
+          key: key,
+          height: 50,
+          fontSize: 18,
+          label: _energyLabel(c, e.energy, label),
+          onPressed: c.journeyEnergy >= e.energy && c.hp > 0
+              ? () => Navigator.of(sheet).pop(e)
+              : null,
+        ),
+      );
+  final out = <Widget>[
+    Text(placeName(c, p), style: AppText.title(19)),
+    const SizedBox(height: 8),
+  ];
+  if (p.monster case final m?) {
+    out.addAll([
+      Row(children: [
+        MonsterPicture(monster: m, size: 76),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Monsters.info(m).name,
+                  style: const TextStyle(
+                      color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800)),
+              KText(Monsters.info(m).description,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            ],
+          ),
+        ),
+      ]),
+      const SizedBox(height: 4),
+      GoldButton(
+        key: const Key('placeFight'),
+        height: 50,
+        fontSize: 18,
+        label: _energyLabel(c, Act3Rules.energyField, '싸우기'),
+        onPressed: c.canFieldFight(p.id)
+            ? () => Navigator.of(sheet).pop(A3Enc(
+                  kind: A3Kind.field,
+                  place: p.id,
+                  foes: [m, if (m == MonsterId.goblinRaider) m],
+                  energy: Act3Rules.energyField,
+                  background: p.background,
+                ))
+            : null,
+      ),
+    ]);
+    // 메인 ③ 성벽길 · 한나 퀘스트 하피 둥지
+    if (p.id == 'baldrin_wallroad' && c.wallPending && !c.choicePending) {
+      out.add(fight(const Key('wallSearch'), '성벽길 안쪽 살피기', c.wallFight));
+    }
+    if (p.id == 'baldrin_wallroad' && c.choicePending) {
+      out.add(Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: FrameButton(
+          key: const Key('letterAgain'),
+          label: '테오의 편지',
+          onPressed: () {
+            Navigator.of(sheet).pop();
+            openLetterChoice(sheet, c);
+          },
+        ),
+      ));
+    }
+    if (p.id == 'baldrin_wolfhill' && c.nestPending) {
+      out.add(fight(const Key('nestFight'), '하피 둥지로', c.nestFight));
+    }
+    if (p.id == 'baldrin_wolfhill' && !c.hasSilverFur && !c.denOpen) {
+      out.add(const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: KText('언덕 어딘가에 은빛 털이 반짝인다는 소문이 있어요.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      ));
+    }
+  } else if (p.kind == SpotKind.hidden) {
+    if (c.denOpen) {
+      out.addAll([
+        for (final l in BaldrinRules.denLines)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: KText(l, style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.45)),
+          ),
+        if (c.hasWindPet)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: KText(BaldrinRules.denWolfLine,
+                key: Key('denWolfLine'),
+                style: TextStyle(color: AppColors.goldBright, fontSize: 14, height: 1.45)),
+          ),
+        fight(const Key('denFight'), c.denCleared ? '다시 싸우기' : '잿빛 늑대 우두머리와 싸우기', c.denFight),
+      ]);
+    } else {
+      out.add(KText(
+          c.hasSilverFur
+              ? '은빛 털에서 바람 냄새가 나요. 아르카 마을 펫 쉼터의 루미에게 보여 주면 길을 알지도 몰라요.'
+              : '아직 길을 찾지 못한 곳이에요.',
+          style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.45)));
+    }
+  } else {
+    out.add(const KText('잿빛이 기어 나오는 요새예요. 성벽길에서 테오의 흔적을 찾은 뒤에 들어갈 수 있어요.',
+        style: TextStyle(color: AppColors.text, fontSize: 14, height: 1.45)));
+  }
+  return out;
 }
 
 /// 일지 (메인 · 서브 · 끝낸 것)
@@ -468,32 +647,46 @@ class _Journal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final main = controller.journalMain;
+    final c = controller;
+    final main = c.journalMain;
     final open = [for (final q in main) if (!q.done) q];
     final done = [for (final q in main) if (q.done) q];
-    Widget row(({String title, String text, bool done}) q) => OrnatePanel(
-          key: Key('quest_${q.title}'),
+    final sides = c.journalSides;
+    Widget card({
+      required Key key,
+      required String title,
+      required String text,
+      required bool done,
+      String? place,
+      String? extra,
+      String? reward,
+    }) =>
+        OrnatePanel(
+          key: key,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(children: [
-                Icon(q.done ? Icons.check_circle_rounded : Icons.flag_rounded,
+                Icon(done ? Icons.check_circle_rounded : Icons.flag_rounded,
                     size: 18, color: AppColors.goldBright),
                 const SizedBox(width: 6),
-                Expanded(child: Text(q.title, style: AppText.title(16))),
-                Text(controller.currentRegion.name,
+                Expanded(child: Text(title, style: AppText.title(16))),
+                Text(c.currentRegion.name,
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
               ]),
               const SizedBox(height: 4),
-              KText(q.text,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-              if (!q.done) ...[
-                const SizedBox(height: 6),
+              KText(text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+              if (extra != null)
+                Text(extra, style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5)),
+              if (reward != null)
+                Text('보상 · $reward',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              if (!done && place != null) ...[
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    key: const Key('questGo'),
-                    onPressed: () => onGo('baldrin_ashplain'),
+                    key: Key('questGo_$title'),
+                    onPressed: () => onGo(place),
                     child: const Text('그 장소로 가기'),
                   ),
                 ),
@@ -501,28 +694,66 @@ class _Journal extends StatelessWidget {
             ],
           ),
         );
+    const sideReward = '모집권 ${BaldrinRules.sideTickets} · 금화 ${BaldrinRules.sideGold}';
     return ListView(children: [
       Text('메인', style: AppText.title(15, color: AppColors.goldBright)),
       const SizedBox(height: 6),
-      for (final q in open) ...[row(q), const SizedBox(height: 8)],
-      const KText('이야기는 곧 이어져요.',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      for (final q in open) ...[
+        card(key: Key('quest_${q.title}'), title: q.title, text: q.text, done: false, place: q.place),
+        const SizedBox(height: 8),
+      ],
+      if (open.isEmpty)
+        const KText('관문의 등불이 켜졌어요. 다음 이야기는 셀레니아 대장터에서 이어져요.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
       const SizedBox(height: 14),
       Text('서브', style: AppText.title(15, color: AppColors.goldBright)),
       const SizedBox(height: 6),
-      const KText('야영지 사람들이 부탁할 일이 생길 거예요.',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-      if (done.isNotEmpty) ...[
+      for (final s in sides.where((x) => !x.done)) ...[
+        card(
+          key: Key('side_${s.q.id.name}'),
+          title: s.q.title,
+          text: s.q.task,
+          done: false,
+          place: s.q.place,
+          extra: s.ready
+              ? '다 했어요 · ${s.q.garen ? '초소장의 의뢰판에서' : '${BaldrinRules.resident(s.q.giver!).name}에게'} 알려 주세요'
+              : s.q.id == SideQuest.stall
+                  ? null
+                  : '${s.prog} / ${s.q.target}',
+          reward: s.q.garen ? '가렌 스킬 ④ · $sideReward' : sideReward,
+        ),
+        const SizedBox(height: 8),
+      ],
+      if (sides.where((x) => !x.done).isEmpty)
+        const KText('피난민 야영지 사람들이 부탁할 일이 있을지도 몰라요.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      if (done.isNotEmpty || sides.any((x) => x.done) || c.act3.choice != null) ...[
         const SizedBox(height: 14),
         Text('끝낸 것', style: AppText.title(15, color: AppColors.goldBright)),
         const SizedBox(height: 6),
-        for (final q in done) ...[row(q), const SizedBox(height: 8)],
+        if (c.act3.choice case final ch?) ...[
+          card(
+            key: const Key('doneChoice'),
+            title: BaldrinRules.choiceTitle,
+            text: ch == 'marta' ? BaldrinRules.choiceMarta.title : BaldrinRules.choiceGaren.title,
+            done: true,
+          ),
+          const SizedBox(height: 8),
+        ],
+        for (final q in done) ...[
+          card(key: Key('quest_${q.title}'), title: q.title, text: q.text, done: true),
+          const SizedBox(height: 8),
+        ],
+        for (final s in sides.where((x) => x.done)) ...[
+          card(key: Key('side_${s.q.id.name}'), title: s.q.title, text: s.q.task, done: true),
+          const SizedBox(height: 8),
+        ],
       ],
     ]);
   }
 }
 
-/// 세계 지도: 지역 다섯 (지금 지역 밝게 · 앞으로 갈 곳은 안개 + 필요 레벨)
+/// 세계 지도: 지역 다섯 (지금 지역 밝게 · 앞으로 갈 곳은 안개 + 필요 레벨) · 이름 있는 장비 모음
 class _WorldMap extends StatelessWidget {
   const _WorldMap({required this.controller});
 
@@ -548,7 +779,10 @@ class _WorldMap extends StatelessWidget {
                   children: [
                     Text(i <= cur ? r.name : '안개 너머',
                         style: AppText.title(16, color: AppColors.text)),
-                    Text(i <= cur ? r.blurb : 'Lv.${r.level}',
+                    Text(
+                        i <= cur
+                            ? (i == 0 && controller.baldrinLit ? '등불을 켰어요 · ${r.blurb}' : r.blurb)
+                            : 'Lv.${r.level}',
                         style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   ],
                 ),
@@ -561,23 +795,34 @@ class _WorldMap extends StatelessWidget {
         ),
         const SizedBox(height: 8),
       ],
+      FrameButton(
+        key: const Key('uniqueBook'),
+        label: '이름 있는 장비 모음',
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => UniqueBookScreen(controller: controller))),
+      ),
+      const SizedBox(height: 10),
       const KText('파티 · 준비 중 — 같은 지역을 걷는 각성자는 서버가 열리면 보여요.',
           style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
     ]);
   }
 }
 
-/// 3막 필드 싸움 (동료 둘과 함께)
+/// 3막 싸움 (동료 둘과 함께). 끝나면 결과를 돌려줌
 class Act3BattleScreen extends StatefulWidget {
   const Act3BattleScreen({
     super.key,
     required this.controller,
-    required this.placeId,
+    this.placeId,
+    this.encounter,
     this.tickInterval = const Duration(milliseconds: 900),
   });
 
   final AppController controller;
-  final String placeId;
+
+  /// 지역 지도 필드 사냥 (encounter 가 없을 때)
+  final String? placeId;
+  final A3Enc? encounter;
   final Duration tickInterval;
 
   @override
@@ -588,10 +833,18 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
   AppController get c => widget.controller;
   Battle? _battle;
   Act3FightResult? _result;
-  late final PlaceInfo _place = Act3Rules.place(widget.placeId)!;
+  late final A3Enc? _enc = widget.encounter;
+  late final PlaceInfo? _place = Act3Rules.place(_enc?.place ?? widget.placeId ?? '');
   late final List<({String? art, String? face, int color})> _looks = [
     for (final a in c.partyAllies) c.allyLook(a),
   ];
+
+  String get _title => switch (_enc?.kind) {
+        A3Kind.floor || A3Kind.mid || A3Kind.lamp => '문지기 지하 요새 ${c.floorNow}층',
+        A3Kind.den => '바람의 굴',
+        A3Kind.nest => '하피 둥지',
+        _ => _place == null ? '다리 너머' : placeName(c, _place),
+      };
 
   @override
   void initState() {
@@ -614,7 +867,8 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
         return;
       }
     }
-    final b = c.startAct3Fight(widget.placeId);
+    final e = _enc;
+    final b = e != null ? c.startEncounter(e) : c.startAct3Fight(widget.placeId ?? '');
     if (!mounted) return;
     if (b == null) {
       Navigator.of(context).pop();
@@ -632,6 +886,10 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
     final b = _battle;
+    final inFort = switch (_enc?.kind) {
+      A3Kind.floor || A3Kind.mid || A3Kind.lamp => true,
+      _ => false,
+    };
     return Scaffold(
       key: const Key('act3Battle'),
       backgroundColor: AppColors.deepNight,
@@ -643,8 +901,8 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: FrameButton(
                   key: const Key('act3Back'),
-                  label: _result!.won ? '지도로' : '피난민 야영지로',
-                  onPressed: () => Navigator.of(context).pop(),
+                  label: _result!.won ? (inFort ? '계속' : '지도로') : '피난민 야영지로',
+                  onPressed: () => Navigator.of(context).pop(_result),
                 ),
               ),
             ),
@@ -654,7 +912,7 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OrnateTopBar(title: _place.name, onBack: null),
+              OrnateTopBar(title: _title, onBack: null),
               const SizedBox(height: 10),
               Expanded(
                 child: b == null
@@ -670,12 +928,22 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
                             jobMp: () => c.jobMp,
                             onJobSkill: c.payBattleSkill,
                             onMasterySkill: c.payMasterySkill,
-                            background: _place.background ?? Act3Rules.fallbackBackground,
+                            background: _enc?.background ??
+                                _place?.background ??
+                                Act3Rules.fallbackBackground,
                             aura: switch (c.gear.sets.look) {
                               final set? => Color(BossGearRules.info(set).aura),
                               null => null,
                             },
                             onFinished: _finish,
+                            // 묶음 53: 위 띠 (요새 층 · 보스)
+                            floorLabelOf: (b) => switch (_enc?.kind) {
+                              A3Kind.mid || A3Kind.lamp || A3Kind.den => 'BOSS',
+                              A3Kind.floor => '${c.floorNow}층',
+                              _ => b.floors.length == 1
+                                  ? '필드 전투'
+                                  : '${b.floor + 1} / ${b.floors.length}마리',
+                            },
                             tickInterval: widget.tickInterval,
                             playerName: c.profile.name,
                             look: c.profile.look,
@@ -699,51 +967,64 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
     );
   }
 
-  Widget _resultView(Act3FightResult r) => ListView(children: [
-        BulssiLine(
-            line: r.won
-                ? (r.firstFight
-                    ? '저쪽 세계에서의 첫 싸움, 해냈어! 리안이랑 가렌도 같이였어.'
-                    : Monsters.info(_place.monster!).huntLine)
-                : '이번엔 물러났어. 야영지에서 숨 좀 돌리자. 얻은 건 그대로야.',
-            mood: r.won ? SpiritMood.cheer : SpiritMood.worried),
-        const SizedBox(height: 10),
-        if (r.won)
-          OrnatePanel(
-            key: const Key('act3Reward'),
-            ornament: true,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('경험치 +${r.exp} · 금화 +${r.gold}',
-                    textAlign: TextAlign.center, style: AppText.title(17)),
-                for (final it in r.items) ...[
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    EquipIcon(base: it.base, grade: it.grade, size: 52),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [EquipName(it, size: 15), ItemStats(it, fontSize: 12)],
-                      ),
+  Widget _resultView(Act3FightResult r) {
+    final foe = _battle!.floors.first.monster;
+    return ListView(children: [
+      BulssiLine(
+          line: r.won
+              ? (r.firstFight
+                  ? '저쪽 세계에서의 첫 싸움, 해냈어! 리안이랑 가렌도 같이였어.'
+                  : Monsters.info(foe).huntLine)
+              : '이번엔 물러났어. 야영지에서 숨 좀 돌리자. 얻은 건 그대로야.',
+          mood: r.won ? SpiritMood.cheer : SpiritMood.worried),
+      const SizedBox(height: 10),
+      if (r.won)
+        OrnatePanel(
+          key: const Key('act3Reward'),
+          ornament: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('경험치 +${r.exp} · 금화 +${r.gold}',
+                  textAlign: TextAlign.center, style: AppText.title(17)),
+              if (r.tickets > 0)
+                Text('모집권 +${r.tickets}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
+              for (final it in r.items) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  EquipIcon(base: it.base, grade: it.grade, size: 52),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [EquipName(it, size: 15), ItemStats(it, fontSize: 12)],
                     ),
-                  ]),
-                ],
-                for (final e in r.allyLevels.entries) ...[
-                  const SizedBox(height: 6),
-                  Text('${e.key} Lv.${e.value}!',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
-                ],
-                if (r.firstFight) ...[
-                  const SizedBox(height: 8),
-                  const Text('일지 · 「잿빛 들판에서 첫 싸움」을 끝냈어요',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.text, fontSize: 13)),
-                ],
+                  ),
+                ]),
               ],
-            ),
+              for (final e in r.allyLevels.entries) ...[
+                const SizedBox(height: 6),
+                Text('${e.key} Lv.${e.value}!',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
+              ],
+              for (final l in r.lines) ...[
+                const SizedBox(height: 8),
+                KText(l,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.text, fontSize: 13.5, height: 1.4)),
+              ],
+              if (r.firstFight) ...[
+                const SizedBox(height: 8),
+                const Text('일지 · 「잿빛 들판에서 첫 싸움」을 끝냈어요',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.text, fontSize: 13)),
+              ],
+            ],
           ),
-      ]);
+        ),
+    ]);
+  }
 }

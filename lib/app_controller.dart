@@ -47,6 +47,7 @@ import 'features/status/demo_data.dart';
 
 part 'controller/act2.dart';
 part 'controller/act3.dart';
+part 'controller/act3_region.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
@@ -169,6 +170,10 @@ class AppController extends ChangeNotifier {
   /// 서버 기록으로 바꾼 뒤 앱을 처음부터 다시 띄움 (main 이 정함, 없으면 그 자리에서 다시 읽음)
   Future<void> Function()? onRestored;
   CloudState _cloud = const CloudState();
+
+  /// 묶음 53: 지금 하는 3막 싸움 · 주민 대화 횟수 (앱을 켠 동안)
+  A3Enc? _a3Enc;
+  final Map<String, int> _a3Talk = {};
   bool _cloudBusy = false;
   BackupInfo? _serverChoice;
 

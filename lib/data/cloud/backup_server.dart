@@ -62,7 +62,7 @@ abstract class BackupServer {
 
   /// 기록을 올린다. 예전 조각은 지운다 (보관본은 그대로)
   Future<BackupInfo> upload(String uid, String token, Map<String, Object> snapshot,
-      {required int level, required String lastDay});
+      {required int level, required String lastDay, String? device});
 
   /// 고르지 않은 기록을 보관 (예전 보관본은 지움)
   Future<void> keep(String uid, String token, Map<String, Object> snapshot,
@@ -276,7 +276,7 @@ class FirestoreBackupServer implements BackupServer {
 
   @override
   Future<BackupInfo> upload(String uid, String token, Map<String, Object> snapshot,
-      {required int level, required String lastDay}) async {
+      {required int level, required String lastDay, String? device}) async {
     BackupMeta? old;
     try {
       old = await meta(uid, token);
@@ -287,10 +287,23 @@ class FirestoreBackupServer implements BackupServer {
     final info = BackupInfo(gen: gen, parts: n, level: level, lastDay: lastDay);
     final at = await _commit(token, [
       {
-        'update': {'name': _user(uid), 'fields': _infoFields(info)},
-        'updateMask': {'fieldPaths': ['gen', 'parts', 'level', 'lastDay']},
+        'update': {
+          'name': _user(uid),
+          'fields': {..._infoFields(info), if (device != null) 'device': _str(device)},
+        },
+        'updateMask': {
+          'fieldPaths': ['gen', 'parts', 'level', 'lastDay', if (device != null) 'device'],
+        },
         'updateTransforms': [
           {'fieldPath': 'updatedAt', 'setToServerValue': 'REQUEST_TIME'},
+          // 운영정책: 이 계정에 로그인한 휴대폰 (무작위 기기 ID, 같은 휴대폰 계정끼리 거래 · 파티 막기용)
+          if (device != null)
+            {
+              'fieldPath': 'devices',
+              'appendMissingElements': {
+                'values': [_str(device)],
+              },
+            },
         ],
       },
       if (old?.current case final c? when c.gen != old?.kept?.gen) ..._deleteParts(uid, c),
@@ -401,6 +414,9 @@ class FakeBackupServer implements BackupServer {
   int uploads = 0;
   int _gen = 0;
 
+  /// 계정마다 백업한 휴대폰 (기기 ID)
+  final Map<String, Set<String>> devices = {};
+
   void _check() {
     if (offline) throw const BackupOffline('offline');
   }
@@ -422,9 +438,10 @@ class FakeBackupServer implements BackupServer {
 
   @override
   Future<BackupInfo> upload(String uid, String token, Map<String, Object> snapshot,
-      {required int level, required String lastDay}) async {
+      {required int level, required String lastDay, String? device}) async {
     _check();
     uploads++;
+    if (device != null) (devices[uid] ??= {}).add(device);
     final g = 'g${_gen++}';
     data[g] = SnapshotCodec.decode(SnapshotCodec.encode(snapshot));
     final info = BackupInfo(

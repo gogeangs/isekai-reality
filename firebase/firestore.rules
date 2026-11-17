@@ -1,5 +1,6 @@
 rules_version = '2';
 // 묶음 55 #245: 내 기록(users/{내 uid})과 그 아래 조각만 읽고 쓴다. 다른 사람 것은 못 봄.
+// 묶음 53(운영정책): 계정 상태(status/{uid}: 제재 단계 등)는 내 것만 읽고, 쓰기는 운영 도구(관리자)만.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
@@ -7,6 +8,10 @@ service cloud.firestore {
       match /{rest=**} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
+    }
+    match /status/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
   }
 }

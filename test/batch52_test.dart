@@ -319,7 +319,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.byKey(const Key('act3Tab_1')));
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byKey(const Key('questGo')), findsOneWidget);
+      expect(find.byKey(const Key('questGo_잿빛 들판에서 첫 싸움')), findsOneWidget);
       await tester.tap(find.byKey(const Key('act3Tab_2')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('region_baldrin')), findsOneWidget);

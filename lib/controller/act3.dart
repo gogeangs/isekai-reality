@@ -9,7 +9,19 @@ class Act3FightResult {
     this.items = const [],
     this.allyLevels = const {},
     this.firstFight = false,
+    this.lines = const [],
+    this.tickets = 0,
+    this.lamp = false,
   });
+
+  /// 묶음 53: 이야기 한 줄 (은빛 털 · 편지 · 퀘스트 진행 등)
+  final List<String> lines;
+
+  /// 받은 모집권
+  final int tickets;
+
+  /// 이번에 처음 등불을 켰는지 (등불 장면을 보여 줌)
+  final bool lamp;
 
   final bool won;
   final int exp;
@@ -304,7 +316,9 @@ extension Act3Ops on AppController {
   /// 이 칸을 열 수 있는지 (앞 칸 · 포인트 · 퀘스트)
   bool canUnlockSkill(AllyData a, int slot) {
     if (a.skills.contains(slot) || slot < 0 || slot > 3) return false;
-    if (a.isStory && Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), slot)) {
+    if (a.isStory &&
+        Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), slot) &&
+        !garenRosterDone) {
       return false;
     }
     final pre = switch (slot) {
@@ -346,11 +360,27 @@ extension Act3Ops on AppController {
       final s = Act3Rules.story(StoryAlly.values.byName(a.story!));
       return (art: s.image, face: s.face, color: 0xFFE8C77A);
     }
+    // 묶음 53: 직업 그림 6장 (종족 특징은 아직 없음)
+    final img = 'assets/images/ally_job_${a.job}.webp';
     return (
-      art: null,
-      face: null,
+      art: img,
+      face: img,
       color: Act3Rules.jobColor[AllyJob.values.byName(a.job!)] ?? 0xFF9AA6D8,
     );
+  }
+
+  /// 동료가 든 무기가 직업에 잘 맞는지 (숨은 값 공격 +10%)
+  bool allyWeaponFits(AllyData a) {
+    final w = [for (final g in a.gear) if (g.slot == EquipSlot.weapon) g].firstOrNull;
+    final kind = MasteryRules.weaponKind(w?.base);
+    if (kind == null) return false;
+    final role = a.isStory
+        ? Act3Rules.story(StoryAlly.values.byName(a.story!)).role
+        : AllyJob.values.byName(a.job!);
+    final fit = a.story == StoryAlly.garen.name
+        ? const {'staff', 'spear'}
+        : Act3Rules.jobWeapons[role] ?? const <String>{};
+    return fit.contains(kind);
   }
 
   /// 마법사 속성 (종족에 따라)
@@ -382,7 +412,7 @@ extension Act3Ops on AppController {
               (1 + g.maxHp + sum((t) => t.hp)))
           .round()),
       attack: math.max(1, (BattleRules.expectedAttack(lv) * Act3Rules.allyAttack * atkStat *
-              (1 + g.attack + sum((t) => t.attack)))
+              (1 + g.attack + sum((t) => t.attack) + (allyWeaponFits(a) ? Act3Rules.fitBonus : 0)))
           .round()),
       skill: skill,
       chargeTicks: math.max(3, Act3Rules.allyCharge - sum((t) => t.charge.toDouble()).round()),
@@ -395,7 +425,7 @@ extension Act3Ops on AppController {
     );
   }
 
-  // ───────────── 지역 1 필드 사냥 (여정 기력 5)
+  // ───────────── 싸움 (필드 · 요새 층 · 보스 · 이야기 싸움): 묶음 53에서 [A3Enc] 로 묶음
 
   bool canFieldFight(String placeId) =>
       act3Open &&
@@ -403,18 +433,28 @@ extension Act3Ops on AppController {
       hp > 0 &&
       Act3Rules.place(placeId)?.monster != null;
 
+  /// 지역 지도의 필드 사냥 (여정 기력 5). 잿빛 들판 고블린은 무리로 (둘)
   Battle? startAct3Fight(String placeId) {
-    final p = Act3Rules.place(placeId);
-    final m = p?.monster;
+    final m = Act3Rules.place(placeId)?.monster;
     if (m == null || !canFieldFight(placeId)) return null;
+    return startEncounter(A3Enc(
+      kind: A3Kind.field,
+      place: placeId,
+      foes: [m, if (m == MonsterId.goblinRaider) m],
+      energy: Act3Rules.energyField,
+    ));
+  }
+
+  /// 싸움 하나를 시작한다 (여정 기력을 쓰는 싸움이면 먼저 씀). 못 하면 null
+  Battle? startEncounter(A3Enc e) {
+    if (!act3Open || hp <= 0 || _act3.energy < e.energy) return null;
     final lv = player.level.level;
-    // 잿빛 들판 고블린은 무리로 (둘)
-    final floors = [
-      Act3Rules.fieldFoe(m, lv),
-      if (m == MonsterId.goblinRaider) Act3Rules.fieldFoe(m, lv),
-    ];
-    _act3 = _act3.copyWith(energy: _act3.energy - Act3Rules.energyField);
-    unawaited(_saveAct3());
+    final floors = [for (final m in e.foes) _a3Foe(m, e.kind, lv)];
+    if (e.energy > 0) {
+      _act3 = _act3.copyWith(energy: _act3.energy - e.energy);
+      unawaited(_saveAct3());
+    }
+    _a3Enc = e;
     final p0 = player;
     _stopResting();
     return _withJob(Battle.forPlayer(
@@ -442,9 +482,59 @@ extension Act3Ops on AppController {
     ));
   }
 
-  /// 필드 싸움이 끝났을 때: 이기면 경험치 · 금화 · 가끔 「발드린 문지기」 장비 · 동료 경험치.
+  Foe _a3Foe(MonsterId m, A3Kind k, int lv) {
+    final (hpX, atkX) = switch (k) {
+      A3Kind.mid => (BaldrinRules.midHp, BaldrinRules.midAtk),
+      A3Kind.lamp => (BaldrinRules.lampHp, BaldrinRules.lampAtk),
+      A3Kind.den => (BaldrinRules.denHp, BaldrinRules.denAtk),
+      _ => (Act3Rules.fieldHp, Act3Rules.fieldAttack),
+    };
+    final b = BattleRules.fieldFoe(level: math.max(lv, Act3Rules.openLevel), monster: m);
+    return Foe(
+      monster: m,
+      maxHp: math.max(1, (b.maxHp * hpX).round()),
+      attack: math.max(1, (b.attack * atkX).round()),
+      defense: b.defense,
+      speed: b.speed,
+    );
+  }
+
+  /// 장비 하나를 굴려 가방(넘치면 우편)으로
+  Future<EquipItem> _a3Gear(EquipBase base, {bool rare = false, Element? element}) async {
+    final grade = EquipmentRules.rollGrade(_random, rare: rare);
+    final a = _armory;
+    final item = EquipItem(
+      uid: 'eq${a.nextId}',
+      base: base,
+      grade: grade,
+      extras: EquipmentRules.rollExtras(grade, _random),
+      element: element ?? (base == EquipBase.baldrinWeapon ? Element.light : null),
+    );
+    await _saveArmory(a.copyWith(nextId: a.nextId + 1));
+    await _giveEquipOrMail(item, title: '저쪽 세계 전리품');
+    if (BaldrinRules.uniques.contains(base)) {
+      _act3 = _act3.copyWith(found: {..._act3.found, base.name});
+    }
+    return item;
+  }
+
+  Future<EquipItem> _a3Normal() => _a3Gear(
+      Act3Rules.baldrinGear[_random.nextInt(Act3Rules.baldrinGear.length)]);
+
+  /// 이름 있는 장비 하나 (아직 없는 것 먼저)
+  Future<EquipItem> _a3Unique(List<EquipBase> from) {
+    final fresh = [for (final b in from) if (!_act3.found.contains(b.name)) b];
+    final pool = fresh.isEmpty ? from : fresh;
+    final base = pool[_random.nextInt(pool.length)];
+    return _a3Gear(base,
+        rare: true, element: base == EquipBase.uniqTeoSpear ? Element.light : null);
+  }
+
+  /// 싸움이 끝났을 때: 이기면 경험치 · 금화 · 장비 · 동료 경험치 · 퀘스트 진행.
   /// 지면 얻은 것은 그대로, 그 지역 마을로 돌아감(화면) · 여정 기력만 쓴 만큼
   Future<Act3FightResult> finishAct3Fight(Battle battle) => _serial(() async {
+        final e = _a3Enc ?? const A3Enc(kind: A3Kind.field, foes: []);
+        _a3Enc = null;
         if (!battle.isOver) return const Act3FightResult(won: false);
         await keepBattleHp(battle);
         await _spendBattleBuffs();
@@ -453,31 +543,49 @@ extension Act3Ops on AppController {
           _notify();
           return const Act3FightResult(won: false);
         }
-        final exp = Act3Rules.fieldExp * battle.floors.length;
-        final gold = Act3Rules.fieldGoldMin +
-            _random.nextInt(Act3Rules.fieldGoldMax - Act3Rules.fieldGoldMin + 1);
+        final boss = e.kind == A3Kind.mid || e.kind == A3Kind.lamp || e.kind == A3Kind.den;
+        final exp = switch (e.kind) {
+          A3Kind.mid => RuleConstants.fieldMonsterExp * BaldrinRules.midExp,
+          A3Kind.lamp => RuleConstants.fieldMonsterExp * BaldrinRules.lampExp,
+          A3Kind.den => RuleConstants.fieldMonsterExp * BaldrinRules.denExp,
+          _ => Act3Rules.fieldExp * battle.floors.length,
+        };
+        final gold = boss
+            ? BaldrinRules.bossGoldMin +
+                _random.nextInt(BaldrinRules.bossGoldMax - BaldrinRules.bossGoldMin + 1)
+            : Act3Rules.fieldGoldMin +
+                _random.nextInt(Act3Rules.fieldGoldMax - Act3Rules.fieldGoldMin + 1);
         final today = await _todayRecord();
         await _save(today.copyWith(
           gains: DailyRecord.addCounts(today.gains, {'exp': exp, Wallet.gold: gold}),
           counters: DailyRecord.addCounts(today.counters, {'act3Fight': 1}),
         ));
-        // 장비: 가끔 하나 (훔치기면 한 번 더 굴림)
         final items = <EquipItem>[];
+        final lines = <String>[];
+        var tickets = 0;
+        // 장비: 보통 싸움은 가끔 하나 (훔치기면 한 번 더), 보스는 더 자주
+        final gearChance = switch (e.kind) {
+          A3Kind.mid => 0.6,
+          A3Kind.lamp || A3Kind.den => 1.0,
+          _ => Act3Rules.gearDrop,
+        };
         for (var k = 0; k < (battle.extraLoot ? 2 : 1); k++) {
-          if (_random.nextDouble() >= Act3Rules.gearDrop) continue;
-          final base = Act3Rules.baldrinGear[_random.nextInt(Act3Rules.baldrinGear.length)];
-          final grade = EquipmentRules.rollGrade(_random, rare: false);
-          final a = _armory;
-          final item = EquipItem(
-            uid: 'eq${a.nextId}',
-            base: base,
-            grade: grade,
-            extras: EquipmentRules.rollExtras(grade, _random),
-            element: base == EquipBase.baldrinWeapon ? Element.light : null,
-          );
-          await _saveArmory(a.copyWith(nextId: a.nextId + 1));
-          await _giveEquipOrMail(item, title: '저쪽 세계 전리품');
-          items.add(item);
+          if (_random.nextDouble() < gearChance) items.add(await _a3Normal());
+        }
+        // 이름 있는 장비 (아주 드물게, 숨은 보스는 처음 한 번 꼭)
+        final firstDen = e.kind == A3Kind.den && !_act3.has('denBoss');
+        final uChance = switch (e.kind) {
+          A3Kind.lamp => BaldrinRules.uniqLamp,
+          A3Kind.mid => BaldrinRules.uniqMid,
+          A3Kind.den => firstDen ? 1.0 : BaldrinRules.uniqDen,
+          _ => 0.0,
+        };
+        if (_random.nextDouble() < uChance) {
+          items.add(await _a3Unique(switch (e.kind) {
+            A3Kind.den => const [EquipBase.uniqWindPendant],
+            A3Kind.lamp => const [EquipBase.uniqVolkHelm, EquipBase.uniqTeoSpear],
+            _ => const [EquipBase.uniqVolkHelm],
+          }));
         }
         // 동료 경험치 (내 레벨을 넘지 못함)
         final ups = <String, int>{};
@@ -485,7 +593,7 @@ extension Act3Ops on AppController {
         for (final id in s.party) {
           final a = s.ally(id);
           if (a == null) continue;
-          var lv = a.level, xp = a.exp + Act3Rules.allyExpField;
+          var lv = a.level, xp = a.exp + Act3Rules.allyExpField * (boss ? 3 : 1);
           while (lv < player.level.level && xp >= Act3Rules.allyExpToNext(lv)) {
             xp -= Act3Rules.allyExpToNext(lv);
             lv++;
@@ -498,8 +606,60 @@ extension Act3Ops on AppController {
           if (a.story == StoryAlly.garen.name) await _npcUse(Npc.garen);
         }
         final first = !s.firstFight &&
-            battle.floors.first.monster == MonsterId.goblinRaider;
+            battle.floors.first.monster == MonsterId.goblinRaider &&
+            e.kind == A3Kind.field;
         _act3 = s.copyWith(firstFight: s.firstFight || first, wins: s.wins + 1);
+        // 장소·퀘스트 진행
+        switch (e.kind) {
+          case A3Kind.field:
+            if (e.place == 'baldrin_ashplain') _sideStep(SideQuest.beacon, lines, '봉화대에 다시 불을 붙였어요');
+            if (e.place == 'baldrin_wallroad') _sideStep(SideQuest.roster, lines, '무너진 돌 틈에서 신병 이름표를 찾았어요');
+            if (e.place == 'baldrin_wolfhill' &&
+                !_act3.has('fur') &&
+                _random.nextDouble() < BaldrinRules.furChance) {
+              _act3 = _act3.flag('fur');
+              lines.add(BaldrinRules.furLine);
+            }
+          case A3Kind.nest:
+            _sideStep(SideQuest.child, lines, '하피 둥지에서 울고 있던 아이를 구했어요');
+          case A3Kind.wall:
+            _act3 = _act3.flag('wallFought');
+            lines.add(BaldrinRules.letterLine);
+          case A3Kind.mid:
+            if (_act3.quests[SideQuest.dew.name] == 1 && !_act3.has('dew')) {
+              _act3 = _act3.flag('dew');
+              _sideStep(SideQuest.dew, lines, '사냥개 우리 뒤 숨은 샘에서 빛 이슬을 떠 왔어요');
+            }
+          case A3Kind.lamp:
+            final plates =
+                _act3.has('lamp') ? BaldrinRules.plateAgain : BaldrinRules.plateFirst;
+            await _grant(0, 0, {MaterialId.hollowPlate: plates},
+                over: BagOver.mail, title: '잿빛 빈 갑주 조각');
+            lines.add('빈 갑주 조각 $plates개를 얻었어요');
+            if (!_act3.has('dungeon')) {
+              _act3 = _act3.flag('dungeon');
+              tickets += BaldrinRules.dungeonTicket;
+            }
+            if (!_act3.has('lamp')) {
+              _act3 = _act3.flag('lamp');
+              tickets += BaldrinRules.lampTickets;
+              final t = await _todayRecord();
+              await _save(t.copyWith(
+                  counters: DailyRecord.addCounts(
+                      t.counters, {TitleRules.skyCounter(TitleId.baldrinLamp): 1})));
+            }
+          case A3Kind.den:
+            if (firstDen) {
+              _act3 = _act3.flag('denBoss');
+              final t = await _todayRecord();
+              await _save(t.copyWith(
+                  counters: DailyRecord.addCounts(
+                      t.counters, {TitleRules.skyCounter(TitleId.windMemory): 1})));
+            }
+          case A3Kind.floor:
+            break;
+        }
+        if (tickets > 0) _act3 = _act3.copyWith(tickets: _act3.tickets + tickets);
         await _saveAct3();
         await gainMastery(Mastery.combat, MasteryRules.fieldWin);
         _notify();
@@ -510,20 +670,14 @@ extension Act3Ops on AppController {
           items: items,
           allyLevels: ups,
           firstFight: first,
+          lines: lines,
+          tickets: tickets,
+          lamp: e.kind == A3Kind.lamp && tickets >= BaldrinRules.lampTickets,
         );
       });
 
   /// 동료 다음 레벨까지 경험치
   int allyExpToNext(AllyData a) => Act3Rules.allyExpToNext(a.level);
-
-  /// 일지 (메인): 이번 묶음은 ①만, 나머지는 「다음 이야기」
-  List<({String title, String text, bool done})> get journalMain => [
-        (
-          title: Act3Rules.mainFirstFight,
-          text: Act3Rules.mainFirstFightText,
-          done: _act3.firstFight,
-        ),
-      ];
 
   Future<void> _saveAct3() =>
       store.saveJson(AppController._act3Key, _act3.toJson());

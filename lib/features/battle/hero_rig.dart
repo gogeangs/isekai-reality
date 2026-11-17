@@ -39,7 +39,10 @@ WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
       EquipBase.baldrinWeapon =>
         WeaponKind.sword,
       EquipBase.groveWeapon => WeaponKind.axe,
-      EquipBase.stormWeapon => WeaponKind.spear,
+      EquipBase.stormWeapon ||
+      EquipBase.uniqTeoSpear ||
+      EquipBase.baldrinSpear =>
+        WeaponKind.spear,
       _ => null,
     };
 

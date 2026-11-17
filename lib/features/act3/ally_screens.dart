@@ -552,6 +552,7 @@ class AllyDetailScreen extends StatelessWidget {
                             _GearSlot(
                               slot: s,
                               item: [for (final g in a.gear) if (g.slot == s) g].firstOrNull,
+                              fits: s == EquipSlot.weapon && c.allyWeaponFits(a),
                               onTap: () => _pickGear(context, a, s),
                             ),
                         ],
@@ -582,7 +583,8 @@ class AllyDetailScreen extends StatelessWidget {
                           open: a.skills.contains(i),
                           equipped: a.slot == i,
                           quest: a.isStory &&
-                              Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), i),
+                              Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), i) &&
+                              !c.garenRosterDone,
                           canUnlock: c.canUnlockSkill(a, i),
                           cost: Act3Rules.skillCost(i),
                           onUnlock: () => c.unlockAllySkill(a.id, i),
@@ -623,11 +625,14 @@ class AllyDetailScreen extends StatelessWidget {
 }
 
 class _GearSlot extends StatelessWidget {
-  const _GearSlot({required this.slot, required this.item, required this.onTap});
+  const _GearSlot({required this.slot, required this.item, required this.onTap, this.fits = false});
 
   final EquipSlot slot;
   final EquipItem? item;
   final VoidCallback onTap;
+
+  /// 직업에 잘 맞는 무기 (묶음 53)
+  final bool fits;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -654,6 +659,10 @@ class _GearSlot extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: AppColors.text, fontSize: 11)),
+              if (fits)
+                const Text('잘 맞아요',
+                    key: Key('weaponFits'),
+                    style: TextStyle(color: AppColors.goldBright, fontSize: 10.5)),
             ],
           ),
         ),

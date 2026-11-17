@@ -126,6 +126,7 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.frostCrystal ||
         MaterialId.fallsPearl =>
           Icons.diamond_rounded,
+        MaterialId.hollowPlate => Icons.shield_rounded,
       };
 
   @override

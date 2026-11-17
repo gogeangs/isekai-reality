@@ -81,6 +81,9 @@ enum TitleId {
   // 묶음 51: 리안 · 바르칸 마지막 부탁 (얻기 전엔 숨김)
   walkTogether,
   merchantFriend,
+  // 묶음 53 #243: 3막 지역 1 등불 · 숨은 보스 (얻기 전엔 숨김)
+  baldrinLamp,
+  windMemory,
 }
 
 class TitleInfo {
@@ -160,6 +163,8 @@ class TitleRules {
       TitleId.skyWalker => '하늘에 뜬 섬에 처음 올랐어요',
       TitleId.guardianTrust => '하이랜드 수호자 다섯을 모두 쓰러뜨렸어요',
       TitleId.kingdomWitness => '하이랜드의 비문 다섯을 모두 모았어요',
+      TitleId.baldrinLamp => '발드린 관문의 등불을 다시 켰어요',
+      TitleId.windMemory => '바람의 굴에서 잿빛 늑대 우두머리를 쓰러뜨렸어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       _ => '새 칭호를 얻었어요',
     };
@@ -190,6 +195,8 @@ class TitleRules {
     TitleId.skyWalker,
     TitleId.guardianTrust,
     TitleId.kingdomWitness,
+    TitleId.baldrinLamp,
+    TitleId.windMemory,
   ];
 
   static String skyCounter(TitleId t) => 'stitle:${t.name}';
@@ -367,6 +374,8 @@ class TitleRules {
     TitleInfo(TitleId.skyWalker, '하늘을 걸은 자', '숨은 칭호'),
     TitleInfo(TitleId.guardianTrust, '수호자들이 인정한 자', '숨은 칭호'),
     TitleInfo(TitleId.kingdomWitness, '잊힌 왕국의 증인', '숨은 칭호'),
+    TitleInfo(TitleId.baldrinLamp, '관문의 등불지기', '숨은 칭호'),
+    TitleInfo(TitleId.windMemory, '바람을 기억하는 자', '숨은 칭호'),
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)

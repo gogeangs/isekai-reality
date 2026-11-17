@@ -20,7 +20,7 @@ import '../../data/storage/record_store.dart';
 enum RigAction { idle, attack, guard, hit, victory, tired }
 
 /// 무기 종류 (장비마다 하나). 없으면 맨손.
-enum WeaponKind { sword, axe, dagger, spear, staff }
+enum WeaponKind { sword, axe, dagger, spear, staff, bow }
 
 /// 장비 → 무기 종류 (보스 장비는 가장 가까운 종류로)
 WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
@@ -32,6 +32,7 @@ WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
       EquipBase.ironSword => WeaponKind.sword,
       EquipBase.woodAxe => WeaponKind.axe,
       EquipBase.ironSpear => WeaponKind.spear,
+      EquipBase.bow => WeaponKind.bow,
       EquipBase.wardenWeapon ||
       EquipBase.frostWeapon ||
       EquipBase.ashWeapon ||
@@ -104,6 +105,7 @@ class HeroRigData {
     WeaponKind.dagger: Offset(256, 760),
     WeaponKind.spear: Offset(250, 700),
     WeaponKind.staff: Offset(256, 800),
+    WeaponKind.bow: Offset(256, 560),
   };
   static const double weaponScale = 0.32;
   static const Offset weaponAttach = Offset(72, 55);

@@ -3,6 +3,8 @@ const { PartyService } = require('./party');
 const { InquiryService } = require('./inquiry');
 const { AccountService } = require('./account');
 const { adminPage } = require('./admin_page');
+const words = require('./words');
+const links = require('./links');
 
 let _deps = null;
 
@@ -16,6 +18,7 @@ function realDeps() {
   const party = new PartyService(db);
   const inquiry = new InquiryService(db);
   _deps = {
+    db,
     party,
     inquiry,
     account: new AccountService(db, { auth: admin.auth(), party, inquiry }),
@@ -60,6 +63,23 @@ async function handle(req, res) {
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) || {};
   try {
     if (path === '/ping') return res.json({ ok: true, at: Date.now() });
+    // 묶음 57: 파티 초대 링크 (앱이 있으면 앱이 열리고, 없으면 안내 페이지)
+    if (req.method === 'GET') {
+      const env = (_deps && _deps.env) || process.env;
+      if (path === '/.well-known/apple-app-site-association' || path === '/apple-app-site-association') {
+        res.set('Content-Type', 'application/json');
+        return res.send(JSON.stringify(links.aasa(env)));
+      }
+      if (path === '/.well-known/assetlinks.json') {
+        res.set('Content-Type', 'application/json');
+        return res.send(JSON.stringify(links.assetLinks(env)));
+      }
+      const m = /^\/join\/([A-Za-z0-9]{1,12})$/.exec(path);
+      if (m) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        return res.send(links.joinPage(m[1].toUpperCase()));
+      }
+    }
     const deps = realDeps();
 
     if (path === '/admin' && req.method === 'GET') {
@@ -68,6 +88,9 @@ async function handle(req, res) {
       return res.send(adminPage(deps.env));
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
+    // 묶음 57: 금칙어 목록 (5분마다 다시 읽음)
+    await words.refresh(deps.db);
+    if (path === '/words') return res.json({ text: words.currentText() });
 
     if (path.startsWith('/party/')) {
       const tok = await caller(req, deps, true);
@@ -106,6 +129,8 @@ async function handle(req, res) {
         '/admin/photo': () => deps.inquiry.photo(body),
         '/admin/reply': () => deps.inquiry.reply(body),
         '/admin/account': () => deps.account.view(body),
+        '/admin/words': () => words.view(deps.db),
+        '/admin/words/save': () => words.save(deps.db, body.text),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

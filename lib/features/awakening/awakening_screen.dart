@@ -12,6 +12,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
 import '../../core/rules/legal_rules.dart';
+import '../../core/rules/name_rules.dart';
 import '../legal/consent_screen.dart';
 
 /// 첫 실행 화면 (2026-11-10 개편):
@@ -138,7 +139,10 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   bool get _requiredAgreed => _docs.every(_agreed.contains) && _agreeAge;
 
   bool get _canAwaken =>
-      _nameController.text.trim().isNotEmpty && !_submitting;
+      _nameController.text.trim().isNotEmpty &&
+      !NameRules.banned(_nameController.text) &&
+      !NameRules.banned(_spiritNameController.text) &&
+      !_submitting;
 
   String get _spiritName {
     final n = _spiritNameController.text.trim();
@@ -394,6 +398,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         labelText: label,
         labelStyle: const TextStyle(color: AppColors.textMuted),
         hintText: hint,
+        errorText: NameRules.banned(controller.text) ? NameRules.bannedMessage : null,
         filled: true,
         fillColor: const Color(0xFF14173E),
         suffixIcon: const Icon(Icons.edit_rounded, color: AppColors.goldBright),

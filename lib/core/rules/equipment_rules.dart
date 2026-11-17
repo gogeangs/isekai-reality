@@ -52,6 +52,8 @@ enum EquipBase {
   uniqVolkHelm, uniqTeoSpear, uniqWindPendant, baldrinSpear,
   // 묶음 56 #236: 파티 보스 세트 「동행」 (보스 재료로 대장간에서)
   partyWeapon, partyHead, partyBody, partyHands, partyFeet, partyAcc,
+  // 묶음 57 #249: 플레이어 무기 「활」 (Lv.15부터 대장간 · 잡화상)
+  bow,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -234,6 +236,19 @@ class EquipmentRules {
       job: '기사',
       asset: 'equip_spear',
     ),
+    // 묶음 57 #249: 기본 활 (Lv.15부터)
+    EquipBaseInfo(
+      id: EquipBase.bow,
+      name: '사냥 활',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.twig: 2, MaterialId.ratHide: 1, MaterialId.ironShard: 1},
+      manaStones: 3,
+      attack: 0.07,
+      crit: 0.04,
+      trait: '멀리서 먼저 쏴요',
+      job: '궁수',
+      asset: 'weapon_bow',
+    ),
     EquipBaseInfo(
       id: EquipBase.cap,
       name: '가죽 모자',
@@ -332,6 +347,10 @@ class EquipmentRules {
   ];
 
   static EquipBaseInfo info(EquipBase id) => _byId[id]!;
+
+  /// 묶음 57: 활은 Lv.15부터 대장간에 보임
+  static const int bowLevel = 15;
+  static bool shownAt(EquipBase b, int level) => b != EquipBase.bow || level >= bowLevel;
 
   static final Map<EquipBase, EquipBaseInfo> _byId = {
     for (final e in all) e.id: e,

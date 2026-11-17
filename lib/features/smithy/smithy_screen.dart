@@ -185,7 +185,9 @@ class _SmithyScreenState extends State<SmithyScreen> {
   List<Widget> _craftTab() {
     final recipes = [
       for (final info in EquipmentRules.all)
-        if (_slot == null || info.slot == _slot) info,
+        if ((_slot == null || info.slot == _slot) &&
+            EquipmentRules.shownAt(info.id, c.player.level.level))
+          info,
     ];
     // 재료가 다 있는 장비를 맨 위로 (나머지는 지금 순서)
     final ready = [for (final i in recipes) if (_ready(i)) i];

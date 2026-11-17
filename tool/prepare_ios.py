@@ -52,12 +52,21 @@ info["NSUserTrackingUsageDescription"] = (
     "허용하면 관심사에 맞는 광고가 나와요. 허용하지 않아도 광고 보상은 똑같아요.")
 info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"}]
 
+# 묶음 57: 파티 초대 링크 — arca://join/코드 (Universal Links 가 안 될 때 대신)
+types = [t for t in info.get("CFBundleURLTypes", []) if t.get("CFBundleURLName") != "arca"]
+types.append({"CFBundleURLName": "arca", "CFBundleURLSchemes": ["arca"]})
+info["CFBundleURLTypes"] = types
+info["FlutterDeepLinkingEnabled"] = False  # app_links 가 링크를 받는다
+
 info_path.write_bytes(plistlib.dumps(info))
 
-# 2. HealthKit 권한 (entitlements)
+# 2. HealthKit 권한 (entitlements) + 묶음 57 파티 초대 Universal Links (저장소 변수 UNIVERSAL_LINKS=off 면 뺌)
 ent = runner / "Runner.entitlements"
-ent.write_bytes(plistlib.dumps({"com.apple.developer.healthkit": True,
-                                "com.apple.developer.healthkit.access": []}))
+ents = {"com.apple.developer.healthkit": True,
+        "com.apple.developer.healthkit.access": []}
+if os.environ.get("UNIVERSAL_LINKS", "on") != "off":
+    ents["com.apple.developer.associated-domains"] = ["applinks:api-ujbfnvvalq-du.a.run.app"]
+ent.write_bytes(plistlib.dumps(ents))
 
 pbx = ios / "Runner.xcodeproj" / "project.pbxproj"
 s = pbx.read_text()

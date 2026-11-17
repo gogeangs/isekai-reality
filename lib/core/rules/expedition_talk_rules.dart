@@ -146,5 +146,24 @@ class ExpeditionTalkRules {
         PetSpecies.stag => going
             ? const ['새벽빛을 따라갈게', '뿔이 반짝반짝, 출발!']
             : const ['햇살을 한 아름 가져왔어'],
+        // 묶음 57 #244 전설 펫
+        PetSpecies.pegasus => going
+            ? const ['별 사이로 다녀올게!', '날개만 펴면 금방이야']
+            : const ['구름 위 바람이 시원했어'],
+        PetSpecies.behemoth => going
+            ? const ['쿵, 쿵. 천천히 다 쓸어 올게', '땅이 길을 알려 줘']
+            : const ['짐이 많아. 다 네 거야'],
+        PetSpecies.nightmare => going
+            ? const ['어둠은 내 편이야', '…조용히 다녀올게']
+            : const ['아무도 날 못 봤어'],
+        PetSpecies.leviathan => going
+            ? const ['물길을 타고 갈게', '깊은 곳의 노래가 들려']
+            : const ['바다 냄새를 가져왔어'],
+        PetSpecies.dragon => going
+            ? const ['비켜, 내가 간다!', '불꽃 준비 끝']
+            : const ['다 태우진 않았어. 아마도'],
+        PetSpecies.unicorn => going
+            ? const ['빛이 가는 길로 갈게', '뿔이 따뜻해']
+            : const ['다친 곳 없지? 다행이야'],
       };
 }

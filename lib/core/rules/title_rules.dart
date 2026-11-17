@@ -84,6 +84,17 @@ enum TitleId {
   // 묶음 53 #243: 3막 지역 1 등불 · 숨은 보스 (얻기 전엔 숨김)
   baldrinLamp,
   windMemory,
+  // 묶음 57 #249: 숨은 특별 짝 10 (그림 title_pair_<짝>)
+  pairWeaponsmith,
+  pairRunesmith,
+  pairJeweler,
+  pairPotionMerchant,
+  pairPeddler,
+  pairBeastKnight,
+  pairPathfinder,
+  pairPaladin,
+  pairNightThief,
+  pairRanger,
 }
 
 class TitleInfo {
@@ -166,6 +177,17 @@ class TitleRules {
       TitleId.baldrinLamp => '발드린 관문의 등불을 다시 켰어요',
       TitleId.windMemory => '바람의 굴에서 잿빛 늑대 우두머리를 쓰러뜨렸어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
+      TitleId.pairWeaponsmith => '숨은 짝 「무기 장인」을 찾았어요',
+      TitleId.pairRunesmith => '숨은 짝 「룬 대장장이」을 찾았어요',
+      TitleId.pairJeweler => '숨은 짝 「보석 세공사」을 찾았어요',
+      TitleId.pairPotionMerchant => '숨은 짝 「물약 상인」을 찾았어요',
+      TitleId.pairPeddler => '숨은 짝 「행상인」을 찾았어요',
+      TitleId.pairBeastKnight => '숨은 짝 「마수 기사」을 찾았어요',
+      TitleId.pairPathfinder => '숨은 짝 「길잡이」을 찾았어요',
+      TitleId.pairPaladin => '숨은 짝 「성기사」을 찾았어요',
+      TitleId.pairNightThief => '숨은 짝 「밤의 도둑」을 찾았어요',
+      TitleId.pairRanger => '숨은 짝 「레인저」을 찾았어요',
+
       _ => '새 칭호를 얻었어요',
     };
   }
@@ -188,7 +210,31 @@ class TitleRules {
     ...npcTitles,
     TitleId.trialEndurer,
     ...skyTitles,
+    ...pairTitles,
   };
+
+  /// 묶음 57: 특별 짝 칭호 (counters 'stitle:<이름>' 으로 얻음, 얻기 전엔 숨김)
+  static const List<TitleId> pairTitles = [
+    TitleId.pairWeaponsmith,
+    TitleId.pairRunesmith,
+    TitleId.pairJeweler,
+    TitleId.pairPotionMerchant,
+    TitleId.pairPeddler,
+    TitleId.pairBeastKnight,
+    TitleId.pairPathfinder,
+    TitleId.pairPaladin,
+    TitleId.pairNightThief,
+    TitleId.pairRanger,
+  ];
+
+  /// 칭호 그림 이름 (특별 짝은 title_pair_<짝>)
+  static String asset(TitleId t) {
+    if (pairTitles.contains(t)) {
+      final n = t.name.substring(4);
+      return 'title_pair_${n[0].toLowerCase()}${n.substring(1)}';
+    }
+    return 'title_${t.name}';
+  }
 
   /// 하이랜드 칭호 (묶음 50 #146). 기록 counters 'stitle:<이름>' 으로 얻는다
   static const List<TitleId> skyTitles = [
@@ -376,6 +422,17 @@ class TitleRules {
     TitleInfo(TitleId.kingdomWitness, '잊힌 왕국의 증인', '숨은 칭호'),
     TitleInfo(TitleId.baldrinLamp, '관문의 등불지기', '숨은 칭호'),
     TitleInfo(TitleId.windMemory, '바람을 기억하는 자', '숨은 칭호'),
+    TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 짝'),
+    TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 짝'),
+    TitleInfo(TitleId.pairJeweler, '보석 세공사', '숨은 짝'),
+    TitleInfo(TitleId.pairPotionMerchant, '물약 상인', '숨은 짝'),
+    TitleInfo(TitleId.pairPeddler, '행상인', '숨은 짝'),
+    TitleInfo(TitleId.pairBeastKnight, '마수 기사', '숨은 짝'),
+    TitleInfo(TitleId.pairPathfinder, '길잡이', '숨은 짝'),
+    TitleInfo(TitleId.pairPaladin, '성기사', '숨은 짝'),
+    TitleInfo(TitleId.pairNightThief, '밤의 도둑', '숨은 짝'),
+    TitleInfo(TitleId.pairRanger, '레인저', '숨은 짝'),
+
   ];
 
   /// 탐험 칭호가 보는 장소 id 머리말 (lib/features/map/ansan_area.dart)
@@ -488,7 +545,7 @@ class TitleRules {
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
     }
     // 묶음 50 #146: 하이랜드
-    for (final t in skyTitles) {
+    for (final t in [...skyTitles, ...pairTitles]) {
       final k = skyCounter(t);
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
     }

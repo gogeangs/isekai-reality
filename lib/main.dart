@@ -11,6 +11,8 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'app.dart';
 import 'app_controller.dart';
 import 'core/rules/exclusion_index.dart';
+import 'core/rules/name_rules.dart';
+import 'package:app_links/app_links.dart';
 import 'core/rules/place_grid.dart';
 import 'core/rules/road_mask.dart';
 import 'data/cloud/arca_api.dart';
@@ -50,6 +52,10 @@ Future<void> main() async {
   final clock = ServerClock();
   final host = AppBinder(cloud: cloud, clock: clock);
   final controller = host.make(null);
+  // 묶음 57: 이름 금칙어 (서버와 같은 목록, 서버에서 바뀐 목록은 앱이 켜진 뒤 받음)
+  try {
+    NameRules.load(await rootBundle.loadString('assets/data/banned_words.txt'));
+  } catch (_) {}
   try {
     controller.roads = RoadMask.tryParse(
         await rootBundle.loadString('assets/data/road_mask.json'));
@@ -65,6 +71,13 @@ Future<void> main() async {
     // 자료가 없으면 이름을 아는 제외 구역만 쓴다
   }
   Sfx.init(); // 기다리지 않는다 (소리 준비가 늦어도 화면은 바로)
+  // 묶음 57: 파티 초대 링크 (Universal Links · App Links · arca://join/코드)
+  if (!kDemoMode) {
+    try {
+      final links = AppLinks();
+      links.uriLinkStream.listen((u) => (host.current ?? controller).handleInviteLink(u));
+    } catch (_) {}
+  }
   runApp(AppHost(host: host, first: controller));
   controller.init();
 }

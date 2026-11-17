@@ -396,6 +396,22 @@ extension HarvestOps on AppController {
       final k = mats.keys.first;
       mats[k] = mats[k]! + 1;
     }
+    // 묶음 57 #244: 고르(베히모스)와 함께면 가끔 하나 더 · 마레(리바이어던)와 물가에선 가끔 귀한 재료
+    // 묶음 57 #249: 숲의 각인(생산 주 + 보조 채집가) → 가끔 하나 더 (숨김)
+    if (mats.isNotEmpty) {
+      final more = (_heroWith(PetSpecies.behemoth) ? PetRules.behemothExtra : 0) +
+          0.12 * imprintOf(JobId.herbalist, combat: false);
+      if (more > 0 && _random.nextDouble() < more) {
+        final k = mats.keys.first;
+        mats[k] = mats[k]! + 1;
+      }
+      if (s.kind == HarvestKind.water &&
+          _heroWith(PetSpecies.leviathan) &&
+          _random.nextDouble() < PetRules.leviathanFind) {
+        final r = HarvestRules.info(s.kind).rare;
+        mats[r] = (mats[r] ?? 0) + 1;
+      }
+    }
     final seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
     if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
     final keepCharge = await _consumeSkill(JobSkill.rootPull);

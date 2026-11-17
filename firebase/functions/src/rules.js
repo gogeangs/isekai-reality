@@ -91,13 +91,17 @@ function near(a, b) {
 // ④ 꾸미기
 const EMBLEMS = ['sword', 'paw', 'lantern', 'tower', 'leaf', 'star', 'moon', 'wing'];
 const COLORS = 8;
-const BANNED = ['시발', '씨발', '병신', '좆', '개새', '섹스', 'fuck', 'shit', '운영자', '관리자', 'admin'];
+// 묶음 57: 금칙어는 words.js (기획 목록 · 운영 중 바꿀 수 있음)
+const words = require('./words');
 function cleanName(name) {
   const n = String(name || '').trim().replace(/\s+/g, ' ');
   if (n.length < 1 || n.length > 12) return null;
-  const low = n.toLowerCase().replace(/\s/g, '');
-  if (BANNED.some((w) => low.includes(w))) return null;
+  if (words.banned(n)) return null;
   return n;
+}
+/** 이름이 금칙어에 걸리는지 (길이는 따로) */
+function bannedName(name) {
+  return words.banned(name);
 }
 
 /** 초대 코드: 헷갈리는 글자(0 O 1 I) 뺀 6자리 */
@@ -151,6 +155,7 @@ module.exports = {
   EMBLEMS,
   COLORS,
   cleanName,
+  bannedName,
   makeCode,
   restricted,
   INQUIRY_KINDS,

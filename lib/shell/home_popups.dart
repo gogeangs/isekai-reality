@@ -359,6 +359,47 @@ extension _ShellPopups on _HomeShellState {
   }
 
   /// 걸음 주머니 · 길가의 발견 · 떠돌이 상인 (11-11 #59)
+  /// 묶음 57: 초대 링크로 열렸으면 「파티에 들어갈까요?」
+  void _maybeShowInvite() {
+    final c = widget.controller;
+    if (_popupBusy || c.inTutorial || c.pendingInvite == null) return;
+    final code = c.takeInvite()!;
+    _walkShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (d) => GameAlert(
+          key: const Key('inviteJoin'),
+          title: Text('파티에 들어갈까요?', style: AppText.title(19)),
+          content: KText(
+              c.cloud.signedIn
+                  ? '초대 코드 $code 파티에 들어가요.'
+                  : '초대 코드 $code 파티에 들어가려면 로그인이 필요해요. 주점 파티 탭으로 갈게요.',
+              style: const TextStyle(color: AppColors.text)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('나중에')),
+            TextButton(
+                key: const Key('inviteJoinYes'),
+                onPressed: () => Navigator.pop(d, true),
+                child: const Text('들어가기')),
+          ],
+        ),
+      );
+      if (yes == true && mounted) {
+        if (c.cloud.signedIn && c.party == null && await c.joinParty(code) && mounted) {
+          showTopNoticeQueued(context, '파티에 들어갔어요!');
+        }
+        if (mounted) {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => TavernScreen(controller: c, partyTab: true, inviteCode: code)));
+        }
+      }
+      _walkShowing = false;
+      _kick();
+    });
+  }
+
   void _maybeShowWalkNews() {
     final c = widget.controller;
     if (_popupBusy || _ahead(3) || c.inTutorial) return;

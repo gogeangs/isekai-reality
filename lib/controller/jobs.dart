@@ -13,7 +13,7 @@ extension JobOps on AppController {
 
   /// Lv.15 직업 각성을 보여 줄 때인지 (이별 컷신이 먼저)
   bool get jobAwakenPending =>
-      !_jobs.awakened &&
+      (!_jobs.awakened || _jobs.repick) &&
       player.level.level >= JobRules.awakenLevel &&
       !farewellPending &&
       !inTutorial;
@@ -56,47 +56,80 @@ extension JobOps on AppController {
         .where((m) => masteryStage(m) == MasteryStage.master)
         .length;
     if (masters >= 4) out.add(JobId.allCrafter);
+    // 묶음 57 #249: 탐험형 히든 (게임엔 조건을 보여 주지 않음)
+    var places = 0, relics = 0, dungeons = 0, errands = 0;
+    for (final d in _history) {
+      places += d.newPlacesVisited;
+      relics += d.counters['relicDug'] ?? 0;
+      dungeons += d.dungeonRuns.where((r) => r.cleared).length;
+      errands += d.counters['errandDone'] ?? 0;
+    }
+    if (places >= JobPairRules.explorerPlaces) out.add(JobId.explorer);
+    if (relics >= JobPairRules.archaeologistRelics) out.add(JobId.archaeologist);
+    if (dungeons >= JobPairRules.adventurerDungeons && errands >= JobPairRules.adventurerQuests) {
+      out.add(JobId.adventurer);
+    }
+    if (_pilgrimDone()) out.add(JobId.pilgrim);
     return out;
+  }
+
+  /// 순례자: 한 장소에 4주 이어서 매주 3번 넘게 (그 주에 간 날 수로 셈)
+  bool _pilgrimDone() {
+    final weeks = <String, Map<DateTime, int>>{};
+    for (final d in _history) {
+      final w = TownRules.weekStart(d.date);
+      for (final id in d.visitedPlaceIds.toSet()) {
+        final m = weeks.putIfAbsent(id, () => {});
+        m[w] = (m[w] ?? 0) + 1;
+      }
+    }
+    for (final m in weeks.values) {
+      final good = [for (final e in m.entries) if (e.value > JobPairRules.pilgrimVisits) e.key]..sort();
+      var run = 0;
+      DateTime? prev;
+      for (final w in good) {
+        run = prev != null && w.difference(prev).inDays == 7 ? run + 1 : 1;
+        if (run >= JobPairRules.pilgrimWeeks) return true;
+        prev = w;
+      }
+    }
+    return false;
   }
 
   /// 길드 「곧 열릴 것 같은 직업」 (#192): 아직 없는 기본·복합 직업 중 가까운 2~3개
   List<JobId> get nearJobs => JobRules.nearJobs(masteryOf, _jobs.ownedJobs);
 
   /// 지금 조건을 채운 직업
-  Set<JobId> get unlockedJobs =>
-      JobRules.unlocked(masteryStage, hidden: _hiddenJobs);
+  Set<JobId> get unlockedJobs => {
+        ...JobPairRules.combat,
+        ...JobPairRules.craft,
+        for (final j in _hiddenJobs)
+          if (JobPairRules.hidden.contains(j)) j,
+        // 예전 기록에서 열려 있던 히든은 열린 채로
+        for (final j in _jobs.ownedJobs)
+          if (JobPairRules.hidden.contains(j)) j,
+      };
 
-  /// 가장 높은 큰 숙련도
-  Mastery get _topMasteryOrSmith {
-    var best = Mastery.combat;
-    var v = -1.0;
-    for (final m in Mastery.values) {
-      final x = masteryOf(m);
-      if (x > v) {
-        v = x;
-        best = m;
-      }
-    }
-    return best;
+  /// 추천 직업 (묶음 57): 가장 높은 큰 숙련도 → 직업. 전투면 무기로, 걷기·탐험이면 다음 숙련도
+  JobId get recommendedJob {
+    final byValue = [...Mastery.values]..sort((a, b) => masteryOf(b).compareTo(masteryOf(a)));
+    return JobPairRules.recommend(
+        byValue, MasteryRules.weaponKind(_armory.wornIn(EquipSlot.weapon)?.base));
   }
 
-  /// 추천 직업: 가장 높은 큰 숙련도의 기본 직업
-  JobId get recommendedJob => JobRules.basicOf(_topMasteryOrSmith);
-
-  /// 직업 고르기 목록: 추천이 맨 위. 열린 직업이 없으면 추천 직업 하나(견습)
+  /// 직업 고르기 목록: 추천이 맨 위, 그다음 전투 · 생산 · (열린) 히든
   List<JobId> get jobChoices {
     final open = unlockedJobs;
-    if (open.isEmpty) return [recommendedJob];
     final rec = recommendedJob;
     return [
-      if (open.contains(rec)) rec,
-      for (final j in JobId.values)
+      rec,
+      for (final j in JobPairRules.all)
         if (open.contains(j) && j != rec) j,
     ];
   }
 
-  /// 견습으로 시작해야 하는지 (열린 직업이 없음)
-  bool get jobStartsApprentice => unlockedJobs.isEmpty;
+  /// 견습은 개편(묶음 57)으로 없어짐
+  bool get jobStartsApprentice => false;
 
   /// 얻은 직업 (얻은 순서, 새것이 맨 위)
   List<JobId> get ownedJobs => [
@@ -107,7 +140,8 @@ extension JobOps on AppController {
   JobId? get mainJob => _jobs.mainJob;
   List<JobId> get subJobs => _jobs.subJobs;
   bool get jobApprentice => _jobs.apprentice;
-  int get subJobSlots => JobRules.subSlots(player.level.level);
+  /// 묶음 57: 보조는 한 칸
+  int get subJobSlots => player.level.level >= JobRules.awakenLevel ? 1 : 0;
 
   /// 화면에 보이는 주 직업 이름 (견습이면 「견습 ○○」)
   String? get mainJobLabel {
@@ -129,31 +163,31 @@ extension JobOps on AppController {
   /// Lv.15 직업 각성: 주 직업 하나와 보조 직업(없어도 됨)을 고른다. MP 가득
   Future<bool> awakenJob(JobId main, {List<JobId> subs = const []}) =>
       _serial(() async {
-        if (_jobs.awakened) return false;
+        final again = _jobs.awakened && _jobs.repick;
+        if (_jobs.awakened && !again) return false;
         final open = unlockedJobs;
-        final apprentice = open.isEmpty;
-        if (!apprentice && !open.contains(main)) return false;
-        if (apprentice && main != recommendedJob) return false;
+        if (!open.contains(main)) return false;
         final owned = <String>[
-          for (final j in JobId.values)
+          for (final j in JobPairRules.all)
             if (open.contains(j)) j.name,
-          if (apprentice) main.name,
         ];
         final s = [
           for (final x in subs)
             if (x != main && open.contains(x)) x.name,
-        ].take(subJobSlots).toList();
+        ].take(1).toList();
         final today = player.today;
         await _saveJobs(_jobs.copyWith(
           awakened: true,
           owned: owned,
           main: main.name,
           subs: s,
-          apprentice: apprentice,
-          clearMp: true,
-          stepsDay: today?.dayKey,
-          stepsCounted: today?.steps ?? 0,
+          apprentice: false,
+          repick: false,
+          clearMp: !again,
+          stepsDay: again ? null : today?.dayKey,
+          stepsCounted: again ? null : today?.steps ?? 0,
         ));
+        await _checkPair();
         await _checkSkillPage();
         await _npcUse(Npc.sera);
         return true;
@@ -196,7 +230,7 @@ extension JobOps on AppController {
     final open = unlockedJobs;
     final owned = {..._jobs.owned};
     final fresh = [
-      for (final j in JobId.values)
+      for (final j in JobPairRules.all)
         if (open.contains(j) && !owned.contains(j.name)) j,
     ];
     var apprentice = _jobs.apprentice;
@@ -243,6 +277,16 @@ extension JobOps on AppController {
           ? '숙련 스킬을 익혔어요 · $name 외 ${n - 1}개'
           : '숙련 스킬을 익혔어요 · $name';
     }
+    if (first == 'deep') {
+      final s = subJobs.isEmpty ? null : subJobs.first;
+      _jobNoticeArt = s == null ? null : 'assets/images/job_${s.name}.webp';
+      return '보조 각인 2단계 — 짝이 더 깊어졌어요';
+    }
+    if (first.startsWith('pair:')) {
+      final p = JobPairRules.specialById(first.substring(5));
+      _jobNoticeArt = p == null ? null : 'assets/images/${TitleRules.asset(TitleRules.pairTitles.firstWhere((t) => t.name.toLowerCase() == 'pair${p.id.toLowerCase()}'))}.webp';
+      return p == null ? null : '새 짝을 찾았어요 · ${p.name}';
+    }
     if (first.startsWith('done:')) {
       final j = JobRules.parse(first.substring(5));
       _jobNoticeArt = j == null ? null : 'assets/images/job_${j.name}.webp';
@@ -260,6 +304,9 @@ extension JobOps on AppController {
   /// 직업 [j] 의 고유 기술 세기 (0 없음 · 보조·견습 ½ · 주 1)
   double jobTrait(JobId j) {
     if (!_jobs.awakened) return 0;
+    // 묶음 57: 숨은 특별 짝이면 옛 직업 고유 기술이 주 직업처럼
+    final sp = activePair;
+    if (sp != null && sp.legacy == j) return JobRules.mainTrait;
     if (_jobs.main == j.name) {
       return _jobs.apprentice ? JobRules.apprenticeTrait : JobRules.mainTrait;
     }
@@ -296,7 +343,9 @@ extension JobOps on AppController {
   // ───────────── 새 MP
 
   /// 최대 MP = 30 + 지능 × 2
-  int get jobMpMax => JobRules.maxMp((combatStats + gear.stats).intellect);
+  int get jobMpMax => (JobRules.maxMp((combatStats + gear.stats).intellect) *
+          (1 + JobPairRules.mageMp * jobTrait(JobId.mage)))
+      .round();
 
   int get jobMp => math.min(jobMpMax, math.max(0, _jobs.mp ?? jobMpMax));
 
@@ -330,7 +379,11 @@ extension JobOps on AppController {
       }
       return;
     }
-    final gain = (jobMpMax * JobRules.mpPerUnit * units).round();
+    final gain = (jobMpMax *
+            JobRules.mpPerUnit *
+            (1 + JobPairRules.mageMpFill * jobTrait(JobId.mage)) *
+            units)
+        .round();
     await _saveJobs(_jobs.copyWith(
       mp: math.min(jobMpMax, jobMp + gain),
       stepsDay: day,
@@ -344,40 +397,50 @@ extension JobOps on AppController {
   int skillLevel(JobSkill s) {
     final lv = _jobs.levelOf(s.name);
     if (lv > 0) return lv;
+    if (activePair?.skill == s) return 1; // 묶음 57: 특별 짝 스킬 (포인트 밖)
     final j = JobRules.jobOf(s);
     return _jobs.awakened &&
             _jobs.ownedJobs.contains(j) &&
+            JobRules.info(j).skills.isNotEmpty &&
             JobRules.firstOf(j) == s
         ? 1
         : 0;
   }
 
-  /// 받은 스킬 포인트 (Lv.15부터 레벨마다 2점)
+  /// 묶음 57: 스킬 포인트는 직업마다 따로 — 어떤 직업이든 내 레벨만큼 (Lv.15부터 레벨마다 2점)
   int get skillPointsTotal =>
       _jobs.awakened ? JobRules.pointsFor(player.level.level) : 0;
 
-  /// 쓴 포인트 (각 직업 ①·포인트 없이 받은 스킬의 첫 단계는 빼고)
-  int get skillPointsSpent {
+  /// [job] 에 쓴 포인트 (① · 포인트 없이 받은 스킬의 첫 단계는 빼고)
+  int skillPointsSpentOn(JobId job) {
     var n = 0;
     _jobs.learned.forEach((k, lv) {
       final s = JobRules.parseSkill(k);
-      if (s == null || lv <= 0) return;
-      final freeFirst =
-          JobRules.firstOf(JobRules.jobOf(s)) == s || _jobs.free.contains(k);
+      if (s == null || lv <= 0 || JobRules.jobOf(s) != job) return;
+      final freeFirst = JobRules.firstOf(job) == s || _jobs.free.contains(k);
       n += freeFirst ? lv - 1 : lv;
     });
     return n;
   }
 
-  int get skillPointsLeft => math.max(0, skillPointsTotal - skillPointsSpent);
+  int skillPointsLeftOn(JobId job) => math.max(0, skillPointsTotal - skillPointsSpentOn(job));
 
-  /// 트리에서 배우거나(0 → 1) 한 단계 올릴 수 있는지
+  /// 주 직업에 쓴 포인트 (예전 이름)
+  int get skillPointsSpent => mainJob == null ? 0 : skillPointsSpentOn(mainJob!);
+
+  /// 남은 포인트 (주 · 보조 직업 중 남은 것이 있으면 그만큼, 점 표시용)
+  int get skillPointsLeft => [
+        for (final j in [if (mainJob != null) mainJob!, ...subJobs]) skillPointsLeftOn(j),
+        0,
+      ].reduce(math.max);
+
+  /// 배우거나(0 → 1) 한 단계 올릴 수 있는지 (트리 없이 원하는 순서대로)
   bool canRaiseSkill(JobSkill s) {
     if (!_jobs.awakened) return false;
-    if (!_jobs.ownedJobs.contains(JobRules.jobOf(s))) return false;
+    final job = JobRules.jobOf(s);
+    if (!_jobs.ownedJobs.contains(job)) return false;
     final lv = skillLevel(s);
-    if (lv >= JobRules.maxSkillLevel || skillPointsLeft <= 0) return false;
-    return lv > 0 || JobRules.canLearn(s, skillLevel);
+    return lv < JobRules.maxSkillLevel && skillPointsLeftOn(job) > 0;
   }
 
   /// 포인트 1점으로 배우기·강화
@@ -394,7 +457,8 @@ extension JobOps on AppController {
   /// 다시 나누기 (언제든 무료): 쓴 포인트를 모두 돌려받는다. 각 직업 ①·받은 스킬은 Lv.1로 남음
   Future<void> resetSkills() async {
     final keep = <String, int>{
-      for (final j in _jobs.ownedJobs) JobRules.firstOf(j).name: 1,
+      for (final j in _jobs.ownedJobs)
+        if (JobRules.info(j).skills.isNotEmpty) JobRules.firstOf(j).name: 1,
       for (final f in _jobs.free) f: 1,
     };
     final pending = [
@@ -414,6 +478,7 @@ extension JobOps on AppController {
       for (final j in subJobs)
         for (final s in JobRules.info(j).skills)
           if (skillLevel(s) > 0) (s, true),
+      if (activePair?.skill case final s?) (s, false),
     ];
   }
 
@@ -504,6 +569,8 @@ extension JobOps on AppController {
             if (hp >= maxHp) return SkillUse.cannot;
           case JobSkill.bigPack:
             if (bigPackToday) return SkillUse.already;
+          case JobSkill.sproutCare:
+            if (sproutToday) return SkillUse.already;
           default:
             break;
         }
@@ -548,6 +615,8 @@ extension JobOps on AppController {
   Future<void> _instantSkill(JobSkill s) async {
     final now = _clock();
     switch (s) {
+      case JobSkill.sproutCare:
+        await _saveJobs(_jobs.copyWith(marks: {..._jobs.marks, 'sproutDay': sproutDayNum}));
       case JobSkill.cheer:
         // 원정 간 펫의 남은 시간 절반
         _vitals = _vitals.copyWith(expeditions: [
@@ -590,6 +659,14 @@ extension JobOps on AppController {
         break;
     }
   }
+
+  /// 묶음 57 새싹 돌보기: 오늘 약초밭이 덜 걸어도 자람
+  int get sproutDayNum {
+    final t = _clock();
+    return t.year * 10000 + t.month * 100 + t.day;
+  }
+
+  bool get sproutToday => _jobs.marks['sproutDay'] == sproutDayNum;
 
   /// 큰 짐 보따리를 오늘 썼는지 (오늘 하루 가방 칸 더)
   bool get bigPackToday =>
@@ -981,8 +1058,9 @@ extension JobOps on AppController {
 
   /// 먼 눈: 이 몬스터를 지도에 눈에 띄게 (희귀·전설 수식어)
   bool spotsSpecial(FieldSpawn s) =>
-      skillTimedOn(JobSkill.farSight) &&
-      s.grade.index >= ModGrade.rare.index;
+      (skillTimedOn(JobSkill.farSight) && s.grade.index >= ModGrade.rare.index) ||
+      // 묶음 57 마력 감지: 속성을 띤 몬스터
+      (skillTimedOn(JobSkill.manaSense) && Monsters.info(s.monster).element != null);
 
   /// 전투 피해 배율 (무기 장인·마수 기사·밤의 산책자)
   double get jobPower {
@@ -1018,14 +1096,77 @@ extension JobOps on AppController {
         }
       }
     }
+    // 묶음 57 #244: 이그니스(드래곤)와 함께면 시작할 때 불 한 번
+    if (_heroWith(PetSpecies.dragon)) b.openingFire = PetRules.dragonOpening;
     if (!_jobs.awakened) return b;
     b.weaponEnhance = _armory.wornIn(EquipSlot.weapon)?.enhance ?? 0;
     b.artisanSubs = subJobs.length;
     b.nightTime = JobRules.isNight(_clock());
     b.lowHpBoost = JobRules.warriorLowHp * jobTrait(JobId.warrior);
     b.ashBoost = JobRules.ashDamage * jobTrait(JobId.ashHunter);
-    b.healBoost = JobRules.healerHeal * jobTrait(JobId.healer);
+    b.healBoost = JobRules.healerHeal * math.max(jobTrait(JobId.healer), jobTrait(JobId.priest));
+    _withJob57(b);
     return b;
+  }
+
+  /// 묶음 57 #249: 새 전투 직업 고유 기술 · 보조 각인 · 특별 짝 · 잘 맞는 무기 (숨은 규칙)
+  void _withJob57(Battle b) {
+    final w = jobTrait(JobId.warrior);
+    if (w > 0) {
+      b.bashBoost = JobPairRules.warriorBash * w;
+      b.bashFast = w >= 1;
+    }
+    b.extraEvade += JobPairRules.rogueDodge * jobTrait(JobId.rogue);
+    final k = jobTrait(JobId.knight);
+    if (k > 0) {
+      b.takenMult *= 1 - JobPairRules.knightGuard * k;
+      b.guardEase *= 1 + JobPairRules.knightBlock * k;
+    }
+    if (preferredWeaponOn) b.dealMult *= 1 + JobPairRules.preferredWeapon;
+    // 보조 각인 (전투 주일 때 싸움에 붙음)
+    double im(JobId j) => imprintOf(j, combat: true);
+    if (im(JobId.warrior) > 0) b.lowHpBoost += 0.10 * im(JobId.warrior);
+    if (im(JobId.archer) > 0) b.firstStrike = true;
+    if (im(JobId.mage) > 0 && b.attackElement == null) b.dealMult *= 1 + 0.05 * im(JobId.mage);
+    if (im(JobId.priest) > 0) b.lifeSteal = 0.05 * im(JobId.priest);
+    if (im(JobId.rogue) > 0) {
+      b.doubleHit = 0.12 * im(JobId.rogue);
+      if (_random.nextDouble() < 0.25 * im(JobId.rogue)) b.extraLoot = true;
+    }
+    if (im(JobId.knight) > 0) {
+      b.takenMult *= 1 - 0.06 * im(JobId.knight);
+      b.guardEase *= 1 + 0.10 * im(JobId.knight);
+    }
+    if (im(JobId.blacksmith) > 0) b.dealMult *= 1 + 0.01 * b.weaponEnhance * im(JobId.blacksmith);
+    if (im(JobId.alchemist) > 0) {
+      b.skillDot = true;
+      b.healBoost += 0.10 * im(JobId.alchemist);
+    }
+    if (im(JobId.herbalist) > 0) b.bindChance = 0.06 * im(JobId.herbalist);
+    if (im(JobId.appraiser) > 0) b.weakBoost = 0.15 * im(JobId.appraiser);
+    if (im(JobId.merchant) > 0) b.goldBonus = true;
+    if (im(JobId.tamer) > 0) b.petAssist = 0.20 * im(JobId.tamer);
+    if (im(JobId.nightWalker) > 0 && b.nightTime) b.dealMult *= 1 + 0.08 * im(JobId.nightWalker);
+    if (im(JobId.gateHeir) > 0) b.ashBoost += 0.08 * im(JobId.gateHeir);
+    if (im(JobId.ashHunter) > 0) b.ashBoost += 0.10 * im(JobId.ashHunter);
+    if (im(JobId.archaeologist) > 0) b.relicBlock = 0.15 * im(JobId.archaeologist);
+    if (im(JobId.allCrafter) > 0) b.dealMult *= 1 + 0.04 * im(JobId.allCrafter);
+    if (im(JobId.explorer) > 0 && (huntTotals[b.foe.monster] ?? 0) == 0) {
+      b.dealMult *= 1 + 0.10 * im(JobId.explorer);
+    }
+    if (im(JobId.adventurer) > 0 && b.foe.isBoss) b.dealMult *= 1 + 0.06 * im(JobId.adventurer);
+    // 숨은 특별 짝 (새로 생긴 셋)
+    switch (activePair?.id) {
+      case 'paladin':
+        b.paladin = true;
+      case 'nightThief':
+        b.nightThief = true;
+        if (b.nightTime) b.extraLoot = true;
+      case 'ranger':
+        b.firstStrike = true;
+      default:
+        break;
+    }
   }
 
   /// 의뢰 금화 (수완: 이번 의뢰 두 배)

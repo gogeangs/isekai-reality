@@ -99,6 +99,7 @@ class MasteryRules {
         EquipBase.baldrinWeapon =>
           'sword',
         EquipBase.woodAxe || EquipBase.groveWeapon => 'axe',
+        EquipBase.bow => 'bow',
         EquipBase.ironSpear ||
         EquipBase.stormWeapon ||
         EquipBase.uniqTeoSpear ||
@@ -116,6 +117,7 @@ class MasteryRules {
     'dagger': '단검',
     'spear': '창',
     'staff': '지팡이',
+    'bow': '활',
   };
 
   /// 대장일 세부: 무기는 무기 종류, 방어구는 부위

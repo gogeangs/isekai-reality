@@ -197,7 +197,7 @@ test('꾸미기: 파티장만, 금칙어 걸러냄, 문양 8 · 색 8', async ()
   const { party } = await s.create('a', { me: me('하루') });
   await s.join('b', { code: party.code, me: me('별') });
   await assert.rejects(s.style('b', { name: '우리' }), /not_owner/);
-  await assert.rejects(s.style('a', { name: '운영자 파티' }), /bad_name/);
+  await assert.rejects(s.style('a', { name: '운영자 파티' }), /banned_word/);
   await assert.rejects(s.style('a', { emblem: 8 }), /bad_style/);
   const v = await s.style('a', { name: '별빛 동행', emblem: 7, color: 5, me: me('하루') });
   assert.equal(v.party.name, '별빛 동행');

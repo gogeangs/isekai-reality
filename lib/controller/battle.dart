@@ -116,6 +116,15 @@ extension BattleOps on AppController {
         loot[k] = x.floor() + (_random.nextDouble() < x - x.floor() ? 1 : 0);
       }
     }
+    // 묶음 57: 훔치기 · 자물쇠 따기 → 하나 더 (숨김)
+    if (run.cleared && loot.isNotEmpty) {
+      var more = battle.extraLoot ? 1 : 0;
+      if (await _consumeSkill(JobSkill.lockpick)) more++;
+      for (var i = 0; i < more; i++) {
+        final k = loot.keys.elementAt(_random.nextInt(loot.length));
+        loot[k] = loot[k]! + 1;
+      }
+    }
     final mats = await _fitBag(loot);
     await _save(today.copyWith(
       dungeonRuns: [...today.dungeonRuns, run],

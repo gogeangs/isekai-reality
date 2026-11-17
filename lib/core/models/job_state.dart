@@ -26,7 +26,25 @@ class JobState {
     this.pageOpen = false,
     this.pageIntro = false,
     this.masteryShown = const {},
+    this.v57 = false,
+    this.repick = false,
+    this.changes = 0,
+    this.pairs = const [],
   });
+
+  // ───────────── 묶음 57 #249 직업 개편
+
+  /// 개편 저장 방식으로 옮겼는지
+  final bool v57;
+
+  /// 주·보조를 대가 없이 다시 골라야 하는지 (개편 전 각성 계정, 「직업이 새로 정리됐어요」)
+  final bool repick;
+
+  /// 직업을 바꾼 횟수 (첫 번째는 무료)
+  final int changes;
+
+  /// 찾은 특별 짝 (id)
+  final List<String> pairs;
 
   // ───────────── 묶음 31 #195~#198
 
@@ -134,6 +152,10 @@ class JobState {
     bool? pageOpen,
     bool? pageIntro,
     Map<String, int>? masteryShown,
+    bool? v57,
+    bool? repick,
+    int? changes,
+    List<String>? pairs,
   }) =>
       JobState(
         awakened: awakened ?? this.awakened,
@@ -159,6 +181,10 @@ class JobState {
         pageOpen: pageOpen ?? this.pageOpen,
         pageIntro: pageIntro ?? this.pageIntro,
         masteryShown: masteryShown ?? this.masteryShown,
+        v57: v57 ?? this.v57,
+        repick: repick ?? this.repick,
+        changes: changes ?? this.changes,
+        pairs: pairs ?? this.pairs,
       );
 
   Map<String, dynamic> toJson() => {
@@ -187,6 +213,10 @@ class JobState {
         'pageOpen': pageOpen,
         'pageIntro': pageIntro,
         'masteryShown': masteryShown,
+        'v57': v57,
+        if (repick) 'repick': true,
+        'changes': changes,
+        'pairs': pairs,
       };
 
   factory JobState.fromJson(Map<String, dynamic> j) {
@@ -224,6 +254,10 @@ class JobState {
       pageOpen: j['pageOpen'] == true,
       pageIntro: j['pageIntro'] == true,
       masteryShown: ints(j['masteryShown']),
+      v57: j['v57'] == true,
+      repick: j['repick'] == true,
+      changes: (j['changes'] as num?)?.toInt() ?? 0,
+      pairs: strings(j['pairs']),
     );
   }
 }

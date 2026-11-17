@@ -95,4 +95,16 @@ extension InquiryOps on AppController {
       return 0;
     }
   }
+
+  /// 묶음 57: 서버에서 바뀐 금칙어 목록을 받는다 (앱을 켤 때 한 번)
+  Future<void> refreshBannedWords() async {
+    final api = arcaApi;
+    if (api == null || _wordsFetched) return;
+    _wordsFetched = true;
+    try {
+      final j = await api.post('/words', const {});
+      final t = j['text'];
+      if (t is String && t.length > 10) NameRules.load(t);
+    } catch (_) {}
+  }
 }

@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 String petGradeTag(PetGrade g) => switch (g) {
       PetGrade.rare => ' · 희귀',
       PetGrade.hero => ' · 영웅',
+      PetGrade.legend => ' · 전설',
       PetGrade.common => '',
     };
 
@@ -32,6 +33,13 @@ Color petColor(PetSpecies s) => switch (s) {
       PetSpecies.whale => const Color(0xFF9FD8F5),
       PetSpecies.phoenix => const Color(0xFFFF8A3D),
       PetSpecies.stag => const Color(0xFFFFE08A),
+      // 묶음 57 #244 전설 펫
+      PetSpecies.pegasus => const Color(0xFFE6F2FF),
+      PetSpecies.behemoth => const Color(0xFFB59A6A),
+      PetSpecies.nightmare => const Color(0xFF8A6BFF),
+      PetSpecies.leviathan => const Color(0xFF4FB3E8),
+      PetSpecies.dragon => const Color(0xFFFF5A3D),
+      PetSpecies.unicorn => const Color(0xFFFFF2B8),
     };
 
 IconData petIcon(PetSpecies s) => switch (s) {
@@ -53,6 +61,12 @@ IconData petIcon(PetSpecies s) => switch (s) {
       PetSpecies.whale => Icons.cloud_rounded,
       PetSpecies.phoenix => Icons.local_fire_department_rounded,
       PetSpecies.stag => Icons.wb_sunny_rounded,
+      PetSpecies.pegasus => Icons.auto_awesome_rounded,
+      PetSpecies.behemoth => Icons.terrain_rounded,
+      PetSpecies.nightmare => Icons.dark_mode_rounded,
+      PetSpecies.leviathan => Icons.tsunami_rounded,
+      PetSpecies.dragon => Icons.whatshot_rounded,
+      PetSpecies.unicorn => Icons.star_rounded,
     };
 
 /// 펫 그림 (pet_<종류>_baby/adult.png). 그림이 오기 전에는 아이콘으로.

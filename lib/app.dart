@@ -17,6 +17,7 @@ import 'features/drive/drive_overlay.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
+import 'features/village/tavern_screen.dart' show TavernScreen;
 import 'features/village/npc_request.dart';
 import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
@@ -245,6 +246,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final c = widget.controller;
     if (!mounted || !c.ready || c.needsAwakening) return;
     await c.checkLegalNotices();
+    await c.refreshBannedWords();
     await c.checkInquiryInbox();
     await c.refreshParty();
   }
@@ -379,6 +381,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowNotices();
         _maybeShowPetNews();
         _maybeShowWalkNews();
+        _maybeShowInvite();
         tourBridge.paused = _popupBusy ||
             (controller.farewellPending && !controller.inTutorial) ||
             controller.jobAwakenPending;

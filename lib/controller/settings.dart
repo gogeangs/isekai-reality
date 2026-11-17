@@ -30,7 +30,7 @@ extension SettingsOps on AppController {
   Future<bool> renameHero(String name) =>
       _serial(() async {
     final n = name.trim();
-    if (n.isEmpty || n == _profile.name || nameTaken(n)) return false;
+    if (n.isEmpty || n == _profile.name || nameTaken(n) || NameRules.banned(n)) return false;
     final cost = renameCost;
     if (player.gold < cost) return false;
     if (cost > 0) {

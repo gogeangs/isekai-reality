@@ -105,7 +105,9 @@ extension Act3Ops on AppController {
     var s = _act3;
     if (delta > 0) {
       final rem = s.energyRem + delta;
-      final add = rem ~/ Act3Rules.energyStepUnit * Act3Rules.energyPerStep;
+      var add = rem ~/ Act3Rules.energyStepUnit * Act3Rules.energyPerStep;
+      // 묶음 57 #244 아스트라(페가수스)와 걸으면 여정 기력이 조금 더 (숨김)
+      if (add > 0 && _heroWith(PetSpecies.pegasus)) add += (add * PetRules.pegasusEnergy).ceil();
       s = s.copyWith(
         walkDay: day,
         walkSteps: today.steps,
@@ -228,7 +230,7 @@ extension Act3Ops on AppController {
   Future<bool> renameAlly(String id, String name) => _serial(() async {
         final a = _act3.ally(id);
         final n = name.trim();
-        if (a == null || a.isStory || n.isEmpty || npcNameReserved(n)) return false;
+        if (a == null || a.isStory || n.isEmpty || npcNameReserved(n) || NameRules.banned(n)) return false;
         _act3 = _act3.replaceAlly(a.copyWith(name: n));
         await _saveAct3();
         _notify();
@@ -460,7 +462,7 @@ extension Act3Ops on AppController {
     _a3Enc = e;
     final p0 = player;
     _stopResting();
-    return _withJob(Battle.forPlayer(
+    return _withUnicorn(_withJob(Battle.forPlayer(
       level: p0.level.level,
       stats: combatStats,
       floors: floors,
@@ -482,7 +484,13 @@ extension Act3Ops on AppController {
       telegraphs: true,
       heroSkills: true,
       allies: [for (final a in partyAllies) battleAlly(a)],
-    ));
+    )));
+  }
+
+  /// 묶음 57 #244: 루체(유니콘)와 함께면 3막에서 져도 한 번 그 자리에서 다시 일어남
+  Battle _withUnicorn(Battle b) {
+    if (_heroWith(PetSpecies.unicorn)) b.revives += 1;
+    return b;
   }
 
   Foe _a3Foe(MonsterId m, A3Kind k, int lv) {

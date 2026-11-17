@@ -77,9 +77,16 @@ class SkillArt {
 
   /// 직업 스킬: 첫 공격 스킬 24개는 그 스킬 그림 + 공격 테두리,
   /// 그 밖은 그 직업 문장 + 종류 테두리 (전투 보조는 공격, 생활은 생활)
+  /// 묶음 57: 그림이 따로 있는 전투 보조 스킬 · 이름이 바뀐 그림
+  static const _ownArt = {
+    JobSkill.ironWall, JobSkill.warCry, JobSkill.manaShield, JobSkill.aegis, JobSkill.purify,
+    JobSkill.miracle, JobSkill.smokeBomb, JobSkill.guard, JobSkill.taunt, JobSkill.paladinOath,
+  };
+
   static (SkillFrame, String) job(JobSkill s) {
     final info = JobRules.skill(s);
-    if (info.attack) return (SkillFrame.attack, 'skill_${s.name}');
+    if (s == JobSkill.windBlade) return (SkillFrame.attack, 'skill_windArrow');
+    if (info.attack || _ownArt.contains(s)) return (SkillFrame.attack, 'skill_${s.name}');
     final owner = JobRules.jobs.firstWhere((j) => j.skills.contains(s),
         orElse: () => JobRules.jobs.first);
     return (

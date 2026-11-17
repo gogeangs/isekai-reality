@@ -14,6 +14,12 @@ const fail = (code, status) => {
   throw new PartyError(code, status);
 };
 
+/** 묶음 57: 다른 파티원에게 보이는 각성자 이름 (금칙어면 「각성자」) */
+function safeName(n) {
+  const s = String(n || '').trim().slice(0, 12);
+  return !s || R.bannedName(s) ? '각성자' : s;
+}
+
 function memberList(p) {
   return Object.entries(p.members || {})
     .map(([uid, m]) => ({ uid, ...m }))
@@ -89,6 +95,7 @@ class PartyService {
   async create(uid, { name, me = {} } = {}) {
     await this._blockIfRestricted(uid);
     if (await this._partyId(uid)) fail('already_in_party');
+    if (name && R.bannedName(name)) fail('banned_word');
     const nm = R.cleanName(name || `${me.name || '각성자'}의 파티`) || '새 파티';
     let code;
     for (let i = 0; i < 10; i++) {
@@ -109,7 +116,7 @@ class PartyService {
         owner: uid,
         code,
         createdAt: at,
-        members: { [uid]: { name: me.name || '각성자', level: Number(me.level) || 1, joinedAt: at } },
+        members: { [uid]: { name: safeName(me.name), level: Number(me.level) || 1, joinedAt: at } },
       });
       t.set(this.db.doc(`codes/${code}`), { pid });
       t.set(this.db.doc(`partyOf/${uid}`), { pid });
@@ -139,7 +146,7 @@ class PartyService {
       if (Object.keys(cur.members || {}).length >= R.MAX_MEMBERS) fail('full');
       cur.members = {
         ...cur.members,
-        [uid]: { name: me.name || '각성자', level: Number(me.level) || 1, joinedAt: this.now() },
+        [uid]: { name: safeName(me.name), level: Number(me.level) || 1, joinedAt: this.now() },
       };
       t.set(this.db.doc(`parties/${pid}`), cur);
       t.set(this.db.doc(`partyOf/${uid}`), { pid });
@@ -192,6 +199,7 @@ class PartyService {
     if (p.owner !== uid) fail('not_owner', 403);
     const next = { ...p };
     if (name !== undefined) {
+      if (R.bannedName(name)) fail('banned_word');
       const n = R.cleanName(name);
       if (!n) fail('bad_name');
       next.name = n;
@@ -256,7 +264,7 @@ class PartyService {
         // 이름 · 레벨 새로
         const m = (p.members || {})[uid];
         if (m && (me.name || me.level)) {
-          p.members[uid] = { ...m, name: me.name || m.name, level: Number(me.level) || m.level };
+          p.members[uid] = { ...m, name: me.name ? safeName(me.name) : m.name, level: Number(me.level) || m.level };
           t.set(this.db.doc(`parties/${pid}`), p);
         }
         // 보스: 이번 주 처음이면 인원 · 평균 레벨로 체력을 정함

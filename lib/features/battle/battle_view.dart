@@ -1609,6 +1609,23 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
+                    // 묶음 57: 활로 쏘면 화살이 날아감
+                    if (widget.weapon == WeaponKind.bow && swinging && !cleared)
+                      Positioned(
+                        left: w * 0.12 + (hitX - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
+                        top: hitY - 16,
+                        width: 128,
+                        height: 32,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            key: const Key('fxArrow'),
+                            opacity: 1 - _seg(t, 0.3, 0.38),
+                            child: Image.asset('assets/images/fx_arrow.webp',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const SizedBox()),
+                          ),
+                        ),
+                      ),
                     // 타격 효과
                     if (cleared)
                       Positioned(

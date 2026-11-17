@@ -310,13 +310,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     aura: c.mainElement?.label,
                     jobId: c.mainJob,
                     // 묶음 30 #55: 주 직업(보조는 작게)
-                    job: c.mainJobLabel == null
-                        ? kNoJobLabel
-                        : [
-                            c.mainJobLabel!,
-                            if (c.subJobs.isNotEmpty)
-                              '(${c.subJobs.map((j) => JobRules.info(j).name).join(' · ')})',
-                          ].join(' '),
+                    // 묶음 57: 짝 이름 (보조 앞말 + 주 직업, 숨은 짝은 그 이름)
+                    job: c.pairName ?? c.mainJobLabel ?? kNoJobLabel,
                     title: equipped == null
                         ? null
                         : TitleRules.info(equipped).name,
@@ -559,7 +554,7 @@ class _TitleRow extends StatelessWidget {
               SizedBox(
                 width: 38,
                 height: 38,
-                child: Image.asset('assets/images/title_${info.id.name}.webp',
+                child: Image.asset('assets/images/${TitleRules.asset(info.id)}.webp',
                     errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
                         color: earned
                             ? AppColors.goldBright
@@ -651,7 +646,8 @@ class _RenameDialogState extends State<RenameDialog> {
   Widget build(BuildContext context) {
     final v = _text.text.trim();
     final dup = v != widget.initial && widget.taken(v);
-    final canSave = v.isNotEmpty && v != widget.initial && !dup;
+    final bad = NameRules.banned(v);
+    final canSave = v.isNotEmpty && v != widget.initial && !dup && !bad;
     return GameAlert(
       alignment: Alignment.bottomCenter,
       title: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -697,7 +693,7 @@ class _RenameDialogState extends State<RenameDialog> {
           ),
           suffixIconConstraints:
               const BoxConstraints(minWidth: 0, minHeight: 0),
-          errorText: dup ? '이미 쓰는 이름이에요' : null,
+          errorText: bad ? NameRules.bannedMessage : dup ? '이미 쓰는 이름이에요' : null,
           errorStyle: const TextStyle(
               color: Color(0xFFFF6B6B), fontWeight: FontWeight.w700),
           enabledBorder: OutlineInputBorder(

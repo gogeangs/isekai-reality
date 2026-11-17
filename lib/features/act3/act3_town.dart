@@ -547,6 +547,11 @@ class _FortScreenState extends State<FortScreen> {
                               Text(title, style: AppText.title(16)),
                               KText(text,
                                   style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                              // 묶음 57 #244: 셰이드(나이트메어)가 함정을 미리 알려 줌
+                              if (b == Branch.chest && c.chestHint != null)
+                                KText(c.chestHint!,
+                                    key: const Key('chestHint'),
+                                    style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5)),
                             ],
                           ),
                         ),

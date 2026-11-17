@@ -42,6 +42,8 @@ img.shot{max-width:100%;max-height:420px;border-radius:8px;margin-top:8px}
 <table><tbody id="list"></tbody></table>
 </section>
 <section class="panel" id="detail"><p class="muted">왼쪽에서 문의를 고르세요.</p></section>
+<section class="panel" style="grid-column:1/-1"><h3>이름 금칙어</h3><p class="muted">「## … [전체]」 아래는 이름 전체가 그 말일 때만, 나머지는 이름 안에 들어 있으면 막아요. 저장하면 5분 안에 서버와 앱에 적용돼요.</p>
+<textarea id="words" rows="12" style="width:100%"></textarea><div class="row"><button id="wsave">금칙어 저장</button><span id="winfo" class="muted"></span></div></section>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -69,10 +71,12 @@ if(q.uid)$('acct').onclick=async(e)=>{e.preventDefault();const a=await api('admi
 $('send').onclick=async()=>{const body=$('body').value.trim();if(!body)return;$('send').disabled=true;try{const r=await api('admin/reply',{id:q.id,body,reward:{gold:+$('rg').value||0,manaStone:+$('rm').value||0,footTicket:+$('rf').value||0}});$('sent').textContent='보냈어요';if(r.mailto&&$('mail'))$('mail').href=r.mailto;await load();}catch(e){$('sent').textContent='실패: '+e.message;}finally{$('send').disabled=false;}};
 if($('mail'))$('mail').onclick=(e)=>{if($('mail').getAttribute('href')==='#'){e.preventDefault();const b=$('body').value.trim();location.href='mailto:'+encodeURIComponent(q.email)+'?subject='+encodeURIComponent('[아르카] 문의 답변')+'&body='+encodeURIComponent(b);}};}
 $('reload').onclick=load;$('fkind').onchange=load;$('fstatus').onchange=load;
+async function loadWords(){const w=await api('admin/words');$('words').value=w.text;$('winfo').textContent='부분 '+w.part+' · 전체 '+w.whole;}
+$('wsave').onclick=async()=>{$('wsave').disabled=true;try{const r=await api('admin/words/save',{text:$('words').value});$('winfo').textContent='저장했어요 · 부분 '+r.part+' · 전체 '+r.whole;}catch(e){$('winfo').textContent='실패: '+e.message;}finally{$('wsave').disabled=false;}};
 if(!READY){$('msg').textContent='운영 페이지 설정(웹 앱)이 아직 없어요. 개발에 알려 주세요.';$('login').style.display='none';}
 else{firebase.initializeApp(CFG);const auth=firebase.auth();
 $('login').onclick=()=>auth.currentUser?auth.signOut():auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-auth.onAuthStateChanged(async(u)=>{$('login').textContent=u?'로그아웃':'Google 로그인';$('who').textContent=u?u.email:'';$('app').style.display='none';$('msg').textContent='';if(!u)return;token=await u.getIdToken();try{await api('admin/me');$('app').style.display='';await load();}catch(e){$('msg').textContent=e.message==='not_admin'?'운영자로 등록된 계정이 아니에요.':'불러오지 못했어요: '+e.message;}});}
+auth.onAuthStateChanged(async(u)=>{$('login').textContent=u?'로그아웃':'Google 로그인';$('who').textContent=u?u.email:'';$('app').style.display='none';$('msg').textContent='';if(!u)return;token=await u.getIdToken();try{await api('admin/me');$('app').style.display='';await load();await loadWords();}catch(e){$('msg').textContent=e.message==='not_admin'?'운영자로 등록된 계정이 아니에요.':'불러오지 못했어요: '+e.message;}});}
 </script></body></html>`;
 }
 

@@ -340,3 +340,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_baldrin_wallroad | 발드린 필드 배경 무너진 성벽길, 1024 |
 | 2026-11-17 | item_lianCompass, item_barkanPurse | 리안·바르칸 전용 아이템(나침반·동전 주머니), 시트 분할 512 |
 | 2026-11-17 | bg_baldrin_wolfhill | 발드린 필드 배경 은빛 늑대의 언덕, 1024 |
+| 2026-11-17 | title_baldrinLamp, title_windMemory | 발드린 칭호 2종(관문의 등불지기·바람을 기억하는 자), 시트 분할 512 |

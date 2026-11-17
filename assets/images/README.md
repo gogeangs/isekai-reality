@@ -338,3 +338,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_baldrin_ashplain | 발드린 필드 배경 잿빛 들판, 1024 |
 | 2026-11-17 | npc_volk, npc_hanna, npc_pipi, npc_orum | 발드린 주민 얼굴 4종, 시트 분할·아래 맞춤 512 |
 | 2026-11-17 | bg_baldrin_wallroad | 발드린 필드 배경 무너진 성벽길, 1024 |
+| 2026-11-17 | item_lianCompass, item_barkanPurse | 리안·바르칸 전용 아이템(나침반·동전 주머니), 시트 분할 512 |

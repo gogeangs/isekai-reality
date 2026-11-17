@@ -435,3 +435,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | job_explorer, job_pilgrim, job_archaeologist, job_adventurer (다시) | 직업 개편 히든 직업 문장 4 (보라 바탕, #249, 넓은 보라 빛무리 정리, 지금 문장과 같은 크기, 512) |
 | 2026-11-18 | skill_cleave, skill_warCry, skill_ironWall, skill_lastStand, skill_rapidShot, skill_trapArrow, skill_windArrow, skill_starfallArrow, skill_elementBolt | 직업 개편 스킬 아이콘 9 (전사 4·궁수 4·마법사 1, #249, 붉은 얼룩 정리, 지금 스킬과 같은 크기, 512) |
 | 2026-11-18 | skill_manaShield, skill_elementBurst, skill_grandMagic, skill_aegis, skill_purify, skill_holyLight, skill_miracle, skill_ambush, skill_steal | 직업 개편 스킬 아이콘 9 (마법사 3·사제 4·도적 2, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | skill_poisonBlade, skill_smokeBomb, skill_shadowFlurry, skill_shieldBash, skill_guard, skill_taunt, skill_lanceCharge, skill_paladinOath, skill_anvilDrop | 직업 개편 스킬 아이콘 9 (도적 3·기사 5·대장장이 1, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |

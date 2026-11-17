@@ -384,6 +384,8 @@ void main() {
           home: AllyDetailScreen(controller: c, allyId: 'garen')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('allyGear')), findsOneWidget);
+      await tester.scrollUntilVisible(find.byKey(const Key('allySkill_3')), 300,
+          scrollable: find.byType(Scrollable).first);
       expect(find.byKey(const Key('allySkill_3')), findsOneWidget);
       expect(find.byKey(const Key('allyRelease')), findsNothing);
       await tester.pump(const Duration(seconds: 9));

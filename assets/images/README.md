@@ -402,3 +402,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_aurel_altar | 아우렐 필드 배경 꺼져 가는 불꽃 제단, 1024 |
 | 2026-11-17 | bg_dungeon_aurel | 아우렐 던전 배경 여명의 근원, 1024 |
 | 2026-11-17 | bg_aurel_phoenixnest | 아우렐 숨은 장소 배경 잿불새의 둥지, 1024 |
+| 2026-11-17 | chest_party, chest_partyBronze, chest_partySilver, chest_partyGold | 파티 상자 4종, 같은 배율·바닥(491) 맞춤 512 |

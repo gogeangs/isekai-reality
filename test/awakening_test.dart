@@ -115,10 +115,9 @@ void main() {
 
     // 동의: 필수 3개를 체크해야 다음으로 (날씨 선택 항목은 11-10에 뺐다)
     expect(find.text('시작하기 전에'), findsOneWidget);
-    final checks = find.byType(Checkbox);
-    expect(checks, findsNWidgets(2));
-    await tester.tap(checks.at(0));
-    await tester.tap(checks.at(1));
+    // 묶음 57: 모두 동의 + 이용약관 · 개인정보 · 위치기반 (필수 3개)
+    expect(find.byType(Checkbox), findsNWidgets(4));
+    await tester.tap(find.byKey(const Key('consentAll')).first);
     // 이용 연령 (11-11 #86): 출생 연도만
     await tester.ensureVisible(find.byKey(const Key('birthYear')));
     await tester.pump();

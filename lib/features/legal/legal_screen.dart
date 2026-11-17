@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/rules/legal_rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 
 enum LegalDoc {
   privacy('개인정보 처리방침', 'assets/legal/privacy.txt'),
-  // 묶음 56 #248: 설정 → 운영정책 · 이용약관 (내용은 문서 확정 뒤)
   operation('운영정책', 'assets/legal/operation.txt'),
   terms('이용약관', 'assets/legal/terms.txt'),
   locationTerms('위치기반서비스 이용약관', 'assets/legal/location_terms.txt'),
@@ -15,6 +15,17 @@ enum LegalDoc {
   const LegalDoc(this.title, this.asset);
   final String title;
   final String asset;
+
+  /// 묶음 57: 판 · 적용일이 있는 문서
+  LegalKind? get kind => switch (this) {
+        privacy => LegalKind.privacy,
+        operation => LegalKind.operation,
+        terms => LegalKind.terms,
+        locationTerms => LegalKind.location,
+        credits => null,
+      };
+
+  static LegalDoc of(LegalKind k) => values.firstWhere((d) => d.kind == k);
 }
 
 /// 약관 보기. 앱에 함께 넣은 글(assets/legal)을 그대로 보여 준다.
@@ -27,6 +38,8 @@ class LegalScreen extends StatelessWidget {
   static Future<void> open(BuildContext context, LegalDoc doc) =>
       Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => LegalScreen(doc: doc)));
+
+  static Future<void> openKind(BuildContext context, LegalKind k) => open(context, LegalDoc.of(k));
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +59,12 @@ class LegalScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).maybePop(),
                 ),
                 const SizedBox(height: 8),
+                if (doc.kind case final k?)
+                  Text(
+                      '${LegalRules.dateLabel(LegalRules.current(k, DateTime.now()).effective)}부터 적용 · '
+                      '${LegalRules.current(k, DateTime.now()).version}판',
+                      key: const Key('legalVersion'),
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
                 for (final line in lines)
                   if (line.startsWith('# '))
                     const SizedBox.shrink()

@@ -171,6 +171,9 @@ extension HeroPetOps on AppController {
 
   /// 루미·포포·세라가 영웅 펫을 처음 볼 때 한마디 (없으면 null). 한 번 꺼내면 본 것으로
   String? takeHeroReaction(Npc n) {
+    // 묶음 57 #244: 루미 · 리안이 전설 펫을 처음 볼 때 (영웅 한마디와 따로 한 번)
+    final legend = takeLegendReaction(n);
+    if (legend != null) return legend;
     if (!hasHeroPet || _pets.heroMet.contains(n.name)) return null;
     bool has(PetSpecies s) => _pets.pets.any((p) => p.species == s);
     final line = switch (n) {
@@ -187,6 +190,19 @@ extension HeroPetOps on AppController {
     };
     if (line == null) return null;
     unawaited(_savePets(_pets.copyWith(heroMet: [..._pets.heroMet, n.name])));
+    return line;
+  }
+
+  /// 묶음 57 #244: 전설 펫을 처음 볼 때 루미 · 리안 한마디 (기획 확인 전 초안)
+  String? takeLegendReaction(Npc n) {
+    if (n != Npc.lumi && n != Npc.lian) return null;
+    final legends = [for (final p in _pets.pets) if (p.legend) p];
+    if (legends.isEmpty || _pets.legendTalk.contains(n.name)) return null;
+    final p = legends.first;
+    final line = n == Npc.lumi
+        ? '…잠깐, 그 아이 ${p.info.name}이지? 할머니 옛이야기에만 나오던 전설 속 펫이야! ${p.name}, 반가워. 우리 바람이랑도 친하게 지내 줘!'
+        : '${p.info.name}… 저쪽 세계 노래에 나오던 그 전설이 정말 있었구나. ${p.name}와 함께라면 다리 너머 어디든 갈 수 있겠어.';
+    unawaited(_savePets(_pets.copyWith(legendTalk: [..._pets.legendTalk, n.name])));
     return line;
   }
 }

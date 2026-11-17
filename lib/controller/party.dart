@@ -95,8 +95,31 @@ extension PartyOps on AppController {
     await _partyCall('/party/state');
   }
 
+  /// 묶음 57: 초대 링크로 앱이 열렸을 때 (홈 화면이 「파티에 들어갈까요?」)
+  String? get pendingInvite => _pendingInvite;
+  void handleInviteLink(Uri u) {
+    final code = PartyRules.codeFromLink(u);
+    if (code == null) return;
+    _pendingInvite = code;
+    _notify();
+  }
+
+  String? takeInvite() {
+    final c = _pendingInvite;
+    _pendingInvite = null;
+    return c;
+  }
+
+  /// 묶음 57: 금칙어는 앱에서 먼저 거름 (서버가 기준)
+  bool _bannedParty(String? name) {
+    if (name == null || !NameRules.banned(name)) return false;
+    _partyError = 'banned_word';
+    _notify();
+    return true;
+  }
+
   Future<bool> createParty(String name) async =>
-      await _partyCall('/party/create', {'name': name}) != null;
+      !_bannedParty(name) && await _partyCall('/party/create', {'name': name}) != null;
 
   Future<bool> joinParty(String code) async =>
       await _partyCall('/party/join', {'code': code.trim().toUpperCase()}) != null;
@@ -111,6 +134,7 @@ extension PartyOps on AppController {
       await _partyCall('/party/kick', {'target': uid}) != null;
 
   Future<bool> styleParty({String? name, int? emblem, int? color}) async =>
+      !_bannedParty(name) &&
       await _partyCall('/party/style', {
         if (name != null) 'name': name,
         if (emblem != null) 'emblem': emblem,

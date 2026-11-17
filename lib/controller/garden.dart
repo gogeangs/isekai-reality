@@ -50,7 +50,11 @@ extension GardenOps on AppController {
 
   /// 심은 날부터 걸은 걸음 (심을 때 그날 걸음은 뺀다)
   int _walkedSince(GardenPlot p) => math.max(
-      0, _daysSince(p.day).fold<int>(0, (t, r) => t + r.steps) - p.steps);
+      0,
+      _daysSince(p.day).fold<int>(0, (t, r) => t + r.steps) -
+          p.steps +
+          // 묶음 57 새싹 돌보기: 오늘 걸음을 더 쳐 줌 (숨김)
+          (sproutToday ? (player.today?.steps ?? 0) ~/ 2 : 0));
 
   GardenPlotView plotView(int slot) {
     final p = _garden.plots[slot];

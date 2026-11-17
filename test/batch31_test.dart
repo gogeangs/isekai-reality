@@ -69,7 +69,7 @@ void main() {
       expect(JobRules.pointsFor(20), 12);
     });
 
-    test('트리: 기본 ① → ②·③, ②나 ③ Lv.2 → ④ / 복합 ① → ②', () {
+    test('트리: 기본 ① → ②·③, ②나 ③ Lv.2 → ④ / 복합 ① → ②', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () {
       final lv = <JobSkill, int>{};
       int of(JobSkill s) => lv[s] ?? 0;
       expect(JobRules.canLearn(JobSkill.focusForge, of), isFalse);
@@ -168,7 +168,7 @@ void main() {
       expect(again.takeJobNotice(), isNull);
     });
 
-    test('각성: ①만 Lv.1, 포인트로 배우고 강화, 다시 나누기는 무료', () async {
+    test('각성: ①만 Lv.1, 포인트로 배우고 강화, 다시 나누기는 무료', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final c = await start(account(16, big: {'smith': 50, 'combat': 50}));
       await c.awakenJob(JobId.blacksmith, subs: [JobId.warrior]);
       expect(c.skillPageOpen, isTrue);
@@ -199,7 +199,7 @@ void main() {
       expect(c.battleLoadout, ['job:rush']);
     });
 
-    test('예전 각성 계정: 쓰던 스킬은 포인트 없이 Lv.1, ① 더, 빠진 스킬은 MP 돌려줌',
+    test('예전 각성 계정: 쓰던 스킬은 포인트 없이 Lv.1, ① 더, 빠진 스킬은 MP 돌려줌', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)',
         () async {
       final store = account(17,
           big: {'smith': 50},
@@ -269,7 +269,7 @@ void main() {
   });
 
   group('묶음 31 확인 답', () {
-    test('먼 눈: 30분 동안 새로 나타나는 희귀 수식어 몬스터가 더 자주 + 지도에 눈에 띄게', () async {
+    test('먼 눈: 30분 동안 새로 나타나는 희귀 수식어 몬스터가 더 자주 + 지도에 눈에 띄게', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final c = await start(account(16, big: {'walk': 50}));
       await c.awakenJob(JobId.explorer);
       expect(await c.raiseSkill(JobSkill.farSight), isTrue);

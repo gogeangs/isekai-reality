@@ -15,6 +15,7 @@ import '../bulssi/spirit_art.dart' show SpiritMood;
 import '../smithy/equipment_view.dart';
 import '../village/tavern_screen.dart';
 import 'act3_town.dart';
+import 'region_screens.dart';
 
 /// 3막에 들어간다 (마을의 다리 · 지도 「여정」): 처음이면 다리 장면부터
 Future<void> openJourney(BuildContext context, AppController c) async {
@@ -115,6 +116,26 @@ class Act3Screen extends StatefulWidget {
 class _Act3ScreenState extends State<Act3Screen> {
   AppController get c => widget.controller;
   late int _tab = widget.tab;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _pending());
+  }
+
+  /// 묶음 57: 지역에 처음 온 장면 · 미뤄 둔 큰 고르기 · 3막 끝 장면
+  Future<void> _pending() async {
+    final r = c.regionNow;
+    if (!mounted) return;
+    if (r != null && c.regionArrivePending(r)) await showRegionArrive(context, c, r);
+    if (!mounted) return;
+    if (r != null && c.regionChoicePending(r) && r.choice.afterLamp) {
+      await afterRegionLamp(context, c, r);
+    } else if (c.act3EndPending) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          fullscreenDialog: true, builder: (_) => Act3EndScreen(controller: c)));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +286,19 @@ class _Act3ScreenState extends State<Act3Screen> {
   Widget _roadBar() {
     final r = c.road;
     final next = r.next;
+    if (next == null || c.regionReached(next.id)) {
+      return OrnatePanel(
+        key: const Key('act3Road'),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: KText(
+            c.act3Done
+                ? '다섯 등불이 모두 켜졌어요. 「세계」에서 지역을 골라 오갈 수 있어요.'
+                : next == null
+                    ? '마지막 지역이에요. 성소의 등불을 켜면 3막이 끝나요.'
+                    : '「세계」에서 이미 가 본 지역이에요.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      );
+    }
     return OrnatePanel(
       key: const Key('act3Road'),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -276,7 +310,7 @@ class _Act3ScreenState extends State<Act3Screen> {
             const SizedBox(width: 4),
             Expanded(
               child: Text(
-                  next == null ? '다음 지역 길' : '「${next.name}」 가는 길',
+                  '「${next.name}」 가는 길',
                   style: const TextStyle(
                       color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
             ),
@@ -285,11 +319,25 @@ class _Act3ScreenState extends State<Act3Screen> {
           ]),
           const SizedBox(height: 4),
           GlowBar(ratio: r.steps / r.need, colors: BarColors.exp, height: 6),
-          if (r.steps >= r.need && next != null) ...[
+          if (c.canEnterNext) ...[
+            const SizedBox(height: 6),
+            GoldButton(
+              key: const Key('enterRegion'),
+              label: '「${next.name}」으로 들어가기',
+              height: 42,
+              fontSize: 16,
+              onPressed: () async {
+                final reg = await c.enterNextRegion();
+                if (reg == null || !mounted) return;
+                setState(() => _tab = 0);
+                await showRegionArrive(context, c, reg);
+              },
+            ),
+          ] else if (r.steps >= r.need) ...[
             const SizedBox(height: 4),
             KText(
-                r.levelOk
-                    ? '길이 뚫렸어요. 다음 이야기에서 이어져요.'
+                !c.regionLit(c.currentRegion.id)
+                    ? '길이 뚫렸어요. 이 지역 등불을 켜면 들어갈 수 있어요.'
                     : '길이 뚫렸어요. Lv.${next.level}이 되면 들어갈 수 있어요.',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
           ],
@@ -393,8 +441,25 @@ bool placeAlert(AppController c, String id) => switch (id) {
       'baldrin_wolfhill' => c.nestPending,
       'baldrin_fort' => c.dungeonOpen && !c.baldrinLit,
       'baldrin_windden' => c.denOpen && !c.denCleared,
-      _ => false,
+      _ => _regionAlert(c, id),
     };
+
+bool _regionAlert(AppController c, String id) {
+  final r = RegionRules.byPlace(id);
+  if (r == null) return false;
+  final p = Act3Rules.place(id);
+  final step = c.regionStep(r);
+  return switch (p?.kind) {
+    SpotKind.town => c.regionTalkPending(r) ||
+        r.quests.any((q) => c.questReady(q)) ||
+        r.residents.any((x) => c.regionOffer(r, x) != null) ||
+        c.regionAllyOffers(r).isNotEmpty,
+    SpotKind.dungeon => c.regionDungeonOpen(r) && !c.regionLit(r.region),
+    SpotKind.hidden => c.regionHiddenOpen(r) && !c.regionHiddenCleared(r),
+    _ => (step == 0 && id == r.mains.first.place) ||
+        (id == r.eventPlace && (c.regionEventPending(r) || (c.regionChoicePending(r) && !r.choice.afterLamp))),
+  };
+}
 
 class _PlaceMark extends StatelessWidget {
   const _PlaceMark(
@@ -472,27 +537,32 @@ Future<Act3FightResult?> runEncounter(BuildContext context, AppController c, A3E
   if (r != null && !r.won && context.mounted && e.kind != A3Kind.floor &&
       e.kind != A3Kind.mid && e.kind != A3Kind.lamp) {
     await Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+        .push(MaterialPageRoute<void>(builder: (_) => townFor(c)));
   }
   return r;
 }
 
 /// 장소 이름 (바람의 굴은 열리기 전엔 ???)
-String placeName(AppController c, PlaceInfo p) =>
-    p.kind == SpotKind.hidden && c.denOpen ? '바람의 굴' : p.name;
+String placeName(AppController c, PlaceInfo p) {
+  if (p.kind != SpotKind.hidden) return p.name;
+  if (RegionRules.byPlace(p.id) case final r?) {
+    return c.regionHiddenOpen(r) ? r.hidden.name : p.name;
+  }
+  return c.denOpen ? '바람의 굴' : p.name;
+}
 
 /// 장소를 눌렀을 때: 마을 · 요새는 그 화면으로, 필드는 싸우기 + 이야기 · 퀘스트, 숨은 장소는 ???
 Future<void> showPlaceSheet(BuildContext context, AppController c, String id) async {
   final p = Act3Rules.place(id);
   if (p == null) return;
+  final reg = RegionRules.byPlace(id);
   if (p.kind == SpotKind.town) {
-    await Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => TownScreen(controller: c)));
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => townFor(c)));
     return;
   }
-  if (p.kind == SpotKind.dungeon && c.dungeonOpen) {
-    await Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => FortScreen(controller: c)));
+  if (p.kind == SpotKind.dungeon && (reg == null ? c.dungeonOpen : c.regionDungeonOpen(reg))) {
+    await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => FortScreen(controller: c, region: reg)));
     return;
   }
   if (!context.mounted) return;
@@ -520,6 +590,9 @@ Future<void> showPlaceSheet(BuildContext context, AppController c, String id) as
   if (go.kind == A3Kind.wall && c.choicePending) {
     await openLetterChoice(context, c);
   }
+  if (go.kind == A3Kind.event && reg != null && c.regionChoicePending(reg)) {
+    await openRegionChoice(context, c, reg);
+  }
 }
 
 String _energyLabel(AppController c, int cost, String what) => c.journeyEnergy < cost
@@ -545,6 +618,8 @@ List<Widget> _placeBody(BuildContext sheet, AppController c, PlaceInfo p) {
     Text(placeName(c, p), style: AppText.title(19)),
     const SizedBox(height: 8),
   ];
+  final reg = RegionRules.byPlace(p.id);
+  if (reg != null) return out..addAll(_regionPlaceBody(sheet, c, p, reg, fight));
   if (p.monster case final m?) {
     out.addAll([
       Row(children: [
@@ -638,6 +713,96 @@ List<Widget> _placeBody(BuildContext sheet, AppController c, PlaceInfo p) {
   return out;
 }
 
+/// 묶음 57: 지역 2~5 장소 (필드 · 숨은 장소 · 던전)
+List<Widget> _regionPlaceBody(BuildContext sheet, AppController c, PlaceInfo p, RegionContent r,
+    Widget Function(Key, String, A3Enc) fight) {
+  const style = TextStyle(color: AppColors.text, fontSize: 14, height: 1.45);
+  final out = <Widget>[];
+  if (p.monster case final m?) {
+    out.addAll([
+      Row(children: [
+        MonsterPicture(monster: m, size: 76),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Monsters.info(m).name,
+                  style: const TextStyle(
+                      color: AppColors.text, fontSize: 15, fontWeight: FontWeight.w800)),
+              KText(Monsters.info(m).description,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            ],
+          ),
+        ),
+      ]),
+      fight(
+          const Key('placeFight'),
+          '싸우기',
+          A3Enc(
+              kind: A3Kind.field,
+              place: p.id,
+              foes: [m],
+              energy: Act3Rules.energyField,
+              background: p.background)),
+    ]);
+    if (p.id == r.eventPlace && c.regionEventPending(r)) {
+      out.add(fight(const Key('eventFight'), r.eventLabel, c.regionEventFight(r)));
+    }
+    if (p.id == r.eventPlace && c.regionChoicePending(r) && !r.choice.afterLamp) {
+      out.add(Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: FrameButton(
+          key: const Key('regionChoiceAgain'),
+          label: r.choice.title,
+          onPressed: () {
+            Navigator.of(sheet).pop();
+            openRegionChoice(sheet, c, r);
+          },
+        ),
+      ));
+    }
+    for (final q in r.quests) {
+      if (q.place == p.id && q.kind == RQKind.hunt && c.questState(q) == 1 && !c.questReady(q)) {
+        out.add(Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: KText('「${q.title}」 ${questProgText(c, q)} · 여기서 이기면 나아가요',
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5)),
+        ));
+      }
+    }
+  } else if (p.kind == SpotKind.hidden) {
+    if (c.regionHiddenOpen(r)) {
+      out.addAll([
+        for (final l in r.hidden.lines)
+          Padding(padding: const EdgeInsets.only(bottom: 6), child: KText(l, style: style)),
+        if (c.regionHasPet(r) && r.hidden.petLine != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: KText(r.hidden.petLine!,
+                key: const Key('hiddenPetLine'),
+                style: const TextStyle(color: AppColors.goldBright, fontSize: 14, height: 1.45)),
+          ),
+        fight(
+            const Key('hiddenFight'),
+            c.regionHiddenCleared(r)
+                ? '다시 싸우기'
+                : '${Monsters.info(r.hidden.boss).name}와(과) 싸우기',
+            c.regionHiddenFight(r)),
+      ]);
+    } else {
+      out.add(KText(r.hidden.locked, style: style));
+    }
+  } else {
+    out.add(KText(
+        r.choice.afterLamp
+            ? '「${r.eventLabel}」을 끝낸 뒤에 들어갈 수 있어요.'
+            : '「${r.choice.title}」을 고른 뒤에 들어갈 수 있어요.',
+        style: style));
+  }
+  return out;
+}
+
 /// 일지 (메인 · 서브 · 끝낸 것)
 class _Journal extends StatelessWidget {
   const _Journal({required this.controller, required this.onGo});
@@ -648,6 +813,7 @@ class _Journal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
+    if (c.regionNow case final r?) return _RegionJournal(controller: c, region: r, onGo: onGo);
     final main = c.journalMain;
     final open = [for (final q in main) if (!q.done) q];
     final done = [for (final q in main) if (q.done) q];
@@ -753,6 +919,108 @@ class _Journal extends StatelessWidget {
   }
 }
 
+/// 지역 2~5 일지
+class _RegionJournal extends StatelessWidget {
+  const _RegionJournal({required this.controller, required this.region, required this.onGo});
+
+  final AppController controller;
+  final RegionContent region;
+  final ValueChanged<String> onGo;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final r = region;
+    final main = c.regionJournal(r);
+    final open = [for (final q in main) if (!q.done) q];
+    final done = [for (final q in main) if (q.done) q];
+    final sides = [for (final q in r.quests) if (c.questState(q) > 0) q];
+    final choice = c.regionChoice(r);
+    Widget card(Key key, String title, String text, bool isDone,
+            {String? place, String? extra, String? reward}) =>
+        OrnatePanel(
+          key: key,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                Icon(isDone ? Icons.check_circle_rounded : Icons.flag_rounded,
+                    size: 18, color: AppColors.goldBright),
+                const SizedBox(width: 6),
+                Expanded(child: Text(title, style: AppText.title(16))),
+                Text(c.currentRegion.name,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+              ]),
+              const SizedBox(height: 4),
+              KText(text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+              if (extra != null)
+                Text(extra, style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5)),
+              if (reward != null)
+                Text('보상 · $reward', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              if (!isDone && place != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    key: Key('questGo_$title'),
+                    onPressed: () => onGo(place),
+                    child: const Text('그 장소로 가기'),
+                  ),
+                ),
+            ],
+          ),
+        );
+    const reward = '모집권 ${RegionRules.sideTickets} · 금화 ${RegionRules.sideGold}';
+    String who(RQuest q) => q.ally != null
+        ? '의뢰판에서 ${Act3Rules.story(q.ally!).name}에게'
+        : '${r.resident(q.giver!).name}에게';
+    return ListView(children: [
+      Text('메인', style: AppText.title(15, color: AppColors.goldBright)),
+      const SizedBox(height: 6),
+      for (final q in open) ...[
+        card(Key('quest_${q.title}'), q.title, q.text, false, place: q.place),
+        const SizedBox(height: 8),
+      ],
+      if (open.isEmpty)
+        KText(
+            r.region == Region.aurel
+                ? '다섯 등불이 모두 켜졌어요.'
+                : '${Act3Rules.region(r.region).name}의 등불이 켜졌어요. 다음 지역 길을 걸어요.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      const SizedBox(height: 14),
+      Text('서브', style: AppText.title(15, color: AppColors.goldBright)),
+      const SizedBox(height: 6),
+      for (final q in sides.where((x) => c.questState(x) == 1)) ...[
+        card(Key('side_${q.id}'), q.title, q.task, false,
+            place: q.place,
+            extra: c.questReady(q) ? '다 했어요 · ${who(q)} 알려 주세요' : questProgText(c, q),
+            reward: q.ally != null ? '${Act3Rules.story(q.ally!).name} 스킬 ④ · $reward' : reward),
+        const SizedBox(height: 8),
+      ],
+      if (sides.where((x) => c.questState(x) == 1).isEmpty)
+        KText('${r.townName} 사람들이 부탁할 일이 있을지도 몰라요.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      if (done.isNotEmpty || sides.any((x) => c.questState(x) == 2) || choice != null) ...[
+        const SizedBox(height: 14),
+        Text('끝낸 것', style: AppText.title(15, color: AppColors.goldBright)),
+        const SizedBox(height: 6),
+        if (choice != null) ...[
+          card(const Key('doneChoice'), r.choice.title,
+              choice == r.choice.a.key ? r.choice.a.title : r.choice.b.title, true),
+          const SizedBox(height: 8),
+        ],
+        for (final q in done) ...[
+          card(Key('quest_${q.title}'), q.title, q.text, true),
+          const SizedBox(height: 8),
+        ],
+        for (final q in sides.where((x) => c.questState(x) == 2)) ...[
+          card(Key('side_${q.id}'), q.title, q.task, true),
+          const SizedBox(height: 8),
+        ],
+      ],
+    ]);
+  }
+}
+
 /// 세계 지도: 지역 다섯 (지금 지역 밝게 · 앞으로 갈 곳은 안개 + 필요 레벨) · 이름 있는 장비 모음
 class _WorldMap extends StatelessWidget {
   const _WorldMap({required this.controller});
@@ -761,36 +1029,53 @@ class _WorldMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cur = controller.act3.region;
+    final c = controller;
+    final cur = c.act3.region;
     return ListView(children: [
       for (final (i, r) in Act3Rules.regions.indexed) ...[
         Opacity(
-          opacity: i <= cur ? 1 : 0.5,
+          opacity: c.regionReached(r.id) ? 1 : 0.5,
           child: OrnatePanel(
             key: Key('region_${r.id.name}'),
             highlight: i == cur,
-            child: Row(children: [
-              Icon(i <= cur ? Icons.local_fire_department_rounded : Icons.cloud_rounded,
-                  color: i <= cur ? AppColors.goldBright : AppColors.textMuted),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(i <= cur ? r.name : '안개 너머',
-                        style: AppText.title(16, color: AppColors.text)),
-                    Text(
-                        i <= cur
-                            ? (i == 0 && controller.baldrinLit ? '등불을 켰어요 · ${r.blurb}' : r.blurb)
-                            : 'Lv.${r.level}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                  ],
+            child: InkWell(
+              onTap: c.canTravelTo(r.id)
+                  ? () async {
+                      if (await c.travelTo(r.id) && context.mounted) {
+                        showTopNotice(context, '「${r.name}」으로 왔어요');
+                      }
+                    }
+                  : null,
+              child: Row(children: [
+                Icon(c.regionReached(r.id) ? Icons.local_fire_department_rounded : Icons.cloud_rounded,
+                    color: c.regionLit(r.id)
+                        ? AppColors.goldBright
+                        : c.regionReached(r.id)
+                            ? AppColors.text
+                            : AppColors.textMuted),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.regionReached(r.id) ? r.name : '안개 너머',
+                          style: AppText.title(16, color: AppColors.text)),
+                      Text(
+                          c.regionReached(r.id)
+                              ? (c.regionLit(r.id) ? '등불을 켰어요 · ${r.blurb}' : r.blurb)
+                              : 'Lv.${r.level}',
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-              if (i == cur)
-                const Text('지금 여기',
-                    style: TextStyle(color: AppColors.goldBright, fontSize: 12)),
-            ]),
+                if (i == cur)
+                  const Text('지금 여기',
+                      style: TextStyle(color: AppColors.goldBright, fontSize: 12))
+                else if (c.canTravelTo(r.id))
+                  Text('가기', key: Key('travel_${r.id.name}'),
+                      style: const TextStyle(color: AppColors.goldBright, fontSize: 12)),
+              ]),
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -839,8 +1124,12 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
     for (final a in c.partyAllies) c.allyLook(a),
   ];
 
+  late final RegionContent? _reg = RegionRules.byPlace(_enc?.place ?? '');
+  int get _floorNo => _reg == null ? c.floorNow : c.regionFloorNow(_reg);
+
   String get _title => switch (_enc?.kind) {
-        A3Kind.floor || A3Kind.mid || A3Kind.lamp => '문지기 지하 요새 ${c.floorNow}층',
+        A3Kind.floor || A3Kind.mid || A3Kind.lamp => '${_reg?.dungeonName ?? '문지기 지하 요새'} $_floorNo층',
+        A3Kind.den when _reg != null => _reg.hidden.name,
         A3Kind.den => '바람의 굴',
         A3Kind.nest => '하피 둥지',
         _ => _place == null ? '다리 너머' : placeName(c, _place),
@@ -901,7 +1190,9 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: FrameButton(
                   key: const Key('act3Back'),
-                  label: _result!.won ? (inFort ? '계속' : '지도로') : '피난민 야영지로',
+                  label: _result!.won
+                      ? (inFort ? '계속' : '지도로')
+                      : (_reg == null ? '피난민 야영지로' : '${_reg.townName}(으)로'),
                   onPressed: () => Navigator.of(context).pop(_result),
                 ),
               ),
@@ -939,7 +1230,7 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
                             // 묶음 53: 위 띠 (요새 층 · 보스)
                             floorLabelOf: (b) => switch (_enc?.kind) {
                               A3Kind.mid || A3Kind.lamp || A3Kind.den => 'BOSS',
-                              A3Kind.floor => '${c.floorNow}층',
+                              A3Kind.floor => '$_floorNo층',
                               _ => b.floors.length == 1
                                   ? '필드 전투'
                                   : '${b.floor + 1} / ${b.floors.length}마리',

@@ -1,4 +1,5 @@
 import 'materials.dart';
+import 'name_rules.dart';
 import 'monsters.dart';
 
 /// 파티 (묶음 56 #236): 주점 「파티」 탭, 창구 리안. 최대 4명, 초대 코드로만.
@@ -145,7 +146,21 @@ class PartyRules {
   static const String stepsElsewhere = '오늘 이 휴대폰 걸음은 다른 계정에 먼저 쌓였어요.';
   static String cheerFrom(String name) => '$name님이 응원했어요! 다음 1,000보가 더 크게 쌓여요.';
   static String inviteText(String name, String code) =>
-      '아르카 파티 「$name」에 초대할게요! 주점 → 파티 → 「초대 코드로 들어가기」에 $code 를 넣어 주세요.';
+      '아르카 파티 「$name」에 초대할게요! ${inviteLink(code)} 를 누르거나, 주점 → 파티 → 「초대 코드로 들어가기」에 $code 를 넣어 주세요.';
+
+  /// 묶음 57: 초대 링크 (앱이 있으면 앱이 열리고, 없으면 스토어 안내 페이지)
+  static const linkHost = 'api-ujbfnvvalq-du.a.run.app';
+  static String inviteLink(String code) => 'https://$linkHost/join/$code';
+
+  /// 초대 링크에서 코드 (https://…/join/ABC234 · arca://join/ABC234). 아니면 null
+  static String? codeFromLink(Uri u) {
+    final segs = u.pathSegments.where((s) => s.isNotEmpty).toList();
+    String? c;
+    if (u.scheme == 'arca' && u.host == 'join' && segs.isNotEmpty) c = segs.first;
+    if (segs.length == 2 && segs.first == 'join' && (u.host == linkHost || u.scheme == 'arca')) c = segs[1];
+    c = c?.toUpperCase();
+    return c != null && RegExp(r'^[A-Z2-9]{6}$').hasMatch(c) ? c : null;
+  }
 
   /// 서버 오류 → 화면 글
   static String errorText(String code) => switch (code) {
@@ -155,6 +170,7 @@ class PartyRules {
         'same_device' => sameDevice,
         'not_owner' => '파티장만 할 수 있어요.',
         'bad_name' => '쓸 수 없는 이름이에요. 12자 안에서 다른 이름을 써 주세요.',
+        'banned_word' => NameRules.bannedMessage,
         'cheered_today' => '오늘은 이미 응원했어요. 내일 또 응원해 주세요.',
         'no_ticket' => '도전권이 없어요. 3,000보마다 한 장 생겨요.',
         'defeated' => '이번 주 보스는 이미 쓰러졌어요!',

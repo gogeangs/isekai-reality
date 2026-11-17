@@ -31,9 +31,59 @@ extension _ShellPopups on _HomeShellState {
         ),
       );
       await widget.controller.acknowledgeLevelUp();
+      // 묶음 57: 「기록 지키기」 — 정령이 로그인을 권함 (로그인 → 백업 동의)
+      final ask = widget.controller.loginAskFor(pending.from, pending.to);
+      if (ask != null && mounted) {
+        await widget.controller.markLoginAsked(ask);
+        if (mounted) await _keepRecord(ask);
+      }
       _levelUpShowing = false;
       _kick();
     });
+  }
+
+  Future<void> _keepRecord(int level) async {
+    final c = widget.controller;
+    final yes = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (d) => GameAlert(
+        key: const Key('keepRecord'),
+        title: Text('${c.firstSpiritName} · 기록 지키기'),
+        content: KText(
+            level >= 8
+                ? '아직 우리 기록이 이 휴대폰에만 있어. 휴대폰을 바꾸거나 앱을 지우면 사라져. 지금 지켜 둘래?'
+                : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.',
+            style: const TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          TextButton(
+              key: const Key('keepRecordLogin'),
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('로그인')),
+          TextButton(
+              key: const Key('keepRecordLater'),
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('나중에')),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    final p = await showModalBottomSheet<LoginProvider>(
+      context: context,
+      backgroundColor: AppColors.deepNight,
+      builder: (s) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (final p in c.loginProviders) ...[
+              LoginButton(provider: p, onPressed: () => Navigator.pop(s, p)),
+              const SizedBox(height: 8),
+            ],
+          ]),
+        ),
+      ),
+    );
+    if (p != null && mounted) await signInFlow(context, c, p);
   }
 
   /// 휴식이 끝났거나 정령이 돌아왔으면 한 번 알려 준다
@@ -309,6 +359,47 @@ extension _ShellPopups on _HomeShellState {
   }
 
   /// 걸음 주머니 · 길가의 발견 · 떠돌이 상인 (11-11 #59)
+  /// 묶음 57: 초대 링크로 열렸으면 「파티에 들어갈까요?」
+  void _maybeShowInvite() {
+    final c = widget.controller;
+    if (_popupBusy || c.inTutorial || c.pendingInvite == null) return;
+    final code = c.takeInvite()!;
+    _walkShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (d) => GameAlert(
+          key: const Key('inviteJoin'),
+          title: Text('파티에 들어갈까요?', style: AppText.title(19)),
+          content: KText(
+              c.cloud.signedIn
+                  ? '초대 코드 $code 파티에 들어가요.'
+                  : '초대 코드 $code 파티에 들어가려면 로그인이 필요해요. 주점 파티 탭으로 갈게요.',
+              style: const TextStyle(color: AppColors.text)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('나중에')),
+            TextButton(
+                key: const Key('inviteJoinYes'),
+                onPressed: () => Navigator.pop(d, true),
+                child: const Text('들어가기')),
+          ],
+        ),
+      );
+      if (yes == true && mounted) {
+        if (c.cloud.signedIn && c.party == null && await c.joinParty(code) && mounted) {
+          showTopNoticeQueued(context, '파티에 들어갔어요!');
+        }
+        if (mounted) {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => TavernScreen(controller: c, partyTab: true, inviteCode: code)));
+        }
+      }
+      _walkShowing = false;
+      _kick();
+    });
+  }
+
   void _maybeShowWalkNews() {
     final c = widget.controller;
     if (_popupBusy || _ahead(3) || c.inTutorial) return;

@@ -15,7 +15,14 @@ import 'npc_header.dart';
 /// 마을 새 건물 「주점」 (묶음 51 #242): 리안 · 파티 창구(서버 전엔 준비 중) · 소문판 · 한 끼 식사
 class TavernScreen extends StatefulWidget {
   const TavernScreen(
-      {super.key, required this.controller, this.allyTab = false, this.partyTab = false});
+      {super.key,
+      required this.controller,
+      this.allyTab = false,
+      this.partyTab = false,
+      this.inviteCode});
+
+  /// 묶음 57: 초대 링크로 왔을 때 코드 칸에 미리 넣어 둠
+  final String? inviteCode;
 
   final AppController controller;
 
@@ -101,7 +108,7 @@ class _TavernScreenState extends State<TavernScreen> {
                 if (_tab == 2)
                   AllyTab(controller: c)
                 else if (_tab == 1)
-                  PartyTab(controller: c)
+                  PartyTab(controller: c, inviteCode: widget.inviteCode)
                 else ...[
                   _rumors(),
                   const SizedBox(height: 10),

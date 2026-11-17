@@ -146,7 +146,7 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       for (final h in c.harvestSpots)
         '${h.id}@${h.point.lat.toStringAsFixed(5)},${h.point.lng.toStringAsFixed(5)}',
       'g:${c.guideMapTarget?.id}',
-      'f:${c.skillTimedOn(JobSkill.farSight)}',
+      'f:${c.skillTimedOn(JobSkill.farSight)}${c.skillTimedOn(JobSkill.manaSense)}',
       'w:${c.skillTimedOn(JobSkill.windWalk)}',
       // 묶음 34: 잿빛 틈 (자리·닫힘)
       'r:${c.riftPoint?.lat},${c.riftPoint?.lng},${c.riftClosedToday}',

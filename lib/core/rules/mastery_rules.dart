@@ -88,9 +88,19 @@ class MasteryRules {
   static String? weaponKind(EquipBase? base) => switch (base) {
         EquipBase.dagger ||
         EquipBase.hornDagger ||
-        EquipBase.nightWeapon =>
+        EquipBase.nightWeapon ||
+        EquipBase.uniqArbelDagger ||
+        EquipBase.uniqMoonFang =>
           'dagger',
-        EquipBase.staff || EquipBase.flameWeapon => 'staff',
+        EquipBase.staff ||
+        EquipBase.flameWeapon ||
+        EquipBase.elowinStaff ||
+        EquipBase.uniqNaomiStaff =>
+          'staff',
+        EquipBase.morvalWeapon || EquipBase.morvalSword => 'sword',
+        EquipBase.seleniaWeapon || EquipBase.seleniaAxe || EquipBase.uniqGrumHammer => 'axe',
+        EquipBase.elowinWeapon || EquipBase.aurelWeapon => 'spear',
+        EquipBase.aurelBow => 'bow',
         EquipBase.ironSword ||
         EquipBase.wardenWeapon ||
         EquipBase.frostWeapon ||
@@ -99,6 +109,7 @@ class MasteryRules {
         EquipBase.baldrinWeapon =>
           'sword',
         EquipBase.woodAxe || EquipBase.groveWeapon => 'axe',
+        EquipBase.bow => 'bow',
         EquipBase.ironSpear ||
         EquipBase.stormWeapon ||
         EquipBase.uniqTeoSpear ||
@@ -116,6 +127,7 @@ class MasteryRules {
     'dagger': '단검',
     'spear': '창',
     'staff': '지팡이',
+    'bow': '활',
   };
 
   /// 대장일 세부: 무기는 무기 종류, 방어구는 부위

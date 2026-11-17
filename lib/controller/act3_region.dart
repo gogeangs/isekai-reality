@@ -16,6 +16,9 @@ enum A3Kind {
   /// 메인 ③ 성벽길 · 한나 퀘스트 하피 둥지
   wall,
   nest,
+
+  /// 묶음 57 지역 2~5: 메인 ③ 사건 싸움
+  event,
 }
 
 /// 3막 싸움 하나
@@ -286,6 +289,24 @@ extension Act3RegionOps on AppController {
     ];
   }
 
+  /// 묶음 57 #244: 이번 층 보물 상자가 함정인지 (미리 정해 둠 — 셰이드가 알려 줄 수 있게)
+  bool _chestIsTrap(int n) {
+    if (_chestN != n) {
+      _chestN = n;
+      _chestTrap = _random.nextDouble() >= BaldrinRules.chestChance;
+    }
+    return _chestTrap;
+  }
+
+  /// 셰이드(나이트메어)와 함께면 보물 상자 방에 한 줄 (아니면 null)
+  String? get chestHint {
+    if (!_heroWith(PetSpecies.nightmare)) return null;
+    final name = heroCompanion?.name ?? '셰이드';
+    return _chestIsTrap(_act3.floorNow)
+        ? '$name: 저 상자… 함정 냄새가 나.'
+        : '$name: 저 상자는 괜찮아 보여.';
+  }
+
   /// 갈림길 하나를 고른다 (층 싸움을 다 이긴 뒤)
   Future<BranchResult> takeBranch(Branch b) => _serial(() async {
         final n = _act3.floorNow;
@@ -300,7 +321,9 @@ extension Act3RegionOps on AppController {
                     background: BaldrinRules.dungeonBg),
                 text: '갈림길 안쪽에서 몬스터 무리가 몰려와요.');
           case Branch.chest:
-            if (_random.nextDouble() >= BaldrinRules.chestChance) {
+            final trap = _chestIsTrap(n);
+            _chestN = null;
+            if (trap) {
               final lost = math.max(1, (maxHp * BaldrinRules.trapHp).round());
               _vitals = _vitals.copyWith(hp: math.max(1, hp - lost));
               await store.saveVitals(_vitals);
@@ -309,7 +332,9 @@ extension Act3RegionOps on AppController {
             }
             final gold = BaldrinRules.chestGoldMin +
                 _random.nextInt(BaldrinRules.chestGoldMax - BaldrinRules.chestGoldMin + 1);
-            await _grant(gold, 0, const {});
+            // 묶음 57: 자물쇠 따기 → 하나 더 (금화 한 번 더)
+            final more = await _consumeSkill(JobSkill.lockpick) ? gold : 0;
+            await _grant(gold + more, 0, const {});
             final items = <EquipItem>[
               if (_random.nextDouble() < BaldrinRules.chestGear) await _a3Normal(),
               if (_random.nextDouble() < BaldrinRules.uniqChest)
@@ -409,9 +434,16 @@ extension Act3RegionOps on AppController {
       if (s.has('lamp') && (n == Npc.lian || n == Npc.mina)) ...BaldrinRules.afterLamp,
       if (s.has('lamp') && n == Npc.hart) BaldrinRules.hartAfterLamp,
       if (s.has('denBoss') && n == Npc.lumi) BaldrinRules.lumiAfterDen,
+      if (s.has('act3End') && n == Npc.marta) RegionRules.martaAfterEnd,
+      if (s.has('act3End') && n == Npc.hart) RegionRules.hartAfterEnd,
     ];
   }
 
   /// 현실 지도에 섞일 3막 몬스터 (등불을 켠 지역의 일반 몬스터)
-  List<MonsterId> get lampMonsters => baldrinLit ? BaldrinRules.normals : const [];
+  /// 묶음 57: 등불을 켠 지역 2~5 몬스터도 섞임
+  List<MonsterId> get lampMonsters => [
+        if (baldrinLit) ...BaldrinRules.normals,
+        for (final r in RegionRules.all)
+          if (_act3.has('${r.prefix}:lamp')) ...r.normals,
+      ];
 }

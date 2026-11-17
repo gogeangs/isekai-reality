@@ -99,7 +99,14 @@ class FarewellScreen extends StatefulWidget {
         PetSpecies.panther ||
         PetSpecies.whale ||
         PetSpecies.phoenix ||
-        PetSpecies.stag =>
+        PetSpecies.stag ||
+        // 묶음 57 #244 전설 펫도 정해진 이름
+        PetSpecies.pegasus ||
+        PetSpecies.behemoth ||
+        PetSpecies.nightmare ||
+        PetSpecies.leviathan ||
+        PetSpecies.dragon ||
+        PetSpecies.unicorn =>
           PetRules.heroName(s),
       };
 
@@ -469,13 +476,25 @@ Future<void> showHatchSheet(
                   ),
                 ],
               ] else ...[
-                Center(child: PetArt.of(born!, size: 150)),
+                Center(
+                    child: born!.legend
+                        // 묶음 57 #244: 전설 펫은 무지갯빛으로 흔들리며 깨어남
+                        ? LegendReveal(child: PetArt.of(born!, size: 150))
+                        : PetArt.of(born!, size: 150)),
                 const SizedBox(height: 8),
                 Text('${born!.info.name} ${born!.name}${josa(born!.name, '이/가').substring(born!.name.length)} 태어났어요!',
                     textAlign: TextAlign.center,
                     style: AppText.title(19, color: AppColors.goldBright)),
                 // 묶음 49 #235: 영웅 펫은 깨어날 때 한 줄
-                if (born!.hero)
+                if (born!.legend)
+                  Padding(
+                    key: const Key('legendBorn'),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('전설 속 펫이 깨어났어요!',
+                        textAlign: TextAlign.center,
+                        style: AppText.title(16, color: AppColors.goldBright)),
+                  )
+                else if (born!.hero)
                   Padding(
                     key: const Key('heroBorn'),
                     padding: const EdgeInsets.only(top: 4),
@@ -498,4 +517,45 @@ Future<void> showHatchSheet(
     ),
   );
   name.dispose();
+}
+
+
+/// 묶음 57 #244: 전설 펫이 깨어날 때 — 무지갯빛 테두리가 돌며 흔들림 (짧게)
+class LegendReveal extends StatelessWidget {
+  const LegendReveal({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        key: const Key('legendReveal'),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1800),
+        builder: (_, t, c) {
+          final shake = t < 0.5 ? math.sin(t * math.pi * 16) * 6 * (1 - t * 2) : 0.0;
+          return Transform.translate(
+            offset: Offset(shake, 0),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: SweepGradient(
+                  transform: GradientRotation(t * math.pi * 4),
+                  colors: const [
+                    Color(0xFFFF6B6B), Color(0xFFFFC46B), Color(0xFFFFF36B), Color(0xFF6BFF8E),
+                    Color(0xFF6BD8FF), Color(0xFF8E6BFF), Color(0xFFFF6BD8), Color(0xFFFF6B6B),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFFFFF1B8).withValues(alpha: 0.7 * (1 - (t - 0.5).abs())),
+                      blurRadius: 30,
+                      spreadRadius: 4),
+                ],
+              ),
+              child: ClipOval(child: ColoredBox(color: const Color(0xFF15183A), child: c)),
+            ),
+          );
+        },
+        child: child,
+      );
 }

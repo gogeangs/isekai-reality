@@ -65,7 +65,8 @@ enum AllyRace { elf, dwarf, fairy, dragonkin, catfolk, foxfolk, merfolk, starchi
 enum AllyJob { warrior, archer, mage, priest, rogue, knight }
 
 /// 이야기 동료 (이번 묶음: 리안 · 가렌. 나머지는 그 지역 묶음에서)
-enum StoryAlly { lian, garen }
+/// 묶음 57: 니아 · 바르칸(셀레니아) · 포포(엘로윈) · 세라(모르발) · 테오(아우렐)
+enum StoryAlly { lian, garen, nia, barkan, popo, sera, teo }
 
 /// 동료 스킬이 하는 일 (숨은 규칙, 화면엔 문장만)
 enum AllySkillKind {
@@ -195,16 +196,64 @@ class Act3Rules {
     ),
     RegionInfo(
         id: Region.selenia, name: '셀레니아 대장터', level: 23, element: Element.metal,
-        blurb: '불 꺼진 큰 장터'),
+        blurb: '불 꺼진 큰 장터',
+        places: [
+          PlaceInfo('selenia_town', '불 꺼진 대장터', SpotKind.town, 0.45, 0.45),
+          PlaceInfo('selenia_caravan', '대상의 길', SpotKind.field, 0.18, 0.70,
+              monster: MonsterId.orcMerc, background: 'assets/images/bg_selenia_caravan.webp'),
+          PlaceInfo('selenia_mine', '버려진 광산', SpotKind.field, 0.82, 0.12,
+              monster: MonsterId.koboldMiner, background: 'assets/images/bg_selenia_mine.webp'),
+          PlaceInfo('selenia_stardust', '별가루 골짜기', SpotKind.field, 0.15, 0.38,
+              monster: MonsterId.gargoyle, background: 'assets/images/bg_selenia_stardust.webp'),
+          PlaceInfo('selenia_vault', '흑등 상회 지하 금고', SpotKind.dungeon, 0.50, 0.18),
+          PlaceInfo('selenia_vein', '???', SpotKind.hidden, 0.88, 0.50,
+              background: 'assets/images/bg_selenia_vein.webp'),
+        ]),
     RegionInfo(
         id: Region.elowin, name: '엘로윈 숲', level: 25, element: Element.earth,
-        blurb: '잠든 고목의 숲'),
+        blurb: '잠든 고목의 숲',
+        places: [
+          PlaceInfo('elowin_town', '잎사귀 마을', SpotKind.town, 0.52, 0.45),
+          PlaceInfo('elowin_vinepath', '잿빛 덩굴 숲길', SpotKind.field, 0.30, 0.78,
+              monster: MonsterId.treant, background: 'assets/images/bg_elowin_vinepath.webp'),
+          PlaceInfo('elowin_spring', '멈춘 샘물 연못', SpotKind.field, 0.75, 0.68,
+              monster: MonsterId.dryad, background: 'assets/images/bg_elowin_spring.webp'),
+          PlaceInfo('elowin_mushroom', '버섯 안개 언덕', SpotKind.field, 0.15, 0.15,
+              monster: MonsterId.giantSpider, background: 'assets/images/bg_elowin_mushroom.webp'),
+          PlaceInfo('elowin_roots', '고목의 뿌리 미궁', SpotKind.dungeon, 0.52, 0.12),
+          PlaceInfo('elowin_mosspond', '???', SpotKind.hidden, 0.12, 0.60,
+              background: 'assets/images/bg_elowin_mosspond.webp'),
+        ]),
     RegionInfo(
         id: Region.morval, name: '모르발 왕도', level: 27, element: Element.dark,
-        blurb: '다시 일어서는 왕도'),
+        blurb: '다시 일어서는 왕도',
+        places: [
+          PlaceInfo('morval_town', '왕도 아랫마을', SpotKind.town, 0.55, 0.55),
+          PlaceInfo('morval_ruins', '무너진 성벽 밖 폐허', SpotKind.field, 0.18, 0.80,
+              monster: MonsterId.vampireBat, background: 'assets/images/bg_morval_ruins.webp'),
+          PlaceInfo('morval_crypt', '왕실 지하 묘지', SpotKind.field, 0.85, 0.42,
+              monster: MonsterId.wraith, background: 'assets/images/bg_morval_crypt.webp'),
+          PlaceInfo('morval_lake', '잿빛 안개 호수', SpotKind.field, 0.12, 0.32,
+              monster: MonsterId.ghoul, background: 'assets/images/bg_morval_lake.webp'),
+          PlaceInfo('morval_tower', '잿빛 왕좌의 탑', SpotKind.dungeon, 0.62, 0.08),
+          PlaceInfo('morval_stable', '???', SpotKind.hidden, 0.78, 0.22,
+              background: 'assets/images/bg_morval_stable.webp'),
+        ]),
     RegionInfo(
         id: Region.aurel, name: '아우렐 성소', level: 29, element: Element.fire,
-        blurb: '모든 등불의 불이 시작된 곳'),
+        blurb: '모든 등불의 불이 시작된 곳',
+        places: [
+          PlaceInfo('aurel_town', '순례자 천막촌', SpotKind.town, 0.62, 0.72),
+          PlaceInfo('aurel_pilgrim', '재가 내리는 순례길', SpotKind.field, 0.25, 0.62,
+              monster: MonsterId.salamander, background: 'assets/images/bg_aurel_pilgrim.webp'),
+          PlaceInfo('aurel_lava', '용암 협곡', SpotKind.field, 0.88, 0.48,
+              monster: MonsterId.ifrit, background: 'assets/images/bg_aurel_lava.webp'),
+          PlaceInfo('aurel_altar', '꺼져 가는 불꽃 제단', SpotKind.field, 0.15, 0.20,
+              monster: MonsterId.koboldrake, background: 'assets/images/bg_aurel_altar.webp'),
+          PlaceInfo('aurel_source', '여명의 근원', SpotKind.dungeon, 0.62, 0.10),
+          PlaceInfo('aurel_nest', '???', SpotKind.hidden, 0.90, 0.15,
+              background: 'assets/images/bg_aurel_phoenixnest.webp'),
+        ]),
   ];
 
   static RegionInfo region(Region r) => regions[r.index];
@@ -331,10 +380,87 @@ class Act3Rules {
                   AllySkillKind.rally, power: 1.5),
             ],
           ),
+        // 묶음 57 #243 지역 2~5 이야기 동료
+        StoryAlly.nia => (
+            name: '니아',
+            image: 'assets/images/ally_nia.webp',
+            face: 'assets/images/npc_nia.webp',
+            role: AllyJob.rogue,
+            roleName: '단검 · 연타',
+            element: null,
+            stats: const [11, 10, 15, 12],
+            skills: const [
+              AllySkillInfo('연속 찌르기', '빠르게 세 번 찔러요', AllySkillKind.hits, power: 0.95, hits: 3),
+              AllySkillInfo('슬쩍하기', '이기면 전리품이 하나 더 나와요', AllySkillKind.steal, power: 1.0),
+              AllySkillInfo('연막', '적의 다음 공격이 빗나가요', AllySkillKind.barrier),
+              AllySkillInfo('그림자 급소', '꼭 급소를 찔러 아주 크게 다치게 해요', AllySkillKind.crit, power: 3.2),
+            ],
+          ),
+        StoryAlly.barkan => (
+            name: '바르칸',
+            image: 'assets/images/ally_barkan.webp',
+            face: 'assets/images/npc_barkan.webp',
+            role: AllyJob.warrior,
+            roleName: '도끼 · 불',
+            element: Element.fire,
+            stats: const [15, 14, 9, 10],
+            skills: const [
+              AllySkillInfo('상단의 도끼', '큰 피해를 줘요', AllySkillKind.hit, power: 2.9),
+              AllySkillInfo('불 숨결', '불을 뿜어 크게 태워요', AllySkillKind.element, power: 2.4),
+              AllySkillInfo('「허허, 흥정이지」', '잠시 적의 공격이 약해져요', AllySkillKind.partyDef, power: 0.75),
+              AllySkillInfo('용인의 분노', '체력이 낮을수록 아주 큰 불 숨결을 뿜어요', AllySkillKind.lowHp, power: 3.2),
+            ],
+          ),
+        StoryAlly.popo => (
+            name: '포포',
+            image: 'assets/images/ally_popo.webp',
+            face: 'assets/images/npc_popo.webp',
+            role: AllyJob.priest,
+            roleName: '치유 · 대지',
+            element: Element.earth,
+            stats: const [9, 11, 12, 16],
+            skills: const [
+              AllySkillInfo('새싹 치유', '아군 하나를 회복해요', AllySkillKind.healOne, power: 0.32),
+              AllySkillInfo('덩굴 묶기', '피해를 주고 적을 한 턴 멈춰요', AllySkillKind.stun, power: 1.2),
+              AllySkillInfo('꽃가루 축복', '잠시 아군 모두 조금씩 회복해요', AllySkillKind.regen, power: 0.05),
+              AllySkillInfo('숲의 깨어남', '아군 모두 크게 회복하고 나쁜 효과를 지워요', AllySkillKind.healAll, power: 0.42),
+            ],
+          ),
+        StoryAlly.sera => (
+            name: '세라',
+            image: 'assets/images/ally_sera.webp',
+            face: 'assets/images/npc_sera.webp',
+            role: AllyJob.knight,
+            roleName: '방패 · 막기',
+            element: null,
+            stats: const [12, 16, 10, 10],
+            skills: const [
+              AllySkillInfo('방패 밀치기', '피해를 주고 적을 잠시 약하게 해요', AllySkillKind.breakDef, power: 1.5),
+              AllySkillInfo('맹세의 방패', '잠시 대신 맞아요', AllySkillKind.taunt),
+              AllySkillInfo('근위의 반격', '잠시 받는 피해가 크게 줄고, 맞을 때마다 되받아쳐요', AllySkillKind.guardSelf, power: 0.45),
+              AllySkillInfo('용서의 빛', '아군 모두 보호막을 두르고 잿빛 몬스터에게 큰 피해를 줘요', AllySkillKind.oath),
+            ],
+          ),
+        StoryAlly.teo => (
+            name: '테오',
+            image: 'assets/images/ally_teo.webp',
+            face: 'assets/images/npc_teo.webp',
+            role: AllyJob.knight,
+            roleName: '창 · 빛',
+            element: Element.light,
+            stats: const [14, 13, 12, 11],
+            skills: const [
+              AllySkillInfo('문지기의 찌르기', '피해를 주고 적의 방어를 약하게 해요', AllySkillKind.breakDef, power: 1.6),
+              AllySkillInfo('빛의 창', '빛으로 찔러요. 약점이면 더 세요', AllySkillKind.weak, power: 2.8),
+              AllySkillInfo('돌아온 자의 결의', '잠시 자기 공격이 크게 세져요', AllySkillKind.selfAtk, power: 1.4),
+              AllySkillInfo('문을 지킨 창', '빛의 창을 크게 내리꽂아요', AllySkillKind.element, power: 3.6),
+            ],
+          ),
       };
 
   /// 가렌 스킬 ④는 동료 퀘스트 「신병 다섯의 명부」로 열림 (지역 1 묶음)
-  static bool lockedByQuest(StoryAlly a, int slot) => a == StoryAlly.garen && slot == 3;
+  /// 묶음 57: 이야기 동료 ④는 그 동료 퀘스트를 끝내야 (리안은 처음부터)
+  static bool lockedByQuest(StoryAlly a, int slot) => a != StoryAlly.lian && slot == 3;
 
   /// 직업에 잘 맞는 무기 (묶음 53 확정: 전사 검·도끼 / 궁수 활 / 마법사·사제 지팡이 / 도적 단검 / 기사 검·창).
   /// 활은 아직 활 장비가 없어 지역 5 「여명의 불꽃 활」 때 더함
@@ -415,13 +541,13 @@ class Act3Rules {
         AllyJob.mage => const [
             AllySkillInfo('속성 화살', '속성 피해를 줘요', AllySkillKind.element, power: 2.2),
             AllySkillInfo('마력 보호막', '다음 공격 한 번을 막아요', AllySkillKind.barrier),
-            AllySkillInfo('약점 꿰뚫기', '그 속성에 약한 적에게 큰 피해를 줘요', AllySkillKind.weak,
+            AllySkillInfo('속성 폭발', '그 속성에 약한 적에게 크게 터져요', AllySkillKind.weak,
                 power: 3.5),
             AllySkillInfo('대마법', '큰 속성 피해를 줘요', AllySkillKind.element, power: 3.6),
           ],
         AllyJob.priest => const [
             AllySkillInfo('치유', '아군 하나를 회복해요', AllySkillKind.healOne, power: 0.30),
-            AllySkillInfo('축복', '잠시 아군 모두 받는 피해가 줄어요', AllySkillKind.partyDef,
+            AllySkillInfo('가호', '잠시 아군 모두 받는 피해가 줄어요', AllySkillKind.partyDef,
                 power: 0.7),
             AllySkillInfo('정화', '나쁜 효과를 지워요', AllySkillKind.cleanse),
             AllySkillInfo('기적', '아군 모두 크게 회복하고 쓰러진 동료를 한 번 일으켜요',
@@ -437,7 +563,7 @@ class Act3Rules {
             AllySkillInfo('방패 치기', '피해를 주고 적을 잠시 약하게 해요', AllySkillKind.breakDef,
                 power: 1.5),
             AllySkillInfo('수호', '잠시 대신 맞아요', AllySkillKind.taunt),
-            AllySkillInfo('굳건한 자세', '잠시 받는 피해가 크게 줄어요', AllySkillKind.guardSelf,
+            AllySkillInfo('도발', '잠시 받는 피해가 크게 줄고, 맞을 때마다 되받아쳐요', AllySkillKind.guardSelf,
                 power: 0.4),
             AllySkillInfo('성기사의 맹세', '아군 모두 보호막을 두르고 잠시 되받아쳐요', AllySkillKind.oath),
           ],

@@ -1117,7 +1117,7 @@ class Battle {
       frostTurns = 0;
       lastEvent = '강타! 서리 갑옷이 깨졌어요!';
     }
-    var dmg = (_vary(playerAttack) * bashMultiplier).round();
+    var dmg = (_vary(playerAttack) * bashMultiplier * (1 + bashBoost) * dealMult).round();
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     dmg = _elemental(dmg, weaponPotion ?? attackElement,
         level: weaponPotion != null ? 0 : attackLevel);
@@ -1146,6 +1146,62 @@ class Battle {
 
   /// 다음 보통 공격 피해 배율 (1이면 없음)
   double nextHitMult = 1;
+
+  // ───────────── 묶음 57 #249 직업 개편 (숨은 규칙)
+
+  /// 묶음 57 #244: 싸움을 시작할 때 뿜는 불 (공격력 배율, 0이면 없음)
+  double openingFire = 0;
+
+  /// 회피 더 (도적) · 받는 피해 배율 (기사 · 각인)
+  double extraEvade = 0;
+  double takenMult = 1;
+
+  /// 전사 고유 기술: 강타가 더 세고 더 빨리 참
+  double bashBoost = 0;
+  bool bashFast = false;
+
+  /// 주는 피해 배율 (잘 맞는 무기 · 각인 · 짝)
+  double dealMult = 1;
+
+  /// 공격할 때 HP가 조금씩 참 (사제 각인)
+  double lifeSteal = 0;
+
+  /// 가끔 두 번 침 (도적 각인)
+  double doubleHit = 0;
+
+  /// 가끔 덩굴로 묶음 (채집가 각인)
+  double bindChance = 0;
+
+  /// 약점 피해 더 (감정사 각인)
+  double weakBoost = 0;
+
+  /// 가끔 강한 공격을 막음 (고고학자 각인)
+  double relicBlock = 0;
+
+  /// 공격 스킬에 독 · 화상 (연금술사 각인)
+  bool skillDot = false;
+
+  /// 펫이 내 공격에 맞춰 같이 침 (조련사 각인)
+  double petAssist = 0;
+
+  /// 첫 차례 선공 · 치명타 더 (궁수 각인)
+  bool firstStrike = false;
+
+  /// 이기면 금화 더 (상인 각인 · 저울추 던지기)
+  bool goldBonus = false;
+
+  /// 가호: 받는 피해 줄이는 남은 턴
+  int wardTurns = 0;
+  static const double wardTaken = 0.7;
+
+  /// 도발 · 성기사의 맹세: 맞을 때마다 되받아치는 남은 턴
+  int tauntTurns = 0;
+
+  /// 성기사 짝: 대신 맞을 때 HP 조금, 잿빛 몬스터에게 빛 피해
+  bool paladin = false;
+
+  /// 밤의 도둑 짝: 밤엔 훔치기가 꼭 되고 한 번 더 벰
+  bool nightThief = false;
 
   /// 다음 보통 공격이 꼭 치명타
   bool nextCrit = false;
@@ -1223,7 +1279,7 @@ class Battle {
   /// 스킬 한 번 치기
   int _strike(double mult,
       {Element? element, bool useElement = true, bool crit = false}) {
-    var d = _vary(playerAttack) * mult;
+    var d = _vary(playerAttack) * mult * dealMult;
     if (foeBreakTurns > 0) d *= breakTaken;
     if (rallyTurns > 0) d *= rallyAttack;
     if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
@@ -1242,7 +1298,27 @@ class Battle {
     _hitFoe(dmg);
     _setOnHit(dmg);
     _checkRage();
+    _afterHit(dmg, skill: true);
     return dmg;
+  }
+
+  /// 묶음 57: 때린 뒤 각인 효과 (흡혈 · 묶기 · 독 · 펫)
+  void _afterHit(int dmg, {bool skill = false}) {
+    if (phase != BattlePhase.fighting) return;
+    if (lifeSteal > 0 && playerHp < playerMaxHp) {
+      final before = playerHp;
+      playerHp = math.min(playerMaxHp, playerHp + math.max(1, (dmg * lifeSteal).round()));
+      _healed(playerHp - before);
+    }
+    if (bindChance > 0 && _rng.nextDouble() < bindChance) foeBindTurns = math.max(foeBindTurns, 1);
+    if (skill && skillDot && foeDotTurns <= 0) {
+      foeDotTurns = 3;
+      foeDotRatio = 0.02;
+    }
+    if (petAssist > 0 && skillDamage > 0 && _rng.nextDouble() < petAssist) {
+      _hitFoe(math.max(1, (skillDamage * 0.4).round()));
+      _checkRage();
+    }
   }
 
   void _startSkill(String event) {
@@ -1391,6 +1467,197 @@ class Battle {
           _strike(0.8 * p);
         }
       default:
+        return _useJobSkill57(s, p);
+    }
+    return true;
+  }
+
+  // ───────────── 묶음 57 #236: 파티 보스 특기 (막기 예고와 함께, 보스마다 하나)
+
+  /// 골렘 돌벽: 받는 피해가 줄어드는 남은 턴
+  int stoneWallTurns = 0;
+  int _specialTick = -1;
+
+  /// 특기를 쓰는 간격 (턴)
+  static const int partySpecialEvery = 5;
+
+  void _partySpecial() {
+    final id = foe.monster;
+    if (id != MonsterId.partyGolem &&
+        id != MonsterId.partyHydra &&
+        id != MonsterId.partyWyvern &&
+        id != MonsterId.partyKraken) {
+      return;
+    }
+    if (floorTicks % partySpecialEvery != partySpecialEvery - 1 || _specialTick == floorTicks) return;
+    _specialTick = floorTicks;
+    switch (id) {
+      case MonsterId.partyGolem:
+        stoneWallTurns = 3;
+        lastEvent = '돌벽!';
+      case MonsterId.partyHydra:
+        foeHp = math.min(foe.maxHp, foeHp + math.max(1, (foe.maxHp * 0.03).round()));
+        lastEvent = '머리가 다시 자라요!';
+      case MonsterId.partyWyvern:
+        if (immuneTurns <= 0) {
+          poisonTurns = 3;
+          burning = false;
+          weakPoisoned = false;
+          poisonedThisBattle = true;
+        }
+        lastEvent = '잿빛 독침!';
+      case MonsterId.partyKraken:
+        frozen = true;
+        lastEvent = '휘감기! 한 턴 움직일 수 없어요';
+      default:
+        break;
+    }
+  }
+
+  /// 다음 막기에서 되받아칠지 (수호)
+  bool _guardCounter = false;
+
+  /// 쓰러져도 한 번 버팀 (기적)
+  bool _miracleUsed = false;
+
+  void _hits(int n, double mult, {Element? element}) {
+    for (var i = 0; i < n; i++) {
+      if (phase != BattlePhase.fighting) break;
+      _strike(mult, element: element, useElement: true);
+    }
+  }
+
+  /// 묶음 57 #249: 새 스킬 32 중 전투 스킬
+  bool _useJobSkill57(JobSkill s, double p) {
+    switch (s) {
+      case JobSkill.cleave:
+        _startSkill('내려베기!');
+        _strike(2.4 * p);
+      case JobSkill.lastStand:
+        _startSkill('결사의 일격!');
+        final low = 1 - (playerHp / math.max(1, playerMaxHp));
+        _strike((1.4 + 2.6 * low) * p);
+      case JobSkill.rapidShot:
+        _startSkill('속사!');
+        _hits(2, 1.0 * p);
+      case JobSkill.trapArrow:
+        _startSkill('덫 화살!');
+        _strike(1.2 * p);
+        if (phase == BattlePhase.fighting) _foeBound = true;
+      case JobSkill.starfallArrow:
+        _startSkill('별똥별 화살!');
+        _strike((foeHp >= foe.maxHp ? 4.0 : 1.6) * p);
+      case JobSkill.elementBolt:
+        _startSkill('속성 화살!');
+        final w = _foeWeakTo;
+        _strike(1.8 * p, element: w ?? attackElement);
+      case JobSkill.manaShield:
+        if (blockNext && shieldHits > 0) return false;
+        _startSkill('마력 보호막!');
+        blockNext = true;
+        shieldHits = math.max(shieldHits, 1);
+      case JobSkill.elementBurst:
+        _startSkill('속성 폭발!');
+        final weak = attackElement != null && _foeWeakTo == attackElement;
+        _strike((weak ? 3.4 : 1.4) * p, element: attackElement);
+      case JobSkill.grandMagic:
+        _startSkill('대마법!');
+        _strike(3.0 * p, element: _foeWeakTo ?? attackElement);
+      case JobSkill.aegis:
+        if (wardTurns > 0) return false;
+        _startSkill('가호!');
+        wardTurns = 3;
+      case JobSkill.purify:
+        _startSkill('정화!');
+        poisonTurns = 0;
+        burning = false;
+        frozen = false;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp, playerHp + math.max(1, (playerMaxHp * 0.12 * p).round()));
+        _healed(playerHp - before);
+      case JobSkill.holyLight:
+        _startSkill('성스러운 빛!');
+        _strike((foeIsAsh ? 2.8 : 1.6) * p, element: Element.light);
+      case JobSkill.miracle:
+        if (_miracleUsed) return false;
+        _startSkill('기적!');
+        _miracleUsed = true;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp, playerHp + (playerMaxHp * 0.45 * p).round());
+        _healed(playerHp - before);
+        revives += 1;
+      case JobSkill.ambush:
+        _startSkill('기습!');
+        _hits(2, 1.1 * p);
+      case JobSkill.steal:
+        _startSkill('훔치기!');
+        _strike(1.2 * p);
+        extraLoot = true;
+      case JobSkill.poisonBlade:
+        _startSkill('독 바르기!');
+        _strike(1.0 * p, element: Element.poison);
+        foeDotTurns = 4;
+        foeDotRatio = 0.035 * p;
+      case JobSkill.smokeBomb:
+        if (dodgeNext) return false;
+        _startSkill('연막!');
+        dodgeNext = true;
+      case JobSkill.shadowFlurry:
+        _startSkill('그림자 연격!');
+        _hits(nightThief && nightTime ? 6 : 5, 0.65 * p);
+      case JobSkill.shieldBash:
+        _startSkill('방패 치기!');
+        _strike(1.4 * p);
+        foeBreakTurns = math.max(foeBreakTurns, 2);
+      case JobSkill.guard:
+        if (blockNext) return false;
+        _startSkill('수호!');
+        blockNext = true;
+        _guardCounter = true;
+      case JobSkill.taunt:
+        if (tauntTurns > 0) return false;
+        _startSkill('도발!');
+        tauntTurns = 3;
+      case JobSkill.lanceCharge:
+        _startSkill('창 돌격!');
+        _strike(2.3 * p);
+        playerSpeed = math.max(playerSpeed, baseSpeed * 1.3);
+      case JobSkill.paladinOath:
+        if (tauntTurns > 0) return false;
+        _startSkill('성기사의 맹세!');
+        shieldHits += 2;
+        tauntTurns = 3;
+      case JobSkill.anvilDrop:
+        _startSkill('모루 내려찍기!');
+        _strike(2.0 * p);
+        _maybeStun(0.30);
+      case JobSkill.acidFlask:
+        _startSkill('산성 플라스크!');
+        _strike(1.2 * p, element: Element.poison);
+        foeBreakTurns = math.max(foeBreakTurns, 2);
+        foeDotTurns = 3;
+        foeDotRatio = 0.025 * p;
+      case JobSkill.pollenCloud:
+        _startSkill('꽃가루 날리기!');
+        _strike(1.3 * p, element: Element.earth);
+        dodgeNext = true;
+      case JobSkill.dazzleLens:
+        _startSkill('눈부신 렌즈!');
+        _strike(1.4 * p, element: Element.light);
+        if (phase == BattlePhase.fighting) _foeBound = true;
+      case JobSkill.scaleWeight:
+        _startSkill('저울추 던지기!');
+        _strike(2.0 * p);
+        goldBonus = true;
+      case JobSkill.whistleSignal:
+        _startSkill('휘파람 신호!');
+        for (var i = 0; i < 2; i++) {
+          if (phase != BattlePhase.fighting) break;
+          _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+              element: skillElement, useElement: skillElement != null);
+        }
+        skillCharge = math.min(skillChargeTicks, skillCharge + 2);
+      default:
         return false;
     }
     return true;
@@ -1449,6 +1716,8 @@ class Battle {
       d *= nextHitMult;
       nextHitMult = 1;
     }
+    d *= dealMult;
+    if (weakBoost > 0 && _foeWeakTo != null && _foeWeakTo == attackElement) d *= 1 + weakBoost;
     return math.max(1, d.round());
   }
 
@@ -1697,6 +1966,15 @@ class Battle {
     if (skillLockTurns > 0) skillLockTurns--;
     _ashMove();
     lastDealt = 0;
+    // 묶음 57 #244: 이그니스(드래곤)와 함께면 싸움을 시작할 때 불을 한 번 뿜음
+    if (openingFire > 0 && ticks == 1 && !practice) {
+      final d = _elemental(math.max(1, (_vary(playerAttack) * openingFire).round()), Element.fire);
+      _hitFoe(d);
+      foeBurnTurns = math.max(foeBurnTurns, PetRules.dragonOpeningBurn);
+      lastEvent = '이그니스가 불을 뿜었어요!';
+      _checkRage();
+      if (isOver) return;
+    }
     lastTaken = 0;
     _skyMove();
     if (isOver) return;
@@ -1743,7 +2021,8 @@ class Battle {
         dmg = (dmg * (1 + PetRules.insightBonus(adult: petAdult))).round();
         insightTurns--;
       }
-      if (nextCrit || (playerCrit > 0 && _rng.nextDouble() < playerCrit)) {
+      final crit = playerCrit + (firstStrike && floorTicks <= 1 ? 0.15 : 0);
+      if (nextCrit || (crit > 0 && _rng.nextDouble() < crit)) {
         nextCrit = false;
         dmg = (dmg * StatRules.critMultiplier).round();
         lastEvent = '치명타!';
@@ -1761,6 +2040,14 @@ class Battle {
       _inflict();
       _setOnHit(dmg);
       _checkRage();
+      _afterHit(dmg);
+      // 묶음 57: 도적 각인 — 가끔 한 번 더
+      if (doubleHit > 0 && phase == BattlePhase.fighting && _rng.nextDouble() < doubleHit) {
+        final d2 = math.max(1, (dmg * 0.6).round());
+        lastDealt += d2;
+        _hitFoe(d2);
+        _checkRage();
+      }
     }
     if (phase != BattlePhase.fighting) return;
 
@@ -1837,6 +2124,9 @@ class Battle {
     if (freezeImmune > 0) freezeImmune--;
     if (stanceTurns > 0) stanceTurns--;
     if (wallTurns > 0) wallTurns--;
+    if (wardTurns > 0) wardTurns--;
+    if (stoneWallTurns > 0) stoneWallTurns--;
+    if (tauntTurns > 0) tauntTurns--;
     if (frostTurns > 0) frostTurns--;
     if (foeBreakTurns > 0) foeBreakTurns--;
     if (regenTurns > 0 && playerHp < playerMaxHp) {
@@ -1865,6 +2155,8 @@ class Battle {
     }
     if (heroSkills) {
       if (bashCharge < bashTicks) bashCharge++;
+      // 묶음 57: 전사 — 강타가 더 빨리 참 (두 턴에 한 번 더)
+      if (bashFast && floorTicks.isEven && bashCharge < bashTicks) bashCharge++;
       // 전투 함성: 강타가 더 빨리 참
       if (rallyTurns > 0 && bashCharge < bashTicks) bashCharge++;
       if (stanceCharge < stanceTicks) stanceCharge++;
@@ -1882,6 +2174,8 @@ class Battle {
   void _foeTurn() {
     if (practice) return;
     final f = foe;
+    _partySpecial();
+    if (isOver) return;
     if (foeBindTurns > 0) {
       foeBindTurns--;
       lastEvent = '묶였어요!';
@@ -1896,6 +2190,17 @@ class Battle {
       blockNext = false;
       _strongNow = false;
       lastEvent = '막았다!';
+      // 묶음 57 수호: 막고 되받아침
+      if (tauntTurns > 0 || _guardCounter) {
+        _guardCounter = false;
+        _hitFoe(math.max(1, _vary(playerAttack)));
+        _checkRage();
+      }
+      return;
+    }
+    if (relicBlock > 0 && _strongNow && _rng.nextDouble() < relicBlock) {
+      _strongNow = false;
+      lastEvent = '고대 유물이 막았다!';
       return;
     }
     if (_foeBound) {
@@ -1908,7 +2213,7 @@ class Battle {
       lastEvent = '얼어서 움직이지 못해요!';
       return;
     }
-    if (playerEvade > 0 && _rng.nextDouble() < playerEvade) {
+    if (playerEvade + extraEvade > 0 && _rng.nextDouble() < playerEvade + extraEvade) {
       lastEvent = '회피!';
       return;
     }
@@ -1942,6 +2247,7 @@ class Battle {
     }
     if (stanceTurns > 0) atk *= stanceTaken;
     if (wallTurns > 0) atk *= wallTaken;
+    if (wardTurns > 0) atk *= wardTaken;
     if (partyDefTurns > 0) atk *= partyDefMult;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
     if (f.has(ModifierId.charging) && !_charged) {
@@ -1954,6 +2260,7 @@ class Battle {
       lastEvent = '강타!';
     }
     if (damageTaken != 1) atk *= damageTaken;
+    if (takenMult != 1) atk *= takenMult;
     final element = f.element;
     if (element != null && (resist[element] ?? 0) > 0) {
       atk *= 1 - resist[element]!;
@@ -2004,6 +2311,16 @@ class Battle {
     if (reflectNext) {
       reflectNext = false;
       _hitFoe(math.max(1, (taken * 0.5).round()));
+      if (phase != BattlePhase.fighting) return;
+    }
+    // 묶음 57 도발 · 성기사의 맹세: 맞을 때마다 되받아침
+    if (tauntTurns > 0) {
+      _hitFoe(math.max(1, (taken * 0.6 + playerAttack * 0.4).round()));
+      if (paladin) {
+        playerHp = math.min(playerMaxHp, playerHp + math.max(1, (playerMaxHp * 0.03).round()));
+        if (foeIsAsh) _hitFoe(math.max(1, (playerAttack * 0.5).round()));
+      }
+      _checkRage();
       if (phase != BattlePhase.fighting) return;
     }
     if ((f.has(ModifierId.venomous) ||
@@ -2149,6 +2466,36 @@ class Battle {
             playerHp + math.max(1, (playerMaxHp * PetRules.haloHeal).round()));
         _healed(playerHp - before);
         lastEvent = '새벽 햇무리!';
+      // 묶음 57 #244 전설 펫
+      case PetSkill.starWing:
+        lastEvent = '별빛 날개!';
+      case PetSkill.quake:
+        lastEvent = '땅울림!';
+        if (_rng.nextDouble() < PetRules.quakeStun) {
+          _foeBound = true;
+          lastEvent = '땅울림! 멈칫!';
+        }
+      case PetSkill.nightTerror:
+        dmg = (dmg * StatRules.critMultiplier).round();
+        lastEvent = '악몽!';
+        if (_rng.nextDouble() < PetRules.terrorBind) _foeBound = true;
+      case PetSkill.abyssTide:
+        _foeBound = true;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + math.max(1, (playerMaxHp * PetRules.abyssHeal).round()));
+        _healed(playerHp - before);
+        lastEvent = '심해 물살!';
+      case PetSkill.dragonFire:
+        foeBurnTurns = PetRules.dragonFireTurns;
+        lastEvent = '용의 불꽃!';
+      case PetSkill.holyHorn:
+        insightTurns = PetRules.insightTurns;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp,
+            playerHp + math.max(1, (playerMaxHp * PetRules.hornHeal).round()));
+        _healed(playerHp - before);
+        lastEvent = '성스러운 뿔!';
       case PetSkill.peck || null:
         break;
     }
@@ -2213,6 +2560,12 @@ class Battle {
     if (practice) {
       practiceDealt += damage;
       return;
+    }
+    // 묶음 57 골렘 「돌벽」: 잠시 받는 피해가 줄어요
+    if (stoneWallTurns > 0) {
+      final cut = math.max(1, (damage * 0.5).round());
+      if (lastDealt >= damage) lastDealt -= damage - cut;
+      damage = cut;
     }
     // 묶음 50 서리 갑옷: 받는 피해를 크게 줄인다 (화면 숫자도 줄인 값)
     if (frostTurns > 0) {

@@ -6,6 +6,7 @@ import '../../data/cloud/cloud_auth.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
+import '../legal/consent_screen.dart';
 
 /// 「마지막 백업 ○분 전」
 String backupAgo(DateTime? at, DateTime now) {
@@ -241,6 +242,8 @@ class LoginButton extends StatelessWidget {
 
 /// 로그인 → (둘 다 있으면) 기록 고르기
 Future<void> signInFlow(BuildContext context, AppController c, LoginProvider p) async {
+  // 묶음 57: 기록 백업 동의 (두 칸 모두, 빼면 로그인하지 않음)
+  if (!await askBackupConsent(context, c) || !context.mounted) return;
   final r = await c.signInCloud(p);
   if (!context.mounted) return;
   switch (r) {

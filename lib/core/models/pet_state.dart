@@ -79,8 +79,11 @@ class Pet {
   bool get adult => level >= PetRules.adultLevel;
   PetSpeciesInfo get info => PetRules.info(species);
 
-  /// 영웅 펫인지 (묶음 49 #235)
-  bool get hero => PetRules.isHero(species);
+  /// 영웅 펫인지 (묶음 49 #235). 전설 펫(묶음 57 #244)도 같은 틀(아기 · 성체 · 각성 모습)
+  bool get hero => PetRules.isHero(species) || legend;
+
+  /// 전설 펫인지 (묶음 57 #244)
+  bool get legend => PetRules.isLegend(species);
 
   /// 영웅 펫이 단짝(친밀도 100)이 되면 「각성 모습」
   bool get awake => hero && bond >= PetRules.maxBond;
@@ -141,6 +144,8 @@ class PetState {
     this.firstPet,
     this.tired = const {},
     this.heroMiss = 0,
+    this.legendMiss = 0,
+    this.legendTalk = const [],
     this.heroDay,
     this.heroLat,
     this.heroLng,
@@ -153,6 +158,10 @@ class PetState {
 
   /// Lv.15 뒤 영웅 펫이 안 나온 부화 수 (확률이 조금씩 오름)
   final int heroMiss;
+
+  /// 묶음 57 #244: 전설 펫이 안 나온 알 수 · 첫 만남 한마디를 한 마을 사람
+  final int legendMiss;
+  final List<String> legendTalk;
 
   /// 영웅 펫 동행 효과의 그날 기준 자리 (그날 처음 위치) · 그날 센 이른 아침 걸음
   final String? heroDay;
@@ -256,6 +265,8 @@ class PetState {
     String? firstPet,
     Map<String, DateTime>? tired,
     int? heroMiss,
+    int? legendMiss,
+    List<String>? legendTalk,
     String? heroDay,
     double? heroLat,
     double? heroLng,
@@ -265,6 +276,8 @@ class PetState {
   }) =>
       PetState(
         heroMiss: heroMiss ?? this.heroMiss,
+        legendMiss: legendMiss ?? this.legendMiss,
+        legendTalk: legendTalk ?? this.legendTalk,
         heroDay: heroDay ?? this.heroDay,
         heroLat: heroLat ?? this.heroLat,
         heroLng: heroLng ?? this.heroLng,
@@ -318,6 +331,8 @@ class PetState {
         if (tired.isNotEmpty)
           'tired': {for (final e in tired.entries) e.key: e.value.toIso8601String()},
         if (heroMiss > 0) 'heroMiss': heroMiss,
+        if (legendMiss > 0) 'legendMiss': legendMiss,
+        if (legendTalk.isNotEmpty) 'legendTalk': legendTalk,
         if (heroDay != null) 'heroDay': heroDay,
         if (heroLat != null) 'heroLat': heroLat,
         if (heroLng != null) 'heroLng': heroLng,
@@ -360,6 +375,8 @@ class PetState {
           if (DateTime.tryParse('${e.value}') case final t?) '${e.key}': t,
       },
       heroMiss: (j['heroMiss'] as num?)?.toInt() ?? 0,
+      legendMiss: (j['legendMiss'] as num?)?.toInt() ?? 0,
+      legendTalk: [for (final x in (j['legendTalk'] as List?) ?? const []) '$x'],
       heroDay: j['heroDay'] as String?,
       heroLat: (j['heroLat'] as num?)?.toDouble(),
       heroLng: (j['heroLng'] as num?)?.toDouble(),

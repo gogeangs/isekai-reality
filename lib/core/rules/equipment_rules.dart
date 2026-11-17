@@ -6,6 +6,7 @@ import 'baldrin_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
+import 'region_rules.dart';
 import 'stat_rules.dart';
 
 /// 장비 부위 6칸
@@ -52,6 +53,17 @@ enum EquipBase {
   uniqVolkHelm, uniqTeoSpear, uniqWindPendant, baldrinSpear,
   // 묶음 56 #236: 파티 보스 세트 「동행」 (보스 재료로 대장간에서)
   partyWeapon, partyHead, partyBody, partyHands, partyFeet, partyAcc,
+  // 묶음 57 #249: 플레이어 무기 「활」 (Lv.15부터 대장간 · 잡화상)
+  bow,
+  // 묶음 57 #243: 3막 지역 2~5 일반 장비 6부위 · 이름 있는 장비 3 · 지역 무기
+  seleniaWeapon, seleniaHead, seleniaBody, seleniaHands, seleniaFeet, seleniaAcc,
+  uniqGrumHammer, uniqBlackLantern, uniqStardustBoots, seleniaAxe,
+  elowinWeapon, elowinHead, elowinBody, elowinHands, elowinFeet, elowinAcc,
+  uniqMomoWreath, uniqArbelDagger, uniqElderHeart, elowinStaff,
+  morvalWeapon, morvalHead, morvalBody, morvalHands, morvalFeet, morvalAcc,
+  uniqLucyFlower, uniqKingCloak, uniqMoonFang, morvalSword,
+  aurelWeapon, aurelHead, aurelBody, aurelHands, aurelFeet, aurelAcc,
+  uniqTeoCloak, uniqNaomiStaff, uniqPhoenixCharm, aurelBow,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -234,6 +246,19 @@ class EquipmentRules {
       job: '기사',
       asset: 'equip_spear',
     ),
+    // 묶음 57 #249: 기본 활 (Lv.15부터)
+    EquipBaseInfo(
+      id: EquipBase.bow,
+      name: '사냥 활',
+      slot: EquipSlot.weapon,
+      recipe: {MaterialId.twig: 2, MaterialId.ratHide: 1, MaterialId.ironShard: 1},
+      manaStones: 3,
+      attack: 0.07,
+      crit: 0.04,
+      trait: '멀리서 먼저 쏴요',
+      job: '궁수',
+      asset: 'weapon_bow',
+    ),
     EquipBaseInfo(
       id: EquipBase.cap,
       name: '가죽 모자',
@@ -333,12 +358,17 @@ class EquipmentRules {
 
   static EquipBaseInfo info(EquipBase id) => _byId[id]!;
 
+  /// 묶음 57: 활은 Lv.15부터 대장간에 보임
+  static const int bowLevel = 15;
+  static bool shownAt(EquipBase b, int level) => b != EquipBase.bow || level >= bowLevel;
+
   static final Map<EquipBase, EquipBaseInfo> _byId = {
     for (final e in all) e.id: e,
     for (final e in BossGearRules.infos) e.id: e,
     for (final e in npcGear) e.id: e,
     for (final e in Act3Rules.gearInfos) e.id: e,
     for (final e in BaldrinRules.gearInfos) e.id: e,
+    for (final e in RegionRules.gearInfos) e.id: e,
   };
 
   /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)

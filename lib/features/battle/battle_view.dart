@@ -1609,6 +1609,23 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
+                    // 묶음 57: 활로 쏘면 화살이 날아감
+                    if (widget.weapon == WeaponKind.bow && swinging && !cleared)
+                      Positioned(
+                        left: w * 0.12 + (hitX - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
+                        top: hitY - 16,
+                        width: 128,
+                        height: 32,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            key: const Key('fxArrow'),
+                            opacity: 1 - _seg(t, 0.3, 0.38),
+                            child: Image.asset('assets/images/fx_arrow.webp',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const SizedBox()),
+                          ),
+                        ),
+                      ),
                     // 타격 효과
                     if (cleared)
                       Positioned(
@@ -2438,6 +2455,40 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.partyHydra => Icons.waves_rounded,
         MonsterId.partyWyvern => Icons.flight_rounded,
         MonsterId.partyKraken => Icons.water_rounded,
+        // 묶음 57: 지역 2~5 (그림이 있어 아이콘은 거의 안 씀)
+        MonsterId.orcMerc ||
+        MonsterId.koboldMiner ||
+        MonsterId.gargoyle ||
+        MonsterId.livingArmor ||
+        MonsterId.orcCaptain ||
+        MonsterId.ashCart ||
+        MonsterId.metalColossus =>
+          Icons.hardware_rounded,
+        MonsterId.treant ||
+        MonsterId.giantSpider ||
+        MonsterId.dryad ||
+        MonsterId.woodWolf ||
+        MonsterId.spiderQueen ||
+        MonsterId.ashElder ||
+        MonsterId.ashTortoise =>
+          Icons.forest_rounded,
+        MonsterId.vampireBat ||
+        MonsterId.wraith ||
+        MonsterId.ghoul ||
+        MonsterId.cultZealot ||
+        MonsterId.cultPriests ||
+        MonsterId.ashCaptain ||
+        MonsterId.ashBeasts =>
+          Icons.nights_stay_rounded,
+        MonsterId.salamander ||
+        MonsterId.ifrit ||
+        MonsterId.koboldrake ||
+        MonsterId.cultFlamePriest ||
+        MonsterId.youngRedDragon ||
+        MonsterId.orben ||
+        MonsterId.orbenAsh ||
+        MonsterId.phoenixMother =>
+          Icons.local_fire_department_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,

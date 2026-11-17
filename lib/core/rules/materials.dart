@@ -133,6 +133,12 @@ enum MaterialId {
   hydraScale,
   wyvernClaw,
   krakenPearl,
+  // 묶음 57 #243 3막 지역 2~5: 별가루 · 등불 보스 조각 (지역 무기 재료)
+  stardust,
+  cartWheel,
+  elderBark,
+  captainCrest,
+  undyingEmber,
 }
 
 class MaterialInfo {
@@ -327,6 +333,22 @@ class Materials {
         '잿빛이 걷힌 날카로운 발톱. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
     MaterialInfo(MaterialId.krakenPearl, '크라켄 진주',
         '깊은 바다빛을 머금은 큰 진주. 대장간 「동행」 세트에 써요.', rare: true, price: 60),
+    // 묶음 57 #243 3막 지역 2~5
+    MaterialInfo(MaterialId.stardust, '별가루',
+        '셀레니아 골짜기에서 빛나던 가루. 등불을 켜면 다시 반짝이기 시작해요. 「장터의 저울 도끼」에 써요.',
+        rare: true, price: 50),
+    MaterialInfo(MaterialId.cartWheel, '잿빛 수레바퀴',
+        '잿빛 수레 괴물이 무너질 때 남은 바퀴. 대장간에서 「장터의 저울 도끼」를 만들 때 써요.',
+        rare: true, price: 60),
+    MaterialInfo(MaterialId.elderBark, '잿빛 고목 껍질',
+        '잿빛이 빠져나간 고목 껍질. 대장간에서 「숲지기의 덩굴 지팡이」를 만들 때 써요.',
+        rare: true, price: 60),
+    MaterialInfo(MaterialId.captainCrest, '근위대장의 휘장',
+        '잿빛 근위대장이 남긴 휘장. 대장간에서 「근위의 달그림자 검」을 만들 때 써요.',
+        rare: true, price: 60),
+    MaterialInfo(MaterialId.undyingEmber, '꺼지지 않는 불씨',
+        '여명의 근원에서 주운 불씨. 대장간에서 「여명의 불꽃 활」을 만들 때 써요.',
+        rare: true, price: 60),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
@@ -496,6 +518,15 @@ class LootRules {
   static ({List<MaterialId> common, MaterialId rare, double chance}) dropsOf(
           MonsterId m) =>
       switch (m) {
+        // 묶음 57: 등불을 켠 지역 몬스터가 현실 지도에 나올 때 (그 지역 재료)
+        MonsterId.orcMerc || MonsterId.koboldMiner || MonsterId.gargoyle || MonsterId.livingArmor =>
+          (common: [MaterialId.ironShard], rare: MaterialId.stardust, chance: rareChance),
+        MonsterId.treant || MonsterId.giantSpider || MonsterId.dryad || MonsterId.woodWolf =>
+          (common: [MaterialId.twig, MaterialId.herb], rare: MaterialId.gemEarth, chance: rareChance),
+        MonsterId.vampireBat || MonsterId.wraith || MonsterId.ghoul || MonsterId.cultZealot =>
+          (common: [MaterialId.batWing], rare: MaterialId.gemDark, chance: rareChance),
+        MonsterId.salamander || MonsterId.ifrit || MonsterId.koboldrake || MonsterId.cultFlamePriest =>
+          (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance),
         MonsterId.ashSlime || MonsterId.slime =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
         MonsterId.fireSlime =>
@@ -580,6 +611,20 @@ class LootRules {
         MonsterId.partyHydra ||
         MonsterId.partyWyvern ||
         MonsterId.partyKraken ||
+        // 묶음 57: 지역 2~5 보스
+        MonsterId.orcCaptain ||
+        MonsterId.ashCart ||
+        MonsterId.metalColossus ||
+        MonsterId.spiderQueen ||
+        MonsterId.ashElder ||
+        MonsterId.ashTortoise ||
+        MonsterId.cultPriests ||
+        MonsterId.ashCaptain ||
+        MonsterId.ashBeasts ||
+        MonsterId.youngRedDragon ||
+        MonsterId.orben ||
+        MonsterId.orbenAsh ||
+        MonsterId.phoenixMother ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

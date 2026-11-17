@@ -18,9 +18,12 @@ import 'party_flag.dart';
 /// 주점 「파티」 탭 (묶음 56 #236): 로그인 안내 · 만들기/들어가기 · 파티(깃발 · 파티원 · 함께 걷기 ·
 /// 파티 보스 · 함께 있어요 · 상점). 파티원 위치는 어디에도 보이지 않는다.
 class PartyTab extends StatefulWidget {
-  const PartyTab({super.key, required this.controller});
+  const PartyTab({super.key, required this.controller, this.inviteCode});
 
   final AppController controller;
+
+  /// 묶음 57: 초대 링크로 왔으면 코드 칸에 미리
+  final String? inviteCode;
 
   @override
   State<PartyTab> createState() => _PartyTabState();
@@ -29,12 +32,36 @@ class PartyTab extends StatefulWidget {
 class _PartyTabState extends State<PartyTab> {
   AppController get c => widget.controller;
   final _name = TextEditingController();
-  final _code = TextEditingController();
+  late final _code = TextEditingController(text: widget.inviteCode ?? '');
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refresh();
+      _locationNotice();
+    });
+  }
+
+  /// 묶음 57: 처음 파티 화면을 열면 위치 안내 한 번
+  Future<void> _locationNotice() async {
+    if (c.partyNoticeSeen || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (d) => GameAlert(
+        key: const Key('partyLocationNotice'),
+        title: const Text('함께 있어요 안내'),
+        content: Text(keepAll(LegalRules.partyLocationNotice),
+            style: const TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          TextButton(
+              key: const Key('partyLocationOk'),
+              onPressed: () => Navigator.pop(d),
+              child: const Text('확인')),
+        ],
+      ),
+    );
+    await c.markPartyNotice();
   }
 
   @override

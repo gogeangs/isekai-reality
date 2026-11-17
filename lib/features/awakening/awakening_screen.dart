@@ -11,14 +11,19 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
-import '../legal/legal_screen.dart';
+import '../../core/rules/legal_rules.dart';
+import '../../core/rules/name_rules.dart';
+import '../legal/consent_screen.dart';
 
 /// 첫 실행 화면 (2026-11-10 개편):
 /// 세계관 도입(일러스트 + 대사창) → 정령 고르기 → 정령 이름 → 동의 →
 /// 외형(남·여)과 이름 → 각성 장면 → 깨어나기.
 class AwakeningScreen extends StatefulWidget {
   const AwakeningScreen(
-      {super.key, required this.onAwaken, this.onTooYoung, this.now});
+      {super.key, required this.onAwaken, this.onTooYoung, this.now, this.onConsent});
+
+  /// 묶음 57: 약관 동의를 마쳤을 때 (판 · 날짜를 기록에 남김)
+  final Future<void> Function()? onConsent;
 
   /// 만 14세 미만으로 확인됐을 때 (11-11 #86). 앱이 이용 불가 화면으로 바꾼다.
   final VoidCallback? onTooYoung;
@@ -111,9 +116,9 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
   HeroLook _look = HeroLook.male;
   bool _submitting = false;
 
-  // 동의 (필수 3개 + 선택 1개)
-  bool _agreeHealth = false;
-  bool _agreeLocation = false;
+  // 동의 (묶음 57: 이용약관 · 개인정보 · 위치기반 필수 3개 + 출생 연도)
+  Set<LegalKind> _agreed = {};
+  static const _docs = [LegalKind.terms, LegalKind.privacy, LegalKind.location];
   // 이용 연령 (11-11 #86): 출생 연도만. 묶음 25 #162: 굴려서 고르는 휠
   static const _firstYear = 1920;
   static const _defaultYear = 2000;
@@ -131,10 +136,13 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
     return true;
   }
 
-  bool get _requiredAgreed => _agreeHealth && _agreeLocation && _agreeAge;
+  bool get _requiredAgreed => _docs.every(_agreed.contains) && _agreeAge;
 
   bool get _canAwaken =>
-      _nameController.text.trim().isNotEmpty && !_submitting;
+      _nameController.text.trim().isNotEmpty &&
+      !NameRules.banned(_nameController.text) &&
+      !NameRules.banned(_spiritNameController.text) &&
+      !_submitting;
 
   String get _spiritName {
     final n = _spiritNameController.text.trim();
@@ -390,6 +398,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         labelText: label,
         labelStyle: const TextStyle(color: AppColors.textMuted),
         hintText: hint,
+        errorText: NameRules.banned(controller.text) ? NameRules.bannedMessage : null,
         filled: true,
         fillColor: const Color(0xFF14173E),
         suffixIcon: const Icon(Icons.edit_rounded, color: AppColors.goldBright),
@@ -627,102 +636,20 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
 
   Widget _buildConsent() {
     final top = MediaQuery.paddingOf(context).top;
-    Widget item({
-      required bool value,
-      required ValueChanged<bool> onChanged,
-      required String label,
-      required String text,
-      LegalDoc? doc,
-    }) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: value,
-              onChanged: (v) => onChanged(v ?? false),
-              activeColor: AppColors.gold,
-              checkColor: AppColors.night,
-              side: const BorderSide(color: AppColors.gold, width: 1.5),
-            ),
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(!value),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(TextSpan(children: [
-                        TextSpan(
-                            text: '($label) ',
-                            style: const TextStyle(
-                                color: AppColors.goldBright,
-                                fontWeight: FontWeight.w700)),
-                        TextSpan(text: text),
-                      ]),
-                          style: const TextStyle(
-                              color: AppColors.text,
-                              fontSize: 14,
-                              height: 1.45)),
-                      if (doc != null)
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(0, 32),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: () => LegalScreen.open(context, doc),
-                          child: Text('${doc.title} 보기 ›',
-                              style: const TextStyle(
-                                  color: AppColors.gold,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: AppColors.gold)),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return ListView(
       padding: EdgeInsets.fromLTRB(16, top + 10, 16, 28),
       children: [
         const RibbonHeading('시작하기 전에', size: 22),
         const SizedBox(height: 8),
         const BulssiLine(
-            line: '네 하루를 이세계에 비추려면 몇 가지가 필요해. 모두 네 휴대폰 안에만 있어!'),
+            line: '네 하루를 이세계에 비추려면 몇 가지 약속이 필요해. 하나씩 읽어 봐!'),
         const SizedBox(height: 12),
         OrnatePanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              item(
-                value: _agreeHealth,
-                onChanged: (v) => setState(() => _agreeHealth = v),
-                label: '필수',
-                text: '걸음 수를 건강 앱에서 읽어 레벨과 던전 열쇠를 계산합니다. '
-                    '휴대폰 밖으로 보내지 않습니다.',
-                doc: LegalDoc.privacy,
-              ),
-              item(
-                value: _agreeLocation,
-                onChanged: (v) => setState(() => _agreeLocation = v),
-                label: '필수',
-                text: '앱을 보고 있는 동안 위치를 써서 주변 몬스터를 찾습니다. '
-                    '좌표는 저장하지 않습니다.',
-                doc: LegalDoc.locationTerms,
-              ),
-              _ageRow(),
-            ],
+          child: ConsentList(
+            docs: _docs,
+            checked: _agreed,
+            onChanged: (s) => setState(() => _agreed = s),
+            extra: _ageRow(),
           ),
         ),
         const SizedBox(height: 18),
@@ -736,6 +663,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                     setState(() => _stage = _Stage.tooYoung);
                     return;
                   }
+                  widget.onConsent?.call();
                   setState(() => _stage = _Stage.form);
                 }
               : null,

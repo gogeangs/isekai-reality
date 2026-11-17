@@ -86,6 +86,13 @@ extension PetsOps on AppController {
       PetSpecies.panther => FieldMonsterRules.isNight(_clock()),
       PetSpecies.phoenix || PetSpecies.turtle =>
         spawn.modifiers.isNotEmpty || Monsters.info(spawn.monster).isBoss,
+      // 묶음 57 #244 전설 펫
+      PetSpecies.pegasus || PetSpecies.unicorn => far,
+      PetSpecies.leviathan => _waterside(route) ||
+          VitalRules.expeditionCost(dist) >= PetRules.costlyMp,
+      PetSpecies.nightmare => FieldMonsterRules.isNight(_clock()),
+      PetSpecies.dragon || PetSpecies.behemoth =>
+        spawn.modifiers.isNotEmpty || Monsters.info(spawn.monster).isBoss,
     };
   }
 
@@ -312,12 +319,16 @@ extension PetsOps on AppController {
     if (egg == null || !eggReady(egg)) return null;
     // 묶음 49 #235: Lv.15부터 아주 드물게 영웅 펫 (안 나오면 다음 알부터 조금씩 오름)
     final heroOn = player.level.level >= PetRules.heroLevel;
+    // 묶음 57 #244: Lv.21(3막)부터 아주 드물게 전설 펫 (전설 → 영웅 → 희귀 → 일반)
+    final legendOn = player.level.level >= PetRules.legendLevel;
     final s = species ??
         PetRules.rollSpecies(_random,
             element: ElementRules.parse(egg.element),
             alchemyTop: alchemyIsTop,
-            heroChance: heroOn ? PetRules.heroChance(p.heroMiss) : 0);
-    final hero = PetRules.isHero(s);
+            heroChance: heroOn ? PetRules.heroChance(p.heroMiss) : 0,
+            legendChance: legendOn ? PetRules.legendChance(p.legendMiss) : 0);
+    final legend = PetRules.isLegend(s);
+    final hero = PetRules.isHero(s) || legend;
     final pet = Pet(
       uid: 'pet${p.nextId}',
       species: s,
@@ -334,7 +345,8 @@ extension PetsOps on AppController {
       eggs: [for (final e in p.eggs) if (e.id != eggId) e],
       pets: [...p.pets, pet],
       nextId: p.nextId + 1,
-      heroMiss: hero ? 0 : (heroOn && species == null ? p.heroMiss + 1 : p.heroMiss),
+      heroMiss: PetRules.isHero(s) ? 0 : (heroOn && species == null && !legend ? p.heroMiss + 1 : p.heroMiss),
+      legendMiss: legend ? 0 : (legendOn && species == null ? p.legendMiss + 1 : p.legendMiss),
     ));
     await _npcTally(NpcTally.hatch);
     return pet;
@@ -448,7 +460,7 @@ extension PetsOps on AppController {
   /// 이름을 바꿨으면 true. 마을 사람 이름(리안 등)은 쓸 수 없다 (묶음 51)
   Future<bool> renamePet(String uid, String name) async {
     final pet = _pets.byUid(uid);
-    if (pet == null || name.trim().isEmpty || npcNameReserved(name)) return false;
+    if (pet == null || name.trim().isEmpty || npcNameReserved(name) || NameRules.banned(name)) return false;
     await _savePets(_pets.replace(pet.copyWith(name: name.trim())));
     return true;
   }

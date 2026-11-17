@@ -8,6 +8,7 @@ import 'app_controller.dart';
 import 'data/ads/rewarded_ads.dart';
 import 'data/notify/notifier.dart';
 import 'core/rules/rules.dart';
+import 'features/legal/consent_screen.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
@@ -16,11 +17,14 @@ import 'features/drive/drive_overlay.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
+import 'features/village/tavern_screen.dart' show TavernScreen;
 import 'features/village/npc_request.dart';
 import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/settings/account_section.dart' show LoginButton, signInFlow;
+import 'data/cloud/cloud_auth.dart' show LoginProvider;
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
 import 'features/map/map_screen.dart';
@@ -241,6 +245,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   Future<void> _serverNews() async {
     final c = widget.controller;
     if (!mounted || !c.ready || c.needsAwakening) return;
+    await c.checkLegalNotices();
+    await c.refreshBannedWords();
     await c.checkInquiryInbox();
     await c.refreshParty();
   }
@@ -345,6 +351,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         }
         if (!controller.needsAwakening) _maybeShowTitle();
         _maybeShowBagFull();
+        // 묶음 57: 기존 각성자 · 바뀐 문서 동의 (처음 각성은 각성 화면 안에서)
+        if (!controller.needsAwakening && !controller.ageBlocked && controller.consentNeeded.isNotEmpty) {
+          return ConsentScreen(controller: controller);
+        }
         if (controller.ageBlocked) {
           return const Scaffold(
               body: NightBackground(child: AgeBlockedView()));
@@ -353,6 +363,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           _tab = tMap; // 기록을 지운 뒤 다시 시작하면 지도부터
           return AwakeningScreen(
             onTooYoung: controller.blockForAge,
+            onConsent: () => controller.agreeLegal(LegalRules.needed(controller.consent.agreed, controller.now)),
             now: () => controller.now,
             onAwaken: (name, look, spirit, spiritName) =>
                 controller.awaken(
@@ -370,6 +381,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         _maybeShowNotices();
         _maybeShowPetNews();
         _maybeShowWalkNews();
+        _maybeShowInvite();
         tourBridge.paused = _popupBusy ||
             (controller.farewellPending && !controller.inTutorial) ||
             controller.jobAwakenPending;
@@ -492,6 +504,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 onTap: () => push(ProfileScreen(controller: controller)),
               ),
             ),
+            // 묶음 57: 약관이 곧 바뀌면 위쪽 배너
+            if (controller.legalBanner != null)
+              Positioned(
+                top: topInset + 62,
+                left: 12,
+                right: 12,
+                child: LegalChangeBanner(controller: controller),
+              ),
             // 우편 (11-11 #65): 새 우편이 있으면 빨간 점
             Positioned(
               top: topInset + 6,

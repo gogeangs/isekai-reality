@@ -131,6 +131,11 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.hydraScale => Icons.waves_rounded,
         MaterialId.wyvernClaw => Icons.flight_rounded,
         MaterialId.krakenPearl => Icons.circle_rounded,
+        MaterialId.stardust => Icons.auto_awesome_rounded,
+        MaterialId.cartWheel => Icons.trip_origin_rounded,
+        MaterialId.elderBark => Icons.park_rounded,
+        MaterialId.captainCrest => Icons.shield_moon_rounded,
+        MaterialId.undyingEmber => Icons.local_fire_department_rounded,
       };
 
   @override

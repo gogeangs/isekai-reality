@@ -415,10 +415,7 @@ void main() {
     await tester.tap(find.text('확정'));
     await tester.pumpAndSettle();
     await _shot(tester, '15b_각성_동의');
-    final checks = find.byType(Checkbox);
-    for (final i in [0, 1]) {
-      await tester.tap(checks.at(i));
-    }
+    await tester.tap(find.byKey(const Key('consentAll')).first);
     await tester.ensureVisible(find.byKey(const Key('birthYear')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('birthYear_2000')));
@@ -475,12 +472,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('확정'));
       await tester.pumpAndSettle();
-      final checks = find.byType(Checkbox);
-      for (final i in [0, 1]) {
-        await tester.ensureVisible(checks.at(i));
-        await tester.pumpAndSettle();
-        await tester.tap(checks.at(i));
-      }
+      await tester.ensureVisible(find.byKey(const Key('consentAll')).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('consentAll')).first);
       await tester.ensureVisible(find.byKey(const Key('birthYear')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('birthYear_2000')));

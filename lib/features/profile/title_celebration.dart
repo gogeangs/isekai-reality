@@ -103,7 +103,7 @@ class _TitleCelebrationState extends State<_TitleCelebration>
                     width: 96,
                     height: 96,
                     child: Image.asset(
-                        'assets/images/title_${widget.title.name}.webp',
+                        'assets/images/${TitleRules.asset(widget.title)}.webp',
                         key: const Key('titleBadge'),
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) =>

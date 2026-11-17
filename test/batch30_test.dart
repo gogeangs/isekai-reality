@@ -59,7 +59,7 @@ void main() {
       );
 
   group('직업 규칙', () {
-    test('24가지: 기본 8 · 복합 12 · 숨은 4, 스킬 칸 4/2, 첫 스킬 하나씩', () {
+    test('24가지: 기본 8 · 복합 12 · 숨은 4, 스킬 칸 4/2, 첫 스킬 하나씩', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () {
       expect(JobRules.jobs, hasLength(24));
       final kinds = [for (final j in JobRules.jobs) j.kind];
       expect(kinds.where((k) => k == JobKind.basic), hasLength(8));
@@ -100,7 +100,7 @@ void main() {
       expect(JobRules.skillCost(JobSkill.focusForge, half: true), 15);
     });
 
-    test('열림: 기본은 능숙한, 복합은 둘 다 숙련된', () {
+    test('열림: 기본은 능숙한, 복합은 둘 다 숙련된', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () {
       MasteryStage Function(Mastery) st(Map<Mastery, MasteryStage> m) =>
           (x) => m[x] ?? MasteryStage.clumsy;
       expect(JobRules.unlocked(st({})), isEmpty);
@@ -149,7 +149,7 @@ void main() {
       expect(c.mainJobLabel, isNull);
     });
 
-    test('Lv.15: 추천 맨 위 → 주 직업 + 보조 1칸 → MP 가득, 한 번만', () async {
+    test('Lv.15: 추천 맨 위 → 주 직업 + 보조 1칸 → MP 가득, 한 번만', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final store = account(15, big: {
         'smith': 50,
         'combat': 130,
@@ -184,7 +184,7 @@ void main() {
       expect(again.shopItems.any((i) => i.item == ShopItem.jobManaSmall), isTrue);
     });
 
-    test('열린 직업이 없으면 견습, 조건을 채우면 견습이 떨어짐', () async {
+    test('열린 직업이 없으면 견습, 조건을 채우면 견습이 떨어짐', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final c = await start(account(15, big: {'alchemy': 12}));
       expect(c.jobStartsApprentice, isTrue);
       expect(c.jobChoices, [JobId.alchemist]);
@@ -198,7 +198,7 @@ void main() {
       expect(c.takeJobNotice(), contains('견습을 마쳤어요'));
     });
 
-    test('숙련도가 오르면 새 직업 + 띠 + 첫 펫 한마디', () async {
+    test('숙련도가 오르면 새 직업 + 띠 + 첫 펫 한마디', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final c = await start(account(15, big: {'combat': 50}));
       await c.awakenJob(JobId.warrior);
       expect(c.ownedJobs, [JobId.warrior]);
@@ -208,7 +208,7 @@ void main() {
       expect(c.masteryState.pending.any((l) => l.contains('상인')), isTrue);
     });
 
-    test('Lv.20 보조 2칸, 길드에서 주 직업 바꾸면 자리를 맞바꿈', () async {
+    test('Lv.20 보조 2칸, 길드에서 주 직업 바꾸면 자리를 맞바꿈', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () async {
       final c = await start(account(20, big: {
         'combat': 50,
         'smith': 50,

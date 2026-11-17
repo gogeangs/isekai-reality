@@ -64,6 +64,9 @@ enum ShopItem {
   specialPearl,
   specialRune,
   specialKnot,
+
+  /// 묶음 57 #249: 기본 활 (Lv.15부터, 사면 바로 장비로)
+  basicBow,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -382,6 +385,15 @@ class TownRules {
       price: 60,
       limit: ShopLimit.perDay,
       icon: 'icon_lens',
+    ),
+    ShopItemInfo(
+      item: ShopItem.basicBow,
+      name: '사냥 활',
+      description: '멀리서 먼저 쏘는 기본 활이에요. 사면 바로 장비 가방에 들어가요.',
+      price: 150,
+      limit: ShopLimit.perWeek,
+      icon: 'weapon_bow',
+      minLevel: 15,
     ),
   ];
 

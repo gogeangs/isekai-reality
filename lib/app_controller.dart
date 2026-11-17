@@ -18,6 +18,7 @@ import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
 import 'core/models/tavern_state.dart';
 import 'core/models/building_state.dart';
+import 'core/models/consent_state.dart';
 import 'core/models/party_state.dart';
 import 'core/models/act3_state.dart';
 import 'core/models/gather_state.dart';
@@ -53,6 +54,7 @@ import 'features/status/demo_data.dart';
 part 'controller/act2.dart';
 part 'controller/act3.dart';
 part 'controller/act3_region.dart';
+part 'controller/act3_regions.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
@@ -60,6 +62,7 @@ part 'controller/cloud.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
 part 'controller/inquiry.dart';
+part 'controller/legal.dart';
 part 'controller/party.dart';
 part 'controller/buildings.dart';
 part 'controller/drive.dart';
@@ -71,6 +74,7 @@ part 'controller/harvest.dart';
 part 'controller/hero_pets.dart';
 part 'controller/highland.dart';
 part 'controller/jobs.dart';
+part 'controller/jobs57.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
 part 'controller/mastery.dart';
@@ -177,6 +181,20 @@ class AppController extends ChangeNotifier {
 
   /// 묶음 56: 아르카 서버 (파티 · 문의). Firebase 설정이 없는 빌드 · 테스트는 null
   ArcaApi? arcaApi;
+
+  /// 묶음 57: 처음 시작 · 바뀐 약관 동의 창을 띄울지 (앱은 켬, 시험은 필요할 때만)
+  bool consentGate = false;
+
+  /// 묶음 57: 방금 끝난 필드 전투 (전리품 하나 더 · 금화)
+  Battle? _lootBattle;
+
+  /// 묶음 57: 방금 잡은 몬스터가 그날 5번째 (한 번만 하는 한마디)
+  bool _fifthLine = false;
+  bool _wordsFetched = false;
+  String? _pendingInvite;
+  int? _chestN;
+  bool _chestTrap = false;
+  ConsentState _consent = const ConsentState();
   PartyView? _partyView;
   PartyLocal _partyLocal = const PartyLocal();
   String? _partyError;
@@ -406,6 +424,7 @@ class AppController extends ChangeNotifier {
     _loadIssues.clear();
     // 묶음 55 #245: 로그인 상태 · 마지막 서버 시간 차이 (그 뒤 서버 시간을 새로 받음)
     await _loadCloud();
+    await _loadConsent();
     unawaited(refreshServerTime());
     _ageBlocked = await _load(_ageKey, (j) => j['blocked'] == true, false);
     final saved = await store.loadProfile();
@@ -477,7 +496,14 @@ class AppController extends ChangeNotifier {
 
   /// 레벨업 연출을 닫았을 때
   Future<void> acknowledgeLevelUp() async {
+    final from = _profile.lastSeenLevel ?? player.level.level;
     await updateProfile(_profile.copyWith(lastSeenLevel: player.level.level));
+    // 묶음 57: Lv.20 보조 각인 2단계 (한 번 알림)
+    if (from < JobPairRules.imprintDeepLevel &&
+        player.level.level >= JobPairRules.imprintDeepLevel &&
+        _jobs.awakened) {
+      await _saveJobs(_jobs.copyWith(newJobs: [..._jobs.newJobs, 'deep']));
+    }
     // 묶음 34: 새 분신의 잿빛 틈이 열렸으면 첫 펫 한마디
     _checkAct2();
   }
@@ -598,6 +624,7 @@ class AppController extends ChangeNotifier {
     await _loadMastery();
     // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
     await _migrateSkills31();
+    await _migrateJobs57(); // 묶음 57 #249 직업 개편
     // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
     // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)
@@ -681,6 +708,7 @@ class AppController extends ChangeNotifier {
     _ready = true;
     // 묶음 56: 기록을 다 읽은 뒤 한 번 더 (걸음으로 쌓이는 것들 — 켜는 중에는 건너뜀)
     await refreshVitals();
+    await checkLegalNotices();
     notifyListeners();
   }
 

@@ -253,8 +253,8 @@ class _SkillScreenState extends State<SkillScreen> {
       OrnatePanel(
         child: Row(children: [
           Expanded(
-            child: Text('남은 포인트 ${c.skillPointsLeft}',
-                key: const Key('skillPointsLeft'),
+            child: Text(c.pairName ?? '스킬',
+                key: const Key('skillPair'),
                 style: AppText.title(17, color: AppColors.goldBright)),
           ),
           TextButton(
@@ -264,7 +264,7 @@ class _SkillScreenState extends State<SkillScreen> {
         ]),
       ),
       const SizedBox(height: 6),
-      const KText('레벨이 오를 때마다 포인트가 생겨요. 새 스킬을 배우거나 배운 스킬을 강화해요.',
+      const KText('포인트는 직업마다 따로 쌓여요. 레벨이 오를 때마다 모든 직업에 생기니, 직업을 바꿔도 손해가 없어요. 원하는 순서대로 배우고 강화해요.',
           style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
       const SizedBox(height: 10),
       for (final j in jobs) ...[
@@ -278,11 +278,20 @@ class _SkillScreenState extends State<SkillScreen> {
           ),
         ]),
         const SizedBox(height: 2),
+        Text('남은 포인트 ${c.skillPointsLeftOn(j)}',
+            key: Key(j == c.mainJob ? 'skillPointsLeft' : 'skillPointsLeft_${j.name}'),
+            style: AppText.title(14, color: AppColors.goldBright)),
         KText('고유 기술 · ${JobRules.info(j).trait}',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
         const SizedBox(height: 6),
         for (final s in JobRules.info(j).skills)
           _SkillTile(controller: c, skill: s, sub: j != c.mainJob),
+        if (j == c.mainJob && c.activePair?.skill != null) ...[
+          KText('숨은 짝 「${c.activePair!.name}」의 스킬',
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+          const SizedBox(height: 4),
+          _SkillTile(controller: c, skill: c.activePair!.skill!, sub: false),
+        ],
         const SizedBox(height: 10),
       ],
     ];
@@ -346,18 +355,15 @@ class _SkillTile extends StatelessWidget {
     final c = controller;
     final info = JobRules.skill(skill);
     final lv = c.skillLevel(skill);
+    // 묶음 57: 트리 없이 원하는 순서대로 (전투 스킬 5개까지, ① 은 직업을 얻으면)
     final tree = JobRules.info(JobRules.jobOf(skill)).skills;
     final i = tree.indexOf(skill);
     final can = c.canRaiseSkill(skill);
-    final open = lv > 0 || JobRules.canLearn(skill, c.skillLevel);
-    final need = i == 3
-        ? '${josa(JobRules.skill(tree[1]).name, '이나/나')} ${josa(JobRules.skill(tree[2]).name, '을/를')} Lv.2까지 올리면 배울 수 있어요'
-        : '${josa(JobRules.skill(tree[0]).name, '을/를')} 먼저 배워요';
     final up = info.attack || info.isBattle ? '더 세져요' : 'MP가 덜 들어요';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Opacity(
-        opacity: open ? 1 : 0.55,
+        opacity: 1,
         child: OrnatePanel(
           key: Key('jobSkillTile_${skill.name}'),
           highlight: lv > 0,
@@ -367,7 +373,7 @@ class _SkillTile extends StatelessWidget {
                 Row(children: [
                   SkillArt.jobIcon(skill, size: 40, dim: lv == 0),
                   const SizedBox(width: 6),
-                  Text('${'①②③④'[i]} ',
+                  Text('${i >= 0 && i < 7 ? '①②③④⑤⑥⑦'[i] : ''} ',
                       style: const TextStyle(
                           color: AppColors.goldBright, fontSize: 15)),
                   Expanded(
@@ -391,11 +397,7 @@ class _SkillTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text('MP ${c.skillCost(skill, sub: sub)}',
                     style: const TextStyle(color: kJobMpColor, fontSize: 12)),
-                if (!open)
-                  KText(need,
-                      style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 12)),
-                if (open && lv < JobRules.maxSkillLevel)
+                if (lv < JobRules.maxSkillLevel && c.activePair?.skill != skill)
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(

@@ -361,7 +361,8 @@ class AllyDetailScreen extends StatelessWidget {
     if (name == null) return;
     final ok = await controller.renameAlly(a.id, name);
     if (!ok && name.trim().isNotEmpty && context.mounted) {
-      showTopNotice(context, '마을 사람 이름은 쓸 수 없어요', icon: Icons.info_outline_rounded);
+      showTopNotice(context, NameRules.banned(name) ? NameRules.bannedMessage : '마을 사람 이름은 쓸 수 없어요',
+          icon: Icons.info_outline_rounded);
     }
   }
 
@@ -584,7 +585,7 @@ class AllyDetailScreen extends StatelessWidget {
                           equipped: a.slot == i,
                           quest: a.isStory &&
                               Act3Rules.lockedByQuest(StoryAlly.values.byName(a.story!), i) &&
-                              !c.garenRosterDone,
+                              !c.allyQuestDone(StoryAlly.values.byName(a.story!)),
                           canUnlock: c.canUnlockSkill(a, i),
                           cost: Act3Rules.skillCost(i),
                           onUnlock: () => c.unlockAllySkill(a.id, i),

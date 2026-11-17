@@ -86,6 +86,25 @@ if "ScheduledNotificationReceiver" not in s:
     s = s.replace("</application>", receivers + "\n    </application>", 1)
 manifest.write_text(s)
 
+# 묶음 57: 파티 초대 링크 — App Links(https://…/join/코드) · arca://join/코드
+links = """
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="api-ujbfnvvalq-du.a.run.app" android:pathPrefix="/join/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="arca" android:host="join" />
+            </intent-filter>
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />"""
+if "android:scheme=\"arca\"" not in s:
+    s = s.replace("</activity>", links + "\n        </activity>", 1)
+manifest.write_text(s)
+
 # 3. MainActivity 는 FlutterFragmentActivity (헬스 커넥트 권한 창)
 for f in (app / "src" / "main").rglob("MainActivity.kt"):
     f.write_text(

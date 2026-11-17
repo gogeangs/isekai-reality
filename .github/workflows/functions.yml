@@ -25,6 +25,10 @@ jobs:
     env:
       SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+      # 묶음 57: 파티 초대 링크 (iOS Universal Links · Android App Links). 공개 값
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      # 업로드 키 + (있으면) Play 앱 서명 키 지문. Play Console → 앱 무결성에서 본 값을 저장소 변수 ANDROID_CERT_SHA256 에 넣으면 그것도 씀
+      ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 && format('D9:BE:05:87:0C:59:93:00:2C:A2:FA:93:52:9E:2B:7B:DD:68:EA:FE:C1:B0:9E:F3:27:C4:43:C5:DC:6B:34:30,{0}', vars.ANDROID_CERT_SHA256) || 'D9:BE:05:87:0C:59:93:00:2C:A2:FA:93:52:9E:2B:7B:DD:68:EA:FE:C1:B0:9E:F3:27:C4:43:C5:DC:6B:34:30' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -72,7 +76,7 @@ jobs:
         run: |
           CRON_KEY=$(python3 -c 'import secrets;print(secrets.token_hex(24))')
           echo "::add-mask::$CRON_KEY"
-          printf 'CRON_KEY: "%s"\nADMIN_EMAILS: "%s"\nWEB_CONFIG: %s\n' "$CRON_KEY" "$ADMIN_EMAILS" "$(python3 -c 'import json,os;print(json.dumps(os.environ.get("WEB_CONFIG","{}")))')" > "$RUNNER_TEMP/env.yaml"
+          printf 'CRON_KEY: "%s"\nADMIN_EMAILS: "%s"\nWEB_CONFIG: %s\nAPPLE_TEAM_ID: "%s"\nANDROID_CERT_SHA256: "%s"\n' "$CRON_KEY" "$ADMIN_EMAILS" "$(python3 -c 'import json,os;print(json.dumps(os.environ.get("WEB_CONFIG","{}")))')" "$APPLE_TEAM_ID" "$ANDROID_CERT_SHA256" > "$RUNNER_TEMP/env.yaml"
           gcloud functions deploy api --gen2 --runtime nodejs22 --region asia-northeast3 \
             --source firebase/functions --entry-point api --trigger-http --allow-unauthenticated \
             --memory 512Mi --max-instances 10 --env-vars-file "$RUNNER_TEMP/env.yaml" --project arca-d0cab --quiet

@@ -489,6 +489,8 @@ extension TutorialOps on AppController {
   /// 필드 전투가 끝났을 때. 잡으면 보상, 황금빛이 도망치면 오늘은 다시 나오지 않는다.
   Future<int> finishFieldBattle(FieldSpawn spawn, Battle battle) =>
       _serial(() async {
+    _lootBattle = battle; // 묶음 57: 훔치기 · 황금 각인
+    _fifthLine = false;
     await keepBattleHp(battle);
     if (battle.ticks > 0) {
       await _wear(EquipmentRules.fieldWear);
@@ -634,6 +636,15 @@ extension TutorialOps on AppController {
           mats[extra] = (mats[extra] ?? 0) + 1;
         }
       }
+      // 묶음 57: 훔치기 · 그림자 각인 → 전리품 하나 더 · 황금 각인 · 저울추 → 금화 조금 (숨김)
+      final lb = _lootBattle;
+      _lootBattle = null;
+      if (lb != null && lb.extraLoot) {
+        final d = LootRules.dropsOf(monster);
+        final extra = d.common[_random.nextInt(d.common.length)];
+        mats[extra] = (mats[extra] ?? 0) + 1;
+      }
+      if (lb != null && lb.goldBonus) gold += 5 + _random.nextInt(6);
       // 묶음 27 #176: 그 몬스터 전투 숙련도 → 재료 가끔 하나 더 (숨김)
       if (_masteryRoll(MasteryRules.monsterExtraLoot *
           _detailFrac(MasteryRules.monsterKey(monster)))) {
@@ -676,6 +687,9 @@ extension TutorialOps on AppController {
             .floor() +
         extraMana;
     final tiredMana = tiredNow ? fieldMana - _tiredCut(fieldMana) : 0;
+    // 묶음 57: 그날 5번째 필드 몬스터에서 한 번만 (던전으로 이끄는 한마디)
+    final fifth = (n - tutorialToday) + 1 == RuleConstants.maxFieldMonstersPerDay &&
+        !_history.any((d) => (d.counters[fifthLineKey] ?? 0) > 0);
     final modKey = ModifierRules.recordInCodex(mods)
         ? ModifierRules.codexKey(monster, mods)
         : null;
@@ -702,8 +716,10 @@ extension TutorialOps on AppController {
         ..._elementCounters(List.filled(count, monster)),
         if (tiredExp > 0) TownRules.tiredExpKey: tiredExp,
         if (tiredMana > 0) TownRules.tiredManaKey: tiredMana,
+        if (fifth) fifthLineKey: 1,
       }),
     ));
+    _fifthLine = fifth;
     _lastReward = HuntReward(
       exp: exp,
       manaStones: fieldMana - tiredMana,
@@ -726,7 +742,11 @@ extension TutorialOps on AppController {
   }
 
   /// 많이 사냥한 날 가끔 정령(펫)이 넌지시 (6마리째부터 세 번에 한 번, 숫자는 말하지 않는다)
+  static const fifthLineKey = 'fifthLine';
+  static const fifthLine = '오늘은 몸이 좀 무거워. 많이 걸으면 던전에서 더 크게 자랄 수 있어.';
+
   String? get tiredHuntLine {
+    if (_fifthLine) return fifthLine;
     final n = player.today?.fieldMonstersPurified ?? 0;
     if (n <= RuleConstants.maxFieldMonstersPerDay || n % 3 != 0) return null;
     return '오늘은 많이 싸웠어. 좀 쉬어도 돼.';

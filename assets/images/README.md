@@ -404,3 +404,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_aurel_phoenixnest | 아우렐 숨은 장소 배경 잿불새의 둥지, 1024 |
 | 2026-11-17 | chest_party, chest_partyBronze, chest_partySilver, chest_partyGold | 파티 상자 4종, 같은 배율·바닥(491) 맞춤 512 |
 | 2026-11-17 | mat_golemCore, mat_hydraScale, mat_wyvernClaw, mat_krakenPearl, item_footTicket, icon_cheer | 파티 보스 재료 4·발자국 표·응원 버튼, 색 테두리 정리·시트 분할 512 |
+| 2026-11-18 | equip_aurel{Weapon,Head,Body,Hands,Feet,Acc} | 아우렐 순례 세트 6부위, 시트 분할 512 |

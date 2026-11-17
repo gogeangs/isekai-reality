@@ -22,6 +22,7 @@ import 'garden_screen.dart';
 import 'tavern_screen.dart';
 import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
+import '../act3/act3_screen.dart' show openJourney;
 
 /// 마을 시설 (묶음 35: 펫 쉼터 추가)
 /// 묶음 51: 주점 (결말 뒤 만남 장면 다음 바로 열림, 그 전엔 빈 공터)
@@ -69,6 +70,9 @@ class VillageScreen extends StatefulWidget {
 
   /// 여명의 탑 자리 (바탕 그림 픽셀, 누를 수 없는 배경)
   static const Rect tower = Rect.fromLTWH(738, 12, 72, 195);
+
+  /// 묶음 52 #243: 탑 오른쪽 뒤 빛의 다리 (이름표 자리, 그림 픽셀)
+  static const Offset bridge = Offset(985, 150);
 
   /// 건물 3×3 묶음 (가운데 칸은 우물). 처음 들어올 때 이 가운데에 맞춘다
   static const Rect cluster = Rect.fromLTRB(565, 370, 975, 775);
@@ -410,6 +414,8 @@ class _VillageScreenState extends State<VillageScreen> {
             towerGlow: _intro != null,
             bottomPad: pad.bottom,
             onTap: _enter,
+            // 묶음 52 #243: 탑 옆 빛의 다리 (Lv.21 · 결말 뒤 만남을 지나면)
+            onBridge: c.act3Available ? () => openJourney(context, c) : null,
           ),
         ),
         // 위쪽 버튼 뒤 살짝 어두운 그라데이션
@@ -494,6 +500,7 @@ class _VillageArt extends StatefulWidget {
     required this.towerGlow,
     required this.bottomPad,
     required this.onTap,
+    this.onBridge,
   });
 
   final int act;
@@ -523,6 +530,9 @@ class _VillageArt extends StatefulWidget {
   /// 아래 탭 막대 높이 (그림이 그 아래까지 깔린다)
   final double bottomPad;
   final ValueChanged<FacilityInfo> onTap;
+
+  /// 묶음 52 #243: 빛의 다리 이름표 (3막으로)
+  final VoidCallback? onBridge;
 
   @override
   State<_VillageArt> createState() => _VillageArtState();
@@ -686,6 +696,7 @@ class _VillageArtState extends State<_VillageArt> {
       for (final f in widget.all) _building(f, r),
       // 건물 이름표 (#212): 건물 아래쪽 가운데, 건물보다 위에
       for (final f in widget.all) _tag(f, r),
+      if (widget.onBridge != null && widget.act == 3) _bridgeTag(r),
       // 소개 중: 탑을 금빛 테두리로 비춤
       if (widget.towerGlow)
         Positioned.fromRect(
@@ -765,6 +776,42 @@ class _VillageArtState extends State<_VillageArt> {
 
   /// 건물 이름표 (#212): 열린 건물 「여관」 · 안 열린 건물 「🔒 연금술 공방 · Lv.7」 ·
   /// 거래소 「거래소 · 준비 중」. 빨간 점은 이름표 오른쪽 위
+  /// 빛의 다리 (탑 오른쪽 뒤 그림 자리)
+  Widget _bridgeTag(Rect Function(double, double, double, double) r) {
+    final at = r(VillageScreen.bridge.dx, VillageScreen.bridge.dy, 0, 0);
+    const half = 70.0;
+    return Positioned(
+      left: at.left - half,
+      width: half * 2,
+      top: at.top,
+      child: Center(
+        child: GestureDetector(
+          key: const Key('tag_bridge'),
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onBridge,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(7, 3, 7, 3),
+            decoration: BoxDecoration(
+              color: const Color(0xE61A1636),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: AppColors.goldBright, width: 1.2),
+              boxShadow: [
+                BoxShadow(color: AppColors.gold.withValues(alpha: 0.6), blurRadius: 8),
+              ],
+            ),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.auto_awesome_rounded, size: 11, color: AppColors.goldBright),
+              SizedBox(width: 3),
+              Text('빛의 다리',
+                  style: TextStyle(
+                      color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _tag(FacilityInfo f, Rect Function(double, double, double, double) r) {
     final open = widget.open(f.facility);
     // 묶음 51: 거래소는 완공되면 다른 건물과 같은 이름표

@@ -32,6 +32,7 @@ import '../lens/lens_screen.dart' show openLens;
 import '../jobs/job_skill_bar.dart';
 import '../act2/ash_battle_screen.dart' show openRift;
 import '../highland/highland_screen.dart' show openSkyIsland;
+import '../act3/act3_screen.dart' show openJourney;
 
 part 'map_overlays.dart';
 part 'naver_map_layer.dart';
@@ -205,6 +206,15 @@ class _MapScreenState extends State<MapScreen> {
               key: tutorialLensKey,
               child: _LensButton(controller: controller),
             ),
+          ),
+        // 묶음 52 #243: 3막 「여정」 (돋보기 위)
+        if (!tut && controller.act3Available)
+          Positioned(
+            right: 12,
+            bottom: (card ? cardBottom + 150 : cardBottom) +
+                8 +
+                (controller.featureOpen(Feature.lens) ? 62 : 0),
+            child: _JourneyButton(controller: controller),
           ),
         // 던전 게이지·열쇠·던전 열기 (11-11 #68): 아래 메뉴 바로 위 얇은 띠
         if (!tut)

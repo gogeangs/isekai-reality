@@ -43,3 +43,4 @@ export 'training_rules.dart';
 export 'garden_rules.dart';
 export 'highland_rules.dart';
 export 'tavern_rules.dart';
+export 'act3_rules.dart';

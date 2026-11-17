@@ -507,6 +507,48 @@ class _ExpeditionList extends StatelessWidget {
 }
 
 /// 지도 돋보기 버튼 (묶음 19 #154): 오늘 무료 감정이 남아 있으면 금빛 점
+/// 묶음 52 #243: 3막 「여정」 버튼 (다리 너머 지역 화면으로)
+class _JourneyButton extends StatelessWidget {
+  const _JourneyButton({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: '여정',
+        child: GestureDetector(
+          key: const Key('mapJourney'),
+          onTap: () => openJourney(context, controller),
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xE6141638),
+              border: Border.all(color: AppColors.goldBright, width: 1.6),
+              boxShadow: controller.bridgeScenePending
+                  ? [
+                      BoxShadow(
+                          color: AppColors.goldBright.withValues(alpha: 0.6),
+                          blurRadius: 12),
+                    ]
+                  : null,
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.explore_rounded, size: 22, color: AppColors.goldBright),
+                Text('여정',
+                    style: TextStyle(
+                        color: AppColors.text, fontSize: 10, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 class _LensButton extends StatelessWidget {
   const _LensButton({required this.controller});
 

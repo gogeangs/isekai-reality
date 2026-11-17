@@ -6,15 +6,19 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
+import '../act3/ally_screens.dart' show AllyTab;
 import '../awakening/awakening_screen.dart' show IllustratedScene;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
 import 'npc_header.dart';
 
 /// 마을 새 건물 「주점」 (묶음 51 #242): 리안 · 파티 창구(서버 전엔 준비 중) · 소문판 · 한 끼 식사
 class TavernScreen extends StatefulWidget {
-  const TavernScreen({super.key, required this.controller});
+  const TavernScreen({super.key, required this.controller, this.allyTab = false});
 
   final AppController controller;
+
+  /// 처음부터 「동료」 탭 (묶음 52: 3막 화면에서 동료 얼굴을 눌러 올 때)
+  final bool allyTab;
 
   @override
   State<TavernScreen> createState() => _TavernScreenState();
@@ -25,6 +29,9 @@ class _TavernScreenState extends State<TavernScreen> {
 
   /// 방금 들은 소문 (오늘 이미 들었으면 처음부터 보임)
   late String? _rumor = c.rumorHeardToday ? c.todayRumor : null;
+
+  /// 묶음 52 #243: 3막이 열리면 「주점 | 동료」 두 탭
+  late bool _allies = widget.allyTab && c.act3Open;
 
   Future<void> _hear() async {
     final r = await c.hearRumor();
@@ -62,12 +69,34 @@ class _TavernScreenState extends State<TavernScreen> {
                 const SizedBox(height: 6),
                 NpcHeader(
                     controller: c, npc: Npc.lian, guide: VillageRules.tavernGuide),
+                if (c.act3Open) ...[
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    for (final (i, t) in const ['주점', '동료'].indexed) ...[
+                      if (i > 0) const SizedBox(width: 6),
+                      Expanded(
+                        child: ChoiceChip(
+                          key: Key('tavernTab_$i'),
+                          label: SizedBox(
+                              width: double.infinity,
+                              child: Text(t, textAlign: TextAlign.center)),
+                          selected: _allies == (i == 1),
+                          onSelected: (_) => setState(() => _allies = i == 1),
+                        ),
+                      ),
+                    ],
+                  ]),
+                ],
                 const SizedBox(height: 10),
-                _party(),
-                const SizedBox(height: 10),
-                _rumors(),
-                const SizedBox(height: 10),
-                _meals(),
+                if (_allies)
+                  AllyTab(controller: c)
+                else ...[
+                  _party(),
+                  const SizedBox(height: 10),
+                  _rumors(),
+                  const SizedBox(height: 10),
+                  _meals(),
+                ],
               ],
             ),
           ),

@@ -500,7 +500,8 @@ void main() {
     await tester.tap(find.byKey(const Key('skyClimb')));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text(HighlandRules.firstClimbLine), findsOneWidget);
+    expect(c.highland.firstLine, isTrue);
+    expect(find.byKey(const Key('skyStep_1')), findsOneWidget);
     expect(find.byKey(const Key('skyForkStone')), findsOneWidget);
     expect(find.byKey(const Key('skyForkRuins')), findsOneWidget);
     await tester.tap(find.byKey(const Key('skyForkRuins')));

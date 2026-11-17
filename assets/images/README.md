@@ -371,3 +371,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | equip_selenia{Weapon,Head,Body,Hands,Feet,Acc} | 셀레니아 상단 세트 6부위, 시트 분할 512 |
 | 2026-11-17 | bg_dungeon_selenia | 셀레니아 던전 배경 흑등 상회의 지하 금고, 1024 |
 | 2026-11-17 | mat_stardust | 재료 별가루(병), 512 |
+| 2026-11-17 | bg_selenia_vein | 셀레니아 숨은 장소 배경 별가루 광맥, 1024 |

@@ -249,7 +249,7 @@ void main() {
               active: {'i': 3, 'day': '2026-11-10', 'base': {}, 'steps': 0}),
           more: [for (final d in days.take(6)) DailyRecord(date: d, steps: 3500)],
         ),
-        steps: {'2026-11-16': 3500},
+        steps: {for (final d in days) DailyRecord.dayKeyOf(d): 3500},
       );
       final p = c.requestProgress(Npc.lian);
       expect(p.single.have, 7);
@@ -271,7 +271,10 @@ void main() {
               DailyRecord(date: DateTime(2026, 11, d), steps: d == 13 ? 1200 : 3500),
           ],
         ),
-        steps: {'2026-11-16': 3500},
+        steps: {
+          for (var d = 10; d <= 16; d++)
+            '2026-11-${d.toString().padLeft(2, '0')}': d == 13 ? 1200 : 3500,
+        },
       );
       expect(c.requestProgress(Npc.lian).single.have, 3);
       expect(c.requestReady(Npc.lian), isFalse);
@@ -323,13 +326,19 @@ void main() {
       late AppController c;
       await tester.runAsync(() async => c = await start(account()));
       await tester.pumpWidget(MaterialApp(
-          home: Builder(
-              builder: (context) => TextButton(
-                  key: const Key('go'),
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => MeetScreen(controller: c))),
-                  child: const Text('go')))));
+          home: Scaffold(
+              body: Builder(
+                  builder: (context) => Center(
+                        child: TextButton(
+                            key: const Key('go'),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                    builder: (_) => MeetScreen(controller: c))),
+                            child: const Text('go')),
+                      )))));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('go')));
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byKey(const Key('meetScreen')), findsOneWidget);
       for (var i = 0; i < TavernRules.meet.length; i++) {
@@ -358,10 +367,10 @@ void main() {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('tavernRumorText')), findsOneWidget);
-      await tester.scrollUntilVisible(find.byKey(const Key('eat_stew')), 200,
-          scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(find.byKey(const Key('eat_stew')));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.byKey(const Key('eat_stew')));
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
       await tester.pump(const Duration(milliseconds: 300));
       expect(c.todayMeal, Meal.stew);
       expect(find.byKey(const Key('eat_stew')), findsNothing);

@@ -362,3 +362,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | village_garden_2 | 약초밭 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
 | 2026-11-17 | monster_orcMerc, monster_koboldMiner, monster_gargoyle, monster_livingArmor | 셀레니아 일반 몬스터 4종 다시(매끈한 선·발밑 흙 없음), 덮어쓰기 512 |
 | 2026-11-17 | town_selenia | 셀레니아 마을 그림(불 꺼진 대장터 + 흑등 상회 거리), 1024 |
+| 2026-11-17 | monster_orcCaptain, monster_ashCart, monster_metalColossus | 셀레니아 보스 3종(오크 용병 대장·잿빛 수레 괴물·고대 금속 거인), 시트 분할 512 |

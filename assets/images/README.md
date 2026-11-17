@@ -431,3 +431,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | pet_pegasus_awake | 전설 펫 페가수스 각성 모습 (성체 편집, 성체와 같은 자리·배율, 512) |
 | 2026-11-18 | pet_behemoth_awake, pet_nightmare_awake, pet_leviathan_awake, pet_dragon_awake, pet_unicorn_awake | 전설 펫 각성 모습 5종 (성체 편집, 번짐·빛무리 정리, 발밑을 성체와 같은 바닥선 496에 맞춤, 512) |
 | 2026-11-18 | pet_map_{pegasus,behemoth,nightmare,leviathan,dragon,unicorn} | 전설 펫 지도 메달 6종 (금테·날개·왕관, 한 장에서 잘라 같은 크기, 512 → 개발이 128로) |
+| 2026-11-18 | job_warrior(다시), job_archer, job_mage, job_priest, job_rogue, job_knight | 직업 개편 전투 직업 문장 6 (빨강 바탕, #249, 한 장에서 잘라 지금 문장과 같은 크기, 512) |

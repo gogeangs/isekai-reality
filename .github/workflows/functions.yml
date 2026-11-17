@@ -37,6 +37,14 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
           python3 -c 'import json,os;print("서비스 계정:", json.load(open(os.environ["RUNNER_TEMP"]+"/sa.json"))["client_email"])'
 
+      - name: 필요한 API 켜기
+        run: |
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+          gcloud services enable firebaseextensions.googleapis.com cloudfunctions.googleapis.com \
+            cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com \
+            eventarc.googleapis.com pubsub.googleapis.com cloudscheduler.googleapis.com \
+            --project arca-d0cab --quiet
+
       - name: 함수 시험
         working-directory: firebase/functions
         run: |

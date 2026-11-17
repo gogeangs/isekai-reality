@@ -375,3 +375,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | village_training_2 | 훈련장 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
 | 2026-11-17 | town_elowin | 엘로윈 마을 그림(잎사귀 마을, 고목 위), 1024 |
 | 2026-11-17 | title_seleniaLamp, title_stardustFinder, title_elowinLamp, title_mossFriend | 셀레니아·엘로윈 칭호 4종, 시트 분할 512 |
+| 2026-11-17 | village_training_3 | 훈련장 ★3, ★1·★2와 같은 땅 너비·아래(496) 맞춤 512 |

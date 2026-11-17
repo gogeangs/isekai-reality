@@ -374,6 +374,8 @@ void main() {
       expect(c.nameless, hasLength(1));
       await tester.tap(find.text('좋아요'));
       await tester.pump(const Duration(milliseconds: 400));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.byKey(const Key('tavernTab_0')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('tavernRumor')), findsOneWidget);

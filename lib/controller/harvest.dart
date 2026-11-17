@@ -389,6 +389,13 @@ extension HarvestOps on AppController {
       mats[r] = math.max(1, mats[r] ?? 0);
     }
     // 묶음 48 #230: 약초밭이 열린 뒤 약초·꽃·버섯 채집에서 가끔 그 자리의 씨앗
+    // 묶음 54: 버섯 수프 → 그날 채집할 때 가끔 하나 더 (숨김)
+    if (mats.isNotEmpty &&
+        mealOn(Meal.mushroomSoup) &&
+        _random.nextDouble() < BuildingRules.soupExtra) {
+      final k = mats.keys.first;
+      mats[k] = mats[k]! + 1;
+    }
     final seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
     if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
     final keepCharge = await _consumeSkill(JobSkill.rootPull);

@@ -175,8 +175,11 @@ extension Act3Ops on AppController {
       ];
 
   /// 이름 없는 동료 보유 한도: 처음 4 · 리안과 친해질 때마다 +1 (최대 +3)
+  /// 묶음 54: 주점 ★2 · ★3 마다 +2
   int get rosterLimit =>
-      Act3Rules.rosterBase + math.min(3, favorStage(Npc.lian).index);
+      Act3Rules.rosterBase +
+      math.min<int>(3, favorStage(Npc.lian).index) +
+      (buildingsOpen ? (buildingStar(Building.tavern) - 1) * BuildingRules.rosterPerStar : 0);
 
   bool get rosterFull => nameless.length >= rosterLimit;
 

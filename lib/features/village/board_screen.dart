@@ -547,13 +547,13 @@ class _ErrandPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final b = controller.board;
     return FoldingQuestPanel(
-      done: b.doneToday >= BoardRules.errandsPerDay,
+      done: b.doneToday >= controller.errandsPerDay,
       foldedText: '조합 의뢰 오늘 모두 완료 · ${b.doneToday}개',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BoardPlaque('조합 의뢰',
-              note: '오늘 ${b.doneToday} / ${BoardRules.errandsPerDay}'),
+              note: '오늘 ${b.doneToday} / ${controller.errandsPerDay}'),
           const _BoardNote('수락하면 시작 · 끝내면 2시간 뒤 새 의뢰 · 자정에 모두 바뀌어요'),
           const SizedBox(height: 4),
           NoteGrid(children: [
@@ -617,7 +617,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
     if (t == null) {
       final ready = s.readyAt;
       final String text;
-      if (b.doneToday >= BoardRules.errandsPerDay) {
+      if (b.doneToday >= c.errandsPerDay) {
         text = '오늘 조합 의뢰는 다 끝냈어요';
       } else if (ready != null && c.now.isBefore(ready)) {
         final left = ready.difference(c.now);

@@ -203,6 +203,13 @@ class _GuildScreenState extends State<GuildScreen> {
                                       style: const TextStyle(
                                           color: AppColors.textMuted,
                                           fontSize: 13)),
+                                  // 묶음 54: 조합 ★2 → 더 자세한 힌트
+                                  if (c.guildDetailHint)
+                                    KText(JobRules.detailLine(j, c.masteryOf),
+                                        key: Key('guildNearDetail_${j.name}'),
+                                        style: const TextStyle(
+                                            color: AppColors.goldBright,
+                                            fontSize: 12.5)),
                                 ]),
                           ),
                         ]),

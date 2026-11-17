@@ -49,7 +49,14 @@ extension TrainingOps on AppController {
   String get _trainingWeek =>
       DailyRecord.dayKeyOf(TownRules.weekStart(_clock()));
 
-  bool get dailyTrainingDone => _training.dailyDay == _today;
+  /// 오늘 하루 훈련을 다 했는지 (묶음 54: 훈련장 ★2 → 한 번 더)
+  bool get dailyTrainingDone =>
+      _training.dailyDay == _today &&
+      (!_star(Building.training, 2) || _buildings.trainExtraDay == _today);
+
+  /// 오늘 첫 하루 훈련을 했고, 한 번 더 남았는지 (훈련장 ★2)
+  bool get dailyTrainingExtra =>
+      _training.dailyDay == _today && !dailyTrainingDone;
   bool get trialDoneToday => _training.trialDay == _today;
   bool get petTrainedToday => _training.petDay == _today;
 
@@ -122,7 +129,11 @@ extension TrainingOps on AppController {
   /// 하루 훈련을 시작한다 (시작하면 오늘 몫을 쓴다)
   Future<Battle?> startDailyTraining() => _serial(() async {
         if (!trainingOpen || dailyTrainingDone) return null;
-        await _saveTraining(_training.copyWith(dailyDay: _today));
+        if (_training.dailyDay == _today) {
+          await _saveBuildings(_buildings.copyWith(trainExtraDay: _today));
+        } else {
+          await _saveTraining(_training.copyWith(dailyDay: _today));
+        }
         return _trainingBattle(TrainingRules.dailyFoes(player.level.level));
       });
 
@@ -202,7 +213,12 @@ extension TrainingOps on AppController {
     final p = _pets.byUid(uid);
     await _saveTraining(_training.copyWith(clearPet: true));
     if (p == null) return;
-    await _givePetExp(uid, TrainingRules.petExp);
+    // 묶음 54: 훈련장 ★3 → 펫 훈련 효과 조금 더 (숨김)
+    await _givePetExp(
+        uid,
+        _star(Building.training, 3)
+            ? (TrainingRules.petExp * BuildingRules.petTraining).round()
+            : TrainingRules.petExp);
     await _npcTally(NpcTally.petTraining);
     _petTrainedNotice = p.name;
     _notify();
@@ -238,7 +254,7 @@ extension TrainingOps on AppController {
           t = t.copyWith(trialWeek: _trainingWeek, trialBest: 0, trialMarks: const []);
         }
         final marks = [
-          for (final m in TrainingRules.trialMarks)
+          for (final m in trialMarks)
             if (n >= m && !t.trialMarks.contains(m)) m,
         ];
         final gifts = <String, int>{};

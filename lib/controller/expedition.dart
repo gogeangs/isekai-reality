@@ -709,9 +709,11 @@ extension ExpeditionOps on AppController {
       await _savePets(_pets.copyWith(tired: {
         ..._pets.tired,
         // 묶음 45 #232: 루미의 호루라기 → 더 빨리 회복
-        pet.uid: ex.arriveAt.add(hasRelic(Npc.lumi)
-            ? NpcSmallRules.whistleTired
-            : PetRules.tiredFor),
+        pet.uid: ex.arriveAt.add((hasRelic(Npc.lumi)
+                ? NpcSmallRules.whistleTired
+                : PetRules.tiredFor) *
+            // 묶음 54: 펫 쉼터 ★2 → 지친 펫이 더 빨리 회복 (숨김)
+            (_star(Building.shelter, 2) ? BuildingRules.shelterTired : 1)),
       }));
       // 묶음 45 #231: 루미 — 펫이 원정에서 졌을 때
       await _smallTrigger(Npc.lumi);

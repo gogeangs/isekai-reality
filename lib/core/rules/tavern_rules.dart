@@ -1,6 +1,7 @@
 /// 결말 뒤 다른 각성자와의 만남 · 주점 · 리안 (묶음 51 #242) + 거래소 · 바르칸 (#229, 서버 전).
 /// 숫자는 개발이 정한 숨은 값, 화면에는 문장만.
-enum Meal { stew, honeyBread, skewer }
+/// 묶음 54: 버섯 수프는 주점 ★2 부터
+enum Meal { stew, honeyBread, skewer, mushroomSoup }
 
 class MealInfo {
   const MealInfo(this.id, this.name, this.text, this.price);
@@ -52,6 +53,7 @@ class TavernRules {
     MealInfo(Meal.stew, '고기 스튜', '오늘 걸으면 기력이 조금 더 차요', 60),
     MealInfo(Meal.honeyBread, '꿀빵', '오늘 걸으면 채집 자리를 조금 더 만나요', 60),
     MealInfo(Meal.skewer, '매운 꼬치', '오늘 사냥 경험치가 조금 더', 80),
+    MealInfo(Meal.mushroomSoup, '버섯 수프', '오늘 채집할 때 가끔 하나 더 얻어요', 70),
   ];
 
   static MealInfo meal(Meal m) => meals[m.index];

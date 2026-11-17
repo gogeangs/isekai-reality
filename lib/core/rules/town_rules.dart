@@ -55,6 +55,15 @@ enum ShopItem {
 
   /// 약초 씨앗 (묶음 48 #230): 약초밭에 심는 흔한 씨앗 (하루 3개, Lv.9)
   herbSeed,
+
+  /// 묶음 54: 잡화상 ★2 부터 — 단단한 나무 · 무두질한 가죽
+  hardWood,
+  tannedLeather,
+
+  /// 묶음 54: 잡화상 ★3 — 가끔 들어오는 특별한 물건 (그날 하나, 하루 1개)
+  specialPearl,
+  specialRune,
+  specialKnot,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -152,6 +161,24 @@ class TownRules {
       [for (final i in _allItems) if (!retired.contains(i.item)) i];
 
   static const Set<ShopItem> retired = {ShopItem.magicLens};
+
+  /// 묶음 54: 잡화상 ★2 부터 파는 물건 · ★3 특별한 물건 (그날 하나)
+  static const Set<ShopItem> star2Items = {ShopItem.hardWood, ShopItem.tannedLeather};
+  static const List<ShopItem> specials = [
+    ShopItem.specialPearl,
+    ShopItem.specialRune,
+    ShopItem.specialKnot,
+  ];
+
+  /// 그날 들어오는 특별한 물건 (6일 중 3일 꼴, 없으면 null)
+  static ShopItem? specialOf(String dayKey) {
+    var h = 0;
+    for (final c in 'special|$dayKey'.codeUnits) {
+      h = (h * 31 + c) & 0x7fffffff;
+    }
+    final i = h % 6;
+    return i < specials.length ? specials[i] : null;
+  }
 
   static const List<ShopItemInfo> _allItems = [
     ShopItemInfo(
@@ -290,6 +317,54 @@ class TownRules {
       minLevel: 9,
       icon: 'seed_herb',
       material: MaterialId.herbSeed,
+    ),
+    // 묶음 54: 잡화상 ★2 · ★3 (건물 레벨업)
+    ShopItemInfo(
+      item: ShopItem.hardWood,
+      name: '단단한 목재',
+      description: '튼튼한 목재예요. 건물을 고칠 때도 써요.',
+      price: 40,
+      limit: ShopLimit.perDay,
+      perLimit: 4,
+      icon: 'mat_hardWood',
+      material: MaterialId.hardWood,
+    ),
+    ShopItemInfo(
+      item: ShopItem.tannedLeather,
+      name: '무두질한 가죽',
+      description: '부드럽게 손질한 가죽이에요. 건물을 고칠 때도 써요.',
+      price: 50,
+      limit: ShopLimit.perDay,
+      perLimit: 3,
+      icon: 'mat_tannedLeather',
+      material: MaterialId.tannedLeather,
+    ),
+    ShopItemInfo(
+      item: ShopItem.specialPearl,
+      name: '강의 진주',
+      description: '미나가 오늘 구해 온 특별한 물건이에요.',
+      price: 300,
+      limit: ShopLimit.perDay,
+      icon: 'mat_riverPearl',
+      material: MaterialId.riverPearl,
+    ),
+    ShopItemInfo(
+      item: ShopItem.specialRune,
+      name: '빛바랜 룬석',
+      description: '미나가 오늘 구해 온 특별한 물건이에요.',
+      price: 300,
+      limit: ShopLimit.perDay,
+      icon: 'mat_runeStone',
+      material: MaterialId.runeStone,
+    ),
+    ShopItemInfo(
+      item: ShopItem.specialKnot,
+      name: '튼튼한 옹이',
+      description: '미나가 오늘 구해 온 특별한 물건이에요.',
+      price: 300,
+      limit: ShopLimit.perDay,
+      icon: 'mat_sturdyKnot',
+      material: MaterialId.sturdyKnot,
     ),
     ShopItemInfo(
       item: ShopItem.raceLens,

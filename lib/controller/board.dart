@@ -5,7 +5,8 @@ extension BoardOps on AppController {
 
   /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
   BoardState get board =>
-      BoardRules.refresh(_board, _clock(), npcs: _openNpcNames, region: act3Open);
+      BoardRules.refresh(_board, _clock(),
+          npcs: _openNpcNames, region: act3Open, extra: boardExtraSlots);
 
   Future<void> _saveBoard(BoardState b) async {
     _board = b;

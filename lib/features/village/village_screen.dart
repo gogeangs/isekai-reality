@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show AskKind, GardenRules, JobRules, Npc, TrainingRules, VillageRules;
+    show AskKind, Building, BuildingRules, GardenRules, JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -46,6 +46,10 @@ class FacilityInfo {
 
   /// 묶음 51 #229: 거래소는 완공 전엔 공사 그림 한 장 (village_market_build)
   String get asset => 'assets/images/village_${facility.name}.webp';
+
+  /// 묶음 54: 건물 레벨업 단계 그림 (★1 은 [asset])
+  String assetAt(int star) =>
+      star >= 2 ? 'assets/images/village_${facility.name}_$star.webp' : asset;
   static const String marketBuild = 'assets/images/village_market_build.webp';
 
   /// 묶음 44 #225: 공사 중 그림 (1 터 닦기 · 2 뼈대 · 3 거의 완성)
@@ -120,6 +124,9 @@ class _VillageScreenState extends State<VillageScreen> {
   /// 묶음 44 #225: 이번에 완공 연출을 보여 줄 건물
   Set<Facility> _built = const {};
 
+  /// 묶음 54: 이번에 레벨업 연출을 보여 줄 건물
+  Set<Facility> _starred = const {};
+
   /// 탑 불꽃 연출을 다시 시작하는 번호 (방문마다)
   int _lightRun = 0;
   bool _meetShowing = false;
@@ -162,6 +169,17 @@ class _VillageScreenState extends State<VillageScreen> {
         controller.markBuilt(built);
       });
     }
+    // 묶음 54: 다 고친 건물 → 레벨업 연출 (한 번)
+    final starred = controller.starPending;
+    _starred = {
+      for (final f in Facility.values)
+        if (starred.contains(f.name)) f,
+    };
+    if (starred.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        controller.markStarSeen(starred);
+      });
+    }
     if (_moment != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.markVillageMoment();
@@ -192,6 +210,14 @@ class _VillageScreenState extends State<VillageScreen> {
 
   /// 묶음 44 #225: 안 열린 건물의 공사 단계 (1~3, 없으면 null)
   int? _stage(Facility f) => controller.buildStage(f.name);
+
+  /// 묶음 54: 건물 단계 (★) · 고치는 중
+  int _star(Facility f) =>
+      controller.buildingsOpen ? controller.facilityStar(f.name) : 1;
+  bool _fixing(Facility f) => switch (BuildingRules.parse(f.name)) {
+        final Building b? => controller.buildingsOpen && controller.buildingFixing(b),
+        null => false,
+      };
 
   /// 새 소식 (빨간 점): 게시판 보상 · 쉼터의 깨어날 알
   bool _news(Facility f) => switch (f) {
@@ -346,7 +372,7 @@ class _VillageScreenState extends State<VillageScreen> {
                               Expanded(
                                 child: Stack(children: [
                                   Positioned.fill(
-                                    child: Image.asset(f.asset,
+                                    child: Image.asset(f.assetAt(_star(f.facility)),
                                         fit: BoxFit.contain,
                                         errorBuilder: (_, __, ___) =>
                                             const SizedBox()),
@@ -356,13 +382,23 @@ class _VillageScreenState extends State<VillageScreen> {
                                         right: 4, top: 4, child: _RedDot()),
                                 ]),
                               ),
-                              Text(f.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: AppColors.text,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(f.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              color: AppColors.text,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700)),
+                                    ),
+                                    if (_star(f.facility) >= 2)
+                                      StarMark(
+                                          key: Key('allStar_${f.facility.name}'),
+                                          star: _star(f.facility)),
+                                  ]),
                             ]),
                           ),
                       ],
@@ -406,6 +442,9 @@ class _VillageScreenState extends State<VillageScreen> {
             soft: _soft,
             stage: _stage,
             built: _built,
+            star: _star,
+            fixing: _fixing,
+            starred: _starred,
             // 묶음 43: 화면 밖 건물(훈련장)이 완공되면 그쪽으로 맞춰 들어온다
             focusX: _focusX,
             lockLabel: _lockLabel,
@@ -494,6 +533,9 @@ class _VillageArt extends StatefulWidget {
     this.focusX,
     required this.stage,
     required this.built,
+    this.star = _one,
+    this.fixing = _no,
+    this.starred = const {},
     required this.lockLabel,
     required this.lighting,
     this.lightRun = 0,
@@ -517,6 +559,13 @@ class _VillageArt extends StatefulWidget {
   final int? Function(Facility) stage;
   final Set<Facility> built;
   final String Function(Facility) lockLabel;
+
+  /// 묶음 54: 건물 단계 · 고치는 중 · 이번에 레벨업 연출을 볼 건물
+  final int Function(Facility) star;
+  final bool Function(Facility) fixing;
+  final Set<Facility> starred;
+  static int _one(Facility _) => 1;
+  static bool _no(Facility _) => false;
 
   /// 결말 뒤 처음: 탑 불꽃이 켜지는 연출
   final bool lighting;
@@ -732,7 +781,7 @@ class _VillageArtState extends State<_VillageArt> {
             ? f.buildAsset(stage)
             : f.facility == Facility.market && !open
                 ? FacilityInfo.marketBuild
-                : f.asset,
+                : f.assetAt(open ? widget.star(f.facility) : 1),
         key: stage != null ? Key('build${stage}_${f.facility.name}') : null,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => const SizedBox());
@@ -743,6 +792,15 @@ class _VillageArtState extends State<_VillageArt> {
           from: f.buildAsset(3),
           to: pic,
           name: f.name);
+    } else if (open && widget.starred.contains(f.facility)) {
+      // 묶음 54: 레벨업 → 앞 단계 그림이 새 그림으로 바뀌며 금빛 + 「여관 ★2!」
+      final s = widget.star(f.facility);
+      pic = _BuiltReveal(
+          key: Key('starReveal_${f.facility.name}'),
+          from: f.assetAt(s - 1),
+          to: pic,
+          name: f.name,
+          label: '${f.name} ★$s!');
     }
     if (dim) {
       pic = ColorFiltered(
@@ -821,10 +879,12 @@ class _VillageArtState extends State<_VillageArt> {
     // 묶음 44 #225: 짓는 중인 건물은 🔨 + 「Lv.7 완공」 (펫 쉼터 「첫 펫과 함께 완공」)
     final building = !open && !market && widget.stage(f.facility) != null;
     // 안 열린 건물·거래소는 두 줄 (이름 / 열리는 때) — 작은 화면에서도 옆 이름표와 겹치지 않게
+    final star = open ? widget.star(f.facility) : 1;
+    final fixing = open && widget.fixing(f.facility);
     final sub = market
         ? '준비 중'
         : open
-            ? null
+            ? (fixing ? '고치는 중' : null)
             : building
                 ? f.facility == Facility.shelter
                     ? '첫 펫과 함께\n완공'
@@ -882,10 +942,17 @@ class _VillageArtState extends State<_VillageArt> {
                           fontSize: 11,
                           height: 1.2,
                           fontWeight: FontWeight.w800)),
+                  // 묶음 54: 건물 단계 ★
+                  if (star >= 2) ...[
+                    const SizedBox(width: 2),
+                    StarMark(key: Key('tagStar_${f.facility.name}'), star: star),
+                  ],
                 ]),
                 if (sub != null)
                   Text(sub,
-                      key: Key('tagSub_${f.facility.name}'),
+                      key: Key(fixing
+                          ? 'tagFixing_${f.facility.name}'
+                          : 'tagSub_${f.facility.name}'),
                       maxLines: 2,
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -925,11 +992,14 @@ class _VillageArtState extends State<_VillageArt> {
 /// 묶음 44 #225: 완공 연출 — 공사 그림이 완공 그림으로 바뀌며 금빛으로 반짝 + 「○○ 완공!」
 class _BuiltReveal extends StatelessWidget {
   const _BuiltReveal(
-      {super.key, required this.from, required this.to, required this.name});
+      {super.key, required this.from, required this.to, required this.name, this.label});
 
   final String from;
   final Widget to;
   final String name;
+
+  /// 띄울 글 (없으면 「○○ 완공!」)
+  final String? label;
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
@@ -985,7 +1055,7 @@ class _BuiltReveal extends StatelessWidget {
                             blurRadius: 10),
                       ],
                     ),
-                    child: Text('$name 완공!',
+                    child: Text(this.label ?? '$name 완공!',
                         maxLines: 1,
                         style: const TextStyle(
                             color: AppColors.goldBright,
@@ -1171,4 +1241,18 @@ class GoldButtonLiteBox extends StatelessWidget {
           child: Text(label, style: AppText.title(15, color: AppColors.night)),
         ),
       );
+}
+
+/// 묶음 54: 건물 단계 표시 (작은 금빛 별을 단계 수만큼)
+class StarMark extends StatelessWidget {
+  const StarMark({super.key, required this.star, this.size = 10});
+
+  final int star;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        for (var i = 0; i < star; i++)
+          Icon(Icons.star_rounded, size: size, color: AppColors.goldBright),
+      ]);
 }

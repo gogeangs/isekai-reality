@@ -64,11 +64,17 @@ extension TavernOps on AppController {
   }
 
   /// 지금 효과가 있는 끼니. 리안과 단짝이면 다음 날 새벽까지 조금 더 (숨김)
+  /// 묶음 54: 주점 ★3 → 다음 날 낮까지 (숨김)
   Meal? get activeMeal {
     final today = todayMeal;
     if (today != null) return today;
     final now = _clock();
-    if (!_bestWith(Npc.lian) || now.hour >= TavernRules.bestUntilHour) return null;
+    final until = _star(Building.tavern, 3)
+        ? BuildingRules.mealUntilHour
+        : _bestWith(Npc.lian)
+            ? TavernRules.bestUntilHour
+            : 0;
+    if (now.hour >= until) return null;
     final yesterday =
         DailyRecord.dayKeyOf(DateTime(now.year, now.month, now.day - 1));
     return _tavern.mealDay == yesterday ? _mealOf(_tavern.meal) : null;
@@ -85,6 +91,7 @@ extension TavernOps on AppController {
   /// 한 끼를 먹는다 (하루 한 번). 못 먹으면 false
   Future<bool> eatMeal(Meal m) => _serial(() async {
         if (!tavernOpen || ateToday) return false;
+        if (!mealMenu.any((x) => x.id == m)) return false;
         final price = mealPrice(m);
         if (player.gold < price) return false;
         final today = await _todayRecord();

@@ -98,6 +98,8 @@ extension VitalsOps on AppController {
       await _highlandWalk();
       // 묶음 51: 고기 스튜 · 리안의 배낭 매듭 · 바르칸의 동전 주머니
       await _tavernWalk();
+      // 묶음 52 #243: 3막 — 다음 지역 길 · 여정 기력 · 모집권
+      await _act3Walk();
       // 묶음 45 #231: 마르타 — 하루 8,000보를 넘긴 날 (하루 한 번)
       final today = player.today;
       if (today != null &&

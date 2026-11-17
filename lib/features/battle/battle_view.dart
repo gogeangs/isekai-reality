@@ -54,10 +54,14 @@ class BattleView extends StatefulWidget {
     this.fit = false,
     this.floorLabelOf,
     this.counterOf,
+    this.allyArts = const [],
   });
 
   /// 묶음 33 #202: 화면 남은 높이에 맞춰 전투 장면을 줄인다 (스크롤 없이 한 화면)
   final bool fit;
+
+  /// 묶음 52 #243: 3막 동료 그림 (전신 그림 경로, 없으면 직업 색 동그라미) — battle.allies 순서
+  final List<({String? art, String? face, int color})> allyArts;
 
   /// 묶음 43 훈련장: 층 이름 대신 쓰는 글 (「1판 · 허수아비」 등)
   final String Function(Battle b)? floorLabelOf;
@@ -197,6 +201,7 @@ class _BattleViewState extends State<BattleView> {
       if (_b.floor != floorBefore && _b.foe.isBoss) _bossBeat++;
       _record();
       // 묶음 34: 분신의 특별한 공격 문장 (위쪽 띠 + 기록)
+      if (_b.lastAllySkill case final s?) _addLog(s);
       if (_b.lastMove case final m?) {
         _addLog(m);
         _move = m;
@@ -574,6 +579,16 @@ class _BattleViewState extends State<BattleView> {
                 season: widget.season,
                 background: widget.backgroundOf?.call(_b.floor, _b.foe) ??
                     widget.background,
+                allies: [
+                  for (var i = 0; i < _b.allies.length; i++)
+                    (
+                      art: i < widget.allyArts.length ? widget.allyArts[i].art : null,
+                      color: i < widget.allyArts.length
+                          ? widget.allyArts[i].color
+                          : 0xFF9AA6D8,
+                      down: _b.allies[i].down,
+                    ),
+                ],
               )),
               const SizedBox(height: 8),
               OrnatePanel(
@@ -691,6 +706,32 @@ class _BattleViewState extends State<BattleView> {
                   ),
                 ]),
               ),
+              // 묶음 52 #243: 3막 동료 (HP 막대 + 끼운 스킬 버튼)
+              if (_b.allies.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Row(children: [
+                  for (var i = 0; i < _b.allies.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    Expanded(
+                      child: _AllyCard(
+                        key: Key('battleAlly_$i'),
+                        ally: _b.allies[i],
+                        look: i < widget.allyArts.length ? widget.allyArts[i] : null,
+                        onSkill: _b.isOver
+                            ? null
+                            : () {
+                                if (_b.useAllySkill(i)) {
+                                  setState(() {
+                                    if (_b.lastAllySkill case final s?) _addLog(s);
+                                  });
+                                  _checkEnd();
+                                }
+                              },
+                      ),
+                    ),
+                  ],
+                ]),
+              ],
               const SizedBox(height: 10),
               // 묶음 33 #202: 버튼은 한 줄에 최대 5개 (강타·방어 태세·스킬 칸 2·펫), 이름까지
               if (_b.heroSkills) ...[
@@ -1162,7 +1203,11 @@ class _Scene extends StatefulWidget {
     this.season,
     this.background,
     this.weapon,
+    this.allies = const [],
   });
+
+  /// 묶음 52: 각성자 뒤에 서는 3막 동료 (그림 · 색 · 쓰러짐)
+  final List<({String? art, int color, bool down})> allies;
 
   /// 장면 높이 (null 이면 주어진 자리만큼)
   final double? height;
@@ -1490,6 +1535,31 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                 case final set?)
                               SetAuraPattern(set: set),
                           ]),
+                        ),
+                      ),
+                    // 묶음 52 #243: 3막 동료 둘이 각성자 뒤에 선다
+                    for (var i = widget.allies.length - 1; i >= 0; i--)
+                      Positioned(
+                        key: Key('sceneAlly_$i'),
+                        left: w * (0.0 + i * 0.12),
+                        bottom: 52 + i * 14.0,
+                        width: heroW * 0.85,
+                        height: h * 0.44,
+                        child: Opacity(
+                          opacity: widget.allies[i].down ? 0.35 : 0.95,
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: widget.allies[i].art == null
+                                ? Icon(Icons.person_rounded,
+                                    size: h * 0.3,
+                                    color: Color(widget.allies[i].color))
+                                : Image.asset(widget.allies[i].art!,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                        Icons.person_rounded,
+                                        size: h * 0.3,
+                                        color: Color(widget.allies[i].color))),
+                          ),
                         ),
                       ),
                     // 각성자 (달려들고, 맞으면 붉게 번쩍)
@@ -2357,6 +2427,13 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.guardIce => Icons.ac_unit_rounded,
         MonsterId.guardWater => Icons.waves_rounded,
         MonsterId.stoneSoldier => Icons.shield_rounded,
+        MonsterId.goblinRaider => Icons.hardware_rounded,
+        MonsterId.skeletonGuard => Icons.shield_moon_rounded,
+        MonsterId.harpy => Icons.air_rounded,
+        MonsterId.ogre => Icons.landscape_rounded,
+        MonsterId.ashHounds => Icons.pets_rounded,
+        MonsterId.ashArmor => Icons.security_rounded,
+        MonsterId.ashWolfAlpha => Icons.nights_stay_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,
@@ -2743,3 +2820,99 @@ Widget _dimmed(bool dim, Widget child) => dim
         ]),
         child: child)
     : child;
+
+
+/// 묶음 52 #243: 전투 화면 동료 칸 — 얼굴 · 이름 · HP 막대 · 끼운 스킬 버튼(게이지가 차면 누름)
+class _AllyCard extends StatelessWidget {
+  const _AllyCard({super.key, required this.ally, this.look, this.onSkill});
+
+  final BattleAlly ally;
+  final ({String? art, String? face, int color})? look;
+  final VoidCallback? onSkill;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = ally;
+    final color = Color(look?.color ?? 0xFF9AA6D8);
+    final face = look?.face;
+    return Opacity(
+      opacity: a.down ? 0.5 : 1,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+        decoration: BoxDecoration(
+          color: const Color(0xCC14163A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+        ),
+        child: Row(children: [
+          ClipOval(
+            child: Container(
+              width: 30,
+              height: 30,
+              color: color.withValues(alpha: 0.35),
+              child: face == null
+                  ? Icon(Icons.person_rounded, size: 22, color: color)
+                  : Image.asset(face,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Icon(Icons.person_rounded, size: 22, color: color)),
+            ),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(a.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                GlowBar(
+                    key: Key('allyHp_${a.id}'),
+                    ratio: a.maxHp == 0 ? 0 : a.hp / a.maxHp,
+                    colors: BarColors.hp,
+                    height: 7),
+              ],
+            ),
+          ),
+          if (a.skill case final s?) ...[
+            const SizedBox(width: 5),
+            GestureDetector(
+              key: Key('allySkill_${a.id}'),
+              onTap: a.ready ? onSkill : null,
+              child: SizedBox(
+                width: 38,
+                height: 38,
+                child: Stack(alignment: Alignment.center, children: [
+                  CircularProgressIndicator(
+                    value: a.ratio,
+                    strokeWidth: 3,
+                    color: a.ready ? AppColors.goldBright : color,
+                    backgroundColor: const Color(0x33FFFFFF),
+                  ),
+                  Icon(Icons.auto_awesome_rounded,
+                      size: 18,
+                      color: a.ready ? AppColors.goldBright : AppColors.textMuted),
+                ]),
+              ),
+            ),
+            SizedBox(
+              width: 44,
+              child: Text(s.name,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: a.ready ? AppColors.goldBright : AppColors.textMuted,
+                      fontSize: 9.5,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+}

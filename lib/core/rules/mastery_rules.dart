@@ -95,7 +95,8 @@ class MasteryRules {
         EquipBase.wardenWeapon ||
         EquipBase.frostWeapon ||
         EquipBase.ashWeapon ||
-        EquipBase.skyWeapon =>
+        EquipBase.skyWeapon ||
+        EquipBase.baldrinWeapon =>
           'sword',
         EquipBase.woodAxe || EquipBase.groveWeapon => 'axe',
         EquipBase.ironSpear || EquipBase.stormWeapon => 'spear',

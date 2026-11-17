@@ -548,6 +548,14 @@ class LootRules {
         MonsterId.guardIce ||
         MonsterId.guardWater ||
         MonsterId.stoneSoldier ||
+        // 묶음 52 3막: 저쪽 몬스터는 장비·금화를 따로 준다
+        MonsterId.goblinRaider ||
+        MonsterId.skeletonGuard ||
+        MonsterId.harpy ||
+        MonsterId.ogre ||
+        MonsterId.ashHounds ||
+        MonsterId.ashArmor ||
+        MonsterId.ashWolfAlpha ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

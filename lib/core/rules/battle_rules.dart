@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'act2_rules.dart';
+import 'act3_rules.dart';
 import 'alchemy_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
@@ -77,6 +78,57 @@ class Foe {
   ModGrade get grade => ModifierRules.gradeOf(mods);
 
   bool has(ModifierId m) => mods.contains(m);
+}
+
+/// 묶음 52 #243: 3막 동료 한 명 (각성자 옆에서 자동으로 싸우고, 끼운 스킬 버튼 하나)
+class BattleAlly {
+  BattleAlly({
+    required this.id,
+    required this.name,
+    required this.maxHp,
+    required this.attack,
+    this.skill,
+    this.chargeTicks = Act3Rules.allyCharge,
+    this.crit = 0,
+    this.element,
+    this.heal = 0,
+    this.ash = 0,
+    this.elementBonus,
+  }) : hp = maxHp;
+
+  final String id;
+  final String name;
+  final int maxHp;
+  int hp;
+  final int attack;
+
+  /// 끼운 스킬 (없으면 버튼 없음)
+  final AllySkillInfo? skill;
+  final int chargeTicks;
+  int charge = 0;
+
+  /// 치명타 확률 · 공격 속성(마법사) · 회복 배율 더 · 잿빛에게 피해 더 · 잘 다루는 속성
+  final double crit;
+  final Element? element;
+  final double heal;
+  final double ash;
+  final Element? elementBonus;
+
+  /// 자기 공격 세짐 · 자기 받는 피해 줄어듦 · 대신 맞기 (남은 턴)
+  int selfAtkTurns = 0;
+  int guardTurns = 0;
+  int tauntTurns = 0;
+
+  /// 쓰러졌다가 일어났는지 (기적은 한 번)
+  bool revived = false;
+
+  /// 이번 틱에 준 피해 · 받은 피해 (화면 연출용)
+  int lastDealt = 0;
+  int lastTaken = 0;
+
+  bool get down => hp <= 0;
+  double get ratio => (charge / chargeTicks).clamp(0, 1).toDouble();
+  bool get ready => !down && skill != null && charge >= chargeTicks;
 }
 
 class BattleRules {
@@ -260,6 +312,7 @@ class Battle {
     this.ashDealt = 0,
     this.ashTaken = 0,
     this.skyTaken = 0,
+    this.allies = const [],
   })  : floors = List.unmodifiable(floors),
         potions = {for (final p in potions) p.key: p},
         _potionLeft = {for (final p in potions) p.key: p.count},
@@ -297,6 +350,7 @@ class Battle {
     Element? weaponPotion,
     bool telegraphs = false,
     bool heroSkills = false,
+    List<BattleAlly> allies = const [],
   }) {
     final all = stats + gear.stats;
     // 펫 스킬 (11-11 #38): 쪼기는 4틱에 찬다 (정령 물약·간식이 더 빠르면 그쪽)
@@ -348,6 +402,7 @@ class Battle {
       weaponPotion: weaponPotion,
       telegraphs: telegraphs,
       heroSkills: heroSkills,
+      allies: allies,
       floors: floors,
       rng: rng,
       skillChargeTicks: ticks,
@@ -514,6 +569,239 @@ class Battle {
 
   /// 묶음 50: 하이랜드 수호 기사 세트 4개 — 바람·번개·빛·얼음·물 공격에 받는 피해 감소
   final double skyTaken;
+
+  // ───────────── 3막 동료 (묶음 52 #243, 숨은 규칙)
+
+  final List<BattleAlly> allies;
+
+  /// 아군 모두 공격 세짐 · 받는 피해 줄어듦 (남은 턴, 동료 스킬)
+  int partyAtkTurns = 0;
+  double partyAtkMult = 1;
+  int partyDefTurns = 0;
+  double partyDefMult = 1;
+
+  /// 아군 모두 다음 공격 세짐 (배율, 1이면 없음)
+  double partyNext = 1;
+
+  /// 등불 들기: 빗나가지 않음 + 잿빛·어둠에게 피해 더 (남은 턴)
+  int lampTurns = 0;
+  double lampMult = 1;
+
+  /// 되받아치기 (남은 턴)
+  int counterTurns = 0;
+
+  /// 이기면 전리품 하나 더 (훔치기)
+  bool extraLoot = false;
+
+  /// 이번 틱에 동료가 쓴 스킬 이름 (화면 띠)
+  String? lastAllySkill;
+
+  List<BattleAlly> get alliesUp => [for (final a in allies) if (!a.down) a];
+
+  double get _allyFoeMult {
+    var m = partyAtkTurns > 0 ? partyAtkMult : 1.0;
+    if (lampTurns > 0 && (foeIsAsh || foe.element == Element.dark)) m *= lampMult;
+    return m;
+  }
+
+  /// 동료 한 명의 보통 공격
+  void _allyHit(BattleAlly a, double mult, {bool crit = false, Element? element}) {
+    if (phase != BattlePhase.fighting || a.down) return;
+    var d = _vary(a.attack) * mult * _allyFoeMult;
+    if (a.selfAtkTurns > 0) d *= 1.5;
+    if (a.ash > 0 && foeIsAsh) d *= 1 + a.ash;
+    final el = element ?? a.element;
+    if (el != null && a.elementBonus == el) d *= 1.15;
+    if (crit || (a.crit > 0 && _rng.nextDouble() < a.crit)) d *= StatRules.critMultiplier;
+    var dmg = math.max(1, d.round());
+    if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
+    if (foeBreakTurns > 0) dmg = (dmg * breakTaken).round();
+    if (el != null) dmg = _elemental(dmg, el, level: 0);
+    a.lastDealt += dmg;
+    _hitFoe(dmg);
+    _checkRage();
+  }
+
+  /// 동료들이 차례로 친다 (각성자 차례 뒤)
+  void _alliesTurn() {
+    for (final a in allies) {
+      a.lastDealt = 0;
+      a.lastTaken = 0;
+      if (a.down || phase != BattlePhase.fighting) continue;
+      final next = partyNext;
+      _allyHit(a, next);
+      if (a.charge < a.chargeTicks) a.charge++;
+    }
+    partyNext = 1;
+  }
+
+  /// 동료 스킬 (게이지가 차면 누름). 쓸 수 없으면 false
+  bool useAllySkill(int i) {
+    if (i < 0 || i >= allies.length || phase != BattlePhase.fighting) return false;
+    final a = allies[i];
+    final s = a.skill;
+    if (!a.ready || s == null) return false;
+    a.charge = 0;
+    lastAllySkill = '${a.name} · ${s.name}!';
+    lastEvent = lastAllySkill;
+    switch (s.kind) {
+      case AllySkillKind.hit:
+        _allyHit(a, s.power);
+      case AllySkillKind.hits:
+        for (var k = 0; k < s.hits; k++) {
+          _allyHit(a, s.power);
+        }
+      case AllySkillKind.crit:
+        _allyHit(a, s.power, crit: true);
+      case AllySkillKind.stun:
+        _allyHit(a, s.power);
+        _foeBound = true;
+      case AllySkillKind.partyAtk:
+        partyAtkTurns = s.turns;
+        partyAtkMult = s.power;
+        rallyTurns = math.max(rallyTurns, s.turns);
+      case AllySkillKind.partyDef:
+        partyDefTurns = s.turns;
+        partyDefMult = s.power;
+      case AllySkillKind.partyNext:
+        partyNext = s.power;
+        nextHitMult = math.max(nextHitMult, s.power);
+      case AllySkillKind.lamp:
+        lampTurns = s.turns;
+        lampMult = s.power;
+      case AllySkillKind.partyCount:
+        final n = 1 + alliesUp.length;
+        for (var k = 0; k < n; k++) {
+          _allyHit(a, s.power);
+        }
+      case AllySkillKind.rally:
+        partyAtkTurns = s.turns;
+        partyAtkMult = s.power;
+        partyDefTurns = s.turns;
+        partyDefMult = 0.7;
+        rallyTurns = math.max(rallyTurns, s.turns);
+        if (heroSkills) bashCharge = bashTicks;
+      case AllySkillKind.selfAtk:
+        a.selfAtkTurns = s.turns;
+      case AllySkillKind.lowHp:
+        _allyHit(a, s.power * (1 + (1 - a.hp / a.maxHp) * 1.5));
+      case AllySkillKind.fullHp:
+        _allyHit(a, foeHp >= foe.maxHp ? s.power : s.power * 0.4);
+      case AllySkillKind.element:
+        _allyHit(a, s.power, element: a.element ?? a.elementBonus);
+      case AllySkillKind.weak:
+        final el = a.element ?? a.elementBonus;
+        final e = foe.element;
+        final weak = el != null && e != null && ElementRules.beats(el).contains(e);
+        _allyHit(a, weak ? s.power : s.power * 0.45, element: el);
+      case AllySkillKind.barrier:
+        dodgeNext = true;
+      case AllySkillKind.healOne:
+        _healOne(s.power * (1 + a.heal));
+      case AllySkillKind.healAll:
+        _healAll(s.power * (1 + a.heal));
+      case AllySkillKind.regen:
+        regenTurns = math.max(regenTurns, s.turns);
+      case AllySkillKind.cleanse:
+        poisonTurns = 0;
+        frozen = false;
+        _healAll(0.05 * (1 + a.heal));
+      case AllySkillKind.miracle:
+        for (final x in allies) {
+          if (x.down && !x.revived) {
+            x.revived = true;
+            x.hp = math.max(1, (x.maxHp * 0.3).round());
+            break;
+          }
+        }
+        _healAll(s.power * (1 + a.heal));
+      case AllySkillKind.steal:
+        _allyHit(a, s.power);
+        extraLoot = true;
+      case AllySkillKind.poison:
+        _allyHit(a, 0.6);
+        foeDotTurns = s.turns;
+        foeDotRatio = s.power;
+      case AllySkillKind.breakDef:
+        _allyHit(a, s.power);
+        foeBreakTurns = math.max(foeBreakTurns, 2);
+      case AllySkillKind.taunt:
+        a.tauntTurns = s.turns;
+      case AllySkillKind.guardSelf:
+        a.guardTurns = s.turns;
+      case AllySkillKind.oath:
+        shieldHits += 2;
+        counterTurns = s.turns;
+    }
+    return true;
+  }
+
+  void _healOne(double ratio) {
+    // 가장 많이 다친 쪽 (각성자 포함)
+    BattleAlly? low;
+    var lowRatio = playerHp / playerMaxHp;
+    for (final x in alliesUp) {
+      final r = x.hp / x.maxHp;
+      if (r < lowRatio) {
+        low = x;
+        lowRatio = r;
+      }
+    }
+    if (low == null) {
+      final before = playerHp;
+      playerHp = math.min(playerMaxHp, playerHp + (playerMaxHp * ratio).round());
+      _healed(playerHp - before);
+    } else {
+      low.hp = math.min(low.maxHp, low.hp + (low.maxHp * ratio).round());
+    }
+  }
+
+  void _healAll(double ratio) {
+    final before = playerHp;
+    playerHp = math.min(playerMaxHp, playerHp + (playerMaxHp * ratio).round());
+    _healed(playerHp - before);
+    for (final x in alliesUp) {
+      x.hp = math.min(x.maxHp, x.hp + (x.maxHp * ratio).round());
+    }
+  }
+
+  /// 몬스터 공격이 동료에게 갔으면 그 동료 (각성자면 null). 대신 맞는 동료가 먼저
+  BattleAlly? _foeTarget() {
+    final up = alliesUp;
+    if (up.isEmpty) return null;
+    for (final a in up) {
+      if (a.tauntTurns > 0) return a;
+    }
+    if (_rng.nextDouble() >= Act3Rules.foeTargetsAlly) return null;
+    return up[_rng.nextInt(up.length)];
+  }
+
+  /// 동료가 맞는다
+  void _allyTaken(BattleAlly a, double atk) {
+    var x = atk;
+    if (partyDefTurns > 0) x *= partyDefMult;
+    if (a.guardTurns > 0) x *= 0.4;
+    final taken = _vary(math.max(1, x.round()));
+    a.hp = math.max(0, a.hp - taken);
+    a.lastTaken += taken;
+    if (counterTurns > 0) _allyHit(a, 0.5);
+  }
+
+  /// 틱 끝: 동료 쪽 남은 턴
+  void _alliesTickEnd() {
+    if (partyAtkTurns > 0) partyAtkTurns--;
+    if (partyDefTurns > 0) partyDefTurns--;
+    if (lampTurns > 0) lampTurns--;
+    if (counterTurns > 0) counterTurns--;
+    for (final a in allies) {
+      if (a.selfAtkTurns > 0) a.selfAtkTurns--;
+      if (a.guardTurns > 0) a.guardTurns--;
+      if (a.tauntTurns > 0) a.tauntTurns--;
+      if (regenTurns > 0 && !a.down) {
+        a.hp = math.min(a.maxHp, a.hp + math.max(1, (a.maxHp * 0.04).round()));
+      }
+    }
+  }
 
   // ───────────── 하이랜드 수호자 (묶음 50 #146, 숨은 규칙)
 
@@ -1384,6 +1672,7 @@ class Battle {
     lastSuper = false;
     lastHealed = 0;
     lastMove = null;
+    lastAllySkill = null;
     if (skillLockTurns > 0) skillLockTurns--;
     _ashMove();
     lastDealt = 0;
@@ -1453,6 +1742,12 @@ class Battle {
       _checkRage();
     }
     if (phase != BattlePhase.fighting) return;
+
+    // 묶음 52 #243: 3막 동료들이 차례로 친다
+    if (allies.isNotEmpty) {
+      _alliesTurn();
+      if (phase != BattlePhase.fighting) return;
+    }
 
     if (!foeFirst) {
       _foeTurn();
@@ -1558,6 +1853,7 @@ class Battle {
       }
     }
     if (rallyTurns > 0) rallyTurns--;
+    if (allies.isNotEmpty) _alliesTickEnd();
     _guard = null;
     _prepareStrong();
   }
@@ -1608,6 +1904,15 @@ class Battle {
       atk *= 1 + Act2Rules.rageMax * (1 - foeHp / f.maxHp);
     }
     if (stolenTurns > 0) atk *= Act2Rules.stolenAttack;
+    // 묶음 52 #243: 3막 동료가 있으면 가끔 동료를 노린다 (대신 맞는 동료가 먼저)
+    if (allies.isNotEmpty) {
+      final target = _foeTarget();
+      if (target != null) {
+        _allyTaken(target, atk);
+        if (target.down) lastEvent = '동료가 쓰러졌어요!';
+        return;
+      }
+    }
     if (ashTaken > 0 && foeIsAsh) atk *= 1 - ashTaken;
     if (skyTaken > 0 &&
         f.element != null &&
@@ -1616,6 +1921,7 @@ class Battle {
     }
     if (stanceTurns > 0) atk *= stanceTaken;
     if (wallTurns > 0) atk *= wallTaken;
+    if (partyDefTurns > 0) atk *= partyDefMult;
     if (f.has(ModifierId.enraged) && foeHp * 2 < f.maxHp) atk *= 1.5;
     if (f.has(ModifierId.charging) && !_charged) {
       atk *= 2;

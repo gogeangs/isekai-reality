@@ -15,6 +15,7 @@ import 'core/models/daily_record.dart';
 import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
 import 'core/models/tavern_state.dart';
+import 'core/models/act3_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -42,6 +43,7 @@ import 'features/map/korea_area.dart';
 import 'features/status/demo_data.dart';
 
 part 'controller/act2.dart';
+part 'controller/act3.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
@@ -578,6 +580,8 @@ class AppController extends ChangeNotifier {
     _highland = await _load(_highlandKey, HighlandState.fromJson, const HighlandState());
     // 묶음 51 #242: 주점 (없으면 처음부터. 만남·거래소는 마을 기록 'meet'·'market')
     _tavern = await _load(_tavernKey, TavernState.fromJson, const TavernState());
+    // 묶음 52 #243: 3막 (없으면 처음부터, 3막이 열리기 전 걸음은 셈하지 않음)
+    _act3 = await _load(_act3Key, Act3State.fromJson, const Act3State());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -787,6 +791,10 @@ class AppController extends ChangeNotifier {
   /// 묶음 50 #146: 하이랜드 ('highland')
   static const _highlandKey = 'highland';
   HighlandState _highland = const HighlandState();
+
+  /// 묶음 52 #243: 3막 ('act3')
+  static const _act3Key = 'act3';
+  Act3State _act3 = const Act3State();
 
   /// 묶음 51 #242: 주점 ('tavern')
   static const _tavernKey = 'tavern';

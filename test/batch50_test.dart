@@ -519,6 +519,8 @@ void main() {
                 player: c.player,
                 skyStones: [HighlandRules.isles[0].inscription, null, null, null, null]))));
     await tester.pump(const Duration(milliseconds: 200));
+    await tester.scrollUntilVisible(find.byKey(const Key('skyStone_4')), 300,
+        scrollable: find.byType(Scrollable).first);
     expect(find.byKey(const Key('skyStoneRecords')), findsOneWidget);
     expect(find.text('아직 읽지 못한 비문'), findsNWidgets(4));
     await tester.pump(const Duration(seconds: 9));

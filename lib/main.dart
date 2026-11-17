@@ -101,6 +101,7 @@ class AppBinder {
       }
       // 묶음 56: 파티 · 문의 서버 (문의는 로그인 없이도)
       c.arcaApi = HttpArcaApi();
+      c.consentGate = true; // 묶음 57: 처음 시작 · 바뀐 약관 동의
       c.onRestored = () => _restart(c);
     }
     if (from != null) {

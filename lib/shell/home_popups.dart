@@ -31,9 +31,59 @@ extension _ShellPopups on _HomeShellState {
         ),
       );
       await widget.controller.acknowledgeLevelUp();
+      // 묶음 57: 「기록 지키기」 — 정령이 로그인을 권함 (로그인 → 백업 동의)
+      final ask = widget.controller.loginAskFor(pending.from, pending.to);
+      if (ask != null && mounted) {
+        await widget.controller.markLoginAsked(ask);
+        if (mounted) await _keepRecord(ask);
+      }
       _levelUpShowing = false;
       _kick();
     });
+  }
+
+  Future<void> _keepRecord(int level) async {
+    final c = widget.controller;
+    final yes = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (d) => GameAlert(
+        key: const Key('keepRecord'),
+        title: Text('${c.firstSpiritName} · 기록 지키기'),
+        content: KText(
+            level >= 8
+                ? '아직 우리 기록이 이 휴대폰에만 있어. 휴대폰을 바꾸거나 앱을 지우면 사라져. 지금 지켜 둘래?'
+                : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.',
+            style: const TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          TextButton(
+              key: const Key('keepRecordLogin'),
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('로그인')),
+          TextButton(
+              key: const Key('keepRecordLater'),
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('나중에')),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    final p = await showModalBottomSheet<LoginProvider>(
+      context: context,
+      backgroundColor: AppColors.deepNight,
+      builder: (s) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (final p in c.loginProviders) ...[
+              LoginButton(provider: p, onPressed: () => Navigator.pop(s, p)),
+              const SizedBox(height: 8),
+            ],
+          ]),
+        ),
+      ),
+    );
+    if (p != null && mounted) await signInFlow(context, c, p);
   }
 
   /// 휴식이 끝났거나 정령이 돌아왔으면 한 번 알려 준다

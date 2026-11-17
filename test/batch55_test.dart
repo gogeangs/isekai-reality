@@ -291,7 +291,10 @@ void main() {
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
       late Rig r;
-      await tester.runAsync(() async => r = await start(account()));
+      await tester.runAsync(() async {
+        r = await start(account());
+        await r.c.agreeBackup(); // 묶음 57: 백업 동의는 batch57 시험에서
+      });
       await tester.pumpWidget(MaterialApp(
           builder: (context, child) => TopNoticeHost(child: child!),
           home: Scaffold(body: ListView(children: [AccountSection(controller: r.c)]))));

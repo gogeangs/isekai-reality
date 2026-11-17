@@ -1,0 +1,115 @@
+// 묶음 57: 약관 · 동의 — 문서 판(버전)과 적용일, 바뀔 때 알리는 날
+//
+// 문서를 고칠 때: 아래 목록에 같은 문서의 새 판을 더한다(지난 판은 지우지 않음).
+//  - 적용일 7일 전부터(불리하게 바뀌면 30일 전부터) 배너 · 우편으로 알린다
+//  - 적용일이 지나 처음 켜면, 바뀐 문서만 다시 동의를 받는다
+//  - 글은 assets/legal/<파일>.txt 를 그 판으로 바꿔 둔다
+
+/// 동의를 받는 문서 · 설정에서 보는 문서
+enum LegalKind {
+  terms('이용약관', 'assets/legal/terms.txt', required: true),
+  privacy('개인정보 처리방침', 'assets/legal/privacy.txt', required: true),
+  location('위치기반서비스 이용약관', 'assets/legal/location_terms.txt', required: true),
+  operation('운영정책', 'assets/legal/operation.txt', required: false);
+
+  const LegalKind(this.title, this.asset, {required this.required});
+  final String title;
+  final String asset;
+
+  /// 처음 시작할 때 동의를 받는 문서 (운영정책은 설정에서 보기만)
+  final bool required;
+
+  static LegalKind? parse(String s) {
+    for (final k in values) {
+      if (k.name == s) return k;
+    }
+    return null;
+  }
+}
+
+/// 문서 한 판
+class LegalVersion {
+  const LegalVersion(this.kind, this.version, this.effective, {this.unfavorable = false, this.summary = ''});
+  final LegalKind kind;
+  final int version;
+
+  /// 적용일 (그날 0시, 한국 시각)
+  final DateTime effective;
+
+  /// 이용자에게 불리하게 바뀜 → 30일 전에 알림
+  final bool unfavorable;
+
+  /// 바뀐 점 한 줄 (알림 · 다시 동의 창)
+  final String summary;
+
+  String get key => '${kind.name}@$version';
+  int get noticeDays => unfavorable ? 30 : 7;
+  DateTime get noticeFrom => effective.subtract(Duration(days: noticeDays));
+}
+
+abstract final class LegalRules {
+  /// 모든 판 (문서마다 오래된 것부터)
+  static final List<LegalVersion> history = [
+    LegalVersion(LegalKind.terms, 1, DateTime(2026, 11, 17)),
+    LegalVersion(LegalKind.privacy, 1, DateTime(2026, 11, 17)),
+    LegalVersion(LegalKind.location, 1, DateTime(2026, 11, 17)),
+    LegalVersion(LegalKind.operation, 1, DateTime(2026, 11, 17)),
+  ];
+
+  /// 로그인 백업 동의 판 (문구가 바뀌면 올림)
+  static const int backupVersion = 1;
+
+  /// 시험용: 판 목록 바꿔 끼우기
+  static List<LegalVersion>? testHistory;
+  static List<LegalVersion> get _all => testHistory ?? history;
+
+  static DateTime _day(DateTime t) => DateTime(t.year, t.month, t.day);
+
+  /// [now] 에 적용 중인 판 (적용일이 지난 가장 새 판)
+  static LegalVersion current(LegalKind k, DateTime now) {
+    LegalVersion? best;
+    for (final v in _all) {
+      if (v.kind != k || v.effective.isAfter(_day(now))) continue;
+      if (best == null || v.version > best.version) best = v;
+    }
+    return best ?? _all.firstWhere((v) => v.kind == k);
+  }
+
+  /// 곧 적용될 판 (알림 기간 안) — 없으면 null
+  static LegalVersion? upcoming(LegalKind k, DateTime now) {
+    final cur = current(k, now);
+    LegalVersion? next;
+    for (final v in _all) {
+      if (v.kind != k || v.version <= cur.version) continue;
+      if (_day(now).isBefore(v.noticeFrom)) continue;
+      if (next == null || v.version < next.version) next = v;
+    }
+    return next;
+  }
+
+  /// 알릴 것 (알림 기간 안의 새 판들)
+  static List<LegalVersion> notices(DateTime now) => [
+        for (final k in LegalKind.values)
+          if (upcoming(k, now) case final v?) v,
+      ];
+
+  /// 다시(또는 처음) 동의받을 문서: 동의한 판이 지금 판보다 낮은 필수 문서
+  static List<LegalVersion> needed(Map<LegalKind, int> agreed, DateTime now) => [
+        for (final k in LegalKind.values)
+          if (k.required && (agreed[k] ?? 0) < current(k, now).version) current(k, now),
+      ];
+
+  static String dateLabel(DateTime d) => '${d.year}년 ${d.month}월 ${d.day}일';
+
+  /// 사업자 정보 (설정 「약관 · 정책」 아래)
+  static const businessLines = [
+    '상호 주식회사 프로젝트서티즈 · 대표 고경민',
+    '사업자등록번호 156-81-03105',
+    '경기도 안산시 상록구 한양대학로 55 창업보육센터 524호',
+    'biz@project30s.co.kr · 개인정보 보호책임자 김지원',
+  ];
+
+  /// 파티 「함께 있어요」 위치 안내 (처음 파티 화면에서 한 번)
+  static const partyLocationNotice =
+      '함께 있어요는 내 위치 대신 약 100m 칸 번호만 10분 동안 써요. 파티원에게 내 위치는 보이지 않아요.';
+}

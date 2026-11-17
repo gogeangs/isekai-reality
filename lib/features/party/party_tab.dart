@@ -34,7 +34,31 @@ class _PartyTabState extends State<PartyTab> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refresh();
+      _locationNotice();
+    });
+  }
+
+  /// 묶음 57: 처음 파티 화면을 열면 위치 안내 한 번
+  Future<void> _locationNotice() async {
+    if (c.partyNoticeSeen || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (d) => GameAlert(
+        key: const Key('partyLocationNotice'),
+        title: const Text('함께 있어요 안내'),
+        content: Text(keepAll(LegalRules.partyLocationNotice),
+            style: const TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          TextButton(
+              key: const Key('partyLocationOk'),
+              onPressed: () => Navigator.pop(d),
+              child: const Text('확인')),
+        ],
+      ),
+    );
+    await c.markPartyNotice();
   }
 
   @override

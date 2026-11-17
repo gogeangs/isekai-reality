@@ -44,6 +44,7 @@ Future<(AppController, FakeArca)> start({
     ..backupServer = (FakeBackupServer()..time = now.toUtc())
     ..arcaApi = a;
   await c.init();
+  await c.markPartyNotice(); // 묶음 57: 파티 위치 안내는 batch57 시험에서
   if (login) await c.signInCloud(LoginProvider.google);
   return (c, a);
 }

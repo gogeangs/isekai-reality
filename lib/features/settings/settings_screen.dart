@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../app_config.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
+import '../../core/rules/legal_rules.dart';
 import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -215,28 +216,24 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          // 묶음 57: 약관 4개 (문서 원문) + 사업자 정보
           _Section(
             title: '약관 · 정책',
             children: [
-              _Row(
-                label: LegalDoc.operation.title,
-                value: '',
-                onTap: () => LegalScreen.open(context, LegalDoc.operation),
-              ),
-              _Row(
-                label: LegalDoc.terms.title,
-                value: '',
-                onTap: () => LegalScreen.open(context, LegalDoc.terms),
-              ),
-              _Row(
-                label: LegalDoc.privacy.title,
-                value: '',
-                onTap: () => LegalScreen.open(context, LegalDoc.privacy),
-              ),
-              _Row(
-                label: LegalDoc.locationTerms.title,
-                value: '',
-                onTap: () => LegalScreen.open(context, LegalDoc.locationTerms),
+              for (final d in const [LegalDoc.operation, LegalDoc.terms, LegalDoc.privacy, LegalDoc.locationTerms])
+                _Row(
+                  key: Key('settingsLegal_${d.name}'),
+                  label: d.title,
+                  value: '',
+                  onTap: () => LegalScreen.open(context, d),
+                ),
+              Padding(
+                key: const Key('settingsBusiness'),
+                padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  for (final l in LegalRules.businessLines)
+                    Text(l, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.5)),
+                ]),
               ),
             ],
           ),

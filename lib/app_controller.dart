@@ -18,6 +18,7 @@ import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
 import 'core/models/tavern_state.dart';
 import 'core/models/building_state.dart';
+import 'core/models/consent_state.dart';
 import 'core/models/party_state.dart';
 import 'core/models/act3_state.dart';
 import 'core/models/gather_state.dart';
@@ -60,6 +61,7 @@ part 'controller/cloud.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
 part 'controller/inquiry.dart';
+part 'controller/legal.dart';
 part 'controller/party.dart';
 part 'controller/buildings.dart';
 part 'controller/drive.dart';
@@ -177,6 +179,10 @@ class AppController extends ChangeNotifier {
 
   /// 묶음 56: 아르카 서버 (파티 · 문의). Firebase 설정이 없는 빌드 · 테스트는 null
   ArcaApi? arcaApi;
+
+  /// 묶음 57: 처음 시작 · 바뀐 약관 동의 창을 띄울지 (앱은 켬, 시험은 필요할 때만)
+  bool consentGate = false;
+  ConsentState _consent = const ConsentState();
   PartyView? _partyView;
   PartyLocal _partyLocal = const PartyLocal();
   String? _partyError;
@@ -406,6 +412,7 @@ class AppController extends ChangeNotifier {
     _loadIssues.clear();
     // 묶음 55 #245: 로그인 상태 · 마지막 서버 시간 차이 (그 뒤 서버 시간을 새로 받음)
     await _loadCloud();
+    await _loadConsent();
     unawaited(refreshServerTime());
     _ageBlocked = await _load(_ageKey, (j) => j['blocked'] == true, false);
     final saved = await store.loadProfile();
@@ -681,6 +688,7 @@ class AppController extends ChangeNotifier {
     _ready = true;
     // 묶음 56: 기록을 다 읽은 뒤 한 번 더 (걸음으로 쌓이는 것들 — 켜는 중에는 건너뜀)
     await refreshVitals();
+    await checkLegalNotices();
     notifyListeners();
   }
 

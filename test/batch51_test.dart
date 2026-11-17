@@ -347,6 +347,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 700));
       }
       expect(c.tavernOpen, isTrue);
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 400));
+      }
       expect(find.byKey(const Key('meetScreen')), findsNothing);
       await tester.pump(const Duration(seconds: 9));
     });

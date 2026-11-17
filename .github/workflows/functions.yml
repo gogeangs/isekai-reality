@@ -51,9 +51,14 @@ jobs:
           npm ci || npm install
           npm test
 
-      - name: 함수 배포
-        working-directory: firebase
-        run: npx -y firebase-tools@14 deploy --only functions --project arca-d0cab --non-interactive --force
+      - name: 함수 배포 (gcloud, 2세대 · 서울)
+        run: |
+          gcloud functions deploy api --gen2 --runtime nodejs22 --region asia-northeast3 \
+            --source firebase/functions --entry-point api --trigger-http --allow-unauthenticated \
+            --memory 512Mi --max-instances 10 --project arca-d0cab --quiet
+          URL=$(gcloud functions describe api --gen2 --region asia-northeast3 --project arca-d0cab --format='value(serviceConfig.uri)')
+          echo "함수 주소: $URL"
+          curl -sS "$URL/ping"
 
       - name: 서비스 계정 파일 지우기
         if: always()

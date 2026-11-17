@@ -41,11 +41,60 @@ jobs:
           echo "바뀐 곳이 그림·README 뿐이면 건너뜀 → full=$full"
           echo "full=$full" >> "$GITHUB_OUTPUT"
 
+  # 11-17: 빨리 알기 — 가장 새 묶음 시험(캡처 빼고)과 코드 분석을 먼저 돌려 틀리면 1~2분 안에 전체를 멈춘다
+  quick:
+    needs: changes
+    if: needs.changes.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 패키지 설치
+        run: flutter pub get
+
+      - name: 코드 분석
+        run: flutter analyze --no-fatal-infos 2>&1 | tee analyze-output.txt; exit ${PIPESTATUS[0]}
+        shell: bash
+
+      - name: 가장 새 묶음 시험
+        shell: bash
+        run: |
+          f=$(ls test/batch*_test.dart | grep -v shots | sed -E 's/.*batch([0-9]+)_test.dart/\1 &/' | sort -n | tail -1 | cut -d' ' -f2)
+          echo "먼저 돌리는 시험: $f"
+          flutter test --reporter expanded --timeout 4m "$f"
+
+      - name: 틀리면 전체 멈추기
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analyze
+          path: analyze-output.txt
+          if-no-files-found: ignore
+
+  # 11-17: 전체 시험을 넷으로 나눠 동시에 (8분 → 2~3분)
   test:
     needs: changes
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v5
 
@@ -55,6 +104,7 @@ jobs:
           cache: true
 
       - name: Flutter 버전
+        if: matrix.shard == 0
         run: flutter --version
 
       # 묶음 17 #145: 새로 올린 PNG·JPG 그림을 WebP 로 (이미 바꾼 그림은 건너뜀)
@@ -67,35 +117,55 @@ jobs:
         run: flutter pub get
 
       - name: 플러그인 API 메모
+        if: matrix.shard == 0
         shell: bash
         run: |
           { for n in camera google_mlkit_face_detection google_mlkit_commons gal share_plus; do
               d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name "${n}-*" | sort -V | tail -1); echo "== $d"
             done
-            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'gal-*' | sort -V | tail -1); grep -rn "static Future" "$d/lib" | sed "s#$d/##"
-            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'share_plus-*' | sort -V | tail -1); grep -rn "class ShareParams\|Future<ShareResult> share\|static.*instance" "$d/lib" | sed "s#$d/##"
-            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'google_mlkit_commons-*' | sort -V | tail -1); grep -rn "factory InputImage\|class InputImageMetadata" -A8 "$d/lib" | sed "s#$d/##" | head -60
-            d=$(find ~/.pub-cache/hosted -maxdepth 2 -type d -name 'google_mlkit_face_detection-*' | sort -V | tail -1); grep -n "FaceDetectorOptions({" -A12 "$d/lib/src/face_detector.dart"; grep -n "final .* boundingBox\|headEulerAngleZ\|trackingId" "$d/lib/src/face_detector.dart"; grep -rn "ios, '\|platform :ios\|s.platform\|ios.deployment_target" "$d/ios" 2>/dev/null
           } > api-notes.txt 2>&1 || true
 
-      - name: 코드 분석
-        run: flutter analyze --no-fatal-infos 2>&1 | tee analyze-output.txt; exit ${PIPESTATUS[0]}
+      - name: 테스트 (${{ matrix.shard }}/4)
+        run: |
+          flutter test --reporter expanded --timeout 4m --total-shards 4 --shard-index ${{ matrix.shard }} \
+            2>&1 | tee test-output-${{ matrix.shard }}.txt; exit ${PIPESTATUS[0]}
         shell: bash
 
-      - name: 테스트
-        run: flutter test --reporter expanded --timeout 4m 2>&1 | tee test-output.txt; exit ${PIPESTATUS[0]}
-        shell: bash
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            test-output-${{ matrix.shard }}.txt
+            api-notes.txt
+            build/screenshots
+            build/reports
+          if-no-files-found: ignore
+
+  # 넷으로 나눈 결과를 모아 ci-results 브랜치에 저장 (화면 미리보기 · 밸런스 보고서 포함)
+  results:
+    needs: [changes, quick, test]
+    if: always() && github.event_name == 'push' && needs.changes.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
 
       - name: 결과를 ci-results 브랜치에 저장
-        if: always() && github.event_name == 'push'
         shell: bash
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p /tmp/ci
-          cp analyze-output.txt test-output.txt api-notes.txt /tmp/ci/ 2>/dev/null || true
-          cp -r build/screenshots /tmp/ci/screenshots 2>/dev/null || true
-          cp -r build/reports /tmp/ci/reports 2>/dev/null || true
+          mkdir -p /tmp/ci/screenshots /tmp/ci/reports
+          cp art/analyze/analyze-output.txt /tmp/ci/ 2>/dev/null || true
+          for d in art/shard-*; do
+            [ -d "$d" ] || continue
+            cat "$d"/test-output-*.txt >> /tmp/ci/test-output.txt 2>/dev/null || true
+            cp "$d"/api-notes.txt /tmp/ci/ 2>/dev/null || true
+            cp -r "$d"/build/screenshots/. /tmp/ci/screenshots/ 2>/dev/null || true
+            cp -r "$d"/build/reports/. /tmp/ci/reports/ 2>/dev/null || true
+          done
           echo "${GITHUB_SHA}" > /tmp/ci/commit.txt
           cd /tmp/ci
           git init -q -b ci-results

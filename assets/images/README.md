@@ -332,3 +332,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | ally_lian, ally_garen | 3막 동료 전투 전신(리안·가렌), 같은 배율·발끝 y=1012 맞춤, 768×1024 |
 | 2026-11-17 | map_region_baldrin | 발드린 관문 지역 지도 1024×1536. 장소 대략 위치(x,y): 다리 끝 512,1180 · 야영지 470,880 · 잿빛 들판 150,720 · 성벽길 850,700 · 은빛 늑대 언덕 110,230 · 요새 입구 550,260 · 바람의 굴 920,240 |
 | 2026-11-17 | equip_baldrin{Weapon,Head,Body,Hands,Feet,Acc} | 발드린 문지기 세트 6부위, 시트 분할 512 |
+| 2026-11-17 | monster_goblinRaider, monster_skeletonGuard, monster_harpy, monster_ogre | 발드린 일반 몬스터 4종, 시트 분할 512 |

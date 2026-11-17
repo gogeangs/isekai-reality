@@ -88,6 +88,7 @@ class CloudState {
         if (hash != null) 'hash': hash,
         if (choosing) 'choosing': true,
         if (keptAt != null) 'keptAt': keptAt!.toUtc().toIso8601String(),
+        if (cancelledDelete) 'cancelledDelete': true,
       };
 
   static CloudState fromJson(Map<String, dynamic> j) => CloudState(
@@ -98,6 +99,7 @@ class CloudState {
         hash: (j['hash'] as num?)?.toInt(),
         choosing: j['choosing'] == true,
         keptAt: DateTime.tryParse('${j['keptAt'] ?? ''}'),
+        cancelledDelete: j['cancelledDelete'] == true,
       );
 }
 
@@ -417,6 +419,7 @@ extension CloudOps on AppController {
   void markDeleteCancelSeen() {
     if (!_cloud.cancelledDelete) return;
     _cloud = _cloud.copyWith(cancelledDelete: false);
+    unawaited(_saveCloud());
     _notify();
   }
 

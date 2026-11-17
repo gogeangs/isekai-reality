@@ -395,6 +395,8 @@ class AppController extends ChangeNotifier {
       return;
     }
     _profile = saved;
+    // 묶음 55: 서버 기록으로 바꾼 뒤 다시 읽을 때 (처음 화면이 아님)
+    _needsAwakening = false;
     await _startPlaying();
   }
 

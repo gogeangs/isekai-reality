@@ -53,6 +53,16 @@ class AccountSection extends StatelessWidget {
               ] else ...[
                 _line('로그인', '${s.label ?? ''} · ${s.provider == LoginProvider.apple ? 'Apple' : 'Google'}',
                     key: const Key('accountWho')),
+                if (s.cancelledDelete)
+                  InkWell(
+                    key: const Key('accountDeleteCancelled'),
+                    onTap: c.markDeleteCancelSeen,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Text('다시 로그인해서 계정 삭제를 취소했어요. (눌러서 닫기)',
+                          style: TextStyle(color: AppColors.goldBright, fontSize: 13.5)),
+                    ),
+                  ),
                 if (s.choosing) ...[
                   const SizedBox(height: 6),
                   Text(keepAll('두 기록 중 이어 할 기록을 아직 고르지 않았어요. 고르기 전까지는 백업하지 않아요.'),

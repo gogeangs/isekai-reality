@@ -106,9 +106,6 @@ jobs:
             gcloud firestore fields ttls update expireAt --collection-group=$g --enable-ttl --project=arca-d0cab --async --quiet || echo "::warning::TTL($g) 실패"
           done
 
-o "함수 주소: $URL"
-          curl -sS "$URL/ping"
-
       - name: 서비스 계정 파일 지우기
         if: always()
         run: rm -f "$RUNNER_TEMP/sa.json"

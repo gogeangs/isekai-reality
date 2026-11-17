@@ -72,7 +72,7 @@ class VillageScreen extends StatefulWidget {
   static const Rect tower = Rect.fromLTWH(738, 12, 72, 195);
 
   /// 묶음 52 #243: 탑 오른쪽 뒤 빛의 다리 (이름표 자리, 그림 픽셀)
-  static const Offset bridge = Offset(985, 150);
+  static const Offset bridge = Offset(905, 150);
 
   /// 건물 3×3 묶음 (가운데 칸은 우물). 처음 들어올 때 이 가운데에 맞춘다
   static const Rect cluster = Rect.fromLTRB(565, 370, 975, 775);

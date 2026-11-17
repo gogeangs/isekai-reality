@@ -128,6 +128,8 @@ void main() {
       await tester.tap(find.byKey(const Key('place_baldrin_ashplain')));
       await _settle(tester, 4);
       await _shot(tester, '${n}_04_잿빛들판');
+      Navigator.of(tester.element(find.byKey(const Key('placeSheet_baldrin_ashplain')))).pop();
+      await _settle(tester, 4);
       await _page(tester, Act3Screen(key: ObjectKey('j$n'), controller: c, tab: 1));
       await _shot(tester, '${n}_05_일지');
       await _page(tester, Act3Screen(key: ObjectKey('w$n'), controller: c, tab: 2));

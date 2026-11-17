@@ -29,18 +29,24 @@ jobs:
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-
-      - name: 규칙 배포
-        working-directory: firebase
-        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project arca-d0cab --non-interactive
+      - name: 규칙 배포 (Firebase Rules API)
+        run: |
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
+          TOKEN=$(gcloud auth print-access-token)
+          API=https://firebaserules.googleapis.com/v1/projects/arca-d0cab
+          BODY=$(python3 -c 'import json;print(json.dumps({"source":{"files":[{"name":"firestore.rules","content":open("firebase/firestore.rules").read()}]}}))')
+          RES=$(curl -sS -X POST "$API/rulesets" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$BODY")
+          NAME=$(printf '%s' "$RES" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("name",""))')
+          if [ -z "$NAME" ]; then echo "규칙 올리기 실패:"; printf '%s\n' "$RES" | head -c 600; exit 1; fi
+          echo "올린 규칙: $NAME"
+          REL='{"release":{"name":"projects/arca-d0cab/releases/cloud.firestore","rulesetName":"'"$NAME"'"}}'
+          OUT=$(curl -sS -X PATCH "$API/releases/cloud.firestore" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$REL")
+          printf '%s' "$OUT" | grep -q rulesetName || { echo "적용 실패:"; printf '%s\n' "$OUT" | head -c 600; exit 1; }
+          echo "Firestore 규칙 적용 완료"
 
       - name: 계정 삭제용 TTL 정책 (expireAt)
         continue-on-error: true
         run: |
-          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet
           for g in users parts; do
             gcloud firestore fields ttls update expireAt --collection-group=$g \
               --enable-ttl --project=arca-d0cab --async --quiet || echo "::warning::TTL 정책($g)을 켜지 못했어요"

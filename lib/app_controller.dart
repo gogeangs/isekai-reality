@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import 'app_config.dart';
 import 'core/format.dart';
 import 'core/geo/geo.dart';
 import 'core/geo/route_grid.dart';
@@ -17,6 +18,7 @@ import 'core/models/garden_state.dart';
 import 'core/models/highland_state.dart';
 import 'core/models/tavern_state.dart';
 import 'core/models/building_state.dart';
+import 'core/models/party_state.dart';
 import 'core/models/act3_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
@@ -32,6 +34,7 @@ import 'core/models/stat_alloc.dart';
 import 'core/models/training_state.dart';
 import 'core/models/vitals.dart';
 import 'core/rules/rules.dart';
+import 'data/cloud/arca_api.dart';
 import 'data/cloud/backup_scrub.dart';
 import 'data/cloud/backup_server.dart';
 import 'data/cloud/cloud_auth.dart';
@@ -56,6 +59,8 @@ part 'controller/bag_hold.dart';
 part 'controller/cloud.dart';
 part 'controller/battle.dart';
 part 'controller/board.dart';
+part 'controller/inquiry.dart';
+part 'controller/party.dart';
 part 'controller/buildings.dart';
 part 'controller/drive.dart';
 part 'controller/expedition.dart';
@@ -169,6 +174,15 @@ class AppController extends ChangeNotifier {
   CloudAuth? cloudAuth;
   BackupServer? backupServer;
   ServerClock? serverClock;
+
+  /// 묶음 56: 아르카 서버 (파티 · 문의). Firebase 설정이 없는 빌드 · 테스트는 null
+  ArcaApi? arcaApi;
+  PartyView? _partyView;
+  PartyLocal _partyLocal = const PartyLocal();
+  String? _partyError;
+  bool _partyBusy = false;
+  String? _partyNotice;
+  DateTime? _partyPingAt;
 
   /// 서버 기록으로 바꾼 뒤 앱을 처음부터 다시 띄움 (main 이 정함, 없으면 그 자리에서 다시 읽음)
   Future<void> Function()? onRestored;
@@ -618,6 +632,8 @@ class AppController extends ChangeNotifier {
     _act3 = await _load(_act3Key, Act3State.fromJson, const Act3State());
     // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
     _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
+    // 묶음 56: 파티 (발자국 표 · 깃발 · 함께 잡은 몬스터)
+    _partyLocal = await _load(_partyKey, PartyLocal.fromJson, const PartyLocal());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이
     final aura = await _load(_auraKey, (j) => j, null);
     if (aura == null || aura['v32'] != true) {
@@ -663,6 +679,8 @@ class AppController extends ChangeNotifier {
       await store.saveProfile(_profile);
     }
     _ready = true;
+    // 묶음 56: 기록을 다 읽은 뒤 한 번 더 (걸음으로 쌓이는 것들 — 켜는 중에는 건너뜀)
+    await refreshVitals();
     notifyListeners();
   }
 
@@ -838,6 +856,9 @@ class AppController extends ChangeNotifier {
 
   /// 묶음 54: 건물 레벨업 ('buildings')
   static const _buildingsKey = 'buildings';
+
+  /// 묶음 56: 파티 ('party')
+  static const _partyKey = 'party';
   BuildingState _buildings = const BuildingState();
 
   /// 마지막으로 예약한 섬 알림 때 (같으면 다시 예약하지 않음)

@@ -13,6 +13,7 @@ import 'app_controller.dart';
 import 'core/rules/exclusion_index.dart';
 import 'core/rules/place_grid.dart';
 import 'core/rules/road_mask.dart';
+import 'data/cloud/arca_api.dart';
 import 'data/cloud/backup_server.dart';
 import 'data/cloud/cloud_auth.dart';
 import 'data/route/route_tile_source.dart';
@@ -98,6 +99,8 @@ class AppBinder {
         c.cloudAuth = cloud;
         c.backupServer = FirestoreBackupServer();
       }
+      // 묶음 56: 파티 · 문의 서버 (문의는 로그인 없이도)
+      c.arcaApi = HttpArcaApi();
       c.onRestored = () => _restart(c);
     }
     if (from != null) {

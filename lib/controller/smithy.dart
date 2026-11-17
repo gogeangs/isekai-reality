@@ -131,10 +131,14 @@ extension SmithyOps on AppController {
   bool get lastEnhanceSafe => _lastEnhanceSafe;
 
   /// 이 세트의 보스를 잡아 봤는지 (못 잡은 보스의 세트는 그림자로 숨김)
-  bool bossSetOpen(BossSet s) => s == BossSet.sky
-      // 묶음 50: 하이랜드 수호자를 하나라도 쓰러뜨리면
-      ? _highland.beaten.isNotEmpty
-      : purifiedEver.contains(BossGearRules.info(s).boss);
+  bool bossSetOpen(BossSet s) => switch (s) {
+        // 묶음 50: 하이랜드 수호자를 하나라도 쓰러뜨리면
+        BossSet.sky => _highland.beaten.isNotEmpty,
+        // 묶음 56: 파티 보스 재료가 하나라도 생기면
+        BossSet.party => PartyRules.bosses
+            .any((b) => player.materialCount(PartyRules.bossMat(b)) > 0 || _armory.items.any((i) => BossGearRules.setOf(i.base) == BossSet.party)),
+        _ => purifiedEver.contains(BossGearRules.info(s).boss),
+      };
 
   /// 이 부위를 이미 만든 적이 있는지 (가진 것 중에)
   bool hasBossPart(EquipBase base) => _armory.items.any((i) => i.base == base);

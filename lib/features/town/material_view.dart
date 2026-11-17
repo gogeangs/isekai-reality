@@ -127,6 +127,10 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.fallsPearl =>
           Icons.diamond_rounded,
         MaterialId.hollowPlate => Icons.shield_rounded,
+        MaterialId.golemCore => Icons.terrain_rounded,
+        MaterialId.hydraScale => Icons.waves_rounded,
+        MaterialId.wyvernClaw => Icons.flight_rounded,
+        MaterialId.krakenPearl => Icons.circle_rounded,
       };
 
   @override

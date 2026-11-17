@@ -9,16 +9,21 @@ import '../../theme/top_notice.dart';
 import '../act3/ally_screens.dart' show AllyTab;
 import '../awakening/awakening_screen.dart' show IllustratedScene;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
+import '../party/party_tab.dart';
 import 'npc_header.dart';
 
 /// 마을 새 건물 「주점」 (묶음 51 #242): 리안 · 파티 창구(서버 전엔 준비 중) · 소문판 · 한 끼 식사
 class TavernScreen extends StatefulWidget {
-  const TavernScreen({super.key, required this.controller, this.allyTab = false});
+  const TavernScreen(
+      {super.key, required this.controller, this.allyTab = false, this.partyTab = false});
 
   final AppController controller;
 
   /// 처음부터 「동료」 탭 (묶음 52: 3막 화면에서 동료 얼굴을 눌러 올 때)
   final bool allyTab;
+
+  /// 처음부터 「파티」 탭 (묶음 56)
+  final bool partyTab;
 
   @override
   State<TavernScreen> createState() => _TavernScreenState();
@@ -30,8 +35,14 @@ class _TavernScreenState extends State<TavernScreen> {
   /// 방금 들은 소문 (오늘 이미 들었으면 처음부터 보임)
   late String? _rumor = c.rumorHeardToday ? c.todayRumor : null;
 
-  /// 묶음 52 #243: 3막이 열리면 「주점 | 동료」 두 탭
-  late bool _allies = widget.allyTab && c.act3Open;
+  /// 탭: 0 주점 · 1 파티(묶음 56, 서버 묶음) · 2 동료(3막이 열리면, 묶음 52)
+  late int _tab = widget.allyTab && c.act3Open ? 2 : widget.partyTab ? 1 : 0;
+
+  List<(int, String)> get _tabs => [
+        (0, '주점'),
+        (1, '파티'),
+        if (c.act3Open) (2, '동료'),
+      ];
 
   Future<void> _hear() async {
     final r = await c.hearRumor();
@@ -69,30 +80,29 @@ class _TavernScreenState extends State<TavernScreen> {
                 const SizedBox(height: 6),
                 NpcHeader(
                     controller: c, npc: Npc.lian, guide: VillageRules.tavernGuide),
-                if (c.act3Open) ...[
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    for (final (i, t) in const ['주점', '동료'].indexed) ...[
-                      if (i > 0) const SizedBox(width: 6),
-                      Expanded(
-                        child: ChoiceChip(
-                          key: Key('tavernTab_$i'),
-                          label: SizedBox(
-                              width: double.infinity,
-                              child: Text(t, textAlign: TextAlign.center)),
-                          selected: _allies == (i == 1),
-                          onSelected: (_) => setState(() => _allies = i == 1),
-                        ),
-                      ),
-                    ],
-                  ]),
-                ],
                 const SizedBox(height: 10),
-                if (_allies)
+                Row(children: [
+                  for (final (k, (i, t)) in _tabs.indexed) ...[
+                    if (k > 0) const SizedBox(width: 6),
+                    Expanded(
+                      child: ChoiceChip(
+                        // 예전 열쇠 그대로: 동료 탭은 tavernTab_1 (묶음 52 시험)
+                        key: Key(i == 1 ? 'tavernTab_party' : 'tavernTab_${i == 2 ? 1 : 0}'),
+                        label: SizedBox(
+                            width: double.infinity,
+                            child: Text(t, textAlign: TextAlign.center)),
+                        selected: _tab == i,
+                        onSelected: (_) => setState(() => _tab = i),
+                      ),
+                    ),
+                  ],
+                ]),
+                const SizedBox(height: 10),
+                if (_tab == 2)
                   AllyTab(controller: c)
+                else if (_tab == 1)
+                  PartyTab(controller: c)
                 else ...[
-                  _party(),
-                  const SizedBox(height: 10),
                   _rumors(),
                   const SizedBox(height: 10),
                   _meals(),
@@ -104,38 +114,6 @@ class _TavernScreenState extends State<TavernScreen> {
       ),
     );
   }
-
-  Widget _party() => OrnatePanel(
-        key: const Key('tavernParty'),
-        child: Row(children: [
-          const Icon(Icons.groups_rounded, color: AppColors.textMuted, size: 30),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text(TavernRules.partyName, style: AppText.title(17)),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
-                    ),
-                    child: const Text(TavernRules.partySoon,
-                        key: Key('tavernPartySoon'),
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                  ),
-                ]),
-                const SizedBox(height: 4),
-                const KText(TavernRules.partyLine,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12.5, height: 1.4)),
-              ],
-            ),
-          ),
-        ]),
-      );
 
   Widget _rumors() {
     final r = _rumor;

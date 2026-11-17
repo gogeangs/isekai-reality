@@ -63,6 +63,12 @@ enum MonsterId {
   ashHounds,
   ashArmor,
   ashWolfAlpha,
+
+  /// 묶음 56 #236: 파티 보스 (주마다 차례로)
+  partyGolem,
+  partyHydra,
+  partyWyvern,
+  partyKraken,
 }
 
 /// 전투 성향 (도감 설명)
@@ -119,7 +125,11 @@ class MonsterInfo {
     this.tint,
     this.element,
     this.highland = false,
+    this.art,
   });
+
+  /// 그림이 아직 없을 때 대신 쓰는 그림 이름 (같은 이름 그림이 오면 지움)
+  final String? art;
 
   /// 묶음 50 하이랜드 몬스터: 도감 끝 칸 (도감 완성 칭호 개수에는 넣지 않음)
   final bool highland;
@@ -164,7 +174,7 @@ class MonsterInfo {
   final int? tint;
 
   /// 그림 파일. 없으면 화면에서 아이콘으로 대신 그린다.
-  String get asset => 'assets/images/monster_${id.name}.webp';
+  String get asset => 'assets/images/${art ?? 'monster_${id.name}'}.webp';
 
   String get tendencyName => switch (tendency) {
         Tendency.sturdy => '단단함',
@@ -692,6 +702,65 @@ class Monsters {
       traitText: '중간 보스',
       isBoss: true,
       retired: true,
+    ),
+    // 묶음 56 #236: 파티 보스 4 (도감에는 안 나옴 · 그림이 오기 전엔 비슷한 그림으로)
+    MonsterInfo(
+      id: MonsterId.partyGolem,
+      element: Element.earth,
+      name: '거대 골렘',
+      habitat: '파티 보스',
+      huntLine: '거대 골렘이 무너졌어! 다 같이 해냈어!',
+      description: '오래된 성벽 돌이 모여 일어선 거인. 걸음 소리에 깨어난다.',
+      traitText: '파티 보스',
+      isBoss: true,
+      retired: true,
+      hp: 2,
+      defense: 1.3,
+      speed: 0.7,
+      art: 'monster_labyrinthWarden',
+    ),
+    MonsterInfo(
+      id: MonsterId.partyHydra,
+      element: Element.water,
+      name: '히드라',
+      habitat: '파티 보스',
+      huntLine: '머리 다섯이 모두 잠들었어! 함께라서 이겼어!',
+      description: '늪 깊은 곳의 머리 여럿 달린 뱀. 머리 하나가 쓰러지면 다른 머리가 화를 낸다.',
+      traitText: '파티 보스',
+      isBoss: true,
+      retired: true,
+      hp: 1.8,
+      attack: 1.2,
+      art: 'monster_poisonSlime',
+    ),
+    MonsterInfo(
+      id: MonsterId.partyWyvern,
+      element: Element.dark,
+      name: '잿빛 와이번',
+      habitat: '파티 보스',
+      huntLine: '와이번이 하늘에서 떨어졌어! 다들 고마워!',
+      description: '잿빛을 머금고 하늘을 도는 날개 달린 용. 날개바람이 매섭다.',
+      traitText: '파티 보스',
+      isBoss: true,
+      retired: true,
+      hp: 1.7,
+      attack: 1.3,
+      speed: 1.2,
+      art: 'monster_thunderGriffin',
+    ),
+    MonsterInfo(
+      id: MonsterId.partyKraken,
+      element: Element.water,
+      name: '크라켄',
+      habitat: '파티 보스',
+      huntLine: '크라켄이 바다로 돌아갔어! 우리 파티 최고야!',
+      description: '물길을 따라 올라온 거대한 바다 괴물. 다리 여덟이 따로 움직인다.',
+      traitText: '파티 보스',
+      isBoss: true,
+      retired: true,
+      hp: 2.1,
+      attack: 1.1,
+      art: 'monster_shadowBatQueen',
     ),
     MonsterInfo(
       id: MonsterId.ashArmor,

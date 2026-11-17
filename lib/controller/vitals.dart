@@ -87,6 +87,9 @@ extension VitalsOps on AppController {
     _refreshing = true;
     try {
       await _refreshVitals();
+      // 묶음 56: 앱을 켜는 중(기록을 다 읽기 전)에는 여기까지만. 마을 · 주점 · 하이랜드 · 3막 기록을
+      // 읽기 전에 저장하면 빈 기록으로 덮어쓴다 (예: 8,000보 넘긴 날 처음 켤 때 마을 기록이 지워짐)
+      if (!_ready) return;
       // 묶음 43 #228: 끝난 펫 훈련
       await _settlePetTraining();
       // 묶음 45 #232: 걸으면 듣는 전용 아이템 · 전용 퀘스트 다음 단계
@@ -249,8 +252,8 @@ extension VitalsOps on AppController {
     // 묶음 48 #230: 주간 의뢰를 모두 끝낸 주 → 빛나는 씨앗
     await _checkGardenGlow();
     await _checkWalkEvents();
-    // 묶음 54: 다 고친 건물
-    await _settleBuildings();
+    // 묶음 54: 다 고친 건물 (기록을 다 읽은 뒤에만)
+    if (_ready) await _settleBuildings();
     _notify();
   }
 

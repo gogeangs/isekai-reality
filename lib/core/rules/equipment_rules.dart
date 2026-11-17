@@ -50,6 +50,8 @@ enum EquipBase {
   baldrinWeapon, baldrinHead, baldrinBody, baldrinHands, baldrinFeet, baldrinAcc,
   // 묶음 53 #243: 지역 1 이름 있는 장비 셋 · 지역 무기 「관문의 빛 창」
   uniqVolkHelm, uniqTeoSpear, uniqWindPendant, baldrinSpear,
+  // 묶음 56 #236: 파티 보스 세트 「동행」 (보스 재료로 대장간에서)
+  partyWeapon, partyHead, partyBody, partyHands, partyFeet, partyAcc,
 }
 
 /// 장비 하나의 기본 정보와 제작법

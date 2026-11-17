@@ -368,3 +368,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | bg_selenia_mine | 셀레니아 필드 배경 버려진 광산, 1024 |
 | 2026-11-17 | village_garden_3 | 약초밭 ★3, ★1·★2와 같은 땅 너비·아래(496) 맞춤 512 |
 | 2026-11-17 | bg_selenia_stardust | 셀레니아 필드 배경 별가루 골짜기, 1024 |
+| 2026-11-17 | equip_selenia{Weapon,Head,Body,Hands,Feet,Acc} | 셀레니아 상단 세트 6부위, 시트 분할 512 |

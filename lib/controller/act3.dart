@@ -466,7 +466,7 @@ extension Act3Ops on AppController {
         for (var k = 0; k < (battle.extraLoot ? 2 : 1); k++) {
           if (_random.nextDouble() >= Act3Rules.gearDrop) continue;
           final base = Act3Rules.baldrinGear[_random.nextInt(Act3Rules.baldrinGear.length)];
-          final grade = EquipmentRules.rollGrade(_random);
+          final grade = EquipmentRules.rollGrade(_random, rare: false);
           final a = _armory;
           final item = EquipItem(
             uid: 'eq${a.nextId}',

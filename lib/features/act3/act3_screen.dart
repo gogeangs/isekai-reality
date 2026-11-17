@@ -354,10 +354,10 @@ class _PlaceMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icon = switch (place.kind) {
-      PlaceKind.town => Icons.holiday_village_rounded,
-      PlaceKind.field => Icons.landscape_rounded,
-      PlaceKind.dungeon => Icons.fort_rounded,
-      PlaceKind.hidden => Icons.help_outline_rounded,
+      SpotKind.town => Icons.holiday_village_rounded,
+      SpotKind.field => Icons.landscape_rounded,
+      SpotKind.dungeon => Icons.fort_rounded,
+      SpotKind.hidden => Icons.help_outline_rounded,
     };
     return GestureDetector(
       key: Key('place_${place.id}'),
@@ -447,8 +447,8 @@ Future<void> showPlaceSheet(BuildContext context, AppController c, String id) {
             ] else
               KText(
                   switch (p.kind) {
-                    PlaceKind.hidden => '아직 길을 찾지 못한 곳이에요.',
-                    PlaceKind.town => '피난민들이 천막을 치고 사는 야영지예요. 곧 문을 열어 줄 거예요.',
+                    SpotKind.hidden => '아직 길을 찾지 못한 곳이에요.',
+                    SpotKind.town => '피난민들이 천막을 치고 사는 야영지예요. 곧 문을 열어 줄 거예요.',
                     _ => '잿빛이 기어 나오는 요새예요. 곧 들어갈 수 있어요.',
                   },
                   style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.45)),

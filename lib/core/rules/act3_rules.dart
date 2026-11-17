@@ -14,7 +14,7 @@ import 'battle_rules.dart';
 
 enum Region { baldrin, selenia, elowin, morval, aurel }
 
-enum PlaceKind { town, field, dungeon, hidden }
+enum SpotKind { town, field, dungeon, hidden }
 
 class PlaceInfo {
   const PlaceInfo(this.id, this.name, this.kind, this.x, this.y,
@@ -22,7 +22,7 @@ class PlaceInfo {
 
   final String id;
   final String name;
-  final PlaceKind kind;
+  final SpotKind kind;
 
   /// 지역 지도 그림 위 자리 (가로 · 세로 비율)
   final double x, y;
@@ -179,18 +179,18 @@ class Act3Rules {
       element: Element.light,
       blurb: '다리 끝 무너진 문지기 초소',
       places: [
-        PlaceInfo('baldrin_town', '피난민 야영지', PlaceKind.town, 0.48, 0.60),
-        PlaceInfo('baldrin_ashplain', '잿빛 들판', PlaceKind.field, 0.17, 0.50,
+        PlaceInfo('baldrin_town', '피난민 야영지', SpotKind.town, 0.48, 0.60),
+        PlaceInfo('baldrin_ashplain', '잿빛 들판', SpotKind.field, 0.17, 0.50,
             monster: MonsterId.goblinRaider,
             background: 'assets/images/bg_baldrin_ashplain.webp'),
-        PlaceInfo('baldrin_wallroad', '무너진 성벽길', PlaceKind.field, 0.80, 0.48,
+        PlaceInfo('baldrin_wallroad', '무너진 성벽길', SpotKind.field, 0.80, 0.48,
             monster: MonsterId.skeletonGuard,
             background: 'assets/images/bg_baldrin_wallroad.webp'),
-        PlaceInfo('baldrin_wolfhill', '은빛 늑대의 언덕', PlaceKind.field, 0.14, 0.16,
+        PlaceInfo('baldrin_wolfhill', '은빛 늑대의 언덕', SpotKind.field, 0.14, 0.16,
             monster: MonsterId.harpy,
             background: 'assets/images/bg_baldrin_wolfhill.webp'),
-        PlaceInfo('baldrin_fort', '문지기 지하 요새', PlaceKind.dungeon, 0.56, 0.17),
-        PlaceInfo('baldrin_windden', '???', PlaceKind.hidden, 0.89, 0.16),
+        PlaceInfo('baldrin_fort', '문지기 지하 요새', SpotKind.dungeon, 0.56, 0.17),
+        PlaceInfo('baldrin_windden', '???', SpotKind.hidden, 0.89, 0.16),
       ],
     ),
     RegionInfo(

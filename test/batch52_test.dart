@@ -109,12 +109,12 @@ void main() {
       final b = Act3Rules.region(Region.baldrin);
       expect(b.name, '발드린 관문');
       expect([for (final p in b.places) p.kind], [
-        PlaceKind.town,
-        PlaceKind.field,
-        PlaceKind.field,
-        PlaceKind.field,
-        PlaceKind.dungeon,
-        PlaceKind.hidden,
+        SpotKind.town,
+        SpotKind.field,
+        SpotKind.field,
+        SpotKind.field,
+        SpotKind.dungeon,
+        SpotKind.hidden,
       ]);
       expect(Act3Rules.place('baldrin_windden')!.name, '???');
       expect(Act3Rules.place('baldrin_ashplain')!.monster, MonsterId.goblinRaider);

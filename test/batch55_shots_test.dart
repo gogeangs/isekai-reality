@@ -136,6 +136,8 @@ void main() {
       await tester.tap(find.byKey(const Key('accountDelete')));
       await _settle(tester, 3);
       await _shot(tester, '${n}_03_계정삭제');
+      Navigator.of(tester.element(find.byKey(const Key('deleteDialog')))).pop();
+      await _settle(tester, 4);
       await _page(tester, RecordChoiceScreen(key: ObjectKey('c$n'), controller: two.c));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await _settle(tester, 3);

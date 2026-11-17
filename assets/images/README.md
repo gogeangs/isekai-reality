@@ -379,3 +379,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-17 | monster_treant, monster_giantSpider, monster_dryad, monster_woodWolf | 엘로윈 일반 몬스터 4종, 시트 분할·붉은 테두리 정리 512 |
 | 2026-11-17 | bg_elowin_vinepath | 엘로윈 필드 배경 잿빛 덩굴 숲길, 1024 |
 | 2026-11-17 | monster_treant, monster_giantSpider, monster_dryad, monster_woodWolf | 엘로윈 일반 몬스터 4종 다시(굵은 선), 덮어쓰기 512 |
+| 2026-11-17 | village_tavern_2 | 주점 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |

@@ -14,6 +14,7 @@ import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/notify/notifier.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
+import 'package:isekai_reality/features/codex/codex_screen.dart';
 import 'package:isekai_reality/features/highland/highland_screen.dart';
 import 'package:isekai_reality/features/records/records_screen.dart';
 import 'package:isekai_reality/theme/top_notice.dart';
@@ -523,6 +524,30 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.byKey(const Key('skyStoneRecords')), findsOneWidget);
     expect(find.byKey(const Key('skyStone_4')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 9));
+  });
+
+  testWidgets('도감: 하이랜드 6칸은 Lv.17(열린 뒤)부터 · 만난 칸은 언제나 (확인 답)', (tester) async {
+    tester.view.physicalSize = const Size(750, 1334);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final base = Monsters.codex.where((m) => !m.highland).length;
+    Finder count(int have, int all) => find.byWidgetPredicate((w) =>
+        w is Text && (w.data ?? '') == '몬스터 도감 $have / $all');
+    Future<void> show(Set<MonsterId> got, bool open) async {
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: CodexScreen(
+                  key: UniqueKey(), purifiedMonsters: got, highlandOpen: open))));
+      await tester.pump();
+    }
+
+    await show(const {}, false);
+    expect(count(0, base), findsOneWidget);
+    await show(const {}, true);
+    expect(count(0, base + 6), findsOneWidget);
+    await show(const {MonsterId.guardWind}, false);
+    expect(count(1, base + 1), findsOneWidget);
     await tester.pump(const Duration(seconds: 9));
   });
 }

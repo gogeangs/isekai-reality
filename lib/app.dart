@@ -416,6 +416,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 for (final m in controller.purifiedEver)
                   if (Monsters.inCodex(m)) m,
               },
+              highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
               petsSeen: controller.pets.seen,

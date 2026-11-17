@@ -1,0 +1,52 @@
+# 묶음 56: Cloud Functions 배포 (firebase/functions 가 바뀔 때). 서비스 계정으로 firebase-tools.
+# 필요한 저장소 비밀값: FIREBASE_SERVICE_ACCOUNT
+name: 서버 함수 배포
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "wip/**"]
+    paths:
+      - "firebase/functions/**"
+      - "firebase/firebase.json"
+      - ".github/workflows/functions.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: functions-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 서비스 계정 파일
+        run: |
+          if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT 가 없어요"; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          python3 -c 'import json,os;print("서비스 계정:", json.load(open(os.environ["RUNNER_TEMP"]+"/sa.json"))["client_email"])'
+
+      - name: 함수 시험
+        working-directory: firebase/functions
+        run: |
+          npm ci || npm install
+          npm test
+
+      - name: 함수 배포
+        working-directory: firebase
+        run: npx -y firebase-tools@14 deploy --only functions --project arca-d0cab --non-interactive --force
+
+      - name: 서비스 계정 파일 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

@@ -123,6 +123,8 @@ void main() {
         '오늘 걸으면 기력이 조금 더 차요',
         '오늘 걸으면 채집 자리를 조금 더 만나요',
         '오늘 사냥 경험치가 조금 더',
+        // 묶음 54: 주점 ★2 버섯 수프
+        '오늘 채집할 때 가끔 하나 더 얻어요',
       ]);
       expect(TavernRules.meal(Meal.stew).asset, 'assets/images/food_stew.webp');
       expect(TavernRules.rumors.length, inInclusiveRange(10, 15));

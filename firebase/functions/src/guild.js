@@ -427,6 +427,8 @@ class GuildService {
       },
       // 묶음 61: 길드 금고 (모두가 봄) · 쓰기 기록은 게시판에
       treasury: { gold: Number(g.treasury || 0), log: (g.tlog || []).slice(-20).reverse() },
+      // 묶음 65: 공성전 소식 (게시판)
+      news: (g.news || []).slice(-10).reverse(),
       week: wk,
       members,
       myTotal: me.total || 0,

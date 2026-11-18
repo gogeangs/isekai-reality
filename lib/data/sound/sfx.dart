@@ -19,6 +19,8 @@ enum SfxKind {
   brush,
   harvestPerfect,
   harvestFail,
+  // 묶음 65: 공성전 「마지막 6시간」 북소리 (직접 합성)
+  siegeDrum,
 }
 
 extension on SfxKind {
@@ -38,6 +40,7 @@ extension on SfxKind {
         SfxKind.brush => 'sfx/h_brush.m4a',
         SfxKind.harvestPerfect => 'sfx/h_perfect.m4a',
         SfxKind.harvestFail => 'sfx/h_fail.m4a',
+        SfxKind.siegeDrum => 'sfx/siege_drum.m4a',
       };
 }
 

@@ -208,12 +208,9 @@ class _PlotTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: AppColors.slotBg,
+                // 묶음 65 #257: 테두리 두께는 모두 같게, 다 자란 칸은 색 · 안쪽 빛으로만
                 border: Border.all(
-                    color: p.ready ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.45),
-                    width: p.ready ? 2 : 1),
-                boxShadow: p.ready
-                    ? [BoxShadow(color: AppColors.goldBright.withValues(alpha: 0.4), blurRadius: 10)]
-                    : null,
+                    color: p.ready ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.45), width: 1),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(11),
@@ -228,24 +225,38 @@ class _PlotTile extends StatelessWidget {
                       top: 4,
                       child: MaterialIcon(seed, size: 22),
                     ),
+                  if (p.ready)
+                    const IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [Color(0x00FFE7A0), Color(0x55FFD54F)],
+                            stops: [0.55, 1],
+                          ),
+                        ),
+                      ),
+                    ),
                 ]),
               ),
             ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(seed == null ? line : Materials.info(seed).name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-                color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
-        if (seed != null)
-          Text(line,
-              key: Key('gardenLeft_${p.slot}'),
-              maxLines: 1,
-              style: TextStyle(
-                  color: p.ready ? AppColors.goldBright : AppColors.textMuted,
-                  fontSize: 11.5)),
+        // 이름 + 상태 두 줄 자리 고정 (칸마다 버튼 높이가 같게)
+        SizedBox(
+          height: _GardenRows.of(context),
+          child: Column(children: [
+            Text(seed == null ? line : Materials.info(seed).name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
+            if (seed != null)
+              Text(line,
+                  key: Key('gardenLeft_${p.slot}'),
+                  maxLines: 1,
+                  style: TextStyle(color: p.ready ? AppColors.goldBright : AppColors.textMuted, fontSize: 11.5)),
+          ]),
+        ),
         const SizedBox(height: 4),
         SizedBox(
           height: 34,
@@ -290,12 +301,22 @@ class _LockedTile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const KText('포포의 부탁으로 넓어져요',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          // 다른 칸과 같은 높이 (두 줄 + 버튼 자리)
+          SizedBox(
+            height: _GardenRows.of(context) + 4 + 34,
+            child: const KText('포포의 부탁으로 넓어져요',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          ),
         ],
       );
+}
+
+/// 약초밭 칸 아래 글 자리 (이름 + 상태 두 줄)
+abstract final class _GardenRows {
+  static const double text = 34;
+  static double of(BuildContext context) => MediaQuery.textScalerOf(context).scale(text);
 }
 
 class _SeedRow extends StatelessWidget {

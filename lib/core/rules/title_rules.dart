@@ -1,3 +1,4 @@
+import 'erbard_rules.dart' show ErbardRules;
 import 'element_rules.dart';
 import '../models/daily_record.dart';
 import 'monsters.dart';
@@ -115,6 +116,8 @@ enum TitleId {
   pairPaladin,
   pairNightThief,
   pairRanger,
+  // 묶음 65 #251: 공성전 선봉장 (그 공성전부터 다음 공성전 끝까지)
+  vanguard,
 }
 
 class TitleInfo {
@@ -212,6 +215,7 @@ class TitleRules {
       TitleId.lanternOath => '4막 「등불의 맹세」를 끝냈어요',
       TitleId.guildLegend => '길드가 Lv.10 「전설의 길드」가 됐어요',
       TitleId.erbardCrown => '공성전에서 에르바르드 왕성을 지켰어요',
+      TitleId.vanguard => '공성전에서 길드 가장 앞에 섰어요 (다음 공성전 끝까지)',
       TitleId.pioneer => '5막 「흑등 연맹의 귀환」을 끝냈어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       TitleId.pairWeaponsmith => '숨은 짝 「무기 장인」을 찾았어요',
@@ -300,6 +304,9 @@ class TitleRules {
   ];
 
   static String skyCounter(TitleId t) => 'stitle:${t.name}';
+
+  /// 선봉장 기록 ('vanguard@<공성전 번호>')
+  static const String vanguardPrefix = 'vanguard@';
 
   /// 마을 사람 칭호 (묶음 42 #226). 기록 counters 'ntitle:<이름>' 으로 얻는다
   static const List<TitleId> npcTitles = [
@@ -492,6 +499,7 @@ class TitleRules {
     TitleInfo(TitleId.lanternOath, '등불의 맹세', '숨은 칭호'),
     TitleInfo(TitleId.guildLegend, '전설의 길드', '숨은 칭호'),
     TitleInfo(TitleId.erbardCrown, '에르바르드의 왕관', '숨은 칭호'),
+    TitleInfo(TitleId.vanguard, '선봉장', '숨은 칭호'),
     TitleInfo(TitleId.pioneer, '에르바르드의 개척자', '숨은 칭호'),
     TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 짝'),
     TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 짝'),
@@ -619,6 +627,17 @@ class TitleRules {
     for (final t in [...skyTitles, ...pairTitles]) {
       final k = skyCounter(t);
       if (history.any((d) => (d.counters[k] ?? 0) > 0)) result.add(t);
+    }
+    // 묶음 65 #251: 선봉장 — 그 공성전부터 다음 공성전 끝까지만
+    final last = history.isEmpty ? null : history.last.date;
+    if (last != null) {
+      for (final d in history) {
+        for (final k in d.counters.keys) {
+          if (!k.startsWith(vanguardPrefix)) continue;
+          final n = int.tryParse(k.substring(vanguardPrefix.length));
+          if (n != null && last.isBefore(ErbardRules.siegeEnd(n + 1).toLocal())) result.add(TitleId.vanguard);
+        }
+      }
     }
     // 묶음 43 #228: 시련에서 처음 15판을 넘기면
     if (history.any((d) => (d.counters[trialCounter] ?? 0) > 0)) {

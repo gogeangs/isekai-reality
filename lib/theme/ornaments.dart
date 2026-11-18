@@ -1228,3 +1228,46 @@ class GameAlert extends StatelessWidget {
     );
   }
 }
+
+/// 묶음 65 #253: 양피지 쪽지 (board_note 800×400) — 그림 비율 2:1 그대로, 네 모서리 장식 · 위아래 찢긴 테두리가 다 보이게.
+/// 글은 안쪽 테두리 안 가운데 (넘치면 작게 줄임)
+class ParchmentSheet extends StatelessWidget {
+  const ParchmentSheet({super.key, required this.width, required this.child, this.tint, this.fallback = const Color(0xFFF1E0B8)});
+
+  final double width;
+  final Widget child;
+
+  /// 물들이기 (잿빛 사연은 보랏빛)
+  final Color? tint;
+  final Color fallback;
+
+  static const double ratio = 2.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final h = width / ratio;
+    return SizedBox(
+      width: width,
+      height: h,
+      child: Stack(children: [
+        Positioned.fill(
+          child: Image.asset('assets/images/board_note.webp',
+              fit: BoxFit.fill,
+              color: tint,
+              colorBlendMode: tint == null ? null : BlendMode.modulate,
+              errorBuilder: (_, __, ___) => DecoratedBox(
+                    decoration: BoxDecoration(color: fallback, borderRadius: BorderRadius.circular(4)),
+                  )),
+        ),
+        // 안쪽 테두리(그림 기준 가로 60~740 · 세로 55~345) 안
+        Positioned(
+          left: width * 0.085,
+          right: width * 0.085,
+          top: h * 0.15,
+          bottom: h * 0.15,
+          child: Center(child: FittedBox(fit: BoxFit.scaleDown, child: SizedBox(width: width * 0.83, child: child))),
+        ),
+      ]),
+    );
+  }
+}

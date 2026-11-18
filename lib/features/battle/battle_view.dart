@@ -563,6 +563,7 @@ class _BattleViewState extends State<BattleView> {
                 warning: warning ? (_b.strongLabel ?? '강한 공격!') : null,
                 guarded: _tapped && warning,
                 guard: _b.lastGuard,
+                guardBroken: _b.lastGuardBroken,
                 enraged: _b.enraged,
                 stance: _b.stanceTurns > 0,
                 aura: widget.aura,
@@ -1189,6 +1190,7 @@ class _Scene extends StatefulWidget {
     this.warning,
     this.guarded = false,
     this.guard,
+    this.guardBroken = false,
     this.enraged = false,
     this.stance = false,
     this.aura,
@@ -1242,6 +1244,9 @@ class _Scene extends StatefulWidget {
 
   /// 방금 막은 결과
   final GuardResult? guard;
+
+  /// 묶음 65: 강한 공격을 막지 못함
+  final bool guardBroken;
 
   /// 보스 분노 (붉은 빛)
   final bool enraged;
@@ -1789,31 +1794,74 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                    // 막기 결과
-                    if (widget.guard != null && !idle)
+                    // 묶음 65 #256: 막기 준비 (캐릭터 앞 방어막, 은은히 숨 쉬듯)
+                    if (widget.guarded && widget.warning != null && widget.guard == null)
+                      Positioned(
+                        key: const Key('fxGuard'),
+                        left: w * 0.06 + heroW * 0.42,
+                        bottom: 20,
+                        width: heroW * 0.75,
+                        height: heroW * 0.75,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: 0.75 + 0.25 * math.sin(t * math.pi * 2).abs(),
+                            child: Image.asset('assets/images/fx_guard.webp',
+                                errorBuilder: (_, __, ___) => DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: AppColors.mana.withValues(alpha: 0.7), width: 3),
+                                      ),
+                                    )),
+                          ),
+                        ),
+                      ),
+                    // 막기 결과: 막은 순간 방어막이 번쩍 + 「막았다!」(안내 글은 그 뒤에)
+                    if (widget.guard != null && !idle) ...[
+                      Positioned(
+                        key: const Key('fxGuardHit'),
+                        left: w * 0.06 + heroW * 0.36,
+                        bottom: 14,
+                        width: heroW * 0.9,
+                        height: heroW * 0.9,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: 1 - _seg(t, 0.55, 0.95),
+                            child: Transform.scale(
+                              scale: 0.9 + 0.2 * _seg(t, 0.4, 0.6),
+                              child: Image.asset('assets/images/fx_guardHit.webp',
+                                  errorBuilder: (_, __, ___) => Icon(Icons.shield_rounded,
+                                      size: 56,
+                                      color: widget.guard == GuardResult.perfect ? AppColors.goldBright : AppColors.mana)),
+                            ),
+                          ),
+                        ),
+                      ),
                       Positioned(
                         left: w * 0.1,
                         width: heroW * 0.8,
                         top: h * 0.28 - _seg(t, 0.4, 0.9) * 20,
                         child: Opacity(
                           opacity: 1 - _seg(t, 0.75, 0.98),
-                          child: Column(children: [
-                            Icon(Icons.shield_rounded,
-                                size: widget.guard == GuardResult.perfect
-                                    ? 64
-                                    : 48,
-                                color: widget.guard == GuardResult.perfect
-                                    ? AppColors.goldBright
-                                    : AppColors.mana),
-                            _Outlined(
-                                widget.guard == GuardResult.perfect
-                                    ? '완벽한 막기!'
-                                    : '막았다!',
-                                size: 22,
-                                color: widget.guard == GuardResult.perfect
-                                    ? AppColors.goldBright
-                                    : Colors.white),
-                          ]),
+                          child: _Outlined(
+                              widget.guard == GuardResult.perfect ? '완벽한 막기!' : '막았다!',
+                              size: 22,
+                              color: widget.guard == GuardResult.perfect ? AppColors.goldBright : Colors.white),
+                        ),
+                      ),
+                    ],
+                    // 막지 못함: 방어막이 깨짐
+                    if (widget.guardBroken && widget.guard == null && !idle)
+                      Positioned(
+                        key: const Key('fxGuardBreak'),
+                        left: w * 0.06 + heroW * 0.36,
+                        bottom: 14,
+                        width: heroW * 0.9,
+                        height: heroW * 0.9,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: 1 - _seg(t, 0.55, 0.95),
+                            child: Image.asset('assets/images/fx_guardBreak.webp', errorBuilder: (_, __, ___) => const SizedBox()),
+                          ),
                         ),
                       ),
                     // 강한 공격 예고: 화면을 누르면 막기
@@ -1822,7 +1870,8 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         key: const Key('guardWarning'),
                         left: 0,
                         right: 0,
-                        top: monTop - 46,
+                        // 묶음 65: 위 「BOSS」 · 층 표 아래로 (겹치지 않게)
+                        top: math.max(monTop - 46, 50.0),
                         child: IgnorePointer(
                           child: Column(children: [
                             Container(
@@ -1848,7 +1897,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ]),
                         ),
                       ),
-                    if (widget.warning != null)
+                    if (widget.warning != null && !(widget.guard != null && !idle))
                       Positioned(
                         left: 0,
                         right: 0,

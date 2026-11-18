@@ -1278,6 +1278,20 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('길드 게시판 · 한마디', style: AppText.title(15)),
           const SizedBox(height: 6),
+          // 묶음 65: 공성전 소식 (최근 5줄)
+          for (final (i, n) in g.news.take(5).indexed)
+            Padding(
+              key: Key('guildNews_$i'),
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text.rich(TextSpan(children: [
+                const WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.flag_rounded, size: 14, color: Color(0xFFFF8A65)))),
+                TextSpan(text: n.text, style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+              ])),
+            ),
           // 묶음 61: 금고 쓰기 기록 (누가 · 무엇에 · 얼마)
           for (final (i, t) in g.treasuryLog.take(5).indexed)
             Padding(

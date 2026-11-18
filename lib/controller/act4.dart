@@ -96,7 +96,11 @@ class GuildView {
     this.treasury = 0,
     this.treasuryLog = const [],
     this.goldFlag = false,
+    this.news = const [],
   });
+
+  /// 묶음 65: 공성전 소식 (게시판, 최근 것이 위)
+  final List<({DateTime at, String text})> news;
 
   /// 묶음 61: 길드 금고 · 쓰기 기록 (최근 것이 위) · 금빛 깃발 문양
   final int treasury;
@@ -188,6 +192,11 @@ class GuildView {
             ),
       ],
       goldFlag: g['goldFlag'] == true,
+      news: [
+        for (final x in (j['news'] as List?) ?? const [])
+          if (x is Map)
+            (at: DateTime.fromMillisecondsSinceEpoch((x['at'] as num?)?.toInt() ?? 0), text: '${x['text'] ?? ''}'),
+      ],
     );
   }
 }

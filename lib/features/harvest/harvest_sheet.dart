@@ -397,34 +397,16 @@ class _ProphecyViewState extends State<_ProphecyView>
               ClipRect(
                 child: Align(
                   widthFactor: 0.15 + 0.85 * open,
-                  child: SizedBox(
+                  child: ParchmentSheet(
                     width: w,
-                    child: Stack(children: [
-                      Positioned.fill(
-                        child: Image.asset('assets/images/board_note.webp',
-                            scale: 2.4,
-                            centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
-                            fit: BoxFit.fill,
-                            errorBuilder: (_, __, ___) => DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1E0B8),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                )),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(26, 30, 26, 30),
-                        child: Opacity(
-                          opacity: textIn,
-                          child: Text(text,
-                              key: const Key('prophecyText'),
-                              textAlign: TextAlign.center,
-                              style: AppText.title(17,
-                                      color: const Color(0xFF3A2614))
-                                  .copyWith(height: 1.6)),
-                        ),
-                      ),
-                    ]),
+                    
+                    child: Opacity(
+                      opacity: textIn,
+                      child: Text(text,
+                          key: const Key('prophecyText'),
+                          textAlign: TextAlign.center,
+                          style: AppText.title(17, color: const Color(0xFF3A2614)).copyWith(height: 1.6)),
+                    ),
                   ),
                 ),
               ),

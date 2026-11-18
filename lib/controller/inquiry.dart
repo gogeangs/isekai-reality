@@ -209,6 +209,14 @@ extension InquiryOps on AppController {
         }
       });
     }
+    // 묶음 65 #251: 선봉장 (그 공성전부터 다음 공성전 끝까지)
+    if (op['vanguard'] is num) {
+      final k = '${TitleRules.vanguardPrefix}${(op['vanguard'] as num).toInt()}';
+      if (!_history.any((d) => (d.counters[k] ?? 0) > 0)) {
+        final today = await _todayRecord();
+        await _save(today.copyWith(counters: DailyRecord.addCounts(today.counters, {k: 1})));
+      }
+    }
     if (op['title'] is String) {
       final g = GuildRules.boss(op['title'] as String);
       if (g != null) {

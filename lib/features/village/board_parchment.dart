@@ -45,8 +45,11 @@ class WoodBoard extends StatefulWidget {
   /// 게시판이 화면 끝까지 이어지게 하는 최소 높이
   final double minHeight;
 
-  /// 그림에서 늘리지 않는 위·아래 높이 (그림 픽셀)
+  /// 내용이 시작 · 끝나는 위 · 아래 여백 (그림 픽셀)
   static const double artTop = 220, artBottom = 120, artWidth = 1024;
+
+  /// 묶음 65 #259: 그림에서 늘리지 않는 위 · 아래 (등불 · 모서리 쇠 장식이 다 들어가게, 그림 픽셀)
+  static const double fixedTop = 360, fixedBottom = 260;
 
   @override
   State<WoodBoard> createState() => _WoodBoardState();
@@ -138,20 +141,31 @@ class _BoardArtPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = art.width.toDouble(), h = art.height.toDouble();
     final s = size.width / w;
-    const top = WoodBoard.artTop, bottom = WoodBoard.artBottom;
+    // 판이 짧으면 위 · 아래 장식을 같은 비율로 줄여 겹치지 않게
+    final fit = math.min(1.0, size.height / ((WoodBoard.fixedTop + WoodBoard.fixedBottom) * s));
+    const top = WoodBoard.fixedTop, bottom = WoodBoard.fixedBottom;
     final paint = Paint()..filterQuality = FilterQuality.medium;
-    final topDst = Rect.fromLTWH(0, 0, size.width, top * s);
-    final bottomDst =
-        Rect.fromLTWH(0, size.height - bottom * s, size.width, bottom * s);
-    // 가운데 판자 (그림 높이만큼씩 이어 붙임)
+    final topDst = Rect.fromLTWH(0, 0, size.width, top * s * fit);
+    final bottomDst = Rect.fromLTWH(0, size.height - bottom * s * fit, size.width, bottom * s * fit);
+    // 가운데 판자 (장식 없는 판자만, 하나 걸러 위아래로 뒤집어 이어 붙여 이음매가 이어지게)
     final midSrcH = h - top - bottom;
     final midDstH = midSrcH * s;
     var y = topDst.bottom;
+    var flip = false;
     canvas.save();
     canvas.clipRect(Rect.fromLTRB(0, topDst.bottom, size.width, bottomDst.top));
     while (y < bottomDst.top) {
-      canvas.drawImageRect(art, Rect.fromLTWH(0, top, w, midSrcH),
-          Rect.fromLTWH(0, y, size.width, midDstH), paint);
+      final dst = Rect.fromLTWH(0, y, size.width, midDstH);
+      if (flip) {
+        canvas.save();
+        canvas.translate(0, dst.top + dst.bottom);
+        canvas.scale(1, -1);
+        canvas.drawImageRect(art, Rect.fromLTWH(0, top, w, midSrcH), dst, paint);
+        canvas.restore();
+      } else {
+        canvas.drawImageRect(art, Rect.fromLTWH(0, top, w, midSrcH), dst, paint);
+      }
+      flip = !flip;
       y += midDstH;
     }
     canvas.restore();

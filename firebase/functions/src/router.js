@@ -101,6 +101,7 @@ async function appCheck(req, deps, uid) {
   } catch (e) {
     // 기록이 안 돼도 이어서
   }
+  req.appCheckBad = result === 'bad';
   const block = String((deps.env || {}).APPCHECK_MODE || 'log') === 'block';
   return !(block && result !== 'ok');
 }
@@ -168,6 +169,8 @@ async function handle(req, res) {
       const tok = await caller(req, deps, true);
       if (!(await appCheck(req, deps, tok.uid))) return res.status(401).json({ error: 'app_check' });
       await noteMe(deps, tok.uid, body.me);
+      // 묶음 65: 진짜 앱 확인에 실패한 요청의 걸음은 공성 게이지에 넣지 않음
+      if (body.me && typeof body.me === 'object') body.me.__bad = !!req.appCheckBad;
     }
 
     if (path.startsWith('/party/')) {
@@ -223,6 +226,9 @@ async function handle(req, res) {
         '/siege/garrison': () => s.garrison(uid, body),
         '/siege/ungarrison': () => s.ungarrison(uid),
         '/siege/alliance': () => s.alliance(uid, body),
+        '/siege/rally': () => s.rally(uid, body),
+        '/siege/repair': () => s.repairTarget(uid, body),
+        '/siege/peek': () => s.peek(uid, body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

@@ -178,6 +178,74 @@ class MarketService {
     return t ? t.set(ref, hold) : ref.set(hold);
   }
 
+  // ───────────── 묶음 61 #250: 거래 지갑 (바르칸이 맡아 둔 금화, 서버만 바꿈)
+
+  _purseRef(uid) {
+    return this.db.doc(`tradeWallet/${uid}`);
+  }
+
+  async purse(uid) {
+    const s = await this._purseRef(uid).get();
+    return s.exists ? Number(s.data().gold || 0) : 0;
+  }
+
+  /** 지갑에서 뺌 (거래 안에서). 모자라면 no_wallet_gold */
+  async _purseTake(t, uid, amount) {
+    const ref = this._purseRef(uid);
+    const s = await t.get(ref);
+    const g = s.exists ? Number(s.data().gold || 0) : 0;
+    if (g < amount) fail('no_wallet_gold', 409);
+    t.set(ref, { gold: g - amount, at: this.now() });
+    return g - amount;
+  }
+
+  async _purseAdd(uid, amount) {
+    if (!(amount > 0)) return;
+    const ref = this._purseRef(uid);
+    await this.db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      const g = s.exists ? Number(s.data().gold || 0) : 0;
+      t.set(ref, { gold: g + amount, at: this.now() });
+    });
+  }
+
+  async walletState(uid) {
+    return { wallet: await this.purse(uid) };
+  }
+
+  /** 맡기기: 백업으로 금화가 정말 있는지 한 번 확인하고 지갑에 넣음 (앱은 그만큼 휴대폰 금화에서 뺌) */
+  async deposit(uid, { amount } = {}) {
+    if (await this._restricted(uid)) fail('restricted', 403);
+    const a = Math.floor(Number(amount) || 0);
+    if (a < 1 || a > 10000000) fail('bad_amount');
+    const w = await this._wallet(uid);
+    if (w.have.gold - w.hold.gold < a) {
+      if (this.suspect) await this.suspect.hit(uid, 'wallet', { want: a, have: w.have.gold - w.hold.gold });
+      fail('no_gold', 409);
+    }
+    w.hold.gold += a;
+    const id = `d_${this.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    await this.db.runTransaction(async (t) => {
+      const ref = this._purseRef(uid);
+      const s = await t.get(ref);
+      const g = s.exists ? Number(s.data().gold || 0) : 0;
+      t.set(ref, { gold: g + a, at: this.now() });
+      this._saveHold(uid, w.hold, t);
+    });
+    return { ok: true, wallet: await this.purse(uid), depositId: id, amount: a };
+  }
+
+  /** 꺼내기: 지갑 → 바르칸 우편(금화) */
+  async withdraw(uid, { amount } = {}) {
+    const a = Math.floor(Number(amount) || 0);
+    if (a < 1) fail('bad_amount');
+    await this.db.runTransaction(async (t) => {
+      await this._purseTake(t, uid, a);
+    });
+    await this._mail(uid, { title: `거래 지갑에서 금화 ${a}을 꺼냈어요`, body: '맡겨 둔 금화일세. 잘 세어 보게.', reward: { gold: a }, equips: [], kind: 'wallet' });
+    return { ok: true, wallet: await this.purse(uid) };
+  }
+
   async _mail(uid, msg) {
     await this.db.collection(`inbox/u_${uid}/msgs`).add({ from: '바르칸', at: this.now(), ...msg });
   }
@@ -270,7 +338,8 @@ class MarketService {
       if (buyNow <= price || buyNow > b.max) fail('bad_price');
     }
     const fee = listFee(price, !!body.seal);
-    if (have.gold - hold.gold < fee) fail('no_gold', 409);
+    // 묶음 61: 올리는 금화는 거래 지갑에서
+    if ((await this.purse(uid)) < fee) fail('no_wallet_gold', 409);
     const at = this.now();
     const ref = this.db.collection('market').doc(`m_${at.toString(36)}_${Math.random().toString(36).slice(2, 8)}`);
     const l = {
@@ -295,17 +364,17 @@ class MarketService {
       at,
       endsAt: at + (mode === 'fixed' ? CAT.fixedHours : CAT.auctionHours) * HOUR,
     };
-    hold.gold += fee;
     if (kind === 'mat') hold.mats[k] = (hold.mats[k] || 0) + qty;
     if (kind === 'item') hold.items[k] = (hold.items[k] || 0) + qty;
     if (kind === 'alc') hold.alcs[k] = (hold.alcs[k] || 0) + qty;
     if (kind === 'equip') hold.equips.push(k);
     if (kind === 'egg') hold.eggs.push(k);
     await this.db.runTransaction(async (t) => {
+      await this._purseTake(t, uid, fee);
       t.set(ref, l);
       this._saveHold(uid, hold, t);
     });
-    return { ok: true, listing: view(l, uid), fee };
+    return { ok: true, listing: view(l, uid), fee, wallet: await this.purse(uid) };
   }
 
   async _openOf(uid) {
@@ -354,10 +423,12 @@ class MarketService {
 
   async _paySeller(l, price) {
     const fee = saleFee(price, l.best);
+    // 묶음 61: 판 금화는 거래 지갑으로
+    await this._purseAdd(l.seller, price - fee);
     await this._mail(l.seller, {
       title: `「${l.name}」이 팔렸어요`,
-      body: `금화 ${price}에 팔렸네. 수수료 ${fee}을 떼고 보내네.`,
-      reward: { gold: price - fee },
+      body: `금화 ${price}에 팔렸네. 수수료 ${fee}을 떼고 거래 지갑에 넣어 두었네.`,
+      reward: {},
       equips: [],
     });
     await this._log(l, l.buyer, price, fee);
@@ -376,7 +447,7 @@ class MarketService {
       .sort((a, b) => (auction ? a.endsAt - b.endsAt : unitOf(a) - unitOf(b)))
       .slice(0, 100)
       .map((l) => view(l, uid));
-    return { items: rows };
+    return { items: rows, wallet: await this.purse(uid) };
   }
 
   async mine(uid) {
@@ -389,6 +460,7 @@ class MarketService {
       selling: mineRows.sort((a, b) => b.at - a.at).map((l) => view(l, uid)),
       bidding: bids.docs.map((d) => d.data()).filter((l) => l.status === 'open').map((l) => view(l, uid)),
       slots: CAT.slots,
+      wallet: await this.purse(uid),
     };
   }
 
@@ -421,26 +493,24 @@ class MarketService {
     const l0 = s0.data();
     if (l0.mode !== 'fixed') fail('bad_mode');
     await this._buyerCheck(uid, l0);
-    const w = await this._wallet(uid);
-    if (w.have.gold - w.hold.gold < l0.price) fail('no_gold', 409);
+    if ((await this.purse(uid)) < l0.price) fail('no_wallet_gold', 409);
     if (!(await this._pairOk(uid, l0.seller))) fail('pair_limit', 429);
     let l = null;
     await this.db.runTransaction(async (t) => {
       const s = await t.get(ref);
       const x = s.exists ? s.data() : null;
       if (!x || x.status !== 'open' || x.endsAt <= this.now()) return;
+      await this._purseTake(t, uid, x.price);
       x.status = 'sold';
       x.buyer = uid;
       x.soldAt = this.now();
       t.set(ref, x);
-      w.hold.gold += x.price;
-      this._saveHold(uid, w.hold, t);
       l = x;
     });
     if (!l) fail('gone', 409);
     await this._paySeller(l, l.price);
     await this._sendGoods(uid, l, `「${l.name}」을 샀어요`, '좋은 물건을 골랐군. 우편으로 보내 두었네.');
-    return { ok: true, charged: l.price };
+    return { ok: true, charged: l.price, wallet: await this.purse(uid) };
   }
 
   async bid(uid, { id, amount } = {}) {
@@ -452,8 +522,7 @@ class MarketService {
     await this._buyerCheck(uid, l0);
     let want = Math.floor(Number(amount) || 0);
     if (l0.buyNow && want >= l0.buyNow) want = l0.buyNow;
-    const w = await this._wallet(uid);
-    if (w.have.gold - w.hold.gold < want) fail('no_gold', 409);
+    if ((await this.purse(uid)) < want) fail('no_wallet_gold', 409);
     if (l0.bidder !== uid && !(await this._pairOk(uid, l0.seller))) fail('pair_limit', 429);
     let res = null;
     let prev = null;
@@ -469,6 +538,7 @@ class MarketService {
         res = 'outbid';
         return;
       }
+      await this._purseTake(t, uid, want);
       prev = x.bidder ? { uid: x.bidder, bid: x.bid } : null;
       x.bid = want;
       x.bidder = uid;
@@ -481,17 +551,17 @@ class MarketService {
         x.endsAt = this.now() + SNIPE_MS;
       }
       t.set(ref, x);
-      w.hold.gold += want;
-      this._saveHold(uid, w.hold, t);
       res = x;
     });
     if (res === 'gone') fail('gone', 409);
     if (res === 'outbid') fail('outbid', 409);
     if (prev) {
+      // 묶음 61: 돌려받는 입찰 금화는 거래 지갑으로
+      await this._purseAdd(prev.uid, prev.bid);
       await this._mail(prev.uid, {
         title: `「${res.name}」 경매에서 더 높은 값이 나왔어요`,
-        body: '다른 손님이 더 높게 불렀네. 묶어 두었던 금화를 돌려주겠네.',
-        reward: { gold: prev.bid },
+        body: '다른 손님이 더 높게 불렀네. 묶어 두었던 금화는 거래 지갑에 돌려 두었네.',
+        reward: {},
         equips: [],
       });
     }
@@ -499,7 +569,7 @@ class MarketService {
       await this._paySeller(res, res.bid);
       await this._sendGoods(uid, res, `「${res.name}」을 바로 샀어요`, '바로 사기 값이군. 우편으로 보내 두었네.');
     }
-    return { ok: true, charged: want, sold: res.status === 'sold', listing: view(res, uid) };
+    return { ok: true, charged: want, sold: res.status === 'sold', listing: view(res, uid), wallet: await this.purse(uid) };
   }
 
   /** 값을 정해 올린 물건을 내림 (경매는 입찰이 없을 때만). 물건은 우편으로 돌아감 */

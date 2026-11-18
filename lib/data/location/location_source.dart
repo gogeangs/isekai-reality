@@ -35,6 +35,7 @@ class DeviceLocationSource implements LocationSource {
       ).map((p) => LocationFix(
             point: GeoPoint(p.latitude, p.longitude),
             speedMps: p.speed < 0 ? 0 : p.speed,
+            mocked: p.isMocked,
           ));
 }
 

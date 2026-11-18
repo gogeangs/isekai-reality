@@ -182,6 +182,7 @@ void main() {
       expect(await c.claimGuild('walk', tier: 1), ['등불 인장 20']);
       expect(await c.claimGuild('walk', tier: 2), isNull, reason: '3단계는 아직');
       expect(await c.claimGuild('walk', tier: 0), isNull, reason: '한 번만');
+      a.wallet = 100; // 묶음 61: 기부 금화는 거래 지갑에서
       expect(await c.donateGuild(gold: 100), 2);
       expect(c.lanternSeals, 32);
       final gold = c.player.gold;

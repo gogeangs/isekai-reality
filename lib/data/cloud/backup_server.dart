@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'arca_api.dart' show AppCheckToken;
 import 'cloud_config.dart';
 
 /// 서버에 있는 기록 하나의 요약 (두 기록 고르기 · 설정에 보임)
@@ -122,6 +123,9 @@ class FirestoreBackupServer implements BackupServer {
     try {
       final req = await _http.openUrl(method, Uri.parse(url)).timeout(_timeout);
       if (token != null) req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      // 묶음 61: 진짜 앱 확인 (Firestore 도 같은 머리말)
+      final check = await AppCheckToken.get();
+      if (check != null) req.headers.set('X-Firebase-AppCheck', check);
       if (body != null) {
         req.headers.contentType = ContentType.json;
         req.add(utf8.encode(jsonEncode(body)));

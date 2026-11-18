@@ -1,10 +1,12 @@
 import 'dart:io' show Platform;
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'arca_api.dart' show AppCheckToken;
 import 'cloud_config.dart';
 
 enum LoginProvider { apple, google }
@@ -64,6 +66,16 @@ class FirebaseCloudAuth implements CloudAuth {
           iosBundleId: ios ? 'kr.itso.isekaiReality' : null,
         ),
       );
+      // 묶음 61 #250: 진짜 앱 확인 (안드로이드 Play Integrity · 아이폰 DeviceCheck). 실패해도 로그인 · 혼자 플레이는 그대로
+      try {
+        await FirebaseAppCheck.instance.activate(
+          providerAndroid: const AndroidPlayIntegrityProvider(),
+          providerApple: const AppleDeviceCheckProvider(),
+        );
+        AppCheckToken.provider = () => FirebaseAppCheck.instance.getToken();
+      } catch (e) {
+        debugPrint('App Check 시작 실패');
+      }
       return _instance = FirebaseCloudAuth._();
     } catch (e) {
       debugPrint('Firebase 시작 실패: $e');

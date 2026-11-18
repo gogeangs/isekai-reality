@@ -41,7 +41,9 @@ const G = {
   RAID_WIN: { seal: 40, raidMat: 2 },
   RAID_WIN_LV7: 15,
   BOARD_LINE_MAX: 40,
-  DECOS: ['plaque', 'lights', 'flowerbed', 'fountain', 'statue', 'campfire', 'spring', 'summer', 'autumn', 'winter'],
+  DECOS: ['plaque', 'lights', 'flowerbed', 'fountain', 'statue', 'campfire', 'spring', 'summer', 'autumn', 'winter', 'goldLights', 'goldFountain'],
+  /** 금고 쓰기 기록은 최근 50줄만 */
+  TLOG_MAX: 50,
   DECO_SLOTS: 4,
 };
 
@@ -421,7 +423,10 @@ class GuildService {
         size: sizeOf(lv),
         titles: g.titles || [],
         giantDone: !!g.giantDone,
+        goldFlag: !!g.goldFlag,
       },
+      // 묶음 61: 길드 금고 (모두가 봄) · 쓰기 기록은 게시판에
+      treasury: { gold: Number(g.treasury || 0), log: (g.tlog || []).slice(-20).reverse() },
       week: wk,
       members,
       myTotal: me.total || 0,
@@ -480,7 +485,7 @@ class GuildService {
 
   // ───────────── 회관 기부 · 꾸미기 · 창고
 
-  /** 기부: 금화 · 재료 → 회관 점수 · 등불 인장 (앱이 금화 · 재료를 뺌) */
+  /** 기부: 금화(묶음 61부터 거래 지갑에서) · 재료(앱이 뺌) → 회관 점수 · 등불 인장 */
   async donate(uid, { gold = 0, mats = {}, me = {} } = {}) {
     await this._block(uid);
     const { gid } = await this._mine(uid);
@@ -489,10 +494,18 @@ class GuildService {
     for (const v of Object.values(mats || {})) points += Math.max(0, Math.floor(Number(v) || 0)) * G.DONATE_MAT_POINT;
     if (points <= 0) fail('bad_amount');
     let seals = 0;
+    const goldN = Math.floor(Math.max(0, Number(gold) || 0));
     await this.db.runTransaction(async (t) => {
       const s = await t.get(this.db.doc(`guilds/${gid}`));
+      const wref = this.db.doc(`tradeWallet/${uid}`);
+      const ws = goldN > 0 ? await t.get(wref) : null;
       const g = s.data();
       const m = g.members[uid];
+      if (goldN > 0) {
+        const have = ws && ws.exists ? Number(ws.data().gold || 0) : 0;
+        if (have < goldN) fail('no_wallet_gold');
+        t.set(wref, { ...(ws.exists ? ws.data() : {}), gold: have - goldN, at: this.now() });
+      }
       const today = m.donateDay === day ? m.donatePts || 0 : 0;
       if (today + points > G.DONATE_DAY_POINTS) fail('donate_limit');
       const prevSeals = Math.floor(today / G.DONATE_POINTS_PER_SEAL);
@@ -509,7 +522,7 @@ class GuildService {
   async decoAdd(uid, { id, me = {} } = {}) {
     const { gid, g } = await this._mine(uid);
     this._needStaff(g, uid);
-    if (!G.DECOS.includes(id)) fail('bad_deco');
+    if (!G.DECOS.includes(id) || String(id).startsWith('gold')) fail('bad_deco');
     const decos = new Set((g.hall || {}).decos || []);
     if (decos.has(id)) fail('owned');
     decos.add(id);
@@ -558,6 +571,103 @@ class GuildService {
       at: this.now(),
     });
     return { ok: true, left: G.SHARE_PER_DAY - used - q };
+  }
+
+  // ───────────── 묶음 61: 길드 금고 쓰기 (수비대 강화 · 회관 공사 · 나눠 주기 · 금고 상점). 쓸 때마다 게시판에 한 줄
+
+  async treasury(uid, { action, estate, level, amount, id, me = {} } = {}) {
+    await this._block(uid);
+    const S = require('./siege');
+    const T = S.T;
+    const { gid, g } = await this._mine(uid);
+    const now = this.now();
+    const who = ((g.members || {})[uid] || {}).name || '길드원';
+    const ref = this.db.doc(`guilds/${gid}`);
+    const spend = async (cost, what, mutate) => {
+      await this.db.runTransaction(async (t) => {
+        const s = await t.get(ref);
+        const x = s.data();
+        if (Number(x.treasury || 0) < cost) fail('no_treasury');
+        x.treasury = Number(x.treasury || 0) - cost;
+        if (mutate) mutate(x);
+        x.tlog = [...(x.tlog || []), { at: now, name: who, what, gold: cost }].slice(-G.TLOG_MAX);
+        t.set(ref, x);
+      });
+    };
+    if (action === 'boost') {
+      this._needStaff(g, uid);
+      if (S.siegeActive(now)) fail('siege_lock');
+      const w = (await this.db.doc('erbard/world').get()).data() || { owners: {} };
+      const o = (w.owners || {})[estate];
+      if (!o || o.gid !== gid) fail('not_yours');
+      const lv = Math.floor(Number(level) || 0);
+      if (!(lv >= 1 && lv <= T.boostCost.length)) fail('bad_level');
+      const gref = this.db.doc(`garrison/${estate}`);
+      const gs = (await gref.get()).data() || { gid, slots: [null, null, null, null, null] };
+      const cur = gs.boost && gs.boost.until > now ? gs.boost.level : 0;
+      if (cur >= lv) fail('owned');
+      // 올리면 차이만큼만
+      const cost = T.boostCost[lv - 1] - (cur ? T.boostCost[cur - 1] : 0);
+      const name = (S.ESTATES.find((e) => e.id === estate) || {}).name || '영지';
+      await spend(cost, `${name} 수비대 강화 ${lv}단계`);
+      await gref.set({ ...gs, boost: { level: lv, until: S.siegeEnd(S.siegeNo(now)), by: uid } });
+    } else if (action === 'hall') {
+      this._needStaff(g, uid);
+      const gold = Math.floor(Number(amount) || 0);
+      const points = Math.floor(gold / G.DONATE_GOLD_PER_POINT);
+      if (points <= 0) fail('bad_amount');
+      const day = R.dayKey(now);
+      const today = g.hallTDay === day ? g.hallTPts || 0 : 0;
+      if (today + points > T.hallTreasuryDayPoints) fail('donate_limit');
+      await spend(points * G.DONATE_GOLD_PER_POINT, '회관 공사', (x) => {
+        x.hallTDay = day;
+        x.hallTPts = today + points;
+        x.hall = { ...(x.hall || {}), points: ((x.hall || {}).points || 0) + points };
+      });
+    } else if (action === 'share') {
+      if (g.owner !== uid) fail('not_owner', 403);
+      const n = S.lastEnded(now);
+      if (n < 0 || S.siegeActive(now)) fail('not_yet');
+      if ((g.treasuryShare ?? -1) >= n) fail('shared');
+      const use = (await this.db.doc(`siegeUse/${n}`).get()).data() || { u: {} };
+      const users = Object.entries(use.u || {})
+        .filter(([u, x]) => x.gid === gid && x.n > 0 && (g.members || {})[u])
+        .map(([u]) => u);
+      if (!users.length) fail('no_users');
+      const want = Math.floor(Number(amount) || 0);
+      const cap = Math.floor(Number(g.treasury || 0) * T.shareMaxRate);
+      if (want <= 0 || want > cap) fail('bad_amount');
+      const per = Math.min(T.sharePerHeadMax, Math.floor(want / users.length));
+      if (per <= 0) fail('bad_amount');
+      await spend(per * users.length, `제${n + 1}회 공성전 나눠 주기 (${users.length}명)`, (x) => {
+        if ((x.treasuryShare ?? -1) >= n) fail('shared');
+        x.treasuryShare = n;
+      });
+      for (const u of users) {
+        await this.db.collection(`inbox/u_${u}/msgs`).add({
+          from: g.name || '길드',
+          title: `제${n + 1}회 깃발 공성전 금고 나눔`,
+          body: `${who}님이 길드 금고에서 공성전에 나선 길드원에게 똑같이 나눠 준 금화예요.`,
+          reward: { gold: per },
+          equips: [],
+          at: now,
+          kind: 'treasury',
+        });
+      }
+    } else if (action === 'shop') {
+      this._needStaff(g, uid);
+      const price = T.treasuryShop[id];
+      if (!price) fail('bad_deco');
+      const name = { goldLights: '금빛 등불 줄', goldFountain: '금빛 분수', goldFlag: '금빛 깃발 문양' }[id] || id;
+      if (id === 'goldFlag' ? g.goldFlag : ((g.hall || {}).decos || []).includes(id)) fail('owned');
+      await spend(price, `금고 상점 · ${name}`, (x) => {
+        if (id === 'goldFlag') x.goldFlag = true;
+        else x.hall = { ...(x.hall || {}), decos: [...new Set([...((x.hall || {}).decos || []), id])] };
+      });
+    } else {
+      fail('bad_action');
+    }
+    return this.state(uid, me);
   }
 
   // ───────────── 레이드 (도전권으로 한 판씩, 피해가 길드 전체로 합쳐짐)

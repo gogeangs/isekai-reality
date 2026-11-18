@@ -38,7 +38,7 @@ extension PartyOps on AppController {
   Future<Map<String, dynamic>> _partyMe() async => {
         'name': _profile.name,
         'level': player.level.level,
-        'steps': player.today?.steps ?? 0,
+        ...await _socialSteps(),
         'device': await deviceId(),
       };
 
@@ -346,8 +346,10 @@ extension PartyOps on AppController {
     try {
       final token = await a.idToken();
       if (token == null) return;
+      // 묶음 61: 가짜 위치면 칸 번호를 보내지 않음 (표시만)
       final (r, c) = PartyRules.cellOf(fix.point.lat, fix.point.lng);
-      final j = await api.post('/party/near', {'r': r, 'c': c}, token: token);
+      final j = await api.post('/party/near', fix.mocked || mockLocation ? {'mock': true} : {'r': r, 'c': c},
+          token: token);
       final near = j['near'] == true;
       final was = partyNear;
       await _savePartyLocal(near

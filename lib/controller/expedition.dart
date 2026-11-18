@@ -863,7 +863,13 @@ extension ExpeditionOps on AppController {
     final night = await win(at(0), at(5, 0)) +
         await win(at(19), DateTime(dayStart.year, dayStart.month, dayStart.day + 1));
     final dawn = await win(at(5), at(9, 0));
+    // 묶음 61 #250: 손으로 입력한 걸음 (함께하는 기능에서만 뺌, 혼자 하는 걸음은 그대로)
+    final auto = await health.autoStepsBetween(dayStart, end);
+    final manual = auto < steps ? steps - auto : 0;
     var out = record.copyWith(
+        counters: manual > 0 || record.counters.containsKey(AppController.manualStepsKey)
+            ? {...record.counters, AppController.manualStepsKey: manual}
+            : null,
         steps: steps,
         stepsAfter8pm: after8,
         stepsMorning: morning,

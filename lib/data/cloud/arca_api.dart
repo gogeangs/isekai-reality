@@ -20,6 +20,22 @@ class ArcaApiError implements Exception {
   String toString() => 'ArcaApiError($code, $status)';
 }
 
+/// 묶음 61 #250: 진짜 앱 확인 (Firebase App Check) 토큰을 주는 곳. Firebase 를 켜면 채워짐 (시험 · 설정 없음은 null)
+class AppCheckToken {
+  static Future<String?> Function()? provider;
+
+  /// 토큰 (못 받으면 null — 서버는 처음 2주 기록만 하므로 그대로 보냄)
+  static Future<String?> get() async {
+    final p = provider;
+    if (p == null) return null;
+    try {
+      return await p().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class HttpArcaApi implements ArcaApi {
   HttpArcaApi({String? base, HttpClient? client})
       : base = base ?? defaultBase,
@@ -38,6 +54,8 @@ class HttpArcaApi implements ArcaApi {
       final req = await _http.postUrl(Uri.parse('$base$path')).timeout(const Duration(seconds: 15));
       req.headers.contentType = ContentType.json;
       if (token != null) req.headers.set('Authorization', 'Bearer $token');
+      final check = await AppCheckToken.get();
+      if (check != null) req.headers.set('X-Firebase-AppCheck', check);
       req.add(utf8.encode(jsonEncode(body)));
       final res = await req.close().timeout(const Duration(seconds: 20));
       final text = await res.transform(utf8.decoder).join();

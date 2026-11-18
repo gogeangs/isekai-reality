@@ -281,13 +281,35 @@ abstract final class GuildRules {
     'summer': '여름 풍경',
     'autumn': '가을 낙엽',
     'winter': '겨울 눈사람',
+    'goldLights': '금빛 등불 줄',
+    'goldFountain': '금빛 분수',
   };
   /// 그림 이름 (서버 이름과 다른 셋은 들어온 그림 이름으로)
   static String decoImage(String id) => 'assets/images/deco_${const {
         'plaque': 'nameplate',
         'lights': 'lanternString',
         'statue': 'petStatue',
+        'goldLights': 'lanternString',
+        'goldFountain': 'fountain',
       }[id] ?? id}.webp';
+
+  /// 묶음 61: 회관 공사 한 번에 쓰는 금고 금화 (금화 10당 회관 점수 1)
+  static const int treasuryHallStep = 1000;
+
+  /// 묶음 61: 금고 상점 꾸미기 (있는 그림을 금빛으로)
+  static bool goldDeco(String id) => id.startsWith('gold');
+
+  /// 금고 상점 (금고 금화로만, 길드장 · 부길드장)
+  static const Map<String, String> treasuryShopNames = {
+    'goldLights': '금빛 등불 줄',
+    'goldFountain': '금빛 분수',
+    'goldFlag': '금빛 깃발 문양',
+  };
+  static const Map<String, String> treasuryShopLines = {
+    'goldLights': '회관 앞에 금빛으로 빛나는 등불 줄',
+    'goldFountain': '금빛 물이 흐르는 회관 분수',
+    'goldFlag': '길드 깃발 문양이 금빛으로 (길드 화면 · 회관)',
+  };
 
   /// 회관 그림 위 꾸미기 자리 4곳 (그림 비율: 가로 · 세로)
   static const List<(double, double)> decoSpots = [(0.16, 0.78), (0.38, 0.86), (0.62, 0.86), (0.84, 0.78)];
@@ -390,6 +412,15 @@ abstract final class GuildRules {
         'offline' => '인터넷이 연결되지 않았어요',
         'no_gold' => '금화가 모자라요',
         'no_charter' => '길드 창설 증서가 있어야 해요. 리안에게 받아요',
+        'no_wallet_gold' => '거래 지갑 금화가 모자라요. 거래소에서 바르칸에게 맡겨 주세요',
+        'no_treasury' => '길드 금고 금화가 모자라요',
+        'not_yours' => '우리 길드 영지가 아니에요',
+        'siege_lock' => '공성전 중에는 바꿀 수 없어요',
+        'owned' => '이미 있어요',
+        'shared' => '이번 공성전 몫은 이미 나눠 줬어요',
+        'no_users' => '이번 공성전에 공성권을 쓴 길드원이 없어요',
+        'bad_amount' => '그 금화로는 할 수 없어요',
+        'app_check' => '앱을 최신으로 바꾼 뒤 다시 해 주세요',
         _ => '잠시 뒤 다시 해 주세요',
       };
 }

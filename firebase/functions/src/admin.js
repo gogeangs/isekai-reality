@@ -193,22 +193,37 @@ class AdminService {
     const l = t.listing ? (await this.db.doc(`market/${t.listing}`).get()).data() || {} : {};
     const goods = goodsOf(t, l);
     const net = t.price - (t.fee || 0);
-    if (t.buyer) {
+    // 묶음 61: 거래는 거래 지갑으로 했으니 금화도 지갑으로 돌려주고 거둠 (지갑에 모자라면 남은 만큼 휴대폰 금화에서)
+    const purse = (uid) => this.db.doc(`tradeWallet/${uid}`);
+    const purseAdd = async (uid, n) => {
+      let took = 0;
+      await this.db.runTransaction(async (tx) => {
+        const s0 = await tx.get(purse(uid));
+        const g = s0.exists ? Number(s0.data().gold || 0) : 0;
+        const next = Math.max(0, g + n);
+        took = n < 0 ? g - next : 0;
+        tx.set(purse(uid), { gold: next, at: this.now() });
+      });
+      return took;
+    };
+    if (t.buyer && t.buyer !== 'deleted') {
+      await purseAdd(t.buyer, t.price);
       await this._mail(t.buyer, {
         from: '바르칸',
         title: `「${t.name}」 거래가 되돌려졌어요`,
-        body: `운영 확인 뒤 거래를 되돌렸네. 낸 금화 ${t.price}을 돌려주고, 받은 물건은 장부에서 거두네.`,
-        reward: { gold: t.price },
+        body: `운영 확인 뒤 거래를 되돌렸네. 낸 금화 ${t.price}은 거래 지갑에 돌려주고, 받은 물건은 장부에서 거두네.`,
+        reward: {},
         op: { take: goods.take },
       });
     }
+    const fromPurse = t.seller === 'deleted' ? 0 : await purseAdd(t.seller, -net);
     await this._mail(t.seller, {
       from: '바르칸',
       title: `「${t.name}」 거래가 되돌려졌어요`,
-      body: `운영 확인 뒤 거래를 되돌렸네. 물건은 돌려주고, 받은 금화 ${net}은 장부에서 거두네.`,
+      body: `운영 확인 뒤 거래를 되돌렸네. 물건은 돌려주고, 받은 금화 ${net}은 거래 지갑에서 거두네.`,
       reward: goods.reward,
       equips: goods.equips,
-      op: { take: { gold: net } },
+      ...(net - fromPurse > 0 ? { op: { take: { gold: net - fromPurse } } } : {}),
     });
     await ref.set({ ...t, reverted: { at: this.now(), by, memo: text(memo, 300) } });
     await this.log(by, 'revert', logId, { seller: t.seller, buyer: t.buyer, price: t.price, name: t.name });

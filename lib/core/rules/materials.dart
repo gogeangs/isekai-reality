@@ -656,6 +656,13 @@ class LootRules {
         MonsterId.raidTortoise ||
         MonsterId.garrisonClone ||
         MonsterId.blackGuard ||
+        MonsterId.blackCaptain ||
+        MonsterId.cloneWarrior ||
+        MonsterId.cloneKnight ||
+        MonsterId.cloneArcher ||
+        MonsterId.cloneMage ||
+        MonsterId.clonePriest ||
+        MonsterId.cloneRogue ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

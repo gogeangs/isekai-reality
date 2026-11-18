@@ -63,6 +63,17 @@ class FakeArca implements ArcaApi {
   int siegeUsed = 0;
   int treasury = 0;
 
+  // 묶음 61: 거래 지갑 · 공성권(서버가 셈) · 금고 쓰기 · 보낸 걸음 (판정은 서버 시험에서)
+  int wallet = 0;
+  int? siegeTickets;
+  final Map<String, int> boosts = {};
+  final List<Map<String, dynamic>> tlog = [];
+  bool goldFlag = false;
+  bool canShare = false;
+  final List<Map<String, dynamic>> meSent = [];
+  final List<Map<String, dynamic>> nearSent = [];
+  void _tl(String what, int gold) => tlog.insert(0, {'at': DateTime(2026, 11, 30, 10).millisecondsSinceEpoch, 'name': '하루', 'what': what, 'gold': gold});
+
   Map<String, dynamic> _siegeState(String me) => {
         'owners': siegeOwners,
         'siege': {'no': siegeNo, 'active': siegeActive, 'start': DateTime.utc(2026, 11, 27, 15).millisecondsSinceEpoch, 'end': DateTime.utc(2026, 11, 29, 15).millisecondsSinceEpoch},
@@ -71,7 +82,12 @@ class FakeArca implements ArcaApi {
           'treasury': treasury,
           'staff': true,
           'owner': true,
+          'canShare': canShare,
+          'shareNo': 0,
         },
+        'boosts': boosts,
+        if (siegeTickets != null) 'tickets': siegeTickets,
+        if (siegeTickets != null) 'ticketCarry': 500,
         'garrisons': {
           for (final e in siegeOwners.entries)
             if (e.value?['gid'] == 'mine') e.key: garrisons[e.key] ?? [null, null, null, null, null],
@@ -104,10 +120,14 @@ class FakeArca implements ArcaApi {
           'level': 30,
           'broken': b,
           if (o['gid'] == 'npc') 'npc': true,
-          if (o['gid'] != 'npc') 'guard': {'name': '별하', 'level': 31, 'allies': [{'name': '도윤', 'level': 28}]},
+          if (o['gid'] != 'npc') 'guard': {'name': '별하', 'level': 31, 'job': 'mage', 'allies': [{'name': '도윤', 'level': 28, 'job': 'knight'}]},
           'bonus': 0.1,
         };
       case '/siege/fight':
+        if (siegeTickets != null) {
+          if (siegeTickets! <= 0) throw const ArcaApiError('no_ticket');
+          siegeTickets = siegeTickets! - 1;
+        }
         final k = (body['slot'] as num).toInt();
         final win = body['win'] == true;
         if (siegeActive) siegeUsed++;
@@ -136,6 +156,7 @@ class FakeArca implements ArcaApi {
         g[(body['slot'] as num).toInt()] = {
           'name': snap['name'],
           'level': snap['level'],
+          'job': snap['job'],
           'allies': [for (final a in (snap['allies'] as List)) (a as Map)['name']],
           'me': true,
         };
@@ -168,6 +189,7 @@ class FakeArca implements ArcaApi {
         'size': 20 + 2 * ((guildLevel - 1) ~/ 2),
         'giantDone': giantDone,
         'titles': [if (giantDone) 'raidGiant'],
+        'goldFlag': goldFlag,
       },
       'members': [
         for (final e in guildMembers.entries) {...e.value, 'uid': e.key, 'me': e.key == me},
@@ -177,6 +199,7 @@ class FakeArca implements ArcaApi {
         'done': walkDone,
         'claimed': [for (var i = 0; i < 3; i++) if (guildClaimed.contains('walk$i')) i],
       },
+      'treasury': {'gold': treasury, 'log': tlog},
       'hall': {'star': guildStar, 'progress': 0.3, 'nextLevel': guildStar < 4 ? [0, 0, 3, 6, 10][guildStar + 1] : null, 'decos': guildDecos, 'slots': guildSlots},
       if (guildLevel >= 4)
         'raid': {
@@ -238,6 +261,9 @@ class FakeArca implements ArcaApi {
         if ('${body['text']}'.contains('바보')) throw const ArcaApiError('banned_word');
         guildMembers[me]!['line'] = body['text'];
       case '/guild/donate':
+        final dg = ((body['gold'] as num?) ?? 0).toInt();
+        if (dg > wallet) throw const ArcaApiError('no_wallet_gold');
+        wallet -= dg;
         return {'seals': ((body['gold'] as num?) ?? 0) >= 100 ? 2 : 1, 'state': _guildState(me)};
       case '/guild/deco/add':
         staff();
@@ -247,6 +273,36 @@ class FakeArca implements ArcaApi {
         guildSlots[(body['slot'] as num).toInt()] = body['id'] as String?;
       case '/guild/share':
         if (guildStar < 2) throw const ArcaApiError('need_star');
+      case '/guild/treasury':
+        staff();
+        int spend(int n) {
+          if (treasury < n) throw const ArcaApiError('no_treasury');
+          treasury -= n;
+          return n;
+        }
+        switch (body['action']) {
+          case 'boost':
+            final lv = (body['level'] as num).toInt();
+            final cur = boosts['${body['estate']}'] ?? 0;
+            final n = spend([3000, 7000, 12000][lv - 1] - (cur > 0 ? [3000, 7000, 12000][cur - 1] : 0));
+            boosts['${body['estate']}'] = lv;
+            _tl('수비대 강화 $lv단계', n);
+          case 'hall':
+            _tl('회관 공사', spend((body['amount'] as num).toInt()));
+          case 'share':
+            if (!canShare) throw const ArcaApiError('shared');
+            canShare = false;
+            _tl('제1회 공성전 나눠 주기 (3명)', spend(((body['amount'] as num).toInt() ~/ 3) * 3));
+          case 'shop':
+            final id = '${body['id']}';
+            final n = spend(const {'goldLights': 4000, 'goldFountain': 6000, 'goldFlag': 5000}[id]!);
+            if (id == 'goldFlag') {
+              goldFlag = true;
+            } else {
+              guildDecos.add(id);
+            }
+            _tl('금고 상점', n);
+        }
       case '/guild/raid':
         if (raidTickets <= 0) throw const ArcaApiError('no_ticket');
         raidTickets--;
@@ -341,6 +397,7 @@ class FakeArca implements ArcaApi {
   Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body, {String? token}) async {
     calls.add(path);
     if (offline) throw const ArcaApiError('offline');
+    if (body['me'] is Map) meSent.add((body['me'] as Map).cast<String, dynamic>());
     final me = uid;
     if (path.startsWith('/party/') && token == null) throw const ArcaApiError('login_required', status: 401);
     if (path.startsWith('/siege/')) {
@@ -430,6 +487,7 @@ class FakeArca implements ArcaApi {
         set.add(key);
         return {'reward': reward, 'state': _state(me, body)};
       case '/party/near':
+        nearSent.add(body);
         return {'near': near};
       case '/inquiry':
         inquiries.add({...body, 'token': token});
@@ -453,30 +511,50 @@ class FakeArca implements ArcaApi {
         };
         listings.add(l);
         final p = ((body['price'] ?? body['start']) as num).toInt();
-        final fee = (p * 0.02).round() < 10 ? 10 : (p * 0.02).round();
-        return {'ok': true, 'listing': l, 'fee': body['seal'] == true ? (fee / 2).round() : fee};
+        final fee0 = (p * 0.02).round() < 10 ? 10 : (p * 0.02).round();
+        final fee = body['seal'] == true ? (fee0 / 2).round() : fee0;
+        wallet -= fee;
+        return {'ok': true, 'listing': l, 'fee': fee, 'wallet': wallet};
       case '/market/browse':
         return {
           'items': [
             for (final l in listings)
               if (l['mine'] != true && (body['auction'] == true) == (l['mode'] == 'auction')) l,
           ],
+          'wallet': wallet,
         };
       case '/market/mine':
-        return {'selling': [for (final l in listings) if (l['mine'] == true) l], 'bidding': [], 'slots': 5};
+        return {'selling': [for (final l in listings) if (l['mine'] == true) l], 'bidding': [], 'slots': 5, 'wallet': wallet};
+      case '/market/wallet':
+        return {'wallet': wallet};
+      case '/market/deposit':
+        if (marketFail != null) throw ArcaApiError(marketFail!);
+        marketBodies.add(body);
+        wallet += (body['amount'] as num).toInt();
+        return {'ok': true, 'wallet': wallet, 'amount': body['amount'], 'depositId': 'd1'};
+      case '/market/withdraw':
+        final a = (body['amount'] as num).toInt();
+        if (a > wallet) throw const ArcaApiError('no_wallet_gold');
+        wallet -= a;
+        inbox.add({'id': 'w$wallet', 'from': '바르칸', 'title': '거래 지갑에서 금화 $a을 꺼냈어요', 'reward': {'gold': a}, 'equips': []});
+        return {'ok': true, 'wallet': wallet};
       case '/market/price':
         return {'count': 2, 'min': 8, 'max': 12, 'avg': 10, 'last': 12};
       case '/market/buy':
         if (marketFail != null) throw ArcaApiError(marketFail!);
         marketBodies.add(body);
         final l = listings.firstWhere((x) => x['id'] == body['id']);
+        if (wallet < (l['price'] as num)) throw const ArcaApiError('no_wallet_gold');
+        wallet -= (l['price'] as num).toInt();
         l['status'] = 'sold';
         inbox.add({'id': 'buy${l['id']}', 'from': '바르칸', 'title': '「${l['name']}」을 샀어요', 'reward': {'${l['key']}': l['qty']}, 'equips': l['equip'] == null ? [] : [l['equip']]});
-        return {'ok': true, 'charged': l['price']};
+        return {'ok': true, 'charged': l['price'], 'wallet': wallet};
       case '/market/bid':
         if (marketFail != null) throw ArcaApiError(marketFail!);
         marketBodies.add(body);
-        return {'ok': true, 'charged': body['amount'], 'sold': false};
+        if (wallet < (body['amount'] as num)) throw const ArcaApiError('no_wallet_gold');
+        wallet -= (body['amount'] as num).toInt();
+        return {'ok': true, 'charged': body['amount'], 'sold': false, 'wallet': wallet};
       case '/market/cancel':
         return {'ok': true};
       case '/deep/submit':

@@ -168,6 +168,9 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await c.refreshGuild();
+      // 묶음 61: 금고 나눠 주기 · 기부 금화(거래 지갑)를 알려고
+      if (c.act5Open) await c.refreshErbard();
+      if (c.guild?.inGuild == true && !(c.guild?.lian ?? true) && c.marketWallet == null) await c.refreshWallet();
       if (mounted) await showAct4Pending(context, c);
     });
   }
@@ -584,7 +587,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
         ornament: true,
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            PartyFlag(emblem: g.emblem, color: g.color, size: 60),
+            PartyFlag(emblem: g.emblem, color: g.color, size: 60, gold: g.goldFlag),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -950,7 +953,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
                         key: Key('guildDecoSlot_$i'),
                         onTap: g.staff && !g.lian ? () => _decoSlot(g, i) : null,
                         child: switch (i < g.slots.length ? g.slots[i] : null) {
-                          final String id => Image.asset(GuildRules.decoImage(id), errorBuilder: (_, __, ___) => const SizedBox()),
+                          final String id => GuildDecoImage(id),
                           null => g.staff && !g.lian
                               ? DecoratedBox(
                                   decoration: BoxDecoration(
@@ -1000,6 +1003,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
       const SizedBox(height: 10),
       if (!g.lian) _donate(),
       if (!g.lian) const SizedBox(height: 10),
+      if (!g.lian) ...[_treasury(g), const SizedBox(height: 10)],
       _board(g),
       if (!g.lian && star >= 2) ...[const SizedBox(height: 10), _storage(g)],
     ]);
@@ -1028,7 +1032,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
                         _run(() => c.placeDeco(slot, d));
                       },
                       child: Column(children: [
-                        Image.asset(GuildRules.decoImage(d), width: 58, height: 58, errorBuilder: (_, __, ___) => const SizedBox(width: 58)),
+                        GuildDecoImage(d, size: 58),
                         Text(GuildRules.decoNames[d] ?? d, style: const TextStyle(color: AppColors.text, fontSize: 11.5)),
                       ]),
                     ),
@@ -1052,14 +1056,16 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
           Text('회관에 기부하기', style: AppText.title(15)),
           const Text('금화 · 재료를 모으면 회관이 커지고 등불 인장을 받아요 · 하루 한도가 있어요',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text('기부 금화는 거래 지갑에서 · 지갑 금화 ${c.marketWallet == null ? '-' : comma(c.marketWallet!)}',
+              key: const Key('guildDonateWallet'), style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(
               child: FrameButton(
                 key: const Key('guildDonateGold'),
-                label: '금화 ${GuildRules.donateGoldStep}',
+                label: '지갑 금화 ${GuildRules.donateGoldStep}',
                 height: 42,
-                onPressed: c.guildBusy || c.player.gold < GuildRules.donateGoldStep
+                onPressed: c.guildBusy || (c.marketWallet != null && c.marketWallet! < GuildRules.donateGoldStep)
                     ? null
                     : () async {
                         final s = await c.donateGuild(gold: GuildRules.donateGoldStep);
@@ -1129,11 +1135,168 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
         },
       );
 
+  /// 묶음 61: 길드 금고 (영지 거래소 몫) — 회관 공사 · 나눠 주기 · 금고 상점 (수비대 강화는 수비대 화면)
+  Widget _treasury(GuildView g) {
+    final v = c.erbard;
+    return OrnatePanel(
+      key: const Key('guildTreasury'),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Icon(Icons.savings_rounded, color: AppColors.goldBright, size: 20),
+          const SizedBox(width: 6),
+          Text('길드 금고', style: AppText.title(15)),
+          const Spacer(),
+          Text('금화 ${comma(g.treasury)}', key: const Key('guildTreasuryGold'), style: AppText.title(15, color: AppColors.goldBright)),
+        ]),
+        const Text('영지에서 모인 거래소 몫이 쌓여요. 길드장 · 부길드장이 쓰고, 쓸 때마다 게시판에 남아요.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4)),
+        if (g.staff) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: FrameButton(
+                key: const Key('treasuryHall'),
+                label: '회관 공사 · 금화 ${comma(GuildRules.treasuryHallStep)}',
+                height: 40,
+                onPressed: c.guildBusy || g.treasury < GuildRules.treasuryHallStep
+                    ? null
+                    : () => _run(() => c.treasuryHall(GuildRules.treasuryHallStep), ok: '금고 금화로 회관을 고쳤어요'),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: FrameButton(
+                key: const Key('treasuryShare'),
+                label: '길드원에게 나눠 주기',
+                height: 40,
+                onPressed: g.role == 'owner' && v.canShare && !c.guildBusy && g.treasury > 1 ? () => _shareSheet(g) : null,
+              ),
+            ),
+          ]),
+          Text(
+              g.role != 'owner'
+                  ? '나눠 주기는 길드장이 해요'
+                  : v.canShare
+                      ? '제${(v.shareNo ?? 0) + 1}회 공성전에 공성권을 쓴 길드원에게 똑같이 보내요'
+                      : '공성전이 끝나면 그 공성전에 나선 길드원에게 한 번 나눠 줄 수 있어요',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          const SizedBox(height: 8),
+          Text('금고 상점', style: AppText.title(14)),
+          const SizedBox(height: 4),
+          for (final e in ErbardRules.treasuryShop.entries) _treasuryItem(g, e.key, e.value),
+        ],
+      ]),
+    );
+  }
+
+  Widget _treasuryItem(GuildView g, String id, int price) {
+    final owned = id == 'goldFlag' ? g.goldFlag : g.decos.contains(id);
+    return Padding(
+      key: Key('treasuryItem_$id'),
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: id == 'goldFlag'
+              ? PartyFlag(emblem: g.emblem, color: g.color, size: 44, gold: true)
+              : GuildDecoImage(id, size: 44),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(GuildRules.treasuryShopNames[id] ?? id,
+                style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w800)),
+            Text(GuildRules.treasuryShopLines[id] ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          ]),
+        ),
+        TextButton(
+          key: Key('treasuryBuy_$id'),
+          onPressed: owned || c.guildBusy || g.treasury < price
+              ? null
+              : () => _run(() => c.treasuryShop(id), ok: '${GuildRules.treasuryShopNames[id]}을(를) 들였어요'),
+          child: Text(owned ? '있어요' : '금화 ${comma(price)}'),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _shareSheet(GuildView g) async {
+    final max = (g.treasury * ErbardRules.shareMaxRate).floor();
+    final amount = TextEditingController(text: '$max');
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => Padding(
+        key: const Key('treasuryShareSheet'),
+        padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + MediaQuery.viewInsetsOf(sheet).bottom),
+        child: StatefulBuilder(
+          builder: (context, set) {
+            final a = int.tryParse(amount.text) ?? 0;
+            return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('길드원에게 나눠 주기', style: AppText.title(18)),
+              const SizedBox(height: 4),
+              KText(
+                  '제${(c.erbard.shareNo ?? 0) + 1}회 공성전에 공성권을 쓴 길드원에게 똑같이 나눠 우편으로 보내요. '
+                  '금고의 절반(금화 ${comma(max)})까지, 한 사람에 금화 ${comma(ErbardRules.sharePerHeadMax)}까지예요. 공성전마다 한 번이에요.',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5, height: 1.45)),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('treasuryShareAmount'),
+                controller: amount,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                onChanged: (_) => set(() {}),
+                style: const TextStyle(color: AppColors.text, fontSize: 18),
+                decoration: const InputDecoration(labelText: '나눌 금화', suffixText: '금화'),
+              ),
+              const SizedBox(height: 12),
+              GoldButton(
+                key: const Key('treasuryShareOk'),
+                label: '나눠 주기',
+                height: 46,
+                fontSize: 17,
+                onPressed: a <= 0 || a > max
+                    ? null
+                    : () async {
+                        Navigator.pop(sheet);
+                        await _run(() => c.treasuryShare(a), ok: '나눠 줬어요 · 게시판에 남았어요');
+                      },
+              ),
+            ]);
+          },
+        ),
+      ),
+    );
+    amount.dispose();
+  }
+
   Widget _board(GuildView g) => OrnatePanel(
         key: const Key('guildBoard'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('길드 게시판 · 한마디', style: AppText.title(15)),
           const SizedBox(height: 6),
+          // 묶음 61: 금고 쓰기 기록 (누가 · 무엇에 · 얼마)
+          for (final (i, t) in g.treasuryLog.take(5).indexed)
+            Padding(
+              key: Key('guildTreasuryLog_$i'),
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text.rich(TextSpan(children: [
+                const WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.savings_rounded, size: 14, color: AppColors.goldBright))),
+                TextSpan(
+                    text: '${t.name}  ',
+                    style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                TextSpan(
+                    text: '금고 금화 ${comma(t.gold)} · ${t.what}',
+                    style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+              ])),
+            ),
           for (final m in g.members)
             if (m.line.isNotEmpty)
               Padding(
@@ -1322,7 +1485,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
     final Widget icon = switch (s) {
       GuildShopInfo(equip: final e?) => EquipIcon(base: e, size: 40),
       GuildShopInfo(deco: final d?) =>
-        Image.asset(GuildRules.decoImage(d), width: 40, height: 40, errorBuilder: (_, __, ___) => const SizedBox(width: 40)),
+        GuildDecoImage(d, size: 40),
       GuildShopInfo(icon: final i?) =>
         Image.asset(i, width: 34, errorBuilder: (_, __, ___) => const Icon(Icons.monetization_on_rounded, color: AppColors.gold)),
       _ when s.item == GuildShopItem.matBundle => const MaterialIcon(MaterialId.hardWood, size: 34),

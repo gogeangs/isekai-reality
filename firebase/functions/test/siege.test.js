@@ -17,16 +17,24 @@ async function world(at) {
     await g.create(owner, { name, me: { name: owner, level: 40 } });
     const st = await g.state(owner, { name: owner, level: 40 });
     for (const m of members) await g.join(m, { code: st.guild.code, me: { name: m, level: 40 } });
+    for (const u of [owner, ...members]) await db.doc(`siegeTicket/${u}`).set({ bank: 20, carry: 0, day: '', dayCounted: 0 });
     return (await db.doc(`guildOf/${owner}`).get()).data().gid;
   };
   return { db, g, s, mk, set: (t) => (now = t), get now() { return now; } };
+}
+
+/** 묶음 61: 서버가 내준 자리로 싸운 것처럼 (공성권 넉넉히 · 10초 전에 시작) */
+async function fightAs(s, uid, args) {
+  await s.db.doc(`siegeTicket/${uid}`).set({ bank: 20, carry: 0, day: '', dayCounted: 0 });
+  await s.db.doc(`fightTok/${uid}`).set({ estate: args.estate, slot: Number(args.slot), at: s.now() - 10000 });
+  return s.fight(uid, args);
 }
 
 async function clearWild(s, uid, estate) {
   for (let k = 0; k < 5; k++) {
     const f = await s.foe(uid, { estate });
     assert.equal(f.kind, 'wild');
-    await s.fight(uid, { estate, slot: f.slot, win: true });
+    await fightAs(s, uid, { estate, slot: f.slot, win: true });
   }
 }
 
@@ -52,13 +60,13 @@ test('빈 영지: 야생 수비대 5자리를 깨면 길드가 차지 · 세 곳
   assert.equal(st.owners.royal.gid, 'npc');
   assert.equal(st.owners.sol_lily, null);
   // 둘이 나눠서
-  await w.s.fight('ua', { estate: 'sol_lily', slot: 0, win: true });
-  await w.s.fight('ua', { estate: 'sol_lily', slot: 1, win: false });
-  await w.s.fight('ub', { estate: 'sol_lily', slot: 1, win: true });
-  await assert.rejects(w.s.fight('ub', { estate: 'sol_lily', slot: 0, win: true }), /broken/);
-  await w.s.fight('ub', { estate: 'sol_lily', slot: 2, win: true });
-  await w.s.fight('ua', { estate: 'sol_lily', slot: 3, win: true });
-  const r = await w.s.fight('ua', { estate: 'sol_lily', slot: 4, win: true });
+  await fightAs(w.s, 'ua', { estate: 'sol_lily', slot: 0, win: true });
+  await fightAs(w.s, 'ua', { estate: 'sol_lily', slot: 1, win: false });
+  await fightAs(w.s, 'ub', { estate: 'sol_lily', slot: 1, win: true });
+  await assert.rejects(fightAs(w.s, 'ub', { estate: 'sol_lily', slot: 0, win: true }), /broken/);
+  await fightAs(w.s, 'ub', { estate: 'sol_lily', slot: 2, win: true });
+  await fightAs(w.s, 'ua', { estate: 'sol_lily', slot: 3, win: true });
+  const r = await fightAs(w.s, 'ua', { estate: 'sol_lily', slot: 4, win: true });
   assert.ok(r.captured);
   st = await w.s.state('ub');
   assert.equal(st.owners.sol_lily.gid, 'mine');
@@ -66,7 +74,7 @@ test('빈 영지: 야생 수비대 5자리를 깨면 길드가 차지 · 세 곳
   await clearWild(w.s, 'ua', 'sol_bell');
   await clearWild(w.s, 'ua', 'dor_wind');
   const four = await (async () => {
-    for (let k = 0; k < 5; k++) await w.s.fight('ua', { estate: 'mor_mill', slot: k, win: true });
+    for (let k = 0; k < 5; k++) await fightAs(w.s, 'ua', { estate: 'mor_mill', slot: k, win: true });
     return (await w.s.state('ua')).owners.mor_mill;
   })();
   assert.equal(four, null, '세 곳까지');
@@ -91,7 +99,7 @@ test('공성전: 수비대 배치(분신 + 동료 2) · 공성 중엔 못 바꿈
   assert.equal(f0.kind, 'siege');
   assert.equal(f0.guard.name, '별하');
   assert.equal(f0.guard.allies.length, 2);
-  for (let k = 0; k < 5; k++) await w.s.fight(k % 2 ? 'ud' : 'uc', { estate: 'sol_lily', slot: k, win: true });
+  for (let k = 0; k < 5; k++) await fightAs(w.s, k % 2 ? 'ud' : 'uc', { estate: 'sol_lily', slot: k, win: true });
   // 흑등 영지도
   const fn = await w.s.foe('ua', { estate: 'sol_silver' });
   assert.ok(fn.npc);
@@ -122,7 +130,7 @@ test('왕성: 영지 2곳 이상이면 공성 · 차지하면 왕성 상자 + �
   await clearWild(w.s, 'ub', 'sol_bell');
   await w.db.collection('marketLog').add({ fee: 1000, at: S0 - DAY, seller: 'x', buyer: 'y' });
   w.set(S0 + 1000);
-  for (let k = 0; k < 5; k++) await w.s.fight('ua', { estate: 'royal', slot: k, win: true });
+  for (let k = 0; k < 5; k++) await fightAs(w.s, 'ua', { estate: 'royal', slot: k, win: true });
   w.set(siegeEnd(0) + 1000);
   const st = await w.s.state('ua');
   assert.equal(st.owners.royal.gid, 'mine');

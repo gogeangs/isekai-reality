@@ -279,6 +279,12 @@ extension _ShellPopups on _HomeShellState {
   void _maybeShowJobNews() {
     final c = widget.controller;
     if (_popupBusy || _ahead(3) || c.holdNotices) return;
+    // 묶음 61: 가짜 위치 띠 (한 번)
+    if (c.takeMockBanner()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showTopNoticeQueued(context, FairOps.mockLine, icon: Icons.location_off_rounded);
+      });
+    }
     final find = c.takeJobFind();
     final note = c.hasJobNotice ? c.takeJobNotice() : null;
     // 묶음 35: 새 직업 띠엔 직업 문장

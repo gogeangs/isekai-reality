@@ -69,9 +69,13 @@ test('걸음 → 길드 레벨 · 주간 목표 등불 인장 · 같은 휴대�
 });
 
 test('회관: 기부 → 점수 · 등불 인장 · 하루 한도 · 한마디(금칙어) · 꾸미기 4자리', async () => {
-  const { g } = setup();
+  const { g, db } = setup();
   await g.create('a', { name: '회관 짓기', me: me('하루') });
+  // 묶음 61: 기부 금화는 거래 지갑에서
+  await assert.rejects(g.donate('a', { gold: 400 }), /no_wallet_gold/);
+  await db.doc('tradeWallet/a').set({ gold: 5000 });
   const d = await g.donate('a', { gold: 400, mats: { herb: 5 } });
+  assert.equal((await db.doc('tradeWallet/a').get()).data().gold, 4600);
   assert.equal(d.points, 40 + 10);
   assert.equal(d.seals, 2);
   await assert.rejects(g.donate('a', { gold: 4000 }), /donate_limit/);
@@ -150,13 +154,17 @@ test('운영자: 제재 4단계(우편 · 기록) · 풀기 · 내 상태 · 이
 test('운영자: 잘못된 거래 되돌리기 — 산 사람 금화 돌려받고 물건 거둠 · 판 사람 물건 돌려받고 금화 거둠 · 한 번만', async () => {
   const { db, a } = setup();
   await db.doc('marketLog/L1').set({ listing: 'm1', seller: 'sel', buyer: 'buy', kind: 'mat', key: 'herb', name: '약초', qty: 3, price: 60, fee: 6, at: T0 });
+  // 묶음 61: 판 사람 거래 지갑엔 50만 남음 → 50은 지갑에서, 4는 휴대폰 금화에서 거둠
+  await db.doc('tradeWallet/sel').set({ gold: 50 });
   await a.revert('op@x', { logId: 'L1' });
   const b = (await inbox(db, 'buy'))[0];
-  assert.deepEqual(b.reward, { gold: 60 });
+  assert.deepEqual(b.reward, {});
+  assert.equal((await db.doc('tradeWallet/buy').get()).data().gold, 60, '낸 금화는 거래 지갑으로');
   assert.deepEqual(b.op, { take: { mats: { herb: 3 } } });
   const s = (await inbox(db, 'sel'))[0];
   assert.deepEqual(s.reward, { herb: 3 });
-  assert.deepEqual(s.op, { take: { gold: 54 } });
+  assert.deepEqual(s.op, { take: { gold: 4 } });
+  assert.equal((await db.doc('tradeWallet/sel').get()).data().gold, 0);
   await assert.rejects(a.revert('op@x', { logId: 'L1' }), /already_reverted/);
 });
 
@@ -171,6 +179,7 @@ test('거래 범위(묶음 59): 받은 선물 장비 · 지역 무기 조각은 
   };
   await db.doc('users/u1/parts/g1_0').set({ gen: 'g1', data: zlib.gzipSync(Buffer.from(JSON.stringify(snap))).toString('base64') });
   await db.doc('users/u1').set({ gen: 'g1', updatedAt: new Date(T0), devices: ['x'] });
+  await db.doc('tradeWallet/u1').set({ gold: 500 });
   await assert.rejects(s.list('u1', { kind: 'equip', key: 'eq1', mode: 'fixed', price: 30 }), /not_tradable/);
   await s.list('u1', { kind: 'equip', key: 'eq2', mode: 'fixed', price: 30 });
   await assert.rejects(s.list('u1', { kind: 'mat', key: 'cartWheel', qty: 1, mode: 'fixed', price: 30 }), /not_tradable/);

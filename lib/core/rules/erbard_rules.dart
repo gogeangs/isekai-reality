@@ -183,6 +183,25 @@ abstract final class ErbardRules {
   static const int siegeJoinSeals = 5;
   static const int royalWeight = 3;
 
+  // ───────────── 묶음 61: 길드 금고 (금화) · 서버 확인
+
+  /// 수비대 강화 3단계: 금고 금화 (길드장 · 부길드장에게 보임) · 세기 (숨김). 그 영지 · 다음 공성전 끝까지
+  static const List<int> boostCost = [3000, 7000, 12000];
+  static const List<double> boostMult = [0.10, 0.20, 0.30];
+
+  /// 길드원에게 나눠 주기: 공성전이 끝난 뒤 다음 공성전 전까지 한 번, 금고의 절반까지, 한 사람 2,000 금화까지
+  static const double shareMaxRate = 0.5;
+  static const int sharePerHeadMax = 2000;
+
+  /// 회관 공사: 금고 금화 10당 회관 점수 1 (하루 400점까지)
+  static const int hallTreasuryDayPoints = 400;
+
+  /// 금고 상점 (금고 금화로만): 금빛 꾸미기 2 · 금빛 깃발 문양 1
+  static const Map<String, int> treasuryShop = {'goldLights': 4000, 'goldFountain': 6000, 'goldFlag': 5000};
+
+  /// 공성 · 야생 한 판은 이보다 빨리 끝나면 이김으로 세지 않음 (서버)
+  static const int minFightMs = 4000;
+
   /// 에르바르드 사냥 (여정 기력) · 내 길드 영지에서는 경험치 · 재료 조금 더
   static const int huntEnergy = 5;
   static const double ownedHuntBonus = 0.15;
@@ -191,9 +210,23 @@ abstract final class ErbardRules {
   static double guardMult(EstateInfo e, int slot) =>
       (e.royal ? royalMult : e.inner ? innerMult : 1.0) * (1 + slotStep * slot);
 
+  /// 묶음 61: 길드원 분신 그림 — 주 직업 그림 6장 중 (숨은 · 생산 직업은 가장 가까운 전투 직업, 개발 초안)
+  static MonsterId cloneOf(String? job) => switch (job) {
+        'knight' || 'beastKnight' || 'gateHeir' || 'tamer' => MonsterId.cloneKnight,
+        'archer' || 'hunter' || 'ashHunter' || 'pathfinder' || 'explorer' => MonsterId.cloneArcher,
+        'mage' || 'alchemist' || 'runesmith' || 'jeweler' || 'appraiser' || 'archaeologist' => MonsterId.cloneMage,
+        'priest' || 'healer' || 'herbalist' || 'pilgrim' || 'potionMerchant' => MonsterId.clonePriest,
+        'rogue' || 'nightWalker' || 'merchant' || 'peddler' => MonsterId.cloneRogue,
+        _ => MonsterId.cloneWarrior, // 전사 · 대장장이 · 무기 장인 · 만물 장인 · 모험가 · 직업 없음
+      };
+
+  /// 흑등 연맹 수비대: 1~4자리 용병, 5자리 · 왕성은 지휘관
+  static MonsterId blackOf(EstateInfo e, int slot) =>
+      e.royal || slot == slots - 1 ? MonsterId.blackCaptain : MonsterId.blackGuard;
+
   /// 야생 수비대 몬스터 (자리 5는 안쪽 몬스터)
   static MonsterId wildMonster(EstateInfo e, int slot) {
-    if (e.royal) return MonsterId.blackGuard;
+    if (e.royal) return blackOf(e, slot);
     final p = province(e.province!);
     return e.inner || slot == slots - 1 ? p.inner : p.outer;
   }
@@ -263,6 +296,14 @@ abstract final class ErbardRules {
         'alliance_full' => '연맹은 길드 세 곳까지예요',
         'alliance_locked' => '연맹은 공성전 네 번마다 다시 고를 수 있어요',
         'no_alliance' => '그 연맹을 찾지 못했어요',
+        'no_fight' => '싸움을 처음부터 다시 시작해 주세요',
+        'no_treasury' => '길드 금고 금화가 모자라요',
+        'owned' => '이미 그 단계예요',
+        'shared' => '이번 공성전 몫은 이미 나눠 줬어요',
+        'no_users' => '이번 공성전에 공성권을 쓴 길드원이 없어요',
+        'not_yet' => '공성전이 끝난 뒤에 나눠 줄 수 있어요',
+        'bad_amount' => '그 금화로는 할 수 없어요',
+        'app_check' => '앱을 최신으로 바꾼 뒤 다시 해 주세요',
         'offline' => '인터넷이 연결되지 않았어요',
         _ => '잠시 뒤 다시 해 주세요',
       };
@@ -280,7 +321,11 @@ abstract final class ErbardRules {
     b.write(' "allianceLock": $allianceLock, "allianceMax": $allianceMax,\n');
     b.write(' "garrisonStepsPer": $garrisonStepsPer, "garrisonStepBonus": $garrisonStepBonus, "garrisonStepMax": $garrisonStepMax,\n');
     b.write(' "wildClearSeals": $wildClearSeals, "siegeSealsPerEstate": $siegeSealsPerEstate, "siegeTicketSeals": $siegeTicketSeals, '
-        '"siegeJoinSeals": $siegeJoinSeals, "royalWeight": $royalWeight\n}\n');
+        '"siegeJoinSeals": $siegeJoinSeals, "royalWeight": $royalWeight,\n');
+    b.write(' "ticketSteps": $ticketSteps, "ticketMax": $ticketMax, "minFightMs": $minFightMs,\n');
+    b.write(' "boostCost": [${boostCost.join(', ')}], "boostMult": [${boostMult.join(', ')}],\n');
+    b.write(' "shareMaxRate": $shareMaxRate, "sharePerHeadMax": $sharePerHeadMax, "hallTreasuryDayPoints": $hallTreasuryDayPoints,\n');
+    b.write(' "treasuryShop": {${treasuryShop.entries.map((e) => '"${e.key}": ${e.value}').join(', ')}}\n}\n');
     return b.toString();
   }
 

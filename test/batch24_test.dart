@@ -9,7 +9,7 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 
 /// 걸음 읽기를 원하는 때까지 붙잡아 둘 수 있는 건강 앱
-class _GateHealth implements HealthSource {
+class _GateHealth extends HealthSource {
   Completer<void>? gate;
   @override
   Future<bool> requestPermission() async => true;

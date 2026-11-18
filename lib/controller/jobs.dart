@@ -1107,6 +1107,9 @@ extension JobOps on AppController {
     if (worn(EquipBase.uniqArbelDagger)) b.boundBoost = RegionRules.arbelBound;
     if (worn(EquipBase.uniqLucyFlower)) b.allyRegenChance = RegionRules.lucyFlowerAllyRegen;
     if (worn(EquipBase.uniqKingCloak)) b.potionShare = RegionRules.kingCloakPotion;
+    // 묶음 59 「등불 수호단」 6개: 가끔 등불 빛 (숨김)
+    b.lanternBurst = gear.sets.lanternBurst;
+    b.lanternBurstMult = GuildRules.set6BurstMult;
     if (!_jobs.awakened) return b;
     b.weaponEnhance = _armory.wornIn(EquipSlot.weapon)?.enhance ?? 0;
     b.artisanSubs = subJobs.length;

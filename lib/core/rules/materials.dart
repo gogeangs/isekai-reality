@@ -139,6 +139,11 @@ enum MaterialId {
   elderBark,
   captainCrest,
   undyingEmber,
+  // 묶음 59 #246 길드 레이드 재료
+  giantLight,
+  ancientScale,
+  lichRelic,
+  tortoiseShell,
 }
 
 class MaterialInfo {
@@ -349,6 +354,15 @@ class Materials {
     MaterialInfo(MaterialId.undyingEmber, '꺼지지 않는 불씨',
         '여명의 근원에서 주운 불씨. 대장간에서 「여명의 불꽃 활」을 만들 때 써요.',
         rare: true, price: 60),
+    // 묶음 59 #246 길드 레이드
+    MaterialInfo(MaterialId.giantLight, '거인의 빛 조각',
+        '빛을 먹는 거인이 흩어질 때 남은 빛. 길드 상점 「등불 수호단」에 써요.', rare: true, price: 70),
+    MaterialInfo(MaterialId.ancientScale, '고룡의 비늘',
+        '고대 드래곤의 뜨거운 비늘. 길드 상점 「등불 수호단」에 써요.', rare: true, price: 70),
+    MaterialInfo(MaterialId.lichRelic, '리치의 성물 조각',
+        '리치 왕의 왕관에서 떨어진 조각. 길드 상점 「등불 수호단」에 써요.', rare: true, price: 70),
+    MaterialInfo(MaterialId.tortoiseShell, '거북 등딱지 조각',
+        '대지의 거북 등에서 떨어진 단단한 조각. 길드 상점 「등불 수호단」에 써요.', rare: true, price: 70),
     // 11-11 #74 속성 마석: 공방에서 마석 3 + 그 속성 코어 1로 정제
     MaterialInfo(MaterialId.stoneFire, '불꽃의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
@@ -625,6 +639,10 @@ class LootRules {
         MonsterId.orben ||
         MonsterId.orbenAsh ||
         MonsterId.phoenixMother ||
+        MonsterId.raidGiant ||
+        MonsterId.raidDragon ||
+        MonsterId.raidLich ||
+        MonsterId.raidTortoise ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

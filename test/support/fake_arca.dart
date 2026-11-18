@@ -30,6 +30,138 @@ class FakeArca implements ArcaApi {
   final Map<String, int> deepRows = {};
   String deepRegion = 'selenia';
 
+  // 묶음 59: 길드 · 공지 · 제재 상태 (판정은 서버 시험에서, 여기선 앱 흐름만)
+  Map<String, dynamic>? guild;
+  final Map<String, Map<String, dynamic>> guildMembers = {};
+  final List<Map<String, dynamic>> publicGuilds = [];
+  final List<Map<String, dynamic>> notices = [];
+  int guildLevel = 1;
+  int guildStar = 1;
+  int raidTickets = 3;
+  double raidLeft = 1.0;
+  bool giantDone = false;
+  final Set<String> guildClaimed = {};
+  final List<String> guildDecos = [];
+  final List<String?> guildSlots = [null, null, null, null];
+  List<bool> walkDone = [true, false, false];
+  int myRaidDamage = 0;
+  int statusLevel = 0;
+
+  Map<String, dynamic> _guildState(String me) {
+    final g = guild;
+    if (g == null || !guildMembers.containsKey(me)) return {'guild': null};
+    final raidDone = raidLeft <= 0;
+    return {
+      'guild': {
+        ...g,
+        'role': guildMembers[me]!['role'],
+        'level': guildLevel,
+        'progress': 0.4,
+        'size': 20 + 2 * ((guildLevel - 1) ~/ 2),
+        'giantDone': giantDone,
+        'titles': [if (giantDone) 'raidGiant'],
+      },
+      'members': [
+        for (final e in guildMembers.entries) {...e.value, 'uid': e.key, 'me': e.key == me},
+      ],
+      'walk': {
+        'progress': [for (final d in walkDone) d ? 1.0 : 0.5],
+        'done': walkDone,
+        'claimed': [for (var i = 0; i < 3; i++) if (guildClaimed.contains('walk$i')) i],
+      },
+      'hall': {'star': guildStar, 'progress': 0.3, 'nextLevel': guildStar < 4 ? [0, 0, 3, 6, 10][guildStar + 1] : null, 'decos': guildDecos, 'slots': guildSlots},
+      if (guildLevel >= 4)
+        'raid': {
+          'id': 'raidDragon',
+          'started': true,
+          'progress': 1 - raidLeft,
+          'myDamage': myRaidDamage,
+          'myShare': 0.2,
+          'defeated': raidDone,
+          'tickets': raidTickets,
+          'claimed': guildClaimed.contains('raid'),
+        },
+      if (guildLevel >= 4)
+        'giant': {
+          'id': 'raidGiant',
+          'progress': giantDone ? 1 : 1 - raidLeft,
+          'myDamage': myRaidDamage,
+          'defeated': giantDone,
+          'tickets': raidTickets,
+          'claimed': guildClaimed.contains('giant'),
+        },
+    };
+  }
+
+  Map<String, dynamic> _guildPost(String me, String path, Map<String, dynamic> body) {
+    void staff() {
+      final r = guildMembers[me]?['role'];
+      if (r != 'owner' && r != 'vice') throw const ArcaApiError('not_staff');
+    }
+
+    switch (path) {
+      case '/guild/state':
+        break;
+      case '/guild/create':
+        if (guildMembers.containsKey(me)) throw const ArcaApiError('already_in_guild');
+        guild = {'id': 'g1', 'name': body['name'], 'emblem': body['emblem'] ?? 0, 'color': body['color'] ?? 0, 'open': body['open'] ?? true, 'code': 'GLD001'};
+        guildMembers[me] = {'name': (body['me'] as Map?)?['name'] ?? '나', 'level': 30, 'weekSteps': 12000, 'role': 'owner', 'line': ''};
+      case '/guild/list':
+        return {'items': publicGuilds};
+      case '/guild/join':
+        if (guild == null || (body['code'] != null && body['code'] != guild!['code'])) throw const ArcaApiError('no_guild');
+        guildMembers[me] = {'name': (body['me'] as Map?)?['name'] ?? '나', 'level': 30, 'weekSteps': 12000, 'role': 'member', 'line': ''};
+      case '/guild/leave':
+        guildMembers.remove(me);
+        return {'guild': null};
+      case '/guild/kick':
+        staff();
+        guildMembers.remove(body['target']);
+      case '/guild/role':
+        if (guildMembers[me]?['role'] != 'owner') throw const ArcaApiError('not_owner');
+        guildMembers[body['target']]!['role'] = body['role'];
+        if (body['role'] == 'owner') guildMembers[me]!['role'] = 'vice';
+      case '/guild/style':
+        staff();
+        for (final k in ['name', 'emblem', 'color', 'open']) {
+          if (body[k] != null) guild![k] = body[k];
+        }
+      case '/guild/line':
+        if ('${body['text']}'.contains('바보')) throw const ArcaApiError('banned_word');
+        guildMembers[me]!['line'] = body['text'];
+      case '/guild/donate':
+        return {'seals': ((body['gold'] as num?) ?? 0) >= 100 ? 2 : 1, 'state': _guildState(me)};
+      case '/guild/deco/add':
+        staff();
+        guildDecos.add('${body['id']}');
+      case '/guild/deco/place':
+        staff();
+        guildSlots[(body['slot'] as num).toInt()] = body['id'] as String?;
+      case '/guild/share':
+        if (guildStar < 2) throw const ArcaApiError('need_star');
+      case '/guild/raid':
+        if (raidTickets <= 0) throw const ArcaApiError('no_ticket');
+        raidTickets--;
+        myRaidDamage += (body['damage'] as num).toInt();
+        raidLeft -= 0.5;
+        if (body['giant'] == true && raidLeft <= 0) giantDone = true;
+      case '/guild/claim':
+        final k = body['kind'] == 'walk' ? 'walk${body['tier']}' : '${body['kind']}';
+        if (guildClaimed.contains(k)) throw const ArcaApiError('claimed');
+        if (body['kind'] == 'walk' && !walkDone[(body['tier'] as num).toInt()]) throw const ArcaApiError('not_yet');
+        guildClaimed.add(k);
+        return {
+          'reward': k.startsWith('walk')
+              ? {'seal': [10, 20, 30][(body['tier'] as num).toInt()]}
+              : {'seal': 40, 'raidMat': 2, 'raid': body['kind'] == 'giant' ? 'raidGiant' : 'raidDragon', 'chest': 'gold'},
+          'state': _guildState(me),
+        };
+      default:
+        throw const ArcaApiError('not_found', status: 404);
+    }
+    return _guildState(me);
+  }
+
   /// 다른 파티원 (시험에서 넣음)
   void addMember(String code, String id, String name, {int stepsWeek = 0}) {
     final p = parties[code]!;
@@ -103,6 +235,10 @@ class FakeArca implements ArcaApi {
     if (offline) throw const ArcaApiError('offline');
     final me = uid;
     if (path.startsWith('/party/') && token == null) throw const ArcaApiError('login_required', status: 401);
+    if (path.startsWith('/guild/')) {
+      if (token == null) throw const ArcaApiError('login_required', status: 401);
+      return _guildPost(me, path, body);
+    }
     switch (path) {
       case '/party/state':
         return _state(me, body);
@@ -248,6 +384,10 @@ class FakeArca implements ArcaApi {
           'me': deepRows[me] == null ? null : {'rank': 2, 'floor': deepRows[me]},
           'total': deepRows[me] == null ? 1 : 2,
         };
+      case '/notices':
+        return {'items': notices};
+      case '/status':
+        return {'level': statusLevel, if (statusLevel >= 3) 'until': '2026-12-18T00:00:00Z'};
       case '/inbox':
         final out = [...inbox];
         inbox.clear();

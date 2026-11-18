@@ -21,6 +21,7 @@ import 'core/models/building_state.dart';
 import 'core/models/consent_state.dart';
 import 'core/models/party_state.dart';
 import 'core/models/act3_state.dart';
+import 'core/models/act4_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -55,6 +56,7 @@ part 'controller/act2.dart';
 part 'controller/act3.dart';
 part 'controller/act3_region.dart';
 part 'controller/act3_regions.dart';
+part 'controller/act4.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
@@ -630,6 +632,7 @@ class AppController extends ChangeNotifier {
     // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
     await _migrateSkills31();
     await _migrateJobs57(); // 묶음 57 #249 직업 개편
+    await _markFirstWeaponGift(); // 묶음 59: 예전 공짜 첫 무기에 「받은 선물」 표시
     // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
     // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)
@@ -662,6 +665,12 @@ class AppController extends ChangeNotifier {
     _tavern = await _load(_tavernKey, TavernState.fromJson, const TavernState());
     // 묶음 52 #243: 3막 (없으면 처음부터, 3막이 열리기 전 걸음은 셈하지 않음)
     _act3 = await _load(_act3Key, Act3State.fromJson, const Act3State());
+    _act4 = await _load(_act4Key, Act4State.fromJson, const Act4State());
+    // 묶음 59: 이미 3막을 끝낸 계정은 4막이 열림 (4막 기록이 없어도 그대로, #124)
+    if (_act3.has('act3End') && !_act4.opened) {
+      _act4 = _act4.copyWith(opened: true, chapter: 1, chapterSteps: _history.fold<int>(0, (t, r) => t + r.steps));
+      await store.saveJson(_act4Key, _act4.toJson());
+    }
     // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
     _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
     // 묶음 56: 파티 (발자국 표 · 깃발 · 함께 잡은 몬스터)
@@ -882,6 +891,16 @@ class AppController extends ChangeNotifier {
   /// 묶음 52 #243: 3막 ('act3')
   static const _act3Key = 'act3';
   Act3State _act3 = const Act3State();
+  // 묶음 59 #246: 4막 · 길드
+  static const _act4Key = 'act4';
+  Act4State _act4 = const Act4State();
+  GuildView? _guildView;
+  bool _guildBusy = false;
+  String? _guildError;
+  bool _raidGiant = false;
+  List<({String id, String title, String body, DateTime from})> _notices = const [];
+  Set<String> _noticeSeen = const {};
+  String? _suspended;
 
   /// 묶음 51 #242: 주점 ('tavern')
   static const _tavernKey = 'tavern';

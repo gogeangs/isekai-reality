@@ -65,6 +65,8 @@ extension VillageOps on AppController {
         // 묶음 51: 주점은 만남 장면 뒤 · 거래소는 그다음 마을 방문
         'tavern' => tavernOpen,
         'market' => marketOpen,
+        // 묶음 59 #246: 4막 2장 빈 터 장면 뒤 · 길드에 있으면
+        'guildhall' => guildHallOpen,
         _ => false,
       };
 

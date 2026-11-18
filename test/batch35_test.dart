@@ -227,7 +227,7 @@ void main() {
               account(5, newGates: true, village: {'seen': ['intro']})));
       await village(tester, c);
       // 묶음 51: 주점은 결말 뒤 만남 장면 다음에만 (그 전엔 빈 공터)
-      for (final f in Facility.values.where((f) => f != Facility.tavern)) {
+      for (final f in Facility.values.where((f) => f != Facility.tavern && f != Facility.guildhall)) {
         expect(find.byKey(Key('building_${f.name}')), findsOneWidget, reason: f.name);
       }
       expect(find.byKey(const Key('facility_inn')), findsOneWidget);
@@ -256,7 +256,7 @@ void main() {
         // 묶음 43: 훈련장은 오른쪽 공터 (처음 화면 밖, 끌어서 봄)
         for (final f in Facility.values
             .where((f) =>
-                f != Facility.training && f != Facility.garden && f != Facility.tavern)) {
+                f != Facility.training && f != Facility.garden && f != Facility.tavern && f != Facility.guildhall)) {
           final r = tester.getRect(find.byKey(Key('building_${f.name}')));
           expect(r.left, greaterThanOrEqualTo(screen.left - 1), reason: '$size ${f.name}');
           expect(r.right, lessThanOrEqualTo(screen.right + 1), reason: '$size ${f.name}');
@@ -267,7 +267,7 @@ void main() {
               if (find.byKey(Key(k)).evaluate().isNotEmpty)
                 tester.getRect(find.byKey(Key(k))),
         ];
-        expect(tags.length, Facility.values.length - 1); // 주점은 결말 뒤
+        expect(tags.length, Facility.values.length - 2); // 주점은 결말 뒤 · 길드 회관은 4막
         for (var i = 0; i < tags.length; i++) {
           for (var j = i + 1; j < tags.length; j++) {
             expect(tags[i].overlaps(tags[j]), isFalse, reason: '$size $i $j');

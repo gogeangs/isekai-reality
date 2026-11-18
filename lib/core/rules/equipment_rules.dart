@@ -6,6 +6,7 @@ import 'baldrin_rules.dart';
 import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
+import 'guild_rules.dart';
 import 'region_rules.dart';
 import 'stat_rules.dart';
 
@@ -64,6 +65,8 @@ enum EquipBase {
   uniqLucyFlower, uniqKingCloak, uniqMoonFang, morvalSword,
   aurelWeapon, aurelHead, aurelBody, aurelHands, aurelFeet, aurelAcc,
   uniqTeoCloak, uniqNaomiStaff, uniqPhoenixCharm, aurelBow,
+  // 묶음 59 #246: 길드 상점 「등불 수호단」 6부위
+  lanternWeapon, lanternHead, lanternBody, lanternHands, lanternFeet, lanternAcc,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -369,6 +372,7 @@ class EquipmentRules {
     for (final e in Act3Rules.gearInfos) e.id: e,
     for (final e in BaldrinRules.gearInfos) e.id: e,
     for (final e in RegionRules.gearInfos) e.id: e,
+    for (final e in GuildRules.gearInfos) e.id: e,
   };
 
   /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)

@@ -124,7 +124,7 @@ extension MarketOps on AppController {
   List<MarketOwn> marketOwn(MarketKind k) => switch (k) {
         MarketKind.mat => [
             for (final e in player.materials.entries)
-              if (e.value > 0) MarketOwn(k, e.key.name, Materials.info(e.key).name, e.value),
+              if (e.value > 0 && MarketRules.matTradable(e.key)) MarketOwn(k, e.key.name, Materials.info(e.key).name, e.value),
           ],
         MarketKind.item => [
             for (final i in ShopItem.values)
@@ -139,6 +139,12 @@ extension MarketOps on AppController {
         MarketKind.egg => [
             for (final e in _pets.eggs)
               if (e.incubatedAt == null) MarketOwn(k, e.id, '알', 1),
+          ],
+        // 묶음 59: 공방 물약
+        MarketKind.alc => [
+            for (final p in PotionId.values)
+              if (MarketRules.alcTradable(p) && _alc.count(p.name) > 0)
+                MarketOwn(k, p.name, AlchemyRules.info(p).name, _alc.count(p.name)),
           ],
       };
 
@@ -252,6 +258,9 @@ extension MarketOps on AppController {
             for (final i in _armory.items)
               if (i.uid != own.key) i,
           ]));
+        case MarketKind.alc:
+          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid})));
+          await _saveAlc(_alc.add(own.key, -qty));
         case MarketKind.egg:
           await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid})));
           await _savePets(_pets.copyWith(eggs: [

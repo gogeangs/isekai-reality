@@ -561,6 +561,11 @@ extension Act3RegionsOps on AppController {
             counters: DailyRecord.addCounts(
                 t.counters, {TitleRules.skyCounter(RegionRules.fiveLampsTitle): 1})));
         await _saveAct3();
+        // 묶음 59: 4막이 열림
+        if (!_act4.opened) {
+          _act4 = _act4.copyWith(opened: true, chapter: 1, chapterSteps: _totalSteps);
+          await _saveAct4();
+        }
         _notify();
       });
 

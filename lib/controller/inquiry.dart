@@ -96,7 +96,7 @@ extension InquiryOps on AppController {
             elementLevel: it.elementLevel,
           ));
         }
-        await _sendMail(MailItem(
+        final fresh = await _sendMail(MailItem(
           id: 'inq_${m['id']}',
           kind: MailKind.reward,
           from: '${m['from'] ?? '여명의 탑 운영실'}',
@@ -110,6 +110,8 @@ extension InquiryOps on AppController {
           sentAt: _clock(),
           expiresAt: _clock().add(const Duration(days: 30)),
         ));
+        // 묶음 59: 운영 · 길드 우편이 하는 일 (이름 바꾸기 · 되돌린 거래 거두기 · 칭호) — 처음 받을 때 한 번
+        if (fresh && m['op'] is Map) await _applyOp((m['op'] as Map).cast<String, dynamic>());
         n++;
       }
       if (n > 0) _notify();
@@ -128,6 +130,157 @@ extension InquiryOps on AppController {
       final j = await api.post('/words', const {});
       final t = j['text'];
       if (t is String && t.length > 10) NameRules.load(t);
+    } catch (_) {}
+  }
+
+  /// 묶음 59: 서버 우편의 일 — rename(운영자 이름 바꾸기) · take(되돌린 거래: 남은 만큼만 거둠) · title(레이드 칭호)
+  Future<void> _applyOp(Map<String, dynamic> op) async {
+    if (op['rename'] is Map) {
+      final r = (op['rename'] as Map).cast<String, dynamic>();
+      final id = r['id'] as String?;
+      switch (r['target']) {
+        case 'awakened':
+          await updateProfile(_profile.copyWith(name: '각성자'));
+        case 'pet':
+          for (final p in _pets.pets) {
+            if (id == null || p.uid == id) {
+              await _savePets(_pets.replace(p.copyWith(name: p.info.name)));
+              if (id != null) break;
+            }
+          }
+        case 'ally':
+          final a = id == null ? null : _act3.ally(id);
+          if (a != null && !a.isStory) {
+            _act3 = _act3.replaceAlly(a.copyWith(name: '동료'));
+            await _saveAct3();
+          }
+      }
+    }
+    if (op['take'] is Map) {
+      final t = (op['take'] as Map).cast<String, dynamic>();
+      await _serial(() async {
+        final today = await _todayRecord();
+        final spends = <String, int>{};
+        final counters = <String, int>{};
+        final gold = math.min(player.gold, (t['gold'] as num?)?.toInt() ?? 0);
+        if (gold > 0) spends[Wallet.gold] = gold;
+        for (final e in ((t['mats'] as Map?) ?? const {}).entries) {
+          final m = Materials.byName('${e.key}');
+          if (m != null) {
+            final n = math.min(player.materialCount(m), (e.value as num).toInt());
+            if (n > 0) spends[m.name] = n;
+          }
+        }
+        for (final e in ((t['items'] as Map?) ?? const {}).entries) {
+          final it = ShopItem.values.where((i) => i.name == '${e.key}').firstOrNull;
+          if (it != null) {
+            final n = math.min(bagCount(it), (e.value as num).toInt());
+            if (n > 0) counters[TownRules.dropKey(it)] = n;
+          }
+        }
+        if (spends.isNotEmpty || counters.isNotEmpty) {
+          await _save(today.copyWith(
+            spends: DailyRecord.addCounts(today.spends, spends),
+            counters: DailyRecord.addCounts(today.counters, counters),
+          ));
+        }
+        for (final e in ((t['alcs'] as Map?) ?? const {}).entries) {
+          final n = math.min(_alc.count('${e.key}'), (e.value as num).toInt());
+          if (n > 0) await _saveAlc(_alc.add('${e.key}', -n));
+        }
+        final eggs = (t['eggs'] as num?)?.toInt() ?? 0;
+        if (eggs > 0) {
+          var left = eggs;
+          await _savePets(_pets.copyWith(eggs: [
+            for (final e in _pets.eggs)
+              if (left > 0 && e.incubatedAt == null && left-- > 0) ...[] else e,
+          ]));
+        }
+        if (t['equip'] is Map) {
+          final q = (t['equip'] as Map).cast<String, dynamic>();
+          final hit = _armory.items.where((i) =>
+              !_armory.isWorn(i) &&
+              i.base.name == q['base'] &&
+              (q['grade'] == null || i.grade.name == q['grade']) &&
+              (q['enhance'] == null || i.enhance == (q['enhance'] as num).toInt())).firstOrNull;
+          if (hit != null) {
+            await _saveArmory(_armory.copyWith(items: [for (final i in _armory.items) if (i.uid != hit.uid) i]));
+          }
+        }
+      });
+    }
+    if (op['title'] is String) {
+      final g = GuildRules.boss(op['title'] as String);
+      if (g != null) {
+        final k = TitleRules.skyCounter(g.title);
+        if (!_history.any((d) => (d.counters[k] ?? 0) > 0)) {
+          final today = await _todayRecord();
+          await _save(today.copyWith(counters: DailyRecord.addCounts(today.counters, {k: 1})));
+        }
+      }
+    }
+    _notify();
+  }
+
+  // ───────────── 묶음 59: 공지 · 내 제재 상태
+
+  List<({String id, String title, String body, DateTime from})> get notices => _notices;
+
+  /// 아직 닫지 않은 가장 최근 공지 (홈 위 띠)
+  ({String id, String title, String body, DateTime from})? get noticeBanner {
+    for (final n in _notices) {
+      if (!_noticeSeen.contains(n.id)) return n;
+    }
+    return null;
+  }
+
+  Future<void> dismissNotice(String id) async {
+    _noticeSeen = {..._noticeSeen, id};
+    await store.saveSide('noticeSeen', _noticeSeen.join(','));
+    _notify();
+  }
+
+  Future<void> refreshNotices() async {
+    final api = arcaApi;
+    if (api == null || !_ready) return;
+    try {
+      _noticeSeen = {...((await store.loadSide('noticeSeen')) ?? '').split(',').where((x) => x.isNotEmpty)};
+      final j = await api.post('/notices', const {});
+      _notices = [
+        for (final n in (j['items'] as List?) ?? const [])
+          if (n is Map)
+            (
+              id: '${n['id']}',
+              title: '${n['title'] ?? ''}',
+              body: '${n['body'] ?? ''}',
+              from: DateTime.fromMillisecondsSinceEpoch(((n['from'] as num?) ?? 0).toInt()),
+            ),
+      ];
+      _notify();
+    } catch (_) {}
+  }
+
+  /// 로그인 정지(3단계 이상) 중이면 그 까닭 한 줄 (아니면 null)
+  String? get suspendedLine => _suspended;
+
+  /// 내 제재 상태를 묻는다 (로그인했을 때). 로그인 정지면 로그인을 풀고 안내
+  Future<void> refreshMyStatus() async {
+    final api = arcaApi, a = cloudAuth;
+    if (api == null || a == null || !_cloud.signedIn) return;
+    try {
+      final token = await a.idToken();
+      if (token == null) return;
+      final j = await api.post('/status', const {}, token: token);
+      final lv = (j['level'] as num?)?.toInt() ?? 0;
+      if (lv >= 3) {
+        final until = j['until'] as String?;
+        _suspended = '운영정책에 따라 로그인이 정지됐어요${until == null ? '' : ' (${until.substring(0, 10)}까지)'}. '
+            '설정 → 문의에서 「제재 이의 제기」를 보낼 수 있어요.';
+        await signOutCloud();
+      } else {
+        _suspended = null;
+      }
+      _notify();
     } catch (_) {}
   }
 }

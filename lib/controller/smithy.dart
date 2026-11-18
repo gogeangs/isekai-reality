@@ -17,6 +17,25 @@ extension SmithyOps on AppController {
     _notify();
   }
 
+  /// 묶음 59: 예전 계정 — 공짜 첫 무기를 받았는데 「받은 선물」 표시가 없으면, 재료를 안 쓰고 만든
+  /// 가장 오래된 무기 하나에 표시 (한 번)
+  Future<void> _markFirstWeaponGift() async {
+    if (!gotGift(Gift.firstWeapon) || _armory.items.any((i) => i.gift)) return;
+    if (_village.contains('giftMarked')) return;
+    int no(EquipItem i) => int.tryParse(i.uid.replaceFirst('eq', '')) ?? 1 << 30;
+    final cands = [
+      for (final i in _armory.items)
+        if (i.slot == EquipSlot.weapon && i.materialsUsed.isEmpty && !EquipmentRules.isBossGear(i.base)) i,
+    ]..sort((a, b) => no(a).compareTo(no(b)));
+    if (cands.isNotEmpty) {
+      final g = cands.first;
+      await _saveArmory(_armory.copyWith(items: [
+        for (final i in _armory.items) i.uid == g.uid ? i.copyWith(gift: true) : i,
+      ]));
+    }
+    await _markVillage(['giftMarked']);
+  }
+
   /// 첫 무기는 공짜 (묶음 16 #141): 새로 시작한 사람이 무기를 아직 안 가졌을 때 한 번
   bool get firstWeaponFree =>
       !_legacyGates &&
@@ -109,6 +128,8 @@ extension SmithyOps on AppController {
       extras: extras,
       materialsUsed: used,
       element: rune,
+      // 묶음 59: 공짜 첫 무기는 받은 선물 (거래소에 못 올림)
+      gift: free,
     );
     await _saveArmory(a.copyWith(
       items: [...a.items, item],

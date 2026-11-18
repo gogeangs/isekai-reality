@@ -111,7 +111,10 @@ async function main() {
   const db = admin.firestore();
   db.settings({ ignoreUndefinedProperties: true });
   const uid = await findUid(admin, email);
-  if (!uid) throw new Error(`그 이메일로 로그인한 계정이 없어요 (로그인한 계정 ${await countUsers(admin)}개 중에서 못 찾음)`);
+  if (!uid) {
+    const docs = (await db.collection('users').count().get()).data().count;
+    throw new Error(`그 이메일로 로그인한 계정이 없어요 (로그인 계정 ${await countUsers(admin)}개 · 백업 기록 ${docs}개 중에서 못 찾음)`);
+  }
   await seed(db, uid, { stamp: () => admin.firestore.FieldValue.serverTimestamp() });
   console.log('심사용 계정 준비 끝');
 }

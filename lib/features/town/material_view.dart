@@ -136,6 +136,10 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.elderBark => Icons.park_rounded,
         MaterialId.captainCrest => Icons.shield_moon_rounded,
         MaterialId.undyingEmber => Icons.local_fire_department_rounded,
+        MaterialId.giantLight => Icons.wb_sunny_rounded,
+        MaterialId.ancientScale => Icons.shield_moon_rounded,
+        MaterialId.lichRelic => Icons.auto_awesome_rounded,
+        MaterialId.tortoiseShell => Icons.hexagon_rounded,
       };
 
   @override

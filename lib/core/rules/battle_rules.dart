@@ -1220,6 +1220,17 @@ class Battle {
 
   /// 회복 물약을 쓰면 동료도 이만큼 참 (왕의 나눔 망토, 동료 최대 HP 비율)
   double potionShare = 0;
+
+  /// 묶음 59 「등불 수호단」 6개: 때리면 가끔 등불 빛이 터져 잿빛 몬스터에게 큰 피해
+  double lanternBurst = 0;
+  double lanternBurstMult = 2.0;
+
+  /// 묶음 59 길드 레이드: 특별 공격 (보스 이름) · 약점 직업 피해 · 특별 공격 덜 받음
+  String? raidBoss;
+  int raidSpecialEvery = 4;
+  double raidTakenMult = 1;
+  int raidShieldTurns = 0;
+  int raidShellTurns = 0;
   static const double regenRatioAlly = 0.05;
 
   /// 지금 몬스터가 잿빛 몬스터인지
@@ -1328,6 +1339,13 @@ class Battle {
       _healed(playerHp - before);
     }
     if (bindChance > 0 && _rng.nextDouble() < bindChance) foeBindTurns = math.max(foeBindTurns, 1);
+    if (lanternBurst > 0 && foeIsAsh && _rng.nextDouble() < lanternBurst && phase == BattlePhase.fighting) {
+      final extra = math.max(1, (dmg * (lanternBurstMult - 1)).round());
+      lastDealt += extra;
+      _hitFoe(extra);
+      lastEvent = '등불 빛이 터졌어요!';
+      if (phase != BattlePhase.fighting) return;
+    }
     if (skill && skillDot && foeDotTurns <= 0) {
       foeDotTurns = 3;
       foeDotRatio = 0.02;
@@ -1498,7 +1516,51 @@ class Battle {
   /// 특기를 쓰는 간격 (턴)
   static const int partySpecialEvery = 5;
 
+  /// 묶음 59: 길드 레이드 특별 공격 (몇 턴마다)
+  void _raidSpecial() {
+    final id = raidBoss;
+    if (id == null) return;
+    if (raidShieldTurns > 0) raidShieldTurns--;
+    if (raidShellTurns > 0) {
+      raidShellTurns--;
+      if (raidShellTurns == 0) {
+        // 등껍질에서 나오며 크게 들이받음
+        final d = math.max(1, (foe.attack * 2.2 * raidTakenMult).round());
+        playerHp = math.max(0, playerHp - d);
+        lastTaken = d;
+        lastEvent = '등껍질에서 나와 들이받아요!';
+        if (playerHp == 0 && !_revive()) phase = BattlePhase.failed;
+        return;
+      }
+    }
+    if (floorTicks % raidSpecialEvery != raidSpecialEvery - 1 || _specialTick == floorTicks) return;
+    _specialTick = floorTicks;
+    switch (id) {
+      case 'raidGiant':
+        // 빛 삼키기: 내 좋은 효과를 먹고 체력을 채움
+        wardTurns = 0;
+        stoneWallTurns = 0;
+        nextHitMult = 1;
+        foeHp = math.min(foe.maxHp, foeHp + math.max(1, (foe.maxHp * 0.04 / raidTakenMult.clamp(0.5, 1)).round()));
+        lastEvent = '빛 삼키기! 거인이 빛을 먹었어요';
+      case 'raidDragon':
+        final d = math.max(1, (foe.attack * 1.8 * raidTakenMult).round());
+        playerHp = math.max(0, playerHp - d);
+        lastTaken = d;
+        if (immuneTurns <= 0) burning = true;
+        lastEvent = '불바다!';
+        if (playerHp == 0 && !_revive()) phase = BattlePhase.failed;
+      case 'raidLich':
+        raidShieldTurns = 3;
+        lastEvent = '망자의 방패! 해골 병사가 막아서요';
+      case 'raidTortoise':
+        raidShellTurns = 3;
+        lastEvent = '등껍질 숨기!';
+    }
+  }
+
   void _partySpecial() {
+    _raidSpecial();
     final id = foe.monster;
     if (id != MonsterId.partyGolem &&
         id != MonsterId.partyHydra &&
@@ -2597,6 +2659,12 @@ class Battle {
     // 묶음 57 골렘 「돌벽」: 잠시 받는 피해가 줄어요
     if (stoneWallTurns > 0) {
       final cut = math.max(1, (damage * 0.5).round());
+      if (lastDealt >= damage) lastDealt -= damage - cut;
+      damage = cut;
+    }
+    // 묶음 59 레이드: 망자의 방패 · 등껍질 숨기 (받는 피해가 크게 줄어요)
+    if (raidShieldTurns > 0 || raidShellTurns > 0) {
+      final cut = math.max(1, (damage * (raidShellTurns > 0 ? 0.25 : 0.4)).round());
       if (lastDealt >= damage) lastDealt -= damage - cut;
       damage = cut;
     }

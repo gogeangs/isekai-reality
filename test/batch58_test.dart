@@ -183,11 +183,13 @@ void main() {
       expect(MarketRules.equipBases, contains(EquipBase.dagger));
       expect(MarketRules.equipBases, contains(EquipBase.seleniaHead));
       for (final no in [
-        EquipBase.wardenHead, EquipBase.ashCrown, EquipBase.martaScarf, EquipBase.ironSword,
+        EquipBase.wardenHead, EquipBase.ashCrown, EquipBase.martaScarf,
         EquipBase.seleniaAxe, EquipBase.uniqTeoCloak, EquipBase.partyWeapon, EquipBase.skyHead, EquipBase.lianKnot,
       ]) {
         expect(MarketRules.equipBases.contains(no), isFalse, reason: no.name);
       }
+      // 묶음 59: 첫 무기 종류도 대장간에서 만든 건 팔 수 있음 (받은 것만 막음)
+      expect(MarketRules.equipBases, contains(EquipBase.ironSword));
       expect(MarketRules.itemTradable(ShopItem.healSmall), isTrue);
       expect(MarketRules.listFee(100), 10);
       expect(MarketRules.listFee(2000), 40);

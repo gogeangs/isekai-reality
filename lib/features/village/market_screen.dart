@@ -8,6 +8,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
+import '../alchemy/alchemy_screen.dart' show PotionIcon;
 import '../pets/pet_art.dart' show EggArt;
 import '../settings/account_section.dart' show LoginButton, signInFlow;
 import '../smithy/equipment_view.dart';
@@ -241,6 +242,10 @@ class _MarketScreenState extends State<MarketScreen> {
               ? const Icon(Icons.shield_rounded)
               : EquipIcon(base: e.base, grade: e.grade, size: size),
           MarketKind.egg => EggArt(size: size),
+          MarketKind.alc => switch (PotionId.values.where((p) => p.name == key).firstOrNull) {
+              final p? => PotionIcon(potion: p, size: size),
+              null => const Icon(Icons.science_rounded),
+            },
         },
       );
 

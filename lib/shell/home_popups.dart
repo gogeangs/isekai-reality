@@ -255,6 +255,22 @@ extension _ShellPopups on _HomeShellState {
         _endingShowing = false;
         _kick();
       });
+      return;
+    }
+    // 묶음 59 #246: 4막 장면 (조건이 맞으면 한 번씩)
+    final a4 = c.pendingAct4Scene;
+    if (a4 != null) {
+      _endingShowing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        if (c.pendingAct4Scene?.id == a4.id) {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+              fullscreenDialog: true,
+              builder: (_) => Act4SceneScreen(controller: c, scene: a4)));
+        }
+        _endingShowing = false;
+        _kick();
+      });
     }
   }
 

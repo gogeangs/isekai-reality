@@ -9,6 +9,7 @@ import '../../data/device/device_links.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/auto_use_window.dart';
+import '../notice/notice_screen.dart';
 import '../legal/legal_screen.dart';
 import '../lens/album_files.dart';
 import 'account_section.dart';
@@ -208,6 +209,12 @@ class SettingsScreen extends StatelessWidget {
           _Section(
             title: '문의',
             children: [
+              _Row(
+                key: const Key('settingsNotice'),
+                label: '공지',
+                value: '',
+                onTap: () => NoticeScreen.open(context, controller),
+              ),
               _Row(
                 key: const Key('settingsInquiry'),
                 label: '문의하기',

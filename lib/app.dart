@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'features/act4/act4_screens.dart' show Act4SceneScreen;
 import 'package:flutter/material.dart';
 
 import 'core/format.dart';
@@ -8,6 +9,7 @@ import 'app_controller.dart';
 import 'data/ads/rewarded_ads.dart';
 import 'data/notify/notifier.dart';
 import 'core/rules/rules.dart';
+import 'features/notice/notice_screen.dart';
 import 'features/legal/consent_screen.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
@@ -249,6 +251,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     await c.refreshBannedWords();
     await c.checkInquiryInbox();
     await c.refreshParty();
+    // 묶음 59: 공지 · 내 제재 상태 · 길드 소식
+    await c.refreshNotices();
+    await c.refreshMyStatus();
+    await c.refreshGuild();
   }
 
   @override
@@ -511,6 +517,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 left: 12,
                 right: 12,
                 child: LegalChangeBanner(controller: controller),
+              ),
+            // 묶음 59: 운영 공지 띠 (약관 띠가 없을 때)
+            if (controller.legalBanner == null && controller.noticeBanner != null)
+              Positioned(
+                top: topInset + 62,
+                left: 12,
+                right: 12,
+                child: NoticeBanner(controller: controller),
               ),
             // 우편 (11-11 #65): 새 우편이 있으면 빨간 점
             Positioned(

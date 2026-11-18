@@ -48,6 +48,7 @@ export 'act3_rules.dart';
 export 'baldrin_rules.dart';
 export 'region_rules.dart';
 export 'market_rules.dart';
+export 'guild_rules.dart';
 export 'building_rules.dart';
 export 'party_rules.dart';
 export 'legal_rules.dart';

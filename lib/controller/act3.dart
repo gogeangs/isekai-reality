@@ -109,6 +109,8 @@ extension Act3Ops on AppController {
       var add = rem ~/ Act3Rules.energyStepUnit * Act3Rules.energyPerStep;
       // 묶음 57 #244 아스트라(페가수스)와 걸으면 여정 기력이 조금 더 (숨김)
       if (add > 0 && _heroWith(PetSpecies.pegasus)) add += (add * PetRules.pegasusEnergy).ceil();
+      // 묶음 59: 길드 Lv.5 → 함께 걸으면 조금 더 (숨김)
+      if (add > 0 && guildEnergyBonus > 0) add += (add * guildEnergyBonus).ceil();
       // 묶음 58: 나오미의 순례 지팡이를 들고 걸으면 조금 더 (숨김)
       if (add > 0 &&
           _armory.items.any((i) => i.base == EquipBase.uniqNaomiStaff && _armory.isWorn(i))) {

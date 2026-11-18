@@ -27,6 +27,9 @@ import 'region_screens.dart';
       'teo' => (name: '테오', face: 'assets/images/npc_teo.webp'),
       'kaspar' => (name: '카스파르', face: 'assets/images/npc_kaspar.webp'),
       'orben' => (name: '오르벤', face: 'assets/images/npc_orben.webp'),
+      // 묶음 59: 4막
+      'eliel' => (name: '엘리엘', face: 'assets/images/npc_eliel.webp'),
+      'dorgun' => (name: '도르군', face: 'assets/images/npc_dorgun.webp'),
       _ => _regionSpeaker(c, who),
     };
 

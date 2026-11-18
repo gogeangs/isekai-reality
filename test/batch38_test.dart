@@ -32,7 +32,8 @@ void main() {
           .where((f) =>
               f.facility != Facility.training &&
               f.facility != Facility.garden &&
-              f.facility != Facility.tavern)) {
+              f.facility != Facility.tavern &&
+              f.facility != Facility.guildhall)) {
         final sp = f.spot;
         expect(sp.x - sp.w / 2, greaterThanOrEqualTo(cl.left - 1), reason: f.name);
         expect(sp.x + sp.w / 2, lessThanOrEqualTo(cl.right + 1), reason: f.name);

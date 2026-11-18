@@ -28,7 +28,7 @@ const fail = (code, status) => {
   throw new MarketError(code, status);
 };
 
-const KINDS = ['mat', 'equip', 'item', 'egg'];
+const KINDS = ['mat', 'equip', 'item', 'egg', 'alc'];
 
 function safeName(n) {
   const s = String(n || '').trim().slice(0, 12);
@@ -40,6 +40,7 @@ function baseOf(kind, key, equip) {
   if (kind === 'mat') return Number(CAT.mats[key] || 0);
   if (kind === 'item') return Number(CAT.items[key] || 0);
   if (kind === 'egg') return CAT.eggBase;
+  if (kind === 'alc') return Number((CAT.alcs || {})[key] || 0);
   if (kind === 'equip' && equip) {
     const g = Number(CAT.equipGradeBase[equip.grade] || 0);
     return Math.round(g * (1 + 0.1 * (Number(equip.enhance) || 0)));
@@ -71,6 +72,7 @@ function nameOf(kind, key, equip) {
   if (kind === 'mat') return CAT.matNames[key] || key;
   if (kind === 'item') return CAT.itemNames[key] || key;
   if (kind === 'egg') return '알';
+  if (kind === 'alc') return (CAT.alcNames || {})[key] || key;
   return CAT.equipNames[(equip && equip.base) || key] || key;
 }
 
@@ -90,6 +92,7 @@ function countSnapshot(snap) {
   const hist = parse('history.v1', []);
   const armory = parse('json.armory', {});
   const pets = parse('json.pets', {});
+  const alchemy = parse('json.alchemy', {});
   let gold = 0;
   const mats = {};
   const items = {};
@@ -117,7 +120,9 @@ function countSnapshot(snap) {
   const equips = {};
   for (const it of armory.items || []) if (it && it.uid && !worn.has(it.uid)) equips[it.uid] = it;
   const eggs = new Set((pets.eggs || []).filter((e) => e && e.id && !e.incubatedAt).map((e) => e.id));
-  return { gold: Math.max(0, gold), mats, items, equips, eggs };
+  const alcs = {};
+  for (const [k, v] of Object.entries(alchemy.potions || {})) if (k in (CAT.alcs || {})) alcs[k] = Number(v) || 0;
+  return { gold: Math.max(0, gold), mats, items, equips, eggs, alcs };
 }
 
 class MarketService {
@@ -163,7 +168,8 @@ class MarketService {
     }
     const have = countSnapshot(snap);
     const h = await this.db.doc(`marketHold/${uid}`).get();
-    const hold = h.exists && h.data().gen === meta.gen ? h.data() : { gen: meta.gen, gold: 0, mats: {}, items: {}, equips: [], eggs: [] };
+    const hold = h.exists && h.data().gen === meta.gen ? h.data() : { gen: meta.gen, gold: 0, mats: {}, items: {}, equips: [], eggs: [], alcs: {} };
+    hold.alcs = hold.alcs || {};
     return { gen: meta.gen, have, hold };
   }
 
@@ -183,6 +189,7 @@ class MarketService {
     if (l.kind === 'mat') reward[l.key] = l.qty;
     if (l.kind === 'item') reward['item:' + l.key] = l.qty;
     if (l.kind === 'egg') reward.egg = l.qty;
+    if (l.kind === 'alc') reward['alc:' + l.key] = l.qty;
     if (l.kind === 'equip' && l.equip) equips.push(l.equip);
     await this._mail(uid, { title, body, reward, equips });
   }
@@ -241,10 +248,14 @@ class MarketService {
     } else if (kind === 'item') {
       if (!(k in CAT.items)) fail('not_tradable');
       if ((have.items[k] || 0) - (hold.items[k] || 0) < qty) fail('not_owned', 409);
+    } else if (kind === 'alc') {
+      if (!(k in (CAT.alcs || {}))) fail('not_tradable');
+      if ((have.alcs[k] || 0) - (hold.alcs[k] || 0) < qty) fail('not_owned', 409);
     } else if (kind === 'equip') {
       equip = have.equips[k];
       if (!equip || hold.equips.includes(k)) fail('not_owned', 409);
-      if (!CAT.equipBases.includes(equip.base)) fail('not_tradable');
+      // 묶음 59: 받은 선물(첫 무기 · 우편 선물)은 못 팖
+      if (!CAT.equipBases.includes(equip.base) || equip.gift) fail('not_tradable');
     } else {
       if (!have.eggs.has(k) || hold.eggs.includes(k)) fail('not_owned', 409);
     }
@@ -287,6 +298,7 @@ class MarketService {
     hold.gold += fee;
     if (kind === 'mat') hold.mats[k] = (hold.mats[k] || 0) + qty;
     if (kind === 'item') hold.items[k] = (hold.items[k] || 0) + qty;
+    if (kind === 'alc') hold.alcs[k] = (hold.alcs[k] || 0) + qty;
     if (kind === 'equip') hold.equips.push(k);
     if (kind === 'egg') hold.eggs.push(k);
     await this.db.runTransaction(async (t) => {

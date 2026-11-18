@@ -15,7 +15,11 @@ class EquipItem {
     this.appearance,
     this.element,
     this.elementLevel = 0,
+    this.gift = false,
   });
+
+  /// 묶음 59: 받은 선물(첫 무기 · 우편 선물 등) — 거래소에 못 올림
+  final bool gift;
 
   /// 속성 강화 단계 (11-11 #74, 0~3). 숫자는 숨기고 아이콘 빛으로만 보인다.
   final int elementLevel;
@@ -60,6 +64,7 @@ class EquipItem {
     int? elementLevel,
     bool clearElement = false,
     Map<String, int>? extras,
+    bool? gift,
   }) =>
       EquipItem(
         uid: uid,
@@ -73,6 +78,7 @@ class EquipItem {
         appearance: appearance,
         element: clearElement ? null : (element ?? this.element),
         elementLevel: clearElement ? 0 : (elementLevel ?? this.elementLevel),
+        gift: gift ?? this.gift,
       );
 
   Map<String, dynamic> toJson() => {
@@ -87,6 +93,7 @@ class EquipItem {
         'appearance': appearance,
         if (element != null) 'element': element!.name,
         if (elementLevel > 0) 'elementLevel': elementLevel,
+        if (gift) 'gift': true,
       };
 
   static EquipItem? fromJson(Map<String, dynamic> j) {
@@ -110,6 +117,7 @@ class EquipItem {
       appearance: j['appearance'] as String?,
       element: ElementRules.parse(j['element'] as String?),
       elementLevel: (j['elementLevel'] as num?)?.toInt() ?? 0,
+      gift: j['gift'] == true,
     );
   }
 }

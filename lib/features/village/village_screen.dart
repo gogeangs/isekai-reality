@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show AskKind, Building, BuildingRules, GardenRules, JobRules, Npc, TrainingRules, VillageRules;
+    show AskKind, Building, BuildingRules, GardenRules, GuildRules, JobRules, Npc, TrainingRules, VillageRules;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
@@ -23,10 +23,11 @@ import 'tavern_screen.dart';
 import 'training_screen.dart';
 import '../jobs/guild_screen.dart';
 import '../act3/act3_screen.dart' show openJourney;
+import '../act4/act4_screens.dart' show GuildHallScreen;
 
 /// 마을 시설 (묶음 35: 펫 쉼터 추가)
 /// 묶음 51: 주점 (결말 뒤 만남 장면 다음 바로 열림, 그 전엔 빈 공터)
-enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training, garden, tavern }
+enum Facility { inn, shop, board, guild, smithy, alchemy, shelter, market, training, garden, tavern, guildhall }
 
 /// 마을 탭을 열 때마다 1씩 (묶음 51: 마을 「방문」 — 만남 장면 · 거래소 완공을 방문마다 나눔)
 final ValueNotifier<int> villageVisits = ValueNotifier<int>(0);
@@ -45,11 +46,14 @@ class FacilityInfo {
   final ({double x, double y, double w}) spot;
 
   /// 묶음 51 #229: 거래소는 완공 전엔 공사 그림 한 장 (village_market_build)
-  String get asset => 'assets/images/village_${facility.name}.webp';
+  String get asset => facility == Facility.guildhall
+      ? GuildRules.hallImage(1)
+      : 'assets/images/village_${facility.name}.webp';
 
   /// 묶음 54: 건물 레벨업 단계 그림 (★1 은 [asset])
-  String assetAt(int star) =>
-      star >= 2 ? 'assets/images/village_${facility.name}_$star.webp' : asset;
+  String assetAt(int star) => facility == Facility.guildhall
+      ? GuildRules.hallImage(star)
+      : star >= 2 ? 'assets/images/village_${facility.name}_$star.webp' : asset;
   static const String marketBuild = 'assets/images/village_market_build.webp';
 
   /// 묶음 44 #225: 공사 중 그림 (1 터 닦기 · 2 뼈대 · 3 거의 완성)
@@ -98,6 +102,8 @@ class VillageScreen extends StatefulWidget {
     FacilityInfo(Facility.garden, '약초밭', FacilityGroup.pet, (x: 368, y: 652, w: 160)),
     // 묶음 51 #242: 왼쪽 위 공터 (탑으로 가는 길 옆, 결말 뒤 만남 장면 다음에 생김)
     FacilityInfo(Facility.tavern, '주점', FacilityGroup.rest, (x: 405, y: 492, w: 150)),
+    // 묶음 59 #246: 오른쪽 위 빈 터 (주점 맞은편, 4막 2장 「여기에 회관을 지어요」 뒤)
+    FacilityInfo(Facility.guildhall, '길드 회관', FacilityGroup.work, (x: 1131, y: 492, w: 150)),
   ];
 
   static const groupNames = {
@@ -205,15 +211,18 @@ class _VillageScreenState extends State<VillageScreen> {
   /// 마을 그림에 그리는 건물 (주점은 열린 뒤에만 — 그 전엔 빈 공터)
   List<FacilityInfo> get _shown => [
         for (final f in VillageScreen.facilities)
-          if (f.facility != Facility.tavern || controller.tavernOpen) f,
+          if ((f.facility != Facility.tavern || controller.tavernOpen) &&
+              (f.facility != Facility.guildhall || controller.guildHallOpen))
+            f,
       ];
 
   /// 묶음 44 #225: 안 열린 건물의 공사 단계 (1~3, 없으면 null)
   int? _stage(Facility f) => controller.buildStage(f.name);
 
   /// 묶음 54: 건물 단계 (★) · 고치는 중
-  int _star(Facility f) =>
-      controller.buildingsOpen ? controller.facilityStar(f.name) : 1;
+  int _star(Facility f) => f == Facility.guildhall
+      ? controller.guildHallStar
+      : controller.buildingsOpen ? controller.facilityStar(f.name) : 1;
   bool _fixing(Facility f) => switch (BuildingRules.parse(f.name)) {
         final Building b? => controller.buildingsOpen && controller.buildingFixing(b),
         null => false,
@@ -255,6 +264,7 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.garden => Npc.popo,
         Facility.tavern => Npc.lian,
         Facility.market => Npc.barkan,
+        Facility.guildhall => null,
       };
 
   /// 「!」: 큰 부탁은 금빛, 특별한 부탁은 보랏빛 별, 작은 부탁은 하늘빛 (빨간 점과 따로)
@@ -323,6 +333,7 @@ class _VillageScreenState extends State<VillageScreen> {
       Facility.garden => GardenScreen(controller: controller),
       Facility.tavern => TavernScreen(controller: controller),
       Facility.market => MarketScreen(controller: controller),
+      Facility.guildhall => GuildHallScreen(controller: controller),
       _ => BoardScreen(controller: controller),
     };
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));

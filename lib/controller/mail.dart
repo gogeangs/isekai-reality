@@ -60,13 +60,15 @@ extension MailOps on AppController {
     // 장비: 칸이 있는 만큼
     final eqLeft = <EquipItem>[];
     var a = _armory;
-    for (final e in m.equips) {
+    for (final e0 in m.equips) {
+      // 묶음 59: 우편 선물 장비는 받은 선물(거래소에 못 올림). 거래소(바르칸)에서 산 것은 아님
+      final e = m.from == '바르칸' ? e0 : e0.copyWith(gift: true);
       if (bagFree > 0) {
         a = a.copyWith(items: [...a.items, e]);
         await _saveArmory(a);
         r.got.add(EquipmentRules.info(e.base).name);
       } else {
-        eqLeft.add(e);
+        eqLeft.add(e0);
       }
     }
     final done = r.left.isEmpty && eqLeft.isEmpty;

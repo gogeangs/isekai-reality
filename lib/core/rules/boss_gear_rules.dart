@@ -7,6 +7,7 @@ import 'baldrin_rules.dart';
 import 'region_rules.dart';
 import 'element_rules.dart';
 import 'equipment_rules.dart';
+import 'guild_rules.dart';
 import 'highland_rules.dart';
 import 'materials.dart';
 import 'monsters.dart';
@@ -457,7 +458,15 @@ class SetBonus {
     this.petFaster = 0,
     this.partyBoss = 0,
     this.togetherExp = 0,
+    this.lanternSteps = 0,
+    this.guildRaid = 0,
+    this.lanternBurst = 0,
   });
+
+  /// 묶음 59 「등불 수호단」: 2개 길드 걸음 목표에 내 걸음 더 · 4개 레이드 피해 더 · 6개 가끔 등불 빛 (숨김)
+  final double lanternSteps;
+  final double guildRaid;
+  final double lanternBurst;
 
   /// 묶음 56: 「동행」 — 파티 보스에게 주는 피해 · 함께 있을 때 사냥 경험치 (숨김)
   final double partyBoss;
@@ -507,6 +516,7 @@ class SetBonus {
     var baldrin = 0;
     // 묶음 57: 지역 2~5 일반 세트 (지역마다 따로 셈)
     final regionSets = <Region, int>{};
+    var lantern = 0;
     var guardFlash = 0.0;
     var petFaster = 0;
     var partyBoss = 0.0;
@@ -528,6 +538,13 @@ class SetBonus {
           petFaster = BaldrinRules.windFaster;
         case EquipBase.uniqTeoCloak:
           ashTaken += RegionRules.teoCloakAsh;
+        case EquipBase.lanternWeapon ||
+              EquipBase.lanternHead ||
+              EquipBase.lanternBody ||
+              EquipBase.lanternHands ||
+              EquipBase.lanternFeet ||
+              EquipBase.lanternAcc:
+          lantern++;
         default:
           for (final r in RegionRules.all) {
             if (r.gear.contains(it.base)) regionSets[r.region] = (regionSets[r.region] ?? 0) + 1;
@@ -604,6 +621,9 @@ class SetBonus {
         guardFlash: guardFlash,
         petFaster: petFaster,
         partyBoss: partyBoss,
-        togetherExp: togetherExp);
+        togetherExp: togetherExp,
+        lanternSteps: lantern >= 2 ? GuildRules.set2Steps : 0,
+        guildRaid: lantern >= 4 ? GuildRules.set4Raid : 0,
+        lanternBurst: lantern >= 6 ? GuildRules.set6Burst : 0);
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import '../models/armory.dart';
+import 'alchemy_rules.dart';
 import 'bag_rules.dart';
 import 'equipment_rules.dart';
 import 'materials.dart';
@@ -9,7 +10,7 @@ import 'region_rules.dart';
 import 'town_rules.dart';
 
 /// 거래소에 올리는 것 (묶음 58 #229)
-enum MarketKind { mat, equip, item, egg }
+enum MarketKind { mat, equip, item, egg, alc }
 
 extension MarketKindLabel on MarketKind {
   String get label => switch (this) {
@@ -17,6 +18,7 @@ extension MarketKindLabel on MarketKind {
         MarketKind.equip => '장비',
         MarketKind.item => '물약',
         MarketKind.egg => '알',
+        MarketKind.alc => '공방 물약',
       };
 }
 
@@ -81,6 +83,10 @@ abstract final class MarketRules {
     EquipBase.rabbitBoots,
     EquipBase.tuskNecklace,
     EquipBase.bow,
+    // 묶음 59: 첫 무기 종류도 대장간에서 만든 것은 팖 (받은 것은 [EquipItem.gift] 로 막음)
+    EquipBase.ironSword,
+    EquipBase.woodAxe,
+    EquipBase.ironSpear,
     EquipBase.baldrinWeapon,
     EquipBase.baldrinHead,
     EquipBase.baldrinBody,
@@ -97,7 +103,23 @@ abstract final class MarketRules {
         (info.hpRatio > 0 || info.mpRatio > 0 || info.jobMpRatio > 0);
   }
 
-  static bool equipTradable(EquipItem e) => equipBases.contains(e.base);
+  static bool equipTradable(EquipItem e) => !e.gift && equipBases.contains(e.base);
+
+  /// 묶음 59: 못 파는 재료 — 지역 무기 조각 (지역 무기는 직접 잡아서만)
+  static const Set<MaterialId> blockedMats = {
+    MaterialId.hollowPlate,
+    MaterialId.cartWheel,
+    MaterialId.elderBark,
+    MaterialId.captainCrest,
+    MaterialId.undyingEmber,
+  };
+
+  static bool matTradable(MaterialId m) => !blockedMats.contains(m);
+
+  /// 묶음 59: 공방 물약 하나의 기준 값 (잡화상에도 있는 물약은 [MarketKind.item] 로)
+  static const int alcBase = 40;
+
+  static bool alcTradable(PotionId p) => !TownRules.bagItems.any((i) => i.name == p.name);
 
   // ───────────── 값
 
@@ -113,6 +135,7 @@ abstract final class MarketRules {
           },
         MarketKind.equip => equip == null ? 0 : BagRules.equipPrice(equip),
         MarketKind.egg => eggBase,
+        MarketKind.alc => alcBase,
       };
 
   static int minPrice(int base, int qty) => math.max(1, (base * qty * minMult).ceil());
@@ -121,7 +144,12 @@ abstract final class MarketRules {
   /// 서버가 함께 쓰는 표 (tool: test/batch58_test.dart 가 firebase/functions/src/market_catalog.json 과 같은지 확인)
   static String catalogJson() {
     final mats = {
-      for (final m in Materials.all) m.id.name: BagRules.materialPrice(m.id),
+      for (final m in Materials.all)
+        if (matTradable(m.id)) m.id.name: BagRules.materialPrice(m.id),
+    };
+    final alcs = {
+      for (final p in PotionId.values)
+        if (alcTradable(p)) p.name: alcBase,
     };
     final items = {
       for (final i in ShopItem.values)
@@ -163,6 +191,8 @@ abstract final class MarketRules {
           if (itemTradable(i)) i.name: TownRules.info(i).name,
       },
       'shopMats': shopMats,
+      'alcs': alcs,
+      'alcNames': {for (final p in PotionId.values) if (alcTradable(p)) p.name: AlchemyRules.info(p).name},
     };
     return '${const JsonEncoder.withIndent('  ').convert(out)}\n';
   }

@@ -4,6 +4,8 @@ const { InquiryService } = require('./inquiry');
 const { AccountService } = require('./account');
 const { MarketService } = require('./market');
 const { DeepService } = require('./deep');
+const { GuildService } = require('./guild');
+const { AdminService } = require('./admin');
 const { adminPage } = require('./admin_page');
 const words = require('./words');
 const links = require('./links');
@@ -26,6 +28,8 @@ function realDeps() {
     account: new AccountService(db, { auth: admin.auth(), party, inquiry }),
     market: new MarketService(db),
     deep: new DeepService(db),
+    guild: new GuildService(db),
+    admin: new AdminService(db),
     verify: (token) => admin.auth().verifyIdToken(token),
     env: process.env,
   };
@@ -133,6 +137,38 @@ async function handle(req, res) {
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
     }
+    // 묶음 59: 길드 (#246)
+    if (path.startsWith('/guild/')) {
+      const tok = await caller(req, deps, true);
+      const uid = tok.uid;
+      const me = body.me || {};
+      const g = deps.guild;
+      const r = {
+        '/guild/state': () => g.state(uid, me),
+        '/guild/create': () => g.create(uid, body),
+        '/guild/join': () => g.join(uid, body),
+        '/guild/list': () => g.list(uid, body),
+        '/guild/leave': () => g.leave(uid),
+        '/guild/kick': () => g.kick(uid, body),
+        '/guild/role': () => g.role(uid, body),
+        '/guild/style': () => g.style(uid, body),
+        '/guild/line': () => g.line(uid, body),
+        '/guild/donate': () => g.donate(uid, body),
+        '/guild/deco/add': () => g.decoAdd(uid, body),
+        '/guild/deco/place': () => g.decoPlace(uid, body),
+        '/guild/share': () => g.share(uid, body),
+        '/guild/raid': () => g.raidHit(uid, body),
+        '/guild/claim': () => g.claim(uid, body),
+      }[path];
+      if (!r) return res.status(404).json({ error: 'not_found' });
+      return res.json(await r());
+    }
+    // 묶음 59: 공지 (로그인 없어도) · 내 제재 상태
+    if (path === '/notices') return res.json(await deps.admin.notices({}));
+    if (path === '/status') {
+      const tok = await caller(req, deps, true);
+      return res.json(await deps.admin.myStatus(tok.uid));
+    }
     // 묶음 58: 심층 주간 순위
     if (path === '/deep/board' || path === '/deep/submit') {
       const tok = await caller(req, deps, true);
@@ -146,7 +182,10 @@ async function handle(req, res) {
     }
     if (path === '/inbox') {
       const tok = await caller(req, deps, false);
-      return res.json(await deps.inquiry.inbox(tok && tok.uid, body));
+      const box = await deps.inquiry.inbox(tok && tok.uid, body);
+      // 묶음 59: 모두에게 보상 우편 (앱이 우편 번호로 한 번만 받음)
+      const bc = deps.admin ? await deps.admin.activeBroadcasts() : [];
+      return res.json({ msgs: [...box.msgs, ...bc] });
     }
     if (path.startsWith('/admin/')) {
       const tok = await caller(req, deps, true);
@@ -155,11 +194,29 @@ async function handle(req, res) {
         '/admin/me': async () => ({ ok: true, email: tok.email }),
         '/admin/list': () => deps.inquiry.list(body),
         '/admin/photo': () => deps.inquiry.photo(body),
-        '/admin/reply': () => deps.inquiry.reply(body),
+        '/admin/reply': async () => {
+          const r = await deps.inquiry.reply(body);
+          if (deps.admin) await deps.admin.log(tok.email, 'reply', body.id, {});
+          return r;
+        },
         '/admin/account': () => deps.account.view(body),
         '/admin/words': () => words.view(deps.db),
-        '/admin/words/save': () => words.save(deps.db, body.text),
+        '/admin/words/save': async () => {
+          const r = await words.save(deps.db, body.text);
+          if (deps.admin) await deps.admin.log(tok.email, 'words', '', {});
+          return r;
+        },
         '/admin/trades': () => deps.market.trades(body),
+        '/admin/sanctions': () => deps.admin.sanctions(body),
+        '/admin/sanction': () => deps.admin.sanction(tok.email, body),
+        '/admin/unsanction': () => deps.admin.unsanction(tok.email, body),
+        '/admin/rename': () => deps.admin.rename(tok.email, body),
+        '/admin/revert': () => deps.admin.revert(tok.email, body),
+        '/admin/notices': () => deps.admin.notices({ all: true }),
+        '/admin/notice': () => deps.admin.notice(tok.email, body),
+        '/admin/notice/delete': () => deps.admin.noticeDelete(tok.email, body),
+        '/admin/broadcast': () => deps.admin.broadcast(tok.email, body),
+        '/admin/log': () => deps.admin.logs(body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

@@ -261,6 +261,14 @@ Future<void> signInFlow(BuildContext context, AppController c, LoginProvider p) 
     case CloudLogin.unavailable:
       showTopNotice(context, '로그인하지 못했어요. 잠시 뒤 다시 해 주세요');
   }
+  // 묶음 59: 로그인 정지 중이면 로그인을 풀고 안내
+  if (c.cloud.signedIn) {
+    await c.refreshMyStatus();
+    if (context.mounted && c.suspendedLine != null) {
+      showTopNotice(context, c.suspendedLine!, icon: Icons.block_rounded);
+      return;
+    }
+  }
   if (context.mounted && c.cloud.cancelledDelete) {
     c.markDeleteCancelSeen();
     showTopNotice(context, '다시 로그인해서 계정 삭제를 취소했어요');

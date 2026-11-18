@@ -656,6 +656,8 @@ class _BattleViewState extends State<BattleView> {
                         showElement: true,
                         hp: _b.foeHp,
                         maxHp: foe.maxHp,
+                        // 묶음 59: 레이드 보스 체력은 숫자 없이 (숨은 값)
+                        hideNumbers: _b.raidBoss != null,
                         colors: BarColors.foe,
                         note: _b.lastEvent,
                         alignEnd: true,
@@ -2181,7 +2183,10 @@ class _HpColumn extends StatelessWidget {
     this.nameColor = AppColors.text,
     this.element,
     this.showElement = false,
+    this.hideNumbers = false,
   });
+
+  final bool hideNumbers;
 
   /// 몬스터 속성 아이콘 (11-11 #63)
   final Element? element;
@@ -2228,9 +2233,11 @@ class _HpColumn extends StatelessWidget {
         const SizedBox(height: 4),
         GlowBar(
             ratio: maxHp == 0 ? 0 : hp / maxHp, colors: colors, height: 11),
-        const SizedBox(height: 3),
-        Text('HP ${comma(hp)} / ${comma(maxHp)}',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        if (!hideNumbers) ...[
+          const SizedBox(height: 3),
+          Text('HP ${comma(hp)} / ${comma(maxHp)}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        ],
       ],
     );
   }
@@ -2487,8 +2494,12 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.youngRedDragon ||
         MonsterId.orben ||
         MonsterId.orbenAsh ||
-        MonsterId.phoenixMother =>
+        MonsterId.phoenixMother ||
+        MonsterId.raidDragon =>
           Icons.local_fire_department_rounded,
+        MonsterId.raidGiant => Icons.wb_sunny_rounded,
+        MonsterId.raidLich => Icons.dangerous_rounded,
+        MonsterId.raidTortoise => Icons.landscape_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,

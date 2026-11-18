@@ -268,7 +268,7 @@ void main() {
       await _settle(tester);
       await _shot(tester, '${n}_14_성벽보수');
       // 마지막 6시간
-      b56.now = DateTime(2026, 11, 29, 19);
+      b56.now = DateTime.utc(2026, 11, 29, 10);
       await _page(tester, ErbardScreen(key: ObjectKey('f$n'), controller: c));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
       await _settle(tester);

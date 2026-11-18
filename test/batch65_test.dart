@@ -103,7 +103,7 @@ void main() {
       expect(c.erbard.news.single.text, contains('공격받고'));
       expect(await c.setRepairTarget('sol_lily'), isTrue);
       expect(c.erbard.gauge!.repairTarget, 'sol_lily');
-      b56.now = DateTime(2026, 11, 29, 19); // 일요일 19시
+      b56.now = DateTime.utc(2026, 11, 29, 10); // 일요일 19시
       expect(c.siegeFinal, isTrue);
       expect(c.takeFinalNotice(0), isTrue);
       expect(c.takeFinalNotice(0), isFalse);

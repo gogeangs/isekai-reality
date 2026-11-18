@@ -457,3 +457,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | icon_estate_{light,metal,earth,dark,fire,royal} | 5막 영지 아이콘 6 (깃대 비움, 한 장에서 같은 배율로 잘라 바닥(496) 맞춤 — 왕성이 가장 큼, #247, 512 → 개발이 48~64로) |
 | 2026-11-18 | monster_wildGriffin, monster_wildTroll, monster_wildBoar, monster_wildLizardman, monster_wildLavaGolem | 5막 야생 수비대 바깥(보통) 5 (#247, 붉은 번짐 정리, 512) |
 | 2026-11-18 | monster_wildKnightCaptain, monster_wildRuneGolem, monster_wildElfArcher, monster_wildBanshee, monster_wildDragonCaptain | 5막 야생 수비대 안쪽(강함) 5 (옛 왕국 왕관 문장 깃발, #247, 색 번짐 정리, 512) |
+| 2026-11-18 | item_siegeTicket | 5막 공성권 (금 나팔 + 성탑 밀랍 인장 쪽지, #247, 512) |

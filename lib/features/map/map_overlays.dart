@@ -222,18 +222,36 @@ class DungeonStrip extends StatelessWidget {
             key: const Key('stripKeys'),
             style: const TextStyle(
                 color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+        // 묶음 65 #252: 열쇠 조각 (두 개가 모이면 열쇠)
+        if (gauge.shards > 0) ...[
+          const SizedBox(width: 6),
+          Image.asset('assets/images/item_keyShard.webp',
+              key: const Key('stripShards'), width: 20, height: 20,
+              errorBuilder: (_, __, ___) => const SizedBox(width: 20)),
+          Text('${gauge.shards}',
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w700)),
+        ],
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              GlowBar(ratio: gauge.ratio, colors: BarColors.gauge, height: 7),
+              GlowBar(
+                  ratio: gauge.dailyKeyLimitReached && gauge.shardInto != null
+                      ? gauge.shardInto! / WalkRewardRules.every
+                      : gauge.ratio,
+                  colors: BarColors.gauge,
+                  height: 7),
               const SizedBox(height: 2),
               Text(
                   gauge.dailyKeyLimitReached
-                      ? '오늘은 다 모았어요'
+                      // 1만 보 뒤로는 열쇠 조각 게이지 (2만 보까지)
+                      ? (gauge.shardInto != null
+                          ? '조각 ${comma(gauge.shardInto!)} / ${comma(WalkRewardRules.every)}보'
+                          : '오늘은 다 모았어요')
                       : '${comma(gauge.stepsIntoNextKey)} / ${comma(gauge.stepsPerKey)}보',
+                  key: const Key('stripGaugeText'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ],

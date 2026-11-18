@@ -30,9 +30,14 @@ class PlayerState {
     final restStreaks = TownRules.restStreaks(history);
     final dailyExp = <DailyExpBreakdown>[];
     for (var i = 0; i < history.length; i++) {
-      final exp = ExpRules.forDay(history[i],
+      var exp = ExpRules.forDay(history[i],
           restStreak: restStreaks[i],
           weeklyDone: BoardRules.weeklyCompletedOn(history, i));
+      // 묶음 65 #254: Lv.21부터 그날 시작할 때 레벨 배율 (예전 기록은 그대로)
+      if (WalkRewardRules.applies(history[i].date)) {
+        final lv = LevelRules.fromTotalExp(expCap != null && totalExp > expCap ? expCap : totalExp).level;
+        exp = exp.scaled(WalkRewardRules.levelMult(lv));
+      }
       dailyExp.add(exp);
       totalExp += exp.total;
     }
@@ -41,7 +46,7 @@ class PlayerState {
     final level = LevelRules.fromTotalExp(totalExp);
     final stats = StatRules.fromHistory(history);
     final today = history.isEmpty ? null : history.last;
-    final carried = DungeonGaugeRules.carriedIntoLastDay([
+    final carried = DungeonGaugeRules.carriedWithShards([
       for (final d in history)
         (
           date: d.date,
@@ -51,6 +56,8 @@ class PlayerState {
           runs: d.dungeonRuns.length,
           bonus: TownRules.gaugeBonusOn(d),
         ),
+    ], [
+      for (final d in history) WalkRewardRules.steps2500(d.steps, d.date),
     ]);
 
     return PlayerState._(
@@ -64,7 +71,10 @@ class PlayerState {
         steps: today?.steps ?? 0,
         stepGoal: today?.stepGoal,
         extraKeys: today == null ? 0 : TownRules.spareKeysOn(today),
-        carriedKeys: carried,
+        carriedKeys: carried.keys,
+        shardsCarried: carried.shards,
+        shardsToday: today == null ? 0 : WalkRewardRules.steps2500(today.steps, today.date),
+        shardInto: today == null || !WalkRewardRules.applies(today.date) ? null : WalkRewardRules.intoNext(today.steps),
         keysUsedToday: today?.dungeonRuns.length ?? 0,
         bonusSteps: today == null ? 0 : TownRules.gaugeBonusOn(today),
       ),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../village/npc_header.dart';
 import 'package:flutter/material.dart';
 
@@ -134,6 +136,13 @@ class InnScreen extends StatelessWidget {
                             value: '${comma(today.steps)} / '
                                 '${comma(today.stepGoal)}보',
                             done: today.stepGoalAchieved),
+                        // 묶음 65 #252: 1만 보를 넘긴 날 발자국 (경험치 숫자는 숨김)
+                        if ((exp?.footprint ?? 0) > 0)
+                          _Row(
+                              key: const Key('innFootprint'),
+                              icon: 'footprint',
+                              label: '발자국',
+                              value: '1만 보 넘어 ${comma(math.min(today.steps, WalkRewardRules.until) - WalkRewardRules.from)}보'),
                         _Row(
                             icon: 'key',
                             label: '던전',
@@ -265,6 +274,7 @@ class _StreakDots extends StatelessWidget {
 
 class _Row extends StatelessWidget {
   const _Row({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,

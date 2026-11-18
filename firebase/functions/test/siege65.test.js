@@ -72,7 +72,7 @@ test('공성 망치 · 성벽 보수: 공성전 동안 걸음 게이지 → 집�
   let st = await w.s.state('ua', { steps: 1000 + size, device: 'da' });
   assert.equal(st.gauge.rams, 1);
   assert.deepEqual(st.weak.sol_lily, [2]);
-  assert.match(st.news[0].text, /공성 망치로 백합 들판 성 셋째 자리/);
+  assert.ok(st.news.some((x) => /공성 망치로 백합 들판 성 셋째 자리/.test(x.text)));
   await w.db.doc('siegeTicket/ua').set({ bank: 5, carry: 0, day: '', dayCounted: 0 });
   const f = await w.s.foe('ua', { estate: 'sol_lily' });
   assert.equal(f.slot, 2);
@@ -86,7 +86,7 @@ test('공성 망치 · 성벽 보수: 공성전 동안 걸음 게이지 → 집�
   st = await w.s.state('ux', { steps: 10 + size, device: 'dx' });
   assert.deepEqual(st.gauge.repairs, ['sol_lily']);
   assert.equal(st.defense.sol_lily, 1);
-  assert.match(st.news[0].text, /성벽 보수로 백합 들판 성 둘째 자리를 되살렸어요/);
+  assert.ok(st.news.some((x) => /성벽 보수로 백합 들판 성 둘째 자리를 되살렸어요/.test(x.text)));
   const run = (await w.db.doc('siegeRun/0_sol_lily').get()).data();
   assert.deepEqual(run.g[ga].broken, [0]);
   gx = (await w.db.doc(`guilds/${ga}`).get()).data();

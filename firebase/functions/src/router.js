@@ -229,6 +229,13 @@ async function handle(req, res) {
         '/siege/rally': () => s.rally(uid, body),
         '/siege/repair': () => s.repairTarget(uid, body),
         '/siege/peek': () => s.peek(uid, body),
+        // 묶음 65 #255: 영지 관리
+        '/siege/estate': () => s.estateState(uid),
+        '/siege/estate/build': () => s.estateBuild(uid, body),
+        '/siege/estate/donate': () => s.estateDonate(uid, body),
+        '/siege/estate/hunt': () => s.estateHunt(uid, body),
+        '/siege/estate/policy': () => s.estatePolicy(uid, body),
+        '/siege/estate/take': () => s.estateTake(uid, body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

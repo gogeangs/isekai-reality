@@ -78,6 +78,10 @@ class BulssiLines {
 
     // 하루 걸음 상한에 닿으면 쉬게 한다
     if (gauge.dailyKeyLimitReached) {
+      // 묶음 65 #252: 1만 보 뒤로도 2만 보까지는 발자국 · 열쇠 조각이 남는다
+      if (gauge.shardInto != null) {
+        return '1만 보를 넘긴 걸음도 발자국으로 남아. 2,500보마다 열쇠 조각이 생겨!';
+      }
       return '와, 오늘 정말 많이 걸었다! 이제 발도 좀 쉬게 해 주자.';
     }
 

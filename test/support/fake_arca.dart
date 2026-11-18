@@ -1,5 +1,7 @@
 // 시험용 아르카 서버 (묶음 56): 서버(firebase/functions/src)와 같은 길 · 같은 모양의 답을 메모리에서.
 // 판정 규칙은 서버 시험(node --test)에서 따로 본다. 여기선 앱 흐름만.
+import 'dart:math' as math;
+
 import 'package:isekai_reality/data/cloud/arca_api.dart';
 
 class FakeArca implements ArcaApi {
@@ -80,6 +82,43 @@ class FakeArca implements ArcaApi {
   final Map<String, int> siegeDefense = {};
   final List<Map<String, dynamic>> siegeNews = [];
   String? repairTarget;
+
+  // 묶음 65 #255: 영지 관리
+  final Map<String, int> stages = {};
+  final Map<String, Map<String, dynamic>> estateDev = {};
+  final Map<String, int> guildStore = {};
+  int matPool = 0;
+  int takeLeft = 3;
+  int donateLeft = 20;
+  bool policyOpen = true;
+
+  Map<String, dynamic> estateState() => {
+        'stages': stages,
+        'estates': [
+          for (final e in siegeOwners.entries)
+            if (e.value?['gid'] == 'mine')
+              {
+                'estate': e.key,
+                'stage': stages[e.key] ?? 0,
+                'progress': 0.45,
+                'slots': [3, 4, 5][stages[e.key] ?? 0],
+                'fac': estateDev[e.key]?['fac'] ?? {},
+                'special': {'sol': 'light', 'dor': 'metal', 'sil': 'earth', 'mor': 'dark', 'ign': 'fire'}[e.key.split('_').first],
+                'policy': estateDev[e.key]?['policy'] ?? 'plenty',
+                'canPolicy': policyOpen && estateDev[e.key]?['policy'] == null,
+                'request': {'no': 0, 'title': '무너진 다리를 고쳐 주세요', 'goal': 20000, 'steps': 12400, 'mine': 5200, 'people': 3},
+              },
+        ],
+        'treasury': treasury,
+        'matPool': matPool,
+        'store': guildStore,
+        'take': {'left': takeLeft, 'per': 3},
+        'donateLeft': donateLeft,
+        'staff': true,
+        'buildGold': [2000, 5000, 10000],
+        'buildMats': [20, 50, 100],
+        'siege': siegeActive,
+      };
   Map<String, String> vanguards = {};
   void _tl(String what, int gold) => tlog.insert(0, {'at': DateTime(2026, 11, 30, 10).millisecondsSinceEpoch, 'name': '하루', 'what': what, 'gold': gold});
 
@@ -101,6 +140,7 @@ class FakeArca implements ArcaApi {
         'weak': siegeWeak,
         'defense': siegeDefense,
         'news': siegeNews,
+        'stages': stages,
         if (siegeTickets != null) 'tickets': siegeTickets,
         if (siegeTickets != null) 'ticketCarry': 500,
         'garrisons': {
@@ -209,6 +249,42 @@ class FakeArca implements ArcaApi {
               },
           ],
         };
+      case '/siege/estate':
+        return estateState();
+      case '/siege/estate/build':
+        final d = estateDev.putIfAbsent(id, () => {'fac': <String, int>{}});
+        final fac = Map<String, int>.from(d['fac'] as Map);
+        final k = '${body['kind']}';
+        final lv = fac[k] ?? 0;
+        final gold = [2000, 5000, 10000][lv], mats = [20, 50, 100][lv];
+        if (treasury < gold) throw const ArcaApiError('no_treasury');
+        if (matPool < mats) throw const ArcaApiError('no_mats');
+        treasury -= gold;
+        matPool -= mats;
+        fac[k] = lv + 1;
+        d['fac'] = fac;
+        return estateState();
+      case '/siege/estate/donate':
+        final n = ((body['mats'] as Map).values.fold<num>(0, (a, b) => a + (b as num))).toInt();
+        if (n > donateLeft) throw const ArcaApiError('donate_limit');
+        donateLeft -= n;
+        matPool += n;
+        return estateState();
+      case '/siege/estate/hunt':
+        return {'ok': true};
+      case '/siege/estate/policy':
+        final d = estateDev.putIfAbsent(id, () => {'fac': <String, int>{}});
+        if (d['policy'] != null) throw const ArcaApiError('chosen');
+        d['policy'] = body['kind'];
+        return estateState();
+      case '/siege/estate/take':
+        final m = '${body['mat']}';
+        if (takeLeft <= 0) throw const ArcaApiError('take_limit');
+        final got = math.min(takeLeft, math.min((body['n'] as num?)?.toInt() ?? 1, guildStore[m] ?? 0));
+        if (got <= 0) throw const ArcaApiError('empty');
+        guildStore[m] = (guildStore[m] ?? 0) - got;
+        takeLeft -= got;
+        return {'got': {m: got}, 'state': estateState()};
       case '/siege/alliance':
         if (body['action'] == 'create') alliance = {'name': body['name'], 'code': 'ALY234', 'guilds': [guild?['name']], 'locked': false};
         if (body['action'] == 'leave') alliance = null;

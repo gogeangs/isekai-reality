@@ -235,7 +235,12 @@
     "stoneIce": 60,
     "stoneThunder": 60,
     "stoneMetal": 60,
-    "stonePoison": 60
+    "stonePoison": 60,
+    "lightRelic": 120,
+    "metalOre": 120,
+    "earthWood": 120,
+    "darkCrystal": 120,
+    "fireStone": 120
   },
   "matNames": {
     "slimeJelly": "슬라임 젤리",
@@ -362,7 +367,12 @@
     "stoneIce": "얼음의 마석",
     "stoneThunder": "번개의 마석",
     "stoneMetal": "금속의 마석",
-    "stonePoison": "독의 마석"
+    "stonePoison": "독의 마석",
+    "lightRelic": "성스러운 백합",
+    "metalOre": "청동 광석",
+    "earthWood": "엘프 고목 가지",
+    "darkCrystal": "안개 결정",
+    "fireStone": "용암석"
   },
   "items": {
     "healSmall": 5,

@@ -188,6 +188,7 @@ const EstateMixin = {
     return {
       stages,
       estates: mine,
+      help: gid ? await this._helpEstate(gid, fresh, w) : null,
       treasury: Number(fresh.treasury || 0),
       matPool: Number(fresh.matPool || 0),
       store: fresh.store || {},
@@ -342,15 +343,41 @@ const EstateMixin = {
     return { got: { [mat]: got }, state: await this.estateState(uid) };
   },
 
-  /** 걸음 → 우리 영지 주민 의뢰 (공성권 셈과 같은 걸음, 진짜 앱 확인 실패 걸음은 빼고) */
+  /** 묶음 66: 주민 의뢰를 돕는 영지 (길드장 · 부길드장이 고름, 안 고르면 진행이 가장 많이 된 영지) */
+  async _helpEstate(gid, g, w) {
+    const mine = Object.entries(w.owners || {}).filter(([, o]) => o && o.gid === gid).map(([id]) => id);
+    if (!mine.length) return null;
+    if (g && g.helpEstate && mine.includes(g.helpEstate)) return g.helpEstate;
+    let best = mine[0];
+    let bestSteps = -1;
+    for (const id of mine) {
+      const d = await this._dev(id);
+      if ((d.req.steps || 0) > bestSteps) {
+        best = id;
+        bestSteps = d.req.steps || 0;
+      }
+    }
+    return best;
+  },
+
+  async estateHelp(uid, { estate } = {}) {
+    const { gid } = await this._ownEstate(uid, estate, true);
+    const gref = this.db.doc(`guilds/${gid}`);
+    const g = (await gref.get()).data();
+    await gref.set({ ...g, helpEstate: estate });
+    return this.estateState(uid);
+  },
+
+  /** 걸음 → 돕는 영지 한 곳의 주민 의뢰 (공성권 셈과 같은 걸음, 진짜 앱 확인 실패 걸음은 빼고) */
   async _addRequestSteps(uid, steps) {
     if (steps <= 0) return;
     const { gid, g } = await this._mine(uid);
     if (!gid) return;
     const w = await this._world();
     const members = Math.max(5, Object.keys(g.members || {}).length);
+    const help = await this._helpEstate(gid, g, w);
     for (const [id, o] of Object.entries(w.owners || {})) {
-      if (!o || o.gid !== gid) continue;
+      if (!o || o.gid !== gid || id !== help) continue;
       const d = await this._dev(id);
       const rq = E.requests[(d.req.i || 0) % E.requests.length];
       const goal = Math.round((rq.steps * members) / 5);

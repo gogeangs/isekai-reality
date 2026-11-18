@@ -34,7 +34,9 @@ extension AlchemyOps on AppController {
 
   /// 넣은 재료로 되는 물약 (마나 물약은 직업 각성 뒤에만)
   ({PotionId id, bool perfect})? _brewMatch(List<MaterialId> put) {
-    final m = AlchemyRules.match(put);
+    // 묶음 66: 영지 특산물은 더 넣는 재료 — 빼고 레시피를 맞춤
+    final base = [for (final x in put) if (!AlchemyRules.isAdditive(x)) x];
+    final m = AlchemyRules.match(base.isEmpty ? put : base);
     if (m != null && !jobsOpen && AlchemyRules.needsJobs(m.id)) return null;
     // 묶음 42: 부탁 보상 레시피는 배우기 전엔 끓여도 되지 않는다
     if (m != null &&
@@ -95,7 +97,9 @@ extension AlchemyOps on AppController {
     if (slot < 0 || slot >= cauldronCount || _alc.brews.containsKey(slot)) {
       return false;
     }
-    if (put.isEmpty || put.length > AlchemyRules.maxIngredients) return false;
+    // 묶음 66: 영지 특산물 하나는 칸 밖으로 더 넣을 수 있음
+    final adds = put.where(AlchemyRules.isAdditive).length;
+    if (put.isEmpty || adds > 1 || put.length - adds > AlchemyRules.maxIngredients) return false;
     final need = <MaterialId, int>{};
     for (final m in put) {
       need[m] = (need[m] ?? 0) + 1;
@@ -192,7 +196,7 @@ extension AlchemyOps on AppController {
         yields += 1;
       }
       // 품질 3등급 (11-11 #74): 숙련도 보너스는 연금술사 직업 각성 뒤에 더한다
-      final q = AlchemyRules.quality(perfect: match.perfect, put: put);
+      final q = AlchemyRules.qualityWith(match.id, perfect: match.perfect, put: put);
       a = a.copyWith(
           mastery: a.mastery +
               AlchemistRules.brewPoints +

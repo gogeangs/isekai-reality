@@ -523,7 +523,8 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                       border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
                     ),
                     child: Row(children: [
-                      for (var i = 0; i < AlchemyRules.maxIngredients; i++) ...[
+                      // 묶음 66: 영지 특산물은 한 칸 더 (더 넣는 재료)
+                      for (var i = 0; i < AlchemyRules.maxIngredients + (put.any(AlchemyRules.isAdditive) ? 1 : 0); i++) ...[
                         Expanded(
                           child: i < put.length
                               ? GestureDetector(
@@ -532,7 +533,7 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                               : Icon(Icons.add_circle_outline_rounded,
                                   color: AppColors.gold.withValues(alpha: 0.3)),
                         ),
-                        if (i < AlchemyRules.maxIngredients - 1)
+                        if (i < AlchemyRules.maxIngredients + (put.any(AlchemyRules.isAdditive) ? 1 : 0) - 1)
                           Icon(Icons.chevron_right_rounded,
                               size: 14,
                               color: AppColors.gold.withValues(alpha: 0.4)),
@@ -558,7 +559,9 @@ Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
                               for (final m in mats)
                                 GestureDetector(
                                   onTap: left(m) > 0 &&
-                                          put.length < AlchemyRules.maxIngredients
+                                          (AlchemyRules.isAdditive(m)
+                                              ? !put.any(AlchemyRules.isAdditive)
+                                              : put.where((x) => !AlchemyRules.isAdditive(x)).length < AlchemyRules.maxIngredients)
                                       ? () => setState(() => put.add(m))
                                       : null,
                                   child: Opacity(

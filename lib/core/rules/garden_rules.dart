@@ -14,8 +14,8 @@ class SeedInfo {
   final int rarity;
 }
 
-/// 마을 새 건물 「약초밭」 (묶음 48 #230). 씨앗을 심으면 그 뒤에 걸은 걸음으로 자란다
-/// (한 걸음이 밭 모든 칸에 함께, 시간으로는 안 자람). 다 자란 것은 시들지 않는다.
+/// 마을 새 건물 「약초밭」 (묶음 48 #230). 묶음 66 #266부터 심은 뒤 흐른 시간으로 자란다
+/// (앱을 꺼 둬도). 다 자란 것은 시들지 않는다.
 /// 확률·크기는 숨은 값(처음 값, 테스트로 조정). 걸음은 내가 걸은 값이라 「약 ○보 더」로 보여 준다.
 class GardenRules {
   GardenRules._();
@@ -58,6 +58,35 @@ class GardenRules {
   static int need(MaterialId seed, {bool dew = false}) {
     final s = seedOf(seed)?.steps ?? 2000;
     return dew ? (s * dewFactor).round() : s;
+  }
+
+  // ───────────── 묶음 66 #266: 걸음 대신 시간으로
+
+  /// 다 자라는 데 드는 시간(분): 약초 4시간 · 꽃 8시간 · 버섯 8시간 · 빛나는 씨앗 24시간
+  static int minutesOf(MaterialId seed) => switch (seed) {
+        MaterialId.flowerSeed || MaterialId.sporeSeed => 8 * 60,
+        MaterialId.glowSeed => 24 * 60,
+        _ => 4 * 60,
+      };
+
+  /// 빨리 자라게 하는 효과 (같은 비율로 시간을 줄이고, 여러 개면 곱함)
+  static const double sproutFactor = 0.8;
+
+  static int growMinutes(MaterialId seed, {double factor = 1}) => (minutesOf(seed) * factor).round();
+
+  /// 「약 ○시간 ○분 뒤」 (1시간 안 남으면 「약 ○분 뒤」)
+  static String leftText(int minutes) {
+    final m = minutes < 1 ? 1 : minutes;
+    final h = m ~/ 60, r = m % 60;
+    if (h <= 0) return '약 $r분 뒤';
+    return r == 0 ? '약 $h시간 뒤' : '약 $h시간 $r분 뒤';
+  }
+
+  /// 시간을 사람 말로 (씨앗 고르기: 「약 4시간이면 다 자라요」)
+  static String hoursText(int minutes) {
+    final h = minutes ~/ 60, r = minutes % 60;
+    if (h <= 0) return '$r분';
+    return r == 0 ? '$h시간' : '$h시간 $r분';
   }
 
   /// 자란 정도 → 그림 단계: 0 새싹 · 1 자람 · 2 다 자람
@@ -111,8 +140,8 @@ class GardenRules {
 
   // ───────────── 문구
 
-  static const String openedLine = '약초밭이 열렸어! 포포가 씨앗을 나눠 줬대. 심고 걸으면 자라!';
-  static const String guide = '씨앗을 심고 걸으면 자라요! 한 걸음이 밭 모든 칸에 함께 닿아요!';
+  static const String openedLine = '약초밭이 열렸어! 포포가 씨앗을 나눠 줬대. 심어 두면 시간이 지나며 자라!';
+  static const String guide = '씨앗을 심으면 시간이 지나며 자라요! 앱을 꺼 둬도 자라요!';
   static const String readyLine = '다 자랐어요! 얼른 거둬 주세요! 반짝반짝해요!';
   static const String emptyLine = '빈 칸이 있어요! 씨앗을 심어 볼래요?';
 }

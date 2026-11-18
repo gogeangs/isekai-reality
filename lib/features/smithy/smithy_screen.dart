@@ -470,6 +470,8 @@ class _SmithyScreenState extends State<SmithyScreen> {
     final cost = EquipmentRules.enhanceCost(to);
     final chance = (c.enhanceChanceShown(to) * 100).round();
     final p = c.player;
+    // 묶음 66: +8부터 영지 특산물
+    final sp = EquipmentRules.enhanceSpecial(item.slot, to);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
         Expanded(
@@ -499,6 +501,19 @@ class _SmithyScreenState extends State<SmithyScreen> {
           ),
         ),
       ]),
+      if (sp != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(key: Key('enhanceSpecial_${item.uid}'), children: [
+            Image.asset(Materials.info(sp.mat).asset, width: 22, height: 22, errorBuilder: (_, __, ___) => const SizedBox(width: 22)),
+            const SizedBox(width: 4),
+            Text('${Materials.info(sp.mat).name} ${p.materialCount(sp.mat)}/${sp.n}',
+                style: TextStyle(
+                    color: p.materialCount(sp.mat) >= sp.n ? AppColors.text : const Color(0xFFFF8A65),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700)),
+          ]),
+        ),
       if (check != CraftCheck.ok)
         _Short(
           key: Key('short_${item.uid}'),
@@ -506,6 +521,8 @@ class _SmithyScreenState extends State<SmithyScreen> {
             if (p.manaStones < cost.manaStones)
               (_ic('mana_stone'), '마석 ${cost.manaStones - p.manaStones}개'),
             if (p.gold < cost.gold) (_ic('gold'), '금화 ${cost.gold - p.gold}'),
+            if (sp != null && p.materialCount(sp.mat) < sp.n)
+              (Image.asset(Materials.info(sp.mat).asset, width: 18, height: 18), '${Materials.info(sp.mat).name} ${sp.n - p.materialCount(sp.mat)}개'),
           ],
         ),
       // 묶음 42 #226: 도르군의 숫돌 → 이번 강화는 꼭 성공 (마석·금화는 그대로 듦)
@@ -718,8 +735,11 @@ class _SmithyScreenState extends State<SmithyScreen> {
               : '${Materials.info(EquipmentRules.imbueCore(e)).name} ${SmithRules.cores(a)}',
       ].join(' + ');
 
+  /// 묶음 66: 「특산물 더 넣기」를 고른 장비
+  final Set<String> _extra = {};
+
   Future<void> _runSmith(EquipItem it, SmithAction a, {Element? to}) async {
-    final r = await c.smith(it.uid, a, to: to);
+    final r = await c.smith(it.uid, a, to: to, special: a == SmithAction.upgrade && _extra.contains(it.uid));
     if (!mounted) return;
     if (r == SmithResult.ok) {
       setState(() {
@@ -783,6 +803,29 @@ class _SmithyScreenState extends State<SmithyScreen> {
       ]),
       if (!maxed && !_canSmith(SmithAction.upgrade, el) && !changing)
         _Short(lines: _smithShort(SmithAction.upgrade, el)),
+      // 묶음 66: 특산물 하나를 더 넣으면 망치질이 안정됨 (숫자는 숨김)
+      if (!maxed && c.extraSpecialty != null)
+        InkWell(
+          key: Key('smith_extra_${it.uid}'),
+          onTap: () => setState(() => _extra.contains(it.uid) ? _extra.remove(it.uid) : _extra.add(it.uid)),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(children: [
+              Icon(_extra.contains(it.uid) ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                  color: AppColors.goldBright, size: 20),
+              const SizedBox(width: 4),
+              Image.asset(Materials.info(c.extraSpecialty!).asset, width: 20, height: 20, errorBuilder: (_, __, ___) => const SizedBox(width: 20)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                    _extra.contains(it.uid)
+                        ? '특산물 더 넣기 · ${Materials.info(c.extraSpecialty!).name} 1 — 망치질이 한결 안정돼요'
+                        : '특산물 더 넣기 (${Materials.info(c.extraSpecialty!).name} 1)',
+                    style: const TextStyle(color: AppColors.text, fontSize: 12)),
+              ),
+            ]),
+          ),
+        ),
       if (changing) ...[
         const SizedBox(height: 8),
         _pickBox(it, SmithAction.change),

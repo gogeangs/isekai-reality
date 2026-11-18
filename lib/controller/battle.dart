@@ -276,6 +276,15 @@ extension BattleOps on AppController {
         {'day': day, 'lat': p.lat, 'lng': p.lng});
   }
 
+  /// 묶음 66 #267: 몬스터 칸(4시간)이 바뀌면 지도를 다시 그림
+  void spawnSlotChanged() => _notify();
+
+  /// 지금 몬스터 칸 키 (바뀌었는지 보려고)
+  String get spawnSlot => FieldMonsterRules.slotKey(_clock());
+
+  /// 「몬스터가 바뀌기까지 ○시간 ○분」
+  String get spawnSlotText => FieldMonsterRules.untilText(_clock());
+
   /// 오늘 아직 사냥하지 않은 필드 몬스터 (11-11 #69: 5마리 뒤에도 계속 나온다)
   List<FieldSpawn> get todaySpawns {
     final today = player.today;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/rules/level_rules.dart';
 import '../../core/rules/job_rules.dart' show JobRules;
 import '../../core/rules/stat_rules.dart';
+import '../../core/rules/vital_rules.dart';
 import '../status/stat_icon.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -133,6 +134,14 @@ class LevelUpDialog extends StatelessWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700)),
                           ],
+                          // 묶음 66 #270: 레벨마다 최대 기력 +2
+                          const SizedBox(height: 6),
+                          Text('최대 기력 +${VitalRules.levelMp(to) - VitalRules.levelMp(from)}',
+                              key: const Key('levelUpMp'),
+                              style: const TextStyle(
+                                  color: Color(0xFF8EC9FF),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
                           // Lv.2가 되는 순간 스탯 분배가 열린다
                           if (from < 2 && to >= 2) ...[
                             const SizedBox(height: 8),

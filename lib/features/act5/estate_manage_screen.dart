@@ -67,7 +67,7 @@ class _EstateManageScreenState extends State<EstateManageScreen> {
                   const SizedBox(height: 10),
                   _policy(v, d),
                   const SizedBox(height: 10),
-                  _request(d),
+                  _request(v, d),
                   const SizedBox(height: 10),
                   _store(v),
                   const SizedBox(height: 10),
@@ -228,10 +228,30 @@ class _EstateManageScreenState extends State<EstateManageScreen> {
 
   // ───────────── 주민 의뢰
 
-  Widget _request(EstateDev d) => OrnatePanel(
+  Widget _request(EstateDevView v, EstateDev d) => OrnatePanel(
         key: const Key('estateRequest'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text('주민 의뢰', style: AppText.title(18)),
+          // 묶음 66: 걸음은 「지금 돕는 영지」 한 곳에만
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 2),
+            child: Row(key: const Key('estateHelp'), children: [
+              Icon(v.help == e.id ? Icons.volunteer_activism_rounded : Icons.volunteer_activism_outlined,
+                  size: 16, color: v.help == e.id ? AppColors.goldBright : AppColors.textMuted),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                    v.help == e.id ? '지금 돕는 영지예요 · 길드원 걸음이 이 의뢰에 들어가요' : '지금 돕는 영지 · ${ErbardRules.estate(v.help ?? '')?.name ?? '-'}',
+                    style: TextStyle(color: v.help == e.id ? AppColors.goldBright : AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              if (v.staff && v.help != e.id)
+                TextButton(
+                  key: const Key('estateHelpHere'),
+                  onPressed: () => _run(c.setHelpEstate(e.id), '이제 ${e.name} 주민 의뢰를 도와요'),
+                  child: const Text('이 영지 돕기', style: TextStyle(fontSize: 12.5)),
+                ),
+            ]),
+          ),
           const SizedBox(height: 4),
           Text('「${d.request.title}」', style: const TextStyle(color: AppColors.goldBright, fontSize: 14.5, fontWeight: FontWeight.w800)),
           Text('길드원이 함께 ${comma(d.request.goal)}보', style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
@@ -241,7 +261,7 @@ class _EstateManageScreenState extends State<EstateManageScreen> {
           Text(
               d.request.mine > 0
                   ? '나도 ${comma(d.request.mine)}보 함께 걸었어요 · ${d.request.people}명이 함께하는 중'
-                  : '걸으면 이 영지 의뢰에 함께 들어가요',
+                  : (v.help == e.id ? '걸으면 이 영지 의뢰에 함께 들어가요' : '돕는 영지로 고르면 걸음이 이 의뢰에 들어가요'),
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 4),
           const KText('다 걸으면 영지가 번영하고, 함께 걸은 길드원에게 주민이 고마움을 보내요.',

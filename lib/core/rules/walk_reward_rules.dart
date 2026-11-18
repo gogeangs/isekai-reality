@@ -81,4 +81,10 @@ class WalkRewardRules {
   static const double highStep = 0.03;
 
   static double levelMult(int level) => level <= highFrom ? 1 : 1 + highStep * (level - highFrom);
+
+  // ───────────── 묶음 66 #265 몬스터 사냥 경험치 (잡는 순간의 레벨)
+
+  /// 몬스터 처치 경험치 × (1 + 0.05 × (레벨 − 1)), 마지막에 반올림 (숨은 값)
+  static const double huntStep = 0.05;
+  static double huntMult(int level) => 1 + huntStep * (level < 1 ? 0 : level - 1);
 }

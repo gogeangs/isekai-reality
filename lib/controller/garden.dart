@@ -17,22 +17,25 @@ class GardenPlotView {
   /// 심은 씨앗 (빈 칸이면 null)
   final MaterialId? seed;
 
-  /// 심은 뒤 걸은 걸음 · 다 자라는 데 드는 걸음
+  /// 묶음 66 #266: 심은 뒤 흐른 시간(분) · 다 자라는 데 드는 시간(분)
   final int walked;
   final int need;
 
   bool get empty => seed == null;
   bool get ready => seed != null && walked >= need;
 
-  /// 「약 ○보 더」 (100보 단위로 올림)
-  int get left => ready ? 0 : (((need - walked) + 99) ~/ 100) * 100;
+  /// 남은 시간(분)
+  int get left => ready ? 0 : need - walked;
+
+  /// 「약 ○시간 ○분 뒤」
+  String get leftText => GardenRules.leftText(left);
 
   /// 0 새싹 · 1 자람 · 2 다 자람
   int get stage => GardenRules.stageOf(walked, need);
 }
 
-/// 마을 새 건물 「약초밭」 (묶음 48 #230): 씨앗을 심으면 그 뒤에 걸은 걸음으로 자란다.
-/// 한 걸음이 밭 모든 칸에 함께 닿고, 시간으로는 자라지 않는다. 다 자란 것은 거둘 때까지 그대로.
+/// 마을 새 건물 「약초밭」 (묶음 48 #230). 묶음 66 #266부터 심은 시각에서 흐른 시간으로 자란다
+/// (앱을 꺼 둬도, 서버 시각 기준 시계). 다 자란 것은 거둘 때까지 그대로.
 extension GardenOps on AppController {
   GardenState get garden => _garden;
 
@@ -61,22 +64,56 @@ extension GardenOps on AppController {
     return heart ? (w * (1 + RegionRules.elderHeartGarden)).round() : w;
   }
 
+  /// 묶음 66: 빨리 자라게 하는 효과를 곱한 배율 (이슬병 · ★3 · 고목의 심장 · 새싹 돌보기)
+  double get _growFactor {
+    var f = 1.0;
+    if (_dew) f *= GardenRules.dewFactor;
+    if (_star(Building.garden, 3)) f *= BuildingRules.gardenNeed;
+    if (_armory.items.any((i) => i.base == EquipBase.uniqElderHeart && _armory.isWorn(i))) f *= 1 - RegionRules.elderHeartGarden;
+    if (sproutToday) f *= GardenRules.sproutFactor;
+    return f;
+  }
+
   GardenPlotView plotView(int slot) {
     final p = _garden.plots[slot];
     final seed = p == null ? null : Materials.byName(p.seed);
     if (p == null || seed == null) return GardenPlotView(slot: slot);
+    final need = GardenRules.growMinutes(seed, factor: _growFactor);
+    // 예전 칸(아직 옮기지 않음): 남은 걸음 비율대로
+    final at = p.at ?? _legacyAt(p, seed, need);
     return GardenPlotView(
       slot: slot,
       seed: seed,
-      walked: _walkedSince(p),
-      need: _gardenNeed(seed),
+      walked: math.max(0, _clock().difference(DateTime.fromMillisecondsSinceEpoch(at)).inMinutes),
+      need: need,
     );
   }
 
-  /// 다 자라는 데 드는 걸음 (묶음 54: 약초밭 ★3 → 조금 빨리, 숨김)
+  /// 예전 걸음 칸 → 심은 시각 (걸은 비율만큼 이미 흐른 것으로. 다 자란 칸은 다 자란 그대로)
+  int _legacyAt(GardenPlot p, MaterialId seed, int need) {
+    final steps = _gardenNeed(seed);
+    final ratio = steps <= 0 ? 1.0 : math.min(1.0, _walkedSince(p) / steps);
+    return _clock().subtract(Duration(minutes: (need * ratio).ceil())).millisecondsSinceEpoch;
+  }
+
+  /// 예전: 다 자라는 데 드는 걸음 (묶음 54: 약초밭 ★3 → 조금 빨리) — 옮길 때 비율 계산에만
   int _gardenNeed(MaterialId seed) {
     final n = GardenRules.need(seed, dew: _dew);
     return _star(Building.garden, 3) ? (n * BuildingRules.gardenNeed).round() : n;
+  }
+
+  /// 업데이트 전에 심어 둔 칸을 한 번 옮겨 둔다 (묶음 66)
+  Future<void> _migrateGarden66() async {
+    if (!_garden.plots.values.any((p) => p.at == null)) return;
+    final plots = <int, GardenPlot>{};
+    for (final e in _garden.plots.entries) {
+      final p = e.value;
+      final seed = Materials.byName(p.seed);
+      plots[e.key] = p.at != null || seed == null
+          ? p
+          : GardenPlot(seed: p.seed, day: p.day, steps: p.steps, at: _legacyAt(p, seed, GardenRules.growMinutes(seed, factor: _growFactor)));
+    }
+    await _saveGarden(_garden.copyWith(plots: plots));
   }
 
   List<GardenPlotView> get gardenPlots =>
@@ -105,7 +142,7 @@ extension GardenOps on AppController {
         await _saveGarden(_garden.copyWith(plots: {
           ..._garden.plots,
           slot: GardenPlot(
-              seed: seed.name, day: today.dayKey, steps: player.today?.steps ?? today.steps),
+              seed: seed.name, day: today.dayKey, steps: player.today?.steps ?? today.steps, at: _clock().millisecondsSinceEpoch),
         }));
         await _npcUse(Npc.popo);
         return true;

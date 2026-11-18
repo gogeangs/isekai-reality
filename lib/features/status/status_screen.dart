@@ -145,7 +145,11 @@ class StatusScreen extends StatelessWidget {
         final below = 300.0 * k + (restLeft != null ? 48 : 0);
         final slotTop = top + 168 * k;
         final heroH = (box.maxHeight - below).clamp(320.0, 470.0 + top);
-        return SingleChildScrollView(
+        // 묶음 66 #269: 아래로 내리면 위쪽(상태 줄 · 프로필 · 우편 · 설정 줄)에 가림막을 깔아
+        // HP · 기력 줄이 시각 · 배터리 · 버튼과 겹치지 않게
+        return _TopScrim(
+          height: top + 58,
+          child: SingleChildScrollView(
         physics: const ClampingScrollPhysics(),
         child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -278,10 +282,62 @@ class StatusScreen extends StatelessWidget {
           ),
         ],
       ),
+      ),
       );
       }),
     );
   }
+}
+
+/// 묶음 66 #269: 스크롤한 만큼 위쪽 가림막이 짙어짐 (내리기 전엔 그림이 상태 줄 뒤까지 그대로)
+class _TopScrim extends StatefulWidget {
+  const _TopScrim({required this.height, required this.child});
+  final double height;
+  final Widget child;
+
+  @override
+  State<_TopScrim> createState() => _TopScrimState();
+}
+
+class _TopScrimState extends State<_TopScrim> {
+  double _t = 0;
+
+  @override
+  Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n.depth == 0) {
+            final t = (n.metrics.pixels / 40).clamp(0.0, 1.0);
+            if (t != _t) setState(() => _t = t);
+          }
+          return false;
+        },
+        child: Stack(children: [
+          widget.child,
+          if (_t > 0)
+            Positioned(
+              key: const Key('statusTopScrim'),
+              left: 0,
+              right: 0,
+              top: 0,
+              height: widget.height + 14,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: _t,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0, 0.8, 1],
+                        colors: [Color(0xFF0B0D26), Color(0xF20B0D26), Color(0x000B0D26)],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
 }
 
 // ───────────────────────────────────────────────────────────── 각성자 그림

@@ -1,4 +1,5 @@
 import 'npc_header.dart';
+import 'npc_request.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -87,6 +88,8 @@ class _BoardScreenState extends State<BoardScreen> {
                         ],
                         const SizedBox(height: 14),
                         _ErrandPanel(controller: controller),
+                        // 묶음 66 #268: 마을 사람 부탁 (상태 화면 목록과 같은 데이터)
+                        _NpcAskPanel(controller: controller),
                         SizedBox(height: pad.bottom),
                       ],
                     ),
@@ -562,6 +565,50 @@ class _ErrandPanel extends StatelessWidget {
           ]),
         ],
       ),
+    );
+  }
+}
+
+/// 묶음 66 #268: 게시판 맨 아래 「마을 사람 부탁」 — 다 한 부탁이 맨 위, 누르면 그 사람 부탁 창
+class _NpcAskPanel extends StatelessWidget {
+  const _NpcAskPanel({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final list = [...controller.activeAsks];
+    if (list.isEmpty) return const SizedBox.shrink();
+    bool done(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
+    list.sort((a, b) => (done(b) ? 1 : 0) - (done(a) ? 1 : 0));
+    return Padding(
+      key: const Key('boardNpcAsks'),
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        BoardPlaque('마을 사람 부탁', note: '받은 부탁 ${list.length}개'),
+        const SizedBox(height: 4),
+        NoteGrid(children: [
+          for (final (i, a) in list.indexed)
+            SmallNote(
+              key: Key('boardAsk_${a.npc.name}_${a.kind.name}'),
+              npc: a.npc,
+              title: switch (a.kind) {
+                AskKind.big => VillageRules.npc(a.npc).name,
+                AskKind.small => '${VillageRules.npc(a.npc).name} · 작은 부탁',
+                AskKind.special => '${VillageRules.npc(a.npc).name} · 특별한 부탁',
+              },
+              seed: i + 11,
+              ratio: a.progress.isEmpty
+                  ? null
+                  : a.progress.fold<double>(0, (t, x) => t + (x.step.need <= 0 ? 1 : (x.shown / x.step.need).clamp(0.0, 1.0))) / a.progress.length,
+              progress: done(a)
+                  ? '다 했어요!'
+                  : [for (final x in a.progress) '${x.step.label} ${comma(x.shown)}/${comma(x.step.need)}'].join(' · '),
+              glow: done(a),
+              onTap: () => showNpcRequestSheet(context, controller, a.npc, kind: a.kind),
+            ),
+        ]),
+      ]),
     );
   }
 }

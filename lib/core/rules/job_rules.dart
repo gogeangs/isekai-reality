@@ -829,7 +829,7 @@ class JobRules {
     JobSkillInfo(JobSkill.whistleSignal, '휘파람 신호', _b, '펫이 두 번 연달아 공격하고 펫 게이지가 조금 차요', 20,
         mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.sproutCare, '새싹 돌보기', SkillPlace.anywhere,
-        '오늘 약초밭이 덜 걸어도 자라요', 20, mode: SkillMode.instant),
+        '오늘 약초밭이 조금 빨리 자라요', 20, mode: SkillMode.instant),
   ];
 
   static final Map<JobSkill, JobSkillInfo> _skillById = {

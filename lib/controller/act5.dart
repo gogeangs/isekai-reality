@@ -204,9 +204,12 @@ class ErbardView {
 
 /// 묶음 65 #251: 공성전 동안 길드 걸음 게이지 (공성 망치 · 성벽 보수)
 class SiegeGauge {
-  const SiegeGauge({this.progress = 0, this.full = 0, this.rams = 0, this.ramMax = 2, this.repairs = const [], this.repairTarget});
+  const SiegeGauge({this.progress = 0, this.full = 0, this.rams = 0, this.ramMax = 2, this.repairs = const [], this.repairTarget, this.power = 0});
   final double progress;
   final int full, rams, ramMax;
+
+  /// 묶음 66: 쓸 수 있는 힘 (길드장 · 부길드장이 공성 망치 · 성벽 보수 중 고름, 공성전이 끝나면 사라짐)
+  final int power;
   final List<String> repairs;
   final String? repairTarget;
 
@@ -219,6 +222,7 @@ class SiegeGauge {
       ramMax: (o['ramMax'] as num?)?.toInt() ?? 2,
       repairs: [for (final x in (o['repairs'] as List?) ?? const []) '$x'],
       repairTarget: o['repairTarget'] as String?,
+      power: (o['power'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -602,6 +606,10 @@ extension Act5Ops on AppController {
   Future<bool> setRally(String estate) async => await _siegeCall('/siege/rally', {'estate': estate}) != null;
 
   Future<bool> setRepairTarget(String estate) async => await _siegeCall('/siege/repair', {'estate': estate}) != null;
+
+  /// 묶음 66: 모인 힘 쓰기 — 'ram'(집결 영지 다음 자리) · 'repair'(우리 영지 깨진 자리, [estate] 없으면 가장 많이 깨진 곳)
+  Future<bool> usePower(String kind, {String? estate}) async =>
+      await _siegeCall('/siege/power', {'kind': kind, if (estate != null) 'estate': estate}) != null;
 
   Future<List<PeekSlot>?> peekEstate(String estate) async {
     final j = await _siegeCall('/siege/peek', {'estate': estate});

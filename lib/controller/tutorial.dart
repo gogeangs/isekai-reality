@@ -596,6 +596,10 @@ extension TutorialOps on AppController {
             (ModifierRules.expMultiplier(mods) + Monsters.info(monster).expBonus) *
             count)
         .round();
+    // 묶음 66 #265: 잡는 순간의 레벨만큼 사냥 경험치 (11월 19일 기록부터, 숨김)
+    if (WalkRewardRules.applies(today.date)) {
+      exp = (exp * WalkRewardRules.huntMult(player.level.level)).round();
+    }
     // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
     final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
     if (half) exp = exp ~/ 2;
@@ -723,7 +727,8 @@ extension TutorialOps on AppController {
     ));
     _fifthLine = fifth;
     _lastReward = HuntReward(
-      exp: exp,
+      // 묶음 66: 결과 화면엔 Lv.21부터의 배율(#254)까지 곱한 값
+      exp: WalkRewardRules.applies(today.date) ? (exp * WalkRewardRules.levelMult(player.level.level)).round() : exp,
       manaStones: fieldMana - tiredMana,
       gold: gold,
       materials: mats,
@@ -740,7 +745,8 @@ extension TutorialOps on AppController {
     if (!_resolving && companionPet != null) {
       await _givePetExp(companionPet!.uid, PetRules.expPerHunt * count);
     }
-    return exp;
+    // 묶음 66: 결과 화면은 Lv.21부터의 배율(#254)까지 곱한 값
+    return _lastReward.exp;
   }
 
   /// 많이 사냥한 날 가끔 정령(펫)이 넌지시 (6마리째부터 세 번에 한 번, 숫자는 말하지 않는다)

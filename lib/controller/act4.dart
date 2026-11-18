@@ -285,6 +285,11 @@ extension Act4Ops on AppController {
         }
         _act4 = a;
         await _saveAct4();
+        // 묶음 60: 4막을 끝내면 5막이 바로 열림
+        if (a.done && !_act5.opened) {
+          _act5 = _act5.copyWith(opened: true, chapter: 1, chapterSteps: _totalSteps);
+          await _saveAct5();
+        }
         _notify();
       });
 
@@ -424,6 +429,9 @@ extension Act4Ops on AppController {
               (g['members'] as num?)?.toInt() ?? 1, (g['size'] as num?)?.toInt() ?? 20),
     ];
   }
+
+  /// 초대 코드로 들어갈 수 있는 때 (4막 2장 빈 터 장면 뒤)
+  bool get canJoinGuildByCode => act4Open && _act4.chapter >= 2 && _act4.has('c2c');
 
   Future<bool> joinGuild({String? code, String? gid}) async {
     if (!act4Open || _act4.chapter < 2) return false;

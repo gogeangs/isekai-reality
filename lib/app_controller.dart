@@ -22,6 +22,7 @@ import 'core/models/consent_state.dart';
 import 'core/models/party_state.dart';
 import 'core/models/act3_state.dart';
 import 'core/models/act4_state.dart';
+import 'core/models/act5_state.dart';
 import 'core/models/gather_state.dart';
 import 'core/models/drive_state.dart';
 import 'core/models/harvest_state.dart';
@@ -57,6 +58,7 @@ part 'controller/act3.dart';
 part 'controller/act3_region.dart';
 part 'controller/act3_regions.dart';
 part 'controller/act4.dart';
+part 'controller/act5.dart';
 part 'controller/ads.dart';
 part 'controller/alchemy.dart';
 part 'controller/bag_hold.dart';
@@ -195,6 +197,7 @@ class AppController extends ChangeNotifier {
   bool _fifthLine = false;
   bool _wordsFetched = false;
   String? _pendingInvite;
+  String? _pendingGuildInvite;
   int? _chestN;
   bool _chestTrap = false;
   ConsentState _consent = const ConsentState();
@@ -671,6 +674,12 @@ class AppController extends ChangeNotifier {
       _act4 = _act4.copyWith(opened: true, chapter: 1, chapterSteps: _history.fold<int>(0, (t, r) => t + r.steps));
       await store.saveJson(_act4Key, _act4.toJson());
     }
+    // 묶음 60: 5막 (4막을 끝낸 계정은 열림, 기록이 없어도 그대로 #124)
+    _act5 = await _load(_act5Key, Act5State.fromJson, const Act5State());
+    if (_act4.done && !_act5.opened) {
+      _act5 = _act5.copyWith(opened: true, chapter: 1, chapterSteps: _history.fold<int>(0, (t, r) => t + r.steps));
+      await store.saveJson(_act5Key, _act5.toJson());
+    }
     // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
     _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
     // 묶음 56: 파티 (발자국 표 · 깃발 · 함께 잡은 몬스터)
@@ -893,6 +902,13 @@ class AppController extends ChangeNotifier {
   Act3State _act3 = const Act3State();
   // 묶음 59 #246: 4막 · 길드
   static const _act4Key = 'act4';
+  static const _act5Key = 'act5';
+  Act5State _act5 = const Act5State();
+  ErbardView? _erbardView;
+  String? _erbardError;
+  bool _erbardBusy = false;
+  _ErbardFight? _erbardFight;
+  String? _erbardHunt;
   Act4State _act4 = const Act4State();
   GuildView? _guildView;
   bool _guildBusy = false;

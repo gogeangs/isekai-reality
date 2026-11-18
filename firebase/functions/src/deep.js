@@ -58,7 +58,7 @@ class DeepService {
     const s = await ref.get();
     const old = s.exists ? s.data().floor || 0 : 0;
     if (f > old) {
-      await ref.set({ floor: f, name: safeName(me.name), at: this.now(), devices: await this._devices(uid) });
+      await ref.set({ floor: f, name: safeName(me.name), at: this.now(), devices: await this._devices(uid), expireAt: new Date(this.now() + 6 * 7 * 86400000) });
     }
     return { ok: true, week, region: want, floor: Math.max(f, old) };
   }
@@ -113,6 +113,9 @@ class DeepService {
         at: this.now(),
       });
     }
+    // 묶음 60: 보상을 보낸 뒤 4주에 지움 (Firestore TTL: rows.expireAt)
+    const all = await this.db.collection(`deepRank/${last}/rows`).get();
+    for (const d of all.docs) await d.ref.set({ ...d.data(), expireAt: new Date(this.now() + 28 * 86400000) });
     return { paid: ranked.length };
   }
 }

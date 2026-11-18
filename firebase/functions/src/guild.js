@@ -355,6 +355,8 @@ class GuildService {
           if (me.boost) add = Math.round(add * 1.1);
           m.days = { [day]: steps };
           m.total = Number(m.total || 0) + add;
+          // 묶음 60: 지난주 걸음도 남김 (5막 수비대가 두 주 걸음으로 튼튼해짐)
+          if (m.weekKey && m.weekKey !== wk) m.prevWeek = m.weekKey === R.weekKey(now - 7 * 86400000) ? Number(m.week || 0) : 0;
           m.week = m.weekKey === wk ? Number(m.week || 0) + add : add;
           m.weekKey = wk;
           g.steps = Number(g.steps || 0) + add;

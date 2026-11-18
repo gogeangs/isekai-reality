@@ -101,6 +101,9 @@ enum TitleId {
   raidTortoise,
   lanternOath,
   guildLegend,
+  // 묶음 60 #247: 5막 에르바르드
+  erbardCrown,
+  pioneer,
   // 묶음 57 #249: 숨은 특별 짝 10 (그림 title_pair_<짝>)
   pairWeaponsmith,
   pairRunesmith,
@@ -208,6 +211,8 @@ class TitleRules {
       TitleId.raidTortoise => '길드와 함께 대지의 거북을 쓰러뜨렸어요',
       TitleId.lanternOath => '4막 「등불의 맹세」를 끝냈어요',
       TitleId.guildLegend => '길드가 Lv.10 「전설의 길드」가 됐어요',
+      TitleId.erbardCrown => '공성전에서 에르바르드 왕성을 지켰어요',
+      TitleId.pioneer => '5막 「흑등 연맹의 귀환」을 끝냈어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       TitleId.pairWeaponsmith => '숨은 짝 「무기 장인」을 찾았어요',
       TitleId.pairRunesmith => '숨은 짝 「룬 대장장이」을 찾았어요',
@@ -290,6 +295,8 @@ class TitleRules {
     TitleId.raidTortoise,
     TitleId.lanternOath,
     TitleId.guildLegend,
+    TitleId.erbardCrown,
+    TitleId.pioneer,
   ];
 
   static String skyCounter(TitleId t) => 'stitle:${t.name}';
@@ -484,6 +491,8 @@ class TitleRules {
     TitleInfo(TitleId.raidTortoise, '대지를 흔든 길드원', '숨은 칭호'),
     TitleInfo(TitleId.lanternOath, '등불의 맹세', '숨은 칭호'),
     TitleInfo(TitleId.guildLegend, '전설의 길드', '숨은 칭호'),
+    TitleInfo(TitleId.erbardCrown, '에르바르드의 왕관', '숨은 칭호'),
+    TitleInfo(TitleId.pioneer, '에르바르드의 개척자', '숨은 칭호'),
     TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 짝'),
     TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 짝'),
     TitleInfo(TitleId.pairJeweler, '보석 세공사', '숨은 짝'),

@@ -54,7 +54,15 @@ abstract final class LegalRules {
     LegalVersion(LegalKind.privacy, 1, DateTime(2026, 11, 17)),
     LegalVersion(LegalKind.location, 1, DateTime(2026, 11, 17)),
     LegalVersion(LegalKind.operation, 1, DateTime(2026, 11, 17)),
+    // 묶음 60: 정책 문서 최신본(거래소 · 순위 · 길드 · 공성 · 운영 기록, 만 14세 확인은 동의 화면, 이용약관 보강). 적용일 = 빌드 날
+    LegalVersion(LegalKind.terms, 2, v2Date, summary: '계약 거절 · 회사 의무 · 광고성 알림 · 확인 중 임시 제한 · 글의 권리 · 이용자 배상 문구를 더했어요'),
+    LegalVersion(LegalKind.privacy, 2, v2Date, summary: '거래소 · 심층 순위 · 길드 · 공성전 · 운영 기록과 보관 기간을 더했어요'),
+    LegalVersion(LegalKind.location, 2, v2Date, summary: '만 14세 확인을 동의 화면에서 해요'),
+    LegalVersion(LegalKind.operation, 2, v2Date),
   ];
+
+  /// 묶음 60 판의 적용일 (빌드가 나가는 날)
+  static final DateTime v2Date = DateTime(2026, 11, 18);
 
   /// 로그인 백업 동의 판 (문구가 바뀌면 올림)
   static const int backupVersion = 1;

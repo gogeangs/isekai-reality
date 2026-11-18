@@ -2,12 +2,13 @@
 const zlib = require('zlib');
 
 class AccountService {
-  constructor(db, { now = () => Date.now(), auth, party, inquiry } = {}) {
+  constructor(db, { now = () => Date.now(), auth, party, inquiry, guild } = {}) {
     this.db = db;
     this.now = now;
     this.auth = auth; // { deleteUser(uid) }
     this.party = party;
     this.inquiry = inquiry;
+    this.guild = guild;
   }
 
   /** 삭제 시각이 지난 계정: 파티에서 빼고 · 문의 지우고 · 기록 지우고 · 로그인 계정 지움 */
@@ -19,6 +20,18 @@ class AccountService {
       const uid = d.id;
       try {
         if (this.party) await this.party.leave(uid);
+        // 묶음 60: 길드에서 빼고 · 거래 기록의 내 계정 번호를 지움(기록은 상대 쪽에 1년)
+        if (this.guild) {
+          try {
+            await this.guild.leave(uid);
+          } catch (e) {
+            if (!/no_guild|not_in_guild/.test(String(e && (e.code || e.message)))) throw e;
+          }
+        }
+        for (const side of ['seller', 'buyer']) {
+          const q2 = await this.db.collection('marketLog').where(side, '==', uid).get();
+          for (const x of q2.docs) await x.ref.set({ ...x.data(), [side]: 'deleted' });
+        }
         if (this.inquiry) await this.inquiry.deleteFor(uid);
         await this.db.doc(`presence/${uid}`).delete();
         const parts = await this.db.collection(`users/${uid}/parts`).get();

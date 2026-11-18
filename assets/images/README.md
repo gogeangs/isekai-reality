@@ -248,3 +248,217 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-16 | village_alchemy_{2,3} | 연금술 공방 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
 | 2026-11-16 | village_guild_{2,3} | 길드 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
 | 2026-11-16 | village_shelter_{2,3} | 보금자리 ★2·★3 (512, 긴 쪽 480, 아래 맞춤) |
+| 2026-11-16 | npc_mina | 잡화상 미나 얼굴 (npc_toby 대신, 512, 아래 맞춤) |
+| 2026-11-16 | village_bg, village_bg_end | 마을 바탕 다시 (탑 가운데 위, 빈 터 14곳) + 결말 뒤 바탕(새 바탕을 편집, 구도 같음), 1536×1024 |
+| 2026-11-16 | equip_ashWeapon | 분노의 잿불검 다시 (지금 검을 고쳐 불을 세게, 512 → 빌드에서 webp 다시 만듦) |
+| 2026-11-16 | mastery_{smith,harvest,alchemy,combat} | 숙련도 문장 4 다시 (직업 문장과 다른 상징: 집게·바구니·가마솥·검 둘, 512) |
+| 2026-11-16 | board_note_small | 의뢰 게시판 2열용 세로 쪽지 (512×640, 가운데) |
+| 2026-11-16 | village_bg, village_bg_end | 세로 화면용 마을 바탕 (가운데 3×3 빈 터 8 + 우물, 양옆 빈 터 각 3) + 결말 뒤 바탕(편집, 구도 같음) |
+| 2026-11-16 | village_bg | 세로 화면용 마을 바탕 다시 (3×3을 가로 약 565~975 안에, 결말 뒤 바탕은 이 그림 편집으로 다음에) |
+| 2026-11-16 | village_bg_end | 세로 화면용 결말 뒤 바탕 (새 village_bg 편집, 구도 같음) |
+| 2026-11-16 | equip_martaScarf, equip_seraBadge, item_minaPouch, item_dorgunWhetstone, item_lumiNest, potion_dawnLight | 마을 사람 특별 보상 6종 (#226, 512) |
+| 2026-11-16 | village_smithy_build{3,2,1} | 공사 중 대장간 3단계 (#225, 한 장 시트에서 잘라 village_smithy 받침에 맞춤, 512) |
+| 2026-11-16 | village_board_build{3,2,1} | 공사 중 의뢰 게시판 3단계 (#225, 한 장 시트에서 잘라 village_board 받침에 맞춤, 512) |
+| 2026-11-16 | village_alchemy_build{3,2,1} | 공사 중 연금술 공방 3단계 (#225, 한 장 시트에서 잘라 village_alchemy 받침에 맞춤, 512) |
+| 2026-11-16 | village_shelter_build{3,2,1} | 공사 중 펫 쉼터 3단계 (#225, 한 장 시트에서 잘라 village_shelter 받침에 맞춤, 512) |
+| 2026-11-16 | village_guild_build{3,2,1} | 공사 중 길드 3단계 (#225, 한 장 시트에서 잘라 village_guild 받침에 맞춤, 512) |
+| 2026-11-16 | village_training | 훈련장 건물 (#228, 다른 건물과 같은 크기·바닥 위치, 512) |
+| 2026-11-16 | village_training_build{3,2,1} | 공사 중 훈련장 3단계 (#228, 한 장 시트에서 잘라 village_training 받침에 맞춤, 흰 테두리 제거, 512) |
+| 2026-11-16 | npc_garen | 훈련장 교관 가렌 얼굴 (#228, 512) |
+| 2026-11-16 | monster_dummy | 훈련장 허수아비(보통) (#228, 512) |
+| 2026-11-16 | equip_garenBand | 가렌의 훈련 완장 (#228 가렌 부탁 4번 보상, 512) |
+| 2026-11-16 | title_trialEndurer | 칭호 「시련을 견딘 자」 (#228, 512) |
+| 2026-11-16 | monster_dummyHard | 단단한 허수아비 (#228, monster_dummy와 받침 크기·자리 맞춤, 512) |
+| 2026-11-16 | monster_dummyElement | 속성 허수아비 (#228, 가슴 수정 비움, monster_dummy와 받침 맞춤, 512) |
+| 2026-11-16 | monster_trainingGolem | 훈련 골렘 (#228, 512) |
+| 2026-11-16 | village_garden | 약초밭 건물 (#230, 다른 건물과 같은 크기·바닥 위치, 512) |
+| 2026-11-16 | village_garden_build{3,2,1} | 공사 중 약초밭 3단계 (#230, 한 장 시트에서 잘라 village_garden 받침에 맞춤, 512) |
+| 2026-11-16 | npc_popo | 약초밭 정원사 포포 얼굴 (#230, 512) |
+| 2026-11-16 | village_market | 거래소 완공 (#229 3막, village_market_build와 받침 크기·자리 맞춤, 512) |
+| 2026-11-16 | npc_barkan | 거래소 상인 바르칸 얼굴 (#229 3막, 512) |
+| 2026-11-16 | garden_plot_{empty,sprout,grow,ready} | 약초밭 밭 칸 4단계 (#230, 한 장 시트에서 잘라 같은 틀 자리·크기로 맞춤, 512) |
+| 2026-11-17 | seed_herb, seed_flower, seed_glow | 약초밭 씨앗 3종 (#230, 한 장 시트에서 잘라 같은 배율, 빛나는 씨앗 뿌연 테두리 제거, 512) |
+| 2026-11-17 | item_martaFlask, item_minaAbacus, item_dorgunAnvil, item_elielFlask | 마을 사람 전용 아이템 4종 (#232, 한 장 시트에서 잘라 같은 배율, 512) |
+| 2026-11-17 | item_hartMapcase, item_seraCrest, item_lumiWhistle, item_garenWeight | 마을 사람 전용 아이템 4종 (#232, 한 장 시트에서 잘라 같은 배율, 512) |
+| 2026-11-17 | harvest_relic_dirt | 유물 발굴 흙 덮개 (#234, 1024) |
+| 2026-11-17 | harvest_herb_plant, harvest_flower_stem | 채집 미니 게임 약초(뿌리까지)·줄기 꽃 (#234, 한 장에서 잘라 붉은 테두리 제거, 512×768) |
+| 2026-11-17 | harvest_relic_dirt | 유물 발굴 흙 덮개 만화풍으로 교체 (#234, 1024) |
+| 2026-11-17 | bg_harvest_herb | 채집 미니 게임 약초 덤불 배경 (#234, 1024×1536) |
+| 2026-11-17 | harvest_mushroom_bed | 채집 미니 게임 버섯 밭 판 (#234, 1024, 빈 자리 3×3 중심 x 293·507·721 / y 356·527·700) |
+| 2026-11-17 | harvest_herb_soil, harvest_wood_saw, harvest_water_bobber, harvest_water_fish | 채집 미니 게임 작은 소품 4종 (#234, 한 장에서 잘라 회색 안개 제거, 흙·톱·물고기 512×256, 찌 256×256) |
+| 2026-11-17 | bg_harvest_flower | 채집 미니 게임 꽃밭 배경 (#234, 1024×1536) |
+| 2026-11-17 | harvest_ore_rock | 채집 미니 게임 큰 바위 (#234, 1024) |
+| 2026-11-17 | harvest_ore_rock_broken | 채집 미니 게임 쪼개진 바위 (#234, harvest_ore_rock과 같은 칸·자리, 1024) |
+| 2026-11-17 | bg_harvest_mushroom | 채집 미니 게임 버섯 군락 배경 (#234, 1024×1536) |
+| 2026-11-17 | harvest_gem_wall | 채집 미니 게임 광맥 벽 (#234, 1024, 원석 홈 가운데 약 x508·y529, 금테 반지름 약 171) |
+| 2026-11-17 | bg_harvest_ore | 채집 미니 게임 광석 바위 배경 (#234, 1024×1536) |
+| 2026-11-17 | harvest_wood_log, harvest_wood_log_split | 채집 미니 게임 통나무·갈라진 통나무 (#234, 같은 배율·자리, 붉은 테두리 제거, 1024×512) |
+| 2026-11-17 | harvest_relic_pot | 채집 미니 게임 묻힌 유물 토기 (#234, 1024) |
+| 2026-11-17 | bg_harvest_gem | 채집 미니 게임 보석 광맥 배경 (#234, 1024×1536) |
+| 2026-11-17 | pet_wolf_baby, pet_wolf_adult | 영웅 펫 은빛 늑대 아기·성체 (#235, 한 장에서 잘라 회색 안개 제거, 같은 배율, 512) |
+| 2026-11-17 | bg_harvest_wood | 채집 미니 게임 쓰러진 나무(벌목 터) 배경 (#234, 1024×1536) |
+| 2026-11-17 | bg_harvest_water | 채집 미니 게임 물가 배경 (#234, 1024×1536) |
+| 2026-11-17 | bg_harvest_relic | 채집 미니 게임 고대 유물 배경 (#234, 1024×1536) |
+| 2026-11-17 | pet_wolf_awake | 영웅 펫 은빛 늑대 각성 모습 (#235, pet_wolf_adult와 같은 크기·바닥 자리, 512) |
+| 2026-11-17 | title_forestKeeper, item_popoDew | 포포 특별 보상 칭호·이슬병 (#230, 한 장에서 잘라 512) |
+| 2026-11-17 | pet_turtle_baby, pet_turtle_adult | 영웅 펫 이끼 거북 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
+| 2026-11-17 | pet_panther_baby, pet_panther_adult | 영웅 펫 달그림자 표범 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
+| 2026-11-17 | pet_whale_baby, pet_whale_adult | 영웅 펫 안개 고래 아기·성체 (#235, 한 장에서 잘라 같은 배율, 512) |
+| 2026-11-17 | pet_phoenix_baby, pet_phoenix_adult | 영웅 펫 잿불새 아기·성체 (#235, 한 장에서 잘라 붉은 번짐 정리, 같은 배율, 512) |
+| 2026-11-17 | pet_stag_baby, pet_stag_adult | 영웅 펫 새벽 사슴 아기·성체 (#235, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율, 512) |
+| 2026-11-17 | pet_phoenix_awake, pet_whale_awake, pet_panther_awake, pet_turtle_awake | 영웅 펫 각성 모습 4종 (#235, 뿌연 빛무리 제거, 512) |
+| 2026-11-17 | pet_stag_awake | 영웅 펫 새벽 사슴 각성 모습 (#235, 뿌연 빛무리 제거·해돋이 원판 유지, 512) |
+| 2026-11-17 | pet_map_{wolf,turtle,panther,whale,phoenix,stag} | 영웅 펫 지도 메달 6종 (#235, 한 장에서 잘라 같은 크기, 512 → 개발이 128로) |
+| 2026-11-17 | map_highland | 하이랜드 지도 섬 표시 (#146, 512 → 개발이 160으로, 하늘색은 개발이 속성마다 바꿈) |
+| 2026-11-17 | scene_highland_first | 하이랜드 첫 만남 장면 (#146, 852×1846) |
+| 2026-11-17 | title_skyWalker, title_guardianTrust, title_kingdomWitness | 하이랜드 칭호 3종 (#146, 한 장에서 잘라 같은 테두리 크기, 512 → 개발이 160으로) |
+| 2026-11-17 | bg_highland_wind | 하이랜드 바람 섬 구름 초원 배경 (#146, 1024) |
+| 2026-11-17 | item_skyFeather, mat_skyStone, mat_cloudCrystal, mat_stormCore, mat_sunDew, mat_frostCrystal, mat_fallsPearl | 하이랜드 하늘 깃털·재료 6종 (#146, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율, 512) |
+| 2026-11-17 | bg_highland_thunder | 하이랜드 번개 섬 폭풍 배경 (#146, 1024) |
+| 2026-11-17 | monster_guard{Wind,Thunder,Light,Ice,Water}, monster_stoneSoldier | 하이랜드 수호자 석상 5종 + 석상 병사 (#146, 한 장에서 잘라 뿌연 빛무리 제거, 같은 배율·바닥 맞춤, 512) |
+| 2026-11-17 | bg_highland_light | 하이랜드 빛 섬 햇살 정원 배경 (#146, 1024) |
+| 2026-11-17 | equip_sky{Weapon,Head,Body,Hands,Feet,Acc} | 하이랜드 하늘 장비 6종 (#146, 한 장에서 잘라 같은 배율, 512 → 개발이 256으로) |
+| 2026-11-17 | bg_highland_ice | 하이랜드 얼음 섬 서리 봉우리 배경 (#146, 1024) |
+| 2026-11-17 | bg_highland_water | 하이랜드 물 섬 폭포 배경 (#146, 1024) |
+| 2026-11-17 | village_tavern | 주점 건물 (#242, 다른 건물과 같은 크기·바닥 위치, 512) |
+| 2026-11-17 | npc_lian | 각성자 리안 얼굴 (#242, 붉은 테두리 제거, 512) |
+| 2026-11-17 | scene_meet_lights | 리안 만남 장면 1 낯선 불빛들 (#242, 852×1846) |
+| 2026-11-17 | npc_lian | 리안 얼굴 다시 — 미나·가렌과 같은 귀여운 그림체로 교체 (#242, 512) |
+| 2026-11-17 | item_barkanSeal, equip_lianKnot, food_stew, food_honeyBread, food_skewer | 주점 아이콘 5종(바르칸 인장·리안 매듭·고기 스튜·꿀빵·매운 꼬치), 시트 분할·붉은 테두리 정리, 512 |
+| 2026-11-17 | scene_meet_lian | 리안 만남 장면 2 「리안이 다가옴」, 852×1846 |
+| 2026-11-17 | title_merchantFriend, title_walkTogether | 칭호 「상단의 벗」·「함께 걷는 자」, 시트 분할 512 |
+| 2026-11-17 | npc_nia, npc_teo | 3막 이야기 동료 얼굴(니아·테오), 시트 분할·창 끝 붉은 테두리 정리, 아래 맞춤 512 |
+| 2026-11-17 | item_recruitTicket, item_martaLunch, icon_journeyEnergy | 3막 공통 아이콘(모집권·마르타의 도시락·여정 기력), 시트 분할·모집권 흰 번짐 정리, 512 |
+| 2026-11-17 | ally_lian, ally_garen | 3막 동료 전투 전신(리안·가렌), 같은 배율·발끝 y=1012 맞춤, 768×1024 |
+| 2026-11-17 | map_region_baldrin | 발드린 관문 지역 지도 1024×1536. 장소 대략 위치(x,y): 다리 끝 512,1180 · 야영지 470,880 · 잿빛 들판 150,720 · 성벽길 850,700 · 은빛 늑대 언덕 110,230 · 요새 입구 550,260 · 바람의 굴 920,240 |
+| 2026-11-17 | equip_baldrin{Weapon,Head,Body,Hands,Feet,Acc} | 발드린 문지기 세트 6부위, 시트 분할 512 |
+| 2026-11-17 | monster_goblinRaider, monster_skeletonGuard, monster_harpy, monster_ogre | 발드린 일반 몬스터 4종, 시트 분할 512 |
+| 2026-11-17 | town_baldrin | 발드린 피난민 야영지 마을 그림, 1254→1024 |
+| 2026-11-17 | monster_ashHounds, monster_ashArmor, monster_ashWolfAlpha | 발드린 보스 3종(사냥개 무리·빈 갑주·늑대 우두머리), 분홍·붉은 테두리 정리, 512 |
+| 2026-11-17 | bg_baldrin_ashplain | 발드린 필드 배경 잿빛 들판, 1024 |
+| 2026-11-17 | npc_volk, npc_hanna, npc_pipi, npc_orum | 발드린 주민 얼굴 4종, 시트 분할·아래 맞춤 512 |
+| 2026-11-17 | bg_baldrin_wallroad | 발드린 필드 배경 무너진 성벽길, 1024 |
+| 2026-11-17 | item_lianCompass, item_barkanPurse | 리안·바르칸 전용 아이템(나침반·동전 주머니), 시트 분할 512 |
+| 2026-11-17 | bg_baldrin_wolfhill | 발드린 필드 배경 은빛 늑대의 언덕, 1024 |
+| 2026-11-17 | title_baldrinLamp, title_windMemory | 발드린 칭호 2종(관문의 등불지기·바람을 기억하는 자), 시트 분할 512 |
+| 2026-11-17 | bg_dungeon_baldrin | 발드린 던전 배경 문지기 지하 요새, 1024 |
+| 2026-11-17 | equip_baldrinSpear, uniq_volkHelm, uniq_teoSpear, uniq_windPendant | 관문의 빛 창·발드린 이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리(물체 둘레 얇은 주황 빛만 남김), 512 |
+| 2026-11-17 | bg_baldrin_windden | 발드린 숨은 장소 배경 바람의 굴, 1024 |
+| 2026-11-17 | monster_harpy | 하피 다시(사람 얼굴+새 날개·발톱), 덮어쓰기 512 |
+| 2026-11-17 | ally_job_warrior, ally_job_archer | 이름 없는 동료 전사·궁수 전신, 같은 배율·발끝 y=1012, 768×1024 |
+| 2026-11-17 | scene_act3_fivelamps | 3막 끝 장면 다섯 등불이 이어짐, 852×1846 |
+| 2026-11-17 | ally_job_mage, ally_job_priest | 이름 없는 동료 마법사·사제 전신, 같은 배율·발끝 y=1012, 768×1024 |
+| 2026-11-17 | scene_teo_marta | 3막 끝 장면 테오와 마르타의 재회, 852×1846 |
+| 2026-11-17 | ally_job_rogue, ally_job_knight | 이름 없는 동료 도적·기사 전신, 위쪽 흰 얼룩 제거, 같은 배율·발끝 y=1012, 768×1024 |
+| 2026-11-17 | ally_nia, ally_barkan | 3막 동료 전투 전신(니아·바르칸), 같은 배율(니아가 더 작음)·발끝 y=1012, 768×1024 |
+| 2026-11-17 | map_region_selenia | 셀레니아 지역 지도 1024×1536. 장소 대략 위치(x,y): 관문에서 오는 다리 512,1300 · 대장터(마을) 560,700 · 흑등 상회 거리 790,700 · 대상의 길 120,900 · 상회 지하 금고 540,330 · 버려진 광산 900,220 · 별가루 골짜기 150,330 · 별가루 광맥 230,160 |
+| 2026-11-17 | ally_popo, ally_sera | 3막 동료 전투 전신(포포·세라), 같은 배율·발끝 y=1012, 768×1024 |
+| 2026-11-17 | map_region_elowin | 엘로윈 지역 지도 1024×1536. 장소 대략 위치(x,y): 장터에서 오는 길 512,1380 · 잎사귀 마을(고목) 520,640 · 덩굴 숲길 150,1000 · 멈춘 샘물 연못 840,1060 · 버섯 안개 언덕 140,250 · 고목의 뿌리 미궁 560,210 · 모스의 연못 880,330 |
+| 2026-11-17 | ally_teo | 3막 동료 전투 전신(테오), 다른 동료와 같은 틀·발끝 y=1012, 768×1024 |
+| 2026-11-17 | map_region_morval | 모르발 지역 지도 1024×1536. 장소 대략 위치(x,y): 숲에서 오는 길 510,1420 · 성 아랫마을 470,760 · 성벽 밖 폐허 110,760 · 왕실 묘지 870,740 · 안개 호수 170,440 · 잿빛 왕좌의 탑 620,120 · 근위대 마구간 890,330 |
+| 2026-11-17 | monster_orcMerc, monster_koboldMiner, monster_gargoyle, monster_livingArmor | 셀레니아 일반 몬스터 4종, 시트 분할 512 (발밑 흙 그림자 포함, 선이 거친 편) |
+| 2026-11-17 | map_region_aurel | 아우렐 지역 지도 1024×1536. 장소 대략 위치(x,y): 왕도에서 오는 길 510,1430 · 순례자 천막촌 420,1030 · 재 내리는 순례길 130,700 · 용암 협곡 830,760 · 불꽃 제단 150,400 · 산꼭대기 성소(여명의 근원) 560,230 · 불새 둥지 920,230 |
+| 2026-11-17 | equip_seleniaAxe, uniq_grumHammer, uniq_blackLantern, uniq_stardustBoots | 셀레니아 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리, 512 |
+| 2026-11-17 | village_garden_2 | 약초밭 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | monster_orcMerc, monster_koboldMiner, monster_gargoyle, monster_livingArmor | 셀레니아 일반 몬스터 4종 다시(매끈한 선·발밑 흙 없음), 덮어쓰기 512 |
+| 2026-11-17 | town_selenia | 셀레니아 마을 그림(불 꺼진 대장터 + 흑등 상회 거리), 1024 |
+| 2026-11-17 | monster_orcCaptain, monster_ashCart, monster_metalColossus | 셀레니아 보스 3종(오크 용병 대장·잿빛 수레 괴물·고대 금속 거인), 시트 분할 512 |
+| 2026-11-17 | bg_selenia_caravan | 셀레니아 필드 배경 대상의 길, 1024 |
+| 2026-11-17 | npc_eni, npc_grum, npc_oscar, npc_mir, npc_kaspar | 셀레니아 주민 얼굴 5종, 시트 분할·아래 맞춤 512 |
+| 2026-11-17 | bg_selenia_mine | 셀레니아 필드 배경 버려진 광산, 1024 |
+| 2026-11-17 | village_garden_3 | 약초밭 ★3, ★1·★2와 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | bg_selenia_stardust | 셀레니아 필드 배경 별가루 골짜기, 1024 |
+| 2026-11-17 | equip_selenia{Weapon,Head,Body,Hands,Feet,Acc} | 셀레니아 상단 세트 6부위, 시트 분할 512 |
+| 2026-11-17 | bg_dungeon_selenia | 셀레니아 던전 배경 흑등 상회의 지하 금고, 1024 |
+| 2026-11-17 | mat_stardust | 재료 별가루(병), 512 |
+| 2026-11-17 | bg_selenia_vein | 셀레니아 숨은 장소 배경 별가루 광맥, 1024 |
+| 2026-11-17 | village_training_2 | 훈련장 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | town_elowin | 엘로윈 마을 그림(잎사귀 마을, 고목 위), 1024 |
+| 2026-11-17 | title_seleniaLamp, title_stardustFinder, title_elowinLamp, title_mossFriend | 셀레니아·엘로윈 칭호 4종, 시트 분할 512 |
+| 2026-11-17 | village_training_3 | 훈련장 ★3, ★1·★2와 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | monster_treant, monster_giantSpider, monster_dryad, monster_woodWolf | 엘로윈 일반 몬스터 4종, 시트 분할·붉은 테두리 정리 512 |
+| 2026-11-17 | bg_elowin_vinepath | 엘로윈 필드 배경 잿빛 덩굴 숲길, 1024 |
+| 2026-11-17 | monster_treant, monster_giantSpider, monster_dryad, monster_woodWolf | 엘로윈 일반 몬스터 4종 다시(굵은 선), 덮어쓰기 512 |
+| 2026-11-17 | village_tavern_2 | 주점 ★2, ★1과 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | equip_elowin{Weapon,Head,Body,Hands,Feet,Acc} | 엘로윈 나무지기 세트 6부위, 반투명 얼룩 배경 제거·시트 분할 512 |
+| 2026-11-17 | npc_arbel, npc_momo, npc_doto, npc_ellaDryad | 엘로윈 주민 얼굴 4종, 시트 분할·아래 맞춤 512 |
+| 2026-11-17 | village_tavern_3 | 주점 ★3, ★2와 같은 땅 너비·아래(496) 맞춤 512 |
+| 2026-11-17 | food_mushroomSoup | 주점 ★2 새 한 끼 버섯 수프, 512 |
+| 2026-11-17 | equip_elowinStaff, uniq_momoWreath, uniq_arbelDagger, uniq_elderHeart | 엘로윈 지역 무기·이름 있는 장비 3, 넓은 빛 번짐·노랑/빨강 테두리 정리 512 |
+| 2026-11-17 | bg_elowin_spring | 엘로윈 필드 배경 멈춘 샘물 연못, 1024 |
+| 2026-11-17 | uniq_arbelDagger | 아르벨의 잎새 단검 다시(꽉 찬 잎 날·얇은 빛), 덮어쓰기 512 |
+| 2026-11-17 | bg_elowin_mushroom | 엘로윈 필드 배경 버섯 안개 언덕, 1024 |
+| 2026-11-17 | bg_dungeon_elowin | 엘로윈 던전 배경 고목의 뿌리 미궁, 1024 |
+| 2026-11-17 | bg_elowin_mosspond | 엘로윈 숨은 장소 배경 모스의 연못, 1024 |
+| 2026-11-17 | town_morval | 모르발 마을 그림(다시 일어서는 왕도 아랫마을), 1024 |
+| 2026-11-17 | bg_morval_ruins | 모르발 필드 배경 무너진 성벽 밖 폐허, 1024 |
+| 2026-11-17 | bg_morval_crypt | 모르발 필드 배경 왕실 지하 묘지, 1024 |
+| 2026-11-17 | bg_morval_lake | 모르발 필드 배경 잿빛 안개 호수, 1024 |
+| 2026-11-17 | bg_dungeon_morval | 모르발 던전 배경 잿빛 왕좌의 탑, 1024 |
+| 2026-11-17 | bg_morval_stable | 모르발 숨은 장소 배경 근위대 마구간, 1024 |
+| 2026-11-17 | town_aurel | 아우렐 마을 그림(순례자 천막촌), 1024 |
+| 2026-11-17 | bg_aurel_pilgrim | 아우렐 필드 배경 재가 내리는 순례길, 1024 |
+| 2026-11-17 | bg_aurel_lava | 아우렐 필드 배경 용암 협곡, 1024 |
+| 2026-11-17 | bg_aurel_altar | 아우렐 필드 배경 꺼져 가는 불꽃 제단, 1024 |
+| 2026-11-17 | bg_dungeon_aurel | 아우렐 던전 배경 여명의 근원, 1024 |
+| 2026-11-17 | bg_aurel_phoenixnest | 아우렐 숨은 장소 배경 잿불새의 둥지, 1024 |
+| 2026-11-17 | chest_party, chest_partyBronze, chest_partySilver, chest_partyGold | 파티 상자 4종, 같은 배율·바닥(491) 맞춤 512 |
+| 2026-11-17 | mat_golemCore, mat_hydraScale, mat_wyvernClaw, mat_krakenPearl, item_footTicket, icon_cheer | 파티 보스 재료 4·발자국 표·응원 버튼, 색 테두리 정리·시트 분할 512 |
+| 2026-11-18 | equip_aurel{Weapon,Head,Body,Hands,Feet,Acc} | 아우렐 순례 세트 6부위, 시트 분할 512 |
+| 2026-11-18 | equip_morvalSword, uniq_lucyFlower, uniq_kingCloak, uniq_moonFang | 모르발 지역 무기·이름 있는 장비 3, 얇은 주황 테두리만, 붉은 얼룩 정리 512 |
+| 2026-11-18 | monster_spiderQueen, monster_ashElder, monster_ashTortoise | 엘로윈 보스 3종(거미 여왕·잿빛 고목·잿빛 거북), 진한 붉은 테두리 정리·시트 분할 512 |
+| 2026-11-18 | monster_vampireBat, monster_wraith, monster_ghoul, monster_cultZealot | 모르발 일반 몬스터 4종, 분홍·파랑 테두리 정리·시트 분할 512 |
+| 2026-11-18 | monster_cultPriests, monster_ashCaptain, monster_ashBeasts | 모르발 보스 3종(사제 셋·잿빛 근위대장·근위대 짐승 무리), 붉은·분홍 테두리 정리 512 |
+| 2026-11-18 | npc_ashKingRestored, npc_howden, npc_lucy, npc_marco, npc_orben | 모르발 주민·악역 얼굴 5종, 시트 분할·아래 맞춤 512 |
+| 2026-11-18 | monster_vampireBat, monster_wraith, monster_ghoul, monster_cultZealot | 모르발 일반 몬스터 4종 다시(굵은 선), 덮어쓰기 512 |
+| 2026-11-18 | equip_morval{Weapon,Head,Body,Hands,Feet,Acc} | 모르발 근위 세트 6부위, 시트 분할 512 |
+| 2026-11-18 | monster_cultPriests, monster_ashCaptain, monster_ashBeasts | 모르발 보스 3종 다시(굵은 선·짐승 털 반 검정/반 잿빛), 덮어쓰기 512 |
+| 2026-11-18 | monster_salamander, monster_ifrit, monster_koboldrake, monster_cultFlamePriest | 아우렐 일반 몬스터 4종, 시트 분할 512 |
+| 2026-11-18 | monster_youngRedDragon, monster_orben, monster_orbenAsh, monster_phoenixMother | 아우렐 보스 4종(새끼 레드 드래곤·오르벤 1단계·마지막 단계·불사조 어미), 넓은 색 번짐 정리 512 |
+| 2026-11-18 | npc_naomi, npc_tess, npc_cord, npc_pin | 아우렐 주민 얼굴 4종, 시트 분할·아래 맞춤 512 |
+| 2026-11-18 | monster_orben | 오르벤 1단계 다시(꽉 찬 잿빛 연기 포함), 덮어쓰기 512 |
+| 2026-11-18 | equip_aurelBow, uniq_teoCloak, uniq_naomiStaff, uniq_phoenixCharm | 아우렐 지역 무기(활)·이름 있는 장비 3, 얇은 주황 테두리만 512 |
+| 2026-11-18 | title_morvalLamp, title_guardMemory, title_aurelLamp, title_fiveLamps, title_phoenixHonor | 모르발·아우렐·3막 끝 칭호 5종, 시트 분할 512 |
+| 2026-11-18 | monster_partyGolem, monster_partyHydra, monster_partyWyvern, monster_partyKraken | 파티 보스 4종, 붉은 테두리 정리·시트 분할 512 |
+| 2026-11-18 | flag_party, flag_emb_sword/paw/lantern/tower/leaf/star/moon/wing | 파티 깃발 바탕(흰 천·금 깃대)과 문양 8종(흰색+금 테두리, 색 입혀 쓰는 용도), 512 |
+| 2026-11-18 | equip_partyWeapon/Head/Body/Hands/Feet/Acc | 파티 보스 세트 「동행」 6부위(청록 천·금 테두리·발자국 고리 문양), 512 |
+| 2026-11-18 | pet_pegasus_baby, pet_pegasus_adult | 전설 펫 페가수스 「아스트라」 아기·성체 (한 장에서 잘라 같은 배율, 512) |
+| 2026-11-18 | pet_behemoth_baby, pet_behemoth_adult | 전설 펫 베히모스 「고르」 아기·성체 (한 장에서 잘라 붉은 번짐 정리, 같은 배율, 512) |
+| 2026-11-18 | pet_nightmare_baby, pet_nightmare_adult | 전설 펫 나이트메어 「셰이드」 아기·성체 (한 장에서 잘라 같은 배율, 떠다니는 보라 연기 포함, 512) |
+| 2026-11-18 | pet_leviathan_baby, pet_leviathan_adult | 전설 펫 리바이어던 「마레」 아기·성체 (한 장에서 잘라 붉은 번짐 정리, 같은 배율, 물방울 포함, 512) |
+| 2026-11-18 | pet_dragon_baby, pet_dragon_adult | 전설 펫 드래곤 「이그니스」 아기·성체 (한 장에서 잘라 같은 배율, 입김 불꽃 포함, 512) |
+| 2026-11-18 | pet_unicorn_baby, pet_unicorn_adult | 전설 펫 유니콘 「루체」 아기·성체 (한 장에서 잘라 노랑·붉은 번짐 정리, 같은 배율, 512) |
+| 2026-11-18 | pet_pegasus_awake | 전설 펫 페가수스 각성 모습 (성체 편집, 성체와 같은 자리·배율, 512) |
+| 2026-11-18 | pet_behemoth_awake, pet_nightmare_awake, pet_leviathan_awake, pet_dragon_awake, pet_unicorn_awake | 전설 펫 각성 모습 5종 (성체 편집, 번짐·빛무리 정리, 발밑을 성체와 같은 바닥선 496에 맞춤, 512) |
+| 2026-11-18 | pet_map_{pegasus,behemoth,nightmare,leviathan,dragon,unicorn} | 전설 펫 지도 메달 6종 (금테·날개·왕관, 한 장에서 잘라 같은 크기, 512 → 개발이 128로) |
+| 2026-11-18 | job_warrior(다시), job_archer, job_mage, job_priest, job_rogue, job_knight | 직업 개편 전투 직업 문장 6 (빨강 바탕, #249, 한 장에서 잘라 지금 문장과 같은 크기, 512) |
+| 2026-11-18 | job_explorer, job_pilgrim, job_archaeologist, job_adventurer (다시) | 직업 개편 히든 직업 문장 4 (보라 바탕, #249, 넓은 보라 빛무리 정리, 지금 문장과 같은 크기, 512) |
+| 2026-11-18 | skill_cleave, skill_warCry, skill_ironWall, skill_lastStand, skill_rapidShot, skill_trapArrow, skill_windArrow, skill_starfallArrow, skill_elementBolt | 직업 개편 스킬 아이콘 9 (전사 4·궁수 4·마법사 1, #249, 붉은 얼룩 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | skill_manaShield, skill_elementBurst, skill_grandMagic, skill_aegis, skill_purify, skill_holyLight, skill_miracle, skill_ambush, skill_steal | 직업 개편 스킬 아이콘 9 (마법사 3·사제 4·도적 2, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | skill_poisonBlade, skill_smokeBomb, skill_shadowFlurry, skill_shieldBash, skill_guard, skill_taunt, skill_lanceCharge, skill_paladinOath, skill_anvilDrop | 직업 개편 스킬 아이콘 9 (도적 3·기사 5·대장장이 1, #249, 노랑·분홍 번짐 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | skill_acidFlask, skill_pollenCloud, skill_dazzleLens, skill_scaleWeight, skill_whistleSignal | 직업 개편 생산 직업 스킬 아이콘 5 (#249, 노랑 번짐 정리, 지금 스킬과 같은 크기, 512) |
+| 2026-11-18 | title_pair_{weaponsmith,runesmith,jeweler,potionMerchant,peddler,beastKnight} | 직업 개편 특별 짝 칭호 6 (금 고리 두 개 「짝」 표시, #249, 지금 칭호와 같은 크기, 512) |
+| 2026-11-18 | title_pair_{pathfinder,paladin,nightThief,ranger} | 직업 개편 특별 짝 칭호 4 (#249, 지금 칭호와 같은 크기, 512) |
+| 2026-11-18 | weapon_bow | 직업 개편 활 (내 무기·기본 활 겸용, #249, 지금 weapon_sword·weapon_staff와 같은 512×1024 칸·같은 높이로 세움) |
+| 2026-11-18 | fx_arrow | 직업 개편 쏘는 화살 (전투 연출, 오른쪽을 향함, 꼬리 잔상 포함, #249, 256×64) |
+| 2026-11-18 | item_jobToken | 직업 개편 전직의 증표 (두 갈래 길·별 문양 금패 + 붉은 끈, #249, 512) |
+| 2026-11-18 | village_guildhall_1 | 4막 길드 회관 ★1 (등불 회관, 남색·금 깃발, 둘레 꾸미기 자리 4곳, #246, 다른 건물과 같은 크기·바닥 위치, 512) |
+| 2026-11-18 | village_guildhall_2 | 4막 길드 회관 ★2 (★1 편집, 2층·발코니·창고, #246, ★1과 같은 바닥 너비·위치, 512) |
+| 2026-11-18 | village_guildhall_3 | 4막 길드 회관 ★3 (★2 편집, 훈련소 마당·허수아비·무기 걸이, 검은 바탕 제거, #246, ★2와 같은 바닥 너비·위치, 512) |
+| 2026-11-18 | village_guildhall_4 | 4막 길드 회관 ★4 (★3 편집, 큰 깃대·금 장식, 종탑 빛무리 정리, #246, ★3과 같은 바닥 너비·위치, 512) |
+| 2026-11-18 | bg_guildhall | 4막 길드 회관 안 (길드 화면 바탕, 아래쪽 빈 바닥, #246, 1024) |
+| 2026-11-18 | monster_raidGiant, monster_raidDragon, monster_raidLich, monster_raidTortoise | 4막 길드 레이드 보스 4 (#246, 한 장에서 잘라 칸을 꽉 채움, 512) |
+| 2026-11-18 | mat_giantLight, mat_ancientScale, mat_lichRelic, mat_tortoiseShell, item_lanternSeal, item_guildCharter | 4막 레이드 재료 4 · 등불 인장 · 길드 창설 증서 (#246, 한 장에서 잘라 냄, 512) |
+| 2026-11-18 | equip_lanternWeapon/Head/Body/Hands/Feet/Acc | 4막 길드 세트 「등불 수호단」 6부위 (남색·금·등불 문양, 빛 번짐 없음, #246, 512) |
+| 2026-11-18 | deco_nameplate, deco_lanternString, deco_flowerbed, deco_fountain, deco_petStatue, deco_campfire | 4막 회관 꾸미기 6 (현판은 빈 판, 노랑 번짐 정리, 바닥을 아래(496)에 맞춤, #246, 512) |
+| 2026-11-18 | title_raidGiant, title_raidDragon, title_raidLich, title_raidTortoise, title_lanternOath | 4막 레이드 칭호 4 · 「등불의 맹세」 (꼭대기 작은 등불 표시, #246, 지금 칭호와 같은 크기, 512 → 개발이 160으로) |
+| 2026-11-18 | deco_springTree, deco_summerChime, deco_autumnLeaves, deco_winterSnowman | 4막 회관 꾸미기 계절 4 (번짐 정리, 바닥을 아래(496)에 맞춤, #246, 512) |
+| 2026-11-18 | map_erbard | 5막 대륙 지도 「에르바르드」 (1024×1536, #247). 빈 터 대략 중심(x,y): 왕성 (515,690) · 솔레안 평원 (385,158)(528,205)(645,180)(625,240)(490,300) · 실바렌 숲 (287,319)(152,382)(323,406)(128,475)(250,480)(111,584) · 도르마크 산맥 (732,395)(936,440)(735,477)(885,540)(942,605) · 모르테인 늪 (285,828)(160,868)(358,952)(140,1000)(289,1068) · 이그나르 화산 (830,853)(700,878)(615,948)(820,978)(680,1038). 그려진 빈 터는 27곳이라 지방마다 1곳씩은 길가 등에 얹어야 함 |
+| 2026-11-18 | icon_estate_{light,metal,earth,dark,fire,royal} | 5막 영지 아이콘 6 (깃대 비움, 한 장에서 같은 배율로 잘라 바닥(496) 맞춤 — 왕성이 가장 큼, #247, 512 → 개발이 48~64로) |
+| 2026-11-18 | monster_wildGriffin, monster_wildTroll, monster_wildBoar, monster_wildLizardman, monster_wildLavaGolem | 5막 야생 수비대 바깥(보통) 5 (#247, 붉은 번짐 정리, 512) |
+| 2026-11-18 | monster_wildKnightCaptain, monster_wildRuneGolem, monster_wildElfArcher, monster_wildBanshee, monster_wildDragonCaptain | 5막 야생 수비대 안쪽(강함) 5 (옛 왕국 왕관 문장 깃발, #247, 색 번짐 정리, 512) |
+| 2026-11-18 | item_siegeTicket | 5막 공성권 (금 나팔 + 성탑 밀랍 인장 쪽지, #247, 512) |
+| 2026-11-18 | title_erbardCrown, title_pioneer | 5막 칭호 「에르바르드의 왕관」·「에르바르드의 개척자」 (꼭대기 작은 성탑 표시, #247, 512 → 개발이 160으로) |
+| 2026-11-18 | scene_erbard_arrive | 5막 1장 에르바르드 도착 컷신 (빛의 다리 끝에서 대륙을 내려다봄, 왕성 위 검은 등불 깃발, #247, 852×1846) |
+| 2026-11-18 | chest_royal | 5막 왕성 특별 상자 (남색·금 + 왕관, 붉은 번짐 정리, #247, 512) |
+| 2026-11-18 | flag_emb_blackLantern | 5막 흑등 연맹 깃발 문양 (흰 유리·금테 등불 + 초승달 그림자, 둘레 반짝이 제거, 게임이 검게 칠함, #247, 512) |

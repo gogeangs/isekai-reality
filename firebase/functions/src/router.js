@@ -6,8 +6,10 @@ const { MarketService } = require('./market');
 const { DeepService } = require('./deep');
 const { GuildService } = require('./guild');
 const { AdminService } = require('./admin');
+const { SiegeService } = require('./siege');
 const { adminPage } = require('./admin_page');
 const words = require('./words');
+const legal = require('./legal_pages');
 const links = require('./links');
 
 let _deps = null;
@@ -21,14 +23,16 @@ function realDeps() {
   db.settings({ ignoreUndefinedProperties: true });
   const party = new PartyService(db);
   const inquiry = new InquiryService(db);
+  const guild = new GuildService(db);
   _deps = {
     db,
     party,
     inquiry,
-    account: new AccountService(db, { auth: admin.auth(), party, inquiry }),
+    account: new AccountService(db, { auth: admin.auth(), party, inquiry, guild }),
     market: new MarketService(db),
     deep: new DeepService(db),
-    guild: new GuildService(db),
+    guild,
+    siege: new SiegeService(db, { guild }),
     admin: new AdminService(db),
     verify: (token) => admin.auth().verifyIdToken(token),
     env: process.env,
@@ -81,6 +85,18 @@ async function handle(req, res) {
       if (path === '/.well-known/assetlinks.json') {
         res.set('Content-Type', 'application/json');
         return res.send(JSON.stringify(links.assetLinks(env)));
+      }
+      // 묶음 60: 약관 · 정책 · 계정 삭제 안내 (스토어 등록용)
+      const lp = legal.legalPage(path) || (path === '/delete-account' ? legal.deletePage() : null);
+      if (lp) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.set('Cache-Control', 'public, max-age=600');
+        return res.send(lp);
+      }
+      const mg = /^\/join\/g\/([A-Za-z0-9]{1,12})$/.exec(path);
+      if (mg) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        return res.send(links.joinPage(mg[1].toUpperCase(), 'guild'));
       }
       const m = /^\/join\/([A-Za-z0-9]{1,12})$/.exec(path);
       if (m) {
@@ -138,6 +154,22 @@ async function handle(req, res) {
       return res.json(await r());
     }
     // 묶음 59: 길드 (#246)
+    // 묶음 60: 5막 에르바르드 (영지 · 야생 수비대 · 공성전 · 수비대 · 연맹)
+    if (path.startsWith('/siege/')) {
+      const tok = await caller(req, deps, true);
+      const uid = tok.uid;
+      const s = deps.siege;
+      const r = {
+        '/siege/state': () => s.state(uid),
+        '/siege/foe': () => s.foe(uid, body),
+        '/siege/fight': () => s.fight(uid, body),
+        '/siege/garrison': () => s.garrison(uid, body),
+        '/siege/ungarrison': () => s.ungarrison(uid),
+        '/siege/alliance': () => s.alliance(uid, body),
+      }[path];
+      if (!r) return res.status(404).json({ error: 'not_found' });
+      return res.json(await r());
+    }
     if (path.startsWith('/guild/')) {
       const tok = await caller(req, deps, true);
       const uid = tok.uid;
@@ -227,7 +259,8 @@ async function handle(req, res) {
       const swept = await deps.account.sweep();
       const market = deps.market ? await deps.market.settleDue() : null;
       const deep = deps.deep ? await deps.deep.payLastWeek() : null;
-      return res.json({ ...swept, market, deep });
+      const siege = deps.siege ? await deps.siege.settleDue() : null;
+      return res.json({ ...swept, market, deep, siege });
     }
     return res.status(404).json({ error: 'not_found' });
   } catch (e) {

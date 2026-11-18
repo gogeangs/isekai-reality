@@ -152,6 +152,20 @@ class PartyRules {
   static const linkHost = 'api-ujbfnvvalq-du.a.run.app';
   static String inviteLink(String code) => 'https://$linkHost/join/$code';
 
+  /// 묶음 60: 길드 초대 링크 (https://…/join/g/ABC234 · arca://join/g/ABC234)
+  static String guildInviteLink(String code) => 'https://$linkHost/join/g/$code';
+  static String guildInviteText(String name, String code) =>
+      '아르카 길드 「$name」에 함께해요! ${guildInviteLink(code)} 를 누르거나, 마을 → 길드 회관 → 「초대 코드」에 $code 를 넣어 주세요.';
+
+  static String? guildCodeFromLink(Uri u) {
+    final segs = u.pathSegments.where((s) => s.isNotEmpty).toList();
+    String? c;
+    if (u.scheme == 'arca' && u.host == 'join' && segs.length == 2 && segs.first == 'g') c = segs[1];
+    if (segs.length == 3 && segs[0] == 'join' && segs[1] == 'g' && (u.host == linkHost || u.scheme == 'arca')) c = segs[2];
+    c = c?.toUpperCase();
+    return c != null && RegExp(r'^[A-Z0-9]{6}$').hasMatch(c) ? c : null;
+  }
+
   /// 초대 링크에서 코드 (https://…/join/ABC234 · arca://join/ABC234). 아니면 null
   static String? codeFromLink(Uri u) {
     final segs = u.pathSegments.where((s) => s.isNotEmpty).toList();

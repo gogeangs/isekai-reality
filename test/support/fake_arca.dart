@@ -47,6 +47,114 @@ class FakeArca implements ArcaApi {
   int myRaidDamage = 0;
   int statusLevel = 0;
 
+  // 묶음 60: 에르바르드 (판정은 서버 시험에서)
+  final Map<String, Map<String, dynamic>?> siegeOwners = {
+    'royal': {'gid': 'npc', 'name': '흑등 연맹', 'emblem': 0, 'color': 7},
+    for (final id in ['sol_silver', 'dor_bronze', 'sil_vine', 'mor_raven', 'ign_gate'])
+      id: {'gid': 'npc', 'name': '흑등 연맹', 'emblem': 0, 'color': 7},
+  };
+  final Map<String, List<int>> siegeWild = {};
+  final Map<String, List<int>> siegeRun = {};
+  final Map<String, List<Map<String, dynamic>?>> garrisons = {};
+  bool siegeActive = false;
+  int siegeNo = 0;
+  Map<String, dynamic>? siegeLast;
+  Map<String, dynamic>? alliance;
+  int siegeUsed = 0;
+  int treasury = 0;
+
+  Map<String, dynamic> _siegeState(String me) => {
+        'owners': siegeOwners,
+        'siege': {'no': siegeNo, 'active': siegeActive, 'start': DateTime.utc(2026, 11, 27, 15).millisecondsSinceEpoch, 'end': DateTime.utc(2026, 11, 29, 15).millisecondsSinceEpoch},
+        'guild': guild == null ? null : {
+          'estates': [for (final e in siegeOwners.entries) if (e.value?['gid'] == 'mine') e.key],
+          'treasury': treasury,
+          'staff': true,
+          'owner': true,
+        },
+        'garrisons': {
+          for (final e in siegeOwners.entries)
+            if (e.value?['gid'] == 'mine') e.key: garrisons[e.key] ?? [null, null, null, null, null],
+        },
+        'placed': [for (final e in garrisons.entries) if (e.value.any((x) => x?['me'] == true)) e.key].firstOrNull,
+        'wild': siegeWild,
+        'run': siegeRun,
+        'used': siegeUsed,
+        'last': siegeLast,
+        'alliance': alliance,
+      };
+
+  Map<String, dynamic> _siegePost(String me, String path, Map<String, dynamic> body) {
+    final id = '${body['estate'] ?? ''}';
+    switch (path) {
+      case '/siege/state':
+        return _siegeState(me);
+      case '/siege/foe':
+        if (guild == null) throw const ArcaApiError('no_guild');
+        final o = siegeOwners[id];
+        if (o == null) {
+          final b = siegeWild[id] ?? [];
+          return {'kind': 'wild', 'slot': [0, 1, 2, 3, 4].firstWhere((k) => !b.contains(k)), 'level': 30, 'broken': b};
+        }
+        if (!siegeActive) throw const ArcaApiError('not_siege');
+        final b = siegeRun[id] ?? [];
+        return {
+          'kind': 'siege',
+          'slot': [0, 1, 2, 3, 4].firstWhere((k) => !b.contains(k)),
+          'level': 30,
+          'broken': b,
+          if (o['gid'] == 'npc') 'npc': true,
+          if (o['gid'] != 'npc') 'guard': {'name': '별하', 'level': 31, 'allies': [{'name': '도윤', 'level': 28}]},
+          'bonus': 0.1,
+        };
+      case '/siege/fight':
+        final k = (body['slot'] as num).toInt();
+        final win = body['win'] == true;
+        if (siegeActive) siegeUsed++;
+        if (siegeOwners[id] == null) {
+          final b = siegeWild.putIfAbsent(id, () => []);
+          if (win) b.add(k);
+          final full = b.length >= 5;
+          if (full) {
+            siegeOwners[id] = {'gid': 'mine', 'name': guild?['name'] ?? '', 'emblem': 0, 'color': 0};
+            siegeWild.remove(id);
+          }
+          return {'kind': 'wild', 'won': win, 'broken': b, 'captured': full, 'full': full, 'clearSeals': full ? 15 : 0};
+        }
+        final b = siegeRun.putIfAbsent(id, () => []);
+        if (win) b.add(k);
+        return {'kind': 'siege', 'won': win, 'broken': b, 'full': b.length >= 5};
+      case '/siege/garrison':
+        if (siegeActive) throw const ArcaApiError('siege_lock');
+        final snap = (body['snap'] as Map).cast<String, dynamic>();
+        final g = garrisons.putIfAbsent(id, () => [null, null, null, null, null]);
+        for (final e in garrisons.values) {
+          for (var i = 0; i < e.length; i++) {
+            if (e[i]?['me'] == true) e[i] = null;
+          }
+        }
+        g[(body['slot'] as num).toInt()] = {
+          'name': snap['name'],
+          'level': snap['level'],
+          'allies': [for (final a in (snap['allies'] as List)) (a as Map)['name']],
+          'me': true,
+        };
+        return _siegeState(me);
+      case '/siege/ungarrison':
+        for (final e in garrisons.values) {
+          for (var i = 0; i < e.length; i++) {
+            if (e[i]?['me'] == true) e[i] = null;
+          }
+        }
+        return _siegeState(me);
+      case '/siege/alliance':
+        if (body['action'] == 'create') alliance = {'name': body['name'], 'code': 'ALY234', 'guilds': [guild?['name']], 'locked': false};
+        if (body['action'] == 'leave') alliance = null;
+        return _siegeState(me);
+    }
+    throw const ArcaApiError('not_found', status: 404);
+  }
+
   Map<String, dynamic> _guildState(String me) {
     final g = guild;
     if (g == null || !guildMembers.containsKey(me)) return {'guild': null};
@@ -235,6 +343,10 @@ class FakeArca implements ArcaApi {
     if (offline) throw const ArcaApiError('offline');
     final me = uid;
     if (path.startsWith('/party/') && token == null) throw const ArcaApiError('login_required', status: 401);
+    if (path.startsWith('/siege/')) {
+      if (token == null) throw const ArcaApiError('login_required', status: 401);
+      return _siegePost(me, path, body);
+    }
     if (path.startsWith('/guild/')) {
       if (token == null) throw const ArcaApiError('login_required', status: 401);
       return _guildPost(me, path, body);

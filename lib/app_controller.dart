@@ -229,6 +229,10 @@ class AppController extends ChangeNotifier {
   bool _marketBusy = false;
   String? _marketError;
 
+  /// 묶음 65: 공성전 알림을 보인 것 (이 휴대폰만)
+  final Set<String> _siegeSeen = {};
+  bool _siegeSeenLoaded = false;
+
   /// 묶음 61: 거래 지갑 금화 (서버가 들고 있음, 마지막으로 받은 값)
   int? _walletGold;
   Region? _deepRegion;

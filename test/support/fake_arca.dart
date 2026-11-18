@@ -72,6 +72,15 @@ class FakeArca implements ArcaApi {
   bool canShare = false;
   final List<Map<String, dynamic>> meSent = [];
   final List<Map<String, dynamic>> nearSent = [];
+
+  // 묶음 65: 공성전 다듬기
+  String? rallyEstate;
+  Map<String, dynamic>? gauge;
+  final Map<String, List<int>> siegeWeak = {};
+  final Map<String, int> siegeDefense = {};
+  final List<Map<String, dynamic>> siegeNews = [];
+  String? repairTarget;
+  Map<String, String> vanguards = {};
   void _tl(String what, int gold) => tlog.insert(0, {'at': DateTime(2026, 11, 30, 10).millisecondsSinceEpoch, 'name': '하루', 'what': what, 'gold': gold});
 
   Map<String, dynamic> _siegeState(String me) => {
@@ -86,6 +95,12 @@ class FakeArca implements ArcaApi {
           'shareNo': 0,
         },
         'boosts': boosts,
+        if (rallyEstate != null && siegeActive)
+          'rally': {'estate': rallyEstate, 'at': DateTime.utc(2026, 11, 28, 1).millisecondsSinceEpoch, 'nextAt': DateTime.utc(2026, 11, 28, 7).millisecondsSinceEpoch},
+        if (gauge != null) 'gauge': {...gauge!, 'repairTarget': repairTarget},
+        'weak': siegeWeak,
+        'defense': siegeDefense,
+        'news': siegeNews,
         if (siegeTickets != null) 'tickets': siegeTickets,
         if (siegeTickets != null) 'ticketCarry': 500,
         'garrisons': {
@@ -96,7 +111,7 @@ class FakeArca implements ArcaApi {
         'wild': siegeWild,
         'run': siegeRun,
         'used': siegeUsed,
-        'last': siegeLast,
+        'last': siegeLast == null ? null : {...siegeLast!, 'vanguards': vanguards},
         'alliance': alliance,
       };
 
@@ -122,6 +137,8 @@ class FakeArca implements ArcaApi {
           if (o['gid'] == 'npc') 'npc': true,
           if (o['gid'] != 'npc') 'guard': {'name': '별하', 'level': 31, 'job': 'mage', 'allies': [{'name': '도윤', 'level': 28, 'job': 'knight'}]},
           'bonus': 0.1,
+          'rally': rallyEstate == id,
+          'weakened': (siegeWeak[id] ?? const []).contains([0, 1, 2, 3, 4].firstWhere((k) => !b.contains(k))),
         };
       case '/siege/fight':
         if (siegeTickets != null) {
@@ -168,6 +185,30 @@ class FakeArca implements ArcaApi {
           }
         }
         return _siegeState(me);
+      case '/siege/rally':
+        if (!siegeActive) throw const ArcaApiError('not_siege');
+        rallyEstate = id;
+        siegeNews.insert(0, {'at': DateTime.utc(2026, 11, 28, 1).millisecondsSinceEpoch, 'text': '하루님이 ${id}에 집결 깃발을 꽂았어요'});
+        return _siegeState(me);
+      case '/siege/repair':
+        repairTarget = id;
+        return _siegeState(me);
+      case '/siege/peek':
+        final o = siegeOwners[id];
+        final b = siegeRun[id] ?? [];
+        return {
+          'estate': id,
+          'slots': [
+            for (var k = 0; k < 5; k++)
+              {
+                'broken': b.contains(k),
+                'weak': (siegeWeak[id] ?? const []).contains(k),
+                'kind': o == null ? 'wild' : o['gid'] == 'npc' ? (k == 4 || id == 'royal' ? 'blackCaptain' : 'blackGuard') : k < 3 ? 'clone' : 'empty',
+                'job': o != null && o['gid'] != 'npc' && k < 3 ? ['mage', 'herbalist', 'gateHeir'][k] : null,
+                'allies': k == 0 ? 2 : 0,
+              },
+          ],
+        };
       case '/siege/alliance':
         if (body['action'] == 'create') alliance = {'name': body['name'], 'code': 'ALY234', 'guilds': [guild?['name']], 'locked': false};
         if (body['action'] == 'leave') alliance = null;
@@ -200,6 +241,7 @@ class FakeArca implements ArcaApi {
         'claimed': [for (var i = 0; i < 3; i++) if (guildClaimed.contains('walk$i')) i],
       },
       'treasury': {'gold': treasury, 'log': tlog},
+      'news': siegeNews,
       'hall': {'star': guildStar, 'progress': 0.3, 'nextLevel': guildStar < 4 ? [0, 0, 3, 6, 10][guildStar + 1] : null, 'decos': guildDecos, 'slots': guildSlots},
       if (guildLevel >= 4)
         'raid': {

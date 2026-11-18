@@ -30,7 +30,25 @@ class ErbardView {
     this.tickets,
     this.ticketCarry = 0,
     this.guards = const {},
+    this.rally,
+    this.gauge,
+    this.weak = const {},
+    this.defense = const {},
+    this.news = const [],
+    this.crownStreak = 0,
+    this.lastVanguards = const {},
   });
+
+  /// 묶음 65 #251: 집결 깃발 (이번 공성전) · 길드 게이지 · 공성 망치로 흔든 자리 · 우리 영지 전황 · 게시판 소식
+  final ({String estate, DateTime at, DateTime nextAt})? rally;
+  final SiegeGauge? gauge;
+  final Map<String, List<int>> weak;
+  final Map<String, int> defense;
+  final List<({DateTime at, String text})> news;
+  final int crownStreak;
+
+  /// 지난 공성전 선봉장 (길드 id → 이름)
+  final Map<String, String> lastVanguards;
 
   /// 묶음 61: 우리 영지 수비대 강화 단계 (금고) · 나눠 주기 · 서버가 센 공성권
   final Map<String, int> boosts;
@@ -146,12 +164,75 @@ class ErbardView {
       shareNo: (g?['shareNo'] as num?)?.toInt(),
       tickets: (j['tickets'] as num?)?.toInt(),
       ticketCarry: (j['ticketCarry'] as num?)?.toInt() ?? 0,
+      rally: (j['rally'] as Map?) == null
+          ? null
+          : (
+              estate: '${(j['rally'] as Map)['estate']}',
+              at: t((j['rally'] as Map)['at']) ?? DateTime(2026),
+              nextAt: t((j['rally'] as Map)['nextAt']) ?? DateTime(2026),
+            ),
+      gauge: SiegeGauge.fromJson(j['gauge']),
+      weak: {
+        for (final e in ((j['weak'] as Map?) ?? const {}).entries)
+          '${e.key}': [for (final x in (e.value as List?) ?? const []) (x as num).toInt()],
+      },
+      defense: {
+        for (final e in ((j['defense'] as Map?) ?? const {}).entries) '${e.key}': (e.value as num).toInt(),
+      },
+      news: [
+        for (final x in (j['news'] as List?) ?? const [])
+          if (x is Map) (at: t(x['at']) ?? DateTime(2026), text: '${x['text'] ?? ''}'),
+      ],
+      crownStreak: (j['crownStreak'] as num?)?.toInt() ?? 0,
+      lastVanguards: {
+        for (final e in (((last?['vanguards']) as Map?) ?? const {}).entries) '${e.key}': '${e.value}',
+      },
       guards: {
         for (final e in ((j['garrisons'] as Map?) ?? const {}).entries)
           '${e.key}': [for (final x in (e.value as List?) ?? const []) x is Map ? x['job'] as String? : null],
       },
     );
   }
+}
+
+/// 묶음 65 #251: 공성전 동안 길드 걸음 게이지 (공성 망치 · 성벽 보수)
+class SiegeGauge {
+  const SiegeGauge({this.progress = 0, this.full = 0, this.rams = 0, this.ramMax = 2, this.repairs = const [], this.repairTarget});
+  final double progress;
+  final int full, rams, ramMax;
+  final List<String> repairs;
+  final String? repairTarget;
+
+  static SiegeGauge? fromJson(Object? o) {
+    if (o is! Map) return null;
+    return SiegeGauge(
+      progress: (o['progress'] as num?)?.toDouble() ?? 0,
+      full: (o['full'] as num?)?.toInt() ?? 0,
+      rams: (o['rams'] as num?)?.toInt() ?? 0,
+      ramMax: (o['ramMax'] as num?)?.toInt() ?? 2,
+      repairs: [for (final x in (o['repairs'] as List?) ?? const []) '$x'],
+      repairTarget: o['repairTarget'] as String?,
+    );
+  }
+}
+
+/// 엿보기: 수비대 한 자리 (능력치는 숨김)
+class PeekSlot {
+  const PeekSlot({this.broken = false, this.weak = false, this.kind = 'wild', this.job, this.allies = 0});
+  final bool broken, weak;
+
+  /// 'wild' · 'blackGuard' · 'blackCaptain' · 'clone' · 'empty'
+  final String kind;
+  final String? job;
+  final int allies;
+
+  /// 그림으로 쓸 몬스터 (빈 자리 · 야생은 null)
+  MonsterId? get monster => switch (kind) {
+        'blackGuard' => MonsterId.blackGuard,
+        'blackCaptain' => MonsterId.blackCaptain,
+        'clone' => ErbardRules.cloneOf(job),
+        _ => null,
+      };
 }
 
 /// 공성권 한 장 싸움의 결과
@@ -397,6 +478,10 @@ extension Act5Ops on AppController {
 
   Future<void> refreshErbard() async {
     if (!act5Open || !guildReady) return;
+    if (!_siegeSeenLoaded) {
+      _siegeSeenLoaded = true;
+      await _loadSiegeSeen();
+    }
     await _siegeCall('/siege/state');
     _rollCh3();
   }
@@ -458,27 +543,101 @@ extension Act5Ops on AppController {
     final level = (j['level'] as num?)?.toInt() ?? lv;
     _erbardFight = _ErbardFight(e.id, slot, '${j['kind']}');
     final guard = j['guard'] as Map?;
-    final bonus = (j['bonus'] as num?)?.toDouble() ?? 0;
+    // 묶음 65: 공성 망치로 흔들린 자리는 약하게
+    final bonus = ((j['bonus'] as num?)?.toDouble() ?? 0);
+    final ram = j['weakened'] == true ? ErbardRules.ramWeak : 1.0;
     final List<Foe> foes;
     if (j['kind'] == 'wild') {
       foes = [_wildFoe(e, slot, level)];
     } else if (j['npc'] == true) {
       final m = ErbardRules.blackOf(e, slot);
-      foes = [_guardFoe(m, e, slot, level, 1.15, label: m == MonsterId.blackCaptain ? '흑등 연맹 지휘관' : '흑등 연맹 수비대')];
+      foes = [_guardFoe(m, e, slot, level, 1.15 * ram, label: m == MonsterId.blackCaptain ? '흑등 연맹 지휘관' : '흑등 연맹 수비대')];
     } else if (guard != null) {
       foes = [
         _guardFoe(ErbardRules.cloneOf(guard['job'] as String?), e, slot, (guard['level'] as num?)?.toInt() ?? level,
-            1.1 * (1 + bonus),
+            1.1 * (1 + bonus) * ram,
             label: '${guard['name']}의 분신'),
         for (final a in (guard['allies'] as List?) ?? const [])
           if (a is Map)
-            _guardFoe(ErbardRules.cloneOf(a['job'] as String?), e, slot, (a['level'] as num?)?.toInt() ?? level, 0.6 * (1 + bonus),
+            _guardFoe(ErbardRules.cloneOf(a['job'] as String?), e, slot, (a['level'] as num?)?.toInt() ?? level,
+                0.6 * (1 + bonus) * ram,
                 label: '${a['name']}'),
       ];
     } else {
-      foes = [_wildFoe(e, slot, level, mult: 1 + bonus)];
+      foes = [_wildFoe(e, slot, level, mult: (1 + bonus) * ram)];
     }
-    return _erbardBattle(foes);
+    final b = _erbardBattle(foes);
+    // 묶음 65: 집결 깃발 영지면 조금 강하게 · 수비대 상성 (주 직업 +25% · 받는 피해 −30%, 보조면 절반, 숨김)
+    if (j['rally'] == true) b.dealMult *= 1 + ErbardRules.rallyBonus;
+    final w = siegeWeakness(foes.first.monster);
+    if (w > 0) {
+      b.dealMult *= 1 + GuildRules.weakDeal * w;
+      b.takenMult *= 1 - GuildRules.weakTaken * w;
+    }
+    return b;
+  }
+
+  /// 수비대 상성: 내 주 직업이 그 수비대에 강하면 1, 보조 직업이면 0.5, 아니면 0
+  double siegeWeakness(MonsterId m) {
+    final weak = ErbardRules.cloneWeakTo[m.name] ?? const <JobId>[];
+    return weak.contains(mainJob) ? 1.0 : weak.contains(subJob) ? 0.5 : 0.0;
+  }
+
+  /// 「이 자리는 ○○에게 약해 보여요」 (강한 직업 이름)
+  String? weakLine(MonsterId m) {
+    final weak = ErbardRules.cloneWeakTo[m.name];
+    if (weak == null || weak.isEmpty) return null;
+    return '이 자리는 ${weak.map((j) => JobRules.info(j).name).join(' · ')}에게 약해 보여요';
+  }
+
+  // ───────────── 묶음 65 #251: 집결 깃발 · 성벽 보수 영지 · 엿보기
+
+  Future<bool> setRally(String estate) async => await _siegeCall('/siege/rally', {'estate': estate}) != null;
+
+  Future<bool> setRepairTarget(String estate) async => await _siegeCall('/siege/repair', {'estate': estate}) != null;
+
+  Future<List<PeekSlot>?> peekEstate(String estate) async {
+    final j = await _siegeCall('/siege/peek', {'estate': estate});
+    if (j == null) return null;
+    return [
+      for (final x in (j['slots'] as List?) ?? const [])
+        if (x is Map)
+          PeekSlot(
+            broken: x['broken'] == true,
+            weak: x['weak'] == true,
+            kind: '${x['kind'] ?? 'wild'}',
+            job: x['job'] as String?,
+            allies: (x['allies'] as num?)?.toInt() ?? 0,
+          ),
+    ];
+  }
+
+  /// 마지막 6시간 (일요일 18~24시)
+  bool get siegeFinal => ErbardRules.siegeFinal(_clock());
+
+  /// 「○○ 영지에 집결해요」: 공성전 · 영지마다 한 번 (이 휴대폰)
+  bool takeRallyNotice(int siege, String estate) {
+    final k = 'rally:$siege:$estate';
+    if (_siegeSeen.contains(k)) return false;
+    _siegeSeen.add(k);
+    unawaited(store.saveSide('siegeSeen', _siegeSeen.join(',')));
+    return true;
+  }
+
+  /// 「마지막 6시간」: 공성전마다 한 번
+  bool takeFinalNotice(int siege) {
+    final k = 'final:$siege';
+    if (_siegeSeen.contains(k)) return false;
+    _siegeSeen.add(k);
+    unawaited(store.saveSide('siegeSeen', _siegeSeen.join(',')));
+    return true;
+  }
+
+  Future<void> _loadSiegeSeen() async {
+    final s = await store.loadSide('siegeSeen');
+    _siegeSeen
+      ..clear()
+      ..addAll((s ?? '').split(',').where((x) => x.isNotEmpty));
   }
 
   Foe _wildFoe(EstateInfo e, int slot, int level, {double mult = 1}) =>

@@ -234,6 +234,13 @@ abstract final class ErbardRules {
     'blackCaptain': [JobId.priest, JobId.knight],
   };
 
+  /// 그림 (오기 전엔 아이콘)
+  static const String rallyIcon = 'assets/images/icon_rallyFlag.webp';
+  static const String ramIcon = 'assets/images/icon_siegeRam.webp';
+  static const String repairIcon = 'assets/images/icon_wallRepair.webp';
+  static const String finalSky = 'assets/images/bg_siegeFinal.webp';
+  static const String resultScene = 'assets/images/scene_siegeResult.webp';
+
   /// 마지막 6시간 (일요일 18~24시)
   static const Duration finalHours = Duration(hours: 6);
   static bool siegeFinal(DateTime now) =>
@@ -340,6 +347,7 @@ abstract final class ErbardRules {
         'alliance_locked' => '연맹은 공성전 네 번마다 다시 고를 수 있어요',
         'no_alliance' => '그 연맹을 찾지 못했어요',
         'no_fight' => '싸움을 처음부터 다시 시작해 주세요',
+        'rally_wait' => '집결 깃발은 6시간마다 바꿀 수 있어요',
         'no_treasury' => '길드 금고 금화가 모자라요',
         'owned' => '이미 그 단계예요',
         'shared' => '이번 공성전 몫은 이미 나눠 줬어요',

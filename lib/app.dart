@@ -25,7 +25,7 @@ import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
-import 'features/settings/account_section.dart' show LoginButton, signInFlow;
+import 'features/settings/account_section.dart' show LoginButton, loadRecordFlow, signInFlow;
 import 'data/cloud/cloud_auth.dart' show LoginProvider;
 import 'features/level_up/level_up_dialog.dart';
 import 'features/map/expedition_result.dart';
@@ -373,6 +373,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onTooYoung: controller.blockForAge,
             onConsent: () => controller.agreeLegal(LegalRules.needed(controller.consent.agreed, controller.now)),
             now: () => controller.now,
+            onLoadRecord: controller.cloudAvailable ? (ctx) => loadRecordFlow(ctx, controller) : null,
             onAwaken: (name, look, spirit, spiritName) =>
                 controller.awaken(
                     name: name,

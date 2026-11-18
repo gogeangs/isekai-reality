@@ -1,0 +1,40 @@
+name: 심사용 계정 준비
+
+# 묶음 64: Play · App Store 심사용 계정에 기록을 넣는다 (손으로만 실행).
+# 그 이메일로 앱에서 한 번 로그인해 둔 계정이어야 함. 로그에는 계정 정보 · 서버 응답을 남기지 않음.
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "심사용 계정 이메일 (앱에서 한 번 로그인해 둔 계정)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      REVIEW_EMAIL: ${{ inputs.email }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 서비스 계정 파일
+        run: |
+          if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT 가 없어요"; exit 1; fi
+          echo "::add-mask::$REVIEW_EMAIL"
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: 기록 넣기
+        working-directory: firebase/functions
+        run: |
+          npm ci --silent || npm install --silent
+          node scripts/review_seed.js
+      - name: 서비스 계정 파일 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

@@ -275,6 +275,51 @@ Future<void> signInFlow(BuildContext context, AppController c, LoginProvider p) 
   }
 }
 
+/// 묶음 64: 처음 각성 화면에서 「다른 휴대폰에서 하던 기록 불러오기」 — 로그인 방법을 고르고 서버 기록으로 이어서
+Future<void> loadRecordFlow(BuildContext context, AppController c) async {
+  final p = await showModalBottomSheet<LoginProvider>(
+    context: context,
+    backgroundColor: AppColors.night,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (sheet) => SafeArea(
+      child: Padding(
+        key: const Key('loadRecordSheet'),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('기록 불러오기', style: AppText.title(18)),
+          const SizedBox(height: 4),
+          const Text('하던 계정으로 로그인하면 서버에 백업한 기록으로 이어서 해요.',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          const SizedBox(height: 10),
+          for (final lp in c.loginProviders) ...[
+            LoginButton(provider: lp, busy: c.cloudBusy, onPressed: () => Navigator.pop(sheet, lp)),
+            const SizedBox(height: 8),
+          ],
+        ]),
+      ),
+    ),
+  );
+  if (p == null || !context.mounted) return;
+  if (!await askBackupConsent(context, c) || !context.mounted) return;
+  final r = await c.signInCloud(p);
+  if (!context.mounted) return;
+  switch (r) {
+    case CloudLogin.restored:
+      break; // 앱이 서버 기록으로 다시 켜짐
+    case CloudLogin.uploaded:
+      showTopNotice(context, '이 계정에는 아직 기록이 없어요. 새로 시작해요');
+    case CloudLogin.choose:
+      await openRecordChoice(context, c);
+    case CloudLogin.cancelled:
+      break;
+    case CloudLogin.offline:
+      showTopNotice(context, '인터넷에 연결된 뒤 다시 해 주세요');
+    case CloudLogin.failed:
+    case CloudLogin.unavailable:
+      showTopNotice(context, '로그인하지 못했어요. 잠시 뒤 다시 해 주세요');
+  }
+}
+
 Future<void> openRecordChoice(BuildContext context, AppController c) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
         fullscreenDialog: true, builder: (_) => RecordChoiceScreen(controller: c)));

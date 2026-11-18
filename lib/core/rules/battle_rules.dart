@@ -1015,6 +1015,9 @@ class Battle {
   /// 마지막 막기 결과 (화면 연출용, 다음 틱에 지운다)
   GuardResult? lastGuard;
 
+  /// 묶음 65: 강한 공격을 막지 못함 (화면 연출 fx_guardBreak, 다음 틱에 지운다)
+  bool lastGuardBroken = false;
+
   /// 이번 전투에서 막은 횟수
   int guards = 0;
 
@@ -2048,6 +2051,7 @@ class Battle {
     lastWasSkill = false;
     lastBash = false;
     lastGuard = null;
+    lastGuardBroken = false;
     lastEvent = null;
     // 묶음 58: 이름 있는 장비 회복 (숨김)
     if (regenChance > 0 && playerHp > 0 && playerHp < playerMaxHp && _rng.nextDouble() < regenChance) {
@@ -2388,6 +2392,7 @@ class Battle {
       lastEvent ??= '돌 피부!';
     }
     // 막기 (11-11 #75): 막기는 받는 피해 -60%, 완벽한 막기는 피해 없음 + 반격
+    if (strong && _guard == null) lastGuardBroken = true;
     if (strong && _guard != null) {
       final g = _guard!;
       _guard = null;

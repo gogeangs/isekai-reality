@@ -507,36 +507,16 @@ class _KingStoryViewState extends State<_KingStoryView>
               ClipRect(
                 child: Align(
                   widthFactor: 0.15 + 0.85 * open,
-                  child: SizedBox(
+                  child: ParchmentSheet(
                     width: w,
-                    child: Stack(children: [
-                      Positioned.fill(
-                        child: Image.asset('assets/images/board_note.webp',
-                            scale: 2.4,
-                            centerSlice: const Rect.fromLTRB(110, 92, 690, 308),
-                            fit: BoxFit.fill,
-                            color: const Color(0xFFB9B2C9),
-                            colorBlendMode: BlendMode.modulate,
-                            errorBuilder: (_, __, ___) => DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFD9D3E2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                )),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(26, 30, 26, 30),
-                        child: Opacity(
-                          opacity: textIn,
-                          child: Text(text,
-                              key: const Key('kingStoryText'),
-                              textAlign: TextAlign.center,
-                              style: AppText.title(17,
-                                      color: const Color(0xFF2A2433))
-                                  .copyWith(height: 1.6)),
-                        ),
-                      ),
-                    ]),
+                    tint: const Color(0xFFB9B2C9), fallback: const Color(0xFFD9D3E2),
+                    child: Opacity(
+                      opacity: textIn,
+                      child: Text(text,
+                          key: const Key('kingStoryText'),
+                          textAlign: TextAlign.center,
+                          style: AppText.title(17, color: const Color(0xFF2A2433)).copyWith(height: 1.6)),
+                    ),
                   ),
                 ),
               ),

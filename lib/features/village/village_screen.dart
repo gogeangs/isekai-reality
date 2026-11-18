@@ -96,10 +96,10 @@ class VillageScreen extends StatefulWidget {
     FacilityInfo(Facility.smithy, '대장간', FacilityGroup.craft, (x: 635, y: 772, w: 132)),
     FacilityInfo(Facility.board, '의뢰 게시판', FacilityGroup.work, (x: 770, y: 772, w: 132)),
     FacilityInfo(Facility.shelter, '펫 쉼터', FacilityGroup.pet, (x: 908, y: 772, w: 132)),
-    // 묶음 43 #228: 오른쪽 가운데 공터 (처음 화면 밖, 끌어서 보거나 완공 때 그쪽으로)
-    FacilityInfo(Facility.training, '훈련장', FacilityGroup.work, (x: 1168, y: 652, w: 160)),
-    // 묶음 48 #230: 왼쪽 가운데 공터 (훈련장 맞은편, 처음 화면 밖)
-    FacilityInfo(Facility.garden, '약초밭', FacilityGroup.pet, (x: 368, y: 652, w: 160)),
+    // 묶음 43 #228: 오른쪽 아래 말뚝 공터 가운데 (묶음 65 #258: 길 위에서 옮김)
+    FacilityInfo(Facility.training, '훈련장', FacilityGroup.work, (x: 1272, y: 745, w: 140)),
+    // 묶음 48 #230: 왼쪽 아래 말뚝 공터 가운데 (훈련장 맞은편, 묶음 65 #258: 길 위에서 옮김)
+    FacilityInfo(Facility.garden, '약초밭', FacilityGroup.pet, (x: 342, y: 728, w: 140)),
     // 묶음 51 #242: 왼쪽 위 공터 (탑으로 가는 길 옆, 결말 뒤 만남 장면 다음에 생김)
     FacilityInfo(Facility.tavern, '주점', FacilityGroup.rest, (x: 405, y: 492, w: 150)),
     // 묶음 59 #246: 오른쪽 위 빈 터 (주점 맞은편, 4막 2장 「여기에 회관을 지어요」 뒤)

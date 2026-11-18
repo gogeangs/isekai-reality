@@ -12,6 +12,7 @@ import '../act4/act4_screens.dart' show showAct4Pending;
 import '../battle/battle_view.dart';
 import '../battle/hero_rig.dart' show weaponKindOf;
 import '../party/party_flag.dart';
+import 'estate_manage_screen.dart';
 
 /// 에르바르드로 (길드 회관 · 지도): 볼 장면부터
 Future<void> openErbard(BuildContext context, AppController c) async {
@@ -277,7 +278,9 @@ class _ErbardScreenState extends State<ErbardScreen> {
             child:
                 Image.asset(ErbardRules.mapImage, fit: BoxFit.fill, errorBuilder: (_, __, ___) => const ColoredBox(color: AppColors.night)),
           ),
-          for (final e in ErbardRules.estates) _marker(v, e, s, e.royal ? icon * 1.45 : icon),
+          // 묶음 65 #255: 번영 단계가 오르면 영지 아이콘이 커짐
+          for (final e in ErbardRules.estates)
+            _marker(v, e, s, (e.royal ? icon * 1.45 : icon) * EstateDevRules.iconScale(v.stages[e.id] ?? 0)),
         ]),
       ),
     );
@@ -315,6 +318,20 @@ class _ErbardScreenState extends State<ErbardScreen> {
                 ),
               ),
             ),
+          // 고을 · 도시: 불빛 (따뜻한 빛) · 도시엔 작은 집
+          if ((v.stages[e.id] ?? 0) >= 1)
+            Positioned(
+              key: Key('estateStage_${e.id}'),
+              top: size * 0.3,
+              child: Container(
+                width: size * 0.7,
+                height: size * 0.45,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(size),
+                  boxShadow: const [BoxShadow(color: Color(0x99FFB74D), blurRadius: 16, spreadRadius: 3)],
+                ),
+              ),
+            ),
           Positioned(
             top: 0,
             child: Image.asset(ErbardRules.estateIcon(e),
@@ -346,6 +363,13 @@ class _ErbardScreenState extends State<ErbardScreen> {
             Positioned(
               top: size * 0.92 + 17,
               child: _Dots(broken: prog, defend: mine),
+            ),
+          if ((v.stages[e.id] ?? 0) >= 2)
+            Positioned(
+              top: size * 0.45,
+              right: -size * 0.12,
+              child: Image.asset('assets/images/fac_market.webp',
+                  width: size * 0.42, height: size * 0.42, errorBuilder: (_, __, ___) => const SizedBox()),
             ),
           if (rally)
             Positioned(
@@ -380,6 +404,8 @@ class _ErbardScreenState extends State<ErbardScreen> {
             fullscreenDialog: true, builder: (_) => ErbardBattleScreen(controller: c, battle: b, estate: e, hunt: true)));
       case 'garrison':
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => GarrisonScreen(controller: c, estate: e)));
+      case 'manage':
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EstateManageScreen(controller: c, estate: e)));
       case 'rally':
         final ok = await c.setRally(e.id);
         if (!mounted) return;
@@ -539,6 +565,15 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
                       label: '수비대 보기 · 세우기',
                       height: 44,
                       onPressed: () => Navigator.pop(sheet, 'garrison')),
+                ],
+                // 묶음 65 #255: 영지 관리 (시설 · 특산물 · 번영도 · 정책 · 주민 의뢰)
+                if (mine) ...[
+                  const SizedBox(height: 6),
+                  FrameButton(
+                      key: const Key('estateManage'),
+                      label: '영지 관리',
+                      height: 44,
+                      onPressed: () => Navigator.pop(sheet, 'manage')),
                 ],
                 if (!e.royal) ...[
                   const SizedBox(height: 6),

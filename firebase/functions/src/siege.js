@@ -152,6 +152,8 @@ class SiegeService {
     });
     // 묶음 65: 공성전 동안 걸음은 길드 게이지에도 (진짜 앱 확인 실패 · 손 입력 걸음은 빼고 — 앱이 손 입력을 이미 뺌)
     if (added > 0 && !(me && me.__bad)) await this._addGauge(uid, added);
+    // 묶음 65 #255: 같은 걸음이 우리 영지 주민 의뢰에도
+    if (added > 0 && !(me && me.__bad)) await this._addRequestSteps(uid, added);
     return out;
   }
 
@@ -361,6 +363,8 @@ class SiegeService {
   async settle(n) {
     const w = await this._world();
     if (w.settled >= n) return w.last;
+    // 묶음 65 #255: 주인이 바뀌기 전에 그날 특산물까지 원래 주인 창고에
+    await this._produceAll(w);
     const changes = [];
     const runs = await this.db.collection('siegeRun').where('no', '==', n).get();
     const guilds = {};
@@ -480,9 +484,12 @@ class SiegeService {
     const to = siegeEnd(n);
     const logs = await this.db.collection('marketLog').where('at', '>=', from).get();
     const fees = logs.docs.map((d) => d.data()).filter((x) => x.at < to).reduce((a, x) => a + (Number(x.fee) || 0), 0);
-    const wall = Object.values(weights).reduce((a, b) => a + b, 0);
+    // 묶음 65 #255: 시장 · 교역 정책이 있으면 몫이 조금 더
+    const feeW = {};
+    for (const [id, o] of Object.entries(w.owners)) if (o && o.gid !== NPC) feeW[o.gid] = (feeW[o.gid] || 0) + weight(id) * (await this._devFee(id));
+    const wall = Object.values(feeW).reduce((a, b) => a + b, 0);
     if (fees > 0 && wall > 0) {
-      for (const [gid, wt] of Object.entries(weights)) {
+      for (const [gid, wt] of Object.entries(feeW)) {
         const add = Math.floor((fees * FEE_SHARE * wt) / wall);
         if (add <= 0) continue;
         const ref = this.db.doc(`guilds/${gid}`);
@@ -624,6 +631,8 @@ class SiegeService {
       defense,
       news: g ? (g.news || []).slice(-15).reverse() : [],
       crownStreak: w.crown && w.crown === gid ? w.crownStreak || 0 : 0,
+      // 묶음 65 #255: 영지 번영 단계 (지도 아이콘이 커짐)
+      stages: ((await this.db.doc('erbard/stages').get()).data() || {}).s || {},
       restricted: await this._restricted(uid),
     };
   }
@@ -681,7 +690,8 @@ class SiegeService {
     if (e.id === 'royal' && (w.crownStreak || 0) > 1) stepBonus *= Math.max(0.4, 1 - T.crownDecay * (w.crownStreak - 1));
     // 묶음 61: 길드 금고로 강화한 수비대 (다음 공성전 끝까지)
     const boost = gs.boost && gs.boost.until > now ? T.boostMult[Math.max(0, Math.min(T.boostMult.length - 1, gs.boost.level - 1))] || 0 : 0;
-    const bonus = stepBonus + boost;
+    // 묶음 65 #255: 성벽 · 감시탑 · 방어 우선 정책
+    const bonus = stepBonus + boost + (await this._devDefense(e.id));
     const avg = ms.length ? Math.round(ms.reduce((a, m) => a + (Number(m.level) || 1), 0) / ms.length) : lv;
     return {
       kind: 'siege',
@@ -902,6 +912,8 @@ class SiegeService {
     return this.state(uid);
   }
 }
+
+Object.assign(SiegeService.prototype, require('./estate').EstateMixin);
 
 module.exports = {
   runExpire,

@@ -8,6 +8,12 @@ import 'package:isekai_reality/core/models/player_state.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/features/status/step_chest_row.dart';
 
+import 'package:isekai_reality/core/models/act5_state.dart';
+import 'package:isekai_reality/features/act5/estate_manage_screen.dart';
+
+import 'batch52_test.dart' as b52;
+import 'batch56_test.dart' as b56;
+import 'batch60_test.dart' as b60;
 import 'support/npc_seed.dart';
 
 final _d20 = DateTime(2026, 11, 20);
@@ -94,6 +100,68 @@ void main() {
       expect(c.stepChests.map((x) => (x.$1.day, x.$2)), [(20, 0)]);
       final c2 = await walker({'2026-11-20': 12100, '2026-11-22': 300}, more: y, at: DateTime(2026, 11, 22, 9));
       expect(c2.stepChests, isEmpty);
+    });
+  });
+
+  group('#255 영지 관리', () {
+    setUp(() => b56.now = b52.t0);
+    const ch3 = Act5State(opened: true, chapter: 3, seen: {'e1a', 'e1b', 'e1c', 'e2a', 'e2b'}, ticketAt: -60000);
+
+    test('시설 짓기 · 기부 · 정책 · 특산물 받기 · 번영 단계는 지도에', () async {
+      final (c, a) = await b60.act5(guild: true, state: ch3);
+      a.siegeOwners['sol_lily'] = {'gid': 'mine', 'name': '새벽걸음', 'emblem': 0, 'color': 0};
+      a.treasury = 10000;
+      a.stages['sol_lily'] = 1;
+      a.guildStore['lightRelic'] = 6;
+      b56.now = DateTime(2026, 12, 1, 10);
+      await c.refreshErbard();
+      expect(c.erbard.stages['sol_lily'], 1);
+      expect(await c.refreshEstateDev(), isTrue);
+      final d = c.estateDev!.of('sol_lily')!;
+      expect(d.slots, 4);
+      expect(d.special, 'light');
+      expect(EstateDevRules.buildable(ErbardRules.estate('sol_lily')!), ['wall', 'tower', 'market', 'light']);
+      // 기부 재료가 없으면 못 지음
+      expect(await c.buildFacility('sol_lily', 'light'), isFalse);
+      expect(c.estateErrorText(), contains('기부한 재료'));
+      // 기부: 가방에서 빠짐
+      final m = c.donatableMats.first.$1;
+      final before = c.player.materialCount(m);
+      expect(await c.donateEstate('sol_lily', {m: 1}), isTrue);
+      expect(c.player.materialCount(m), before - 1);
+      a.matPool = 100;
+      expect(await c.buildFacility('sol_lily', 'light'), isTrue);
+      expect(c.estateDev!.of('sol_lily')!.fac['light'], 1);
+      // 정책: 한 번만
+      expect(await c.setEstatePolicy('sol_lily', 'trade'), isTrue);
+      expect(c.estateDev!.of('sol_lily')!.policy, 'trade');
+      expect(await c.setEstatePolicy('sol_lily', 'defense'), isFalse);
+      // 특산물 받기 → 가방
+      final got = await c.takeSpecialty(MaterialId.lightRelic);
+      expect(got, isNotNull);
+      expect(c.player.materialCount(MaterialId.lightRelic), 1);
+      expect(Materials.info(MaterialId.lightRelic).asset, 'assets/images/mat_lightRelic.webp');
+    });
+
+    testWidgets('영지 관리 화면이 열림', (tester) async {
+      late AppController c;
+      await tester.runAsync(() async {
+        final (cc, a) = await b60.act5(guild: true, state: ch3);
+        c = cc;
+        a.siegeOwners['sol_lily'] = {'gid': 'mine', 'name': '새벽걸음', 'emblem': 0, 'color': 0};
+        a.guildStore['lightRelic'] = 4;
+        b56.now = DateTime(2026, 12, 1, 10);
+        await c.refreshErbard();
+        await c.refreshEstateDev();
+      });
+      tester.view.physicalSize = const Size(1200, 6000);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(home: EstateManageScreen(controller: c, estate: ErbardRules.estate('sol_lily')!)));
+      await tester.pump(const Duration(milliseconds: 300));
+      for (final k in ['estateProsperity', 'estateFacilities', 'fac_light', 'estatePolicy', 'policy_plenty', 'estateRequest', 'store_lightRelic', 'estateDonate']) {
+        expect(find.byKey(Key(k)), findsOneWidget, reason: k);
+      }
     });
   });
 }

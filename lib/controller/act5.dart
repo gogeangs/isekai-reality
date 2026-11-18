@@ -37,7 +37,11 @@ class ErbardView {
     this.news = const [],
     this.crownStreak = 0,
     this.lastVanguards = const {},
+    this.stages = const {},
   });
+
+  /// 묶음 65 #255: 영지 번영 단계 (0 마을 · 1 고을 · 2 도시, 지도 아이콘이 커짐)
+  final Map<String, int> stages;
 
   /// 묶음 65 #251: 집결 깃발 (이번 공성전) · 길드 게이지 · 공성 망치로 흔든 자리 · 우리 영지 전황 · 게시판 소식
   final ({String estate, DateTime at, DateTime nextAt})? rally;
@@ -184,6 +188,9 @@ class ErbardView {
           if (x is Map) (at: t(x['at']) ?? DateTime(2026), text: '${x['text'] ?? ''}'),
       ],
       crownStreak: (j['crownStreak'] as num?)?.toInt() ?? 0,
+      stages: {
+        for (final e in ((j['stages'] as Map?) ?? const {}).entries) '${e.key}': (e.value as num).toInt(),
+      },
       lastVanguards: {
         for (final e in (((last?['vanguards']) as Map?) ?? const {}).entries) '${e.key}': '${e.value}',
       },
@@ -772,6 +779,8 @@ extension Act5Ops on AppController {
     final r = await finishAct3Fight(b);
     final e = id == null ? null : ErbardRules.estate(id);
     if (!r.won || e == null || !erbard.myEstates.contains(e.id)) return r;
+    // 묶음 65 #255: 우리 영지 사냥은 번영도 (서버가 하루 상한을 셈)
+    unawaited(_siegeCall('/siege/estate/hunt', {'estate': e.id}));
     final extra = (Act3Rules.fieldExp * ErbardRules.ownedHuntBonus).round();
     final gifts = <String, int>{Wallet.exp: math.max(1, extra)};
     if (_random.nextDouble() < 0.3) gifts[ErbardRules.provinceMat(e.province!).name] = 1;

@@ -144,6 +144,12 @@ enum MaterialId {
   ancientScale,
   lichRelic,
   tortoiseShell,
+  // 묶음 65 #255: 영지 특산물 (길드 창고에서 받음)
+  lightRelic,
+  metalOre,
+  earthWood,
+  darkCrystal,
+  fireStone,
 }
 
 class MaterialInfo {
@@ -384,6 +390,12 @@ class Materials {
         rare: true, price: 60, processed: true),
     MaterialInfo(MaterialId.stonePoison, '독의 마석', '공방에서 속성 물약을 만들 때 써요. (마석 정제로 만들어요)',
         rare: true, price: 60, processed: true),
+    // 묶음 65 #255: 영지 특산물
+    MaterialInfo(MaterialId.lightRelic, '성스러운 백합', '빛의 성당이 있는 영지에서 나는 특산물이에요. 거래소에 내놓을 수 있어요.', rare: true, price: 120),
+    MaterialInfo(MaterialId.metalOre, '청동 광석', '드워프 광산이 있는 영지에서 나는 특산물이에요. 거래소에 내놓을 수 있어요.', rare: true, price: 120),
+    MaterialInfo(MaterialId.earthWood, '엘프 고목 가지', '엘프 목재소가 있는 영지에서 나는 특산물이에요. 거래소에 내놓을 수 있어요.', rare: true, price: 120),
+    MaterialInfo(MaterialId.darkCrystal, '안개 결정', '결정 우물이 있는 영지에서 나는 특산물이에요. 거래소에 내놓을 수 있어요.', rare: true, price: 120),
+    MaterialInfo(MaterialId.fireStone, '용암석', '용암 용광로가 있는 영지에서 나는 특산물이에요. 거래소에 내놓을 수 있어요.', rare: true, price: 120),
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);

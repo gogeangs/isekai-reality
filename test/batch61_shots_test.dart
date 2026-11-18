@@ -173,7 +173,8 @@ void main() {
       await tester.scrollUntilVisible(find.byKey(const Key('guildBoard')), 300, scrollable: find.byType(Scrollable).first);
       await _settle(tester);
       await _shot(tester, '${n}_04_게시판_금고기록');
-      await tester.scrollUntilVisible(find.byKey(const Key('treasuryShare')), -300, scrollable: find.byType(Scrollable).first);
+      await Scrollable.ensureVisible(tester.element(find.byKey(const Key('treasuryShare'))), alignment: 0.5);
+      await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('treasuryShare')));
       await _settle(tester);
       await _shot(tester, '${n}_05_나눠주기');

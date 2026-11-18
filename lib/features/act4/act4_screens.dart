@@ -1279,9 +1279,9 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
           Text('길드 게시판 · 한마디', style: AppText.title(15)),
           const SizedBox(height: 6),
           // 묶음 61: 금고 쓰기 기록 (누가 · 무엇에 · 얼마)
-          for (final t in g.treasuryLog.take(5))
+          for (final (i, t) in g.treasuryLog.take(5).indexed)
             Padding(
-              key: const Key('guildTreasuryLog'),
+              key: Key('guildTreasuryLog_$i'),
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Text.rich(TextSpan(children: [
                 const WidgetSpan(

@@ -77,6 +77,7 @@ part 'controller/jobs.dart';
 part 'controller/jobs57.dart';
 part 'controller/lens.dart';
 part 'controller/mail.dart';
+part 'controller/market.dart';
 part 'controller/mastery.dart';
 part 'controller/npc.dart';
 part 'controller/npc_small.dart';
@@ -209,6 +210,10 @@ class AppController extends ChangeNotifier {
   /// 묶음 53: 지금 하는 3막 싸움 · 주민 대화 횟수 (앱을 켠 동안)
   A3Enc? _a3Enc;
   final Map<String, int> _a3Talk = {};
+  // 묶음 58: 거래소 · 심층 순위
+  bool _marketBusy = false;
+  String? _marketError;
+  Region? _deepRegion;
   bool _cloudBusy = false;
   BackupInfo? _serverChoice;
 

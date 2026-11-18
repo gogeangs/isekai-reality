@@ -17,7 +17,7 @@ extension HarvestOps on AppController {
     // 묶음 28 #181: 막 열린 채집 자리 하나는 그날 내 가까이에 (안내 자리)
     final spots = _baseHarvestSpots();
     final guides = _guideHarvestSpots();
-    final path = [..._pathFindSpots(), ..._skySpots(), ..._breadSpots()];
+    final path = [..._pathFindSpots(), ..._skySpots(), ..._breadSpots(), ..._regionMatSpots()];
     if (guides.isEmpty && path.isEmpty) return spots;
     return [...path, ...guides, ...spots];
   }
@@ -66,7 +66,7 @@ extension HarvestOps on AppController {
 
   /// 길 찾기 보물 상자인지 (도구 없이 연다)
   bool isTreasure(HarvestSpot s) =>
-      s.id.startsWith('pf-chest-') || _isSkyChest(s);
+      s.id.startsWith('pf-chest-') || _isSkyChest(s) || _isRegionMat(s);
 
   /// 방금 연 보물 상자의 금화
   int get lastTreasureGold => _lastTreasureGold;
@@ -80,6 +80,8 @@ extension HarvestOps on AppController {
         }
         // 묶음 49 #235: 무가 찾은 하늘 상자
         if (_isSkyChest(s)) return _openSky(s);
+        // 묶음 58: 등불 켠 지역 재료
+        if (_isRegionMat(s)) return _openRegionMat(s);
         final key = int.tryParse(s.id.substring('pf-chest-'.length));
         if (key == null || _jobs.marks['pfChestOpened'] == key % 1000000000) {
           return null;
@@ -396,7 +398,7 @@ extension HarvestOps on AppController {
       final k = mats.keys.first;
       mats[k] = mats[k]! + 1;
     }
-    // 묶음 57 #244: 고르(베히모스)와 함께면 가끔 하나 더 · 마레(리바이어던)와 물가에선 가끔 귀한 재료
+    // 묶음 57 #244: 고르(베히모스)와 함께면 채집할 때 가끔 하나 더 (마레는 묶음 58부터 물가를 걸을 때 — _mareWalk)
     // 묶음 57 #249: 숲의 각인(생산 주 + 보조 채집가) → 가끔 하나 더 (숨김)
     if (mats.isNotEmpty) {
       final more = (_heroWith(PetSpecies.behemoth) ? PetRules.behemothExtra : 0) +
@@ -404,12 +406,6 @@ extension HarvestOps on AppController {
       if (more > 0 && _random.nextDouble() < more) {
         final k = mats.keys.first;
         mats[k] = mats[k]! + 1;
-      }
-      if (s.kind == HarvestKind.water &&
-          _heroWith(PetSpecies.leviathan) &&
-          _random.nextDouble() < PetRules.leviathanFind) {
-        final r = HarvestRules.info(s.kind).rare;
-        mats[r] = (mats[r] ?? 0) + 1;
       }
     }
     final seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;

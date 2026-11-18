@@ -167,6 +167,55 @@ extension HeroPetOps on AppController {
     await _savePets(p.copyWith(heroDay: day, heroWalk: today.steps));
   }
 
+  /// 묶음 58: 별가루 장화 · 마레(리바이어던)와 물가 근처(물 채집 자리 300m 안)를 걸으면 1,000보마다 가끔 귀한 물 재료.
+  /// 하루 [PetRules.leviathanPerDay] 번까지, 우편으로 (숨김)
+  Future<void> _mareWalk() async {
+    final today = player.today;
+    if (today == null) return;
+    final done = today.counters['mareSteps'] ?? 0;
+    final k = today.steps ~/ 1000 - done ~/ 1000;
+    if (k <= 0) return;
+    var found = 0;
+    final fix = _lastFix;
+    final near = fix != null &&
+        _heroWith(PetSpecies.leviathan) &&
+        harvestSpots.any((s) => s.kind == HarvestKind.water && s.point.distanceTo(fix.point) <= 300);
+    if (near) {
+      final left = PetRules.leviathanPerDay - (today.counters['mareFind'] ?? 0);
+      for (var i = 0; i < k && found < left; i++) {
+        if (_random.nextDouble() < PetRules.leviathanFind) found++;
+      }
+    }
+    // 묶음 58: 별가루 장화를 신고 걸으면 가끔 별가루 (하루 몇 번까지, 숨김)
+    var dust = 0;
+    if (_armory.items.any((i) => i.base == EquipBase.uniqStardustBoots && _armory.isWorn(i))) {
+      final left = RegionRules.stardustBootsPerDay - (today.counters['bootsFind'] ?? 0);
+      for (var i = 0; i < k && dust < left; i++) {
+        if (_random.nextDouble() < RegionRules.stardustBootsFind) dust++;
+      }
+    }
+    await _save(today.copyWith(
+        counters: DailyRecord.addCounts(today.counters, {
+      'mareSteps': today.steps - done,
+      if (found > 0) 'mareFind': found,
+      if (dust > 0) 'bootsFind': dust,
+    })));
+    if (dust > 0) await _grant(0, 0, {MaterialId.stardust: dust}, over: BagOver.mail, title: '별가루 장화');
+    if (found > 0) {
+      final name = heroCompanion?.name ?? '마레';
+      final rare = HarvestRules.info(HarvestKind.water).rare;
+      await _sendMail(MailItem(
+        id: 'mare:${today.dayKey}:${today.steps}',
+        kind: MailKind.reward,
+        from: name,
+        title: '$name가 물가에서 주워 왔어요',
+        body: '물가를 걷는 동안 $name가 반짝이는 것을 물어 왔어요.',
+        gifts: {rare.name: found},
+        sentAt: _clock(),
+      ));
+    }
+  }
+
   // ───────────── 마을 사람 한마디 (처음 만날 때 한 번)
 
   /// 루미·포포·세라가 영웅 펫을 처음 볼 때 한마디 (없으면 null). 한 번 꺼내면 본 것으로

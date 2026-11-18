@@ -713,9 +713,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
       id: 'harvest_${h.id}',
       position: _ll(h.point),
       anchor: guide ? const NPoint(0.5, 0.5) : const NPoint(0.5, 1),
-      icon: NOverlayImage.fromAssetImage(c.isTreasure(h)
-          ? 'assets/images/map_treasure.webp'
-          : h.info.mapAsset),
+      icon: NOverlayImage.fromAssetImage(switch (c.regionOfSpot(h)) {
+        // 묶음 58: 등불 켠 지역 재료는 그 재료 그림
+        final r? => 'assets/images/mat_${r.mapMat.name}.webp',
+        null => c.isTreasure(h) ? 'assets/images/map_treasure.webp' : h.info.mapAsset,
+      }),
       size: Size(base, base),
       caption: _dots(c.isTreasure(h) ? 0 : c.harvestCharges(h), 1),
     )..setOnTapListener((_) {

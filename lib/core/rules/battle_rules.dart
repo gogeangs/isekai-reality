@@ -1206,6 +1206,22 @@ class Battle {
   /// 다음 보통 공격이 꼭 치명타
   bool nextCrit = false;
 
+  // ───────────── 묶음 58: 3막 이름 있는 장비 (숨김)
+
+  /// 매 턴 이 확률로 최대 HP의 [regenRatio] 만큼 참 (모모의 꽃 화관)
+  double regenChance = 0;
+  double regenRatio = 0;
+
+  /// 묶인 적에게 주는 피해 더 (아르벨의 잎새 단검)
+  double boundBoost = 0;
+
+  /// 매 턴 이 확률로 동료 HP가 조금 참 (루시의 빛꽃)
+  double allyRegenChance = 0;
+
+  /// 회복 물약을 쓰면 동료도 이만큼 참 (왕의 나눔 망토, 동료 최대 HP 비율)
+  double potionShare = 0;
+  static const double regenRatioAlly = 0.05;
+
   /// 지금 몬스터가 잿빛 몬스터인지
   bool get foeIsAsh =>
       phase == BattlePhase.fighting && foe.monster.name.startsWith('ash');
@@ -1283,6 +1299,7 @@ class Battle {
     if (foeBreakTurns > 0) d *= breakTaken;
     if (rallyTurns > 0) d *= rallyAttack;
     if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
+    if (boundBoost > 0 && foeBindTurns > 0) d *= 1 + boundBoost;
     var dmg = math.max(1, d.round());
     if (crit) {
       dmg = (dmg * StatRules.critMultiplier).round();
@@ -1797,6 +1814,11 @@ class Battle {
         playerHp = math.min(playerMaxHp,
             playerHp + (playerMaxHp * p.hpRatio * (1 + healBoost)).round());
         _healed(playerHp - before);
+        if (potionShare > 0) {
+          for (final a in allies) {
+            if (a.hp > 0) a.hp = math.min(a.maxHp, a.hp + math.max(1, (a.maxHp * potionShare).round()));
+          }
+        }
     }
     _potionLeft[key] = potionLeft(key) - 1;
     potionsUsed[key] = (potionsUsed[key] ?? 0) + 1;
@@ -1958,6 +1980,17 @@ class Battle {
     lastBash = false;
     lastGuard = null;
     lastEvent = null;
+    // 묶음 58: 이름 있는 장비 회복 (숨김)
+    if (regenChance > 0 && playerHp > 0 && playerHp < playerMaxHp && _rng.nextDouble() < regenChance) {
+      final before = playerHp;
+      playerHp = math.min(playerMaxHp, playerHp + math.max(1, (playerMaxHp * regenRatio).round()));
+      _healed(playerHp - before);
+    }
+    if (allyRegenChance > 0 && _rng.nextDouble() < allyRegenChance) {
+      for (final a in allies) {
+        if (a.hp > 0) a.hp = math.min(a.maxHp, a.hp + math.max(1, (a.maxHp * regenRatioAlly).round()));
+      }
+    }
     lastCrit = false;
     lastSuper = false;
     lastHealed = 0;

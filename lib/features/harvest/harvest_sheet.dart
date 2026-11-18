@@ -471,6 +471,12 @@ Future<void> _showTreasure(
               final p = c.lastPoint;
               final near = p != null &&
                   spot.point.distanceTo(p) <= HarvestRules.reachM;
+              // 묶음 58: 등불을 켠 3막 지역 재료
+              final reg = c.regionOfSpot(spot);
+              final title = reg == null ? '숨은 보물 상자' : '${Act3Rules.region(reg.region).name}의 재료';
+              final sub = reg == null
+                  ? '길 찾기로 찾은 상자예요. 금화와 재료가 들어 있어요'
+                  : '등불이 켜진 저쪽 세계에서 흘러온 재료예요. ${Materials.info(reg.mapMat).name}이(가) 반짝여요';
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -483,10 +489,10 @@ Future<void> _showTreasure(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('숨은 보물 상자', style: AppText.title(19)),
+                          Text(title, style: AppText.title(19)),
                           const SizedBox(height: 4),
-                          const Text('길 찾기로 찾은 상자예요. 금화와 재료가 들어 있어요',
-                              style: TextStyle(
+                          Text(sub,
+                              style: const TextStyle(
                                   color: AppColors.textMuted, fontSize: 13)),
                         ],
                       ),
@@ -494,7 +500,7 @@ Future<void> _showTreasure(
                   ]),
                   const SizedBox(height: 16),
                   GoldButton(
-                    label: near ? '상자 열기' : '가까이 가면 열 수 있어요',
+                    label: near ? (reg == null ? '상자 열기' : '줍기') : '가까이 가면 열 수 있어요',
                     onPressed: !near
                         ? null
                         : () async {
@@ -507,7 +513,7 @@ Future<void> _showTreasure(
                               for (final e in mats.entries)
                                 '${Materials.info(e.key).name} +${e.value}',
                             ].join(', ');
-                            showTopNotice(context, '보물 상자를 열었어요! $line',
+                            showTopNotice(context, reg == null ? '보물 상자를 열었어요! $line' : '주웠어요! $line',
                                 icon: Icons.inventory_2_rounded);
                           },
                   ),

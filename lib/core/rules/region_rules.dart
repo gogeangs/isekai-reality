@@ -61,7 +61,11 @@ class RQuest {
     this.place,
     this.target = 1,
     this.line = '',
+    this.embers = false,
   });
+
+  /// 묶음 58: 테스 「다섯 불의 기록」 — 걸음에 더해 다섯 지역 불씨(그 지역에 들어갈 때 하나씩)도 모아야 끝남
+  final bool embers;
 
   final String id;
 
@@ -226,6 +230,14 @@ class RegionContent {
   final bool shopDark;
 
   String get prefix => region.name;
+
+  /// 묶음 58: 현실 지도에 나오는 이 지역 재료
+  MaterialId get mapMat => switch (region) {
+        Region.selenia => MaterialId.stardust,
+        Region.elowin => MaterialId.gemEarth,
+        Region.morval => MaterialId.gemDark,
+        _ => MaterialId.fireCore,
+      };
   RResident resident(String id) => residents.firstWhere((r) => r.id == id);
   RQuest quest(String id) => quests.firstWhere((q) => q.id == id);
 }
@@ -235,6 +247,13 @@ abstract final class RegionRules {
 
   /// 서브 퀘스트 보상: 모집권 1 + 금화
   static const int sideTickets = 1;
+
+  /// 묶음 58: 등불 켠 지역 재료가 현실 지도에 나올 확률(지역마다 하루) · 거리
+  static const double mapMatChance = 0.6;
+  static const double mapMatMinM = 200, mapMatMaxM = 600;
+
+  /// 묶음 58: 다섯 불씨 (지역 수)
+  static const int embersNeed = 5;
   static const int sideGold = 100;
   static const int matsEach = 2;
 
@@ -357,19 +376,30 @@ abstract final class RegionRules {
   /// 이름 있는 장비 숨은 효과 (숨김)
   static const double grumHammerPerLevel = 0.02; // 강화 단계가 높을수록 피해 더
   static const double blackLanternGold = 0.15; // 이기면 금화 조금 더
-  static const double stardustBootsFind = 0.10; // 걸으면 가끔 별가루 (1,000보마다)
-  static const double momoWreathRegen = 0.12; // 싸움 중 가끔 HP 조금
+  static const double stardustBootsFind = 0.10; // 묶음 58: 1,000보마다 이 확률로 별가루 1 (하루 3번까지)
+  static const int stardustBootsPerDay = 3;
+  static const double momoWreathRegen = 0.12; // 묶음 58: 매 턴 이 확률로 HP 조금
+  static const double momoWreathRatio = 0.04;
   static const double arbelBound = 0.20; // 묶인 적에게 피해 더
-  static const double elderHeartGarden = 0.15; // 약초밭이 조금 빨리
-  static const double lucyFlowerHeal = 0.10; // 회복 물약 더
-  static const double kingCloakShare = 0.08; // 동료가 받는 피해 덜
+  static const double elderHeartGarden = 0.15; // 묶음 58: 약초밭이 이만큼 빨리 (자라는 시간 줄어듦)
+  static const double lucyFlowerAllyRegen = 0.10; // 묶음 58: 매 턴 이 확률로 동료 HP 조금
+  static const double kingCloakPotion = 0.08; // 묶음 58: 회복 물약을 쓰면 동료도 최대 HP의 이만큼
   static const double moonFangNight = 0.15; // 밤에 피해 더
   static const double teoCloakAsh = 0.10; // 잿빛에게 받는 피해 덜
-  static const double naomiStaffRegen = 0.03; // 매 턴 HP 조금
+  static const double naomiStaffEnergy = 0.25; // 묶음 58: 걸을 때 여정 기력이 이만큼 더
   static const int phoenixCharmRevive = 1; // 3막에서 한 번 버팀
 
   /// 지역 일반 세트 (숨김): 2개 받는 피해 ↓ · 4개 주는 피해 ↑ · 6개 둘 다 더
   static const double set2Taken = 0.05, set4Dealt = 0.08, set6Taken = 0.10, set6Dealt = 0.15;
+
+  /// 묶음 58: 이번 주 심층 지역 (서버 deep.js 와 같은 규칙: 2026-11-16 주부터 셀레니아 → 엘로윈 → 모르발 → 아우렐)
+  static Region deepRegionOf(DateTime now) {
+    final k = now.toUtc().add(const Duration(hours: 9));
+    final day = DateTime.utc(k.year, k.month, k.day);
+    final monday = day.subtract(Duration(days: day.weekday - 1));
+    final i = monday.difference(DateTime.utc(2026, 11, 16)).inDays ~/ 7;
+    return all[i % all.length].region;
+  }
 
   static RegionContent? of(Region r) => switch (r) {
         Region.baldrin => null,
@@ -808,8 +838,8 @@ abstract final class RegionRules {
       EquipBase.uniqMoonFang: '근위대 마구간의 짐승이 남긴 송곳니. 달밤에 빛난다.',
     },
     uniqueEffects: {
-      EquipBase.uniqLucyFlower: '회복 물약이 더 잘 채워 줘요',
-      EquipBase.uniqKingCloak: '함께 싸우는 동료가 받는 피해가 줄어요',
+      EquipBase.uniqLucyFlower: '함께 다니는 동료가 싸움 중 가끔 HP가 조금 차요',
+      EquipBase.uniqKingCloak: '회복 물약을 쓰면 동료도 함께 조금 회복해요',
       EquipBase.uniqMoonFang: '밤에 피해가 더 들어가요',
     },
     weapon: EquipBase.morvalSword,
@@ -913,8 +943,9 @@ abstract final class RegionRules {
           task: '재가 내리는 순례길에서 표식돌 세우기', line: '표식돌 하나를 다시 세웠어요',
           done: '순례자들이 다시 길을 찾을 수 있겠어요. 고마워요.'),
       RQuest(id: 'aur_record', giver: 'tess', title: '다섯 불의 기록', kind: RQKind.walk, place: 'aurel_town', target: 8000,
-          ask: '다섯 지역의 작은 불씨를 모아 주세요. 지역을 오가며 걸으면 모일 거예요.',
-          task: '다섯 지역을 오가며 8,000보 걷기', line: '',
+          embers: true,
+          ask: '다섯 지역의 작은 불씨를 모아 주세요. 지역에 들어서면 그곳 불씨가 저절로 모이고, 오가며 걸으면 기록이 채워져요.',
+          task: '다섯 지역에 들어가 불씨 모으기 · 오가며 8,000보 걷기', line: '',
           done: '다섯 불씨가 모였어요. 기록이 완성됐어요. 당신 이름을 맨 위에 적을게요.'),
       RQuest(id: 'aur_hammer', giver: 'cord', title: '스승의 망치', kind: RQKind.hunt, place: 'aurel_lava', target: 2,
           ask: '용암 협곡에 내 망치를 떨어뜨렸다. 이프리트들이 망치를 장난감 삼고 있지.',
@@ -952,7 +983,7 @@ abstract final class RegionRules {
     },
     uniqueEffects: {
       EquipBase.uniqTeoCloak: '잿빛 몬스터에게 받는 피해가 줄어요',
-      EquipBase.uniqNaomiStaff: '싸움 중 매 턴 HP가 조금 차요',
+      EquipBase.uniqNaomiStaff: '걸을 때 여정 기력이 조금 더 차요',
       EquipBase.uniqPhoenixCharm: '3막 싸움에서 쓰러져도 한 번 일어나요',
     },
     weapon: EquipBase.aurelBow,

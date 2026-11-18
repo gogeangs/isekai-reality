@@ -97,6 +97,8 @@ extension VitalsOps on AppController {
       await _advanceRelics();
       // 묶음 49 #235: 여명 — 이른 아침 걸음으로 HP·기력
       await _heroWalk();
+      // 묶음 58: 마레 — 물가를 걸으면 가끔 귀한 재료
+      await _mareWalk();
       // 묶음 50 #146: 걸음으로 하늘 깃털 · 다음 섬 알림
       await _highlandWalk();
       // 묶음 51: 고기 스튜 · 리안의 배낭 매듭 · 바르칸의 동전 주머니

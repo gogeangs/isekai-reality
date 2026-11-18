@@ -12,6 +12,8 @@ import '../tutorial/feature_tour.dart' show TourScreenMark;
 import '../party/party_tab.dart';
 import 'npc_header.dart';
 
+export 'market_screen.dart';
+
 /// 마을 새 건물 「주점」 (묶음 51 #242): 리안 · 파티 창구(서버 전엔 준비 중) · 소문판 · 한 끼 식사
 class TavernScreen extends StatefulWidget {
   const TavernScreen(
@@ -237,72 +239,6 @@ class _TavernScreenState extends State<TavernScreen> {
                   child: Text('금화 $price'),
                 ),
         ]),
-      ),
-    );
-  }
-}
-
-/// 거래소 (묶음 51 #229, 서버 전): 바르칸 · 장은 아직 안 열림 (거래는 서버 때)
-class MarketScreen extends StatelessWidget {
-  const MarketScreen({super.key, required this.controller});
-
-  final AppController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    final top = MediaQuery.paddingOf(context).top;
-    return TourScreenMark(
-      name: 'market',
-      child: Scaffold(
-        key: const Key('marketScreen'),
-        backgroundColor: AppColors.deepNight,
-        body: NightBackground(
-          header: true,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
-            children: [
-              OrnateTopBar(
-                  title: '거래소', onBack: () => Navigator.of(context).maybePop()),
-              const SizedBox(height: 6),
-              NpcHeader(controller: c, npc: Npc.barkan, guide: VillageRules.marketGuide),
-              const SizedBox(height: 10),
-              OrnatePanel(
-                key: const Key('marketClosed'),
-                child: Column(children: [
-                  Row(children: [
-                    for (final t in const ['사기', '값 정해 올리기', '경매'])
-                      Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.abyss,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
-                          ),
-                          child: Text(t,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                      ),
-                  ]),
-                  const SizedBox(height: 12),
-                  const Icon(Icons.menu_book_rounded, color: AppColors.goldBright, size: 34),
-                  const SizedBox(height: 6),
-                  const KText('장이 아직 열리지 않았어요.\n각성자들이 더 모이면 바르칸이 장을 열어요.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.text, fontSize: 13.5, height: 1.5)),
-                ]),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

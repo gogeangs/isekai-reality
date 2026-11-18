@@ -1098,6 +1098,15 @@ extension JobOps on AppController {
     }
     // 묶음 57 #244: 이그니스(드래곤)와 함께면 시작할 때 불 한 번
     if (_heroWith(PetSpecies.dragon)) b.openingFire = PetRules.dragonOpening;
+    // 묶음 58: 3막 이름 있는 장비 (숨김) — 모모의 화관 · 아르벨의 단검 · 루시의 빛꽃 · 왕의 망토
+    bool worn(EquipBase x) => _armory.items.any((i) => i.base == x && _armory.isWorn(i));
+    if (worn(EquipBase.uniqMomoWreath)) {
+      b.regenChance = RegionRules.momoWreathRegen;
+      b.regenRatio = RegionRules.momoWreathRatio;
+    }
+    if (worn(EquipBase.uniqArbelDagger)) b.boundBoost = RegionRules.arbelBound;
+    if (worn(EquipBase.uniqLucyFlower)) b.allyRegenChance = RegionRules.lucyFlowerAllyRegen;
+    if (worn(EquipBase.uniqKingCloak)) b.potionShare = RegionRules.kingCloakPotion;
     if (!_jobs.awakened) return b;
     b.weaponEnhance = _armory.wornIn(EquipSlot.weapon)?.enhance ?? 0;
     b.artisanSubs = subJobs.length;

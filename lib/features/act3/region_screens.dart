@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
+import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
@@ -421,8 +422,11 @@ class RegionTownScreen extends StatelessWidget {
 /// 퀘스트 진행 글 (걸음은 보 · 층은 「n층까지」)
 String questProgText(AppController c, RQuest q) {
   if (c.questReady(q)) return '다 했어요';
+  if (q.embers) {
+    return '불씨 ${c.embersFound}/${RegionRules.embersNeed} · 걸음 ${comma(c.questProg(q))}/${comma(q.target)}';
+  }
   return switch (q.kind) {
-    RQKind.walk => '${c.questProg(q)} / ${q.target}보',
+    RQKind.walk => '${comma(c.questProg(q))} / ${comma(q.target)}보',
     RQKind.floor => '${q.target}층까지',
     RQKind.boss => '보스',
     _ => '${c.questProg(q)} / ${q.target}',
@@ -606,6 +610,114 @@ class _Act3EndScreenState extends State<Act3EndScreen> {
           line: line,
           lineKey: 'act3End-$_i',
           onNext: _next,
+        ),
+      ),
+    );
+  }
+}
+
+
+/// 심층 주간 순위 (묶음 58): 이번 주 심층 지역 · 순위 50 · 내 순위
+class DeepRankScreen extends StatefulWidget {
+  const DeepRankScreen({super.key, required this.controller});
+
+  final AppController controller;
+
+  @override
+  State<DeepRankScreen> createState() => _DeepRankScreenState();
+}
+
+class _DeepRankScreenState extends State<DeepRankScreen> {
+  AppController get c => widget.controller;
+  DeepBoard? _b;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final b = c.cloud.signedIn ? await c.deepBoard() : null;
+    if (mounted) setState(() {
+      _b = b;
+      _loaded = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = MediaQuery.paddingOf(context);
+    final region = _b?.region ?? c.deepRegion;
+    final r = RegionRules.of(region);
+    return Scaffold(
+      key: const Key('deepRank'),
+      backgroundColor: AppColors.deepNight,
+      body: NightBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 24),
+          children: [
+            OrnateTopBar(title: '심층 순위', onBack: () => Navigator.of(context).maybePop()),
+            const SizedBox(height: 8),
+            OrnatePanel(
+              ornament: true,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('이번 주 심층 · ${Act3Rules.region(region).name}',
+                    textAlign: TextAlign.center, style: AppText.title(18)),
+                if (r != null)
+                  Text(r.dungeonName,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                const SizedBox(height: 4),
+                const KText('그 지역 던전 5층을 지나 심층으로 내려가면 가장 깊은 층이 순위에 올라요. 주가 끝나면 순위에 따라 하르트가 우편으로 상을 보내요.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                if (r != null)
+                  Text('내 기록 · 가장 깊이 ${c.regionDeepBest(r)}층',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+              ]),
+            ),
+            const SizedBox(height: 10),
+            if (!c.cloud.signedIn)
+              const KText('순위는 로그인한 각성자만 올라요. 설정에서 로그인할 수 있어요.',
+                  textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted))
+            else if (!_loaded)
+              const Center(child: CircularProgressIndicator(color: AppColors.goldBright))
+            else if (_b == null)
+              KText(MarketOps.marketErrorText(c.marketError),
+                  textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted))
+            else ...[
+              if (_b!.myRank != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('내 순위 ${_b!.myRank}위 · ${_b!.myFloor}층 (${_b!.total}명 중)',
+                      key: const Key('deepMyRank'),
+                      textAlign: TextAlign.center,
+                      style: AppText.title(16, color: AppColors.goldBright)),
+                ),
+              if (_b!.top.isEmpty)
+                const KText('이번 주엔 아직 아무도 심층에 내려가지 않았어요.',
+                    textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted)),
+              for (final t in _b!.top)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: t.me ? const Color(0x33E8C77A) : const Color(0x22FFFFFF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(children: [
+                    SizedBox(
+                        width: 40,
+                        child: Text('${t.rank}', style: AppText.title(16, color: AppColors.goldBright))),
+                    Expanded(child: Text(t.name, style: const TextStyle(color: AppColors.text, fontSize: 14))),
+                    Text('${t.floor}층', style: const TextStyle(color: AppColors.goldBright, fontSize: 14)),
+                  ]),
+                ),
+            ],
+          ],
         ),
       ),
     );

@@ -347,7 +347,7 @@ void main() {
       expect(t.rewardLabel, contains('모집권 1'));
       var seen = 0;
       for (var d = 1; d <= 20; d++) {
-        final b = BoardRules.refresh(const BoardState(), DateTime(2026, 12, d, 10), region: true);
+        final b = BoardRules.refresh(const BoardState(), DateTime(2026, 12, d, 10), regions: const ['baldrin']);
         seen += b.slots.where((s) => s.templateId?.startsWith('baldrin') ?? false).length;
       }
       expect(seen, greaterThan(0));

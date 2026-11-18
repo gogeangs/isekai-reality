@@ -531,6 +531,19 @@ class _FortScreenState extends State<FortScreen> {
               ),
               const SizedBox(height: 10),
               // 층 표시 (끝낸 층 금빛)
+              // 묶음 58: 3막 뒤 심층 주간 순위
+              if (r != null && c.act3Done)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: FrameButton(
+                    key: const Key('deepRankOpen'),
+                    label: r!.region == c.deepRegion
+                        ? '이번 주 심층 순위 · 여기예요!'
+                        : '이번 주 심층 순위 · ${Act3Rules.region(c.deepRegion).name}',
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => DeepRankScreen(controller: c))),
+                  ),
+                ),
               if (deep)
                 Row(children: [
                   const Icon(Icons.stairs_rounded, color: AppColors.goldBright),

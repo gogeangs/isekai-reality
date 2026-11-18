@@ -30,7 +30,7 @@ img.shot{max-width:100%;max-height:420px;border-radius:8px;margin-top:8px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
 @media (max-width:800px){main{grid-template-columns:1fr}}
 </style></head><body>
-<header><h1>아르카 운영</h1><span class="muted">문의 · 계정 보기</span><span id="who"></span><button id="login" class="ghost">Google 로그인</button></header>
+<header><h1>아르카 운영</h1><span class="muted">문의 · 계정 보기 · 거래 기록</span><span id="who"></span><button id="login" class="ghost">Google 로그인</button></header>
 <div id="msg" style="padding:8px 18px;color:var(--red)"></div>
 <main id="app" style="display:none">
 <section class="panel">
@@ -44,6 +44,9 @@ img.shot{max-width:100%;max-height:420px;border-radius:8px;margin-top:8px}
 <section class="panel" id="detail"><p class="muted">왼쪽에서 문의를 고르세요.</p></section>
 <section class="panel" style="grid-column:1/-1"><h3>이름 금칙어</h3><p class="muted">「## … [전체]」 아래는 이름 전체가 그 말일 때만, 나머지는 이름 안에 들어 있으면 막아요. 저장하면 5분 안에 서버와 앱에 적용돼요.</p>
 <textarea id="words" rows="12" style="width:100%"></textarea><div class="row"><button id="wsave">금칙어 저장</button><span id="winfo" class="muted"></span></div></section>
+<section class="panel" style="grid-column:1/-1"><h3>거래 기록 (읽기 전용)</h3><p class="muted">계정 번호(uid)를 넣으면 그 계정이 사고판 기록과 올려 둔 물건이 보여요. 문의 「거래」에 답할 때 써요.</p>
+<div class="row"><input id="tuid" placeholder="계정 uid" style="width:320px"><button id="tload">거래 보기</button><span id="tinfo" class="muted"></span></div>
+<table><tbody id="tlist"></tbody></table></section>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -67,12 +70,15 @@ $('detail').innerHTML='<div class="row"><b>'+esc(KIND[q.kind]||q.kind)+'</b><spa
 '<div class="row">보상 금화 <input id="rg" type="number" min="0" style="width:90px"> 마석 <input id="rm" type="number" min="0" style="width:80px"> 발자국 표 <input id="rf" type="number" min="0" style="width:80px"></div>'+
 '<div class="row"><button id="send">답 보내기</button>'+(q.email?'<a id="mail" class="muted" href="#">이메일로 답(메일 앱)</a>':'')+'<span id="sent" class="muted"></span></div>';
 if(q.hasPhoto){api('admin/photo',{id:q.id}).then((p)=>{if(p.data)$('photo').innerHTML='<img class="shot" src="data:image/jpeg;base64,'+p.data+'">';});}
-if(q.uid)$('acct').onclick=async(e)=>{e.preventDefault();const a=await api('admin/account',{uid:q.uid});$('acctbox').innerHTML='<div class="panel"><b>계정 기록 (읽기 전용)</b><pre>'+esc(JSON.stringify(a,null,2))+'</pre></div>';};
+if(q.uid)$('acct').onclick=async(e)=>{e.preventDefault();const a=await api('admin/account',{uid:q.uid});$('acctbox').innerHTML='<div class="panel"><b>계정 기록 (읽기 전용)</b><pre>'+esc(JSON.stringify(a,null,2))+'</pre></div>';$('tuid').value=q.uid;};
 $('send').onclick=async()=>{const body=$('body').value.trim();if(!body)return;$('send').disabled=true;try{const r=await api('admin/reply',{id:q.id,body,reward:{gold:+$('rg').value||0,manaStone:+$('rm').value||0,footTicket:+$('rf').value||0}});$('sent').textContent='보냈어요';if(r.mailto&&$('mail'))$('mail').href=r.mailto;await load();}catch(e){$('sent').textContent='실패: '+e.message;}finally{$('send').disabled=false;}};
 if($('mail'))$('mail').onclick=(e)=>{if($('mail').getAttribute('href')==='#'){e.preventDefault();const b=$('body').value.trim();location.href='mailto:'+encodeURIComponent(q.email)+'?subject='+encodeURIComponent('[아르카] 문의 답변')+'&body='+encodeURIComponent(b);}};}
 $('reload').onclick=load;$('fkind').onchange=load;$('fstatus').onchange=load;
 async function loadWords(){const w=await api('admin/words');$('words').value=w.text;$('winfo').textContent='부분 '+w.part+' · 전체 '+w.whole;}
 $('wsave').onclick=async()=>{$('wsave').disabled=true;try{const r=await api('admin/words/save',{text:$('words').value});$('winfo').textContent='저장했어요 · 부분 '+r.part+' · 전체 '+r.whole;}catch(e){$('winfo').textContent='실패: '+e.message;}finally{$('wsave').disabled=false;}};
+const MODE={fixed:'값 정함',auction:'경매'};
+$('tload').onclick=async()=>{const uid=$('tuid').value.trim();if(!uid)return;$('tinfo').textContent='불러오는 중…';try{const r=await api('admin/trades',{uid});if(!r.found){$('tinfo').textContent='기록이 없어요';$('tlist').innerHTML='';return;}$('tinfo').textContent='거래 '+r.trades.length+' · 올려 둔 것 '+r.open.length;
+$('tlist').innerHTML=r.trades.map((t)=>'<tr><td>'+when(t.at)+'</td><td>'+(t.side==='sell'?'판매':'구매')+' · '+esc(MODE[t.mode]||t.mode)+'</td><td>'+esc(t.name)+' ×'+esc(t.qty)+'</td><td>금화 '+esc(t.price)+' (수수료 '+esc(t.fee)+')</td><td class="muted">'+esc(String(t.side==='sell'?t.buyer:t.seller).slice(0,8).toUpperCase())+'</td></tr>').join('')+r.open.map((l)=>'<tr><td>'+when(l.at)+'</td><td>올려 둠 · '+esc(MODE[l.mode]||l.mode)+'</td><td>'+esc(l.name)+' ×'+esc(l.qty)+'</td><td>금화 '+esc(l.price||l.bid||l.start)+'</td><td class="muted">~'+when(l.endsAt)+'</td></tr>').join('')||'<tr><td class="muted">거래가 없어요</td></tr>';}catch(e){$('tinfo').textContent='실패: '+e.message;}};
 if(!READY){$('msg').textContent='운영 페이지 설정(웹 앱)이 아직 없어요. 개발에 알려 주세요.';$('login').style.display='none';}
 else{firebase.initializeApp(CFG);const auth=firebase.auth();
 $('login').onclick=()=>auth.currentUser?auth.signOut():auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());

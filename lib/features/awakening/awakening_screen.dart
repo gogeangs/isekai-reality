@@ -20,7 +20,10 @@ import '../legal/consent_screen.dart';
 /// 외형(남·여)과 이름 → 각성 장면 → 깨어나기.
 class AwakeningScreen extends StatefulWidget {
   const AwakeningScreen(
-      {super.key, required this.onAwaken, this.onTooYoung, this.now, this.onConsent});
+      {super.key, required this.onAwaken, this.onTooYoung, this.now, this.onConsent, this.onLoadRecord});
+
+  /// 묶음 64: 다른 휴대폰에서 하던 기록 불러오기 (로그인). 없으면 버튼을 숨김
+  final Future<void> Function(BuildContext context)? onLoadRecord;
 
   /// 묶음 57: 약관 동의를 마쳤을 때 (판 · 날짜를 기록에 남김)
   final Future<void> Function()? onConsent;
@@ -755,6 +758,16 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
                             ? () => setState(() => _stage = _Stage.finale)
                             : null,
                       ),
+                      if (widget.onLoadRecord != null) ...[
+                        const SizedBox(height: 6),
+                        TextButton(
+                          key: const Key('awakenLoadRecord'),
+                          onPressed: () => widget.onLoadRecord!(context),
+                          child: const Text('다른 휴대폰에서 하던 기록이 있어요 · 로그인해서 불러오기',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                        ),
+                      ],
                     ],
                   ),
                 ),

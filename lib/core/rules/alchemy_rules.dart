@@ -233,6 +233,28 @@ class AlchemyRules {
             : PotionQuality.normal;
   }
 
+  /// 묶음 66: 그 물약에 맞는 영지 특산물 (넣으면 품질 「최상」 확정)
+  static MaterialId? specialtyFor(PotionId id) => switch (id) {
+        PotionId.healSmall || PotionId.heal || PotionId.healBig || PotionId.antidote => MaterialId.lightRelic,
+        PotionId.manaSmall || PotionId.mana || PotionId.jobManaSmall || PotionId.jobMana => MaterialId.darkCrystal,
+        PotionId.steps || PotionId.plenty => MaterialId.earthWood,
+        PotionId.weaponFire || PotionId.strength => MaterialId.fireStone,
+        PotionId.weaponMetal || PotionId.vitality => MaterialId.metalOre,
+        _ => null,
+      };
+
+  /// 묶음 66: 특산물은 레시피 재료가 아니라 「더 넣는 것」 — 빼고 레시피를 맞춤
+  static bool isAdditive(MaterialId m) =>
+      m == MaterialId.lightRelic || m == MaterialId.metalOre || m == MaterialId.earthWood || m == MaterialId.darkCrystal || m == MaterialId.fireStone;
+
+  /// 특산물을 넣었을 때의 품질: 맞는 특산물이면 최상, 아니면 귀한 재료 +1 (지금 규칙)
+  static PotionQuality qualityWith(PotionId id,
+      {required bool perfect, required List<MaterialId> put, int mastery = 0}) {
+    final sp = specialtyFor(id);
+    if (sp != null && put.contains(sp)) return PotionQuality.best;
+    return quality(perfect: perfect, put: put, mastery: mastery);
+  }
+
   /// 가방 키 → 물약·품질 ('healBig**' → healBig, 최상). 수상한 물약은 null.
   static ({PotionId id, PotionQuality quality})? parseKey(String key) {
     if (key.startsWith('?:')) return null;

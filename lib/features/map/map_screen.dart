@@ -79,6 +79,39 @@ class _MapScreenState extends State<MapScreen> {
 
   AppController get controller => widget.controller;
 
+  // 묶음 66 #267: 몬스터 칸이 바뀌는 때 (30초마다 확인, 바뀌면 짧게 사라졌다 나타남)
+  Timer? _slotTimer;
+  late String _slot = controller.spawnSlot;
+  bool _slotFade = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _slotTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkSlot());
+  }
+
+  @override
+  void dispose() {
+    _slotTimer?.cancel();
+    super.dispose();
+  }
+
+  void _checkSlot() {
+    if (!mounted) return;
+    final now = controller.spawnSlot;
+    if (now == _slot) {
+      setState(() {}); // 남은 시간 줄
+      return;
+    }
+    _slot = now;
+    setState(() => _slotFade = true);
+    Future<void>.delayed(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      controller.spawnSlotChanged();
+      setState(() => _slotFade = false);
+    });
+  }
+
   /// 원정 하나를 바로 돌아오게 할지 묻는다 (묶음 18 #151). 돌아오면 결과 카드
   Future<void> _rush(Expedition ex) async {
     final done = await showRushSheet(context, controller, ex);
@@ -115,7 +148,10 @@ class _MapScreenState extends State<MapScreen> {
     return Stack(
       children: [
         Positioned.fill(
-          child: naverMapEnabled
+          child: AnimatedOpacity(
+            opacity: _slotFade ? 0.35 : 1,
+            duration: const Duration(milliseconds: 350),
+            child: naverMapEnabled
               ? _NaverMapLayer(
                   controller: controller,
                   safeTop: coverTop,
@@ -124,6 +160,7 @@ class _MapScreenState extends State<MapScreen> {
                   onRush: _rush,
                 )
               : _ExploreSummary(controller: controller),
+          ),
         ),
         // 상태 표시줄 뒤로 몬스터 이름표가 비치지 않게 가린다 (11-11 #43)
         Positioned(
@@ -215,6 +252,29 @@ class _MapScreenState extends State<MapScreen> {
                 8 +
                 (controller.featureOpen(Feature.lens) ? 62 : 0),
             child: _JourneyButton(controller: controller),
+          ),
+        // 묶음 66 #267: 몬스터가 바뀌기까지 (던전 띠 바로 위 왼쪽 작은 줄)
+        if (!tut)
+          Positioned(
+            left: 12,
+            bottom: (away ? cardBottom - 6 : MapScreen.stripH) + (card ? 150 : 0) + 2,
+            child: IgnorePointer(
+              child: Container(
+                key: const Key('spawnSlotLine'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xCC141638),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.schedule_rounded, size: 13, color: AppColors.textMuted),
+                  const SizedBox(width: 3),
+                  Text(controller.spawnSlotText,
+                      style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
           ),
         // 던전 게이지·열쇠·던전 열기 (11-11 #68): 아래 메뉴 바로 위 얇은 띠
         if (!tut)

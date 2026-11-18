@@ -313,7 +313,7 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.herbSeed,
       name: '약초 씨앗',
-      description: '약초밭에 심으면 걸을수록 자라 약초가 돼요.',
+      description: '약초밭에 심어 두면 시간이 지나며 자라 약초가 돼요.',
       price: 20,
       limit: ShopLimit.perDay,
       perLimit: 3,

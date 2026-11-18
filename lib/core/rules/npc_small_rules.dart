@@ -530,7 +530,7 @@ class NpcSmallRules {
       npc: Npc.popo,
       asset: 'item_popoDew',
       name: '포포의 이슬병',
-      text: '약초밭이 조금 덜 걸어도 자라요',
+      text: '약초밭이 조금 빨리 자라요',
       say: '저쪽 숲의 새벽 이슬을 담는 병이 있어요! 같이 채워 볼래요?!',
       stages: [
         NpcRelicStage('이슬은 새벽 공기를 좋아해요! 먼저 3,000보 걸어 주세요!', [

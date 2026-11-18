@@ -857,7 +857,6 @@ class _GarrisonScreenState extends State<GarrisonScreen> {
   Widget _repair(ErbardView v) {
     final g = v.gauge!;
     final done = g.repairs.contains(_e.id);
-    final target = g.repairTarget;
     return OrnatePanel(
       key: const Key('garrisonRepair'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -869,26 +868,26 @@ class _GarrisonScreenState extends State<GarrisonScreen> {
           Text(
               done
                   ? '이번 공성전 보수함'
-                  : target == _e.id
-                      ? '다음 보수는 여기'
+                  : g.power > 0
+                      ? '쓸 수 있는 힘 ${g.power}'
                       : '',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
         const SizedBox(height: 4),
         SiegeGaugeRow(gauge: g, mine: v.myEstates.length),
         const SizedBox(height: 4),
-        const KText('공성전 동안 길드원이 걸은 걸음으로 게이지가 차면, 우리 영지의 깨진 자리 하나를 되살려요. 영지마다 공성전에 한 번이에요.',
+        const KText('공성전 동안 길드원이 걸은 걸음으로 게이지가 차면 힘이 모여요. 길드장 · 부길드장이 그 힘으로 우리 영지의 깨진 자리 하나를 되살려요. 영지마다 공성전에 한 번이에요.',
             style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4)),
-        if (v.staff && !done && target != _e.id)
+        if (v.staff && !done)
           TextButton(
             key: const Key('garrisonRepairHere'),
-            onPressed: c.erbardBusy
+            onPressed: c.erbardBusy || g.power <= 0 || (v.defense[_e.id] ?? 0) <= 0
                 ? null
                 : () async {
-                    final ok = await c.setRepairTarget(_e.id);
-                    if (mounted) ok ? _say('다음 성벽 보수는 ${_e.name}부터 해요') : _say(ErbardRules.errorText(c.erbardError ?? ''), ok: false);
+                    final ok = await c.usePower('repair', estate: _e.id);
+                    if (mounted) ok ? _say('${_e.name}의 성벽을 보수했어요') : _say(ErbardRules.errorText(c.erbardError ?? ''), ok: false);
                   },
-            child: const Text('다음 성벽 보수는 이 영지부터'),
+            child: Text(g.power > 0 ? '모인 힘으로 이 영지 성벽 보수하기' : '게이지가 차면 성벽을 보수할 수 있어요'),
           ),
       ]),
     );
@@ -1211,6 +1210,77 @@ class SiegeGaugeRow extends StatelessWidget {
   }
 }
 
+/// 묶음 66: 쓸 수 있는 힘 · 공성 망치 / 성벽 보수 고르기 (길드장 · 부길드장)
+class SiegePowerPanel extends StatelessWidget {
+  const SiegePowerPanel({super.key, required this.controller});
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final v = c.erbard;
+    final g = v.gauge;
+    if (g == null) return const SizedBox.shrink();
+    Future<void> use(String kind) async {
+      final ok = await c.usePower(kind);
+      if (!context.mounted) return;
+      showTopNotice(context, ok ? (kind == 'ram' ? '공성 망치를 썼어요' : '성벽을 보수했어요') : ErbardRules.errorText(c.erbardError ?? ''),
+          icon: ok ? Icons.check_circle_rounded : Icons.info_outline_rounded);
+    }
+
+    final canRam = v.staff && g.power > 0 && g.rams < g.ramMax && v.rally != null;
+    final canRepair = v.staff && g.power > 0 && v.myEstates.any((id) => !g.repairs.contains(id) && (v.defense[id] ?? 0) > 0);
+    return Container(
+      key: const Key('siegePower'),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: g.power > 0 ? const Color(0x33E9C46A) : const Color(0x22000000),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.gold.withValues(alpha: g.power > 0 ? 0.7 : 0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Icon(Icons.bolt_rounded, color: AppColors.goldBright, size: 18),
+          const SizedBox(width: 4),
+          Text(g.power > 0 ? '쓸 수 있는 힘 ${g.power}' : '게이지가 차면 힘이 모여요',
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w800)),
+        ]),
+        if (v.staff) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(
+              child: TextButton(
+                key: const Key('powerRam'),
+                style: gameButtonStyle(gold: true).copyWith(minimumSize: const WidgetStatePropertyAll(Size(0, 36))),
+                onPressed: canRam && !c.erbardBusy ? () => use('ram') : null,
+                child: Text('공성 망치 ${g.rams}/${g.ramMax}', style: const TextStyle(fontSize: 13)),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: TextButton(
+                key: const Key('powerRepair'),
+                style: gameButtonStyle(gold: true).copyWith(minimumSize: const WidgetStatePropertyAll(Size(0, 36))),
+                onPressed: canRepair && !c.erbardBusy ? () => use('repair') : null,
+                child: Text('성벽 보수 ${g.repairs.length}/${v.myEstates.length}', style: const TextStyle(fontSize: 13)),
+              ),
+            ),
+          ]),
+          if (v.rally == null && g.power > 0)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('공성 망치는 집결 깃발을 꽂은 영지에 써요', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+            ),
+        ] else if (g.power > 0)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text('길드장 · 부길드장이 공성 망치나 성벽 보수에 써요', style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          ),
+      ]),
+    );
+  }
+}
+
 /// 전황판: 우리 영지 남은 자리 · 우리가 치는 영지 · 게이지 · 게시판 소식
 Future<void> showWarBoard(BuildContext context, AppController c) => showModalBottomSheet<void>(
       context: context,
@@ -1241,8 +1311,10 @@ Future<void> showWarBoard(BuildContext context, AppController c) => showModalBot
                   const SizedBox(height: 4),
                   SiegeGaugeRow(gauge: v.gauge!, mine: v.myEstates.length),
                   const SizedBox(height: 3),
-                  const KText('공성전 동안 길드원이 걸은 걸음이 쌓여요. 가득 차면 공성 망치가 집결 깃발 영지의 남은 자리 하나를 흔들고, 성벽 보수가 우리 영지의 깨진 자리 하나를 되살려요.',
+                  const KText('공성전 동안 길드원이 걸은 걸음이 쌓여요. 가득 차면 힘이 하나 모이고, 길드장 · 부길드장이 공성 망치(집결 깃발 영지의 남은 자리 하나를 흔듦)와 성벽 보수(우리 영지의 깨진 자리 하나를 되살림) 중에 골라 써요. 안 쓴 힘은 공성전이 끝나면 사라져요.',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 11.5, height: 1.4)),
+                  const SizedBox(height: 6),
+                  SiegePowerPanel(controller: c),
                 ],
                 if (v.rally != null) ...[
                   const SizedBox(height: 8),

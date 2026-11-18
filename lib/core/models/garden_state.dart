@@ -1,6 +1,6 @@
 /// 약초밭 한 칸에 심은 씨앗 (묶음 48 #230)
 class GardenPlot {
-  const GardenPlot({required this.seed, required this.day, required this.steps});
+  const GardenPlot({required this.seed, required this.day, required this.steps, this.at});
 
   /// 심은 씨앗 (재료 이름: 'herbSeed' 등)
   final String seed;
@@ -9,7 +9,11 @@ class GardenPlot {
   final String day;
   final int steps;
 
-  Map<String, dynamic> toJson() => {'seed': seed, 'day': day, 'steps': steps};
+  /// 묶음 66 #266: 심은 시각(ms, 서버 시각 기준). 이 시각부터 흐른 시간으로 자란다.
+  /// 예전 칸(걸음으로 자라던 칸)은 null → 처음 열 때 남은 걸음 비율대로 시각을 정해 둔다
+  final int? at;
+
+  Map<String, dynamic> toJson() => {'seed': seed, 'day': day, 'steps': steps, if (at != null) 'at': at};
 
   static GardenPlot? fromJson(Object? raw) {
     if (raw is! Map || raw['seed'] is! String || raw['day'] is! String) return null;
@@ -17,6 +21,7 @@ class GardenPlot {
       seed: raw['seed'] as String,
       day: raw['day'] as String,
       steps: ((raw['steps'] as num?) ?? 0).toInt(),
+      at: (raw['at'] as num?)?.toInt(),
     );
   }
 }

@@ -11,8 +11,8 @@ import '../tutorial/feature_tour.dart' show TourScreenMark;
 import 'npc_header.dart';
 
 /// 마을 새 건물 「약초밭」 (묶음 48 #230): 포포 · 밭 칸(처음 3칸 → 6칸) · 씨앗 주머니.
-/// 씨앗을 심으면 그 뒤에 걸은 걸음으로 자란다 (한 걸음이 밭 모든 칸에 함께).
-/// 칸마다 새싹 → 자람 → 다 자람(빛남) 모습 + 「약 ○보 더」. 다 자란 것은 시들지 않는다
+/// 씨앗을 심으면 시간이 지나며 자란다 (묶음 66 #266, 앱을 꺼 둬도).
+/// 칸마다 새싹 → 자람 → 다 자람(빛남) 모습 + 「약 ○시간 ○분 뒤」. 다 자란 것은 시들지 않는다
 class GardenScreen extends StatelessWidget {
   const GardenScreen({super.key, required this.controller});
 
@@ -66,12 +66,9 @@ class GardenScreen extends StatelessWidget {
                       children: [
                         Row(children: [
                           Expanded(child: Text('밭', style: AppText.title(17))),
-                          Text('오늘 ${comma(c.player.today?.steps ?? 0)}보',
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 12)),
                         ]),
                         const SizedBox(height: 4),
-                        const KText('걸은 만큼 밭 모든 칸이 함께 자라요. 다 자란 건 거둘 때까지 시들지 않아요.',
+                        const KText('심어 두면 시간이 지나며 자라요. 앱을 꺼 둬도 자라고, 다 자란 건 거둘 때까지 시들지 않아요.',
                             style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         const SizedBox(height: 10),
                         LayoutBuilder(builder: (context, box) {
@@ -169,7 +166,7 @@ class _PlotTile extends StatelessWidget {
     if (seed == null || !context.mounted) return;
     final ok = await c.plantSeed(plot.slot, seed);
     if (ok && context.mounted) {
-      showTopNotice(context, '${josa(Materials.info(seed).name, '을/를')} 심었어요. 걸으면 자라요!',
+      showTopNotice(context, '${josa(Materials.info(seed).name, '을/를')} 심었어요. 시간이 지나면 자라요!',
           icon: Icons.grass_rounded);
     }
   }
@@ -191,7 +188,7 @@ class _PlotTile extends StatelessWidget {
     } else if (p.ready) {
       line = '다 자랐어요!';
     } else {
-      line = '약 ${comma(p.left)}보 더';
+      line = p.leftText;
     }
     return Column(
       key: Key('gardenPlot_${p.slot}'),
@@ -327,7 +324,7 @@ class _SeedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final need = GardenRules.need(seed);
+    final need = GardenRules.minutesOf(seed);
     return Container(
       key: Key('seed_${seed.name}'),
       margin: const EdgeInsets.only(bottom: 6),
@@ -345,7 +342,7 @@ class _SeedRow extends StatelessWidget {
             Text('${Materials.info(seed).name} ×$count',
                 style: const TextStyle(
                     color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
-            Text('약 ${comma(need)}보 걸으면 다 자라요',
+            Text('약 ${GardenRules.hoursText(need)}이면 다 자라요',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ]),
         ),

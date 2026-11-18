@@ -91,6 +91,7 @@ class FakeArca implements ArcaApi {
   int takeLeft = 3;
   int donateLeft = 20;
   bool policyOpen = true;
+  String? helpEstate;
 
   Map<String, dynamic> estateState() => {
         'stages': stages,
@@ -109,6 +110,7 @@ class FakeArca implements ArcaApi {
                 'request': {'no': 0, 'title': '무너진 다리를 고쳐 주세요', 'goal': 20000, 'steps': 12400, 'mine': 5200, 'people': 3},
               },
         ],
+        'help': helpEstate ?? [for (final e in siegeOwners.entries) if (e.value?['gid'] == 'mine') e.key].firstOrNull,
         'treasury': treasury,
         'matPool': matPool,
         'store': guildStore,
@@ -233,6 +235,21 @@ class FakeArca implements ArcaApi {
       case '/siege/repair':
         repairTarget = id;
         return _siegeState(me);
+      case '/siege/power':
+        final g = gauge!;
+        if (((g['power'] as num?) ?? 0) <= 0) throw const ArcaApiError('no_power');
+        g['power'] = (g['power'] as num) - 1;
+        if (body['kind'] == 'ram') {
+          g['rams'] = ((g['rams'] as num?) ?? 0) + 1;
+        } else {
+          final e = '${body['estate'] ?? siegeDefense.keys.first}';
+          g['repairs'] = [...((g['repairs'] as List?) ?? const []), e];
+          siegeDefense[e] = math.max(0, (siegeDefense[e] ?? 0) - 1);
+        }
+        return _siegeState(me);
+      case '/siege/estate/help':
+        helpEstate = id;
+        return estateState();
       case '/siege/peek':
         final o = siegeOwners[id];
         final b = siegeRun[id] ?? [];

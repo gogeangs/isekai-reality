@@ -64,6 +64,7 @@ class EstateDevView {
     this.buildGold = const [],
     this.buildMats = const [],
     this.siege = false,
+    this.help,
   });
 
   factory EstateDevView.fromJson(Map<String, dynamic> j) => EstateDevView(
@@ -83,6 +84,7 @@ class EstateDevView {
         buildGold: [for (final x in (j['buildGold'] as List?) ?? const []) (x as num).toInt()],
         buildMats: [for (final x in (j['buildMats'] as List?) ?? const []) (x as num).toInt()],
         siege: j['siege'] == true,
+        help: j['help'] as String?,
       );
 
   final List<EstateDev> estates;
@@ -95,6 +97,9 @@ class EstateDevView {
   final List<int> buildGold;
   final List<int> buildMats;
   final bool siege;
+
+  /// 묶음 66: 주민 의뢰를 돕는 영지 (걸음이 이 영지 의뢰에만 들어감)
+  final String? help;
 
   EstateDev? of(String id) => estates.where((e) => e.estate == id).firstOrNull;
 }
@@ -138,6 +143,9 @@ extension EstateDevOps on AppController {
     _notify();
     return true;
   }
+
+  /// 묶음 66: 주민 의뢰를 돕는 영지 고르기 (길드장 · 부길드장)
+  Future<bool> setHelpEstate(String estate) => _estateCall('/siege/estate/help', {'estate': estate});
 
   /// 영주의 정책 (공성전이 끝난 뒤 영지별 하나)
   Future<bool> setEstatePolicy(String estate, String kind) =>

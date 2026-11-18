@@ -698,7 +698,7 @@ abstract final class RegionRules {
     uniqueEffects: {
       EquipBase.uniqMomoWreath: '싸움 중 가끔 HP가 조금 차요',
       EquipBase.uniqArbelDagger: '묶인 적에게 피해가 더 들어가요',
-      EquipBase.uniqElderHeart: '걸으면 약초밭이 조금 빨리 자라요',
+      EquipBase.uniqElderHeart: '약초밭이 조금 빨리 자람',
     },
     weapon: EquipBase.elowinStaff,
     weaponMat: MaterialId.elderBark,

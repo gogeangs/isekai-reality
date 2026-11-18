@@ -62,7 +62,7 @@ class FieldMonsterRules {
     List<MonsterId> lampMonsters = const [],
     double lampShare = 0,
   }) {
-    final key = '${day.year}-${day.month}-${day.day}';
+    final key = slotKey(day);
     final spawns = <FieldSpawn>[];
 
     bool allowed(GeoPoint p) =>
@@ -175,6 +175,38 @@ class FieldMonsterRules {
       }
     }
     return spawns;
+  }
+
+  // ───────────── 묶음 66 #267: 하루 6칸 (한국 시간 0 · 4 · 8 · 12 · 16 · 20시)
+
+  /// 이날(한국 시간)부터 칸마다 바뀜. 그 전 날은 하루 한 번 그대로
+  static final DateTime slotsSince = DateTime.utc(2026, 11, 18, 15); // 11-19 0시 KST
+
+  static const int slotHours = 4;
+
+  static DateTime _kst(DateTime t) => t.toUtc().add(const Duration(hours: 9));
+
+  /// 자리 키: 예전 '2026-11-18' 꼴(날짜만), 11-19부터 '2026-11-19@3' (칸)
+  static String slotKey(DateTime t) {
+    if (t.toUtc().isBefore(slotsSince)) return '${t.year}-${t.month}-${t.day}';
+    final k = _kst(t);
+    return '${k.year}-${k.month}-${k.day}@${k.hour ~/ slotHours}';
+  }
+
+  /// 다음 칸까지 남은 시간
+  static Duration untilNextSlot(DateTime t) {
+    final k = _kst(t);
+    final next = DateTime.utc(k.year, k.month, k.day, (k.hour ~/ slotHours + 1) * slotHours);
+    return next.difference(DateTime.utc(k.year, k.month, k.day, k.hour, k.minute, k.second));
+  }
+
+  /// 「몬스터가 바뀌기까지 1시간 20분」 (1시간 안 남으면 「○분」)
+  static String untilText(DateTime t) {
+    final d = untilNextSlot(t);
+    final m = (d.inSeconds + 59) ~/ 60;
+    final h = m ~/ 60, r = m % 60;
+    if (h <= 0) return '몬스터가 바뀌기까지 $r분';
+    return r == 0 ? '몬스터가 바뀌기까지 $h시간' : '몬스터가 바뀌기까지 $h시간 $r분';
   }
 
   /// 초반(Lv.2~5) 나에게만 보이는 몬스터 (묶음 25 #171).

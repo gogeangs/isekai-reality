@@ -63,11 +63,12 @@ void main() {
       final store = account(5);
       await store.saveVitals(const Vitals(mp: 75));
       final c = await start(store);
-      expect(c.mpMax, 60);
-      expect(c.mp, 60);
+      // 묶음 66 #270: 레벨마다 +2 (Lv.5 → 68)
+      expect(c.mpMax, 60 + 2 * (c.player.level.level - 1));
+      expect(c.mp, c.mpMax);
       final low = account(5);
       await low.saveVitals(const Vitals(mp: 33));
-      expect((await start(low)).mp, lessThanOrEqualTo(60));
+      expect((await start(low)).mp, lessThanOrEqualTo(c.mpMax));
     });
 
     test('원정에 쓰는 힘은 「기력」 (정령·펫·원정 MP 문구 없음)', () {

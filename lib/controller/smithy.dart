@@ -252,6 +252,8 @@ extension SmithyOps on AppController {
     final p = player;
     if (p.manaStones < cost.manaStones) return CraftCheck.manaStones;
     if (p.gold < cost.gold) return CraftCheck.gold;
+    final sp = EquipmentRules.enhanceSpecial(item.slot, item.enhance + 1);
+    if (sp != null && p.materialCount(sp.mat) < sp.n) return CraftCheck.materials;
     return CraftCheck.ok;
   }
 
@@ -265,10 +267,11 @@ extension SmithyOps on AppController {
     if (sure) await _useWhetstone();
     final to = item.enhance + 1;
     final cost = EquipmentRules.enhanceCost(to);
+    final sp = EquipmentRules.enhanceSpecial(item.slot, to);
     final today = await _todayRecord();
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends,
-          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
     ));
     // 묶음 31 #193: 집중 단조 → 성공률이 오르고(화면 %에도), 실패해도 무사 (쓴 마석·금화를 돌려받음)
     final focus = await _consumeSkill(JobSkill.focusForge);
@@ -283,7 +286,7 @@ extension SmithyOps on AppController {
       final t = await _todayRecord();
       await _save(t.copyWith(
         gains: DailyRecord.addCounts(t.gains,
-            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold}),
+            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
       ));
     }
     _lastEnhanceSafe = safe;
@@ -322,7 +325,17 @@ extension SmithyOps on AppController {
 
   /// 대장간 장비 속성 작업 (11-11 #74, NPC 도르군).
   /// 실패하면 금화만 잃고 빛나는 속성 코어는 돌려받는다. 장비와 원래 속성은 그대로.
-  Future<SmithResult> smith(String uid, SmithAction act, {Element? to}) =>
+  /// 묶음 66: 속성 강화에 더 넣을 특산물 (가진 것 중 가장 많은 것, 없으면 null)
+  MaterialId? get extraSpecialty {
+    MaterialId? best;
+    for (final m in EstateDevRules.specialties) {
+      if (player.materialCount(m) > 0 && (best == null || player.materialCount(m) > player.materialCount(best))) best = m;
+    }
+    return best;
+  }
+
+  /// [special]: 속성 강화에 특산물 1개를 더 넣으면 실패 확률이 절반 (묶음 66, 숨김)
+  Future<SmithResult> smith(String uid, SmithAction act, {Element? to, bool special = false}) =>
       _serial(() async {
     final item = _armory.byUid(uid);
     if (item == null) return SmithResult.cannot;
@@ -344,13 +357,15 @@ extension SmithyOps on AppController {
     if (player.gold < gold || player.materialCount(core) < cores) {
       return SmithResult.cannot;
     }
+    final extra = special && act == SmithAction.upgrade ? extraSpecialty : null;
     final failed = _random.nextDouble() <
-        SmithRules.failChance(act, level: item.elementLevel);
+        SmithRules.failChance(act, level: item.elementLevel, blacksmith: blacksmith) * (extra != null ? 0.5 : 1);
     final today = await _todayRecord();
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {
         Wallet.gold: gold,
         if (!failed && cores > 0) core.name: cores,
+        if (extra != null) extra.name: 1,
       }),
     ));
     if (failed) return SmithResult.failed;

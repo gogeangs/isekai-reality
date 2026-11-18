@@ -17,7 +17,7 @@ class VitalRules {
   /// 가득 차면 기준 시각을 지금으로 옮겨, 쓰고 난 뒤부터 다시 센다.
   static (int, DateTime) regenMp(int mp, DateTime mpAt, DateTime now,
       {int max = RuleConstants.mpMax,
-      int perHour = RuleConstants.mpRegenPerHour}) {
+      num perHour = RuleConstants.mpRegenPerHour}) {
     if (mp >= max || now.isBefore(mpAt)) return (math.min(mp, max), now);
     final minutesPerPoint = 60 / perHour; // 기본 6분에 1
     final minutes = now.difference(mpAt).inSeconds / 60;
@@ -33,11 +33,17 @@ class VitalRules {
 
   /// MP가 가득 찰 때까지 남은 시간
   static Duration mpFullIn(int mp,
-      {int max = RuleConstants.mpMax, int perHour = RuleConstants.mpRegenPerHour}) {
+      {int max = RuleConstants.mpMax, num perHour = RuleConstants.mpRegenPerHour}) {
     final missing = max - mp;
     if (missing <= 0) return Duration.zero;
     return Duration(minutes: (missing * 60 / perHour).ceil());
   }
+
+  /// 묶음 66 #270: 레벨마다 최대 기력 +2 (펫 보너스는 따로 더함)
+  static int levelMp(int level) => RuleConstants.mpMax + 2 * (level < 1 ? 0 : level - 1);
+
+  /// 레벨 기력이 빈 데서 가득 차는 데 약 6시간 그대로 (1시간에 최대치의 1/6)
+  static double levelMpPerHour(int level) => levelMp(level) / 6;
 
   // ───────────────────────── HP
 

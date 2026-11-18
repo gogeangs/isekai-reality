@@ -140,3 +140,21 @@ test('주민 의뢰: 함께 걸은 걸음 → 다 걸으면 번영도 · 보상 
   await w.s.tickets('ua', { steps: 20000, __bad: true });
   assert.equal((await w.s._dev('sol_lily')).req.steps, before);
 });
+
+test('묶음 66: 주민 의뢰는 돕는 영지 한 곳에만 · 안 고르면 진행이 가장 많은 곳 · 바꾸면 그때부터', async () => {
+  const w = await world(siegeEnd(0) + DAY);
+  const ga = await w.mk('ua', '새벽', ['ub']);
+  await w.own('sol_lily', ga, '새벽');
+  await w.own('sol_bell', ga, '새벽');
+  await w.s.tickets('ua', { steps: 100 });
+  await w.s.tickets('ua', { steps: 5100 });
+  const a1 = (await w.s._dev('sol_lily')).req.steps;
+  const b1 = (await w.s._dev('sol_bell')).req.steps;
+  assert.equal(a1 + b1, 5000, '한 곳에만');
+  await assert.rejects(w.s.estateHelp('ub', { estate: 'sol_bell' }), /not_staff/);
+  const st = await w.s.estateHelp('ua', { estate: a1 ? 'sol_bell' : 'sol_lily' });
+  assert.equal(st.help, a1 ? 'sol_bell' : 'sol_lily');
+  await w.s.tickets('ua', { steps: 8100 });
+  assert.equal((await w.s._dev(a1 ? 'sol_lily' : 'sol_bell')).req.steps, 5000, '앞서 쌓인 건 그대로');
+  assert.equal((await w.s._dev(st.help)).req.steps, 3000);
+});

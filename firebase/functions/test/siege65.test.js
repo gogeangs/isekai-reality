@@ -70,7 +70,15 @@ test('공성 망치 · 성벽 보수: 공성전 동안 걸음 게이지 → 집�
   const size = T.gaugePerHead * 5;
   await w.s.state('ua', { steps: 1000, device: 'da' });
   let st = await w.s.state('ua', { steps: 1000 + size, device: 'da' });
+  // 묶음 66: 힘은 쌓여 있고 길드장이 고름
+  assert.equal(st.gauge.power, 1);
+  assert.equal(st.gauge.rams, 0);
+  assert.ok(st.news.some((x) => /게이지가 가득 찼어요/.test(x.text)));
+  await assert.rejects(w.s.usePower('ux', { kind: 'ram' }), /no_power/);
+  st = await w.s.usePower('ua', { kind: 'ram' });
   assert.equal(st.gauge.rams, 1);
+  assert.equal(st.gauge.power, 0);
+  await assert.rejects(w.s.usePower('ua', { kind: 'ram' }), /no_power/);
   assert.deepEqual(st.weak.sol_lily, [2]);
   assert.ok(st.news.some((x) => /공성 망치로 백합 들판 성 셋째 자리/.test(x.text)));
   await w.db.doc('siegeTicket/ua').set({ bank: 5, carry: 0, day: '', dayCounted: 0 });
@@ -84,6 +92,8 @@ test('공성 망치 · 성벽 보수: 공성전 동안 걸음 게이지 → 집�
   // 노을: 걸음 → 성벽 보수 (가장 많이 깨진 우리 영지, 공성전에 한 번)
   await w.s.state('ux', { steps: 10, device: 'dx' });
   st = await w.s.state('ux', { steps: 10 + size, device: 'dx' });
+  assert.deepEqual(st.gauge.repairs, []);
+  st = await w.s.usePower('ux', { kind: 'repair', estate: 'sol_lily' });
   assert.deepEqual(st.gauge.repairs, ['sol_lily']);
   assert.equal(st.defense.sol_lily, 1);
   assert.ok(st.news.some((x) => /성벽 보수로 백합 들판 성 둘째 자리를 되살렸어요/.test(x.text)));
@@ -100,7 +110,7 @@ test('공성 망치 · 성벽 보수: 공성전 동안 걸음 게이지 → 집�
   assert.deepEqual(pn.slots.map((x) => x.kind), ['blackGuard', 'blackGuard', 'blackGuard', 'blackGuard', 'blackCaptain']);
 });
 
-test('선봉장: 길드마다 가장 많이 깬 사람 · 같으면 먼저 깬 사람 · 우편 op', async () => {
+test('선봉장: 참여한 길드의 길드장 · 가장 많이 깬 사람은 소식에 이름만 · 우편 op', async () => {
   const w = await world(S0 + 3600000);
   await w.mk('ua', '새벽', ['ub', 'uc']);
   await fightAs(w.s, 'ub', { estate: 'sol_silver', slot: 0, win: true });
@@ -113,9 +123,11 @@ test('선봉장: 길드마다 가장 많이 깬 사람 · 같으면 먼저 깬 �
   w.set(siegeEnd(0) + 1000);
   const st = await w.s.state('ua');
   const mail = (uid) => w.db.collection(`inbox/u_${uid}/msgs`).get().then((q) => q.docs.map((d) => d.data()).filter((m) => m.op && m.op.vanguard === 0));
-  assert.equal((await mail('ub')).length, 1, 'ub 2 · uc 2 → 먼저 깬 ub');
+  assert.equal((await mail('ua')).length, 1, '길드장이 칭호');
+  assert.equal((await mail('ub')).length, 0);
   assert.equal((await mail('uc')).length, 0);
-  assert.ok(Object.values(st.last.vanguards).includes('ub'));
+  assert.ok(Object.values(st.last.vanguards).includes('ua'));
+  assert.ok(st.news.some((x) => /가장 많이 깬 사람 · ub님/.test(x.text)), 'ub 2 · uc 2 → 먼저 깬 ub');
 });
 
 test('흑등 연맹은 늘 3곳 이상 · 왕관의 무게: 세 번 연속이면 왕성부터 노림', async () => {

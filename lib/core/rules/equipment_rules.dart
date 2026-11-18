@@ -538,6 +538,18 @@ class EquipmentRules {
   static ({int manaStones, int gold}) enhanceCost(int to) =>
       (manaStones: to, gold: 20 * to);
 
+  /// 묶음 66: +8 · +9 · +10 으로 올릴 때 마석 · 금화에 더해 영지 특산물 1 · 2 · 3개
+  /// (무기 용암석 · 방어구 청동 광석 · 장신구 안개 결정). 실패하면 마석처럼 사라짐
+  static ({MaterialId mat, int n})? enhanceSpecial(EquipSlot slot, int to) {
+    if (to < 8) return null;
+    final mat = switch (slot) {
+      EquipSlot.weapon => MaterialId.fireStone,
+      EquipSlot.accessory => MaterialId.darkCrystal,
+      _ => MaterialId.metalOre,
+    };
+    return (mat: mat, n: to - 7);
+  }
+
   // ───────────────────────── 내구도
 
   static const int maxDurability = 100;

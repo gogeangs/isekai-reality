@@ -58,7 +58,7 @@ class VillageRules {
       };
   static const boardUrgent = '긴급 의뢰가 붙었네. 오늘 자정까지일세.';
   static const boardGuide = '오늘의 의뢰일세. 조합 의뢰는 수락해야 시작되네.';
-  static const gardenGuide = '씨앗을 심고 걸으면 자라요! 한 걸음이 밭 모든 칸에 함께 닿아요!';
+  static const gardenGuide = '씨앗을 심으면 시간이 지나며 자라요! 앱을 꺼 둬도 자라요!';
   static const shelterGuide =
       '알은 둥지에서 내가 따뜻하게 봐 줄게. 원정에서 지친 애들은 여기서 쉬면 금방 나아!';
 

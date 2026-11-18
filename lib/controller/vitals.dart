@@ -18,11 +18,12 @@ extension VitalsOps on AppController {
 
   /// 기력 최대치: 기본 60 + 펫 보너스 (지능은 빠짐, #183). 저장된 값이 더 크면
   /// [mp] 가 새 최대치까지만 보여 준다.
-  int get mpMax => StatRules.maxMp() + PetRules.mpMaxBonus(_pets.pets.length);
+  /// 묶음 66 #270: 60 + 2 × (레벨 − 1) + 펫 보너스
+  int get mpMax => VitalRules.levelMp(player.level.level) + PetRules.mpMaxBonus(_pets.pets.length);
 
-  /// 시간당 MP 회복 (두 번째 펫부터 +2, 11-11 #38)
-  int get mpRegenPerHour =>
-      RuleConstants.mpRegenPerHour + PetRules.mpRegenBonus(_pets.pets.length);
+  /// 시간당 MP 회복: 레벨 기력의 1/6 + 펫 보너스 (두 번째 펫부터 +2, 11-11 #38). 소수는 분 단위로 셈
+  double get mpRegenPerHour =>
+      VitalRules.levelMpPerHour(player.level.level) + PetRules.mpRegenBonus(_pets.pets.length);
 
   /// 여관에서 쉬는 중이면 체크인 시각
   DateTime? get restStartedAt => _vitals.restStartedAt;

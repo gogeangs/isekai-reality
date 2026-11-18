@@ -587,12 +587,17 @@ extension Act3Ops on AppController {
         }
         final reg = RegionRules.byPlace(e.place ?? '');
         final boss = e.kind == A3Kind.mid || e.kind == A3Kind.lamp || e.kind == A3Kind.den;
-        final exp = switch (e.kind) {
+        final exp0 = switch (e.kind) {
           A3Kind.mid => RuleConstants.fieldMonsterExp * BaldrinRules.midExp,
           A3Kind.lamp => RuleConstants.fieldMonsterExp * BaldrinRules.lampExp,
           A3Kind.den => RuleConstants.fieldMonsterExp * BaldrinRules.denExp,
           _ => Act3Rules.fieldExp * battle.floors.length,
         };
+        // 묶음 66 #265: 잡는 순간의 레벨만큼 (11월 19일 기록부터, 숨김)
+        final today0 = _history.isEmpty ? null : _history.last;
+        final exp = today0 != null && WalkRewardRules.applies(today0.date)
+            ? (exp0 * WalkRewardRules.huntMult(player.level.level)).round()
+            : exp0;
         var gold = boss
             ? BaldrinRules.bossGoldMin +
                 _random.nextInt(BaldrinRules.bossGoldMax - BaldrinRules.bossGoldMin + 1)

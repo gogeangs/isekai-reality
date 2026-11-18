@@ -120,21 +120,21 @@ void main() {
       expect(v.seed, MaterialId.herbSeed);
       expect(v.walked, 0);
       expect(v.ready, isFalse);
-      expect(v.left, 2000);
+      expect(v.left, 240, reason: '묶음 66: 약초 씨앗 4시간');
     });
 
-    test('심은 뒤 걸음으로 자람 (시간으로는 안 자람) · 다 자라면 빨간 점 · 거두면 재료 2개 이상', () async {
+    test('예전 걸음 칸은 남은 비율대로 시간으로 옮김 (묶음 66) · 다 자라면 빨간 점 · 거두면 재료 2개 이상', () async {
       final c = await startNpc(
         level: 9,
         todaySteps: const {'2026-11-16': 2500},
         json: {'garden': _garden({0: 'herbSeed', 1: 'glowSeed'})},
       );
       final a = c.plotView(0), b = c.plotView(1);
-      expect(a.walked, 2500);
+      expect(a.walked, greaterThanOrEqualTo(a.need));
       expect(a.ready, isTrue);
       expect(a.stage, 2);
       expect(b.ready, isFalse);
-      expect(b.left, 5500);
+      expect(b.left, 1440 - 450, reason: '2,500 / 8,000보 → 24시간의 31%가 흐른 것으로');
       expect(c.gardenReady, 1);
       final herb0 = c.player.materialCount(MaterialId.herb);
       expect(await c.harvestPlot(1), isNull);
@@ -171,7 +171,7 @@ void main() {
     });
   });
 
-  testWidgets('약초밭 화면: 포포 · 밭 3칸 + 잠긴 칸 · 「약 ○보 더」 · 거두기', (tester) async {
+  testWidgets('약초밭 화면: 포포 · 밭 3칸 + 잠긴 칸 · 「약 ○시간 뒤」 · 거두기', (tester) async {
     tester.view.physicalSize = const Size(750, 1334);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -197,7 +197,7 @@ void main() {
     }
     expect(find.byKey(const Key('gardenHarvest_0')), findsOneWidget);
     expect(find.byKey(const Key('gardenPlant_2')), findsOneWidget);
-    expect(find.text('약 1,500보 더'), findsOneWidget);
+    expect(find.text('약 3시간 뒤'), findsOneWidget);
     await tester.tap(find.byKey(const Key('gardenHarvest_0')));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     for (var i = 0; i < 4; i++) {

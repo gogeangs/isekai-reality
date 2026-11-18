@@ -2,13 +2,14 @@
 const zlib = require('zlib');
 
 class AccountService {
-  constructor(db, { now = () => Date.now(), auth, party, inquiry, guild } = {}) {
+  constructor(db, { now = () => Date.now(), auth, party, inquiry, guild, chat = null } = {}) {
     this.db = db;
     this.now = now;
     this.auth = auth; // { deleteUser(uid) }
     this.party = party;
     this.inquiry = inquiry;
     this.guild = guild;
+    this.chat = chat;
   }
 
   /** 삭제 시각이 지난 계정: 파티에서 빼고 · 문의 지우고 · 기록 지우고 · 로그인 계정 지움 */
@@ -33,6 +34,8 @@ class AccountService {
           for (const x of q2.docs) await x.ref.set({ ...x.data(), [side]: 'deleted' });
         }
         if (this.inquiry) await this.inquiry.deleteFor(uid);
+        // 묶음 68: 내 대화 · 친구 · 차단 기록
+        if (this.chat) await this.chat.deleteFor(uid);
         await this.db.doc(`presence/${uid}`).delete();
         const parts = await this.db.collection(`users/${uid}/parts`).get();
         for (const p of parts.docs) await p.ref.delete();

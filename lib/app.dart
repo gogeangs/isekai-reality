@@ -16,6 +16,7 @@ import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
 import 'features/drive/drive_overlay.dart';
+import 'features/chat/chat_screens.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
@@ -532,6 +533,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 right: 12,
                 child: NoticeBanner(controller: controller),
               ),
+            // 묶음 68 #275: 우편 옆 말풍선 (안 읽은 수 빨간 점 · 로그인했을 때만)
+            Positioned(
+              top: topInset + 6,
+              right: 120,
+              child: ChatButton(controller: controller),
+            ),
             // 우편 (11-11 #65): 새 우편이 있으면 빨간 점
             Positioned(
               top: topInset + 6,

@@ -35,6 +35,8 @@ function assetLinks(env) {
 /** 앱이 없을 때 보이는 초대 페이지 (묶음 60: 길드 초대 /join/g/<코드> 도 같은 모양) */
 function joinPage(code, kind = 'party') {
   const guild = kind === 'guild';
+  // 묶음 68: 친구 초대 /join/f/<8자리>
+  if (kind === 'friend') return friendPage(code);
   const c = (guild ? /^[A-Z0-9]{6}$/ : /^[A-Z2-9]{6}$/).test(code) ? code : '';
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>아르카 ${guild ? '길드' : '파티'} 초대</title><style>
@@ -47,6 +49,24 @@ a.ghost{background:transparent;color:#f2c14e;border:1px solid #f2c14e}p{color:#c
 <h1>${guild ? '길드' : '파티'}에 초대받았어요</h1>
 <p>「이세계가 현실이라면? : 여명의 탑 아르카」에서 함께 걸어요.</p>
 ${c ? `<div class="code">${esc(c)}</div><p>${guild ? '앱을 연 뒤 마을 → 길드 회관 → 「초대 코드」에 이 코드를 넣어 주세요. (4막 2장 뒤에 열려요)' : '앱을 연 뒤 주점 → 파티 → 「초대 코드로 들어가기」에 이 코드를 넣어 주세요.'}</p>` : ''}
+<a class="btn" href="${APP_STORE}">App Store에서 받기</a>
+<a class="btn ghost" href="${PLAY_STORE}">Google Play에서 받기</a>
+</main></body></html>`;
+}
+
+function friendPage(code) {
+  const c = /^[A-Z0-9]{8}$/.test(code) ? code : '';
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>아르카 친구 초대</title><style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#0b0d26;color:#f3eede;display:grid;place-items:center;min-height:100vh}
+main{max-width:380px;padding:28px 22px;text-align:center}h1{font-size:22px;color:#f2c14e;margin:0 0 8px}
+.code{font-size:30px;letter-spacing:6px;font-weight:800;margin:18px 0;padding:12px;border:1.5px solid #f2c14e;border-radius:14px}
+a.btn{display:block;margin:10px 0;padding:13px;border-radius:12px;background:#f2c14e;color:#1a1405;font-weight:700;text-decoration:none}
+a.ghost{background:transparent;color:#f2c14e;border:1px solid #f2c14e}p{color:#c9c3b4;line-height:1.6;font-size:14px}
+</style></head><body><main>
+<h1>친구 신청이 왔어요</h1>
+<p>「이세계가 현실이라면? : 여명의 탑 아르카」에서 함께 걸어요.</p>
+${c ? `<div class="code">${esc(c)}</div><p>앱을 연 뒤 프로필 옆 말풍선 → 친구 → 「친구 코드로 신청」에 이 코드를 넣어 주세요.</p>` : ''}
 <a class="btn" href="${APP_STORE}">App Store에서 받기</a>
 <a class="btn ghost" href="${PLAY_STORE}">Google Play에서 받기</a>
 </main></body></html>`;

@@ -59,9 +59,11 @@ function startWorld() {
 }
 
 class SiegeService {
-  constructor(db, { now = () => Date.now(), guild, rand = Math.random, suspect = null } = {}) {
+  constructor(db, { now = () => Date.now(), guild, rand = Math.random, suspect = null, chat = null } = {}) {
     this.db = db;
     this.suspect = suspect;
+    // 묶음 68: 길드 소식을 길드 대화방에도 시스템 줄로
+    this.chat = chat;
     this.now = now;
     this.guild = guild;
     this.rand = rand;
@@ -174,6 +176,7 @@ class SiegeService {
   async _news(gid, text, key = null) {
     if (!gid || gid === NPC) return;
     const ref = this.db.doc(`guilds/${gid}`);
+    let wrote = false;
     await this.db.runTransaction(async (t) => {
       const s = await t.get(ref);
       if (!s.exists) return;
@@ -186,7 +189,9 @@ class SiegeService {
       }
       g.news = [...(g.news || []), { at: this.now(), text }].slice(-30);
       t.set(ref, g);
+      wrote = true;
     });
+    if (wrote && this.chat) await this.chat.system(`g_${gid}`, text);
   }
 
   _gaugeRef(n, gid) {

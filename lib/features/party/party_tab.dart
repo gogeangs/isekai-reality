@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../chat/chat_screens.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/models/party_state.dart';
@@ -331,13 +332,17 @@ class _PartyTabState extends State<PartyTab> {
         const SizedBox(width: 4),
         SizedBox(
           width: 88,
-          child: Text('${m.name}${m.me ? ' (나)' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: m.me ? AppColors.goldBright : AppColors.text,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700)),
+          // 묶음 68 #275: 파티원 이름을 눌러 「친구 신청」
+          child: GestureDetector(
+            onTap: m.me || !widget.controller.chatOpen ? null : () => askFriend(context, widget.controller, m.uid, m.name),
+            child: Text('${m.name}${m.me ? ' (나)' : ''}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: m.me ? AppColors.goldBright : AppColors.text,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700)),
+          ),
         ),
         Text('Lv.${m.level}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
         const SizedBox(width: 6),

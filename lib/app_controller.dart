@@ -98,6 +98,7 @@ part 'controller/village.dart';
 part 'controller/vitals.dart';
 part 'controller/walk_rewards.dart';
 part 'controller/estate_dev.dart';
+part 'controller/chat.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
 ///
@@ -232,6 +233,14 @@ class AppController extends ChangeNotifier {
   String? _marketError;
 
   /// 묶음 65: 공성전 알림을 보인 것 (이 휴대폰만)
+  // 묶음 68 #275: 대화 · 친구
+  ChatMe? _chatMe;
+  String? _chatError;
+  String? _chatOpenRoom;
+  String? _pendingFriendCode;
+  final Map<String, List<ChatLine>> _chatLines = {};
+  final Set<String> _chatMoreRooms = {};
+
   // 묶음 65 #255: 영지 관리
   EstateDevView? _estateDev;
 

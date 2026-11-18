@@ -59,7 +59,12 @@ abstract final class LegalRules {
     LegalVersion(LegalKind.privacy, 2, v2Date, summary: '거래소 · 심층 순위 · 길드 · 공성전 · 운영 기록과 보관 기간을 더했어요'),
     LegalVersion(LegalKind.location, 2, v2Date, summary: '만 14세 확인을 동의 화면에서 해요'),
     LegalVersion(LegalKind.operation, 2, v2Date),
+    // 묶음 62: 개인정보 처리방침만 3판 (공성전 · 부정 이용 막기 · 마법 돋보기 ML Kit · 보관 기간)
+    LegalVersion(LegalKind.privacy, 3, v3Date, summary: '공성전 · 부정 이용 막기 기록과 보관 기간, 마법 돋보기 처리 방식을 더했어요'),
   ];
+
+  /// 묶음 62 판의 적용일 (빌드가 나가는 날)
+  static final DateTime v3Date = DateTime(2026, 11, 18);
 
   /// 묶음 60 판의 적용일 (빌드가 나가는 날)
   static final DateTime v2Date = DateTime(2026, 11, 18);

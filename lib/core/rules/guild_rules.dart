@@ -282,7 +282,12 @@ abstract final class GuildRules {
     'autumn': '가을 낙엽',
     'winter': '겨울 눈사람',
   };
-  static String decoImage(String id) => 'assets/images/deco_$id.webp';
+  /// 그림 이름 (서버 이름과 다른 셋은 들어온 그림 이름으로)
+  static String decoImage(String id) => 'assets/images/deco_${const {
+        'plaque': 'nameplate',
+        'lights': 'lanternString',
+        'statue': 'petStatue',
+      }[id] ?? id}.webp';
 
   /// 회관 그림 위 꾸미기 자리 4곳 (그림 비율: 가로 · 세로)
   static const List<(double, double)> decoSpots = [(0.16, 0.78), (0.38, 0.86), (0.62, 0.86), (0.84, 0.78)];

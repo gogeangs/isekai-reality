@@ -178,6 +178,7 @@ void main() {
         });
         c = (await b56.start(store: r.$1.store as InMemoryRecordStore, arca: a)).$1;
         await c.markMarketIntro();
+        await c.markWalletIntro();
         Map<String, dynamic> row(String id, String kind, String key, String name, int qty, int price,
                 {String mode = 'fixed', String seller = '별', EquipItem? e, int? bid, int bids = 0, int? buyNow}) =>
             {

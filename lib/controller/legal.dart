@@ -74,7 +74,7 @@ extension LegalOps on AppController {
           '${LegalRules.dateLabel(v.effective)}부터 ${v.kind.title}이 바뀌어요.',
           if (v.summary.isNotEmpty) v.summary,
           '바뀐 내용은 설정 → 약관 · 정책에서 볼 수 있어요.',
-          if (v.kind.required) '적용일 뒤 처음 켤 때 바뀐 문서에 다시 동의를 받아요.',
+          if (v.kind.required && !v.noticeOnly) '적용일 뒤 처음 켤 때 바뀐 문서에 다시 동의를 받아요.',
         ].join('\n'),
         sentAt: _clock(),
       ));

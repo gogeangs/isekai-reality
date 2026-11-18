@@ -857,15 +857,52 @@ class ChipBadge extends StatelessWidget {
 }
 
 /// 화면 전체 배경 (남색 + 보랏빛)
+/// 묶음 67 #272: 건물 안 바탕 — 위쪽 기준으로 화면을 덮고(그림 위 40%에 그 건물다운 벽 · 물건),
+/// 위는 옅게 · 아래로 갈수록 밤빛에 가까운 그라데이션을 한 겹. 그림이 없으면 아무것도 그리지 않음
+class InteriorArt extends StatelessWidget {
+  const InteriorArt({super.key, required this.name});
+  final String name;
+
+  static String asset(String name) => 'assets/images/bg_in_$name.webp';
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        asset(name),
+        key: Key('interior_$name'),
+        fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        frameBuilder: (context, child, frame, sync) => Stack(fit: StackFit.expand, children: [
+          child,
+          if (frame != null || sync)
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0, 0.3, 0.6, 1],
+                  colors: [Color(0x660B0D26), Color(0x990B0D26), Color(0xDD0B0D26), Color(0xF50B0D26)],
+                ),
+              ),
+            ),
+        ]),
+      );
+}
+
 class NightBackground extends StatelessWidget {
   const NightBackground({
     super.key,
     required this.child,
     this.header = false,
     this.statusScrim = true,
+    this.interior,
   });
 
   final Widget child;
+
+  /// 묶음 67 #272: 건물 안 바탕 그림 (bg_in_<이름>). 그림이 없으면 지금처럼 밤하늘
+  final String? interior;
 
   /// 휴대폰 상태 표시줄(시계·배터리) 뒤에 어두운 띠를 깐다.
   /// 스크롤하는 내용이 표시줄 글자와 겹치지 않게 (11-10 A2).
@@ -876,6 +913,17 @@ class NightBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (interior != null) {
+      final base = _base(Stack(children: [
+        Positioned.fill(child: InteriorArt(name: interior!)),
+        Positioned.fill(child: child),
+      ]));
+      if (!statusScrim) return base;
+      return Stack(children: [
+        Positioned.fill(child: base),
+        const Positioned(top: 0, left: 0, right: 0, child: StatusBarScrim()),
+      ]);
+    }
     final base = _base(header
         ? Stack(children: [
             Positioned(

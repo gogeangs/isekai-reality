@@ -184,6 +184,16 @@ class _VillageScreenState extends State<VillageScreen> {
     if (starred.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.markStarSeen(starred);
+        // 묶음 67: 다 고친 건물 마을 사람 한마디 (거래소 바르칸)
+        for (final n in starred) {
+          final b = BuildingRules.parse(n);
+          if (b == null || !mounted) continue;
+          final info = BuildingRules.info(b);
+          final line = info.doneFor(controller.buildingStar(b));
+          if (line != null) {
+            showTopNotice(context, '${VillageRules.npc(info.npc).name} 「$line」', icon: Icons.storefront_rounded);
+          }
+        }
       });
     }
     if (_moment != null) {
@@ -385,8 +395,9 @@ class _VillageScreenState extends State<VillageScreen> {
                                   Positioned.fill(
                                     child: Image.asset(f.assetAt(_star(f.facility)),
                                         fit: BoxFit.contain,
-                                        errorBuilder: (_, __, ___) =>
-                                            const SizedBox()),
+                                        // 묶음 67: ★ 그림이 아직 없으면 ★1 그림
+                                        errorBuilder: (_, __, ___) => Image.asset(f.asset,
+                                            fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox())),
                                   ),
                                   if (_news(f.facility))
                                     const Positioned(
@@ -795,7 +806,10 @@ class _VillageArtState extends State<_VillageArt> {
                 : f.assetAt(open ? widget.star(f.facility) : 1),
         key: stage != null ? Key('build${stage}_${f.facility.name}') : null,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const SizedBox());
+        // 묶음 67: ★ 그림이 아직 없으면 ★1 그림
+        errorBuilder: (_, __, ___) => stage == null && open
+            ? Image.asset(f.asset, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox())
+            : const SizedBox());
     // 묶음 44 #225: 열린 뒤 처음 → 공사 그림이 완공 그림으로 바뀌며 금빛으로 반짝 (1초쯤)
     if (open && widget.built.contains(f.facility)) {
       pic = _BuiltReveal(

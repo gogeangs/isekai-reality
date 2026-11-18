@@ -55,11 +55,11 @@ extension NpcSmallOps on AppController {
     for (final s in steps) {
       if (s.kind != RequestStepKind.deliver) continue;
       final mats = [...NpcRules.matsOf(s)]
-        ..sort((x, y) => player.materialCount(y).compareTo(player.materialCount(x)));
+        ..sort((x, y) => (Materials.isHerb(x) && Materials.isHerb(y)) ? Materials.herbGroup.indexOf(x).compareTo(Materials.herbGroup.indexOf(y)) : player.materialExact(y).compareTo(player.materialExact(x)));
       var left = s.need;
       for (final m in mats) {
         if (left <= 0) break;
-        final have = player.materialCount(m) - (take[m] ?? 0);
+        final have = player.materialExact(m) - (take[m] ?? 0);
         if (have <= 0) continue;
         final k = s.distinct ? 1 : math.min(have, left);
         take[m] = (take[m] ?? 0) + k;

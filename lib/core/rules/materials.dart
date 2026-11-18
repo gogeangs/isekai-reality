@@ -150,6 +150,13 @@ enum MaterialId {
   earthWood,
   darkCrystal,
   fireStone,
+  // 묶음 67 #273: 이세계 약초 (herb = 엘라린 잎 그대로)
+  gortRoot,
+  silvaFern,
+  mireaGrass,
+  zephiraLeaf,
+  noctiGrass,
+  mandragora,
 }
 
 class MaterialInfo {
@@ -221,7 +228,14 @@ class Materials {
     MaterialInfo(MaterialId.lightCore, '빛의 코어', '빛 슬라임의 코어.', rare: true),
     MaterialInfo(MaterialId.darkJelly, '어둠 젤리', '그림자 같은 젤리. 모아 두는 재료예요.'),
     MaterialInfo(MaterialId.shadowCore, '그림자 코어', '어둠 슬라임의 코어.', rare: true),
-    MaterialInfo(MaterialId.herb, '약초', '물약의 기본 재료. 잡화상에서 팔아요.'),
+    // 묶음 67 #273: 「약초」는 이세계 약초 7종 (저장 키 herb 는 그대로 엘라린 잎)
+    MaterialInfo(MaterialId.herb, '엘라린 잎', '흰 꽃이 피는 부드러운 잎. 상처에 붙이면 금방 아물어요.'),
+    MaterialInfo(MaterialId.gortRoot, '고르트 뿌리', '쓰디쓴 붉은 뿌리. 독을 빼는 데 그만이에요.'),
+    MaterialInfo(MaterialId.silvaFern, '실바 고사리', '잎맥에 금빛이 도는 숲 고사리. 먹으면 힘이 솟아요.'),
+    MaterialInfo(MaterialId.mireaGrass, '미레아 풀', '끝에 물방울이 맺히는 물빛 풀. 마력이 맑아져요.'),
+    MaterialInfo(MaterialId.zephiraLeaf, '제피라 잎', '깃털처럼 가벼운 잎. 바람을 타고 날아다녀요.'),
+    MaterialInfo(MaterialId.noctiGrass, '녹티 풀', '밤에만 은빛 별무늬가 떠오르는 풀.'),
+    MaterialInfo(MaterialId.mandragora, '만드라고라 뿌리', '잠든 아이처럼 생긴 귀한 뿌리. 깨우지 않게 살살 캐세요.', rare: true),
     MaterialInfo(MaterialId.labyrinthStone, '미궁 석재',
         '던전에서만 나오는 단단한 돌. 가마솥과 상급 장비에 써요.'),
     MaterialInfo(MaterialId.runeStone, '빛바랜 룬석',
@@ -399,6 +413,28 @@ class Materials {
   ];
 
   static MaterialInfo info(MaterialId id) => all.firstWhere((m) => m.id == id);
+
+  /// 묶음 67 #273: 「약초」 묶음 (흔한 것부터 — 아무 약초나 쓸 때 이 순서로 빠짐)
+  static const List<MaterialId> herbGroup = [
+    MaterialId.herb,
+    MaterialId.gortRoot,
+    MaterialId.silvaFern,
+    MaterialId.mireaGrass,
+    MaterialId.zephiraLeaf,
+    MaterialId.noctiGrass,
+    MaterialId.mandragora,
+  ];
+
+  static bool isHerb(MaterialId m) => herbGroup.contains(m);
+
+  /// 가방 · 재료 목록 순서: 약초 7종은 「약초」 자리에 함께
+  static final List<MaterialId> displayOrder = [
+    for (final m in MaterialId.values)
+      if (m == MaterialId.herb) ...herbGroup else if (!isHerb(m)) m,
+  ];
+
+  /// 필요한 재료를 화면에 쓸 때: 약초(herb)는 「아무 약초」
+  static String needName(MaterialId m) => m == MaterialId.herb ? '아무 약초' : info(m).name;
 
   /// 재료의 속성 (속성 젤리·코어, 11-11 #63). 없으면 null.
   static Element? elementOf(MaterialId m) => switch (m) {

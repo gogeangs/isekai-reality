@@ -145,6 +145,8 @@ class MaterialIcon extends StatelessWidget {
         MaterialId.earthWood => Icons.park_rounded,
         MaterialId.darkCrystal => Icons.diamond_rounded,
         MaterialId.fireStone => Icons.local_fire_department_rounded,
+        MaterialId.gortRoot || MaterialId.silvaFern || MaterialId.mireaGrass || MaterialId.zephiraLeaf || MaterialId.noctiGrass => Icons.eco_rounded,
+        MaterialId.mandragora => Icons.spa_rounded,
       };
 
   @override
@@ -241,7 +243,7 @@ class MaterialGrid extends StatelessWidget {
       );
     }
     final ids = [
-      for (final m in MaterialId.values)
+      for (final m in Materials.displayOrder)
         if ((materials[m] ?? 0) > 0) m,
     ];
     return Wrap(

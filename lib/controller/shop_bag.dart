@@ -76,7 +76,7 @@ extension ShopBagOps on AppController {
   PurchaseCheck canBuy(ShopItem item, {bool? hasLocation}) {
     final mat = TownRules.info(item).material;
     final have = mat != null
-        ? player.materialCount(mat)
+        ? player.materialExact(mat)
         : TownRules.bagItems.contains(item)
             ? bagCount(item)
             : -1;
@@ -104,7 +104,7 @@ extension ShopBagOps on AppController {
     // 가방에 들어가는 물건은 칸을 본다 (같은 칸에 [BagRules.stackMax] 개까지)
     final mat = i.material;
     if (mat != null || TownRules.bagItems.contains(item)) {
-      var have = mat != null ? player.materialCount(mat) : bagCount(item);
+      var have = mat != null ? player.materialExact(mat) : bagCount(item);
       var free = bagFree;
       var fit = 0;
       while (fit < n) {

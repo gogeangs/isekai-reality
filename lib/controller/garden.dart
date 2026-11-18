@@ -154,7 +154,9 @@ extension GardenOps on AppController {
         final v = plotView(slot);
         final seed = v.seed;
         if (!gardenOpen || seed == null || !v.ready) return null;
-        final m = GardenRules.yieldOf(seed, _clock().month);
+        var m = GardenRules.yieldOf(seed, _clock().month);
+        // 묶음 67 #273: 약초 씨앗은 거둘 때 이세계 약초 다섯 가지 중 하나 (만드라고라 · 녹티 풀은 빼고)
+        if (m == MaterialId.herb) m = Materials.herbGroup[_random.nextInt(5)];
         var n = GardenRules.harvestCount;
         if (_masteryRoll(GardenRules.masteryExtra * _bigFrac(Mastery.harvest))) n++;
         if (_bestWith(Npc.popo) && _random.nextDouble() < GardenRules.popoExtra) n++;

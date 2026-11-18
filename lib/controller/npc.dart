@@ -208,9 +208,9 @@ extension NpcOps on AppController {
       case RequestStepKind.deliver:
         final mats = NpcRules.matsOf(s);
         if (s.distinct) {
-          return mats.where((m) => player.materialCount(m) > 0).length;
+          return mats.where((m) => player.materialExact(m) > 0).length;
         }
-        return mats.fold<int>(0, (t, m) => t + player.materialCount(m));
+        return mats.fold<int>(0, (t, m) => t + player.materialExact(m));
       case RequestStepKind.daySteps:
         return _daysSince(a.day).fold<int>(0, (t, r) => math.max(t, r.steps));
       case RequestStepKind.dawnSteps:
@@ -287,11 +287,11 @@ extension NpcOps on AppController {
           if (s.kind != RequestStepKind.deliver) continue;
           final mats = [...NpcRules.matsOf(s)]
             ..sort((x, y) =>
-                player.materialCount(y).compareTo(player.materialCount(x)));
+                (Materials.isHerb(x) && Materials.isHerb(y)) ? Materials.herbGroup.indexOf(x).compareTo(Materials.herbGroup.indexOf(y)) : player.materialExact(y).compareTo(player.materialExact(x)));
           var left = s.need;
           for (final m in mats) {
             if (left <= 0) break;
-            final have = player.materialCount(m) - (take[m] ?? 0);
+            final have = player.materialExact(m) - (take[m] ?? 0);
             if (have <= 0) continue;
             final k = s.distinct ? 1 : math.min(have, left);
             take[m] = (take[m] ?? 0) + k;

@@ -145,7 +145,7 @@ extension ExpeditionOps on AppController {
   /// 재료를 버린다
   Future<bool> discardMaterial(MaterialId m, int n) =>
       _serial(() async {
-    if (n <= 0 || player.materialCount(m) < n) return false;
+    if (n <= 0 || player.materialExact(m) < n) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {m.name: n})));
@@ -173,7 +173,7 @@ extension ExpeditionOps on AppController {
   /// 잡화상에서 재료를 판다
   Future<bool> sellMaterial(MaterialId m, int n) =>
       _serial(() async {
-    if (n <= 0 || player.materialCount(m) < n) return false;
+    if (n <= 0 || player.materialExact(m) < n) return false;
     final today = await _todayRecord();
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends, {m.name: n}),

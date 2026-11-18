@@ -299,7 +299,9 @@ class HarvestRules {
       int streak = 0,
       Element? element,
       int month = 1,
-      bool? forceRare}) {
+      bool? forceRare,
+      LandKind? land,
+      bool night = false}) {
     final i = info(kind);
     var base = 1 + rng.nextInt(2);
     base += switch (grade) {
@@ -318,6 +320,8 @@ class HarvestRules {
       HarvestKind.mushroom =>
         rng.nextBool() ? MaterialId.shadeMushroom : MaterialId.poisonMushroom,
       HarvestKind.flower => seasonPetal(month),
+      // 묶음 67 #273: 약초 덤불은 장소 · 시간에 따라 이세계 약초
+      HarvestKind.herb => herbAt(land, night, rng),
       _ => i.base,
     };
     final rare = switch (kind) {
@@ -339,7 +343,33 @@ class HarvestRules {
     // 묶음 46 #233: 미니게임이 정한 귀한 재료 (금빛 버섯 · 큰 물고기 그림자) — true 꼭 · false 없음
     final hit = rng.nextDouble() < rareChance * factor;
     if (forceRare ?? hit) out[rare] = 1;
+    // 묶음 67: 만드라고라 뿌리는 어느 약초 덤불이든 가끔 (이슬 맺힌 약초와 따로)
+    if (kind == HarvestKind.herb && rng.nextDouble() < mandragoraChance * factor) {
+      out[MaterialId.mandragora] = (out[MaterialId.mandragora] ?? 0) + 1;
+    }
     return out;
+  }
+
+  // ───────────── 묶음 67 #273: 이세계 약초
+
+  static const double mandragoraChance = 0.05;
+
+  /// 밤엔 어디서나 덤불의 절반쯤이 녹티 풀
+  static const double noctiShare = 0.5;
+
+  /// 마을 · 공원: 엘라린 잎 6 : 고르트 뿌리 4
+  static const double gortShare = 0.4;
+
+  /// 장소 · 시간에 맞는 약초 (장소를 모르면 엘라린 잎)
+  static MaterialId herbAt(LandKind? land, bool night, math.Random rng) {
+    if (night && rng.nextDouble() < noctiShare) return MaterialId.noctiGrass;
+    return switch (land) {
+      LandKind.forest => MaterialId.silvaFern,
+      LandKind.water || LandKind.sea => MaterialId.mireaGrass,
+      LandKind.mountain => MaterialId.zephiraLeaf,
+      LandKind.village || LandKind.park || LandKind.city => rng.nextDouble() < gortShare ? MaterialId.gortRoot : MaterialId.herb,
+      null => MaterialId.herb,
+    };
   }
 
   /// [center] 둘레의 채집 자리. 칸마다 같은 자리라 누구에게나 같다.

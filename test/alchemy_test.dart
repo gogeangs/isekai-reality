@@ -158,7 +158,8 @@ void main() {
       final r = await c.collectBrew(0);
       expect(r!.potion, PotionId.healSmall);
       expect(r.perfect, isTrue);
-      expect(c.alchemy.count('healSmall*'), 3);
+      // 묶음 67: 엘라린 잎은 작은 회복 물약에 잘 맞아 품질 +1 → 최상
+      expect(c.alchemy.count('healSmall**'), 3);
 
       // 해독제를 찾아낸다 (순서는 달라도 됨)
       await c.startBrew(0, [MaterialId.herb, MaterialId.poisonGland, MaterialId.herb]);

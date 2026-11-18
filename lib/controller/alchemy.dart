@@ -36,7 +36,8 @@ extension AlchemyOps on AppController {
   ({PotionId id, bool perfect})? _brewMatch(List<MaterialId> put) {
     // 묶음 66: 영지 특산물은 더 넣는 재료 — 빼고 레시피를 맞춤
     final base = [for (final x in put) if (!AlchemyRules.isAdditive(x)) x];
-    final m = AlchemyRules.match(base.isEmpty ? put : base);
+    // 묶음 67 #273: 약초 7종은 모두 「약초」 칸에 맞음
+    final m = AlchemyRules.match(AlchemyRules.asRecipe(base.isEmpty ? put : base));
     if (m != null && !jobsOpen && AlchemyRules.needsJobs(m.id)) return null;
     // 묶음 42: 부탁 보상 레시피는 배우기 전엔 끓여도 되지 않는다
     if (m != null &&

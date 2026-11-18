@@ -109,6 +109,11 @@ class MarketPrice {
 /// 로그인한 사람만. 거래 바로 전에 기록을 백업하고(서버가 그 백업으로 다시 셈), 되면 휴대폰에서도 빼고 더함.
 /// 산 물건 · 판 금화 · 돌려받는 물건은 바르칸 이름으로 우편.
 extension MarketOps on AppController {
+  /// 묶음 67 #271: 거래소 ★ (★2 칸 7 · ★3 칸 9 + 값을 정해 올린 물건 72시간)
+  int get marketStar => buildingsOpen ? buildingStar(Building.market) : 1;
+  int get marketSlots => BuildingRules.marketSlots(marketStar);
+  int get marketFixedHours => BuildingRules.marketFixedHours(marketStar);
+
   bool get marketBusy => _marketBusy;
   String? get marketError => _marketError;
 
@@ -375,7 +380,7 @@ extension MarketOps on AppController {
         'not_owned' => '그 물건이 기록에 없어요. 잠시 뒤 다시 해 주세요',
         'not_tradable' => '거래소에 올릴 수 없는 물건이에요',
         'bad_price' => '그 값으로는 올릴 수 없어요',
-        'slots_full' => '한 번에 ${MarketRules.slots}칸까지 올릴 수 있어요',
+        'slots_full' => '올리는 칸이 다 찼어요. 팔리거나 거둬들이면 다시 올릴 수 있어요',
         'same_device' => '같은 휴대폰으로 로그인한 계정끼리는 거래할 수 없어요',
         'restricted' => '지금은 거래소를 쓸 수 없어요',
         'own_item' => '내가 올린 물건이에요',

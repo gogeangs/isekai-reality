@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import '../models/armory.dart';
 import 'alchemy_rules.dart';
 import 'bag_rules.dart';
+import 'building_rules.dart';
 import 'equipment_rules.dart';
 import 'materials.dart';
 import 'region_rules.dart';
@@ -163,6 +164,9 @@ abstract final class MarketRules {
     final out = {
       'slots': slots,
       'fixedHours': fixedHours,
+      // 묶음 67 #271: 거래소 ★1 · ★2 · ★3
+      'slotsByStar': [for (var i = 1; i <= 3; i++) BuildingRules.marketSlots(i)],
+      'fixedHoursByStar': [for (var i = 1; i <= 3; i++) BuildingRules.marketFixedHours(i)],
       'auctionHours': auctionHours,
       'feeRate': feeRate,
       'feeRateBest': feeRateBest,

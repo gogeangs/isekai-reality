@@ -5,7 +5,7 @@ import 'village_rules.dart';
 /// 금화 + 재료를 그 시설 마을 사람에게 가져다 주면 「고치는 중」(★2 1시간 · ★3 4시간,
 /// 그동안에도 시설은 그대로 씀) 뒤 레벨업 연출. 효과는 화면에 문장으로만 (수치는 숨김).
 /// 이름은 마을 시설([Facility]) 이름과 같다 (그림 village_<name>_<★>.webp).
-enum Building { inn, shop, board, guild, smithy, alchemy, shelter, training, garden, tavern }
+enum Building { inn, shop, board, guild, smithy, alchemy, shelter, training, garden, tavern, market }
 
 /// 한 단계를 고치는 데 드는 것
 class BuildingNeed {
@@ -17,7 +17,12 @@ class BuildingNeed {
 
 class BuildingInfo {
   const BuildingInfo(this.id, this.name, this.npc,
-      {required this.to2, required this.to3, required this.text2, required this.text3});
+      {required this.to2, required this.to3, required this.text2, required this.text3, this.done2, this.done3});
+
+  /// 묶음 67: 다 고쳤을 때 마을 사람 한마디 (없으면 「○○ ★n 완성!」만)
+  final String? done2;
+  final String? done3;
+  String? doneFor(int star) => star >= 3 ? done3 : done2;
 
   final Building id;
   final String name;
@@ -142,6 +147,18 @@ class BuildingRules {
         }),
         text2: '모험가를 두 명 더 둘 수 있고, 새 메뉴 「버섯 수프」가 생겨요',
         text3: '모험가를 두 명 더 둘 수 있고, 한 끼 효과가 조금 더 오래가요'),
+    // 묶음 67 #271: 거래소 (바르칸)
+    BuildingInfo(Building.market, '거래소', Npc.barkan,
+        to2: BuildingNeed(450, {MaterialId.hardWood: 5, MaterialId.ironShard: 6}),
+        to3: BuildingNeed(950, {
+          MaterialId.ironIngot: 3,
+          MaterialId.hardWood: 4,
+          MaterialId.runeStone: 1,
+        }),
+        text2: '한 번에 올리는 칸이 5칸에서 7칸으로 늘어나요',
+        text3: '칸이 9칸이 되고, 값을 정해 올린 물건을 48시간에서 72시간까지 맡아 줘요',
+        done2: '가판을 하나 더 냈어! 이제 물건을 더 많이 올려도 돼.',
+        done3: '창고도 넓혔지. 정해 둔 값으로 내놓은 물건은 사흘까지 맡아 줄게!'),
   ];
 
   static BuildingInfo info(Building b) => all.firstWhere((i) => i.id == b);
@@ -153,7 +170,7 @@ class BuildingRules {
     return null;
   }
 
-  /// 그 마을 사람이 맡은 건물 (거래소 바르칸은 없음)
+  /// 그 마을 사람이 맡은 건물 (묶음 67: 거래소 바르칸도)
   static Building? ofNpc(Npc n) {
     for (final i in all) {
       if (i.npc == n) return i.id;
@@ -208,6 +225,10 @@ class BuildingRules {
   /// 주점: 단계마다 모험가 보유 +2 · ★3 한 끼 효과가 다음 날 이 시각까지
   static const int rosterPerStar = 2;
   static const int mealUntilHour = 12;
+
+  /// 묶음 67 #271 거래소: 한 번에 올리는 칸 (★1 5 · ★2 7 · ★3 9) · 값을 정해 올린 물건 시간 (★3 72시간)
+  static int marketSlots(int star) => switch (star) { >= 3 => 9, 2 => 7, _ => 5 };
+  static int marketFixedHours(int star) => star >= 3 ? 72 : 48;
 
   /// 버섯 수프: 그날 채집할 때 가끔 하나 더
   static const double soupExtra = 0.25;

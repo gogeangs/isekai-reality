@@ -499,6 +499,19 @@ class TownRules {
         if (mat != null) m[mat] = (m[mat] ?? 0) + 1;
       }
     }
+    // 묶음 67 #273: 「약초」로 쓴 것(herb 가 모자란 만큼)은 다른 약초에서 흔한 것부터 뺀다
+    var short = -(m[MaterialId.herb] ?? 0);
+    if (short > 0) {
+      m[MaterialId.herb] = 0;
+      for (final h in Materials.herbGroup.skip(1)) {
+        if (short <= 0) break;
+        final have = m[h] ?? 0;
+        if (have <= 0) continue;
+        final take = have < short ? have : short;
+        m[h] = have - take;
+        short -= take;
+      }
+    }
     m.removeWhere((_, n) => n <= 0);
     return m;
   }

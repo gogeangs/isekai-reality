@@ -183,6 +183,25 @@ abstract final class ErbardRules {
   static const int siegeJoinSeals = 5;
   static const int royalWeight = 3;
 
+  // ───────────── 묶음 61: 길드 금고 (금화) · 서버 확인
+
+  /// 수비대 강화 3단계: 금고 금화 (길드장 · 부길드장에게 보임) · 세기 (숨김). 그 영지 · 다음 공성전 끝까지
+  static const List<int> boostCost = [3000, 7000, 12000];
+  static const List<double> boostMult = [0.10, 0.20, 0.30];
+
+  /// 길드원에게 나눠 주기: 공성전이 끝난 뒤 다음 공성전 전까지 한 번, 금고의 절반까지, 한 사람 2,000 금화까지
+  static const double shareMaxRate = 0.5;
+  static const int sharePerHeadMax = 2000;
+
+  /// 회관 공사: 금고 금화 10당 회관 점수 1 (하루 400점까지)
+  static const int hallTreasuryDayPoints = 400;
+
+  /// 금고 상점 (금고 금화로만): 금빛 꾸미기 2 · 금빛 깃발 문양 1
+  static const Map<String, int> treasuryShop = {'goldLights': 4000, 'goldFountain': 6000, 'goldFlag': 5000};
+
+  /// 공성 · 야생 한 판은 이보다 빨리 끝나면 이김으로 세지 않음 (서버)
+  static const int minFightMs = 6000;
+
   /// 에르바르드 사냥 (여정 기력) · 내 길드 영지에서는 경험치 · 재료 조금 더
   static const int huntEnergy = 5;
   static const double ownedHuntBonus = 0.15;
@@ -280,7 +299,11 @@ abstract final class ErbardRules {
     b.write(' "allianceLock": $allianceLock, "allianceMax": $allianceMax,\n');
     b.write(' "garrisonStepsPer": $garrisonStepsPer, "garrisonStepBonus": $garrisonStepBonus, "garrisonStepMax": $garrisonStepMax,\n');
     b.write(' "wildClearSeals": $wildClearSeals, "siegeSealsPerEstate": $siegeSealsPerEstate, "siegeTicketSeals": $siegeTicketSeals, '
-        '"siegeJoinSeals": $siegeJoinSeals, "royalWeight": $royalWeight\n}\n');
+        '"siegeJoinSeals": $siegeJoinSeals, "royalWeight": $royalWeight,\n');
+    b.write(' "ticketSteps": $ticketSteps, "ticketMax": $ticketMax, "minFightMs": $minFightMs,\n');
+    b.write(' "boostCost": [${boostCost.join(', ')}], "boostMult": [${boostMult.join(', ')}],\n');
+    b.write(' "shareMaxRate": $shareMaxRate, "sharePerHeadMax": $sharePerHeadMax, "hallTreasuryDayPoints": $hallTreasuryDayPoints,\n');
+    b.write(' "treasuryShop": {${treasuryShop.entries.map((e) => '"${e.key}": ${e.value}').join(', ')}}\n}\n');
     return b.toString();
   }
 

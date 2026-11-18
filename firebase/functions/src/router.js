@@ -7,6 +7,7 @@ const { DeepService } = require('./deep');
 const { GuildService } = require('./guild');
 const { AdminService } = require('./admin');
 const { SiegeService } = require('./siege');
+const { SuspectService } = require('./suspect');
 const { adminPage } = require('./admin_page');
 const words = require('./words');
 const legal = require('./legal_pages');
@@ -24,15 +25,24 @@ function realDeps() {
   const party = new PartyService(db);
   const inquiry = new InquiryService(db);
   const guild = new GuildService(db);
+  const suspect = new SuspectService(db);
+  const market = new MarketService(db);
+  market.suspect = suspect;
   _deps = {
     db,
     party,
     inquiry,
     account: new AccountService(db, { auth: admin.auth(), party, inquiry, guild }),
-    market: new MarketService(db),
+    market,
     deep: new DeepService(db),
     guild,
-    siege: new SiegeService(db, { guild }),
+    siege: new SiegeService(db, { guild, suspect }),
+    suspect,
+    // 묶음 61: 진짜 앱 확인 (App Check). 처음엔 기록만
+    appCheck: async (token) => {
+      await admin.appCheck().verifyToken(token);
+      return true;
+    },
     admin: new AdminService(db),
     verify: (token) => admin.auth().verifyIdToken(token),
     env: process.env,
@@ -67,9 +77,48 @@ function isAdmin(tok, env) {
   return !!(tok && tok.email && tok.email_verified !== false && list.includes(String(tok.email).toLowerCase()));
 }
 
+/** 다른 사람과 얽히는 길 (진짜 앱 확인 · 걸음 기록) */
+const SOCIAL = ['/party/', '/guild/', '/market/', '/siege/', '/deep/'];
+
+/**
+ * 묶음 61 #250: 진짜 앱 확인 (Firebase App Check). APPCHECK_MODE=block 이면 막고, 아니면 기록만 (통과율 · 의심 목록)
+ * 걸린 결과는 서버 기록에만 남기고 응답 · 로그에 토큰을 찍지 않는다
+ */
+async function appCheck(req, deps, uid) {
+  if (!deps.appCheck || !deps.suspect) return true;
+  const h = req.get ? req.get('X-Firebase-AppCheck') : (req.headers || {})['x-firebase-appcheck'];
+  let result = 'missing';
+  if (h) {
+    try {
+      result = (await deps.appCheck(String(h))) ? 'ok' : 'bad';
+    } catch (e) {
+      result = 'bad';
+    }
+  }
+  try {
+    await deps.suspect.appCheckStat(result);
+    if (result === 'bad') await deps.suspect.hit(uid, 'appcheck', {});
+  } catch (e) {
+    // 기록이 안 돼도 이어서
+  }
+  const block = String((deps.env || {}).APPCHECK_MODE || 'log') === 'block';
+  return !(block && result !== 'ok');
+}
+
+/** 앱이 함께 보낸 걸음 기록 · 가짜 위치 표시 (참고용) */
+async function noteMe(deps, uid, me) {
+  if (!deps.suspect || !me || typeof me !== 'object') return;
+  try {
+    if (me.steps != null || me.manual) await deps.suspect.steps(uid, { steps: me.steps, maxHour: me.maxHour, manual: me.manual });
+    if (me.mock) await deps.suspect.hit(uid, 'mock', {});
+  } catch (e) {
+    // 기록이 안 돼도 이어서
+  }
+}
+
 async function handle(req, res) {
   res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Cron-Key');
+  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Cron-Key, X-Firebase-AppCheck');
   if (req.method === 'OPTIONS') return res.status(204).send('');
   const path = (req.path || '/').replace(/\/+$/, '') || '/';
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) || {};
@@ -115,6 +164,11 @@ async function handle(req, res) {
     // 묶음 57: 금칙어 목록 (5분마다 다시 읽음)
     await words.refresh(deps.db);
     if (path === '/words') return res.json({ text: words.currentText() });
+    if (SOCIAL.some((x) => path.startsWith(x))) {
+      const tok = await caller(req, deps, true);
+      if (!(await appCheck(req, deps, tok.uid))) return res.status(401).json({ error: 'app_check' });
+      await noteMe(deps, tok.uid, body.me);
+    }
 
     if (path.startsWith('/party/')) {
       const tok = await caller(req, deps, true);
@@ -131,7 +185,7 @@ async function handle(req, res) {
         '/party/cheer': () => p.cheer(uid, body),
         '/party/boss': () => p.bossHit(uid, body),
         '/party/claim': () => p.claim(uid, body),
-        '/party/near': () => p.near(uid, body),
+        '/party/near': () => p.near(uid, body, deps.suspect),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
@@ -149,6 +203,9 @@ async function handle(req, res) {
         '/market/buy': () => m.buy(uid, body),
         '/market/bid': () => m.bid(uid, body),
         '/market/cancel': () => m.cancel(uid, body),
+        '/market/wallet': () => m.walletState(uid),
+        '/market/deposit': () => m.deposit(uid, body),
+        '/market/withdraw': () => m.withdraw(uid, body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
@@ -160,7 +217,7 @@ async function handle(req, res) {
       const uid = tok.uid;
       const s = deps.siege;
       const r = {
-        '/siege/state': () => s.state(uid),
+        '/siege/state': () => s.state(uid, body.me || {}),
         '/siege/foe': () => s.foe(uid, body),
         '/siege/fight': () => s.fight(uid, body),
         '/siege/garrison': () => s.garrison(uid, body),
@@ -191,6 +248,7 @@ async function handle(req, res) {
         '/guild/share': () => g.share(uid, body),
         '/guild/raid': () => g.raidHit(uid, body),
         '/guild/claim': () => g.claim(uid, body),
+        '/guild/treasury': () => g.treasury(uid, body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
@@ -249,6 +307,7 @@ async function handle(req, res) {
         '/admin/notice/delete': () => deps.admin.noticeDelete(tok.email, body),
         '/admin/broadcast': () => deps.admin.broadcast(tok.email, body),
         '/admin/log': () => deps.admin.logs(body),
+        '/admin/suspects': () => deps.suspect.list(body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

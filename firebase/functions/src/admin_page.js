@@ -30,7 +30,7 @@ img.shot{max-width:100%;max-height:420px;border-radius:8px;margin-top:8px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
 @media (max-width:800px){main{grid-template-columns:1fr}}
 </style></head><body>
-<header><h1>아르카 운영</h1><span class="muted">문의 · 계정 보기 · 거래 기록 · 제재 · 공지</span><span id="who"></span><button id="login" class="ghost">Google 로그인</button></header>
+<header><h1>아르카 운영</h1><span class="muted">문의 · 계정 보기 · 거래 기록 · 제재 · 공지 · 의심 목록</span><span id="who"></span><button id="login" class="ghost">Google 로그인</button></header>
 <div id="msg" style="padding:8px 18px;color:var(--red)"></div>
 <main id="app" style="display:none">
 <section class="panel">
@@ -65,6 +65,7 @@ img.shot{max-width:100%;max-height:420px;border-radius:8px;margin-top:8px}
 <section class="panel"><h3>모두에게 보상 우편</h3><p class="muted">점검 · 장애 보상. 기간 안에 앱을 연 사람이 한 번 받아요.</p>
 <input id="btitle" placeholder="제목 (예: 점검 보상)" style="width:100%"><textarea id="bbody" rows="2" style="width:100%" placeholder="내용"></textarea>
 <div class="row">금화 <input id="bg" type="number" min="0" style="width:90px"> 마석 <input id="bm" type="number" min="0" style="width:80px"> 발자국 표 <input id="bf" type="number" min="0" style="width:80px"> 모집권 <input id="br" type="number" min="0" style="width:70px"> 기간(일) <input id="bd" type="number" min="1" value="7" style="width:60px"><button id="bgo">보내기</button><span id="binfo" class="muted"></span></div></section>
+<section class="panel" style="grid-column:1/-1"><h3>의심 목록</h3><p class="muted">다른 사람과 얽히는 곳(파티 · 길드 · 거래소 · 순위 · 공성전)에서만 모아요. 걸린 걸음 · 기여 · 위치는 그 기능에서 이미 세지 않아요. 자동 제재는 없어요 — 보고 판단해 「제재」에서 하세요 (위치 조작 · 변조는 처음이어도 3단계).</p><div class="row"><button id="xload" class="ghost">새로 보기</button><span id="xinfo" class="muted"></span></div><table><tbody id="xlist"></tbody></table></section>
 <section class="panel" style="grid-column:1/-1"><h3>운영자 행동 기록</h3><div class="row"><button id="lload" class="ghost">새로 보기</button></div><table><tbody id="llist"></tbody></table></section>
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -112,10 +113,12 @@ $('ngo').onclick=async()=>{try{await api('admin/notice',{title:$('ntitle').value
 $('bgo').onclick=async()=>{if(!confirm('모두에게 보낼까요?'))return;try{await api('admin/broadcast',{title:$('btitle').value,body:$('bbody').value,days:+$('bd').value||7,reward:{gold:+$('bg').value||0,manaStone:+$('bm').value||0,footTicket:+$('bf').value||0,recruit:+$('br').value||0}});$('binfo').textContent='보냈어요';}catch(e){$('binfo').textContent='실패: '+e.message;}};
 async function loadLog(){const r=await api('admin/log');$('llist').innerHTML=r.items.map((l)=>'<tr><td>'+when(l.at)+'</td><td>'+esc(l.by)+'</td><td>'+esc(ACT[l.action]||l.action)+'</td><td class="muted">'+esc(String(l.target||'').slice(0,12))+' '+esc(JSON.stringify(l.detail||{}))+'</td></tr>').join('')||'<tr><td class="muted">기록이 없어요</td></tr>';}
 $('lload').onclick=loadLog;
+async function loadSus(){const r=await api('admin/suspects');const ac=r.appCheck||[];const t=ac.reduce((a,x)=>({ok:a.ok+x.ok,bad:a.bad+x.bad,missing:a.missing+x.missing}),{ok:0,bad:0,missing:0});const all=t.ok+t.bad+t.missing;$('xinfo').textContent='진짜 앱 확인 (최근 14일): '+(all?Math.round(t.ok*100/all)+'% 통과 · 실패 '+t.bad+' · 없음 '+t.missing:'아직 없음');$('xlist').innerHTML=r.items.map((x)=>'<tr><td><a href="#" class="xu" data-uid="'+esc(x.uid)+'">'+esc(String(x.uid).slice(0,10))+'</a></td><td>'+Object.entries(x.counts).map(([k,n])=>esc((r.kinds||{})[k]||k)+' '+n+'번').join('<br>')+'</td><td class="muted">'+Object.entries(x.last).map(([k,at])=>esc((r.kinds||{})[k]||k)+' '+when(at)).join('<br>')+'</td><td class="muted">'+x.days.map((d)=>esc(d.day.slice(5))+' '+d.steps.toLocaleString()+'보 (한 시간 최대 '+d.maxHour.toLocaleString()+(d.manual?' · 손 입력 '+d.manual.toLocaleString():'')+')').join('<br>')+'</td></tr>').join('')||'<tr><td class="muted">걸린 계정이 없어요</td></tr>';for(const a of document.querySelectorAll('.xu'))a.onclick=(e)=>{e.preventDefault();$('suid').value=a.dataset.uid;$('tuid').value=a.dataset.uid;loadSanctions();};}
+$('xload').onclick=loadSus;
 if(!READY){$('msg').textContent='운영 페이지 설정(웹 앱)이 아직 없어요. 개발에 알려 주세요.';$('login').style.display='none';}
 else{firebase.initializeApp(CFG);const auth=firebase.auth();
 $('login').onclick=()=>auth.currentUser?auth.signOut():auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-auth.onAuthStateChanged(async(u)=>{$('login').textContent=u?'로그아웃':'Google 로그인';$('who').textContent=u?u.email:'';$('app').style.display='none';$('msg').textContent='';if(!u)return;token=await u.getIdToken();try{await api('admin/me');$('app').style.display='';await load();await loadWords();await loadNotices();await loadLog();}catch(e){$('msg').textContent=e.message==='not_admin'?'운영자로 등록된 계정이 아니에요.':'불러오지 못했어요: '+e.message;}});}
+auth.onAuthStateChanged(async(u)=>{$('login').textContent=u?'로그아웃':'Google 로그인';$('who').textContent=u?u.email:'';$('app').style.display='none';$('msg').textContent='';if(!u)return;token=await u.getIdToken();try{await api('admin/me');$('app').style.display='';await load();await loadWords();await loadNotices();await loadLog();await loadSus();}catch(e){$('msg').textContent=e.message==='not_admin'?'운영자로 등록된 계정이 아니에요.':'불러오지 못했어요: '+e.message;}});}
 </script></body></html>`;
 }
 

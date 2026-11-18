@@ -36,5 +36,9 @@
  "anchor": 1795791600000, "period": 1209600000, "length": 172800000,
  "allianceLock": 4, "allianceMax": 3,
  "garrisonStepsPer": 100000, "garrisonStepBonus": 0.1, "garrisonStepMax": 0.5,
- "wildClearSeals": 15, "siegeSealsPerEstate": 10, "siegeTicketSeals": 10, "siegeJoinSeals": 5, "royalWeight": 3
+ "wildClearSeals": 15, "siegeSealsPerEstate": 10, "siegeTicketSeals": 10, "siegeJoinSeals": 5, "royalWeight": 3,
+ "ticketSteps": 2000, "ticketMax": 20, "minFightMs": 6000,
+ "boostCost": [3000, 7000, 12000], "boostMult": [0.1, 0.2, 0.3],
+ "shareMaxRate": 0.5, "sharePerHeadMax": 2000, "hallTreasuryDayPoints": 400,
+ "treasuryShop": {"goldLights": 4000, "goldFountain": 6000, "goldFlag": 5000}
 }

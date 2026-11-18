@@ -38,6 +38,8 @@ async function backup(db, uid, { gold = 0, mats = {}, equips = [], potions = {},
   const data = zlib.gzipSync(Buffer.from(JSON.stringify(snap))).toString('base64');
   await db.doc(`users/${uid}/parts/${gen}_0`).set({ gen, data });
   await db.doc(`users/${uid}`).set({ gen, parts: 1, updatedAt: new Date(at), devices: [device] });
+  // 묶음 61: 거래는 거래 지갑 금화로 (시험에선 백업 금화만큼 맡겨 둔 것으로)
+  await db.doc(`tradeWallet/${uid}`).set({ gold });
 }
 
 const inbox = async (db, uid) => (await db.collection(`inbox/u_${uid}/msgs`).get()).docs.map((d) => d.data());
@@ -84,7 +86,9 @@ test('값을 정해 올리기 → 다른 사람이 사기 → 우편(물건 · �
   assert.equal(bm[0].from, '바르칸');
   assert.deepEqual(bm[0].reward, { herb: 3 });
   const sm = await inbox(db, 'sel');
-  assert.deepEqual(sm[0].reward, { gold: price - saleFee(price, false) });
+  assert.deepEqual(sm[0].reward, {}, '묶음 61: 판 금화는 거래 지갑으로');
+  assert.equal(await s.purse('sel'), 100 - r.fee + price - saleFee(price, false));
+  assert.equal(await s.purse('buy'), 1000 - price);
   const p = await s.price('buy', { kind: 'mat', key: 'herb' });
   assert.equal(p.last, price / 3);
   const log = await s.trades({ uid: 'buyxyz' });
@@ -122,7 +126,9 @@ test('경매: 입찰 · 더 높은 입찰이면 앞사람 금화 돌려줌 · �
   await assert.rejects(s.bid('b2', { id: a.listing.id, amount: 151 }), /outbid/);
   const r2 = await s.bid('b2', { id: a.listing.id, amount: 200 });
   assert.equal(r2.charged, 200);
-  assert.deepEqual((await inbox(db, 'b1'))[0].reward, { gold: 150 });
+  assert.deepEqual((await inbox(db, 'b1'))[0].reward, {});
+  assert.equal(await s.purse('b1'), 1000, '돌려받는 입찰 금화는 지갑으로');
+  assert.equal(await s.purse('b2'), 800);
   await assert.rejects(s.cancel('sel', { id: a.listing.id }), /cannot_cancel/);
   at(T0 + 25 * H);
   await s.settleDue();
@@ -150,12 +156,28 @@ test('운영정책: 같은 휴대폰 계정끼리 · 제재 중 · 금화가 모
   const pricey = (await s.list('sel', { kind: 'equip', key: 'eq5', mode: 'fixed', price: 700 })).listing.id;
   await assert.rejects(s.list('sel', { kind: 'mat', key: 'herb', qty: 2, mode: 'fixed', price: CAT.mats.herb * 2 }), /slots_full/);
   await assert.rejects(s.buy('alt', { id: ids[0] }), /same_device/);
-  await assert.rejects(s.buy('poor', { id: pricey }), /no_gold/, '금화 위쪽 한도(주간 의뢰 몫 포함)보다 비쌈');
-  await assert.rejects(s.buy('old', { id: ids[0] }), /need_backup/);
+  await assert.rejects(s.buy('poor', { id: pricey }), /no_wallet_gold/, '거래 지갑 금화보다 비쌈');
+  await assert.rejects(s.deposit('old', { amount: 10 }), /need_backup/, '맡길 때는 최근 백업으로 확인');
   await assert.rejects(s.buy('bad', { id: ids[0] }), /restricted/);
   await backup(db, 'bb', { gold: 5000 });
   for (let i = 0; i < 3; i++) await s.buy('bb', { id: ids[i] });
   await assert.rejects(s.buy('bb', { id: ids[3] }), /pair_limit/);
+});
+
+test('거래 지갑: 맡기기(백업으로 확인 · 같은 백업으로 두 번 못 맡김) · 꺼내기(우편) · 지갑 금화로만 거래', async () => {
+  const { db, s } = setup();
+  await backup(db, 'u1', { gold: 300 });
+  await db.doc('tradeWallet/u1').set({ gold: 0 });
+  await assert.rejects(s.deposit('u1', { amount: 1000 }), /no_gold/);
+  const d = await s.deposit('u1', { amount: 400 });
+  assert.equal(d.wallet, 400);
+  assert.ok(d.depositId);
+  await assert.rejects(s.deposit('u1', { amount: 400 }), /no_gold/, '같은 백업으로 맡긴 몫은 뺌');
+  const w = await s.withdraw('u1', { amount: 50 });
+  assert.equal(w.wallet, 350);
+  const m = await inbox(db, 'u1');
+  assert.deepEqual(m[0].reward, { gold: 50 });
+  await assert.rejects(s.withdraw('u1', { amount: 999 }), /no_wallet_gold/);
 });
 
 test('심층 주간 순위: 그 주 지역만 · 같은 휴대폰은 하나 · 지난주 보상 한 번', async () => {

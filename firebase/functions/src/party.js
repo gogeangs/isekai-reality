@@ -477,7 +477,13 @@ class PartyService {
 
   // ───────────── 함께 있어요 (100m 칸만 비교, 위치는 돌려주지 않음)
 
-  async near(uid, { r, c } = {}) {
+  async near(uid, { r, c, mock } = {}, suspect = null) {
+    // 묶음 61 #250: 가짜 위치가 잡힌 동안은 칸을 받지 않음 (의심 목록에만 남김)
+    if (mock) {
+      if (suspect) await suspect.hit(uid, 'mock', {});
+      await this.db.doc(`presence/${uid}`).delete();
+      return { near: false, mock: true };
+    }
     const pid = await this._partyId(uid);
     const p = pid && (await this._party(pid));
     if (!p || (await this._restricted(uid))) return { near: false };

@@ -86,7 +86,20 @@ jobs:
           if git merge-base --is-ancestor FETCH_HEAD HEAD; then
             echo "새로 모아 둔 그림이 없습니다."; exit 0
           fi
+          # 묶음 60: 이미 WebP 로 바뀐 그림을 다시 올리면(PNG 수정 ↔ 삭제) 충돌 → 새 PNG 를 쓰고, 그림 밖 파일은 main 것을 씀
+          merged=false
           if git merge --no-edit -m "모아 둔 그림 합치기 (wip/images)" FETCH_HEAD; then
+            merged=true
+          else
+            for f in $(git diff --name-only --diff-filter=U); do
+              case "$f" in
+                assets/images/*) if [ -f "$f" ]; then git add "$f"; else git rm -q --cached "$f" || true; fi ;;
+                *) git checkout --ours -- "$f" && git add "$f" ;;
+              esac
+            done
+            if [ -z "$(git diff --name-only --diff-filter=U)" ] && git commit -q --no-edit; then merged=true; fi
+          fi
+          if [ "$merged" = true ]; then
             # 묶음 17 #145: 합친 PNG·JPG 를 WebP 로 바꿔 함께 올린다
             python3 -m pip install --quiet --break-system-packages pillow || python3 -m pip install --quiet pillow
             python3 tool/optimize_images.py

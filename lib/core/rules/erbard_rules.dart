@@ -200,7 +200,7 @@ abstract final class ErbardRules {
   static const Map<String, int> treasuryShop = {'goldLights': 4000, 'goldFountain': 6000, 'goldFlag': 5000};
 
   /// 공성 · 야생 한 판은 이보다 빨리 끝나면 이김으로 세지 않음 (서버)
-  static const int minFightMs = 6000;
+  static const int minFightMs = 4000;
 
   /// 에르바르드 사냥 (여정 기력) · 내 길드 영지에서는 경험치 · 재료 조금 더
   static const int huntEnergy = 5;
@@ -282,6 +282,14 @@ abstract final class ErbardRules {
         'alliance_full' => '연맹은 길드 세 곳까지예요',
         'alliance_locked' => '연맹은 공성전 네 번마다 다시 고를 수 있어요',
         'no_alliance' => '그 연맹을 찾지 못했어요',
+        'no_fight' => '싸움을 처음부터 다시 시작해 주세요',
+        'no_treasury' => '길드 금고 금화가 모자라요',
+        'owned' => '이미 그 단계예요',
+        'shared' => '이번 공성전 몫은 이미 나눠 줬어요',
+        'no_users' => '이번 공성전에 공성권을 쓴 길드원이 없어요',
+        'not_yet' => '공성전이 끝난 뒤에 나눠 줄 수 있어요',
+        'bad_amount' => '그 금화로는 할 수 없어요',
+        'app_check' => '앱을 최신으로 바꾼 뒤 다시 해 주세요',
         'offline' => '인터넷이 연결되지 않았어요',
         _ => '잠시 뒤 다시 해 주세요',
       };

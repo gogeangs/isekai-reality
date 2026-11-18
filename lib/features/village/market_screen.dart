@@ -21,6 +21,10 @@ import 'npc_header.dart';
 const _introLine = '허허, 드디어 장을 여는군! 값을 정해 걸어 두든, 경매에 붙이든 자네 마음일세. '
     '다만 장부는 내가 꼼꼼히 보네. 같은 집 식구끼리 주고받는 건 안 되고, 터무니없는 값도 안 받네.';
 const _openGuide = '물건을 걸어 두면 내가 대신 팔아 주지. 팔린 금화와 산 물건은 내 이름으로 우편으로 보내네.';
+/// 묶음 61: 거래 지갑 처음 볼 때 (개발 초안)
+const _walletIntro = '장부를 하나 더 만들었네. 장에서 쓰는 금화는 내게 맡겨 두게 — 「거래 지갑」일세. '
+    '사고, 걸고, 부르는 건 지갑 금화로만 하고, 판 금화와 돌려받는 금화도 지갑으로 들어오지. '
+    '꺼내고 싶을 땐 언제든 말하게. 우편으로 보내 주겠네.';
 const _loginGuide = '장은 열렸네. 다만 장부에 이름을 올려야 하니, 로그인한 각성자만 거래할 수 있네.';
 
 /// 거래소 (묶음 58 #229): 사기 · 올리기 · 경매 · 내 장부. 로그인한 각성자만
@@ -59,6 +63,19 @@ class _MarketScreenState extends State<MarketScreen> {
         );
         await c.markMarketIntro();
       }
+      if (c.cloud.signedIn && c.walletIntroPending && mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (d) => GameAlert(
+            key: const Key('walletIntro'),
+            title: Text('바르칸 · 거래 지갑', style: AppText.title(18)),
+            content: const KText(_walletIntro, style: TextStyle(color: AppColors.text, height: 1.5)),
+            actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('알겠어요'))],
+          ),
+        );
+        await c.markWalletIntro();
+      }
+      if (c.cloud.signedIn && c.marketWallet == null) await c.refreshWallet();
       await _reload();
     });
   }
@@ -135,7 +152,52 @@ class _MarketScreenState extends State<MarketScreen> {
         ]),
       );
 
+  /// 묶음 61: 지갑 ○ 금화 · 맡기기 · 꺼내기
+  Widget _walletBar() {
+    final w = c.marketWallet;
+    return OrnatePanel(
+      key: const Key('walletBar'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      child: Row(children: [
+        const Icon(Icons.account_balance_wallet_rounded, color: AppColors.goldBright, size: 22),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('거래 지갑', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text(w == null ? '…' : '금화 ${comma(w)}', key: const Key('walletGold'), style: AppText.title(17)),
+          ]),
+        ),
+        TextButton(key: const Key('walletDeposit'), onPressed: c.marketBusy ? null : () => _walletSheet(true), child: const Text('맡기기')),
+        TextButton(
+            key: const Key('walletWithdraw'),
+            onPressed: c.marketBusy || (w ?? 0) <= 0 ? null : () => _walletSheet(false),
+            child: const Text('꺼내기')),
+      ]),
+    );
+  }
+
+  Future<void> _walletSheet(bool deposit) async {
+    final max = deposit ? c.player.gold : (c.marketWallet ?? 0);
+    final done = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheet) => WalletSheet(c: c, deposit: deposit, max: max),
+    );
+    if (!mounted || done == null) return;
+    if (done) {
+      showTopNotice(context, deposit ? '바르칸에게 맡겼어요' : '꺼낸 금화는 바르칸 우편으로 와요',
+          icon: Icons.account_balance_wallet_rounded);
+      setState(() {});
+    } else {
+      _err();
+    }
+  }
+
   List<Widget> _open() => [
+        _walletBar(),
+        const SizedBox(height: 8),
         Row(children: [
           for (final (i, t) in const ['사기', '올리기', '경매', '내 장부'].indexed) ...[
             if (i > 0) const SizedBox(width: 5),
@@ -324,7 +386,7 @@ class _MarketScreenState extends State<MarketScreen> {
           Text('금화 ${comma(l.price ?? 0)}에 살까요?', style: const TextStyle(color: AppColors.text, fontSize: 15)),
           const SizedBox(height: 6),
           Text(price, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          Text('가진 금화 ${comma(c.player.gold)} · 산 물건은 바르칸 우편으로 와요',
+          Text('거래 지갑 금화로 사요 · 산 물건은 바르칸 우편으로 와요',
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
         actions: [
@@ -630,6 +692,91 @@ class _SellSheetState extends State<_SellSheet> {
                       final ok = await c.listOnMarket(o,
                           qty: _qty, auction: _auction, price: _p, buyNow: _auction ? _bn : null);
                       if (context.mounted) Navigator.pop(context, ok);
+                    },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 묶음 61: 맡기기 · 꺼내기 창 (금화 정하기)
+class WalletSheet extends StatefulWidget {
+  const WalletSheet({super.key, required this.c, required this.deposit, required this.max});
+
+  final AppController c;
+  final bool deposit;
+  final int max;
+
+  @override
+  State<WalletSheet> createState() => _WalletSheetState();
+}
+
+class _WalletSheetState extends State<WalletSheet> {
+  final _amount = TextEditingController();
+
+  int get _a => int.tryParse(_amount.text) ?? 0;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    final dep = widget.deposit;
+    final ok = _a > 0 && _a <= widget.max;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
+      child: ListenableBuilder(
+        listenable: c,
+        builder: (context, _) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(dep ? '거래 지갑에 맡기기' : '거래 지갑에서 꺼내기', style: AppText.title(18)),
+            const SizedBox(height: 6),
+            KText(
+              dep
+                  ? '내 금화 ${comma(c.player.gold)} 중에서 맡겨요. 맡긴 금화는 거래소에서만 쓰고, 언제든 꺼낼 수 있어요.'
+                  : '지갑 금화 ${comma(widget.max)} 중에서 꺼내요. 바르칸 이름으로 우편이 와요.',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.45),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('walletAmount'),
+              controller: _amount,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (_) => setState(() {}),
+              style: const TextStyle(color: AppColors.text, fontSize: 18),
+              decoration: InputDecoration(labelText: dep ? '맡길 금화' : '꺼낼 금화', suffixText: '금화'),
+            ),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, children: [
+              for (final v in const [100, 500, 1000, 5000])
+                if (v <= widget.max)
+                  ActionChip(label: Text(comma(v)), onPressed: () => setState(() => _amount.text = '$v')),
+              if (widget.max > 0)
+                ActionChip(
+                    key: const Key('walletAll'),
+                    label: const Text('전부'),
+                    onPressed: () => setState(() => _amount.text = '${widget.max}')),
+            ]),
+            const SizedBox(height: 12),
+            GoldButton(
+              key: const Key('walletOk'),
+              label: c.marketBusy ? '바르칸이 세는 중…' : (dep ? '맡기기' : '꺼내기'),
+              height: 48,
+              fontSize: 18,
+              onPressed: !ok || c.marketBusy
+                  ? null
+                  : () async {
+                      final r = dep ? await c.depositWallet(_a) : await c.withdrawWallet(_a);
+                      if (context.mounted) Navigator.pop(context, r);
                     },
             ),
           ],

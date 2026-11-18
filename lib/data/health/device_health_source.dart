@@ -4,7 +4,7 @@ import 'health_source.dart';
 
 /// 아이폰 건강 앱(HealthKit)과 안드로이드 헬스 커넥트에서 걸음만 읽는다.
 /// 읽기만 하고, 건강 앱에 쓰지는 않는다.
-class DeviceHealthSource implements HealthSource {
+class DeviceHealthSource extends HealthSource {
   final Health _health = Health();
   bool _configured = false;
 
@@ -32,5 +32,12 @@ class DeviceHealthSource implements HealthSource {
   Future<int> stepsBetween(DateTime start, DateTime end) async {
     await _configure();
     return await _health.getTotalStepsInInterval(start, end) ?? 0;
+  }
+
+  /// 손으로 입력한 걸음은 뺌 (아이폰 wasUserEntered · 헬스 커넥트 수동 기록)
+  @override
+  Future<int> autoStepsBetween(DateTime start, DateTime end) async {
+    await _configure();
+    return await _health.getTotalStepsInInterval(start, end, includeManualEntry: false) ?? 0;
   }
 }

@@ -168,6 +168,7 @@ extension MarketOps on AppController {
       if (token == null) throw const ArcaApiError('login_required');
       final j = await api.post(path, body, token: token);
       _marketError = null;
+      if (j['wallet'] is num) _walletGold = (j['wallet'] as num).toInt();
       return j;
     } on ArcaApiError catch (e) {
       _marketError = e.code;
@@ -219,8 +220,8 @@ extension MarketOps on AppController {
   Future<bool> listOnMarket(MarketOwn own,
       {required int qty, required bool auction, required int price, int? buyNow}) async {
     final fee = marketListFee(price);
-    if (player.gold < fee) {
-      _marketError = 'no_gold';
+    if (_walletGold != null && _walletGold! < fee) {
+      _marketError = 'no_wallet_gold';
       _notify();
       return false;
     }
@@ -239,30 +240,25 @@ extension MarketOps on AppController {
         },
         trade: true);
     if (j == null) return false;
-    final paid = (j['fee'] as num?)?.toInt() ?? fee;
+    // 묶음 61: 올리는 금화는 거래 지갑에서 (휴대폰 금화는 그대로)
     await _serial(() async {
       final today = await _todayRecord();
       switch (own.kind) {
         case MarketKind.mat:
-          await _save(today.copyWith(
-              spends: DailyRecord.addCounts(today.spends, {own.key: qty, Wallet.gold: paid})));
+          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {own.key: qty})));
         case MarketKind.item:
           final i = ShopItem.values.byName(own.key);
           await _save(today.copyWith(
-            spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid}),
             counters: DailyRecord.addCounts(today.counters, {TownRules.dropKey(i): qty}),
           ));
         case MarketKind.equip:
-          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid})));
           await _saveArmory(_armory.copyWith(items: [
             for (final i in _armory.items)
               if (i.uid != own.key) i,
           ]));
         case MarketKind.alc:
-          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid})));
           await _saveAlc(_alc.add(own.key, -qty));
         case MarketKind.egg:
-          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: paid})));
           await _savePets(_pets.copyWith(eggs: [
             for (final e in _pets.eggs)
               if (e.id != own.key) e,
@@ -277,15 +273,62 @@ extension MarketOps on AppController {
 
   Future<void> _payMarket(int gold) => _serial(() async {
         if (gold <= 0) return;
-        final today = await _todayRecord();
-        await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: gold})));
         await _npcUse(Npc.barkan);
       });
 
-  /// 값을 정한 물건 사기 (물건은 바르칸 우편으로 바로)
-  Future<bool> buyOnMarket(MarketListing l) async {
-    if (player.gold < (l.price ?? 0)) {
+  // ───────────── 묶음 61 #250: 거래 지갑 (바르칸이 맡아 둔 금화, 거래소에서만)
+
+  /// 지갑 금화 (아직 모르면 null)
+  int? get marketWallet => _walletGold;
+
+  /// 처음 지갑을 볼 때 바르칸 한마디 (한 번)
+  bool get walletIntroPending => !_village.contains('walletIntro');
+  Future<void> markWalletIntro() => _markVillage(['walletIntro']);
+
+  Future<int?> refreshWallet() async {
+    final j = await _marketCall('/market/wallet', const {});
+    return j == null ? null : _walletGold;
+  }
+
+  /// 맡기기: 서버가 백업으로 한 번 확인한 뒤 휴대폰 금화에서 뺌
+  Future<bool> depositWallet(int amount) async {
+    if (amount <= 0 || player.gold < amount) {
       _marketError = 'no_gold';
+      _notify();
+      return false;
+    }
+    final j = await _marketCall('/market/deposit', {'amount': amount}, trade: true);
+    if (j == null) return false;
+    final a = (j['amount'] as num?)?.toInt() ?? amount;
+    await _serial(() async {
+      final today = await _todayRecord();
+      await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: a})));
+      await _npcUse(Npc.barkan);
+    });
+    // 뺀 기록을 바로 서버에도 (다음 맡기기 확인이 맞도록)
+    unawaited(_upload(force: true).then((_) {}, onError: (_) {}));
+    _notify();
+    return true;
+  }
+
+  /// 꺼내기: 지갑 → 바르칸 우편 (금화)
+  Future<bool> withdrawWallet(int amount) async {
+    if (amount <= 0 || (_walletGold != null && amount > _walletGold!)) {
+      _marketError = 'no_wallet_gold';
+      _notify();
+      return false;
+    }
+    final j = await _marketCall('/market/withdraw', {'amount': amount});
+    if (j == null) return false;
+    await checkInquiryInbox();
+    _notify();
+    return true;
+  }
+
+  /// 값을 정한 물건 사기 (물건은 바르칸 우편으로 바로) — 금화는 거래 지갑에서
+  Future<bool> buyOnMarket(MarketListing l) async {
+    if (_walletGold != null && _walletGold! < (l.price ?? 0)) {
+      _marketError = 'no_wallet_gold';
       _notify();
       return false;
     }
@@ -299,8 +342,8 @@ extension MarketOps on AppController {
 
   /// 경매 입찰 (그 금화는 묶어 둠 · 지면 우편으로 돌려받음). 바로 사기 값 이상이면 바로 삼
   Future<({bool ok, bool sold})> bidOnMarket(MarketListing l, int amount) async {
-    if (player.gold < amount) {
-      _marketError = 'no_gold';
+    if (_walletGold != null && _walletGold! < amount) {
+      _marketError = 'no_wallet_gold';
       _notify();
       return (ok: false, sold: false);
     }
@@ -326,6 +369,9 @@ extension MarketOps on AppController {
         'login_required' => '거래소는 로그인한 뒤에 쓸 수 있어요',
         'need_backup' => '기록을 서버에 맞추지 못했어요. 잠시 뒤 다시 해 주세요',
         'no_gold' => '금화가 모자라요',
+        'no_wallet_gold' => '거래 지갑 금화가 모자라요. 바르칸에게 맡겨 채워 주세요',
+        'bad_amount' => '그 금화로는 할 수 없어요',
+        'app_check' => '앱을 최신으로 바꾼 뒤 다시 해 주세요',
         'not_owned' => '그 물건이 기록에 없어요. 잠시 뒤 다시 해 주세요',
         'not_tradable' => '거래소에 올릴 수 없는 물건이에요',
         'bad_price' => '그 값으로는 올릴 수 없어요',

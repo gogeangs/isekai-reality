@@ -15,7 +15,7 @@ import 'package:isekai_reality/features/status/status_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 건강 데이터가 끝내 답하지 않는 기기
-class _HangHealth implements HealthSource {
+class _HangHealth extends HealthSource {
   @override
   Future<bool> requestPermission() => Completer<bool>().future;
   @override

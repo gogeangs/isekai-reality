@@ -93,7 +93,15 @@ class GuildView {
     this.giant,
     this.restricted = false,
     this.lian = false,
+    this.treasury = 0,
+    this.treasuryLog = const [],
+    this.goldFlag = false,
   });
+
+  /// 묶음 61: 길드 금고 · 쓰기 기록 (최근 것이 위) · 금빛 깃발 문양
+  final int treasury;
+  final List<TreasuryLine> treasuryLog;
+  final bool goldFlag;
 
   final String? id;
   final String name;
@@ -168,8 +176,28 @@ class GuildView {
       raid: GuildRaidView.fromJson(j['raid']),
       giant: GuildRaidView.fromJson(j['giant']),
       restricted: j['restricted'] == true,
+      treasury: ((j['treasury'] as Map?)?['gold'] as num?)?.toInt() ?? 0,
+      treasuryLog: [
+        for (final x in ((j['treasury'] as Map?)?['log'] as List?) ?? const [])
+          if (x is Map)
+            TreasuryLine(
+              at: DateTime.fromMillisecondsSinceEpoch((x['at'] as num?)?.toInt() ?? 0),
+              name: '${x['name'] ?? ''}',
+              what: '${x['what'] ?? ''}',
+              gold: (x['gold'] as num?)?.toInt() ?? 0,
+            ),
+      ],
+      goldFlag: g['goldFlag'] == true,
     );
   }
+}
+
+/// 길드 금고 쓰기 기록 한 줄 (누가 · 무엇에 · 얼마)
+class TreasuryLine {
+  const TreasuryLine({required this.at, required this.name, required this.what, required this.gold});
+  final DateTime at;
+  final String name, what;
+  final int gold;
 }
 
 /// 공개 모집 길드 하나
@@ -218,7 +246,10 @@ extension Act4Ops on AppController {
 
   /// 지금 장이 시작된 뒤 걸은 걸음 · 지금 길드에서 걸은 걸음
   int get stepsInChapter => math.max(0, _totalSteps - _act4.chapterSteps);
-  int get stepsInGuild => guild?.inGuild ?? false ? math.max(0, _totalSteps - _act4.joinSteps) : 0;
+  /// 묶음 61: 서버 길드는 손으로 입력한 걸음을 뺀 걸음으로 (리안의 길드는 그대로)
+  int get stepsInGuild => guild?.inGuild ?? false
+      ? math.max(0, (_act4.lian ? _totalSteps : _socialTotalSteps) - _act4.joinSteps)
+      : 0;
 
   /// 길드 레벨 (리안의 길드는 레벨 대신 걸음만 봄 → 조건은 늘 맞음)
   bool _levelOk(int need) => _act4.lian || (_guildView?.level ?? 0) >= need;
@@ -331,7 +362,7 @@ extension Act4Ops on AppController {
     return {
       'name': _profile.name,
       'level': player.level.level,
-      'steps': player.today?.steps ?? 0,
+      ...await _socialSteps(),
       'device': await deviceId(),
       if (mainJob != null) 'job': mainJob!.name,
       'sub': sub?.name,
@@ -374,7 +405,7 @@ extension Act4Ops on AppController {
     _guildView = v;
     // 길드가 바뀌면 「길드에서 걸은 걸음」을 새로 셈
     if (v.id != null && v.id != _act4.guildId) {
-      _act4 = _act4.copyWith(guildId: v.id, joinSteps: _totalSteps, lian: false);
+      _act4 = _act4.copyWith(guildId: v.id, joinSteps: _socialTotalSteps, lian: false);
       await _saveAct4();
     } else if (v.id == null && _act4.guildId != null) {
       _act4 = _act4.copyWith(clearGuild: true);
@@ -618,9 +649,14 @@ extension Act4Ops on AppController {
   /// 회관 그림 ★ (리안의 길드 · 길드 없음은 ★1)
   int get guildHallStar => _act4.lian ? 1 : (_guildView?.star ?? 1);
 
-  /// 기부: 금화 · 재료 → 회관 점수 · 등불 인장
+  /// 기부: 금화(묶음 61부터 거래 지갑에서) · 재료 → 회관 점수 · 등불 인장
   Future<int?> donateGuild({int gold = 0, Map<MaterialId, int> mats = const {}}) async {
-    if (_act4.lian || gold > player.gold) return null;
+    if (_act4.lian) return null;
+    if (gold > 0 && _walletGold != null && gold > _walletGold!) {
+      _guildError = 'no_wallet_gold';
+      _notify();
+      return null;
+    }
     for (final e in mats.entries) {
       if (player.materialCount(e.key) < e.value) return null;
     }
@@ -630,11 +666,11 @@ extension Act4Ops on AppController {
     });
     if (j == null) return null;
     final seals = (j['seals'] as num?)?.toInt() ?? 0;
+    if (gold > 0 && _walletGold != null) _walletGold = math.max(0, _walletGold! - gold);
     await _serial(() async {
       final today = await _todayRecord();
       await _save(today.copyWith(
           spends: DailyRecord.addCounts(today.spends, {
-        if (gold > 0) Wallet.gold: gold,
         for (final e in mats.entries) e.key.name: e.value,
       })));
       await _addSeals(seals);
@@ -642,6 +678,27 @@ extension Act4Ops on AppController {
     _notify();
     return seals;
   }
+
+  // ───────────── 묶음 61: 길드 금고 쓰기 (길드장 · 부길드장, 나눠 주기는 길드장)
+
+  Future<bool> _treasury(Map<String, dynamic> body) async {
+    final j = await _guildCall('/guild/treasury', body);
+    if (j == null) return false;
+    await refreshErbard();
+    return true;
+  }
+
+  /// 우리 영지 수비대 강화 (다음 공성전 끝까지)
+  Future<bool> boostGarrison(String estate, int level) => _treasury({'action': 'boost', 'estate': estate, 'level': level});
+
+  /// 회관 공사: 금고 금화로 회관 점수
+  Future<bool> treasuryHall(int gold) => _treasury({'action': 'hall', 'amount': gold});
+
+  /// 공성전이 끝난 뒤 공성권을 쓴 길드원에게 똑같이
+  Future<bool> treasuryShare(int gold) => _treasury({'action': 'share', 'amount': gold});
+
+  /// 금고 상점
+  Future<bool> treasuryShop(String id) => _treasury({'action': 'shop', 'id': id});
 
   Future<bool> placeDeco(int slot, String? id) async =>
       await _guildCall('/guild/deco/place', {'slot': slot, 'id': id}) != null;

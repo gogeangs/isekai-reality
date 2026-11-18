@@ -447,7 +447,7 @@ class MarketService {
       .sort((a, b) => (auction ? a.endsAt - b.endsAt : unitOf(a) - unitOf(b)))
       .slice(0, 100)
       .map((l) => view(l, uid));
-    return { items: rows };
+    return { items: rows, wallet: await this.purse(uid) };
   }
 
   async mine(uid) {
@@ -460,6 +460,7 @@ class MarketService {
       selling: mineRows.sort((a, b) => b.at - a.at).map((l) => view(l, uid)),
       bidding: bids.docs.map((d) => d.data()).filter((l) => l.status === 'open').map((l) => view(l, uid)),
       slots: CAT.slots,
+      wallet: await this.purse(uid),
     };
   }
 

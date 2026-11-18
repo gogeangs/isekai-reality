@@ -28,9 +28,12 @@ class GeoPoint {
 
 /// 위치 측정 한 번의 결과
 class LocationFix {
-  const LocationFix({required this.point, this.speedMps = 0});
+  const LocationFix({required this.point, this.speedMps = 0, this.mocked = false});
 
   final GeoPoint point;
+
+  /// 묶음 61: 가짜 위치 앱이 준 위치 (안드로이드 모의 위치 · iOS 15+ 소프트웨어 위치)
+  final bool mocked;
 
   /// 이동 속도(m/s). 알 수 없으면 0.
   final double speedMps;

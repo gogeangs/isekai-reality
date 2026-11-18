@@ -71,6 +71,7 @@ part 'controller/party.dart';
 part 'controller/buildings.dart';
 part 'controller/drive.dart';
 part 'controller/expedition.dart';
+part 'controller/fair.dart';
 part 'controller/explore.dart';
 part 'controller/garden.dart';
 part 'controller/gather.dart';
@@ -206,6 +207,15 @@ class AppController extends ChangeNotifier {
   String? _partyError;
   bool _partyBusy = false;
   String? _partyNotice;
+
+  /// 묶음 61 #250: 가짜 위치가 마지막으로 잡힌 때 · 띠를 보였는지 (이번 실행) · 최대 시간당 걸음 (잠깐 보관)
+  DateTime? _mockAt;
+  bool _mockBannerShown = false;
+  bool _mockBannerPending = false;
+  ({String day, DateTime at, int max})? _maxHourCache;
+
+  /// 하루 기록에 남기는 「손으로 입력한 걸음」 (함께하는 기능에서만 뺌)
+  static const manualStepsKey = 'manualSteps';
   DateTime? _partyPingAt;
 
   /// 서버 기록으로 바꾼 뒤 앱을 처음부터 다시 띄움 (main 이 정함, 없으면 그 자리에서 다시 읽음)
@@ -218,6 +228,9 @@ class AppController extends ChangeNotifier {
   // 묶음 58: 거래소 · 심층 순위
   bool _marketBusy = false;
   String? _marketError;
+
+  /// 묶음 61: 거래 지갑 금화 (서버가 들고 있음, 마지막으로 받은 값)
+  int? _walletGold;
   Region? _deepRegion;
   bool _cloudBusy = false;
   BackupInfo? _serverChoice;

@@ -24,7 +24,23 @@ class ErbardView {
     this.alliance,
     this.restricted = false,
     this.server = false,
+    this.boosts = const {},
+    this.canShare = false,
+    this.shareNo,
+    this.tickets,
+    this.ticketCarry = 0,
+    this.guards = const {},
   });
+
+  /// 묶음 61: 우리 영지 수비대 강화 단계 (금고) · 나눠 주기 · 서버가 센 공성권
+  final Map<String, int> boosts;
+  final bool canShare;
+  final int? shareNo;
+  final int? tickets;
+  final int ticketCarry;
+
+  /// 우리 영지 수비대 직업 (분신 그림)
+  final Map<String, List<String?>> guards;
 
   /// 영지 → 주인 (없으면 빈 영지). kind: 'mine' · 'ally' · 'npc' · 'other'
   final Map<String, ({String kind, String name, int emblem, int color, bool crown})> owners;
@@ -123,6 +139,13 @@ class ErbardView {
               locked: al['locked'] == true,
             ),
       restricted: j['restricted'] == true,
+      boosts: {
+        for (final e in ((j['boosts'] as Map?) ?? const {}).entries) '${e.key}': (e.value as num).toInt(),
+      },
+      canShare: g?['canShare'] == true,
+      shareNo: (g?['shareNo'] as num?)?.toInt(),
+      tickets: (j['tickets'] as num?)?.toInt(),
+      ticketCarry: (j['ticketCarry'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -336,9 +359,17 @@ extension Act5Ops on AppController {
     try {
       final token = await a.idToken();
       if (token == null) throw const ArcaApiError('login_required');
-      final j = await api.post(path, body, token: token);
+      // 묶음 61: 공성권은 서버가 셈 (함께하는 걸음 · 처음 한 번은 앱 장수를 옮김)
+      final me = {
+        ...await _socialSteps(),
+        'device': await deviceId(),
+        'tickets': siegeTickets,
+        'carry': (siegeTicketProgress * ErbardRules.ticketSteps).floor(),
+      };
+      final j = await api.post(path, {...body, 'me': me}, token: token);
       _erbardError = null;
       if (j.containsKey('owners')) _erbardView = ErbardView.fromJson(j);
+      if (j['tickets'] is num) await _syncTickets((j['tickets'] as num).toInt(), (j['ticketCarry'] as num?)?.toInt());
       return j;
     } on ArcaApiError catch (e) {
       _erbardError = e.code;
@@ -350,6 +381,14 @@ extension Act5Ops on AppController {
       _erbardBusy = false;
       _notify();
     }
+  }
+
+  /// 서버가 센 공성권으로 앱 장수를 맞춤 (진행 걸음도)
+  Future<void> _syncTickets(int n, int? carry) async {
+    final c = (carry ?? (siegeTicketProgress * ErbardRules.ticketSteps).floor()).clamp(0, ErbardRules.ticketSteps - 1);
+    if (_act5.ticketAt == null || n == siegeTickets) return;
+    _act5 = _act5.copyWith(ticketBank: n, ticketAt: _totalSteps - c);
+    await _saveAct5();
   }
 
   Future<void> refreshErbard() async {

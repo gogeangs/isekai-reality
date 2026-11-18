@@ -106,7 +106,8 @@ async function main() {
   const admin = require('firebase-admin');
   const email = String(process.env.REVIEW_EMAIL || '').trim().toLowerCase();
   if (!email) throw new Error('REVIEW_EMAIL 없음');
-  if (!admin.apps.length) admin.initializeApp();
+  // 서비스 계정 파일의 프로젝트가 아니라 아르카 프로젝트로 (함수 배포와 같은 곳)
+  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.PROJECT_ID || 'arca-d0cab' });
   const db = admin.firestore();
   db.settings({ ignoreUndefinedProperties: true });
   const uid = await findUid(admin, email);

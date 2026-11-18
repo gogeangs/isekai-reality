@@ -43,6 +43,7 @@ import 'features/pets/pet_screen.dart';
 import 'features/smithy/equip_picker.dart';
 import 'features/village/board_screen.dart';
 import 'features/status/stat_screen.dart';
+import 'features/status/step_chest_row.dart';
 import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
 import 'theme/app_colors.dart';
@@ -422,7 +423,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             lifeLine: (controller.maxHp > 0 &&
                         controller.hp / controller.maxHp < 0.3
                     ? null
-                    : controller.expeditionTalk ?? controller.masteryTalk) ??
+                    : controller.expeditionTalk ?? controller.masteryTalk ?? controller.walkTalk) ??
                 controller.statusLifeLine,
             armory: controller.armory,
             onSlot: (slot) => showEquipPicker(context, controller, slot),
@@ -438,6 +439,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               children: [
                 // 묶음 43 #228: 오늘 하루 훈련 전이면 은은한 점 한 줄
                 TrainingStatusRow(controller: controller),
+                // 묶음 65 #252: 걸음 상자
+                StepChestRow(controller: controller),
                 NpcRequestPanel(controller: controller),
               ],
             ),

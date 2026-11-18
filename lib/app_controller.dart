@@ -96,6 +96,7 @@ part 'controller/training.dart';
 part 'controller/tutorial.dart';
 part 'controller/village.dart';
 part 'controller/vitals.dart';
+part 'controller/walk_rewards.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
 ///
@@ -230,6 +231,10 @@ class AppController extends ChangeNotifier {
   String? _marketError;
 
   /// 묶음 65: 공성전 알림을 보인 것 (이 휴대폰만)
+  // 묶음 65 #252: 걸음 보상 한 줄 (잠깐만 보임)
+  String? _walkLine;
+  DateTime? _walkLineAt;
+
   final Set<String> _siegeSeen = {};
   bool _siegeSeenLoaded = false;
 

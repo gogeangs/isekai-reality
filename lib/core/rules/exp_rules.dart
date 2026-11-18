@@ -3,6 +3,7 @@ import 'rule_constants.dart';
 import 'board_rules.dart';
 import 'quest_rules.dart';
 import 'town_rules.dart';
+import 'walk_reward_rules.dart';
 
 /// 하루 경험치의 내역
 class DailyExpBreakdown {
@@ -15,6 +16,7 @@ class DailyExpBreakdown {
     this.restStreak = 0,
     this.questAll = 0,
     this.weekly = 0,
+    this.footprint = 0,
   });
 
   final int dungeon;
@@ -34,6 +36,24 @@ class DailyExpBreakdown {
   /// 그날 마친 주간 의뢰 보상 (11-10 #26)
   final int weekly;
 
+  /// 묶음 65 #252: 1만 보를 넘긴 2,500보마다 (하루 2만 보까지)
+  final int footprint;
+
+  /// 묶음 65 #254: 높은 레벨 배율을 칸마다 곱한 내역 (배율은 화면에 안 보임)
+  DailyExpBreakdown scaled(double m) => m == 1
+      ? this
+      : DailyExpBreakdown(
+          dungeon: (dungeon * m).round(),
+          fieldMonster: (fieldMonster * m).round(),
+          exploration: (exploration * m).round(),
+          quest: (quest * m).round(),
+          rest: (rest * m).round(),
+          restStreak: (restStreak * m).round(),
+          questAll: (questAll * m).round(),
+          weekly: (weekly * m).round(),
+          footprint: (footprint * m).round(),
+        );
+
   int get total =>
       dungeon +
       fieldMonster +
@@ -42,7 +62,8 @@ class DailyExpBreakdown {
       rest +
       restStreak +
       questAll +
-      weekly;
+      weekly +
+      footprint;
 }
 
 class ExpRules {
@@ -103,6 +124,7 @@ class ExpRules {
           ? RuleConstants.questAllBonusExp
           : 0,
       weekly: weeklyDone * BoardRules.weeklyExp,
+      footprint: WalkRewardRules.footprintExpOn(record.steps, record.date),
     );
   }
 }

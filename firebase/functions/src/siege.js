@@ -50,6 +50,8 @@ const weight = (id) => (id === 'royal' ? T.royalWeight : 1);
 const KEEP_RUN = 56 * DAY;
 const runExpire = (n) => new Date(siegeEnd(n) + KEEP_RUN);
 
+const ORD = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
+
 function startWorld() {
   const owners = {};
   for (const e of ESTATES) if (e.npcStart) owners[e.id] = { gid: NPC, name: NPC_NAME, emblem: 0, color: 7, since: 0 };
@@ -123,6 +125,7 @@ class SiegeService {
       else if (ds.data().uid !== uid) counted = false;
     }
     let out = null;
+    let added = 0;
     await this.db.runTransaction(async (t) => {
       const s = await t.get(ref);
       let d;
@@ -137,6 +140,7 @@ class SiegeService {
           d.dayCounted = 0;
         }
         if (has && counted && steps > (d.dayCounted || 0)) {
+          added = steps - (d.dayCounted || 0);
           d.carry = (d.carry || 0) + steps - (d.dayCounted || 0);
           d.dayCounted = steps;
           d.bank = Math.min(T.ticketMax, (d.bank || 0) + Math.floor(d.carry / T.ticketSteps));
@@ -146,6 +150,8 @@ class SiegeService {
       t.set(ref, d);
       out = { tickets: d.bank || 0, carry: d.carry || 0 };
     });
+    // 묶음 65: 공성전 동안 걸음은 길드 게이지에도 (진짜 앱 확인 실패 · 손 입력 걸음은 빼고 — 앱이 손 입력을 이미 뺌)
+    if (added > 0 && !(me && me.__bad)) await this._addGauge(uid, added);
     return out;
   }
 
@@ -158,6 +164,186 @@ class SiegeService {
       d.bank -= 1;
       t.set(ref, d);
     });
+  }
+
+  // ───────────── 묶음 65 #251: 집결 깃발 · 공성 망치 · 성벽 보수 · 전황 소식
+
+  /** 길드 게시판 소식 한 줄 (최근 30줄) */
+  async _news(gid, text, key = null) {
+    if (!gid || gid === NPC) return;
+    const ref = this.db.doc(`guilds/${gid}`);
+    await this.db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      if (!s.exists) return;
+      const g = s.data();
+      if (key) {
+        // 같은 소식은 3시간에 한 번 (공격받고 있어요)
+        g.newsAt = g.newsAt || {};
+        if (g.newsAt[key] && this.now() - g.newsAt[key] < 3 * 3600000) return;
+        g.newsAt[key] = this.now();
+      }
+      g.news = [...(g.news || []), { at: this.now(), text }].slice(-30);
+      t.set(ref, g);
+    });
+  }
+
+  _gaugeRef(n, gid) {
+    return this.db.doc(`siegeGauge/${n}_${gid}`);
+  }
+
+  /** 길드 게이지 한 칸 (인원에 맞춤) */
+  async _gaugeSize(gid) {
+    const g = (await this.db.doc(`guilds/${gid}`).get()).data() || {};
+    return T.gaugePerHead * Math.max(5, Object.keys(g.members || {}).length);
+  }
+
+  /** 공성전 동안 걸은 걸음 → 길드 게이지 (공성 망치 · 성벽 보수 둘 다) */
+  async _addGauge(uid, steps) {
+    const now = this.now();
+    if (!siegeActive(now) || steps <= 0) return;
+    const { gid } = await this._mine(uid);
+    if (!gid) return;
+    const n = siegeNo(now);
+    const ref = this._gaugeRef(n, gid);
+    await this.db.runTransaction(async (t) => {
+      const s = await t.get(ref);
+      const d = s.exists ? s.data() : { no: n, gid, steps: 0, rams: 0, repairs: {} };
+      d.steps = (d.steps || 0) + steps;
+      d.by = d.by || {};
+      d.by[uid] = (d.by[uid] || 0) + steps;
+      d.expireAt = runExpire(n);
+      t.set(ref, d);
+    });
+    await this._applyGauge(n, gid);
+  }
+
+  /** 가득 찬 게이지를 씀: 집결 깃발 영지 남은 자리 하나 약하게 · 우리 영지 깨진 자리 하나 되살림 */
+  async _applyGauge(n, gid) {
+    if (!gid || gid === NPC) return;
+    const ref = this._gaugeRef(n, gid);
+    const d = (await ref.get()).data();
+    if (!d) return;
+    const full = Math.floor((d.steps || 0) / (await this._gaugeSize(gid)));
+    const w = await this._world();
+    const g = (await this.db.doc(`guilds/${gid}`).get()).data() || {};
+    // 공성 망치
+    if ((d.rams || 0) < Math.min(T.ramMax, full)) {
+      const rally = (await this.db.doc(`siegeRally/${n}_${gid}`).get()).data();
+      if (rally && w.owners[rally.estate] && w.owners[rally.estate].gid !== gid) {
+        const rref = this.db.doc(`siegeRun/${n}_${rally.estate}`);
+        let hit = null;
+        await this.db.runTransaction(async (t) => {
+          const rs = await t.get(rref);
+          const r = rs.exists ? rs.data() : { no: n, estate: rally.estate, g: {} };
+          const x = r.g[gid] || { broken: [] };
+          x.weak = x.weak || [];
+          const k = [0, 1, 2, 3, 4].find((i) => !x.broken.includes(i) && !x.weak.includes(i));
+          if (k == null) return;
+          x.weak.push(k);
+          r.g[gid] = x;
+          r.expireAt = runExpire(n);
+          t.set(rref, r);
+          hit = k;
+        });
+        if (hit != null) {
+          await ref.set({ ...d, rams: (d.rams || 0) + 1 });
+          d.rams = (d.rams || 0) + 1;
+          await this._news(gid, `공성 망치로 ${byId[rally.estate].name} ${ORD[hit]} 자리를 흔들었어요`);
+        }
+      }
+    }
+    // 성벽 보수 (영지마다 공성전에 한 번)
+    const mine = ESTATES.filter((e) => w.owners[e.id] && w.owners[e.id].gid === gid).map((e) => e.id);
+    const used = Object.keys(d.repairs || {}).length;
+    if (used < Math.min(full, mine.length)) {
+      const left = mine.filter((id) => !(d.repairs || {})[id]);
+      const runs = {};
+      for (const id of left) runs[id] = (await this.db.doc(`siegeRun/${n}_${id}`).get()).data() || null;
+      const most = (id) => Math.max(0, ...Object.values((runs[id] || {}).g || {}).map((x) => (x.broken || []).length));
+      const pick = g.repairTarget && g.repairTarget.n === n && left.includes(g.repairTarget.estate) && most(g.repairTarget.estate) > 0
+        ? g.repairTarget.estate
+        : left.filter((id) => most(id) > 0).sort((a, b) => most(b) - most(a))[0];
+      if (pick) {
+        const rref = this.db.doc(`siegeRun/${n}_${pick}`);
+        let fixed = null;
+        let from = null;
+        await this.db.runTransaction(async (t) => {
+          const r = (await t.get(rref)).data();
+          const top = Object.entries(r.g || {}).sort((a, b) => (b[1].broken || []).length - (a[1].broken || []).length)[0];
+          if (!top || !(top[1].broken || []).length) return;
+          fixed = top[1].broken.pop();
+          from = top[0];
+          delete top[1].doneAt;
+          t.set(rref, r);
+        });
+        if (fixed != null) {
+          await ref.set({ ...d, repairs: { ...(d.repairs || {}), [pick]: true } });
+          await this._news(gid, `성벽 보수로 ${byId[pick].name} ${ORD[fixed]} 자리를 되살렸어요`);
+          await this._news(from, `${byId[pick].name}의 성벽이 보수됐어요. ${ORD[fixed]} 자리가 다시 섰어요`);
+        }
+      }
+    }
+  }
+
+  /** 집결 깃발 (길드장 · 부길드장, 공성전 동안 6시간마다 바꿈) */
+  async rally(uid, { estate } = {}) {
+    const e = byId[estate];
+    if (!e) fail('bad_estate');
+    if (await this._restricted(uid)) fail('restricted', 403);
+    const { gid, g } = await this._mine(uid);
+    if (!gid) fail('no_guild');
+    if (!(g.owner === uid || (g.vices || []).includes(uid))) fail('not_staff', 403);
+    const now = this.now();
+    if (!siegeActive(now)) fail('not_siege');
+    const w = await this._world();
+    const o = w.owners[e.id];
+    if (o && o.gid === gid) fail('own');
+    if (o && (await this._allies(gid, g)).includes(o.gid)) fail('ally');
+    const n = siegeNo(now);
+    const ref = this.db.doc(`siegeRally/${n}_${gid}`);
+    const cur = (await ref.get()).data();
+    if (cur && cur.estate !== e.id && now - cur.at < T.rallyHours * 3600000) fail('rally_wait');
+    await ref.set({ estate: e.id, at: cur && cur.estate === e.id ? cur.at : now, by: uid, expireAt: runExpire(n) });
+    if (!cur || cur.estate !== e.id) await this._news(gid, `${(g.members[uid] || {}).name || '길드원'}님이 ${e.name}에 집결 깃발을 꽂았어요. ${e.name}에 집결해요`);
+    await this._applyGauge(n, gid);
+    return this.state(uid);
+  }
+
+  /** 성벽 보수할 영지 고르기 (길드장 · 부길드장) */
+  async repairTarget(uid, { estate } = {}) {
+    if (!byId[estate]) fail('bad_estate');
+    const { gid, g } = await this._mine(uid);
+    if (!gid) fail('no_guild');
+    if (!(g.owner === uid || (g.vices || []).includes(uid))) fail('not_staff', 403);
+    const n = siegeNo(this.now());
+    await this.db.doc(`guilds/${gid}`).set({ ...g, repairTarget: { n, estate } });
+    await this._applyGauge(n, gid);
+    return this.state(uid);
+  }
+
+  /** 엿보기: 수비대 다섯 자리 (주 직업 · 함께 선 동료 수, 능력치는 숨김) */
+  async peek(uid, { estate } = {}) {
+    const e = byId[estate];
+    if (!e) fail('bad_estate');
+    const { gid } = await this._mine(uid);
+    const w = await this._world();
+    const o = w.owners[e.id];
+    const n = siegeNo(this.now());
+    const run = gid ? ((((await this.db.doc(`siegeRun/${n}_${e.id}`).get()).data() || {}).g || {})[gid] || {}) : {};
+    const gs = o && o.gid !== NPC ? (await this.db.doc(`garrison/${e.id}`).get()).data() || {} : {};
+    return {
+      estate: e.id,
+      slots: [0, 1, 2, 3, 4].map((k) => {
+        const x = (gs.slots || [])[k];
+        return {
+          broken: (run.broken || []).includes(k),
+          weak: (run.weak || []).includes(k),
+          kind: !o ? 'wild' : o.gid === NPC ? (e.id === 'royal' || k === 4 ? 'blackCaptain' : 'blackGuard') : x ? 'clone' : 'empty',
+          job: x ? x.job || null : null,
+          allies: x ? (x.allies || []).length : 0,
+        };
+      }),
+    };
   }
 
   /** 끝난 공성전 정리 (state · 매일 정리 때) */
@@ -202,26 +388,47 @@ class SiegeService {
         break;
       }
     }
-    // 2. 흑등 연맹: 빈 영지 하나, 없으면 가장 약한 영지 하나를 노림
-    const empty = ESTATES.filter((e) => !w.owners[e.id]);
-    if (empty.length) {
-      const e = empty[(n * 7 + 3) % empty.length];
-      w.owners[e.id] = { gid: NPC, name: NPC_NAME, emblem: 0, color: 7, since: n };
-      changes.push({ estate: e.id, from: null, fromName: '', to: NPC, toName: NPC_NAME });
-    } else {
+    // 2. 흑등 연맹: 빈 영지 하나, 없으면 가장 약한 영지 하나를 노림.
+    //    묶음 65: 왕관의 무게 — 왕성을 세 번 이상 연속 가지면 왕성부터 노림 · 연맹 영지는 늘 npcMin 곳 이상
+    const prevCrown = w.crown;
+    const royalNow = w.owners.royal;
+    w.crownStreak = royalNow && royalNow.gid !== NPC ? (royalNow.gid === prevCrown ? (w.crownStreak || 0) + 1 : 1) : 0;
+    const npcTake = async (id, o) => {
+      w.owners[id] = { gid: NPC, name: NPC_NAME, emblem: 0, color: 7, since: n };
+      changes.push({ estate: id, from: o ? o.gid : null, fromName: o ? o.name : '', to: NPC, toName: NPC_NAME });
+      if (o) await this.db.doc(`garrison/${id}`).set({ gid: NPC, slots: [null, null, null, null, null] });
+    };
+    const filledOf = async (id) => {
+      const gs = await this.db.doc(`garrison/${id}`).get();
+      return gs.exists ? (gs.data().slots || []).filter(Boolean).length : 0;
+    };
+    let took = false;
+    if (w.crownStreak >= 3 && royalNow && (await filledOf('royal')) < Math.min(T.slots, w.crownStreak)) {
+      await npcTake('royal', royalNow);
+      w.crownStreak = 0;
+      took = true;
+    }
+    const npcCount = () => ESTATES.filter((e) => w.owners[e.id] && w.owners[e.id].gid === NPC).length;
+    let guard = 0;
+    while ((!took || npcCount() < T.npcMin) && guard++ < 40) {
+      const empty = ESTATES.filter((e) => !w.owners[e.id]);
+      if (empty.length) {
+        const e = empty[(n * 7 + 3 + guard) % empty.length];
+        await npcTake(e.id, null);
+        took = true;
+        continue;
+      }
       let weakest = null;
       for (const e of ESTATES) {
         const o = w.owners[e.id];
         if (!o || o.gid === NPC || e.id === 'royal') continue;
-        const gs = await this.db.doc(`garrison/${e.id}`).get();
-        const filled = gs.exists ? (gs.data().slots || []).filter(Boolean).length : 0;
+        const filled = await filledOf(e.id);
         if (!weakest || filled < weakest.filled) weakest = { id: e.id, filled, o };
       }
-      if (weakest && weakest.filled < 3) {
-        w.owners[weakest.id] = { gid: NPC, name: NPC_NAME, emblem: 0, color: 7, since: n };
-        changes.push({ estate: weakest.id, from: weakest.o.gid, fromName: weakest.o.name, to: NPC, toName: NPC_NAME });
-        await this.db.doc(`garrison/${weakest.id}`).set({ gid: NPC, slots: [null, null, null, null, null] });
-      }
+      // 한 곳만 노릴 때는 수비가 약한 곳만 (예전 그대로) · 최소를 채울 때는 가장 약한 곳
+      if (!weakest || (!took && weakest.filled >= 3 && npcCount() >= T.npcMin)) break;
+      await npcTake(weakest.id, weakest.o);
+      took = true;
     }
     // 3. 보상: 영지 1곳당(왕성 3곳분) 길드원 모두 등불 인장 · 공성권을 쓴 사람은 더 · 져도 참여 보상. 연맹은 점수를 나눔
     const weights = {};
@@ -286,8 +493,32 @@ class SiegeService {
         });
       }
     }
+    // 묶음 65: 선봉장 — 길드마다 가장 많이 깬 사람 하나 (같으면 먼저 깬 사람), 다음 공성전 끝까지
+    const best = {};
+    for (const [uid, x] of Object.entries(users)) {
+      if (!x.gid || !(x.wins > 0)) continue;
+      const b = best[x.gid];
+      if (!b || x.wins > b.wins || (x.wins === b.wins && (x.firstWinAt || 0) < (b.firstWinAt || 0))) best[x.gid] = { uid, ...x };
+    }
+    const vanguards = {};
+    for (const [gid, b] of Object.entries(best)) {
+      const g = await guildOf(gid);
+      const name = ((g || {}).members || {})[b.uid] ? g.members[b.uid].name : '';
+      vanguards[gid] = name;
+      await this.db.collection(`inbox/u_${b.uid}/msgs`).add({
+        from: '세라',
+        title: `제${n + 1}회 깃발 공성전 선봉장`,
+        body: '길드에서 가장 많은 자리를 깬 당신에게. 다음 공성전이 끝날 때까지 「선봉장」이라 불릴 거야.',
+        reward: {},
+        equips: [],
+        op: { vanguard: n },
+        at: this.now(),
+        kind: 'siege',
+      });
+      if (g) await this._news(gid, `${name}님이 제${n + 1}회 공성전 선봉장이 됐어요`);
+    }
     w.crown = royal && royal.gid !== NPC ? royal.gid : null;
-    w.last = { no: n, royal: royal ? { gid: royal.gid, name: royal.name } : null, changes, at: this.now() };
+    w.last = { no: n, royal: royal ? { gid: royal.gid, name: royal.name } : null, changes, at: this.now(), vanguards };
     w.settled = n;
     w.avgLevel = await this._avgLevel();
     await this.db.doc('erbard/world').set(w);
@@ -318,11 +549,36 @@ class SiegeService {
     }
     const wild = {};
     const run = {};
+    const weak = {};
+    const defense = {};
+    let rally = null;
+    let gauge = null;
     if (gid) {
       const ws = await this.db.collection('wild').get();
       for (const d of ws.docs) if (d.data().g && d.data().g[gid]) wild[d.id] = d.data().g[gid];
       const rs = await this.db.collection('siegeRun').where('no', '==', n).get();
-      for (const d of rs.docs) if (d.data().g && d.data().g[gid]) run[d.data().estate] = d.data().g[gid].broken;
+      for (const d of rs.docs) {
+        const r = d.data();
+        if (r.g && r.g[gid]) {
+          run[r.estate] = r.g[gid].broken;
+          if ((r.g[gid].weak || []).length) weak[r.estate] = r.g[gid].weak;
+        }
+        // 묶음 65 전황판: 우리 영지마다 가장 많이 깨진 자리 수
+        if (mine.includes(r.estate)) defense[r.estate] = Math.max(0, ...Object.values(r.g || {}).map((x) => (x.broken || []).length));
+      }
+      const rd = (await this.db.doc(`siegeRally/${n}_${gid}`).get()).data();
+      if (rd && siegeActive(now)) rally = { estate: rd.estate, at: rd.at, nextAt: rd.at + T.rallyHours * 3600000 };
+      const gd = (await this._gaugeRef(n, gid).get()).data() || { steps: 0, rams: 0, repairs: {} };
+      const size = await this._gaugeSize(gid);
+      const full = Math.floor((gd.steps || 0) / size);
+      gauge = {
+        progress: full >= T.ramMax && Object.keys(gd.repairs || {}).length >= mine.length ? 1 : ((gd.steps || 0) % size) / size,
+        full,
+        rams: gd.rams || 0,
+        ramMax: T.ramMax,
+        repairs: Object.keys(gd.repairs || {}),
+        repairTarget: g.repairTarget && g.repairTarget.n === n ? g.repairTarget.estate : null,
+      };
     }
     const use = (await this.db.doc(`siegeUse/${n}`).get()).data() || { u: {} };
     let alliance = null;
@@ -361,6 +617,13 @@ class SiegeService {
       used: (use.u[uid] || {}).n || 0,
       last: w.last,
       alliance,
+      // 묶음 65 #251
+      rally,
+      gauge,
+      weak,
+      defense,
+      news: g ? (g.news || []).slice(-15).reverse() : [],
+      crownStreak: w.crown && w.crown === gid ? w.crownStreak || 0 : 0,
       restricted: await this._restricted(uid),
     };
   }
@@ -403,14 +666,19 @@ class SiegeService {
     if (e.id === 'royal' && cnt < T.royalNeeds) fail('royal_locked');
     const rs = (await this.db.doc(`siegeRun/${n}_${e.id}`).get()).data() || { g: {} };
     const broken = ((rs.g || {})[gid] || {}).broken || [];
+    const weakSlots = ((rs.g || {})[gid] || {}).weak || [];
     const slot = [0, 1, 2, 3, 4].find((k) => !broken.includes(k));
-    if (o.gid === NPC) return { kind: 'siege', slot, level: lv, broken, npc: true };
+    const rally = ((await this.db.doc(`siegeRally/${n}_${gid}`).get()).data() || {}).estate === e.id;
+    const weakened = slot != null && weakSlots.includes(slot);
+    if (o.gid === NPC) return { kind: 'siege', slot, level: lv, broken, npc: true, rally, weakened };
     const gs = (await this.db.doc(`garrison/${e.id}`).get()).data() || { slots: [] };
     const guard = slot == null ? null : (gs.slots || [])[slot] || null;
     const og = (await this.db.doc(`guilds/${o.gid}`).get()).data() || {};
     const ms = Object.values(og.members || {});
     const steps = ms.reduce((a, m) => a + (Number(m.week) || 0) + (Number(m.prevWeek) || 0), 0);
-    const stepBonus = Math.min(T.garrisonStepMax, (T.garrisonStepBonus * steps) / Math.max(1, ms.length * T.garrisonStepsPer));
+    let stepBonus = Math.min(T.garrisonStepMax, (T.garrisonStepBonus * steps) / Math.max(1, ms.length * T.garrisonStepsPer));
+    // 묶음 65: 왕관의 무게 — 왕성을 연속으로 가질수록 걸음 강화가 약해짐
+    if (e.id === 'royal' && (w.crownStreak || 0) > 1) stepBonus *= Math.max(0.4, 1 - T.crownDecay * (w.crownStreak - 1));
     // 묶음 61: 길드 금고로 강화한 수비대 (다음 공성전 끝까지)
     const boost = gs.boost && gs.boost.until > now ? T.boostMult[Math.max(0, Math.min(T.boostMult.length - 1, gs.boost.level - 1))] || 0 : 0;
     const bonus = stepBonus + boost;
@@ -422,6 +690,8 @@ class SiegeService {
       broken,
       guard: guard ? { name: guard.name, level: guard.level, job: guard.job || null, allies: guard.allies || [] } : null,
       bonus,
+      rally,
+      weakened,
     };
   }
 
@@ -453,7 +723,9 @@ class SiegeService {
         const s = await t.get(useRef);
         const d = s.exists ? s.data() : { no: n, u: {} };
         const u = d.u[uid] || { n: 0, gid };
-        d.u[uid] = { n: u.n + 1, gid };
+        // 묶음 65: 깬 자리 수 · 처음 깬 때 (선봉장)
+        const wins = (u.wins || 0) + (win ? 1 : 0);
+        d.u[uid] = { n: u.n + 1, gid, wins, firstWinAt: u.firstWinAt || (win ? now : null) };
         d.expireAt = runExpire(n);
         t.set(useRef, d);
       });
@@ -507,6 +779,13 @@ class SiegeService {
       t.set(ref, d);
     });
     await markUse();
+    if (win) {
+      const who = ((g.members || {})[uid] || {}).name || '길드원';
+      await this._news(gid, `${who}님이 ${e.name} ${ORD[k]} 자리를 깼어요`);
+      if (o.gid !== NPC) await this._news(o.gid, `우리 영지 ${e.name}가 공격받고 있어요`, `atk_${e.id}`);
+      await this._applyGauge(n, gid);
+      if (o.gid !== NPC) await this._applyGauge(n, o.gid);
+    }
     return { kind: 'siege', won: !!win, broken, full: broken.length >= T.slots, tickets: (await this.tickets(uid, {})).tickets };
   }
 

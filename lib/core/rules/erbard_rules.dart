@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'guild_rules.dart' show Act4Scene, GuildRules;
+import 'job_rules.dart' show JobId;
 import 'materials.dart';
 import 'monsters.dart';
 
@@ -202,6 +203,42 @@ abstract final class ErbardRules {
   /// 공성 · 야생 한 판은 이보다 빨리 끝나면 이김으로 세지 않음 (서버)
   static const int minFightMs = 4000;
 
+  // ───────────── 묶음 65 #251: 공성전 다듬기 (숨은 값)
+
+  /// 집결 깃발: 6시간마다 바꿈 · 그 영지를 치면 조금 강해짐
+  static const int rallyHours = 6;
+  static const double rallyBonus = 0.10;
+
+  /// 공성 망치 · 성벽 보수 게이지: 공성전 동안 길드원 걸음, 한 칸 = 한 사람 몫 × max(5, 인원)
+  static const int gaugePerHead = 15000;
+  static const int ramMax = 2;
+
+  /// 공성 망치로 흔들린 자리: 상대가 이만큼 약해짐
+  static const double ramWeak = 0.6;
+
+  /// 흑등 연맹은 늘 영지 몇 곳을 쥠
+  static const int npcMin = 3;
+
+  /// 왕관의 무게: 왕성을 연속으로 가질수록 왕성 수비대 걸음 강화가 약해짐 (한 번마다)
+  static const double crownDecay = 0.15;
+
+  /// 엿보기 · 상성: 수비대 직업에 강한 직업 (내 주 직업이면 +25% · 받는 피해 −30%, 보조면 절반 — 레이드 약점과 같음)
+  static const Map<String, List<JobId>> cloneWeakTo = {
+    'cloneWarrior': [JobId.mage, JobId.archer],
+    'cloneKnight': [JobId.mage, JobId.rogue],
+    'cloneArcher': [JobId.knight, JobId.rogue],
+    'cloneMage': [JobId.rogue, JobId.archer],
+    'clonePriest': [JobId.warrior, JobId.rogue],
+    'cloneRogue': [JobId.knight, JobId.warrior],
+    'blackGuard': [JobId.mage, JobId.priest],
+    'blackCaptain': [JobId.priest, JobId.knight],
+  };
+
+  /// 마지막 6시간 (일요일 18~24시)
+  static const Duration finalHours = Duration(hours: 6);
+  static bool siegeFinal(DateTime now) =>
+      siegeActive(now) && !now.toUtc().isBefore(siegeEnd(siegeNo(now)).subtract(finalHours));
+
   /// 에르바르드 사냥 (여정 기력) · 내 길드 영지에서는 경험치 · 재료 조금 더
   static const int huntEnergy = 5;
   static const double ownedHuntBonus = 0.15;
@@ -331,7 +368,8 @@ abstract final class ErbardRules {
     b.write(' "ticketSteps": $ticketSteps, "ticketMax": $ticketMax, "minFightMs": $minFightMs,\n');
     b.write(' "boostCost": [${boostCost.join(', ')}], "boostMult": [${boostMult.join(', ')}],\n');
     b.write(' "shareMaxRate": $shareMaxRate, "sharePerHeadMax": $sharePerHeadMax, "hallTreasuryDayPoints": $hallTreasuryDayPoints,\n');
-    b.write(' "treasuryShop": {${treasuryShop.entries.map((e) => '"${e.key}": ${e.value}').join(', ')}}\n}\n');
+    b.write(' "treasuryShop": {${treasuryShop.entries.map((e) => '"${e.key}": ${e.value}').join(', ')}},\n');
+    b.write(' "rallyHours": $rallyHours, "gaugePerHead": $gaugePerHead, "ramMax": $ramMax, "npcMin": $npcMin, "crownDecay": $crownDecay\n}\n');
     return b.toString();
   }
 

@@ -40,5 +40,6 @@
  "ticketSteps": 2000, "ticketMax": 20, "minFightMs": 4000,
  "boostCost": [3000, 7000, 12000], "boostMult": [0.1, 0.2, 0.3],
  "shareMaxRate": 0.5, "sharePerHeadMax": 2000, "hallTreasuryDayPoints": 400,
- "treasuryShop": {"goldLights": 4000, "goldFountain": 6000, "goldFlag": 5000}
+ "treasuryShop": {"goldLights": 4000, "goldFountain": 6000, "goldFlag": 5000},
+ "rallyHours": 6, "gaugePerHead": 15000, "ramMax": 2, "npcMin": 3, "crownDecay": 0.15
 }

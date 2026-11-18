@@ -23,6 +23,13 @@ class FakeArca implements ArcaApi {
   bool restricted = false;
   String? cheeredBy;
 
+  // 묶음 58: 거래소 · 심층 순위 (판정은 서버 시험에서, 여기선 앱 흐름만)
+  final List<Map<String, dynamic>> listings = [];
+  final List<Map<String, dynamic>> marketBodies = [];
+  String? marketFail;
+  final Map<String, int> deepRows = {};
+  String deepRegion = 'selenia';
+
   /// 다른 파티원 (시험에서 넣음)
   void addMember(String code, String id, String name, {int stepsWeek = 0}) {
     final p = parties[code]!;
@@ -179,6 +186,68 @@ class FakeArca implements ArcaApi {
       case '/inquiry':
         inquiries.add({...body, 'token': token});
         return {'ok': true, 'id': 'q${inquiries.length}'};
+      case '/market/list':
+        if (marketFail != null) throw ArcaApiError(marketFail!);
+        marketBodies.add(body);
+        final l = {
+          'id': 'm${listings.length + 1}',
+          'mine': true,
+          'kind': body['kind'],
+          'key': body['key'],
+          'name': '${body['key']}',
+          'qty': body['qty'],
+          'mode': body['mode'],
+          'price': body['price'],
+          'start': body['start'],
+          'buyNow': body['buyNow'],
+          'status': 'open',
+          'endsAt': DateTime(2026, 11, 20).millisecondsSinceEpoch,
+        };
+        listings.add(l);
+        final p = ((body['price'] ?? body['start']) as num).toInt();
+        final fee = (p * 0.02).round() < 10 ? 10 : (p * 0.02).round();
+        return {'ok': true, 'listing': l, 'fee': body['seal'] == true ? (fee / 2).round() : fee};
+      case '/market/browse':
+        return {
+          'items': [
+            for (final l in listings)
+              if (l['mine'] != true && (body['auction'] == true) == (l['mode'] == 'auction')) l,
+          ],
+        };
+      case '/market/mine':
+        return {'selling': [for (final l in listings) if (l['mine'] == true) l], 'bidding': [], 'slots': 5};
+      case '/market/price':
+        return {'count': 2, 'min': 8, 'max': 12, 'avg': 10, 'last': 12};
+      case '/market/buy':
+        if (marketFail != null) throw ArcaApiError(marketFail!);
+        marketBodies.add(body);
+        final l = listings.firstWhere((x) => x['id'] == body['id']);
+        l['status'] = 'sold';
+        inbox.add({'id': 'buy${l['id']}', 'from': '바르칸', 'title': '「${l['name']}」을 샀어요', 'reward': {'${l['key']}': l['qty']}, 'equips': l['equip'] == null ? [] : [l['equip']]});
+        return {'ok': true, 'charged': l['price']};
+      case '/market/bid':
+        if (marketFail != null) throw ArcaApiError(marketFail!);
+        marketBodies.add(body);
+        return {'ok': true, 'charged': body['amount'], 'sold': false};
+      case '/market/cancel':
+        return {'ok': true};
+      case '/deep/submit':
+        if (body['region'] == deepRegion) {
+          final f = (body['floor'] as num).toInt();
+          if (f > (deepRows[me] ?? 0)) deepRows[me] = f;
+        }
+        return {'ok': true, 'region': deepRegion};
+      case '/deep/board':
+        return {
+          'week': '2026-11-16',
+          'region': deepRegion,
+          'top': [
+            {'rank': 1, 'name': '별', 'floor': 20, 'me': false},
+            if (deepRows[me] != null) {'rank': 2, 'name': '하루', 'floor': deepRows[me], 'me': true},
+          ],
+          'me': deepRows[me] == null ? null : {'rank': 2, 'floor': deepRows[me]},
+          'total': deepRows[me] == null ? 1 : 2,
+        };
       case '/inbox':
         final out = [...inbox];
         inbox.clear();

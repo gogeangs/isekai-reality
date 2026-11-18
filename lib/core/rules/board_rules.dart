@@ -19,7 +19,11 @@ class ErrandTemplate {
     this.npc,
     this.exp = 0,
     this.tickets = 0,
+    this.region,
   });
+
+  /// 묶음 58: 이 지역 등불을 켜야 붙는 지역 되풀이 의뢰 (Region 이름, 발드린은 'baldrin')
+  final String? region;
 
   /// 묶음 53: 3막 지역 의뢰 — 모집권
   final int tickets;
@@ -166,9 +170,10 @@ class BoardRules {
   ];
 
   /// 묶음 53 #243: 3막이 열리면 붙는 지역 의뢰 (발드린 관문). 세는 수는 3막 싸움 · 요새 층
-  static const List<ErrandTemplate> regionErrands = [
+  static final List<ErrandTemplate> regionErrands = [
     ErrandTemplate(
         id: 'baldrinHunt3',
+        region: 'baldrin',
         title: '발드린 관문 몬스터 3번 물리치기',
         counter: 'act3Fight',
         target: 3,
@@ -177,6 +182,7 @@ class BoardRules {
         materials: {MaterialId.ironShard: 2}),
     ErrandTemplate(
         id: 'baldrinFloor2',
+        region: 'baldrin',
         title: '문지기 지하 요새 2층 내려가기',
         counter: 'act3Floor',
         target: 2,
@@ -185,12 +191,48 @@ class BoardRules {
         tickets: 1),
     ErrandTemplate(
         id: 'baldrinPatrol5',
+        region: 'baldrin',
         title: '관문 순찰: 다리 너머에서 5번 싸우기',
         counter: 'act3Fight',
         target: 5,
         unit: '번',
         gold: 90,
         manaStones: 2),
+    // 묶음 58: 지역 2~5 — 사냥 · 채집(현실 지도의 그 지역 재료) · 던전
+    for (final (r, name, dungeon, mat) in [
+      ('selenia', '셀레니아 대장터', '흑등 상회 지하 금고', MaterialId.stardust),
+      ('elowin', '엘로윈 숲', '고목의 뿌리 미궁', MaterialId.gemEarth),
+      ('morval', '모르발 왕도', '잿빛 왕좌의 탑', MaterialId.gemDark),
+      ('aurel', '아우렐 성소', '여명의 근원', MaterialId.fireCore),
+    ]) ...[
+      ErrandTemplate(
+          id: '${r}Hunt3',
+          region: r,
+          title: '$name 몬스터 3번 물리치기',
+          counter: 'a3fight:$r',
+          target: 3,
+          unit: '번',
+          gold: 80,
+          materials: {mat: 1}),
+      ErrandTemplate(
+          id: '${r}Gather2',
+          region: r,
+          title: '현실 지도에서 $name 재료 2번 줍기',
+          counter: 'a3gather:$r',
+          target: 2,
+          unit: '번',
+          gold: 70,
+          manaStones: 2),
+      ErrandTemplate(
+          id: '${r}Floor2',
+          region: r,
+          title: '$dungeon 2층 내려가기',
+          counter: 'a3floor:$r',
+          target: 2,
+          unit: '층',
+          gold: 90,
+          tickets: 1),
+    ],
   ];
 
   /// 지역 의뢰가 붙을 확률 (3막이 열렸을 때, 새 의뢰마다)
@@ -284,7 +326,7 @@ class BoardRules {
   /// 날짜가 바뀌었으면 새로 시작하고, 기다리던 빈 칸에 새 의뢰를 올린다
   /// [npcs]: 건물이 열린 마을 사람 (묶음 45 #231: 가끔 그 사람 쪽지가 붙는다)
   static BoardState refresh(BoardState s, DateTime now,
-      {List<String> npcs = const [], bool region = false, int extra = 0}) {
+      {List<String> npcs = const [], List<String> regions = const [], int extra = 0}) {
     // 묶음 54: 게시판 ★2 → 칸 하나 · 하루 의뢰 하나 더
     final nSlots = errandSlots + extra;
     final perDay = errandsPerDay + extra;
@@ -308,7 +350,7 @@ class BoardRules {
       if (!ready || state.doneToday + holding >= perDay) continue;
       final taken = {for (final x in slots) x.templateId};
       final pick = _pickNpcNote(key, seq, taken, npcs) ??
-          (region ? _pickRegion(key, seq, taken) : null) ??
+          (regions.isNotEmpty ? _pickRegion(key, seq, taken, regions) : null) ??
           _pickErrand(key, seq, taken);
       seq++;
       slots[i] = ErrandSlot(templateId: pick.id);
@@ -337,10 +379,14 @@ class BoardRules {
     return notes[(h ~/ 131) % notes.length];
   }
 
-  static ErrandTemplate? _pickRegion(String day, int seq, Set<String?> taken) {
+  static ErrandTemplate? _pickRegion(
+      String day, int seq, Set<String?> taken, List<String> regions) {
     final h = _hash('$day|region|$seq');
     if ((h % 10000) / 10000 >= regionChance) return null;
-    final free = [for (final t in regionErrands) if (!taken.contains(t.id)) t];
+    final free = [
+      for (final t in regionErrands)
+        if (!taken.contains(t.id) && regions.contains(t.region)) t,
+    ];
     return free.isEmpty ? null : free[(h ~/ 10007) % free.length];
   }
 

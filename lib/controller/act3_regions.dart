@@ -47,6 +47,7 @@ extension Act3RegionsOps on AppController {
           roadSteps: math.max(0, _act3.roadSteps - Act3Rules.roadSteps),
           flags: {..._act3.flags, 'reach:${next.id.name}'},
         );
+        _ember(next.id);
         await _saveAct3();
         _notify();
         return RegionRules.of(next.id);
@@ -59,6 +60,7 @@ extension Act3RegionsOps on AppController {
   Future<bool> travelTo(Region r) => _serial(() async {
         if (!canTravelTo(r)) return false;
         _act3 = _act3.copyWith(region: r.index);
+        _ember(r);
         await _saveAct3();
         _notify();
         return true;
@@ -175,7 +177,16 @@ extension Act3RegionsOps on AppController {
   int questProg(RQuest q) => _act3.prog[q.id] ?? 0;
   bool questReady(RQuest q) =>
       questState(q) == 1 &&
-      questProg(q) >= (q.kind == RQKind.floor || q.kind == RQKind.boss ? 1 : q.target);
+      questProg(q) >= (q.kind == RQKind.floor || q.kind == RQKind.boss ? 1 : q.target) &&
+      (!q.embers || embersFound >= RegionRules.embersNeed);
+
+  /// 묶음 58: 테스 퀘스트 불씨 — 받은 뒤 지역에 들어갈 때(처음이든 다시든) 그 지역 하나씩
+  int get embersFound => [for (final r in Region.values) if (_act3.has('ember:${r.name}')) r].length;
+
+  void _ember(Region r) {
+    final q = RegionRules.aurel.quest('aur_record');
+    if (questState(q) == 1 && !_act3.has('ember:${r.name}')) _act3 = _act3.flag('ember:${r.name}');
+  }
 
   /// 주민이 맡길 퀘스트 (② 이야기 뒤)
   RQuest? regionOffer(RegionContent r, RResident p) {
@@ -195,6 +206,7 @@ extension Act3RegionsOps on AppController {
   Future<void> acceptQuest(RQuest q) => _serial(() async {
         if (questState(q) != 0) return;
         _act3 = _act3.copyWith(quests: {..._act3.quests, q.id: 1}, prog: {..._act3.prog, q.id: 0});
+        if (q.embers) _ember(currentRegion.id);
         await _saveAct3();
         _notify();
       });
@@ -425,6 +437,9 @@ extension Act3RegionsOps on AppController {
           lines.add('금고 3층 감옥에서 니아를 구했어요. 니아: 「…또 빚졌네. 이번엔 갚을게.」 니아가 동료가 됐어요.');
         }
         await _count('act3Floor');
+        await _count('a3floor:${r.prefix}');
+        // 묶음 58: 심층 주간 순위 (그 주 지역이면 서버에)
+        if (n > r.floors.length) unawaited(_submitDeep(r, n));
         await _saveAct3();
         _notify();
         return lines.isEmpty ? null : lines.join('\n');
@@ -486,6 +501,55 @@ extension Act3RegionsOps on AppController {
         for (final r in RegionRules.all)
           if (_rh(r, 'lamp')) r,
       ];
+
+  // ───────────── 묶음 58: 등불 켠 지역 재료가 현실 지도에 (그날 가끔, 지역마다 하나)
+
+  /// 오늘 현실 지도에 나온 지역 재료 자리
+  List<HarvestSpot> _regionMatSpots() {
+    if (!act3Open) return const [];
+    final day = DailyRecord.dayKeyOf(_clock());
+    final from = _nearDay == day ? _nearAnchor : _lastFix?.point;
+    if (from == null) return const [];
+    return [
+      for (final r in RegionRules.all)
+        if (regionLit(r.region) && (_act3.prog['a3mat:${r.prefix}'] ?? 0) != _dayNo)
+          if (math.Random('a3mat-${r.prefix}-$day'.hashCode) case final rng
+              when rng.nextDouble() < RegionRules.mapMatChance)
+            () {
+              final d = RegionRules.mapMatMinM +
+                  rng.nextDouble() * (RegionRules.mapMatMaxM - RegionRules.mapMatMinM);
+              final b = rng.nextDouble() * 2 * math.pi;
+              return HarvestSpot(
+                id: 'a3mat-${r.prefix}-$day',
+                kind: HarvestKind.relic,
+                point: GeoPoint(from.lat + d * math.cos(b) / 111320,
+                    from.lng + d * math.sin(b) / (111320 * math.cos(from.lat * math.pi / 180))),
+              );
+            }(),
+    ];
+  }
+
+  bool _isRegionMat(HarvestSpot s) => s.id.startsWith('a3mat-');
+
+  /// 그 자리의 지역 (지도 이름표 · 시트)
+  RegionContent? regionOfSpot(HarvestSpot s) =>
+      _isRegionMat(s) ? RegionRules.byPlace('${s.id.split('-')[1]}_') : null;
+
+  /// 지역 재료를 줍는다: 그 지역 재료 1~2 + 금화 조금 (그날 한 번)
+  Future<Map<MaterialId, int>?> _openRegionMat(HarvestSpot s) async {
+    final r = regionOfSpot(s);
+    if (r == null || (_act3.prog['a3mat:${r.prefix}'] ?? 0) == _dayNo) return null;
+    final n = 1 + (_random.nextDouble() < 0.35 ? 1 : 0);
+    final mats = {r.mapMat: n};
+    final gold = 30 + _random.nextInt(41);
+    await _grant(gold, 0, mats);
+    _act3 = _act3.copyWith(prog: {..._act3.prog, 'a3mat:${r.prefix}': _dayNo});
+    await _saveAct3();
+    await _count('a3gather:${r.prefix}');
+    _lastTreasureGold = gold;
+    _notify();
+    return mats;
+  }
 
   // ───────────── 3막 끝
 

@@ -49,12 +49,17 @@ extension GardenOps on AppController {
   bool get _dew => hasRelic(Npc.popo);
 
   /// 심은 날부터 걸은 걸음 (심을 때 그날 걸음은 뺀다)
-  int _walkedSince(GardenPlot p) => math.max(
-      0,
-      _daysSince(p.day).fold<int>(0, (t, r) => t + r.steps) -
-          p.steps +
-          // 묶음 57 새싹 돌보기: 오늘 걸음을 더 쳐 줌 (숨김)
-          (sproutToday ? (player.today?.steps ?? 0) ~/ 2 : 0));
+  int _walkedSince(GardenPlot p) {
+    final w = math.max(
+        0,
+        _daysSince(p.day).fold<int>(0, (t, r) => t + r.steps) -
+            p.steps +
+            // 묶음 57 새싹 돌보기: 오늘 걸음을 더 쳐 줌 (숨김)
+            (sproutToday ? (player.today?.steps ?? 0) ~/ 2 : 0));
+    // 묶음 58: 고목의 심장을 차고 있으면 조금 빨리 (숨김)
+    final heart = _armory.items.any((i) => i.base == EquipBase.uniqElderHeart && _armory.isWorn(i));
+    return heart ? (w * (1 + RegionRules.elderHeartGarden)).round() : w;
+  }
 
   GardenPlotView plotView(int slot) {
     final p = _garden.plots[slot];

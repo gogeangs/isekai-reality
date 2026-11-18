@@ -2,6 +2,8 @@
 const { PartyService } = require('./party');
 const { InquiryService } = require('./inquiry');
 const { AccountService } = require('./account');
+const { MarketService } = require('./market');
+const { DeepService } = require('./deep');
 const { adminPage } = require('./admin_page');
 const words = require('./words');
 const links = require('./links');
@@ -22,6 +24,8 @@ function realDeps() {
     party,
     inquiry,
     account: new AccountService(db, { auth: admin.auth(), party, inquiry }),
+    market: new MarketService(db),
+    deep: new DeepService(db),
     verify: (token) => admin.auth().verifyIdToken(token),
     env: process.env,
   };
@@ -112,6 +116,30 @@ async function handle(req, res) {
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
     }
+    // 묶음 58: 거래소 (#229)
+    if (path.startsWith('/market/')) {
+      const tok = await caller(req, deps, true);
+      const uid = tok.uid;
+      const m = deps.market;
+      const r = {
+        '/market/list': () => m.list(uid, body),
+        '/market/browse': () => m.browse(uid, body),
+        '/market/mine': () => m.mine(uid),
+        '/market/price': () => m.price(uid, body),
+        '/market/buy': () => m.buy(uid, body),
+        '/market/bid': () => m.bid(uid, body),
+        '/market/cancel': () => m.cancel(uid, body),
+      }[path];
+      if (!r) return res.status(404).json({ error: 'not_found' });
+      return res.json(await r());
+    }
+    // 묶음 58: 심층 주간 순위
+    if (path === '/deep/board' || path === '/deep/submit') {
+      const tok = await caller(req, deps, true);
+      return res.json(
+        path === '/deep/board' ? await deps.deep.board(tok.uid) : await deps.deep.submit(tok.uid, body),
+      );
+    }
     if (path === '/inquiry') {
       const tok = await caller(req, deps, false);
       return res.json(await deps.inquiry.send(tok && tok.uid, body));
@@ -131,6 +159,7 @@ async function handle(req, res) {
         '/admin/account': () => deps.account.view(body),
         '/admin/words': () => words.view(deps.db),
         '/admin/words/save': () => words.save(deps.db, body.text),
+        '/admin/trades': () => deps.market.trades(body),
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
@@ -138,7 +167,10 @@ async function handle(req, res) {
     if (path === '/cron/daily') {
       const key = req.get ? req.get('X-Cron-Key') : (req.headers || {})['x-cron-key'];
       if (!deps.env.CRON_KEY || key !== deps.env.CRON_KEY) return res.status(403).json({ error: 'forbidden' });
-      return res.json(await deps.account.sweep());
+      const swept = await deps.account.sweep();
+      const market = deps.market ? await deps.market.settleDue() : null;
+      const deep = deps.deep ? await deps.deep.payLastWeek() : null;
+      return res.json({ ...swept, market, deep });
     }
     return res.status(404).json({ error: 'not_found' });
   } catch (e) {

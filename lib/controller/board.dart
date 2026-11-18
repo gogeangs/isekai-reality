@@ -6,7 +6,15 @@ extension BoardOps on AppController {
   /// 지금 시각의 게시판 (날짜가 바뀌었거나 기다리던 의뢰가 올라왔으면 반영)
   BoardState get board =>
       BoardRules.refresh(_board, _clock(),
-          npcs: _openNpcNames, region: act3Open, extra: boardExtraSlots);
+          npcs: _openNpcNames, regions: _boardRegions, extra: boardExtraSlots);
+
+  /// 묶음 58: 지역 의뢰가 붙는 곳 — 3막이 열리면 발드린, 그 밖은 등불을 켠 지역
+  List<String> get _boardRegions => [
+        if (act3Open) 'baldrin',
+        if (act3Open)
+          for (final r in RegionRules.all)
+            if (regionLit(r.region)) r.prefix,
+      ];
 
   Future<void> _saveBoard(BoardState b) async {
     _board = b;

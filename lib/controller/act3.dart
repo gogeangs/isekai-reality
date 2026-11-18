@@ -109,6 +109,11 @@ extension Act3Ops on AppController {
       var add = rem ~/ Act3Rules.energyStepUnit * Act3Rules.energyPerStep;
       // 묶음 57 #244 아스트라(페가수스)와 걸으면 여정 기력이 조금 더 (숨김)
       if (add > 0 && _heroWith(PetSpecies.pegasus)) add += (add * PetRules.pegasusEnergy).ceil();
+      // 묶음 58: 나오미의 순례 지팡이를 들고 걸으면 조금 더 (숨김)
+      if (add > 0 &&
+          _armory.items.any((i) => i.base == EquipBase.uniqNaomiStaff && _armory.isWorn(i))) {
+        add += (add * RegionRules.naomiStaffEnergy).ceil();
+      }
       _act3 = s;
       _regionWalk(delta);
       s = _act3;
@@ -598,7 +603,8 @@ extension Act3Ops on AppController {
         final today = await _todayRecord();
         await _save(today.copyWith(
           gains: DailyRecord.addCounts(today.gains, {'exp': exp, Wallet.gold: gold}),
-          counters: DailyRecord.addCounts(today.counters, {'act3Fight': 1}),
+          counters: DailyRecord.addCounts(
+              today.counters, {'act3Fight': 1, 'a3fight:${reg?.prefix ?? 'baldrin'}': 1}),
         ));
         final items = <EquipItem>[];
         final lines = <String>[];

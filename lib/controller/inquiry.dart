@@ -74,12 +74,35 @@ extension InquiryOps on AppController {
       for (final m in (j['msgs'] as List?) ?? const []) {
         if (m is! Map) continue;
         final r = ((m['reward'] as Map?) ?? const {}).cast<String, dynamic>();
+        // 묶음 58: 거래소(바르칸) · 심층 순위(하르트) 우편도 같은 길로. 장비는 이 휴대폰 번호를 새로 붙임
+        final equips = <EquipItem>[];
+        for (final e in (m['equips'] as List?) ?? const []) {
+          if (e is! Map) continue;
+          final it = EquipItem.fromJson(Map<String, dynamic>.from(e));
+          if (it == null) continue;
+          final a = _armory;
+          await _saveArmory(a.copyWith(nextId: a.nextId + 1));
+          equips.add(EquipItem(
+            uid: 'eq${a.nextId}',
+            base: it.base,
+            grade: it.grade,
+            enhance: it.enhance,
+            durability: it.durability,
+            extras: it.extras,
+            materialsUsed: it.materialsUsed,
+            enhanceManaSpent: it.enhanceManaSpent,
+            appearance: it.appearance,
+            element: it.element,
+            elementLevel: it.elementLevel,
+          ));
+        }
         await _sendMail(MailItem(
           id: 'inq_${m['id']}',
           kind: MailKind.reward,
-          from: '여명의 탑 운영실',
+          from: '${m['from'] ?? '여명의 탑 운영실'}',
           title: '${m['title'] ?? '문의에 답이 왔어요'}',
           body: '${m['body'] ?? ''}',
+          equips: equips,
           gifts: {
             for (final e in r.entries)
               if (e.value is num && (e.value as num) > 0) e.key: (e.value as num).toInt(),

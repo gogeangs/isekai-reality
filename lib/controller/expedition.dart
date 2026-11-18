@@ -852,7 +852,7 @@ extension ExpeditionOps on AppController {
     final morning = end.isAfter(five)
         ? await health.stepsBetween(five, end.isBefore(eight) ? end : eight)
         : 0;
-    // 묶음 32 #189: 밤(오후 7시~새벽 5시) · 이른 아침(새벽 5~9시) 걸음 (속성 점수).
+    // 묶음 32 #189: 밤(오후 7시~새벽 6시) · 이른 아침(새벽 5~9시) 걸음 (속성 점수).
     // 창 시작은 1초 뒤로 (시험용 가짜 건강 앱이 창을 알아보게)
     DateTime at(int h, [int sec = 1]) =>
         DateTime(dayStart.year, dayStart.month, dayStart.day, h, 0, sec);

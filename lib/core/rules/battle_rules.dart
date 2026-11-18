@@ -717,6 +717,7 @@ class Battle {
       case AllySkillKind.cleanse:
         poisonTurns = 0;
         frozen = false;
+        petrified = false;
         _healAll(0.05 * (1 + a.heal));
       case AllySkillKind.miracle:
         for (final x in allies) {
@@ -1661,6 +1662,7 @@ class Battle {
         poisonTurns = 0;
         burning = false;
         frozen = false;
+        petrified = false;
         final before = playerHp;
         playerHp = math.min(playerMaxHp, playerHp + math.max(1, (playerMaxHp * 0.12 * p).round()));
         _healed(playerHp - before);
@@ -1833,6 +1835,15 @@ class Battle {
   /// 빙결 (11-11 #74 얼음 슬라임): 다음 내 차례를 쉰다
   bool frozen = false;
 
+  /// 묶음 69 #281: 바실리스크 — 돌로 굳음 (빙결처럼 한 차례 쉼, 문구만 다름)
+  bool petrified = false;
+
+  /// 도플갱어가 이미 내 공격을 따라 했는지
+  bool _mirrored = false;
+
+  /// 보름달 밤 (웨어울프가 더 셈)
+  bool fullMoon = false;
+
   /// 녹이는 물약을 마신 뒤 다시 얼지 않는 턴
   int freezeImmune = 0;
 
@@ -1879,6 +1890,7 @@ class Battle {
       case CureKind.freeze:
         if (!frozen) return false;
         frozen = false;
+        petrified = false;
         freezeImmune = 3;
       case null:
         if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
@@ -2106,7 +2118,8 @@ class Battle {
     // 각성자 차례
     if (frozen) {
       frozen = false;
-      lastEvent = '얼어서 움직일 수 없어요!';
+      lastEvent = petrified ? '돌처럼 굳어 움직일 수 없어요!' : '얼어서 움직일 수 없어요!';
+      petrified = false;
     } else if (f.has(ModifierId.bewitching) && _rng.nextDouble() < 0.25) {
       lastEvent = '홀렸어요!';
     } else if (f.has(ModifierId.nimble) && _rng.nextDouble() < 0.20) {
@@ -2324,6 +2337,13 @@ class Battle {
       return;
     }
     var atk = f.attack.toDouble();
+    // 묶음 69 #281: 도플갱어 — 첫 공격은 내 공격을 따라 함 · 웨어울프 — 보름달 밤엔 더 셈
+    if (f.trait == MonsterTrait.mirror && !_mirrored) {
+      _mirrored = true;
+      atk = math.max(atk, playerAttack * mirrorShare);
+      lastEvent = '내 공격을 따라 했어요!';
+    }
+    if (f.trait == MonsterTrait.moon && fullMoon) atk *= fullMoonAttack;
     // 11-11 #75: 예고한 강한 공격 (그 틱의 첫 공격만)
     final strong = _strongNow;
     if (strong) {
@@ -2457,6 +2477,15 @@ class Battle {
         _rng.nextDouble() < freezeChance) {
       frozen = true;
       lastEvent = '얼어붙었어요!';
+    }
+    if (f.trait == MonsterTrait.petrify &&
+        freezeImmune <= 0 &&
+        !frozen &&
+        playerHp > 0 &&
+        _rng.nextDouble() < petrifyChance) {
+      frozen = true;
+      petrified = true;
+      lastEvent = '돌로 굳었어요!';
     }
     if (f.trait == MonsterTrait.burn &&
         immuneTurns <= 0 &&
@@ -2616,6 +2645,11 @@ class Battle {
 
   /// 얼음 슬라임이 얼릴 확률
   static const double freezeChance = 0.20;
+
+  /// 묶음 69 #281 (숨김): 바실리스크 돌 굳히기 · 도플갱어 따라 하기 · 웨어울프 보름달
+  static const double petrifyChance = 0.15;
+  static const double mirrorShare = 0.8;
+  static const double fullMoonAttack = 1.3;
 
   /// 큰쥐가 약하게 중독시킬 확률 (11-11 A4, 숨김)
   static const double weakPoisonChance = 0.10;

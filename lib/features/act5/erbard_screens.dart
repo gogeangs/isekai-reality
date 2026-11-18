@@ -30,6 +30,7 @@ String _when(DateTime t) {
 
 /// 지금 공성전 한 줄 (숫자 · 시각만, 숨은 값 없음)
 String siegeLine(ErbardView v, DateTime now) {
+  if (!v.open) return ErbardRules.closedLine;
   if (v.active && v.end != null) {
     final left = v.end!.difference(now);
     final h = left.inHours;
@@ -150,7 +151,7 @@ class _ErbardScreenState extends State<ErbardScreen> {
                   OrnateTopBar(
                     title: '에르바르드',
                     onBack: () => Navigator.of(context).pop(),
-                    trailing: _tickets(),
+                    trailing: c.siegeOpen ? _tickets() : null,
                   ),
                   _story(v),
                 ]),
@@ -161,7 +162,7 @@ class _ErbardScreenState extends State<ErbardScreen> {
               right: 12,
               bottom: pad.bottom + 10,
               child: Row(children: [
-                if (c.erbardGuild && c.garrisonOpen) ...[
+                if (c.erbardGuild && c.garrisonOpen && c.siegeOpen) ...[
                   Expanded(
                     child: FrameButton(key: const Key('erbardGarrison'), label: '수비대', height: 44, onPressed: () => _garrisonPick(v)),
                   ),
@@ -468,6 +469,8 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
         final broken = o == null ? v.wild[e.id] ?? const <int>[] : v.run[e.id] ?? const <int>[];
         final mine = o?.kind == 'mine';
         final monster = p == null ? MonsterId.blackCaptain : (e.inner ? p.inner : p.outer);
+        // 묶음 69 #279: 공성전이 닫혀 있으면 둘러보기만 (수비대 · 공성 · 영지 관리 숨김)
+        final open = v.open;
         return SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -503,7 +506,7 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
                   ),
                 ]),
                 const SizedBox(height: 8),
-                if (!mine)
+                if (!mine && open)
                   Row(children: [
                     MonsterPicture(
                         monster: o == null ? monster : (o.kind == 'npc' ? ErbardRules.blackOf(e, 0) : MonsterId.cloneWarrior), size: 44),
@@ -517,19 +520,30 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
                     ),
                   ]),
                 // 묶음 65: 엿보기 (주 직업 · 함께 선 동료 수, 능력치 숨김) · 상성 한 줄
-                if (!mine && o != null && o.kind != 'ally' && c.erbardGuild) _PeekRow(controller: c, estate: e),
+                if (!mine && o != null && o.kind != 'ally' && c.erbardGuild && open) _PeekRow(controller: c, estate: e),
                 const SizedBox(height: 6),
-                KText(
-                    o == null
-                        ? (c.erbardGuild
-                            ? '공성권 한 장으로 한 자리와 싸워요. 길드원이 나눠서 다섯 자리를 모두 깨면 우리 길드가 차지해요.'
-                            : '공성권 한 장으로 한 자리와 싸워요. 다섯 자리를 모두 깨면 개척 보상을 받아요. 영지는 길드만 가질 수 있어 빈 채로 남아요.')
-                        : mine
-                            ? '길드원이 자기 분신을 세워 지켜요. 두 주 동안 함께 걸을수록 수비대가 튼튼해져요.'
-                            : '깃발 공성전 기간에 공성권으로 한 자리씩 깨요. 깬 자리는 공성전 동안 되살아나지 않아요.',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5, height: 1.4)),
+                if (!open)
+                  const Padding(
+                    key: Key('estateClosed'),
+                    padding: EdgeInsets.symmetric(vertical: 6),
+                    child: Text(ErbardRules.closedLine,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w800)),
+                  ),
+                if (open)
+                  KText(
+                      o == null
+                          ? (c.erbardGuild
+                              ? '공성권 한 장으로 한 자리와 싸워요. 길드원이 나눠서 다섯 자리를 모두 깨면 우리 길드가 차지해요.'
+                              : '공성권 한 장으로 한 자리와 싸워요. 다섯 자리를 모두 깨면 개척 보상을 받아요. 영지는 길드만 가질 수 있어 빈 채로 남아요.')
+                          : mine
+                              ? '길드원이 자기 분신을 세워 지켜요. 두 주 동안 함께 걸을수록 수비대가 튼튼해져요.'
+                              : '깃발 공성전 기간에 공성권으로 한 자리씩 깨요. 깬 자리는 공성전 동안 되살아나지 않아요.',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5, height: 1.4)),
                 const SizedBox(height: 10),
-                if (kind != null)
+                if (!open)
+                  const SizedBox.shrink()
+                else if (kind != null)
                   GoldButton(
                     key: const Key('estateFight'),
                     label: kind == 'wild' ? '야생 수비대와 싸우기' : '공성하기',
@@ -559,7 +573,7 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
                     onPressed: v.rally?.estate == e.id ? null : () => Navigator.pop(sheet, 'rally'),
                   ),
                 ],
-                if (mine && c.garrisonOpen) ...[
+                if (mine && c.garrisonOpen && open) ...[
                   const SizedBox(height: 6),
                   FrameButton(
                       key: const Key('estateGarrison'),
@@ -568,13 +582,9 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
                       onPressed: () => Navigator.pop(sheet, 'garrison')),
                 ],
                 // 묶음 65 #255: 영지 관리 (시설 · 특산물 · 번영도 · 정책 · 주민 의뢰)
-                if (mine) ...[
+                if (mine && open) ...[
                   const SizedBox(height: 6),
-                  FrameButton(
-                      key: const Key('estateManage'),
-                      label: '영지 관리',
-                      height: 44,
-                      onPressed: () => Navigator.pop(sheet, 'manage')),
+                  FrameButton(key: const Key('estateManage'), label: '영지 관리', height: 44, onPressed: () => Navigator.pop(sheet, 'manage')),
                 ],
                 if (!e.royal) ...[
                   const SizedBox(height: 6),
@@ -1326,7 +1336,8 @@ Future<void> showWarBoard(BuildContext context, AppController c) => showModalBot
                   const SizedBox(height: 4),
                   SiegeGaugeRow(gauge: v.gauge!, mine: v.myEstates.length),
                   const SizedBox(height: 3),
-                  const KText('공성전 동안 길드원이 걸은 걸음이 쌓여요. 가득 차면 힘이 하나 모이고, 길드장 · 부길드장이 공성 망치(집결 깃발 영지의 남은 자리 하나를 흔듦)와 성벽 보수(우리 영지의 깨진 자리 하나를 되살림) 중에 골라 써요. 안 쓴 힘은 공성전이 끝나면 사라져요.',
+                  const KText(
+                      '공성전 동안 길드원이 걸은 걸음이 쌓여요. 가득 차면 힘이 하나 모이고, 길드장 · 부길드장이 공성 망치(집결 깃발 영지의 남은 자리 하나를 흔듦)와 성벽 보수(우리 영지의 깨진 자리 하나를 되살림) 중에 골라 써요. 안 쓴 힘은 공성전이 끝나면 사라져요.',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 11.5, height: 1.4)),
                   const SizedBox(height: 6),
                   SiegePowerPanel(controller: c),

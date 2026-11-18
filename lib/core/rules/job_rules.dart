@@ -1,4 +1,5 @@
 import 'element_rules.dart';
+import 'harvest_rules.dart';
 import 'mastery_rules.dart';
 import 'monsters.dart';
 
@@ -476,8 +477,8 @@ class JobRules {
   static const int nightWalkerSteps = 50000;
   static const int gateHeirDays = 60;
 
-  /// 밤 (오후 7시 ~ 새벽 5시)
-  static bool isNight(DateTime t) => t.hour >= 19 || t.hour < 5;
+  /// 밤 (오후 7시 ~ 새벽 6시)
+  static bool isNight(DateTime t) => HarvestRules.isNight(t); // 묶음 69: 밤은 19~6시 하나로
 
   /// 잿빛 몬스터인지
   static bool isAsh(MonsterId m) => m.name.startsWith('ash');

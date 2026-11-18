@@ -82,12 +82,11 @@ void main() {
     expect(find.byKey(const Key('build2_smithy')), findsOneWidget);
     expect(find.byKey(const Key('build1_board')), findsOneWidget);
     expect(find.byKey(const Key('build1_alchemy')), findsOneWidget);
-    Text sub(String n) => tester.widget<Text>(find.byKey(Key('tagSub_$n')));
-    expect(sub('smithy').data, 'Lv.3 완공');
-    expect(sub('shelter').data, '첫 펫과 함께\n완공');
+    // 묶음 69 #290: 공사 중 건물은 이름표 없음 · 누르면 「대장간 · Lv.3에 완공돼요」
+    expect(find.byKey(const Key('tagSub_smithy')), findsNothing);
     await tester.tap(find.byKey(const Key('locked_smithy')));
     await tester.pump();
-    expect(find.text('짓는 중이에요 · Lv.3에 완공!'), findsOneWidget);
+    expect(find.text('대장간 · Lv.3에 완공돼요'), findsOneWidget);
     await tester.pump(const Duration(seconds: 9));
   });
 }

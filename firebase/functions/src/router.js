@@ -8,6 +8,7 @@ const { GuildService } = require('./guild');
 const { AdminService } = require('./admin');
 const { ChatService } = require('./chat');
 const { SiegeService } = require('./siege');
+const SCH = require('./siege_schedule');
 const { SuspectService } = require('./suspect');
 const { adminPage } = require('./admin_page');
 const words = require('./words');
@@ -121,6 +122,16 @@ async function noteMe(deps, uid, me) {
   }
 }
 
+/** 테스트 공성전 길드 이름 (운영자 페이지) */
+async function siegeGuildNames(deps, S) {
+  const out = [];
+  for (const gid of (S.test && S.test.gids) || []) {
+    const g = (await deps.db.doc(`guilds/${gid}`).get()).data();
+    out.push(g ? `${g.name} (${g.code || ''})` : gid);
+  }
+  return out;
+}
+
 async function handle(req, res) {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Cron-Key, X-Firebase-AppCheck');
@@ -173,6 +184,8 @@ async function handle(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
     // 묶음 57: 금칙어 목록 (5분마다 다시 읽음)
     await words.refresh(deps.db);
+    // 묶음 69 #279: 공성전 일정 (운영자 스위치) — 공성전 · 길드 · 정리 요청마다 새로 읽음
+    if (/^\/(siege|guild)\//.test(path)) (deps.db && (await SCH.load(deps.db)));
     if (path === '/words') return res.json({ text: words.currentText() });
     if (SOCIAL.some((x) => path.startsWith(x))) {
       const tok = await caller(req, deps, true);
@@ -228,6 +241,11 @@ async function handle(req, res) {
       const tok = await caller(req, deps, true);
       const uid = tok.uid;
       const s = deps.siege;
+      // 묶음 69 #279: 공성전이 닫혀 있으면 공성권 · 수비대 · 전황 · 영지 관리는 막음 (지도 · 연맹은 그대로)
+      if (/^\/siege\/(foe|fight|garrison|ungarrison|rally|repair|power|peek|estate)/.test(path)) {
+        const { gid } = await s._mine(uid);
+        if (!SCH.openFor(gid, Date.now())) return res.status(403).json({ error: 'siege_closed' });
+      }
       const r = {
         '/siege/state': () => s.state(uid, body.me || {}),
         '/siege/foe': () => s.foe(uid, body),
@@ -300,7 +318,11 @@ async function handle(req, res) {
       return res.json(await r());
     }
     // 묶음 59: 공지 (로그인 없어도) · 내 제재 상태
-    if (path === '/notices') return res.json(await deps.admin.notices({}));
+    if (path === '/notices') {
+      // 묶음 69 #279: 정기 공성전 일정도 함께 (로그인 안 한 사람의 5막도 같은 일정)
+      if (deps.db) await SCH.load(deps.db);
+      return res.json({ ...(await deps.admin.notices({})), siege: SCH.publicView() });
+    }
     if (path === '/status') {
       const tok = await caller(req, deps, true);
       return res.json(await deps.admin.myStatus(tok.uid));
@@ -356,6 +378,42 @@ async function handle(req, res) {
         '/admin/suspects': () => deps.suspect.list(body),
         // 묶음 68: 대화 신고
         '/admin/chat/reports': () => deps.chat.reports(body),
+        // 묶음 69 #279: 공성전 열기 스위치 · 테스트 공성전
+        '/admin/siege/schedule': async () => ((deps.db && (await SCH.load(deps.db))), { ...SCH.view(Date.now()), guilds: await siegeGuildNames(deps, SCH.get()) }),
+        '/admin/siege/open': async () => {
+          (deps.db && (await SCH.load(deps.db)));
+          const next = SCH.toggled(Date.now(), !!body.open);
+          await deps.db.doc('erbard/schedule').set(next);
+          SCH.set(next);
+          if (deps.admin) await deps.admin.log(tok.email, 'siegeOpen', body.open ? 'open' : 'close', {});
+          return { ...SCH.view(Date.now()), guilds: await siegeGuildNames(deps, SCH.get()) };
+        },
+        '/admin/siege/test': async () => {
+          (deps.db && (await SCH.load(deps.db)));
+          const now = Date.now();
+          let next;
+          if (body.action === 'start') {
+            const codes = String(body.codes || '').toUpperCase().split(/[\s,]+/).filter(Boolean);
+            const gids = [];
+            for (const c of codes) {
+              const q = await deps.db.collection('guilds').where('code', '==', c).get();
+              if (q.docs.length) gids.push(q.docs[0].id);
+            }
+            if (!gids.length) return { error: 'no_guild' };
+            try {
+              next = SCH.testStarted(now, gids, Math.min(48, Math.max(1, Number(body.hours) || 48)));
+            } catch (e) {
+              return { error: e.code || 'bad' };
+            }
+          } else {
+            next = SCH.testEnded(now);
+          }
+          await deps.db.doc('erbard/schedule').set(next);
+          SCH.set(next);
+          if (body.action !== 'start' && deps.siege) await deps.siege.settleDue();
+          if (deps.admin) await deps.admin.log(tok.email, 'siegeTest', body.action === 'start' ? 'start' : 'end', {});
+          return { ...SCH.view(now), guilds: await siegeGuildNames(deps, SCH.get()) };
+        },
         '/admin/chat/resolve': async () => {
           const r = await deps.chat.resolve(tok.email, body);
           if (deps.admin) await deps.admin.log(tok.email, 'chatReport', body.id, { action: body.action });
@@ -368,6 +426,7 @@ async function handle(req, res) {
     if (path === '/cron/daily') {
       const key = req.get ? req.get('X-Cron-Key') : (req.headers || {})['x-cron-key'];
       if (!deps.env.CRON_KEY || key !== deps.env.CRON_KEY) return res.status(403).json({ error: 'forbidden' });
+      (deps.db && (await SCH.load(deps.db)));
       const swept = await deps.account.sweep();
       const market = deps.market ? await deps.market.settleDue() : null;
       const deep = deps.deep ? await deps.deep.payLastWeek() : null;

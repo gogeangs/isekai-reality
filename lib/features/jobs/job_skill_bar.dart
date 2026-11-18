@@ -281,7 +281,7 @@ Future<void> _negotiate(BuildContext context, AppController c) async {
   final b = c.board;
   final slot = await _pick<int>(context, '바꿀 조합 의뢰', [
     for (var i = 0; i < b.slots.length; i++)
-      if (BoardRules.template(b.slots[i].templateId) case final t?) (i, t.title),
+      if (BoardRules.template(b.slots[i].templateId, level: c.player.level.level) case final t?) (i, t.title),
   ]);
   if (slot == null || !context.mounted) return;
   _result(context, await c.negotiateErrand(slot), '의뢰를 바꿨어요');

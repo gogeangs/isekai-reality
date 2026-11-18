@@ -453,7 +453,17 @@ extension TutorialOps on AppController {
         area: area, spawns: todaySpawns, fix: fix, exclusions: exclusions);
   }
 
+  /// 바실리스크를 잡은 적이 있나
+  bool get _huntedBasilisk => _history.any((d) => d.purifiedMonsterIds.contains(MonsterId.basilisk.name));
+
   Battle? startFieldBattle(FieldSpawn spawn) {
+    final b = _startFieldBattle(spawn);
+    // 묶음 69 #281: 웨어울프는 보름달 밤에 더 셈 (숨김)
+    if (b != null) b.fullMoon = FieldMonsterRules.isNight(_clock()) && FieldMonsterRules.isFullMoon(_clock());
+    return b;
+  }
+
+  Battle? _startFieldBattle(FieldSpawn spawn) {
     if (!canFightNow || hp <= 0) return null;
     _stopResting();
     final p = player;
@@ -530,7 +540,9 @@ extension TutorialOps on AppController {
     // 묶음 42 #226: 세라·도르군 부탁 (필드 몬스터 · 잿빛 슬라임)
     await _npcTally(NpcTally.fieldKill);
     // 묶음 47 #241: 속성 슬라임까지 슬라임 무리를 모두 셈
-    if (NpcTally.slimeKill(spawn.monster)) {
+    // 묶음 69 #280: 높은 단계면 그 단계의 「슬라임 대신」 몬스터도 셈
+    if (NpcTally.slimeKill(spawn.monster) ||
+        spawn.monster == FieldMonsterRules.askFor(MonsterId.ashSlime, player.level.level)) {
       await _npcTally(NpcTally.ashKill);
     }
     return exp;
@@ -596,10 +608,8 @@ extension TutorialOps on AppController {
             (ModifierRules.expMultiplier(mods) + Monsters.info(monster).expBonus) *
             count)
         .round();
-    // 묶음 66 #265: 잡는 순간의 레벨만큼 사냥 경험치 (11월 19일 기록부터, 숨김)
-    if (WalkRewardRules.applies(today.date)) {
-      exp = (exp * WalkRewardRules.huntMult(player.level.level)).round();
-    }
+    // 묶음 66 #265: 잡는 순간의 레벨만큼 사냥 경험치 (숨김)
+    exp = (exp * WalkRewardRules.huntMult(player.level.level)).round();
     // 승객 모드 (11-11 #61): 사냥 보상 절반 (원정은 보낼 때 승객이었으면)
     final half = passengerMode || _drive.passengerSpawns.contains(spawnId);
     if (half) exp = exp ~/ 2;
@@ -672,6 +682,11 @@ extension TutorialOps on AppController {
       gold = b.gold;
       // 묶음 50 #146: 날개 달린 몬스터가 가끔 하늘 깃털
       _wingFeather(monster, mats);
+      // 묶음 69 #281: 바실리스크를 처음 잡으면 귀한 재료 꼭
+      if (monster == MonsterId.basilisk && !_huntedBasilisk) {
+        final rare = LootRules.dropsOf(monster).rare;
+        if (!mats.containsKey(rare)) mats[rare] = 1;
+      }
       if (half) {
         for (final k in [...mats.keys]) {
           final v = mats[k]! ~/ 2;
@@ -723,12 +738,14 @@ extension TutorialOps on AppController {
         if (tiredExp > 0) TownRules.tiredExpKey: tiredExp,
         if (tiredMana > 0) TownRules.tiredManaKey: tiredMana,
         if (fifth) fifthLineKey: 1,
+        // 묶음 69 #281: 바실리스크 첫 사냥 → 칭호 「뱀의 왕을 쓰러뜨린 자」
+        if (monster == MonsterId.basilisk) TitleRules.skyCounter(TitleId.basiliskSlayer): 1,
       }),
     ));
     _fifthLine = fifth;
     _lastReward = HuntReward(
       // 묶음 66: 결과 화면엔 Lv.21부터의 배율(#254)까지 곱한 값
-      exp: WalkRewardRules.applies(today.date) ? (exp * WalkRewardRules.levelMult(player.level.level)).round() : exp,
+      exp: (exp * WalkRewardRules.levelMult(player.level.level)).round(),
       manaStones: fieldMana - tiredMana,
       gold: gold,
       materials: mats,

@@ -73,7 +73,7 @@ class ExpeditionTalkRules {
         '가방이 묵직해',
       ]);
     }
-    if (hour >= 19 || hour < 5) {
+    if (hour >= 19 || hour < 6) {
       pool.add('밤길은 조금 무서워');
     } else if (hour < 9) {
       pool.add('아침 공기가 상쾌해');

@@ -33,6 +33,16 @@ extension PartyOps on AppController {
     return u != null && _clock().isBefore(u) && (_partyView?.inParty ?? _partyLocal.joined);
   }
 
+  /// 묶음 69 #280: 지도 몬스터 단계는 내 레벨 — 파티와 함께 있으면 파티장 레벨
+  int get spawnTierLevel {
+    if (partyNear) {
+      for (final m in _partyView?.members ?? const <PartyMember>[]) {
+        if (m.owner) return m.level;
+      }
+    }
+    return player.level.level;
+  }
+
   String get _partyWeek => DailyRecord.dayKeyOf(TownRules.weekStart(_clock()));
 
   Future<Map<String, dynamic>> _partyMe() async => {

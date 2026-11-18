@@ -221,6 +221,44 @@ class _CodexScreenState extends State<CodexScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                // 묶음 69 #280 #281: 레벨이 오르면 지도에 나오는 더 강한 필드 몬스터 (못 만나면 실루엣)
+                OrnatePanel(
+                  key: const Key('codexFieldTier'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                          '필드 · 더 강한 몬스터 ${FieldMonsterRules.tierMonsters.where(purifiedMonsters.contains).length} / ${FieldMonsterRules.tierMonsters.length}',
+                          style: AppText.title(19)),
+                      const SizedBox(height: 4),
+                      const KText('레벨이 오르면 지도에 더 강한 몬스터가 섞여 나와요.',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                      const SizedBox(height: 10),
+                      GridView.count(
+                        crossAxisCount: 3,
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 0.72,
+                        children: [
+                          for (final id in FieldMonsterRules.tierMonsters)
+                            _MonsterTile(
+                              key: Key('codexTier_${id.name}'),
+                              info: Monsters.info(id),
+                              hunted: purifiedMonsters.contains(id),
+                              count: huntCounts[id] ?? 0,
+                              onTap: purifiedMonsters.contains(id)
+                                  ? () => _showMonster(context, Monsters.info(id))
+                                  : null,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 OrnatePanel(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,7 +335,7 @@ class _Fact extends StatelessWidget {
 
 class _MonsterTile extends StatelessWidget {
   const _MonsterTile(
-      {required this.info, required this.hunted, this.count = 0, this.onTap});
+      {super.key, required this.info, required this.hunted, this.count = 0, this.onTap});
 
   final MonsterInfo info;
   final bool hunted;

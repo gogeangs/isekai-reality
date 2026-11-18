@@ -714,6 +714,8 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
         await _shot(tester, '40c_잿빛_눈빛');
       }
+      // 묶음 69 #284: 정령 줄은 한 글자씩 — 다 나온 뒤 눌러야 다음 줄
+      await tester.pump(const Duration(milliseconds: 2500));
       await tester.tapAt(const Offset(200, 300));
       await tester.pump(const Duration(milliseconds: 700));
     }

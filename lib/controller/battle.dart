@@ -191,7 +191,8 @@ extension BattleOps on AppController {
         luckBonus: modLuckBonus,
         night: FieldMonsterRules.isNight(_clock()),
         favored: ElementRules.challengers(mainElement),
-        land: lands?.kindAt);
+        land: lands?.kindAt,
+        tierLevel: spawnTierLevel);
   }
 
   /// 직업이 부르는 몬스터: 달빛 걸음(밤 몬스터) · 잿빛 추적(잿빛 몬스터) · 추적(고른
@@ -216,7 +217,8 @@ extension BattleOps on AppController {
             luckBonus: modLuckBonus,
             night: night || FieldMonsterRules.isNight(_clock()),
             favored: ElementRules.challengers(mainElement),
-            land: lands?.kindAt);
+            land: lands?.kindAt,
+            tierLevel: spawnTierLevel);
 
     final moonUntil = _jobs.timed[JobSkill.moonWalk.name];
     final moonAt = at(JobSkill.moonWalk.name, 'moon');
@@ -310,7 +312,8 @@ extension BattleOps on AppController {
             favored: ElementRules.challengers(mainElement),
             land: lands?.kindAt,
             lampMonsters: lampMonsters,
-            lampShare: BaldrinRules.realMapShare)
+            lampShare: BaldrinRules.realMapShare,
+            tierLevel: spawnTierLevel)
         .followedBy(calledSpawns) // 부르는 물약 (11-11 #57)
         .followedBy(_tutorialSpawns(center))
         .followedBy([if (guideSpawn != null) guideSpawn!])

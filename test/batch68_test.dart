@@ -34,7 +34,7 @@ void main() {
       expect(ChatRules.gap, const Duration(seconds: 10));
       expect(ChatRules.maxFriends, 50);
       expect(ChatRules.quick, ['안녕하세요!', '고마워요!', '같이 사냥해요', '잠깐 걷고 올게요', '좋아요!', '수고했어요']);
-      expect(ChatRules.siegeQuick('은빛 언덕'), ['은빛 언덕 영지에 집결!', '망치 써 주세요', '성벽 보수 부탁해요', '마지막 6시간, 힘내요!']);
+      expect(ChatRules.siegeQuick('은빛 언덕'), ['은빛 언덕에 집결!', '망치 써 주세요', '성벽 보수 부탁해요', '마지막 6시간, 힘내요!']);
       expect(ChatRules.siegeQuick(null), hasLength(3));
       expect(ChatRules.reasons.values, ['욕설', '괴롭힘', '음란', '광고', '개인정보 요구', '기타']);
     });

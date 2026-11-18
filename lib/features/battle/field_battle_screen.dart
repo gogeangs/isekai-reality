@@ -4,6 +4,7 @@ import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart';
 import '../town/material_view.dart';
@@ -37,7 +38,20 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
   void initState() {
     super.initState();
     widget.controller.holdNoticesWhile(true); // 칭호 축하는 결과를 닫은 뒤 (#85)
+    final first = !widget.controller.purifiedEver.contains(widget.spawn.monster);
     _battle = widget.controller.startFieldBattle(widget.spawn);
+    // 묶음 69 #280 #281: 처음 만난 단계 몬스터 · 스핑크스의 수수께끼
+    final info = Monsters.info(widget.spawn.monster);
+    final line = info.preLine != null
+        ? '${info.name}: ${info.preLine}'
+        : first && FieldMonsterRules.isTierMonster(widget.spawn.monster)
+            ? '새 몬스터를 만났어요 · ${info.name}'
+            : null;
+    if (line != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showTopNotice(context, line, icon: Icons.auto_awesome_rounded);
+      });
+    }
   }
 
   @override

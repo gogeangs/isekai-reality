@@ -316,19 +316,20 @@ class _VillageScreenState extends State<VillageScreen> {
     if (!_open(f.facility)) {
       // 묶음 44 #225: 짓는 중인 건물
       if (_stage(f.facility) != null) {
+        // 묶음 69 #290: 「조합 · Lv.15에 완공돼요」
         showTopNotice(
             context,
             f.facility == Facility.shelter
-                ? '짓는 중이에요 · 첫 펫과 함께 완공!'
-                : '짓는 중이에요 · ${_lockLabel(f.facility)}에 완공!',
+                ? '${f.name} · 첫 펫과 함께 완공돼요'
+                : '${f.name} · ${_lockLabel(f.facility)}에 완공돼요',
             icon: Icons.construction_rounded);
         return;
       }
       showTopNotice(
           context,
           f.facility == Facility.shelter
-              ? '첫 펫과 함께 열려요'
-              : '${_lockLabel(f.facility)}에 열려요',
+              ? '${f.name} · 첫 펫과 함께 열려요'
+              : '${f.name} · ${_lockLabel(f.facility)}에 열려요',
           icon: Icons.lock_rounded);
       return;
     }
@@ -746,24 +747,7 @@ class _VillageArtState extends State<_VillageArt> {
             ),
           ),
         ),
-      // 2막: 잿빛 안개는 그림과 같이 움직이지 않고 화면 가장자리에 고정 (건물·이름표 아래)
-      if (widget.act == 2)
-        AnimatedBuilder(
-          key: const Key('villageFog'),
-          animation: _scroll,
-          builder: (context, child) => Positioned(
-            left: _scroll.hasClients ? _scroll.offset : 0,
-            top: 0,
-            bottom: 0,
-            width: viewW,
-            child: child!,
-          ),
-          child: IgnorePointer(
-            child: Image.asset('assets/images/village_fog.webp',
-                fit: BoxFit.fill,
-                errorBuilder: (_, __, ___) => const SizedBox()),
-          ),
-        ),
+      // 묶음 69 #283: 2막 잿빛 안개 겹침은 없앰 (2막 내내 1막처럼 맑게)
       for (final f in widget.all) _building(f, r),
       // 건물 이름표 (#212): 건물 아래쪽 가운데, 건물보다 위에
       for (final f in widget.all) _tag(f, r),
@@ -916,6 +900,20 @@ class _VillageArtState extends State<_VillageArt> {
                     : '${widget.lockLabel(f.facility)} 완공'
                 : widget.lockLabel(f.facility);
     const half = 80.0;
+    // 묶음 69 #290: 완성되지 않은 건물(공사 중 · 준비 중 · 잠김)은 이름표 없이 공사 그림만 — 누르면 위쪽 띠
+    if (!open) {
+      return Positioned(
+        left: bottom.left - 40,
+        width: 80,
+        top: bottom.top - 14,
+        height: 30,
+        child: GestureDetector(
+          key: Key(market ? 'tag_market' : 'locked_${f.facility.name}'),
+          behavior: HitTestBehavior.translucent,
+          onTap: () => widget.onTap(f),
+        ),
+      );
+    }
     return Positioned(
       left: bottom.left - half,
       width: half * 2,

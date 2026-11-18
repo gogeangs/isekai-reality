@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       email:
-        description: "심사용 계정 이메일 (앱에서 한 번 로그인해 둔 계정)"
-        required: true
+        description: "심사용 계정 이메일 (비워 두면 저장소 Secret REVIEW_EMAIL 사용 — 공개 저장소라 Secret 권장)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -18,7 +19,7 @@ jobs:
     timeout-minutes: 10
     env:
       SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      REVIEW_EMAIL: ${{ inputs.email }}
+      REVIEW_EMAIL: ${{ inputs.email != '' && inputs.email || secrets.REVIEW_EMAIL }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -27,6 +28,7 @@ jobs:
       - name: 서비스 계정 파일
         run: |
           if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT 가 없어요"; exit 1; fi
+          if [ -z "$REVIEW_EMAIL" ]; then echo "심사용 이메일이 없어요 (Secret REVIEW_EMAIL 을 넣거나 입력해 주세요)"; exit 1; fi
           echo "::add-mask::$REVIEW_EMAIL"
           printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"

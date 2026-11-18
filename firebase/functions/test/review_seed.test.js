@@ -40,3 +40,27 @@ test('심사용 계정: 앱 기록 · 길드 Lv.4 회관 ★2 · 영지 + 수비
   assert.equal((await db.doc('guildOf/rv').get()).data().gid, gid);
   assert.equal((await db.collection('guilds').get()).docs.length, 1);
 });
+
+test('묶음 69: 심사단 영지는 다른 사람에겐 흑등 연맹처럼 보이고 칠 수 없음 · 영지가 차 있으면 빈 곳으로', async () => {
+  const db = new MemDb();
+  const guild = new GuildService(db);
+  const siege = new SiegeService(db, { guild });
+  // 다른 길드가 이미 백합 들판을 가짐
+  await guild.create('other', { name: '바깥 길드', me: { name: '바깥', level: 30 } });
+  const og = (await db.doc('guildOf/other').get()).data().gid;
+  const w = await siege._world();
+  w.owners.sol_lily = { gid: og, name: '바깥 길드', emblem: 0, color: 0, since: 0 };
+  await db.doc('erbard/world').set(w);
+  await seed(db, 'rv');
+  const mine = await siege.state('rv', {});
+  const id = Object.keys(mine.owners).find((k) => mine.owners[k] && mine.owners[k].gid === 'mine');
+  assert.ok(id && id !== 'sol_lily' && id !== 'royal', '빈 영지 하나');
+  const theirs = await siege.state('other', {});
+  assert.equal(theirs.owners[id].gid, 'npc');
+  assert.equal(theirs.owners[id].name, '흑등 연맹');
+  assert.ok(!JSON.stringify(theirs).includes('여명 심사단'));
+  assert.equal(theirs.owners.sol_lily.gid, 'mine');
+  await assert.rejects(siege.foe('other', { estate: id }), /not_siege/);
+  await db.doc('fightTok/other').set({ estate: id, slot: 0, at: 0 });
+  await assert.rejects(siege.fight('other', { estate: id, slot: 0, win: true }), /not_siege/);
+});

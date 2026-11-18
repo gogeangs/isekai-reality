@@ -16,7 +16,7 @@ class ChatRules {
 
   /// 빠른 말 (공성전 — 길드 · 연맹 방에서만)
   static List<String> siegeQuick(String? rallyName) => [
-        if (rallyName != null) '$rallyName 영지에 집결!',
+        if (rallyName != null) '$rallyName에 집결!',
         '망치 써 주세요',
         '성벽 보수 부탁해요',
         '마지막 6시간, 힘내요!',

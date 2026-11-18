@@ -280,7 +280,11 @@ class SmallNote extends StatelessWidget {
     this.done = false,
     this.onTap,
     this.npc,
+    this.ribbon,
   });
+
+  /// 묶음 69 #286: 쪽지 오른쪽 위 리본 (「새 부탁」)
+  final String? ribbon;
 
   /// 묶음 45 #231: 마을 사람 쪽지면 그 사람 얼굴을 작게
   final Npc? npc;
@@ -358,6 +362,24 @@ class SmallNote extends StatelessWidget {
           child: note,
         ),
         const Positioned(right: -2, bottom: 2, child: _TakeRibbon()),
+      ]);
+    }
+    if (ribbon != null) {
+      out = Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
+        out,
+        Positioned(
+          right: -4,
+          top: -6,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB3261E),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 4, offset: Offset(0, 2))],
+            ),
+            child: Text(ribbon!, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900)),
+          ),
+        ),
       ]);
     }
     return GestureDetector(
@@ -578,39 +600,60 @@ class _NpcAskPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = [...controller.activeAsks];
-    if (list.isEmpty) return const SizedBox.shrink();
+    // 묶음 69 #286: 아직 안 받은 새 부탁도 함께 (누르면 그 사람 부탁 창에서 받기)
+    final fresh = controller.newAsks;
+    if (list.isEmpty && fresh.isEmpty) return const SizedBox.shrink();
     bool done(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
-    list.sort((a, b) => (done(b) ? 1 : 0) - (done(a) ? 1 : 0));
+    final doneList = [for (final a in list) if (done(a)) a];
+    final going = [for (final a in list) if (!done(a)) a];
+    String title(Npc n, AskKind k) => switch (k) {
+          AskKind.big => VillageRules.npc(n).name,
+          AskKind.small => '${VillageRules.npc(n).name} · 작은 부탁',
+          AskKind.special => '${VillageRules.npc(n).name} · 특별한 부탁',
+        };
     return Padding(
       key: const Key('boardNpcAsks'),
       padding: const EdgeInsets.only(top: 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        BoardPlaque('마을 사람 부탁', note: '받은 부탁 ${list.length}개'),
+        BoardPlaque('마을 사람 부탁', note: fresh.isEmpty ? '받은 부탁 ${list.length}개' : '새 부탁 ${fresh.length}개 · 받은 부탁 ${list.length}개'),
         const SizedBox(height: 4),
         NoteGrid(children: [
-          for (final (i, a) in list.indexed)
+          // 순서: 다 한 부탁(금빛) → 새 부탁 → 진행 중
+          for (final (i, a) in doneList.indexed) _ask(context, a, i, done(a)),
+          for (final (i, f) in fresh.indexed)
             SmallNote(
-              key: Key('boardAsk_${a.npc.name}_${a.kind.name}'),
-              npc: a.npc,
-              title: switch (a.kind) {
-                AskKind.big => VillageRules.npc(a.npc).name,
-                AskKind.small => '${VillageRules.npc(a.npc).name} · 작은 부탁',
-                AskKind.special => '${VillageRules.npc(a.npc).name} · 특별한 부탁',
-              },
-              seed: i + 11,
-              ratio: a.progress.isEmpty
-                  ? null
-                  : a.progress.fold<double>(0, (t, x) => t + (x.step.need <= 0 ? 1 : (x.shown / x.step.need).clamp(0.0, 1.0))) / a.progress.length,
-              progress: done(a)
-                  ? '다 했어요!'
-                  : [for (final x in a.progress) '${x.step.label} ${comma(x.shown)}/${comma(x.step.need)}'].join(' · '),
-              glow: done(a),
-              onTap: () => showNpcRequestSheet(context, controller, a.npc, kind: a.kind),
+              key: Key('boardNew_${f.npc.name}_${f.kind.name}'),
+              npc: f.npc,
+              title: title(f.npc, f.kind),
+              seed: i + 31,
+              ribbon: '새 부탁',
+              progress: '눌러서 부탁 듣기',
+              onTap: () => showNpcRequestSheet(context, controller, f.npc, kind: f.kind),
             ),
+          for (final (i, a) in going.indexed) _ask(context, a, i + doneList.length, done(a)),
         ]),
       ]),
     );
   }
+
+  Widget _ask(BuildContext context, NpcAskLine a, int i, bool isDone) => SmallNote(
+        key: Key('boardAsk_${a.npc.name}_${a.kind.name}'),
+        npc: a.npc,
+        title: switch (a.kind) {
+          AskKind.big => VillageRules.npc(a.npc).name,
+          AskKind.small => '${VillageRules.npc(a.npc).name} · 작은 부탁',
+          AskKind.special => '${VillageRules.npc(a.npc).name} · 특별한 부탁',
+        },
+        seed: i + 11,
+        ratio: a.progress.isEmpty
+            ? null
+            : a.progress.fold<double>(0, (t, x) => t + (x.step.need <= 0 ? 1 : (x.shown / x.step.need).clamp(0.0, 1.0))) / a.progress.length,
+        progress: isDone
+            ? '다 했어요!'
+            : [for (final x in a.progress) '${x.step.label} ${comma(x.shown)}/${comma(x.step.need)}'].join(' · '),
+        glow: isDone,
+        onTap: () => showNpcRequestSheet(context, controller, a.npc, kind: a.kind),
+      );
 }
 
 /// 길드 의뢰 남은 시간 (자정까지)
@@ -653,7 +696,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
     final slot = widget.slot;
     final b = c.board;
     final s = b.slots[slot];
-    final t = BoardRules.template(s.templateId);
+    final t = BoardRules.template(s.templateId, level: c.player.level.level);
     final claimed = _claimed;
     if (claimed != null && !_vanished.contains(claimed.$1)) {
       return VanishingNote(
@@ -748,7 +791,7 @@ class _ErrandDetailState extends State<_ErrandDetail> {
           final c = widget.controller;
           final slot = widget.slot;
           final s = c.board.slots[slot];
-          final t = BoardRules.template(s.templateId);
+          final t = BoardRules.template(s.templateId, level: c.player.level.level);
           if (t == null) return const SizedBox.shrink();
           final progress = c.errandProgress(slot);
           final done = s.accepted && progress >= t.target;

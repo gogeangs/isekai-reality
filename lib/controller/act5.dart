@@ -38,7 +38,15 @@ class ErbardView {
     this.crownStreak = 0,
     this.lastVanguards = const {},
     this.stages = const {},
+    this.open = false,
+    this.test = false,
   });
+
+  /// 묶음 69 #279: 공성전이 열려 있나 (운영자 스위치 · 테스트 공성전 길드). 닫혀 있으면 공성권 · 수비대 · 전황판 · 영지 관리는 「곧 열려요」
+  final bool open;
+
+  /// 테스트 공성전 (테스트 길드에게만)
+  final bool test;
 
   /// 묶음 65 #255: 영지 번영 단계 (0 마을 · 1 고을 · 2 도시, 지도 아이콘이 커짐)
   final Map<String, int> stages;
@@ -115,6 +123,8 @@ class ErbardView {
       },
       siegeNo: (s['no'] as num?)?.toInt() ?? 0,
       active: s['active'] == true,
+      open: s['open'] == true,
+      test: s['test'] == true,
       start: t(s['start']),
       end: t(s['end']),
       myEstates: [for (final x in (g?['estates'] as List?) ?? const []) '$x'],
@@ -267,6 +277,28 @@ class _ErbardFight {
 extension Act5Ops on AppController {
   Act5State get act5 => _act5;
   ErbardView get erbard => _erbardView ?? _soloErbard;
+
+  /// 묶음 69 #279: 깃발 공성전이 열려 있나 (닫혀 있으면 5막은 지도 · 영지 둘러보기까지)
+  bool get siegeOpen => erbard.open;
+
+  /// 서버가 알려 준 정기 공성전 일정을 쓰고 남겨 둠 (로그인 안 해도 같은 일정)
+  Future<void> _setSiegeSchedule(Map<String, dynamic> j) async {
+    if (ErbardRules.keepSchedule) return;
+    final s = SiegeSchedule.fromJson(j);
+    ErbardRules.schedule = s;
+    await store.saveSide('siegeSchedule', jsonEncode(s.toJson()));
+  }
+
+  /// 앱을 켤 때: 남겨 둔 일정 (없으면 닫힘)
+  Future<void> _loadSiegeSchedule() async {
+    if (ErbardRules.keepSchedule) return;
+    final raw = await store.loadSide('siegeSchedule');
+    Map<String, dynamic>? j;
+    try {
+      j = raw == null ? null : Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {}
+    ErbardRules.schedule = j == null ? ErbardRules.closedSchedule : SiegeSchedule.fromJson(j);
+  }
   String? get erbardError => _erbardError;
   bool get erbardBusy => _erbardBusy;
 
@@ -373,6 +405,7 @@ extension Act5Ops on AppController {
   /// 일지 한 줄 (숫자 없이)
   String get act5Goal {
     if (_act5.done) return ErbardRules.erbardTeaser;
+    if (_act5.chapter >= 2 && !siegeOpen) return ErbardRules.closedGoal;
     return switch (_act5.chapter) {
       1 => '리안과 함께 다리 너머 에르바르드로 가요',
       2 when !_act5.has('e2a') && act5StepsInChapter < ErbardRules.ch2Steps => '걸으며 공성권을 모으고, 빈 영지의 야생 수비대를 깨요',
@@ -434,8 +467,9 @@ extension Act5Ops on AppController {
       },
       siegeNo: n,
       active: ErbardRules.siegeActive(now),
-      start: ErbardRules.siegeStart(n),
-      end: ErbardRules.siegeEnd(n),
+      open: ErbardRules.schedule.open,
+      start: ErbardRules.schedule.open ? ErbardRules.siegeStart(n) : null,
+      end: ErbardRules.schedule.open ? ErbardRules.siegeEnd(n) : null,
       wild: {
         for (final e in _act5.soloWild.entries)
           e.key: [for (var k = 0; k < ErbardRules.slots; k++) if (e.value & (1 << k) != 0) k],
@@ -464,7 +498,11 @@ extension Act5Ops on AppController {
       };
       final j = await api.post(path, {...body, 'me': me}, token: token);
       _erbardError = null;
-      if (j.containsKey('owners')) _erbardView = ErbardView.fromJson(j);
+      if (j.containsKey('owners')) {
+        _erbardView = ErbardView.fromJson(j);
+        final sc = (j['siege'] as Map?)?['schedule'];
+        if (sc is Map) unawaited(_setSiegeSchedule(Map<String, dynamic>.from(sc)));
+      }
       if (j['tickets'] is num) await _syncTickets((j['tickets'] as num).toInt(), (j['ticketCarry'] as num?)?.toInt());
       return j;
     } on ArcaApiError catch (e) {
@@ -515,6 +553,7 @@ extension Act5Ops on AppController {
   String? erbardFightKind(EstateInfo e) {
     final v = erbard;
     final o = v.owners[e.id];
+    if (!v.open) return null;
     if (o == null) return e.royal ? null : 'wild';
     if (!erbardGuild || !v.active) return null;
     if (o.kind == 'mine' || o.kind == 'ally') return null;

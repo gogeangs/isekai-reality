@@ -28,9 +28,14 @@ Map<String, dynamic> _npc({
     };
 
 /// 11-15에 심은 밭 (그날 걸음 0 → 그 뒤 걸음이 모두 셈)
-Map<String, dynamic> _garden(Map<int, String> seeds) => GardenState(plots: {
+/// 심은 칸 ([ago] 칸 → 몇 분 전에 심었는지, 없으면 오래전 = 다 자람)
+Map<String, dynamic> _garden(Map<int, String> seeds, {Map<int, int> ago = const {}}) => GardenState(plots: {
       for (final e in seeds.entries)
-        e.key: GardenPlot(seed: e.value, day: '2026-11-15', steps: 0),
+        e.key: GardenPlot(
+            seed: e.value,
+            day: '2026-11-15',
+            steps: 0,
+            at: ago[e.key] == null ? 0 : DateTime(2026, 11, 16, 10).subtract(Duration(minutes: ago[e.key]!)).millisecondsSinceEpoch),
     }).toJson();
 
 void main() {
@@ -123,18 +128,18 @@ void main() {
       expect(v.left, 240, reason: '묶음 66: 약초 씨앗 4시간');
     });
 
-    test('예전 걸음 칸은 남은 비율대로 시간으로 옮김 (묶음 66) · 다 자라면 빨간 점 · 거두면 재료 2개 이상', () async {
+    test('심은 시각부터 자람 · 다 자라면 빨간 점 · 거두면 재료 2개 이상', () async {
       final c = await startNpc(
         level: 9,
         todaySteps: const {'2026-11-16': 2500},
-        json: {'garden': _garden({0: 'herbSeed', 1: 'glowSeed'})},
+        json: {'garden': _garden({0: 'herbSeed', 1: 'glowSeed'}, ago: {1: 450})},
       );
       final a = c.plotView(0), b = c.plotView(1);
       expect(a.walked, greaterThanOrEqualTo(a.need));
       expect(a.ready, isTrue);
       expect(a.stage, 2);
       expect(b.ready, isFalse);
-      expect(b.left, 1440 - 450, reason: '2,500 / 8,000보 → 24시간의 31%가 흐른 것으로');
+      expect(b.left, 1440 - 450);
       expect(c.gardenReady, 1);
       final herb0 = c.player.materialCount(MaterialId.herb);
       expect(await c.harvestPlot(1), isNull);
@@ -180,7 +185,7 @@ void main() {
           level: 9,
           mats: const {'herbSeed': 1, 'flowerSeed': 1},
           todaySteps: const {'2026-11-16': 2500},
-          json: {'garden': _garden({0: 'herbSeed', 1: 'flowerSeed'})},
+          json: {'garden': _garden({0: 'herbSeed', 1: 'flowerSeed'}, ago: {1: GardenRules.growMinutes(MaterialId.flowerSeed) - 180})},
         ));
     await tester.pumpWidget(MaterialApp(
         builder: (context, child) => TopNoticeHost(child: child!),

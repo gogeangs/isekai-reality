@@ -466,7 +466,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
-                  if (Monsters.inCodex(m)) m,
+                  if (Monsters.inCodex(m) || FieldMonsterRules.isTierMonster(m)) m,
               },
               highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,

@@ -139,21 +139,27 @@ abstract final class ErbardRules {
   static const int ticketSteps = 2000;
   static const int ticketMax = 20;
 
-  /// 공성전: 2주에 한 번, 격주 토 · 일 48시간 (한국 시각). 첫 공성전 2026-11-28(토) 0시
-  static final DateTime siegeAnchor = DateTime.utc(2026, 11, 27, 15);
+  /// 묶음 69 #279: 공성전이 닫혀 있을 때 (운영자가 열면 그다음 토요일부터 격주)
+  static const String closedLine = '깃발 공성전은 곧 열려요';
+  static const String closedGoal = '깃발 공성전이 곧 열려요 · 지도와 영지를 둘러봐요';
+
+  /// 공성전: 2주에 한 번, 격주 토 · 일 48시간 (한국 시각)
+  /// 묶음 69 #279: 날짜를 정해 두지 않고 운영자 스위치로 연다 — 서버가 알려 준 일정([schedule])을 따름.
+  /// 시험은 예전 고정 일정(11-28 첫 공성전, [legacySchedule])을 쓴다 (test/flutter_test_config.dart).
   static const Duration siegePeriod = Duration(days: 14);
   static const Duration siegeLength = Duration(days: 2);
 
-  /// 지금(또는 다음) 공성전 번호: 0 = 첫 공성전
-  static int siegeNo(DateTime now) {
-    final d = now.toUtc().difference(siegeAnchor);
-    if (d.isNegative) return 0;
-    final n = d.inMilliseconds ~/ siegePeriod.inMilliseconds;
-    return d.inMilliseconds - n * siegePeriod.inMilliseconds < siegeLength.inMilliseconds ? n : n + 1;
-  }
+  static const SiegeSchedule closedSchedule = SiegeSchedule();
+  static final SiegeSchedule legacySchedule = SiegeSchedule(anchor: DateTime.utc(2026, 11, 27, 15));
+  static SiegeSchedule schedule = closedSchedule;
 
-  static DateTime siegeStart(int n) => siegeAnchor.add(siegePeriod * n);
-  static DateTime siegeEnd(int n) => siegeStart(n).add(siegeLength);
+  /// 시험: 앱이 일정을 바꾸지 않게
+  static bool keepSchedule = false;
+
+  /// 지금(또는 다음) 공성전 번호
+  static int siegeNo(DateTime now) => schedule.no(now);
+  static DateTime siegeStart(int n) => schedule.start(n);
+  static DateTime siegeEnd(int n) => schedule.start(n).add(siegeLength);
   static bool siegeActive(DateTime now) {
     final n = siegeNo(now);
     final u = now.toUtc();
@@ -373,7 +379,7 @@ abstract final class ErbardRules {
     }
     b.write(' ],\n');
     b.write(' "maxEstates": $maxEstates, "royalNeeds": $royalNeeds, "slots": $slots, "garrisonAllies": $garrisonAllies,\n');
-    b.write(' "anchor": ${siegeAnchor.millisecondsSinceEpoch}, "period": ${siegePeriod.inMilliseconds}, "length": ${siegeLength.inMilliseconds},\n');
+    b.write(' "anchor": ${legacySchedule.anchor!.millisecondsSinceEpoch}, "period": ${siegePeriod.inMilliseconds}, "length": ${siegeLength.inMilliseconds},\n');
     b.write(' "allianceLock": $allianceLock, "allianceMax": $allianceMax,\n');
     b.write(' "garrisonStepsPer": $garrisonStepsPer, "garrisonStepBonus": $garrisonStepBonus, "garrisonStepMax": $garrisonStepMax,\n');
     b.write(' "wildClearSeals": $wildClearSeals, "siegeSealsPerEstate": $siegeSealsPerEstate, "siegeTicketSeals": $siegeTicketSeals, '
@@ -394,4 +400,54 @@ abstract final class ErbardRules {
         Province.dark => MaterialId.gemDark,
         Province.fire => MaterialId.fireCore,
       };
+}
+
+
+/// 묶음 69 #279: 정기 공성전 일정 (서버 siege_schedule.js 의 정기 부분과 같은 셈)
+class SiegeSchedule {
+  const SiegeSchedule({this.anchor, this.firstNo = 0, this.stopAfter, this.doneBefore = -1});
+
+  factory SiegeSchedule.fromJson(Map<String, dynamic> j) => SiegeSchedule(
+        anchor: j['anchor'] is num ? DateTime.fromMillisecondsSinceEpoch((j['anchor'] as num).toInt(), isUtc: true) : null,
+        firstNo: (j['firstNo'] as num?)?.toInt() ?? 0,
+        stopAfter: (j['stopAfter'] as num?)?.toInt(),
+        doneBefore: (j['doneBefore'] as num?)?.toInt() ?? -1,
+      );
+
+  Map<String, dynamic> toJson() => {
+        if (anchor != null) 'anchor': anchor!.millisecondsSinceEpoch,
+        'firstNo': firstNo,
+        if (stopAfter != null) 'stopAfter': stopAfter,
+        'doneBefore': doneBefore,
+      };
+
+  /// 열린 일정의 첫 공성전 시작 (없으면 닫힘)
+  final DateTime? anchor;
+  final int firstNo;
+  final int? stopAfter;
+  final int doneBefore;
+
+  bool get open => anchor != null && stopAfter == null;
+
+  /// 아주 먼 날 (공성전이 없을 때 시작 시각)
+  static final DateTime never = DateTime.utc(9999);
+
+  bool _ended(int n) => stopAfter != null && n > stopAfter!;
+
+  DateTime start(int n) {
+    final a = anchor;
+    if (a == null || n < firstNo || _ended(n)) return never;
+    return a.add(ErbardRules.siegePeriod * (n - firstNo));
+  }
+
+  int no(DateTime now) {
+    final a = anchor;
+    if (a == null) return doneBefore + 1;
+    final d = now.toUtc().difference(a).inMilliseconds;
+    if (d < 0) return firstNo;
+    final p = ErbardRules.siegePeriod.inMilliseconds;
+    final k = d ~/ p;
+    final n = firstNo + (d - k * p < ErbardRules.siegeLength.inMilliseconds ? k : k + 1);
+    return _ended(n) ? stopAfter! + 1 : n;
+  }
 }

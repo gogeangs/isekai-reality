@@ -182,8 +182,8 @@ void main() {
       expect(GardenState.fromJson(c.garden.toJson()).plots[0]!.at, isNotNull);
     });
 
-    test('몬스터 자리: 11-19부터 하루 6칸 (한국 시간 4시간마다) · 남은 시간 문구', () {
-      expect(FieldMonsterRules.slotKey(DateTime.utc(2026, 11, 17, 3)), '2026-11-17', reason: '예전 날은 그대로');
+    test('몬스터 자리: 하루 6칸 (한국 시간 4시간마다) · 남은 시간 문구', () {
+      expect(FieldMonsterRules.slotKey(DateTime.utc(2026, 11, 17, 3)), '2026-11-17@3', reason: '묶음 69: 날짜 기준 없음');
       expect(FieldMonsterRules.slotKey(DateTime.utc(2026, 11, 19, 3)), '2026-11-19@3'); // KST 12시
       expect(FieldMonsterRules.slotKey(DateTime.utc(2026, 11, 19, 6, 59)), '2026-11-19@3'); // KST 15:59
       expect(FieldMonsterRules.slotKey(DateTime.utc(2026, 11, 19, 7)), '2026-11-19@4');

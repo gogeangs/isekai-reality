@@ -5,12 +5,13 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart'
     show LicenseEntryWithLineBreaks, LicenseRegistry, compute;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 import 'app.dart';
 import 'app_controller.dart';
 import 'core/rules/exclusion_index.dart';
+import 'core/rules/monsters.dart';
 import 'core/rules/name_rules.dart';
 import 'package:app_links/app_links.dart';
 import 'core/rules/place_grid.dart';
@@ -52,6 +53,11 @@ Future<void> main() async {
   final clock = ServerClock();
   final host = AppBinder(cloud: cloud, clock: clock);
   final controller = host.make(null);
+  // 묶음 69 #281: 앱에 들어 있는 그림 (Lv.50 몬스터 그림이 없으면 4단계 몬스터로)
+  try {
+    final m = await AssetManifest.loadFromAssetBundle(rootBundle);
+    Monsters.knownAssets = m.listAssets().toSet();
+  } catch (_) {}
   // 묶음 57: 이름 금칙어 (서버와 같은 목록, 서버에서 바뀐 목록은 앱이 켜진 뒤 받음)
   try {
     NameRules.load(await rootBundle.loadString('assets/data/banned_words.txt'));

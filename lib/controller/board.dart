@@ -25,7 +25,7 @@ extension BoardOps on AppController {
   /// 수시 의뢰 진행 (수락한 뒤로 센 수)
   int errandProgress(int slot) {
     final s = board.slots[slot];
-    final t = BoardRules.template(s.templateId);
+    final t = BoardRules.template(s.templateId, level: player.level.level);
     final today = player.today;
     if (t == null || !s.accepted || today == null) return 0;
     return BoardRules.progress(t, today, s.baseline);
@@ -35,7 +35,7 @@ extension BoardOps on AppController {
       _serial(() async {
     final b = board;
     final s = b.slots[slot];
-    final t = BoardRules.template(s.templateId);
+    final t = BoardRules.template(s.templateId, level: player.level.level);
     if (t == null || s.accepted) return;
     final today = await _todayRecord();
     final slots = [...b.slots];
@@ -54,7 +54,7 @@ extension BoardOps on AppController {
     final b = board;
     for (var i = 0; i < b.slots.length; i++) {
       final s = b.slots[i];
-      final t = BoardRules.template(s.templateId);
+      final t = BoardRules.template(s.templateId, level: player.level.level);
       if (t != null && s.accepted && errandProgress(i) >= t.target) n++;
     }
     final u = urgent;
@@ -72,7 +72,7 @@ extension BoardOps on AppController {
       _serial(() async {
     final b = board;
     final s = b.slots[slot];
-    final t = BoardRules.template(s.templateId);
+    final t = BoardRules.template(s.templateId, level: player.level.level);
     if (t == null || !s.accepted || errandProgress(slot) < t.target) {
       return false;
     }

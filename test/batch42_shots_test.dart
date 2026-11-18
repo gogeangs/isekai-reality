@@ -180,7 +180,7 @@ void main() {
       await tester.tap(find.byKey(const Key('npcStoryOk')));
       await _settle(tester);
       await tester.pump(const Duration(seconds: 9));
-    });
+    }, skip: true /* 묶음 69 #286: 건물 위쪽 부탁 줄을 게시판으로 옮김 — 예전 캡처는 그대로 둠 */);
 
     testWidgets('b42 $n: 특별 보상 · 기록 탭 마을 사람 이야기', (tester) async {
       _device(tester, d);
@@ -228,6 +228,6 @@ void main() {
       await _settle(tester, 3);
       await _shot(tester, '${n}_12_기록탭_아래');
       await tester.pump(const Duration(seconds: 9));
-    });
+    }, skip: true /* 묶음 69 #286: 건물 위쪽 부탁 줄을 게시판으로 옮김 — 예전 캡처는 그대로 둠 */);
   }
 }

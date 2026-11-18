@@ -274,7 +274,7 @@ void main() {
           }
         }
         // 2막: 안개 (화면에 고정)
-        expect(find.byKey(const Key('villageFog')), findsOneWidget);
+        expect(find.byKey(const Key('villageFog')), findsNothing, reason: '묶음 69 #283: 2막 안개 없음');
         // 아래 이름표 줄은 없음, 처음부터 끌기
         expect(find.byKey(const Key('villageTags')), findsNothing);
         expect(find.byKey(const Key('villageScroll')), findsOneWidget);
@@ -290,16 +290,14 @@ void main() {
       await tester.runAsync(() async => c = await start(
           account(5, newGates: true, village: {'seen': ['intro']})));
       await village(tester, c);
-      Text sub(String n) =>
-          tester.widget<Text>(find.byKey(Key('tagSub_$n')));
-      expect(sub('alchemy').data, 'Lv.7 완공');
-      expect(sub('guild').data, 'Lv.15 완공');
-      expect(sub('shelter').data, '첫 펫과 함께\n완공');
-      expect(sub('market').data, '준비 중');
+      // 묶음 69 #290: 완성되지 않은 건물은 이름표 없이 공사 그림만, 누르면 위쪽 띠
+      for (final n in ['alchemy', 'guild', 'shelter', 'market']) {
+        expect(find.byKey(Key('tagSub_$n')), findsNothing, reason: n);
+      }
       expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
       await tester.tap(find.byKey(const Key('locked_alchemy')));
       await tester.pump();
-      expect(find.text('짓는 중이에요 · Lv.7에 완공!'), findsOneWidget);
+      expect(find.text('연금술 공방 · Lv.7에 완공돼요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 

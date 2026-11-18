@@ -107,7 +107,7 @@ extension MailOps on AppController {
     final got = <String>[];
     var gold = 0, mana = 0, exp = 0, notes = 0;
     var tools = false;
-    var foot = 0, recruit = 0;
+    var foot = 0, recruit = 0, seals = 0;
     final bag = <String, int>{};
     gifts.forEach((k, v) {
       if (k == Wallet.gold) {
@@ -124,6 +124,8 @@ extension MailOps on AppController {
         foot += v;
       } else if (k == 'recruit') {
         recruit += v;
+      } else if (k == 'lanternSeal') {
+        seals += v;
       } else if (_bagKey(k)) {
         bag[k] = (bag[k] ?? 0) + v;
       }
@@ -163,6 +165,11 @@ extension MailOps on AppController {
       _act3 = _act3.copyWith(tickets: _act3.tickets + recruit);
       await _saveAct3();
       got.add('모집권 $recruit');
+    }
+    // 묶음 60: 공성전 보상 (등불 인장)
+    if (seals > 0) {
+      await _addSeals(seals);
+      got.add('등불 인장 $seals');
     }
     return (got: got, left: s.rest);
   }

@@ -23,6 +23,9 @@ void main() {
   tearDown(() => LegalRules.testHistory = null);
 
   group('약관 · 동의', () {
+    // 묶음 60: 2판이 생겼으니 이 시험은 1판만 있던 때로 본다
+    final v1 = [for (final v in LegalRules.history) if (v.version == 1) v];
+    setUp(() => LegalRules.testHistory = v1);
     test('판 · 적용일 · 알림 기간 · 다시 동의는 바뀐 문서만', () {
       final t = DateTime(2026, 11, 18);
       expect(LegalRules.needed(const {}, t).map((v) => v.kind),
@@ -30,7 +33,7 @@ void main() {
       final ok = {LegalKind.terms: 1, LegalKind.privacy: 1, LegalKind.location: 1};
       expect(LegalRules.needed(ok, t), isEmpty);
       LegalRules.testHistory = [
-        ...LegalRules.history,
+        ...v1,
         LegalVersion(LegalKind.privacy, 2, DateTime(2026, 12, 1)),
         LegalVersion(LegalKind.terms, 2, DateTime(2027, 1, 1), unfavorable: true),
       ];
@@ -56,7 +59,7 @@ void main() {
       expect(saved['age14'], isNotNull);
 
       LegalRules.testHistory = [
-        ...LegalRules.history,
+        ...v1,
         LegalVersion(LegalKind.location, 2, DateTime(2026, 11, 20), summary: '함께 있어요 안내를 더했어요'),
       ];
       await c.checkLegalNotices();

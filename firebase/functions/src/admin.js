@@ -43,6 +43,15 @@ const okUid = (u) => typeof u === 'string' && /^[A-Za-z0-9]{6,128}$/.test(u);
 const okId = (u) => typeof u === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(u);
 const text = (s, max) => String(s || '').trim().slice(0, max);
 
+const YEAR = 365 * 24 * 3600 * 1000;
+
+/** 제재 기록 보관: 끝난 날부터 1년 · 영구 정지는 정지한 날부터 3년 (Firestore TTL expireAt) */
+function keepUntil(rec, now) {
+  if (rec.level >= 4) return new Date((rec.at || now) + 3 * YEAR);
+  const end = rec.until ? Date.parse(rec.until) : rec.at || now;
+  return new Date(Math.max(end, now) + YEAR);
+}
+
 class AdminService {
   constructor(db, { now = () => Date.now() } = {}) {
     this.db = db;
@@ -50,7 +59,7 @@ class AdminService {
   }
 
   async log(by, action, target, detail = {}) {
-    await this.db.collection('adminLog').add({ by: by || '', action, target: target || '', detail, at: this.now() });
+    await this.db.collection('adminLog').add({ by: by || '', action, target: target || '', detail, at: this.now(), expireAt: new Date(this.now() + YEAR) });
   }
 
   async logs({ limit = 200 } = {}) {
@@ -85,6 +94,7 @@ class AdminService {
     const d = days != null && lv >= 2 && lv <= 3 ? Math.max(1, Math.min(365, Number(days) || SANCTION[lv].days)) : SANCTION[lv].days;
     const until = d ? new Date(this.now() + d * DAY).toISOString() : null;
     const rec = { level: lv, until, reason, memo: text(memo, 500), at: this.now(), by };
+    rec.expireAt = keepUntil(rec, this.now());
     await this.db.doc(`status/${uid}`).set(rec);
     await this.db.collection(`sanctionLog/${uid}/items`).add({ ...rec, action: 'sanction' });
     const period = lv === 1 ? '' : until ? ` · ${until.slice(0, 10)}까지` : ' · 기간 없음';
@@ -110,6 +120,7 @@ class AdminService {
       const t = Date.parse(until);
       if (!t) fail('bad_until');
       const rec = { ...cur, until: new Date(t).toISOString(), memo: text(memo, 500) || cur.memo };
+      rec.expireAt = keepUntil(rec, this.now());
       await this.db.doc(`status/${uid}`).set(rec);
       await this.db.collection(`sanctionLog/${uid}/items`).add({ ...rec, action: 'period', at: this.now(), by });
       await this._mail(uid, { title: '조치 기간이 바뀌었어요', body: `${rec.until.slice(0, 10)}까지로 바뀌었어요.`, kind: 'sanction' });
@@ -117,6 +128,7 @@ class AdminService {
       return { ok: true, status: rec };
     }
     const rec = { level: 0, until: null, reason: cur.reason, memo: text(memo, 500), at: this.now(), by };
+    rec.expireAt = new Date(this.now() + YEAR);
     await this.db.doc(`status/${uid}`).set(rec);
     await this.db.collection(`sanctionLog/${uid}/items`).add({ ...rec, action: 'release' });
     await this._mail(uid, { title: '조치가 풀렸어요', body: '이제 모든 기능을 다시 쓸 수 있어요.', kind: 'sanction' });
@@ -292,4 +304,11 @@ function goodsOf(t, l) {
   return { reward, equips, take };
 }
 
-module.exports = { AdminService, AdminError, SANCTION, REASONS, RENAME };
+module.exports = {
+  keepUntil,
+  AdminService,
+  AdminError,
+  SANCTION,
+  REASONS,
+  RENAME,
+};

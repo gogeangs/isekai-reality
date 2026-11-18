@@ -30,7 +30,11 @@ class Foe {
     this.reveal,
     this.sky,
     this.tint,
+    this.label,
   });
+
+  /// 묶음 60: 화면에 보이는 이름을 바꿈 (공성전 수비대 = 길드원 이름)
+  final String? label;
 
   /// 묶음 50 #146: 하이랜드 수호자의 특별한 공격
   final SkyMove? sky;
@@ -71,9 +75,9 @@ class Foe {
   MonsterTrait get trait => info.trait;
 
   /// 화면에 보이는 이름 (수식어 포함)
-  String get name => small
+  String get name => label ?? (small
       ? '작은 ${info.name}'
-      : ModifierRules.displayName(monster, mods);
+      : ModifierRules.displayName(monster, mods));
 
   ModGrade get grade => ModifierRules.gradeOf(mods);
 
@@ -1227,6 +1231,9 @@ class Battle {
 
   /// 묶음 59 길드 레이드: 특별 공격 (보스 이름) · 약점 직업 피해 · 특별 공격 덜 받음
   String? raidBoss;
+
+  /// 묶음 60: 몬스터 체력 숫자를 숨김 (공성전 · 야생 수비대 세기는 숨은 값)
+  bool hideFoeNumbers = false;
   int raidSpecialEvery = 4;
   double raidTakenMult = 1;
   int raidShieldTurns = 0;

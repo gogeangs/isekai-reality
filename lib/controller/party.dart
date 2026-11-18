@@ -98,10 +98,24 @@ extension PartyOps on AppController {
   /// 묶음 57: 초대 링크로 앱이 열렸을 때 (홈 화면이 「파티에 들어갈까요?」)
   String? get pendingInvite => _pendingInvite;
   void handleInviteLink(Uri u) {
+    // 묶음 60: 길드 초대 링크
+    final g = PartyRules.guildCodeFromLink(u);
+    if (g != null) {
+      _pendingGuildInvite = g;
+      _notify();
+      return;
+    }
     final code = PartyRules.codeFromLink(u);
     if (code == null) return;
     _pendingInvite = code;
     _notify();
+  }
+
+  String? get pendingGuildInvite => _pendingGuildInvite;
+  String? takeGuildInvite() {
+    final c = _pendingGuildInvite;
+    _pendingGuildInvite = null;
+    return c;
   }
 
   String? takeInvite() {

@@ -258,15 +258,16 @@ extension _ShellPopups on _HomeShellState {
       return;
     }
     // 묶음 59 #246: 4막 장면 (조건이 맞으면 한 번씩)
-    final a4 = c.pendingAct4Scene;
+    final a4 = c.pendingAct4Scene ?? c.pendingAct5Scene;
     if (a4 != null) {
+      final act = c.pendingAct4Scene != null ? 4 : 5;
       _endingShowing = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        if (c.pendingAct4Scene?.id == a4.id) {
+        if ((act == 4 ? c.pendingAct4Scene : c.pendingAct5Scene)?.id == a4.id) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
               fullscreenDialog: true,
-              builder: (_) => Act4SceneScreen(controller: c, scene: a4)));
+              builder: (_) => Act4SceneScreen(controller: c, scene: a4, act: act)));
         }
         _endingShowing = false;
         _kick();
@@ -378,6 +379,7 @@ extension _ShellPopups on _HomeShellState {
   /// 묶음 57: 초대 링크로 열렸으면 「파티에 들어갈까요?」
   void _maybeShowInvite() {
     final c = widget.controller;
+    if (!_popupBusy && !c.inTutorial && c.pendingGuildInvite != null) return _guildInvite();
     if (_popupBusy || c.inTutorial || c.pendingInvite == null) return;
     final code = c.takeInvite()!;
     _walkShowing = true;
@@ -409,6 +411,50 @@ extension _ShellPopups on _HomeShellState {
         if (mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (_) => TavernScreen(controller: c, partyTab: true, inviteCode: code)));
+        }
+      }
+      _walkShowing = false;
+      _kick();
+    });
+  }
+
+  /// 묶음 60: 길드 초대 링크로 열렸으면 「길드에 들어갈까요?」
+  void _guildInvite() {
+    final c = widget.controller;
+    final code = c.takeGuildInvite()!;
+    _walkShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final open = c.canJoinGuildByCode;
+      final yes = await showDialog<bool>(
+        context: context,
+        builder: (d) => GameAlert(
+          key: const Key('guildInviteJoin'),
+          title: Text('길드에 들어갈까요?', style: AppText.title(19)),
+          content: KText(
+              !open
+                  ? '초대 코드 $code 길드는 4막 2장 「빈 터」 장면 뒤에 들어갈 수 있어요.'
+                  : c.cloud.signedIn
+                      ? '초대 코드 $code 길드에 들어가요.'
+                      : '초대 코드 $code 길드에 들어가려면 로그인이 필요해요. 길드 회관으로 갈게요.',
+              style: const TextStyle(color: AppColors.text)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: Text(open ? '나중에' : '확인')),
+            if (open)
+              TextButton(
+                  key: const Key('guildInviteYes'),
+                  onPressed: () => Navigator.pop(d, true),
+                  child: const Text('들어가기')),
+          ],
+        ),
+      );
+      if (yes == true && mounted) {
+        if (c.cloud.signedIn && !(c.guild?.inGuild ?? false) && await c.joinGuild(code: code) && mounted) {
+          showTopNoticeQueued(context, '길드에 들어갔어요!');
+        }
+        if (mounted) {
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => GuildHallScreen(controller: c, inviteCode: code)));
         }
       }
       _walkShowing = false;

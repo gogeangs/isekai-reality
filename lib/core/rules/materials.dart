@@ -541,6 +541,17 @@ class LootRules {
           (common: [MaterialId.batWing], rare: MaterialId.gemDark, chance: rareChance),
         MonsterId.salamander || MonsterId.ifrit || MonsterId.koboldrake || MonsterId.cultFlamePriest =>
           (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance),
+        // 묶음 60: 에르바르드 야생 수비대 (그 지방 재료)
+        MonsterId.wildGriffin || MonsterId.wildKnightCaptain =>
+          (common: [MaterialId.lightJelly], rare: MaterialId.stardust, chance: rareChance * 2),
+        MonsterId.wildTroll || MonsterId.wildRuneGolem =>
+          (common: [MaterialId.ironShard, MaterialId.metalJelly], rare: MaterialId.metalCore, chance: rareChance * 2),
+        MonsterId.wildBoar || MonsterId.wildElfArcher =>
+          (common: [MaterialId.twig, MaterialId.herb], rare: MaterialId.gemEarth, chance: rareChance * 2),
+        MonsterId.wildLizardman || MonsterId.wildBanshee =>
+          (common: [MaterialId.darkJelly], rare: MaterialId.gemDark, chance: rareChance * 2),
+        MonsterId.wildLavaGolem || MonsterId.wildDragonCaptain =>
+          (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance * 2),
         MonsterId.ashSlime || MonsterId.slime =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
         MonsterId.fireSlime =>
@@ -643,6 +654,8 @@ class LootRules {
         MonsterId.raidDragon ||
         MonsterId.raidLich ||
         MonsterId.raidTortoise ||
+        MonsterId.garrisonClone ||
+        MonsterId.blackGuard ||
         MonsterId.roughWaterSpirit || MonsterId.lostStoneSpirit =>
           (common: [MaterialId.slimeJelly], rare: MaterialId.slimeCore, chance: rareChance),
       };

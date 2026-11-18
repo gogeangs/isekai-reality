@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'features/act4/act4_screens.dart' show Act4SceneScreen;
+import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
 import 'package:flutter/material.dart';
 
 import 'core/format.dart';
@@ -255,6 +255,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     await c.refreshNotices();
     await c.refreshMyStatus();
     await c.refreshGuild();
+    // 묶음 60: 5막 에르바르드 (공성전 결과 · 3장)
+    await c.refreshErbard();
   }
 
   @override

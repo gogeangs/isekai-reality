@@ -113,6 +113,8 @@ async function main() {
   const uid = await findUid(admin, email);
   if (!uid) {
     const docs = (await db.collection('users').count().get()).data().count;
+    const cols = (await db.listCollections()).map((c) => c.id).join(',');
+    console.log(`프로젝트 ${admin.app().options.projectId || '?'} · 모음: ${cols}`);
     throw new Error(`그 이메일로 로그인한 계정이 없어요 (로그인 계정 ${await countUsers(admin)}개 · 백업 기록 ${docs}개 중에서 못 찾음)`);
   }
   await seed(db, uid, { stamp: () => admin.firestore.FieldValue.serverTimestamp() });

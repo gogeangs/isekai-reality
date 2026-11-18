@@ -72,6 +72,36 @@ async function seed(db, uid, { stamp = () => new Date() } = {}) {
   return { gid };
 }
 
+/** 이메일로 계정 찾기 (Google 로그인 정보의 이메일까지) */
+async function findUid(admin, email) {
+  try {
+    return (await admin.auth().getUserByEmail(email)).uid;
+  } catch (e) {
+    if (!e || e.code !== 'auth/user-not-found') throw new Error(`계정을 찾지 못했어요 (${(e && e.code) || 'unknown'})`);
+  }
+  let token;
+  do {
+    const page = await admin.auth().listUsers(1000, token);
+    for (const u of page.users) {
+      const mails = [u.email, ...(u.providerData || []).map((x) => x.email)].filter(Boolean).map((m) => String(m).toLowerCase());
+      if (mails.includes(email)) return u.uid;
+    }
+    token = page.pageToken;
+  } while (token);
+  return null;
+}
+
+async function countUsers(admin) {
+  let n = 0;
+  let token;
+  do {
+    const page = await admin.auth().listUsers(1000, token);
+    n += page.users.length;
+    token = page.pageToken;
+  } while (token);
+  return n;
+}
+
 async function main() {
   const admin = require('firebase-admin');
   const email = String(process.env.REVIEW_EMAIL || '').trim().toLowerCase();
@@ -79,14 +109,8 @@ async function main() {
   if (!admin.apps.length) admin.initializeApp();
   const db = admin.firestore();
   db.settings({ ignoreUndefinedProperties: true });
-  let uid;
-  try {
-    uid = (await admin.auth().getUserByEmail(email)).uid;
-  } catch (e) {
-    // 계정 정보는 남기지 않고 까닭(코드)만
-    if (e && e.code === 'auth/user-not-found') throw new Error('그 이메일로 로그인한 계정이 없어요 (앱에서 한 번 로그인해 주세요)');
-    throw new Error(`계정을 찾지 못했어요 (${(e && e.code) || 'unknown'})`);
-  }
+  const uid = await findUid(admin, email);
+  if (!uid) throw new Error(`그 이메일로 로그인한 계정이 없어요 (로그인한 계정 ${await countUsers(admin)}개 중에서 못 찾음)`);
   await seed(db, uid, { stamp: () => admin.firestore.FieldValue.serverTimestamp() });
   console.log('심사용 계정 준비 끝');
 }

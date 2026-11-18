@@ -479,7 +479,7 @@ class Monsters {
       id: MonsterId.shadowButterfly,
       element: Element.dark,
       name: '그림자 나비',
-      habitat: '밤 (오후 7시 ~ 새벽 5시) 어디서나',
+      habitat: '밤 (오후 7시 ~ 새벽 6시) 어디서나',
       huntLine: '그림자 나비를 잡았어! 반짝이는 가루가 떨어졌어.',
       description: '밤에만 날아다니는 나비. 날개 가루에 홀리기 쉬워요.',
       tendency: Tendency.charm,

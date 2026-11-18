@@ -23,13 +23,13 @@ Future<AppController> walker(Map<String, int> steps, {int level = 12, List<Daily
 
 void main() {
   group('#252 많이 걸은 날', () {
-    test('발자국 · 조각: 1만 보를 넘긴 2,500보마다, 2만 보까지 · 예전 기록엔 없음', () {
+    test('발자국 · 조각: 1만 보를 넘긴 2,500보마다, 2만 보까지 · 날짜 기준 없음 (묶음 69)', () {
       expect(WalkRewardRules.steps2500(9999, _d20), 0);
       expect(WalkRewardRules.steps2500(12499, _d20), 0);
       expect(WalkRewardRules.steps2500(12500, _d20), 1);
       expect(WalkRewardRules.steps2500(15000, _d20), 2);
       expect(WalkRewardRules.steps2500(30000, _d20), 4);
-      expect(WalkRewardRules.steps2500(30000, DateTime(2026, 11, 18)), 0, reason: '예전 기록 그대로');
+      expect(WalkRewardRules.steps2500(30000, DateTime(2026, 11, 18)), 4, reason: '묶음 69: 날짜 기준 없음');
       final r = DailyRecord(date: _d20, steps: 15000);
       expect(ExpRules.forDay(r).footprint, 2 * WalkRewardRules.footprintExp);
       expect(WalkRewardRules.chestsOn(15000, _d20), [0, 1]);
@@ -55,14 +55,14 @@ void main() {
       expect(p.gauge.shards, 1, reason: '19일 조각 1개는 사흘 뒤에도 그대로');
     });
 
-    test('#254 Lv.21부터 배율 (그날 시작할 때 레벨) · 예전 날은 그대로', () {
+    test('#254 Lv.21부터 배율 (그날 시작할 때 레벨) · 날짜 기준 없음', () {
       expect(WalkRewardRules.levelMult(20), 1);
       expect(WalkRewardRules.levelMult(21), 1);
       expect(WalkRewardRules.levelMult(40), closeTo(1.57, 1e-9));
       final base = LevelRules.totalExpToReach(40);
       DailyRecord d(DateTime t) => DailyRecord(date: t, fieldMonstersPurified: 5, questsCompleted: 3);
       final before = PlayerState.fromHistory(name: 'x', history: [
-        DailyRecord(date: DateTime(2026, 11, 10), gains: {Wallet.exp: base}),
+        DailyRecord(date: DateTime(2026, 11, 10), gains: {Wallet.exp: LevelRules.totalExpToReach(20)}),
         d(DateTime(2026, 11, 18)),
       ]);
       final after = PlayerState.fromHistory(name: 'x', history: [

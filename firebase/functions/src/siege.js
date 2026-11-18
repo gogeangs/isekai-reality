@@ -69,6 +69,12 @@ class SiegeService {
     this.rand = rand;
   }
 
+  /** 묶음 69: 심사용 길드 영지는 다른 사람에겐 흑등 연맹 영지처럼 보임 (빼앗기지도 않음) */
+  _view(o, gid) {
+    if (o && o.review && o.gid !== gid) return { gid: NPC, name: NPC_NAME, emblem: 0, color: 7, since: 0 };
+    return o;
+  }
+
   async _world() {
     const s = await this.db.doc('erbard/world').get();
     if (s.exists) return s.data();
@@ -317,7 +323,7 @@ class SiegeService {
     const now = this.now();
     if (!siegeActive(now)) fail('not_siege');
     const w = await this._world();
-    const o = w.owners[e.id];
+    const o = this._view(w.owners[e.id], gid);
     if (o && o.gid === gid) fail('own');
     if (o && (await this._allies(gid, g)).includes(o.gid)) fail('ally');
     const n = siegeNo(now);
@@ -348,7 +354,7 @@ class SiegeService {
     if (!e) fail('bad_estate');
     const { gid } = await this._mine(uid);
     const w = await this._world();
-    const o = w.owners[e.id];
+    const o = this._view(w.owners[e.id], gid);
     const n = siegeNo(this.now());
     const run = gid ? ((((await this.db.doc(`siegeRun/${n}_${e.id}`).get()).data() || {}).g || {})[gid] || {}) : {};
     const gs = o && o.gid !== NPC ? (await this.db.doc(`garrison/${e.id}`).get()).data() || {} : {};
@@ -444,7 +450,7 @@ class SiegeService {
       let weakest = null;
       for (const e of ESTATES) {
         const o = w.owners[e.id];
-        if (!o || o.gid === NPC || e.id === 'royal') continue;
+        if (!o || o.gid === NPC || o.review || e.id === 'royal') continue;
         const filled = await filledOf(e.id);
         if (!weakest || filled < weakest.filled) weakest = { id: e.id, filled, o };
       }
@@ -455,7 +461,7 @@ class SiegeService {
     }
     // 3. 보상: 영지 1곳당(왕성 3곳분) 길드원 모두 등불 인장 · 공성권을 쓴 사람은 더 · 져도 참여 보상. 연맹은 점수를 나눔
     const weights = {};
-    for (const [id, o] of Object.entries(w.owners)) if (o && o.gid !== NPC) weights[o.gid] = (weights[o.gid] || 0) + weight(id);
+    for (const [id, o] of Object.entries(w.owners)) if (o && o.gid !== NPC && !o.review) weights[o.gid] = (weights[o.gid] || 0) + weight(id);
     const use = (await this.db.doc(`siegeUse/${n}`).get()).data() || { u: {} };
     const users = use.u || {};
     const gids = new Set([...Object.keys(weights), ...Object.values(users).map((x) => x.gid).filter(Boolean)]);
@@ -505,7 +511,7 @@ class SiegeService {
     const fees = logs.docs.map((d) => d.data()).filter((x) => x.at < to).reduce((a, x) => a + (Number(x.fee) || 0), 0);
     // 묶음 65 #255: 시장 · 교역 정책이 있으면 몫이 조금 더
     const feeW = {};
-    for (const [id, o] of Object.entries(w.owners)) if (o && o.gid !== NPC) feeW[o.gid] = (feeW[o.gid] || 0) + weight(id) * (await this._devFee(id));
+    for (const [id, o] of Object.entries(w.owners)) if (o && o.gid !== NPC && !o.review) feeW[o.gid] = (feeW[o.gid] || 0) + weight(id) * (await this._devFee(id));
     const wall = Object.values(feeW).reduce((a, b) => a + b, 0);
     if (fees > 0 && wall > 0) {
       for (const [gid, wt] of Object.entries(feeW)) {
@@ -628,7 +634,7 @@ class SiegeService {
     }
     return {
       owners: Object.fromEntries(
-        Object.entries(w.owners).map(([id, o]) => [id, o ? { gid: o.gid === gid ? 'mine' : team.includes(o.gid) ? 'ally' : o.gid === NPC ? NPC : 'other', name: o.name, emblem: o.emblem, color: o.color, crown: id === 'royal' && !!w.crown } : null]),
+        Object.entries(w.owners).map(([id, raw]) => [id, raw, this._view(raw, gid)]).map(([id, , o]) => [id, o ? { gid: o.gid === gid ? 'mine' : team.includes(o.gid) ? 'ally' : o.gid === NPC ? NPC : 'other', name: o.name, emblem: o.emblem, color: o.color, crown: id === 'royal' && !!w.crown } : null]),
       ),
       siege: { no: n, active: siegeActive(now), start: siegeStart(n), end: siegeEnd(n) },
       guild: gid
@@ -686,7 +692,7 @@ class SiegeService {
     if (!gid) fail('no_guild');
     const now = this.now();
     const w = await this._world();
-    const o = w.owners[e.id];
+    const o = this._view(w.owners[e.id], gid);
     const lv = Math.max(20, w.avgLevel || 30);
     if (!o) {
       const ws = (await this.db.doc(`wild/${e.id}`).get()).data() || { g: {} };
@@ -745,6 +751,9 @@ class SiegeService {
     const n = siegeNo(now);
     const k = Number(slot);
     if (!(k >= 0 && k < T.slots)) fail('bad_slot');
+    // 묶음 69: 심사용 길드 영지는 다른 길드가 칠 수 없음 (흑등 연맹처럼만 보임)
+    const rv = (await this._world()).owners[e.id];
+    if (rv && rv.review && rv.gid !== gid) fail('not_siege');
     // 묶음 61: 서버가 내준 자리여야 하고, 공성권 한 장을 씀. 너무 빨리 끝난 이김은 세지 않음 (의심 목록에 남김)
     const tokRef = this.db.doc(`fightTok/${uid}`);
     const tok = (await tokRef.get()).data();
@@ -770,7 +779,7 @@ class SiegeService {
       });
     };
     let w = await this._world();
-    const o = w.owners[e.id];
+    const o = this._view(w.owners[e.id], gid);
     if (!o) {
       // 빈 영지: 야생 수비대 (언제든)
       const ref = this.db.doc(`wild/${e.id}`);

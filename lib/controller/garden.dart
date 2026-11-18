@@ -51,19 +51,6 @@ extension GardenOps on AppController {
   /// 포포의 이슬병
   bool get _dew => hasRelic(Npc.popo);
 
-  /// 심은 날부터 걸은 걸음 (심을 때 그날 걸음은 뺀다)
-  int _walkedSince(GardenPlot p) {
-    final w = math.max(
-        0,
-        _daysSince(p.day).fold<int>(0, (t, r) => t + r.steps) -
-            p.steps +
-            // 묶음 57 새싹 돌보기: 오늘 걸음을 더 쳐 줌 (숨김)
-            (sproutToday ? (player.today?.steps ?? 0) ~/ 2 : 0));
-    // 묶음 58: 고목의 심장을 차고 있으면 조금 빨리 (숨김)
-    final heart = _armory.items.any((i) => i.base == EquipBase.uniqElderHeart && _armory.isWorn(i));
-    return heart ? (w * (1 + RegionRules.elderHeartGarden)).round() : w;
-  }
-
   /// 묶음 66: 빨리 자라게 하는 효과를 곱한 배율 (이슬병 · ★3 · 고목의 심장 · 새싹 돌보기)
   double get _growFactor {
     var f = 1.0;
@@ -79,41 +66,14 @@ extension GardenOps on AppController {
     final seed = p == null ? null : Materials.byName(p.seed);
     if (p == null || seed == null) return GardenPlotView(slot: slot);
     final need = GardenRules.growMinutes(seed, factor: _growFactor);
-    // 예전 칸(아직 옮기지 않음): 남은 걸음 비율대로
-    final at = p.at ?? _legacyAt(p, seed, need);
+    // 묶음 69: 심은 시각이 없는 칸(예전 기록)은 다 자란 것으로
+    final at = p.at ?? 0;
     return GardenPlotView(
       slot: slot,
       seed: seed,
       walked: math.max(0, _clock().difference(DateTime.fromMillisecondsSinceEpoch(at)).inMinutes),
       need: need,
     );
-  }
-
-  /// 예전 걸음 칸 → 심은 시각 (걸은 비율만큼 이미 흐른 것으로. 다 자란 칸은 다 자란 그대로)
-  int _legacyAt(GardenPlot p, MaterialId seed, int need) {
-    final steps = _gardenNeed(seed);
-    final ratio = steps <= 0 ? 1.0 : math.min(1.0, _walkedSince(p) / steps);
-    return _clock().subtract(Duration(minutes: (need * ratio).ceil())).millisecondsSinceEpoch;
-  }
-
-  /// 예전: 다 자라는 데 드는 걸음 (묶음 54: 약초밭 ★3 → 조금 빨리) — 옮길 때 비율 계산에만
-  int _gardenNeed(MaterialId seed) {
-    final n = GardenRules.need(seed, dew: _dew);
-    return _star(Building.garden, 3) ? (n * BuildingRules.gardenNeed).round() : n;
-  }
-
-  /// 업데이트 전에 심어 둔 칸을 한 번 옮겨 둔다 (묶음 66)
-  Future<void> _migrateGarden66() async {
-    if (!_garden.plots.values.any((p) => p.at == null)) return;
-    final plots = <int, GardenPlot>{};
-    for (final e in _garden.plots.entries) {
-      final p = e.value;
-      final seed = Materials.byName(p.seed);
-      plots[e.key] = p.at != null || seed == null
-          ? p
-          : GardenPlot(seed: p.seed, day: p.day, steps: p.steps, at: _legacyAt(p, seed, GardenRules.growMinutes(seed, factor: _growFactor)));
-    }
-    await _saveGarden(_garden.copyWith(plots: plots));
   }
 
   List<GardenPlotView> get gardenPlots =>

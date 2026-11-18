@@ -62,7 +62,7 @@ class DailyRecord {
   /// 오전 5~8시 걸음 (11-11, 숨은 생활 보너스)
   final int stepsMorning;
 
-  /// 묶음 32 #189 속성 점수: 밤(오후 7시~새벽 5시) · 이른 아침(새벽 5~9시) 걸음.
+  /// 묶음 32 #189 속성 점수: 밤(오후 7시~새벽 6시) · 이른 아침(새벽 5~9시) 걸음.
   /// 예전 기록(null)은 저녁 8시 뒤 · 오전 5~8시 걸음으로 친다
   final int? stepsNight;
   final int? stepsDawn;

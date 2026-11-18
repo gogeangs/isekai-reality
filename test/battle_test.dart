@@ -247,11 +247,12 @@ void main() {
       expect(butterflies(DateTime(2026, 11, 8, 14)), 0);
       expect(butterflies(DateTime(2026, 11, 8, 21)), greaterThan(5));
       expect(butterflies(DateTime(2026, 11, 9, 3)), greaterThan(5));
-      // 자리는 낮과 같다
+      // 자리는 낮과 같다 (같은 4시간 칸: 새벽 5시 밤 · 6시 낮 — 묶음 69 밤은 19~6시)
+      expect(butterflies(DateTime(2026, 11, 9, 5)), greaterThan(5));
       expect(
-          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 8, 21))
+          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 9, 5))
               .map((s) => s.id),
-          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 8, 14))
+          FieldMonsterRules.spawnsFor(area, DateTime(2026, 11, 9, 6))
               .map((s) => s.id));
     });
 
@@ -350,8 +351,9 @@ void main() {
       final b = c.startFieldBattle(spawn)!..runToEnd();
       final stones = c.player.manaStones;
       final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
-      expect(await c.finishFieldBattle(spawn, b),
-          RuleConstants.fieldMonsterExp * x2);
+      // 묶음 66 #265: 잡는 순간 레벨만큼 조금 더 (Lv.1~5 사이)
+      final got = await c.finishFieldBattle(spawn, b);
+      expect(got, inInclusiveRange(RuleConstants.fieldMonsterExp * x2, (RuleConstants.fieldMonsterExp * WalkRewardRules.huntMult(5)).round() * x2));
       expect(c.history.last.fieldMonstersPurified, 1);
       // 마석 1개와 그 몬스터 재료 1개 (11-10)
       expect(c.player.manaStones, stones + 1);

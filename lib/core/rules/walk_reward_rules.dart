@@ -1,14 +1,8 @@
 /// 묶음 65 (2/2) #252 많이 걸은 날 · #254 높은 레벨 경험치 (숫자는 화면에 안 보임)
 ///
-/// 지금까지 1만 보를 넘긴 걸음은 보상이 없었다(열쇠는 하루 4개 = 1만 보까지).
-/// 예전 기록은 그대로 두려고 [since] 날부터의 기록에만 붙인다.
+/// 1만 보를 넘긴 걸음에도 보상(열쇠는 하루 4개 = 1만 보까지). 묶음 69: 날짜 기준 없이 모든 기록에.
 class WalkRewardRules {
   WalkRewardRules._();
-
-  /// 이날부터의 하루 기록에 붙는다 (그 전 기록 · 레벨은 그대로)
-  static final DateTime since = DateTime(2026, 11, 19);
-
-  static bool applies(DateTime day) => !DateTime(day.year, day.month, day.day).isBefore(since);
 
   /// 1만 보를 넘긴 걸음부터
   static const int from = 10000;
@@ -29,7 +23,7 @@ class WalkRewardRules {
 
   /// 1만 보를 넘긴 2,500보마다 하나 (발자국 · 열쇠 조각 같은 수)
   static int steps2500(int steps, DateTime day) {
-    if (!applies(day) || steps <= from) return 0;
+    if (steps <= from) return 0;
     final n = ((steps > until ? until : steps) - from) ~/ every;
     return n < 0 ? 0 : (n > maxPerDay ? maxPerDay : n);
   }
@@ -56,9 +50,8 @@ class WalkRewardRules {
 
   /// 그날 받은 상자 단계 (0 동 · 1 은 · 2 금)
   static List<int> chestsOn(int steps, DateTime day) => [
-        if (applies(day))
-          for (var i = 0; i < chestSteps.length; i++)
-            if (steps >= chestSteps[i]) i,
+        for (var i = 0; i < chestSteps.length; i++)
+          if (steps >= chestSteps[i]) i,
       ];
 
   /// 상자를 연 표시 (연 날 기록 counters): 'stepChest@20261120:1'

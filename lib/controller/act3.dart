@@ -593,11 +593,8 @@ extension Act3Ops on AppController {
           A3Kind.den => RuleConstants.fieldMonsterExp * BaldrinRules.denExp,
           _ => Act3Rules.fieldExp * battle.floors.length,
         };
-        // 묶음 66 #265: 잡는 순간의 레벨만큼 (11월 19일 기록부터, 숨김)
-        final today0 = _history.isEmpty ? null : _history.last;
-        final exp = today0 != null && WalkRewardRules.applies(today0.date)
-            ? (exp0 * WalkRewardRules.huntMult(player.level.level)).round()
-            : exp0;
+        // 묶음 66 #265: 잡는 순간의 레벨만큼 (숨김)
+        final exp = (exp0 * WalkRewardRules.huntMult(player.level.level)).round();
         var gold = boss
             ? BaldrinRules.bossGoldMin +
                 _random.nextInt(BaldrinRules.bossGoldMax - BaldrinRules.bossGoldMin + 1)

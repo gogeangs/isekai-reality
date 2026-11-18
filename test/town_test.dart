@@ -428,10 +428,11 @@ void main() {
       final spawn = c.todaySpawns.first;
       final b = c.startFieldBattle(spawn)!..runToEnd();
       final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
-      expect(await c.finishFieldBattle(spawn, b),
-          (RuleConstants.fieldMonsterExp * 1.5).round() * x2);
-      expect(c.player.dailyExp.last.fieldMonster,
-          (RuleConstants.fieldMonsterExp * 1.5).round() * x2);
+      // 묶음 66 #265: 잡는 순간 레벨만큼 조금 더 (Lv.1~5 사이)
+      final base = (RuleConstants.fieldMonsterExp * 1.5).round();
+      final got = await c.finishFieldBattle(spawn, b);
+      expect(got, inInclusiveRange(base * x2, (base * WalkRewardRules.huntMult(5)).round() * x2));
+      expect(c.player.dailyExp.last.fieldMonster, got);
     });
 
     test('원정 나침반: 쓰면 다음 원정 하나만 이동 시간 절반', () async {

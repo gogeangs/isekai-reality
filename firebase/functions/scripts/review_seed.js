@@ -7,7 +7,7 @@ const { PartyService } = require('../src/party');
 const { SiegeService } = require('../src/siege');
 const REC = require('./review_record.json');
 
-const ESTATE = 'sol_lily';
+const ESTATE0 = 'sol_lily';
 const CHUNK = 700000;
 
 /** 서버 기록에 넣기 (시험은 MemDb 로) */
@@ -41,6 +41,8 @@ async function seed(db, uid, { stamp = () => new Date() } = {}) {
   const gref = db.doc(`guilds/${gid}`);
   const g = (await gref.get()).data();
   g.open = false;
+  // 묶음 69: 심사단 길드는 길드 목록 · 순위 · 다른 사람 지도에서 숨김
+  g.review = true;
   g.steps = Math.max(Number(g.steps || 0), G.LEVEL_PER_HEAD[4] * 5);
   g.hall = { ...(g.hall || {}), points: Math.max(Number((g.hall || {}).points || 0), G.STARS[2][1]) };
   g.treasury = Math.max(Number(g.treasury || 0), 20000);
@@ -50,9 +52,12 @@ async function seed(db, uid, { stamp = () => new Date() } = {}) {
   // ③ 에르바르드: 빈 영지 하나를 이 길드에 · 수비대 첫 자리에 내 분신
   const siege = new SiegeService(db, { guild });
   const w = await siege._world();
-  const o = w.owners[ESTATE];
-  if (!o || o.gid === gid) {
-    w.owners[ESTATE] = { gid, name: g.name, emblem: g.emblem || 0, color: g.color || 0, since: 0 };
+  const ESTATES = require('../src/siege_estates.json').estates;
+  // 이미 가진 영지 → 원래 자리(백합 들판) → 비어 있는 다른 영지
+  const ESTATE = Object.keys(w.owners).find((id) => w.owners[id] && w.owners[id].gid === gid)
+    || (!w.owners[ESTATE0] ? ESTATE0 : (ESTATES.find((e) => e.id !== 'royal' && !w.owners[e.id]) || {}).id);
+  if (ESTATE) {
+    w.owners[ESTATE] = { gid, name: g.name, emblem: g.emblem || 0, color: g.color || 0, since: 0, review: true };
     await db.doc('erbard/world').set(w);
     const garr = (await db.doc(`garrison/${ESTATE}`).get()).data();
     const slots = garr && garr.gid === gid ? garr.slots || [null, null, null, null, null] : [null, null, null, null, null];

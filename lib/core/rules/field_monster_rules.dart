@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import '../geo/geo.dart';
 import 'exclusion_index.dart';
 import 'exploration_rules.dart';
+import 'harvest_rules.dart';
 import 'modifier_rules.dart';
 import 'monsters.dart';
 import 'place_grid.dart';
@@ -45,7 +46,7 @@ class FieldMonsterRules {
   ///   블록마다 따로 난수를 쓰므로 어디서 보든 같은 블록에는 같은 몬스터.
   /// - [center] 가 있으면 그 둘레 [radiusM] 안 블록만, 없으면 지역 전체
   /// - 장소가 있는 지역이면 장소마다 한 마리 (장소에서 80~150m, 장소에 맞는 몬스터)
-  /// - 밤(오후 7시 ~ 새벽 5시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비
+  /// - 밤(오후 7시 ~ 새벽 6시)에는 블록 몬스터 중 다섯에 하나꼴로 그림자 나비
   /// - 제외 구역([exclusions] 포함)과 지역 밖에는 두지 않는다.
   ///   [roads] 가 있으면 큰길·철로 둘레에도 두지 않는다.
   static List<FieldSpawn> spawnsFor(
@@ -179,16 +180,12 @@ class FieldMonsterRules {
 
   // ───────────── 묶음 66 #267: 하루 6칸 (한국 시간 0 · 4 · 8 · 12 · 16 · 20시)
 
-  /// 이날(한국 시간)부터 칸마다 바뀜. 그 전 날은 하루 한 번 그대로
-  static final DateTime slotsSince = DateTime.utc(2026, 11, 18, 15); // 11-19 0시 KST
-
   static const int slotHours = 4;
 
   static DateTime _kst(DateTime t) => t.toUtc().add(const Duration(hours: 9));
 
-  /// 자리 키: 예전 '2026-11-18' 꼴(날짜만), 11-19부터 '2026-11-19@3' (칸)
+  /// 자리 키: '2026-11-19@3' (한국 날짜 · 칸)
   static String slotKey(DateTime t) {
-    if (t.toUtc().isBefore(slotsSince)) return '${t.year}-${t.month}-${t.day}';
     final k = _kst(t);
     return '${k.year}-${k.month}-${k.day}@${k.hour ~/ slotHours}';
   }
@@ -347,8 +344,8 @@ class FieldMonsterRules {
   /// 밤에 그림자 나비가 되는 블록 몬스터 비율
   static const double nightButterflyShare = 0.2;
 
-  /// 그림자 나비가 나오는 시간 (오후 7시 ~ 새벽 5시)
-  static bool isNight(DateTime t) => t.hour >= 19 || t.hour < 5;
+  /// 그림자 나비가 나오는 시간 (오후 7시 ~ 새벽 6시)
+  static bool isNight(DateTime t) => HarvestRules.isNight(t); // 묶음 69: 밤은 19~6시 하나로
 
   /// 지금 위치에서 만날 수 있는 가장 가까운 몬스터.
   /// 차량 속도로 움직이는 중이거나 제외 구역 안이면 없음.

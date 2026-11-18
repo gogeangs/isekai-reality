@@ -210,9 +210,10 @@ void main() {
       final b = c.startAct3Fight('baldrin_ashplain')!;
       runOut(b);
       expect(b.isOver, isTrue);
+      final lv = c.player.level.level;
       final r = await c.finishAct3Fight(b);
       if (r.won) {
-        expect(r.exp, Act3Rules.fieldExp * 2);
+        expect(r.exp, (Act3Rules.fieldExp * 2 * WalkRewardRules.huntMult(lv)).round());
         expect(c.player.gold, gold + r.gold);
         expect(c.act3.firstFight, isTrue);
         expect(c.journalMain.first.done, isTrue);

@@ -476,3 +476,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | fac_wall, fac_tower, fac_market, fac_light, fac_metal, fac_earth, fac_dark, fac_fire | 영지 시설 8 (공통 3 + 지방 특산 5, 한 장에서 같은 배율로 잘라 바닥(496) 맞춤, 붉은 번짐 정리, #255, 512) |
 | 2026-11-18 | mat_lightRelic, mat_metalOre, mat_earthWood, mat_darkCrystal, mat_fireStone | 영지 특산물 5 (성스러운 백합·청동 광석·엘프 고목 가지·안개 결정·용암석, 노랑·붉은 번짐 정리, #255, 512) |
 | 2026-11-18 | fx_guardHit | 막았을 때 번쩍임 (방어막 위 금빛 충격·푸른 파문, fx_guard와 같은 테두리·크기, #256, 768) |
+| 2026-11-18 | policy_defense, policy_plenty, policy_trade | 영주의 정책 3 (같은 금테 메달, 색·상징만 다름, 같은 배율, #255, 512) |

@@ -178,7 +178,7 @@ const EstateMixin = {
           fac: d.fac,
           special: e.province ? E.special[e.province] : null,
           policy: this._policyNow(d),
-          canPolicy: !S.siegeActive(now) && S.lastEnded(now) >= 0 && !(d.policy && d.policy.n >= S.lastEnded(now)),
+          canPolicy: !S.siegeActive(now, gid) && S.lastEnded(now) >= 0 && !(d.policy && d.policy.n >= S.lastEnded(now)),
           request: { no: d.req.i || 0, title: rq.title, goal, steps: Math.min(goal, d.req.steps || 0), mine: (d.req.by || {})[uid] || 0, people: Object.keys(d.req.by || {}).length },
         });
       }
@@ -197,7 +197,7 @@ const EstateMixin = {
       staff: !!(g && (g.owner === uid || (g.vices || []).includes(uid))),
       buildGold: E.buildGold,
       buildMats: E.buildMats,
-      siege: S.siegeActive(now),
+      siege: S.siegeActive(now, gid),
     };
   },
 
@@ -205,7 +205,7 @@ const EstateMixin = {
   async estateBuild(uid, { estate, kind } = {}) {
     const S = require('./siege');
     const { e, gid, g } = await this._ownEstate(uid, estate, true);
-    if (S.siegeActive(this.now())) this._fail('siege_lock');
+    if (S.siegeActive(this.now(), gid)) this._fail('siege_lock');
     const allowed = [...E.common, ...(e.province ? [E.special[e.province]] : [])];
     if (!allowed.includes(kind)) this._fail('bad_kind');
     const ref = this._devRef(estate);
@@ -308,7 +308,7 @@ const EstateMixin = {
     if (!POLICIES.includes(kind)) this._fail('bad_kind');
     const now = this.now();
     const n = S.lastEnded(now);
-    if (S.siegeActive(now) || n < 0) this._fail('not_yet');
+    if (S.siegeActive(now, gid) || n < 0) this._fail('not_yet');
     const d = await this._dev(estate);
     if (d.policy && d.policy.n >= n) this._fail('chosen');
     await this._devRef(estate).set({ ...d, policy: { kind, n, by: uid } });

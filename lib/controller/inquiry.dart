@@ -254,6 +254,8 @@ extension InquiryOps on AppController {
     try {
       _noticeSeen = {...((await store.loadSide('noticeSeen')) ?? '').split(',').where((x) => x.isNotEmpty)};
       final j = await api.post('/notices', const {});
+      // 묶음 69 #279: 정기 공성전 일정 (운영자 스위치)
+      if (j['siege'] is Map) await _setSiegeSchedule(Map<String, dynamic>.from(j['siege'] as Map));
       _notices = [
         for (final n in (j['items'] as List?) ?? const [])
           if (n is Map)

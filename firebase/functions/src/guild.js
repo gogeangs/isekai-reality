@@ -598,7 +598,7 @@ class GuildService {
     };
     if (action === 'boost') {
       this._needStaff(g, uid);
-      if (S.siegeActive(now)) fail('siege_lock');
+      if (S.siegeActive(now, gid)) fail('siege_lock');
       const w = (await this.db.doc('erbard/world').get()).data() || { owners: {} };
       const o = (w.owners || {})[estate];
       if (!o || o.gid !== gid) fail('not_yours');
@@ -612,7 +612,7 @@ class GuildService {
       const cost = T.boostCost[lv - 1] - (cur ? T.boostCost[cur - 1] : 0);
       const name = (S.ESTATES.find((e) => e.id === estate) || {}).name || '영지';
       await spend(cost, `${name} 수비대 강화 ${lv}단계`);
-      await gref.set({ ...gs, boost: { level: lv, until: S.siegeEnd(S.siegeNo(now)), by: uid } });
+      await gref.set({ ...gs, boost: { level: lv, until: Number.isFinite(S.siegeEnd(S.siegeNo(now, gid))) ? S.siegeEnd(S.siegeNo(now, gid)) : now + 14 * 86400000, by: uid } });
     } else if (action === 'hall') {
       this._needStaff(g, uid);
       const gold = Math.floor(Number(amount) || 0);
@@ -629,7 +629,7 @@ class GuildService {
     } else if (action === 'share') {
       if (g.owner !== uid) fail('not_owner', 403);
       const n = S.lastEnded(now);
-      if (n < 0 || S.siegeActive(now)) fail('not_yet');
+      if (n < 0 || S.siegeActive(now, gid)) fail('not_yet');
       if ((g.treasuryShare ?? -1) >= n) fail('shared');
       const use = (await this.db.doc(`siegeUse/${n}`).get()).data() || { u: {} };
       const users = Object.entries(use.u || {})

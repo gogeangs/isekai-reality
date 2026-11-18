@@ -717,6 +717,8 @@ class AppController extends ChangeNotifier {
     }
     // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
     _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
+    // 묶음 69 #279: 정기 공성전 일정 (서버가 알려 준 것)
+    await _loadSiegeSchedule();
     // 묶음 56: 파티 (발자국 표 · 깃발 · 함께 잡은 몬스터)
     _partyLocal = await _load(_partyKey, PartyLocal.fromJson, const PartyLocal());
     // 묶음 32 #189: 기운(속성 점수) — 처음이면 남은 기록으로 한 번 세고, 대사 없이

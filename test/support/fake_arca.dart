@@ -59,6 +59,9 @@ class FakeArca implements ArcaApi {
   final Map<String, List<int>> siegeRun = {};
   final Map<String, List<Map<String, dynamic>?>> garrisons = {};
   bool siegeActive = false;
+
+  /// 묶음 69 #279: 운영자 스위치 (시험은 기본 열림)
+  bool siegeOpen = true;
   int siegeNo = 0;
   Map<String, dynamic>? siegeLast;
   Map<String, dynamic>? alliance;
@@ -126,7 +129,13 @@ class FakeArca implements ArcaApi {
 
   Map<String, dynamic> _siegeState(String me) => {
         'owners': siegeOwners,
-        'siege': {'no': siegeNo, 'active': siegeActive, 'start': DateTime.utc(2026, 11, 27, 15).millisecondsSinceEpoch, 'end': DateTime.utc(2026, 11, 29, 15).millisecondsSinceEpoch},
+        'siege': {
+          'no': siegeNo,
+          'active': siegeActive,
+          'open': siegeOpen,
+          if (siegeOpen) 'start': DateTime.utc(2026, 11, 27, 15).millisecondsSinceEpoch,
+          if (siegeOpen) 'end': DateTime.utc(2026, 11, 29, 15).millisecondsSinceEpoch,
+        },
         'guild': guild == null ? null : {
           'estates': [for (final e in siegeOwners.entries) if (e.value?['gid'] == 'mine') e.key],
           'treasury': treasury,

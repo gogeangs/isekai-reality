@@ -733,7 +733,8 @@ class _WalletSheetState extends State<WalletSheet> {
       padding: EdgeInsets.fromLTRB(18, 16, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
       child: ListenableBuilder(
         listenable: c,
-        builder: (context, _) => Column(
+        builder: (context, _) => SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -780,6 +781,7 @@ class _WalletSheetState extends State<WalletSheet> {
                     },
             ),
           ],
+        ),
         ),
       ),
     );

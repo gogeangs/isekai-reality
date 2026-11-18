@@ -2505,7 +2505,16 @@ class MonsterPicture extends StatelessWidget {
         MonsterId.wildBoar || MonsterId.wildElfArcher => Icons.forest_rounded,
         MonsterId.wildLizardman || MonsterId.wildBanshee => Icons.nights_stay_rounded,
         MonsterId.wildLavaGolem || MonsterId.wildDragonCaptain => Icons.local_fire_department_rounded,
-        MonsterId.garrisonClone || MonsterId.blackGuard => Icons.shield_rounded,
+        MonsterId.garrisonClone ||
+        MonsterId.blackGuard ||
+        MonsterId.blackCaptain ||
+        MonsterId.cloneWarrior ||
+        MonsterId.cloneKnight ||
+        MonsterId.cloneArcher ||
+        MonsterId.cloneMage ||
+        MonsterId.clonePriest ||
+        MonsterId.cloneRogue =>
+          Icons.shield_rounded,
         MonsterId.labyrinthBat => Icons.nights_stay_rounded,
         MonsterId.roughWaterSpirit => Icons.waves_rounded,
         MonsterId.shadowButterfly => Icons.flutter_dash_rounded,

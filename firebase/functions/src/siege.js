@@ -313,7 +313,7 @@ class SiegeService {
       const slots = s.exists ? s.data().slots || [] : [];
       const b = s.exists ? s.data().boost : null;
       if (b && b.until > now) boosts[id] = b.level;
-      garrisons[id] = slots.map((x) => (x ? { uid: x.uid, name: x.name, level: x.level, allies: (x.allies || []).map((a) => a.name), me: x.uid === uid } : null));
+      garrisons[id] = slots.map((x) => (x ? { uid: x.uid, name: x.name, level: x.level, job: x.job || null, allies: (x.allies || []).map((a) => a.name), me: x.uid === uid } : null));
       if (slots.some((x) => x && x.uid === uid)) placed = id;
     }
     const wild = {};

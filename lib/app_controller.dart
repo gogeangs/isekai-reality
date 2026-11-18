@@ -803,6 +803,11 @@ class AppController extends ChangeNotifier {
     if (bonus != null && bonus > (out.counters['gaugeBonus'] ?? 0)) {
       out = out.copyWith(counters: {...out.counters, 'gaugeBonus': bonus});
     }
+    // 묶음 61: 손으로 입력한 걸음 (건강 앱 값 그대로)
+    final manual = health.counters[manualStepsKey];
+    if (manual != null && manual != out.counters[manualStepsKey]) {
+      out = out.copyWith(counters: {...out.counters, manualStepsKey: manual});
+    }
     return out;
   }
 

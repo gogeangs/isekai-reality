@@ -6,7 +6,11 @@ import '../../theme/app_colors.dart';
 /// 파티 깃발 (묶음 56): 흰 깃발 그림(flag_party)에 파티 색을 입히고 가운데 문양.
 /// 그림이 오기 전에는 색 깃발을 그려서 대신한다.
 class PartyFlag extends StatelessWidget {
-  const PartyFlag({super.key, required this.emblem, required this.color, this.size = 56, this.npc = false, this.crown = false});
+  const PartyFlag(
+      {super.key, required this.emblem, required this.color, this.size = 56, this.npc = false, this.crown = false, this.gold = false});
+
+  /// 묶음 61: 길드 금고 상점 「금빛 깃발 문양」
+  final bool gold;
 
   final int emblem;
   final int color;
@@ -41,7 +45,9 @@ class PartyFlag extends StatelessWidget {
                   color: const Color(0xFF0E0E14),
                   colorBlendMode: BlendMode.srcATop,
                   errorBuilder: (_, __, ___) => Icon(Icons.light_rounded, size: size * 0.38, color: Colors.black))
-              : EmblemIcon(index: emblem, size: size * 0.42, light: true),
+              : gold
+                  ? GoldTint(child: EmblemIcon(index: emblem, size: size * 0.46, light: true))
+                  : EmblemIcon(index: emblem, size: size * 0.42, light: true),
         ),
         if (crown)
           Positioned(
@@ -54,6 +60,39 @@ class PartyFlag extends StatelessWidget {
           ),
       ]),
     );
+  }
+}
+
+/// 묶음 61: 있는 그림을 금빛으로 (금고 상점 꾸미기 · 깃발 문양)
+class GoldTint extends StatelessWidget {
+  const GoldTint({super.key, required this.child});
+
+  final Widget child;
+
+  /// 밝기만 남기고 금빛으로 (조금 더 밝게)
+  static const ColorFilter filter = ColorFilter.matrix(<double>[
+    0.40, 0.62, 0.14, 0, 34, //
+    0.31, 0.50, 0.10, 0, 22, //
+    0.10, 0.17, 0.04, 0, 0, //
+    0, 0, 0, 1, 0,
+  ]);
+
+  @override
+  Widget build(BuildContext context) => ColorFiltered(colorFilter: filter, child: child);
+}
+
+/// 회관 꾸미기 그림 (금고 상점 꾸미기는 금빛으로)
+class GuildDecoImage extends StatelessWidget {
+  const GuildDecoImage(this.id, {super.key, this.size});
+
+  final String id;
+  final double? size;
+
+  @override
+  Widget build(BuildContext context) {
+    final img = Image.asset(GuildRules.decoImage(id),
+        width: size, height: size, errorBuilder: (_, __, ___) => SizedBox(width: size, height: size));
+    return GuildRules.goldDeco(id) ? GoldTint(child: img) : img;
   }
 }
 

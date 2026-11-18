@@ -366,7 +366,7 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
         final kind = c.erbardFightKind(e);
         final broken = o == null ? v.wild[e.id] ?? const <int>[] : v.run[e.id] ?? const <int>[];
         final mine = o?.kind == 'mine';
-        final monster = p == null ? MonsterId.blackGuard : (e.inner ? p.inner : p.outer);
+        final monster = p == null ? MonsterId.blackCaptain : (e.inner ? p.inner : p.outer);
         return SafeArea(
           child: Padding(
             key: Key('estateSheet_${e.id}'),
@@ -406,7 +406,8 @@ Future<String?> showEstateSheet(BuildContext context, AppController c, EstateInf
               const SizedBox(height: 8),
               if (!mine)
                 Row(children: [
-                  MonsterPicture(monster: o == null ? monster : (o.kind == 'npc' ? MonsterId.blackGuard : MonsterId.garrisonClone), size: 44),
+                  MonsterPicture(
+                      monster: o == null ? monster : (o.kind == 'npc' ? ErbardRules.blackOf(e, 0) : MonsterId.cloneWarrior), size: 44),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -681,6 +682,8 @@ class _GarrisonScreenState extends State<GarrisonScreen> {
                   ]),
                 ),
                 const SizedBox(height: 10),
+                _boost(v),
+                const SizedBox(height: 10),
                 OrnatePanel(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     Text('함께 서는 동료 (둘까지)', style: AppText.title(15)),
@@ -726,6 +729,53 @@ class _GarrisonScreenState extends State<GarrisonScreen> {
     );
   }
 
+  /// 묶음 61: 길드 금고로 수비대 강화 (그 영지 · 다음 공성전 끝까지, 세기는 숨김)
+  Widget _boost(ErbardView v) {
+    final cur = v.boosts[_e.id] ?? 0;
+    return OrnatePanel(
+      key: const Key('garrisonBoost'),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Text('수비대 강화 · 길드 금고', style: AppText.title(15)),
+          const Spacer(),
+          for (var i = 1; i <= ErbardRules.boostCost.length; i++)
+            Icon(i <= cur ? Icons.shield_rounded : Icons.shield_outlined, size: 18, color: AppColors.goldBright),
+        ]),
+        const SizedBox(height: 4),
+        KText(
+            cur > 0
+                ? '금고 금화로 단단해진 수비대예요. 다음 공성전이 끝날 때까지 이어져요.'
+                : '길드장 · 부길드장이 금고 금화로 이 영지 수비대를 더 단단하게 해요. 다음 공성전이 끝날 때까지 이어져요.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5, height: 1.4)),
+        Text('길드 금고 · 금화 ${comma(v.treasury)}',
+            key: const Key('garrisonTreasury'), style: const TextStyle(color: AppColors.text, fontSize: 13)),
+        if (v.staff) ...[
+          const SizedBox(height: 6),
+          Row(children: [
+            for (var i = 1; i <= ErbardRules.boostCost.length; i++) ...[
+              if (i > 1) const SizedBox(width: 6),
+              Expanded(
+                child: FrameButton(
+                  key: Key('garrisonBoost_$i'),
+                  label: '$i단계 · ${comma(ErbardRules.boostCost[i - 1] - (cur > 0 && cur < i ? ErbardRules.boostCost[cur - 1] : 0))}',
+                  height: 40,
+                  onPressed: v.active || c.guildBusy || i <= cur
+                      ? null
+                      : () async {
+                          final ok = await c.boostGarrison(_e.id, i);
+                          if (mounted) ok ? _say('수비대를 강화했어요') : _say(GuildRules.errorText(c.guildError ?? ''), ok: false);
+                        },
+                ),
+              ),
+            ],
+          ]),
+          if (v.active)
+            const Text('공성전 중에는 강화할 수 없어요', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        ],
+      ]),
+    );
+  }
+
   Widget _slot(ErbardView v, int k, ({String name, int level, List<String> allies, bool me})? g) => Container(
         key: Key('garrisonSlot_$k'),
         margin: const EdgeInsets.symmetric(vertical: 3),
@@ -737,7 +787,13 @@ class _GarrisonScreenState extends State<GarrisonScreen> {
         ),
         child: Row(children: [
           Text('${k + 1}', style: AppText.title(15, color: AppColors.goldBright)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
+          if (g != null) ...[
+            MonsterPicture(monster: ErbardRules.cloneOf((v.guards[_e.id] ?? const [])
+                .elementAtOrNull(k)), size: 36),
+            const SizedBox(width: 6),
+          ],
+          const SizedBox(width: 4),
           Expanded(
             child: g == null
                 ? const Text('빈 자리 · 비어 있으면 그 지방 수비병이 지켜요', style: TextStyle(color: AppColors.textMuted, fontSize: 12.5))

@@ -293,6 +293,9 @@ abstract final class GuildRules {
         'goldFountain': 'fountain',
       }[id] ?? id}.webp';
 
+  /// 묶음 61: 회관 공사 한 번에 쓰는 금고 금화 (금화 10당 회관 점수 1)
+  static const int treasuryHallStep = 1000;
+
   /// 묶음 61: 금고 상점 꾸미기 (있는 그림을 금빛으로)
   static bool goldDeco(String id) => id.startsWith('gold');
 

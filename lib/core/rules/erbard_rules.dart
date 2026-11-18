@@ -210,9 +210,23 @@ abstract final class ErbardRules {
   static double guardMult(EstateInfo e, int slot) =>
       (e.royal ? royalMult : e.inner ? innerMult : 1.0) * (1 + slotStep * slot);
 
+  /// 묶음 61: 길드원 분신 그림 — 주 직업 그림 6장 중 (숨은 · 생산 직업은 가장 가까운 전투 직업, 개발 초안)
+  static MonsterId cloneOf(String? job) => switch (job) {
+        'knight' || 'beastKnight' || 'gateHeir' || 'tamer' => MonsterId.cloneKnight,
+        'archer' || 'hunter' || 'ashHunter' || 'pathfinder' || 'explorer' => MonsterId.cloneArcher,
+        'mage' || 'alchemist' || 'runesmith' || 'jeweler' || 'appraiser' || 'archaeologist' => MonsterId.cloneMage,
+        'priest' || 'healer' || 'herbalist' || 'pilgrim' || 'potionMerchant' => MonsterId.clonePriest,
+        'rogue' || 'nightWalker' || 'merchant' || 'peddler' => MonsterId.cloneRogue,
+        _ => MonsterId.cloneWarrior, // 전사 · 대장장이 · 무기 장인 · 만물 장인 · 모험가 · 직업 없음
+      };
+
+  /// 흑등 연맹 수비대: 1~4자리 용병, 5자리 · 왕성은 지휘관
+  static MonsterId blackOf(EstateInfo e, int slot) =>
+      e.royal || slot == slots - 1 ? MonsterId.blackCaptain : MonsterId.blackGuard;
+
   /// 야생 수비대 몬스터 (자리 5는 안쪽 몬스터)
   static MonsterId wildMonster(EstateInfo e, int slot) {
-    if (e.royal) return MonsterId.blackGuard;
+    if (e.royal) return blackOf(e, slot);
     final p = province(e.province!);
     return e.inner || slot == slots - 1 ? p.inner : p.outer;
   }

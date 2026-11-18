@@ -146,6 +146,10 @@ class ErbardView {
       shareNo: (g?['shareNo'] as num?)?.toInt(),
       tickets: (j['tickets'] as num?)?.toInt(),
       ticketCarry: (j['ticketCarry'] as num?)?.toInt() ?? 0,
+      guards: {
+        for (final e in ((j['garrisons'] as Map?) ?? const {}).entries)
+          '${e.key}': [for (final x in (e.value as List?) ?? const []) x is Map ? x['job'] as String? : null],
+      },
     );
   }
 }
@@ -459,14 +463,16 @@ extension Act5Ops on AppController {
     if (j['kind'] == 'wild') {
       foes = [_wildFoe(e, slot, level)];
     } else if (j['npc'] == true) {
-      foes = [_guardFoe(MonsterId.blackGuard, e, slot, level, 1.15, label: '흑등 연맹 수비대')];
+      final m = ErbardRules.blackOf(e, slot);
+      foes = [_guardFoe(m, e, slot, level, 1.15, label: m == MonsterId.blackCaptain ? '흑등 연맹 지휘관' : '흑등 연맹 수비대')];
     } else if (guard != null) {
       foes = [
-        _guardFoe(MonsterId.garrisonClone, e, slot, (guard['level'] as num?)?.toInt() ?? level, 1.1 * (1 + bonus),
+        _guardFoe(ErbardRules.cloneOf(guard['job'] as String?), e, slot, (guard['level'] as num?)?.toInt() ?? level,
+            1.1 * (1 + bonus),
             label: '${guard['name']}의 분신'),
         for (final a in (guard['allies'] as List?) ?? const [])
           if (a is Map)
-            _guardFoe(MonsterId.garrisonClone, e, slot, (a['level'] as num?)?.toInt() ?? level, 0.6 * (1 + bonus),
+            _guardFoe(ErbardRules.cloneOf(a['job'] as String?), e, slot, (a['level'] as num?)?.toInt() ?? level, 0.6 * (1 + bonus),
                 label: '${a['name']}'),
       ];
     } else {

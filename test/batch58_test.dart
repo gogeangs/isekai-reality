@@ -210,6 +210,7 @@ void main() {
       final own = c2.marketOwn(MarketKind.mat).firstWhere((o) => o.key == 'herb');
       expect(own.have, 10);
       final g0 = c2.player.gold;
+      a.wallet = 1000; // 묶음 61: 올리는 금화 · 사는 금화는 거래 지갑에서
       a.marketFail = 'not_owned';
       expect(await c2.listOnMarket(own, qty: 3, auction: false, price: 30), isFalse);
       expect(c2.marketError, 'not_owned');
@@ -217,7 +218,8 @@ void main() {
       a.marketFail = null;
       expect(await c2.listOnMarket(own, qty: 3, auction: false, price: 30), isTrue);
       expect(c2.player.materialCount(MaterialId.herb), 7);
-      expect(c2.player.gold, g0 - MarketRules.listFee(30));
+      expect(c2.player.gold, g0, reason: '묶음 61: 휴대폰 금화는 그대로');
+      expect(c2.marketWallet, 1000 - MarketRules.listFee(30));
       expect(a.marketBodies.last['me'], {'name': c2.profile.name});
       // 다른 사람 물건 사기 (장비) → 우편 · 이 휴대폰 장비 번호를 새로 붙임
       a.listings.add({
@@ -230,7 +232,8 @@ void main() {
       final g1 = c2.player.gold;
       final next = c2.armory.nextId;
       expect(await c2.buyOnMarket(rows.single), isTrue);
-      expect(c2.player.gold, g1 - 120);
+      expect(c2.player.gold, g1);
+      expect(c2.marketWallet, 1000 - MarketRules.listFee(30) - 120);
       final mail = c2.mail.mails.firstWhere((m) => m.from == '바르칸');
       expect(mail.equips.single.enhance, 3);
       expect(mail.equips.single.uid, 'eq$next', reason: '이 휴대폰 장비 번호를 새로');
@@ -250,6 +253,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('marketIntro')), findsOneWidget);
       await tester.tap(find.text('좋아요'));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump(const Duration(milliseconds: 300));
+      // 묶음 61: 거래 지갑 한마디
+      expect(find.byKey(const Key('walletIntro')), findsOneWidget);
+      await tester.tap(find.text('알겠어요'));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
       await tester.pump(const Duration(milliseconds: 300));
       for (var i = 0; i < 4; i++) {

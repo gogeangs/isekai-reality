@@ -23,7 +23,7 @@ class ProvinceInfo {
   final String flavor;
 }
 
-/// 영지 하나 (지도 그림 1024×1536 위 자리)
+/// 영지 하나 (지도 그림 3072×3072 위 자리)
 class EstateInfo {
   const EstateInfo(this.id, this.name, this.province, this.inner, this.x, this.y, {this.npcStart = false});
   final String id;
@@ -56,7 +56,7 @@ class EstateOwner {
 
 abstract final class ErbardRules {
   static const String mapImage = 'assets/images/map_erbard.webp';
-  static const double mapW = 1024, mapH = 1536;
+  static const double mapW = 3072, mapH = 3072;
   static const String arriveImage = 'assets/images/scene_erbard_arrive.webp';
   static const String siegeBg = 'assets/images/bg_siege.webp';
   static const String ticketImage = 'assets/images/item_siegeTicket.webp';
@@ -79,44 +79,44 @@ abstract final class ErbardRules {
   ];
   static ProvinceInfo province(Province p) => provinces[p.index];
 
-  /// 영지 30 + 왕성 (지도 빈 터 자리 · 그림에 없는 4곳은 길가 성 · 폐허 자리에)
+  /// 영지 30 + 왕성 (지도 빈 터 29곳 · 그림에 없는 2곳은 숲의 나무 성 · 산맥 큰 성문 자리에)
   static const List<EstateInfo> estates = [
-    EstateInfo('royal', '에르바르드 왕성', null, true, 515, 690, npcStart: true),
+    EstateInfo('royal', '에르바르드 왕성', null, true, 1531, 1568, npcStart: true),
     // 솔레안 평원 (빛)
-    EstateInfo('sol_lily', '백합 들판 성', Province.light, false, 645, 180),
-    EstateInfo('sol_bell', '종루 마을', Province.light, false, 385, 158),
-    EstateInfo('sol_pilgrim', '순례자 다리', Province.light, false, 300, 148),
-    EstateInfo('sol_dawn', '새벽 성채', Province.light, true, 528, 205),
-    EstateInfo('sol_silver', '은방패 요새', Province.light, true, 625, 240, npcStart: true),
-    EstateInfo('sol_sun', '햇살 망루', Province.light, true, 490, 300),
+    EstateInfo('sol_lily', '백합 들판 성', Province.light, false, 2043, 331),
+    EstateInfo('sol_bell', '종루 마을', Province.light, false, 1499, 294),
+    EstateInfo('sol_pilgrim', '순례자 다리', Province.light, false, 1024, 314),
+    EstateInfo('sol_dawn', '새벽 성채', Province.light, true, 1225, 527),
+    EstateInfo('sol_silver', '은방패 요새', Province.light, true, 1813, 527, npcStart: true),
+    EstateInfo('sol_sun', '햇살 망루', Province.light, true, 1529, 730),
     // 도르마크 산맥 (금속)
-    EstateInfo('dor_wind', '쇠바람 고개', Province.metal, false, 930, 320),
-    EstateInfo('dor_forge', '용광로 마을', Province.metal, false, 936, 440),
-    EstateInfo('dor_crystal', '수정 동굴', Province.metal, false, 942, 605),
-    EstateInfo('dor_hammer', '망치봉 요새', Province.metal, true, 732, 395),
-    EstateInfo('dor_deep', '깊은 갱도 성', Province.metal, true, 885, 540),
-    EstateInfo('dor_bronze', '청동문 관문', Province.metal, true, 735, 477, npcStart: true),
+    EstateInfo('dor_wind', '쇠바람 고개', Province.metal, false, 2715, 645),
+    EstateInfo('dor_forge', '용광로 마을', Province.metal, false, 2731, 936),
+    EstateInfo('dor_crystal', '수정 동굴', Province.metal, false, 2739, 1252),
+    EstateInfo('dor_hammer', '망치봉 요새', Province.metal, true, 2313, 747),
+    EstateInfo('dor_deep', '깊은 갱도 성', Province.metal, true, 2134, 973),
+    EstateInfo('dor_bronze', '청동문 관문', Province.metal, true, 2246, 1271, npcStart: true),
     // 실바렌 숲 (대지)
-    EstateInfo('sil_deer', '사슴 샘', Province.earth, false, 287, 319),
-    EstateInfo('sil_mushroom', '버섯 골짜기', Province.earth, false, 152, 382),
-    EstateInfo('sil_leaf', '잎사귀 망루', Province.earth, false, 128, 475),
-    EstateInfo('sil_moss', '이끼 성벽', Province.earth, true, 111, 584),
-    EstateInfo('sil_vine', '덩굴 다리', Province.earth, true, 323, 406, npcStart: true),
-    EstateInfo('sil_throne', '고목 왕좌', Province.earth, true, 250, 480),
+    EstateInfo('sil_deer', '사슴 샘', Province.earth, false, 420, 615),
+    EstateInfo('sil_mushroom', '버섯 골짜기', Province.earth, false, 343, 931),
+    EstateInfo('sil_leaf', '잎사귀 망루', Province.earth, false, 343, 1244),
+    EstateInfo('sil_moss', '이끼 성벽', Province.earth, true, 735, 730),
+    EstateInfo('sil_vine', '덩굴 다리', Province.earth, true, 990, 968, npcStart: true),
+    EstateInfo('sil_throne', '고목 왕좌', Province.earth, true, 862, 1254),
     // 모르테인 늪 (어둠)
-    EstateInfo('mor_ferry', '망자의 나루', Province.dark, false, 160, 868),
-    EstateInfo('mor_mill', '검은 물레방아', Province.dark, false, 140, 1000),
-    EstateInfo('mor_grave', '안개 묘지', Province.dark, false, 289, 1068),
-    EstateInfo('mor_sunken', '가라앉은 성', Province.dark, true, 175, 740),
-    EstateInfo('mor_raven', '까마귀 탑', Province.dark, true, 285, 828, npcStart: true),
-    EstateInfo('mor_abbey', '등불 꺼진 수도원', Province.dark, true, 358, 952),
+    EstateInfo('mor_ferry', '망자의 나루', Province.dark, false, 328, 1796),
+    EstateInfo('mor_mill', '검은 물레방아', Province.dark, false, 372, 2080),
+    EstateInfo('mor_grave', '안개 묘지', Province.dark, false, 551, 2374),
+    EstateInfo('mor_sunken', '가라앉은 성', Province.dark, true, 872, 1801),
+    EstateInfo('mor_raven', '까마귀 탑', Province.dark, true, 1058, 2050, npcStart: true),
+    EstateInfo('mor_abbey', '등불 꺼진 수도원', Province.dark, true, 960, 2313),
     // 이그나르 화산 (불)
-    EstateInfo('ign_beacon', '붉은 봉화대', Province.fire, false, 900, 745),
-    EstateInfo('ign_bridge', '용암 다리', Province.fire, false, 680, 1038),
-    EstateInfo('ign_forge', '잿불 대장간', Province.fire, false, 820, 978),
-    EstateInfo('ign_temple', '불꽃 신전', Province.fire, true, 830, 853),
-    EstateInfo('ign_gate', '흑요석 성문', Province.fire, true, 700, 878, npcStart: true),
-    EstateInfo('ign_nest', '용의 둥지 요새', Province.fire, true, 615, 948),
+    EstateInfo('ign_beacon', '붉은 봉화대', Province.fire, false, 2719, 1793),
+    EstateInfo('ign_bridge', '용암 다리', Province.fire, false, 2670, 2087),
+    EstateInfo('ign_forge', '잿불 대장간', Province.fire, false, 2548, 2376),
+    EstateInfo('ign_temple', '불꽃 신전', Province.fire, true, 2131, 1818),
+    EstateInfo('ign_gate', '흑요석 성문', Province.fire, true, 2009, 2041, npcStart: true),
+    EstateInfo('ign_nest', '용의 둥지 요새', Province.fire, true, 2131, 2303),
   ];
 
   static EstateInfo? estate(String id) => estates.where((e) => e.id == id).firstOrNull;

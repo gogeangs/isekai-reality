@@ -208,7 +208,7 @@ class _ErbardScreenState extends State<ErbardScreen> {
   }
 
   Widget _map(ErbardView v, BoxConstraints box) {
-    final w = box.maxWidth < 560 ? 640.0 : box.maxWidth * 1.15;
+    final w = [760.0, box.maxHeight * 1.05, box.maxWidth * 1.25].reduce((a, b) => a > b ? a : b);
     final s = w / ErbardRules.mapW;
     final h = ErbardRules.mapH * s;
     if (!_placed) {
@@ -218,7 +218,7 @@ class _ErbardScreenState extends State<ErbardScreen> {
       final dy = -(royal.y * s - box.maxHeight * 0.55).clamp(0.0, (h - box.maxHeight).clamp(0.0, double.infinity));
       _tc.value = Matrix4.identity()..translate(dx, dy);
     }
-    final icon = 64 * s * 1.15;
+    final icon = 64 * s * 3.2;
     return InteractiveViewer(
       transformationController: _tc,
       constrained: false,

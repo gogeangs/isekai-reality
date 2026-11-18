@@ -65,7 +65,8 @@ class LegalScreen extends StatelessWidget {
                       '${LegalRules.current(k, DateTime.now()).version}판',
                       key: const Key('legalVersion'),
                       style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                for (final line in lines)
+                // 묶음 68: 「<!-- 자리 … -->」 줄은 문안 자리 표시 (보이지 않음)
+                for (final line in lines.where((l) => !l.trim().startsWith('<!--')))
                   if (line.startsWith('# '))
                     const SizedBox.shrink()
                   else if (line.startsWith('## '))

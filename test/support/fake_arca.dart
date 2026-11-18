@@ -543,6 +543,10 @@ class FakeArca implements ArcaApi {
       if (token == null) throw const ArcaApiError('login_required', status: 401);
       return _guildPost(me, path, body);
     }
+    if (path.startsWith('/chat/')) {
+      if (token == null) throw const ArcaApiError('login_required', status: 401);
+      return _chatPost(me, path, body);
+    }
     switch (path) {
       case '/party/state':
         return _state(me, body);
@@ -717,6 +721,197 @@ class FakeArca implements ArcaApi {
         final out = [...inbox];
         inbox.clear();
         return {'msgs': out};
+    }
+    throw const ArcaApiError('not_found', status: 404);
+  }
+
+  // ───────────── 묶음 68 #275 대화 · 친구 (판정은 서버 시험에서, 여기선 앱 흐름과 같은 모양)
+  int chatNow = DateTime.utc(2026, 11, 20, 3).millisecondsSinceEpoch;
+  bool chatRulesSeen = false;
+  int? chatMutedUntil;
+  int chatLevel = 12;
+  bool chatShowSteps = true;
+  Map<String, bool> chatPush = {'dm': true, 'mention': true, 'staff': true};
+  final Map<String, Map<String, dynamic>> chatPeople = {};
+  final List<String> chatFriends = [];
+  final List<String> chatRequests = [];
+  final List<String> chatBlocked = [];
+  final Map<String, List<Map<String, dynamic>>> chatRooms = {'server': []};
+  final Map<String, int> chatReads = {};
+  final List<Map<String, dynamic>> chatReports = [];
+  final List<Map<String, dynamic>> chatSent = [];
+  int _chatId = 0;
+  static const chatBanned = ['바보', '멍청이'];
+
+  String chatFriendRoom(String a, String b) => 'f_${([a, b]..sort()).join('_')}';
+
+  /// 시험에서 다른 사람이 말하게
+  void chatSay(String room, String who, String text, {String kind = 'user', int? at}) {
+    final p = chatPeople[who] ?? {'name': who};
+    chatNow = at ?? chatNow + 1000;
+    chatRooms.putIfAbsent(room, () => []).add({
+      'id': 'm${++_chatId}',
+      'room': room,
+      'uid': kind == 'sys' ? null : who,
+      'name': kind == 'sys' ? '' : p['name'],
+      'title': p['title'] ?? '',
+      'level': p['level'] ?? 1,
+      'text': text,
+      'kind': kind,
+      'at': chatNow,
+    });
+  }
+
+  static String chatMask(String t) {
+    var o = t;
+    for (final r in [
+      RegExp(r'(\+?82[-\s.]?)?0?1[016789][-\s.]?\d{3,4}[-\s.]?\d{4}'),
+      RegExp(r'(https?://|www\.)\S+', caseSensitive: false),
+      RegExp(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'),
+      RegExp(r'(카톡|카카오톡|오픈채팅)\s*(아이디|id)?\s*[:：]?\s*[A-Za-z0-9._-]{3,}', caseSensitive: false),
+    ]) {
+      o = o.replaceAll(r, '○○');
+    }
+    return o.split(RegExp(r'(?=\s)|(?<=\s)')).map((w) => chatBanned.any(w.contains) ? '○○' : w).join();
+  }
+
+  List<String> _chatRoomIds() => [
+        if (guild != null) 'g_${guild!['id']}',
+        if (alliance != null) 'a_${alliance!['id'] ?? 'al1'}',
+        'server',
+        for (final f in chatFriends) chatFriendRoom(uid, f),
+      ];
+
+  Map<String, dynamic> _person(String u) {
+    final p = chatPeople[u] ?? {'name': u};
+    return {
+      'uid': u,
+      'name': p['name'],
+      'level': p['level'] ?? 1,
+      'title': p['title'] ?? '',
+      'look': p['look'] ?? 'male',
+      'guild': p['guild'] ?? '',
+      'steps': p['showSteps'] == false ? null : p['steps'],
+      'lastSeen': p['lastSeen'] ?? 0,
+      if (chatFriends.contains(u)) 'room': chatFriendRoom(uid, u),
+    };
+  }
+
+  Map<String, dynamic> _chatMe() {
+    final rooms = <Map<String, dynamic>>[];
+    for (final r in _chatRoomIds()) {
+      final lines = [for (final l in chatRooms[r] ?? const <Map<String, dynamic>>[]) if (!chatBlocked.contains(l['uid'])) l];
+      final read = chatReads[r] ?? 0;
+      rooms.add({
+        'room': r,
+        'kind': r == 'server'
+            ? 'server'
+            : r.startsWith('g_')
+                ? 'guild'
+                : r.startsWith('a_')
+                    ? 'alliance'
+                    : 'friend',
+        'name': r == 'server'
+            ? '서버 대화방'
+            : r.startsWith('g_')
+                ? guild!['name']
+                : r.startsWith('a_')
+                    ? (alliance!['name'] ?? '연맹')
+                    : chatPeople[chatFriends.firstWhere((f) => chatFriendRoom(uid, f) == r, orElse: () => '')]?['name'] ?? '친구',
+        'unread': r == 'server' ? 0 : lines.where((l) => (l['at'] as int) > read && l['uid'] != uid && l['kind'] != 'sys').length,
+        'last': lines.isEmpty ? null : lines.last,
+      });
+    }
+    return {
+      'uid': uid,
+      'friendCode': 'HARU2026',
+      'showSteps': chatShowSteps,
+      'push': chatPush,
+      'rulesSeen': chatRulesSeen,
+      'mutedUntil': chatMutedUntil,
+      'level': chatLevel,
+      'friends': [for (final f in chatFriends) _person(f)],
+      'requests': [for (final f in chatRequests) _person(f)],
+      'blocked': [for (final b in chatBlocked) {'uid': b, 'name': chatPeople[b]?['name'] ?? b}],
+      'rooms': rooms,
+    };
+  }
+
+  Map<String, dynamic> _chatPost(String me, String path, Map<String, dynamic> body) {
+    String? to() => body['to'] as String? ?? body['from'] as String?;
+    switch (path) {
+      case '/chat/me':
+        return _chatMe();
+      case '/chat/rules':
+        chatRulesSeen = true;
+        return {'ok': true};
+      case '/chat/settings':
+        if (body['showSteps'] is bool) chatShowSteps = body['showSteps'] as bool;
+        if (body['push'] is Map) chatPush = {...chatPush, ...(body['push'] as Map).cast<String, bool>()};
+        return {'ok': true};
+      case '/chat/read':
+        final room = '${body['room']}';
+        if (!_chatRoomIds().contains(room)) throw const ArcaApiError('no_room', status: 403);
+        var lines = [for (final l in chatRooms[room] ?? const <Map<String, dynamic>>[]) if (!chatBlocked.contains(l['uid'])) l];
+        if (body['after'] is int) lines = [for (final l in lines) if ((l['at'] as int) > (body['after'] as int)) l];
+        var more = false;
+        if (body['before'] is int) {
+          lines = [for (final l in lines) if ((l['at'] as int) < (body['before'] as int)) l];
+        }
+        if (lines.length > 100) {
+          more = true;
+          lines = lines.sublist(lines.length - 100);
+        }
+        chatReads[room] = chatNow;
+        return {'lines': lines, 'more': more};
+      case '/chat/send':
+        final room = '${body['room']}';
+        final text = '${body['text'] ?? ''}'.trim();
+        if (text.isEmpty) throw const ArcaApiError('empty', status: 400);
+        if (text.length > 100) throw const ArcaApiError('too_long', status: 400);
+        if (!chatRulesSeen) throw const ArcaApiError('rules_first', status: 403);
+        if (chatMutedUntil != null) throw const ArcaApiError('muted', status: 403);
+        if (!_chatRoomIds().contains(room)) throw const ArcaApiError('no_room', status: 403);
+        if (room == 'server' && chatLevel < 10) throw const ArcaApiError('level', status: 403);
+        chatSent.add({'room': room, 'text': text});
+        chatPeople.putIfAbsent(me, () => {'name': '${(body['me'] as Map?)?['name'] ?? '나'}'});
+        chatSay(room, me, chatMask(text));
+        chatReads[room] = chatNow;
+        return {'ok': true};
+      case '/chat/friend/add':
+        final code = body['code'] as String?;
+        final t = code != null ? chatPeople.entries.where((e) => e.value['code'] == code).map((e) => e.key).firstOrNull : to();
+        if (t == null) throw const ArcaApiError('no_user', status: 404);
+        if (chatFriends.contains(t)) throw const ArcaApiError('already', status: 409);
+        if (chatRequests.remove(t)) {
+          chatFriends.add(t);
+        } else {
+          chatSent.add({'friendReq': t});
+        }
+        return {'ok': true};
+      case '/chat/friend/accept':
+        final f = to()!;
+        if (!chatRequests.remove(f)) throw const ArcaApiError('no_request', status: 404);
+        chatFriends.add(f);
+        return {'ok': true};
+      case '/chat/friend/decline':
+        chatRequests.remove(to());
+        return {'ok': true};
+      case '/chat/friend/remove':
+        chatFriends.remove(to());
+        return {'ok': true};
+      case '/chat/block':
+        final b = to()!;
+        if (!chatBlocked.contains(b)) chatBlocked.add(b);
+        chatFriends.remove(b);
+        chatRequests.remove(b);
+        return {'ok': true};
+      case '/chat/unblock':
+        chatBlocked.remove(to());
+        return {'ok': true};
+      case '/chat/report':
+        chatReports.add({'room': body['room'], 'id': body['id'], 'reason': body['reason']});
+        return {'ok': true};
     }
     throw const ArcaApiError('not_found', status: 404);
   }

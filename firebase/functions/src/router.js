@@ -6,6 +6,7 @@ const { MarketService } = require('./market');
 const { DeepService } = require('./deep');
 const { GuildService } = require('./guild');
 const { AdminService } = require('./admin');
+const { ChatService } = require('./chat');
 const { SiegeService } = require('./siege');
 const { SuspectService } = require('./suspect');
 const { adminPage } = require('./admin_page');
@@ -28,15 +29,18 @@ function realDeps() {
   const suspect = new SuspectService(db);
   const market = new MarketService(db);
   market.suspect = suspect;
+  // 묶음 68: 대화 · 친구
+  const chat = new ChatService(db, { guild });
   _deps = {
     db,
     party,
     inquiry,
-    account: new AccountService(db, { auth: admin.auth(), party, inquiry, guild }),
+    account: new AccountService(db, { auth: admin.auth(), party, inquiry, guild, chat }),
+    chat,
     market,
     deep: new DeepService(db),
     guild,
-    siege: new SiegeService(db, { guild, suspect }),
+    siege: new SiegeService(db, { guild, suspect, chat }),
     suspect,
     // 묶음 61: 진짜 앱 확인 (App Check). 처음엔 기록만
     appCheck: async (token) => {
@@ -78,7 +82,7 @@ function isAdmin(tok, env) {
 }
 
 /** 다른 사람과 얽히는 길 (진짜 앱 확인 · 걸음 기록) */
-const SOCIAL = ['/party/', '/guild/', '/market/', '/siege/', '/deep/'];
+const SOCIAL = ['/party/', '/guild/', '/market/', '/siege/', '/deep/', '/chat/'];
 
 /**
  * 묶음 61 #250: 진짜 앱 확인 (Firebase App Check). APPCHECK_MODE=block 이면 막고, 아니면 기록만 (통과율 · 의심 목록)
@@ -142,6 +146,11 @@ async function handle(req, res) {
         res.set('Content-Type', 'text/html; charset=utf-8');
         res.set('Cache-Control', 'public, max-age=600');
         return res.send(lp);
+      }
+      const mf = /^\/join\/f\/([A-Za-z0-9]{1,12})$/.exec(path);
+      if (mf) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        return res.send(links.joinPage(mf[1].toUpperCase(), 'friend'));
       }
       const mg = /^\/join\/g\/([A-Za-z0-9]{1,12})$/.exec(path);
       if (mg) {
@@ -242,6 +251,28 @@ async function handle(req, res) {
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());
     }
+    // 묶음 68 #275: 대화 · 친구
+    if (path.startsWith('/chat/')) {
+      const tok = await caller(req, deps, true);
+      const uid = tok.uid;
+      const ch = deps.chat;
+      const r = {
+        '/chat/me': () => ch.me(uid, body.me || {}),
+        '/chat/rules': () => ch.rules(uid),
+        '/chat/settings': () => ch.settings(uid, body),
+        '/chat/read': () => ch.read(uid, body),
+        '/chat/send': () => ch.send(uid, { ...body, appCheckBad: !!req.appCheckBad }),
+        '/chat/friend/add': () => ch.friendAdd(uid, body),
+        '/chat/friend/accept': () => ch.friendAccept(uid, body),
+        '/chat/friend/decline': () => ch.friendDecline(uid, body),
+        '/chat/friend/remove': () => ch.friendRemove(uid, body),
+        '/chat/block': () => ch.block(uid, body),
+        '/chat/unblock': () => ch.unblock(uid, body),
+        '/chat/report': () => ch.report(uid, body),
+      }[path];
+      if (!r) return res.status(404).json({ error: 'not_found' });
+      return res.json(await r());
+    }
     if (path.startsWith('/guild/')) {
       const tok = await caller(req, deps, true);
       const uid = tok.uid;
@@ -323,6 +354,13 @@ async function handle(req, res) {
         '/admin/broadcast': () => deps.admin.broadcast(tok.email, body),
         '/admin/log': () => deps.admin.logs(body),
         '/admin/suspects': () => deps.suspect.list(body),
+        // 묶음 68: 대화 신고
+        '/admin/chat/reports': () => deps.chat.reports(body),
+        '/admin/chat/resolve': async () => {
+          const r = await deps.chat.resolve(tok.email, body);
+          if (deps.admin) await deps.admin.log(tok.email, 'chatReport', body.id, { action: body.action });
+          return r;
+        },
       }[path];
       if (!r) return res.status(404).json({ error: 'not_found' });
       return res.json(await r());

@@ -54,6 +54,8 @@ function render(text) {
   };
   for (const raw of lines) {
     const l = raw.trimEnd();
+    // 묶음 68: 「<!-- 자리 … -->」 줄은 문안 자리 표시 (보이지 않음)
+    if (l.trim().startsWith('<!--')) continue;
     if (!l.trim()) {
       close();
       continue;

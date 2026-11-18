@@ -13,5 +13,12 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+    // 묶음 68 #275: 대화 · 친구 · 신고는 서버 함수로만 읽고 쓴다
+    // (그 방 사람인지 · 차단 · 금칙어 · 개인정보 가림 · 도배 · 대화 금지를 서버가 확인)
+    match /chatRooms/{room}/{rest=**} { allow read, write: if false; }
+    match /chatUser/{uid} { allow read, write: if false; }
+    match /friendCode/{code} { allow read, write: if false; }
+    match /friendReq/{id} { allow read, write: if false; }
+    match /chatReport/{id} { allow read, write: if false; }
   }
 }

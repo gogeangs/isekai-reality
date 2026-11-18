@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../chat/chat_screens.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
@@ -235,6 +236,20 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
                             on: _tab == i,
                             dot: i == 2 && _raidNews(g!),
                             onTap: () => setState(() => _tab = i),
+                          ),
+                        ),
+                      ),
+                    // 묶음 68 #275: 길드 대화방 (로그인 · 서버 길드)
+                    if (!g!.lian && g.id != null && c.chatOpen)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: _TabChip(
+                            key: const Key('guildTab_chat'),
+                            label: '대화',
+                            on: false,
+                            dot: (c.chatMe?.room('g_${g.id}')?.unread ?? 0) > 0,
+                            onTap: () => openRoom(context, c, 'g_${g.id}', name: '길드 · ${g.name}'),
                           ),
                         ),
                       ),
@@ -655,7 +670,13 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
 
   Widget _member(GuildView g, GuildMember m, int rank) => InkWell(
         key: Key('guildMember_${m.uid}'),
-        onTap: g.staff && !m.me && !g.lian ? () => _manage(g, m) : null,
+        onTap: m.me || g.lian
+            ? null
+            : g.staff
+                ? () => _manage(g, m)
+                : c.chatOpen
+                    ? () => askFriend(context, c, m.uid, m.name)
+                    : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
@@ -787,6 +808,17 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text(m.name, style: AppText.title(18)),
               const SizedBox(height: 10),
+              if (c.chatOpen && !(c.chatMe?.friends.any((f) => f.uid == m.uid) ?? false)) ...[
+                FrameButton(
+                    key: const Key('guildMemberFriend'),
+                    label: '친구 신청',
+                    height: 42,
+                    onPressed: () {
+                      Navigator.pop(sheet);
+                      sendFriendAsk(context, c, m.uid, m.name);
+                    }),
+                const SizedBox(height: 8),
+              ],
               if (g.role == 'owner') ...[
                 if (m.role != 'vice')
                   FrameButton(

@@ -56,3 +56,4 @@ export 'legal_rules.dart';
 export 'name_rules.dart';
 export 'walk_reward_rules.dart';
 export 'estate_dev_rules.dart';
+export 'chat_rules.dart';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/services.dart';
 
+import '../chat/chat_screens.dart';
 import '../../app_controller.dart';
 import '../../data/sound/sfx.dart';
 import '../../core/format.dart';
@@ -1305,6 +1306,20 @@ Future<void> showWarBoard(BuildContext context, AppController c) => showModalBot
               child: ListView(key: const Key('warBoard'), padding: const EdgeInsets.fromLTRB(18, 16, 18, 16), children: [
                 Text('전황판 · 제${v.siegeNo + 1}회 깃발 공성전', style: AppText.title(18)),
                 Text(siegeLine(v, c.now), style: const TextStyle(color: Color(0xFFFF8A65), fontSize: 12.5, fontWeight: FontWeight.w700)),
+                // 묶음 68 #275: 길드 대화 바로가기
+                if (c.chatOpen && c.guild?.id != null && !(c.guild?.lian ?? true)) ...[
+                  const SizedBox(height: 8),
+                  FrameButton(
+                    key: const Key('warBoardChat'),
+                    label: '길드 대화',
+                    height: 40,
+                    onPressed: () {
+                      final g = c.guild!;
+                      Navigator.pop(sheet);
+                      openRoom(context, c, 'g_${g.id}', name: '길드 · ${g.name}');
+                    },
+                  ),
+                ],
                 if (v.gauge != null) ...[
                   const SizedBox(height: 10),
                   Text('길드 걸음 게이지', style: AppText.title(14)),

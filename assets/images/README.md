@@ -470,3 +470,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | monster_blackGuard, monster_blackCaptain | 5막 흑등 연맹 수비대 용병·지휘관 (흑등 문양, 한 장에서 같은 배율로 잘라 발 맞춤 — 지휘관이 큼, #247, 512) |
 | 2026-11-18 | item_keyShard, icon_footprint, icon_rallyFlag, icon_siegeRam, icon_wallRepair | 걸음 보상(열쇠 조각·발자국, #252)·공성전 아이콘 3(집결 깃발·공성 망치·성벽 보수, #251), 넓은 빛무리·붉은 번짐 정리, 512 |
 | 2026-11-18 | title_vanguard | 공성전 칭호 「선봉장」 (붉은 메달·칼·작은 깃발, 꼭대기 성탑 표시, #251, 512 → 개발이 160으로) |
+| 2026-11-18 | bg_siegeFinal | 공성전 배경 · 최후의 6시간 (bg_siege 편집 — 같은 구도에 붉은 노을·횃불·불티, #251, 1024) |

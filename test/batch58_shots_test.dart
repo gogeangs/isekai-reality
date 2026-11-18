@@ -203,7 +203,8 @@ void main() {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
       await _settle(tester);
       await _shot(tester, '${n}_10_거래소_사기');
-      await tester.ensureVisible(find.byKey(const Key('listingAct_l3')));
+      await tester.scrollUntilVisible(find.byKey(const Key('listingAct_l3')), 200,
+          scrollable: find.byType(Scrollable).first);
       await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('listingAct_l3')));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));

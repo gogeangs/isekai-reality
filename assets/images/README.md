@@ -449,3 +449,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | bg_guildhall | 4막 길드 회관 안 (길드 화면 바탕, 아래쪽 빈 바닥, #246, 1024) |
 | 2026-11-18 | monster_raidGiant, monster_raidDragon, monster_raidLich, monster_raidTortoise | 4막 길드 레이드 보스 4 (#246, 한 장에서 잘라 칸을 꽉 채움, 512) |
 | 2026-11-18 | mat_giantLight, mat_ancientScale, mat_lichRelic, mat_tortoiseShell, item_lanternSeal, item_guildCharter | 4막 레이드 재료 4 · 등불 인장 · 길드 창설 증서 (#246, 한 장에서 잘라 냄, 512) |
+| 2026-11-18 | equip_lanternWeapon/Head/Body/Hands/Feet/Acc | 4막 길드 세트 「등불 수호단」 6부위 (남색·금·등불 문양, 빛 번짐 없음, #246, 512) |

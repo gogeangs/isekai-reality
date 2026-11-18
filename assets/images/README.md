@@ -452,3 +452,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | equip_lanternWeapon/Head/Body/Hands/Feet/Acc | 4막 길드 세트 「등불 수호단」 6부위 (남색·금·등불 문양, 빛 번짐 없음, #246, 512) |
 | 2026-11-18 | deco_nameplate, deco_lanternString, deco_flowerbed, deco_fountain, deco_petStatue, deco_campfire | 4막 회관 꾸미기 6 (현판은 빈 판, 노랑 번짐 정리, 바닥을 아래(496)에 맞춤, #246, 512) |
 | 2026-11-18 | title_raidGiant, title_raidDragon, title_raidLich, title_raidTortoise, title_lanternOath | 4막 레이드 칭호 4 · 「등불의 맹세」 (꼭대기 작은 등불 표시, #246, 지금 칭호와 같은 크기, 512 → 개발이 160으로) |
+| 2026-11-18 | deco_springTree, deco_summerChime, deco_autumnLeaves, deco_winterSnowman | 4막 회관 꾸미기 계절 4 (번짐 정리, 바닥을 아래(496)에 맞춤, #246, 512) |

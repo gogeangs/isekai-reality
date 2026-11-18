@@ -83,7 +83,9 @@ async function main() {
   try {
     uid = (await admin.auth().getUserByEmail(email)).uid;
   } catch (e) {
-    throw new Error('그 이메일로 로그인한 계정이 없어요 (앱에서 한 번 로그인해 주세요)');
+    // 계정 정보는 남기지 않고 까닭(코드)만
+    if (e && e.code === 'auth/user-not-found') throw new Error('그 이메일로 로그인한 계정이 없어요 (앱에서 한 번 로그인해 주세요)');
+    throw new Error(`계정을 찾지 못했어요 (${(e && e.code) || 'unknown'})`);
   }
   await seed(db, uid, { stamp: () => admin.firestore.FieldValue.serverTimestamp() });
   console.log('심사용 계정 준비 끝');

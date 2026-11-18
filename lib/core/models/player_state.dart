@@ -106,7 +106,12 @@ class PlayerState {
   /// 가진 재료
   final Map<MaterialId, int> materials;
 
-  int materialCount(MaterialId id) => materials[id] ?? 0;
+  /// 묶음 67 #273: 약초(herb)는 「아무 약초」 — 7종을 모두 셈. 그 한 종류만은 [materialExact]
+  int materialCount(MaterialId id) => id == MaterialId.herb
+      ? Materials.herbGroup.fold(0, (t, m) => t + (materials[m] ?? 0))
+      : materials[id] ?? 0;
+
+  int materialExact(MaterialId id) => materials[id] ?? 0;
 
   DailyRecord? get today => history.isEmpty ? null : history.last;
 

@@ -233,6 +233,22 @@ class AlchemyRules {
             : PotionQuality.normal;
   }
 
+  /// 묶음 67 #273: 「약초」 칸에 잘 맞는 약초 (넣으면 품질 점수 +1, 숨김)
+  static MaterialId? bestHerb(PotionId id) => switch (id) {
+        PotionId.healSmall || PotionId.heal => MaterialId.herb,
+        PotionId.antidote || PotionId.burnSalve => MaterialId.gortRoot,
+        PotionId.strength || PotionId.vitality || PotionId.resistEarth => MaterialId.silvaFern,
+        PotionId.manaSmall || PotionId.mana || PotionId.jobManaSmall || PotionId.jobMana || PotionId.resistWater =>
+          MaterialId.mireaGrass,
+        PotionId.agility || PotionId.steps || PotionId.resistWind => MaterialId.zephiraLeaf,
+        PotionId.intellect || PotionId.clearEye || PotionId.resistDark => MaterialId.noctiGrass,
+        PotionId.healBig || PotionId.spiritPotion => MaterialId.mandragora,
+        _ => null,
+      };
+
+  /// 레시피를 맞출 때 약초 7종은 모두 「약초」로 본다
+  static List<MaterialId> asRecipe(List<MaterialId> put) => [for (final m in put) Materials.isHerb(m) ? MaterialId.herb : m];
+
   /// 묶음 66: 그 물약에 맞는 영지 특산물 (넣으면 품질 「최상」 확정)
   static MaterialId? specialtyFor(PotionId id) => switch (id) {
         PotionId.healSmall || PotionId.heal || PotionId.healBig || PotionId.antidote => MaterialId.lightRelic,
@@ -252,7 +268,10 @@ class AlchemyRules {
       {required bool perfect, required List<MaterialId> put, int mastery = 0}) {
     final sp = specialtyFor(id);
     if (sp != null && put.contains(sp)) return PotionQuality.best;
-    return quality(perfect: perfect, put: put, mastery: mastery);
+    // 묶음 67: 잘 맞는 약초를 넣으면 품질 점수 +1 (엘라린 잎만 쓰는 예전 레시피도 회복 물약이면 +1)
+    final h = bestHerb(id);
+    final fit = h != null && put.contains(h) ? 1 : 0;
+    return quality(perfect: perfect, put: put, mastery: mastery + fit);
   }
 
   /// 가방 키 → 물약·품질 ('healBig**' → healBig, 최상). 수상한 물약은 null.

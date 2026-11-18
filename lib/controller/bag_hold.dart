@@ -97,7 +97,7 @@ extension BagHoldOps on AppController {
     }
     if (k.startsWith('alc:')) return _alc.potions[k.substring(4)] ?? 0;
     final m = Materials.byName(k);
-    return m == null ? 0 : player.materialCount(m);
+    return m == null ? 0 : player.materialExact(m);
   }
 
   /// 지금 가방에 들어가는 만큼([fit])과 남는 것([rest])으로 나눈다.

@@ -60,10 +60,10 @@ class _ShopSellTabState extends State<ShopSellTab> {
 
   List<_Row> _rows(SellGroup g) => switch (g) {
         SellGroup.material => [
-            for (final m in MaterialId.values)
-              if (c.player.materialCount(m) > 0)
-                _Row('m:${m.name}', MaterialEntry(m, c.player.materialCount(m)),
-                    c.player.materialCount(m)),
+            for (final m in Materials.displayOrder)
+              if (c.player.materialExact(m) > 0)
+                _Row('m:${m.name}', MaterialEntry(m, c.player.materialExact(m)),
+                    c.player.materialExact(m)),
           ],
         SellGroup.item => [
             for (final i in TownRules.bagItems)

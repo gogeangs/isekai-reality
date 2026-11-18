@@ -277,7 +277,10 @@ class NpcRules {
       ? monsterMats
       : identical(s.mats, anyMatsMarker)
           ? anyMats
-          : s.mats;
+          // 묶음 67 #273: 약초는 아무 약초나
+          : s.mats.contains(MaterialId.herb)
+              ? {...s.mats, ...Materials.herbGroup}
+              : s.mats;
 
   /// 묶음 51 바르칸 「서로 다른 재료 5종」: 가방의 재료 무엇이든 (가공 재료·하늘 깃털 빼고)
   static final Set<MaterialId> anyMats = {

@@ -116,13 +116,35 @@ function countSnapshot(snap) {
     if (r.date) weeks.add(R.weekKey(Date.parse(r.date + 'T03:00:00Z')));
   }
   gold += weeks.size * WEEKLY_GOLD;
+  // 묶음 67 #273: 「약초」로 쓴 것은 다른 약초에서 흔한 것부터 뺌 (앱과 같은 셈)
+  let short = -(mats.herb || 0);
+  if (short > 0) {
+    mats.herb = 0;
+    for (const h of ['gortRoot', 'silvaFern', 'mireaGrass', 'zephiraLeaf', 'noctiGrass', 'mandragora']) {
+      if (short <= 0) break;
+      const take = Math.min(Math.max(0, mats[h] || 0), short);
+      mats[h] = (mats[h] || 0) - take;
+      short -= take;
+    }
+  }
   const worn = new Set(Object.values(armory.equipped || {}));
   const equips = {};
   for (const it of armory.items || []) if (it && it.uid && !worn.has(it.uid)) equips[it.uid] = it;
   const eggs = new Set((pets.eggs || []).filter((e) => e && e.id && !e.incubatedAt).map((e) => e.id));
   const alcs = {};
   for (const [k, v] of Object.entries(alchemy.potions || {})) if (k in (CAT.alcs || {})) alcs[k] = Number(v) || 0;
-  return { gold: Math.max(0, gold), mats, items, equips, eggs, alcs };
+  return { gold: Math.max(0, gold), mats, items, equips, eggs, alcs, buildings: parse('json.buildings', {}) };
+}
+
+/** 묶음 67 #271: 백업에 남은 거래소 ★ (다 고친 시각이 지났으면 한 단계 위). 시각에 시간대가 없으면 한국 시간 */
+function marketStar(b, now) {
+  let star = Math.max(1, Math.min(3, Number(((b || {}).stars || {}).market) || 1));
+  const f = ((b || {}).fixing || {}).market;
+  if (typeof f === 'string') {
+    const t = Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(f) ? f : f + '+09:00');
+    if (!Number.isNaN(t) && t <= now) star = Math.min(3, star + 1);
+  }
+  return star;
 }
 
 class MarketService {
@@ -305,9 +327,13 @@ class MarketService {
     if (mode !== 'fixed' && mode !== 'auction') fail('bad_mode');
     if (qty < 1 || qty > CAT.maxQty || ((kind === 'equip' || kind === 'egg') && qty !== 1)) fail('bad_qty');
     const open = await this._openOf(uid);
-    if (open.length >= CAT.slots) fail('slots_full');
     const w = await this._wallet(uid);
     const { have, hold } = w;
+    // 묶음 67 #271: 거래소 ★에 맞춘 칸 수 · 값을 정해 올린 물건 시간 (상한 9칸 · 72시간)
+    const star = marketStar(have.buildings, this.now());
+    const slots = Math.min(9, (CAT.slotsByStar || [])[star - 1] || CAT.slots);
+    const fixedHours = Math.min(72, (CAT.fixedHoursByStar || [])[star - 1] || CAT.fixedHours);
+    if (open.length >= slots) fail('slots_full');
     let equip = null;
     let k = String(key || '');
     if (kind === 'mat') {
@@ -362,7 +388,7 @@ class MarketService {
       best: !!body.best,
       status: 'open',
       at,
-      endsAt: at + (mode === 'fixed' ? CAT.fixedHours : CAT.auctionHours) * HOUR,
+      endsAt: at + (mode === 'fixed' ? fixedHours : CAT.auctionHours) * HOUR,
     };
     if (kind === 'mat') hold.mats[k] = (hold.mats[k] || 0) + qty;
     if (kind === 'item') hold.items[k] = (hold.items[k] || 0) + qty;
@@ -639,4 +665,5 @@ function view(l, uid) {
   };
 }
 
-module.exports = { MarketService, MarketError, countSnapshot, baseOf, bounds, listFee, saleFee, CAT };
+module.exports = {
+  marketStar, MarketService, MarketError, countSnapshot, baseOf, bounds, listFee, saleFee, CAT };

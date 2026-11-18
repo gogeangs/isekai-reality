@@ -241,7 +241,7 @@ Future<void> showBuildingSheet(BuildContext context, AppController c, Building b
                           _NeedRow(
                             key: Key('buildingMat_${e.key.name}'),
                             icon: MaterialIcon(e.key, size: 24),
-                            name: Materials.info(e.key).name,
+                            name: Materials.needName(e.key),
                             have: c.player.materialCount(e.key),
                             need: e.value,
                           ),

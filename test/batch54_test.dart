@@ -56,7 +56,7 @@ void main() {
 
   group('규칙', () {
     test('10채 · ★3 엔 귀한 재료 하나 · 고치는 시간 1시간 · 4시간 · 그림', () {
-      expect(BuildingRules.all, hasLength(10));
+      expect(BuildingRules.all, hasLength(11));
       expect({for (final i in BuildingRules.all) i.id}, Building.values.toSet());
       for (final i in BuildingRules.all) {
         final rare = [
@@ -68,6 +68,8 @@ void main() {
         expect(i.to2.mats.keys.where((m) => Materials.info(m).rare), isEmpty, reason: i.name);
         expect(i.to3.gold, greaterThan(i.to2.gold));
         expect(BuildingRules.ofNpc(i.npc), i.id);
+        // 묶음 67 #271: 거래소는 칸 수 · 시간을 숫자로 (기획 결정) · 그림은 오기 전엔 ★1 그림
+        if (i.id == Building.market) continue;
         expect(i.text2.contains(RegExp(r'\d')), isFalse);
         expect(i.text3.contains(RegExp(r'\d')), isFalse);
         for (final s in [2, 3]) {
@@ -76,7 +78,7 @@ void main() {
       }
       expect(BuildingRules.fixTime(2), const Duration(hours: 1));
       expect(BuildingRules.fixTime(3), const Duration(hours: 4));
-      expect(BuildingRules.ofNpc(Npc.barkan), isNull);
+      expect(BuildingRules.ofNpc(Npc.barkan), Building.market);
       expect(File('assets/images/food_mushroomSoup.webp').existsSync(), isTrue);
       expect(TavernRules.meal(Meal.mushroomSoup).name, '버섯 수프');
     });

@@ -67,7 +67,7 @@ void main() {
       expect({for (final e in c.bagHoldList) e.key: e.count},
           {'herb': 3, 'item:healSmall': 2});
       // 이미 칸을 넘긴 가방은 그대로, 새로 넘치지 않음
-      expect(c.player.materialCount(MaterialId.herb), 99);
+      expect(c.player.materialExact(MaterialId.herb), 99);
       expect(c.bagCount(ShopItem.healSmall), 0);
     });
 
@@ -75,7 +75,7 @@ void main() {
       final c = await startNpc(level: 8, mats: _full1);
       final fit = await c.admitBagForTest(const {'herb': 5, 'item:healSmall': 1});
       expect(fit, {'herb': 5});
-      expect(c.player.materialCount(MaterialId.herb), 6);
+      expect(c.player.materialExact(MaterialId.herb), 6);
       expect({for (final e in c.bagHoldList) e.key: e.count}, {'item:healSmall': 1});
     });
 

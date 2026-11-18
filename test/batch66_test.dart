@@ -122,7 +122,8 @@ void main() {
       final r = AlchemyRules.info(PotionId.healSmall).recipe;
       expect(AlchemyRules.qualityWith(PotionId.healSmall, perfect: false, put: [...r, MaterialId.lightRelic]), PotionQuality.best);
       expect(AlchemyRules.qualityWith(PotionId.healSmall, perfect: false, put: [...r, MaterialId.fireStone]),
-          AlchemyRules.quality(perfect: false, put: [...r, MaterialId.fireStone]));
+          AlchemyRules.quality(perfect: false, put: [...r, MaterialId.fireStone], mastery: 1),
+          reason: '묶음 67: 엘라린 잎이 작은 회복 물약에 잘 맞음 (+1)');
     });
 
     test('주민 의뢰 돕는 영지 고르기', () async {

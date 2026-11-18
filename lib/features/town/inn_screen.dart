@@ -42,6 +42,7 @@ class InnScreen extends StatelessWidget {
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
+        interior: 'inn', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: controller,
           builder: (context, _) {

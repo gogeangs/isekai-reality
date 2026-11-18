@@ -67,6 +67,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
+        interior: 'smithy', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: c,
           builder: (context, _) {
@@ -1098,7 +1099,7 @@ class _NeedWrap extends StatelessWidget {
     if (rare != null) recipe[rare!] = (recipe[rare!] ?? 0) + 1;
     return Wrap(spacing: 6, runSpacing: 6, children: [
       for (final e in recipe.entries)
-        need(MaterialIcon(e.key, size: 18), Materials.info(e.key).name,
+        need(MaterialIcon(e.key, size: 18), Materials.needName(e.key),
             p.materialCount(e.key), e.value),
       if (info.manaStones > 0)
         need(
@@ -1130,7 +1131,7 @@ class _RecipeCard extends StatelessWidget {
     final parts = [
       for (final e in info.recipe.entries)
         if (p.materialCount(e.key) < e.value)
-          '${Materials.info(e.key).name} ${e.value - p.materialCount(e.key)}개',
+          '${Materials.needName(e.key)} ${e.value - p.materialCount(e.key)}개',
       if (p.manaStones < info.manaStones)
         '마석 ${info.manaStones - p.manaStones}개',
     ];

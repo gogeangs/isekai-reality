@@ -156,6 +156,7 @@ class _GuildScreenState extends State<GuildScreen> {
     return Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
+        interior: 'guild', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: c,
           builder: (context, _) {

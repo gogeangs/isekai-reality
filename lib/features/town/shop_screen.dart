@@ -154,6 +154,7 @@ class _ShopScreenState extends State<ShopScreen> {
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
+        interior: 'shop', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: c,
           builder: (context, _) {

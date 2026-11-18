@@ -531,7 +531,7 @@ class _MarketScreenState extends State<MarketScreen> {
     if (m == null) return [_note(MarketOps.marketErrorText(c.marketError), retry: true)];
     final open = m.selling.where((l) => l.status == 'open').length;
     return [
-      Text('올려 둔 것 $open / ${MarketRules.slots}', style: AppText.title(16)),
+      Text('올려 둔 것 $open / ${c.marketSlots}', key: const Key('marketSlots'), style: AppText.title(16)),
       const SizedBox(height: 6),
       if (m.selling.isEmpty) _note('올려 둔 물건이 없어요.'),
       for (final l in m.selling) ...[
@@ -622,7 +622,7 @@ class _SellSheetState extends State<_SellSheet> {
             Text('올리기 · ${o.name}', style: AppText.title(18)),
             const SizedBox(height: 8),
             Row(children: [
-              for (final (a, t) in const [(false, '값을 정해 · 48시간'), (true, '경매 · 24시간')]) ...[
+              for (final (a, t) in [(false, '값을 정해 · ${widget.c.marketFixedHours}시간'), (true, '경매 · 24시간')]) ...[
                 Expanded(
                   child: ChoiceChip(
                     key: Key(a ? 'sellAuction' : 'sellFixed'),

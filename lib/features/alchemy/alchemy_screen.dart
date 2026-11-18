@@ -41,6 +41,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
         header: true,
+        interior: 'alchemy', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: c,
           builder: (context, _) => ListView(
@@ -210,10 +211,15 @@ class _RecipeRow extends StatelessWidget {
               Text('${info.name}${made ? '' : ' (쪽지)'}',
                   style: AppText.title(14, color: AppColors.text)),
               KText(
-                  '${[for (final e in counts) '${Materials.info(e.key).name} ${e.value}'].join(' · ')}'
+                  '${[for (final e in counts) '${Materials.needName(e.key)} ${e.value}'].join(' · ')}'
                   ' · ${info.minutes}분 · ${info.yields}개',
                   style:
                       const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              // 묶음 67 #273: 「약초」 칸에 잘 맞는 약초
+              if (info.counts.containsKey(MaterialId.herb) && AlchemyRules.bestHerb(id) != null)
+                Text('잘 맞는 약초: ${Materials.info(AlchemyRules.bestHerb(id)!).name}',
+                    key: Key('bestHerb_${id.name}'),
+                    style: const TextStyle(color: Color(0xFF9FE3A8), fontSize: 11.5)),
             ],
           ),
         ),

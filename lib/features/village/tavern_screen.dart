@@ -79,6 +79,7 @@ class _TavernScreenState extends State<TavernScreen> {
         backgroundColor: AppColors.deepNight,
         body: NightBackground(
           header: true,
+          interior: 'tavern', // 묶음 67 #272
           child: ListenableBuilder(
             listenable: c,
             builder: (context, _) => ListView(

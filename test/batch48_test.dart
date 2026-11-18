@@ -139,7 +139,7 @@ void main() {
       final herb0 = c.player.materialCount(MaterialId.herb);
       expect(await c.harvestPlot(1), isNull);
       final r = (await c.harvestPlot(0))!;
-      expect(r.material, MaterialId.herb);
+      expect(Materials.isHerb(r.material), isTrue, reason: '묶음 67: 이세계 약초 중 하나');
       expect(r.count, greaterThanOrEqualTo(2));
       expect(c.player.materialCount(MaterialId.herb), herb0 + r.count);
       expect(c.garden.plots.containsKey(0), isFalse);

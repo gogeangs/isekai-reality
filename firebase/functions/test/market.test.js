@@ -18,7 +18,7 @@ function setup() {
 }
 
 /** 그 계정의 백업 (금화 · 재료 · 장비 · 물약 · 알) */
-async function backup(db, uid, { gold = 0, mats = {}, equips = [], potions = {}, eggs = [], device = 'd_' + uid, at = T0 } = {}) {
+async function backup(db, uid, { gold = 0, mats = {}, equips = [], potions = {}, eggs = [], device = 'd_' + uid, at = T0, buildings = null } = {}) {
   const gen = 'g' + Math.random().toString(36).slice(2, 7);
   const snap = {
     'history.v1': JSON.stringify([
@@ -34,6 +34,7 @@ async function backup(db, uid, { gold = 0, mats = {}, equips = [], potions = {},
     ]),
     'json.armory': JSON.stringify({ items: equips, equipped: { weapon: 'eqWorn' } }),
     'json.pets': JSON.stringify({ eggs: eggs.map((id) => ({ id })) }),
+    ...(buildings ? { 'json.buildings': JSON.stringify(buildings) } : {}),
   };
   const data = zlib.gzipSync(Buffer.from(JSON.stringify(snap))).toString('base64');
   await db.doc(`users/${uid}/parts/${gen}_0`).set({ gen, data });
@@ -210,4 +211,35 @@ test('길: /market/* 는 로그인 필요', async () => {
   const res = { set() {}, status(c) { out.code = c; return this; }, json(j) { out.j = j; return this; }, send() { return this; } };
   await handle({ method: 'POST', path: '/market/browse', body: {}, get: () => '' }, res);
   assert.equal(out.code, 401);
+});
+
+test('묶음 67 #271: 거래소 ★2 칸 7 · ★3 칸 9 + 값을 정해 올린 물건 72시간 (백업의 건물 ★ · 고치는 시각이 지나면 한 단계 위)', async () => {
+  const { marketStar } = require('../src/market');
+  assert.equal(marketStar({}, T0), 1);
+  assert.equal(marketStar({ stars: { market: 2 } }, T0), 2);
+  assert.equal(marketStar({ stars: { market: 2 }, fixing: { market: '2026-11-18T11:00:00.000' } }, T0), 3, 'KST 11시 = T0 이전');
+  assert.equal(marketStar({ stars: { market: 2 }, fixing: { market: '2026-11-18T13:00:00.000' } }, T0), 2);
+  const { db, s } = setup();
+  await backup(db, 'b2', { gold: 100000, mats: { herb: 50 }, buildings: { stars: { market: 2 } } });
+  for (let i = 0; i < 7; i++) await s.list('b2', { kind: 'mat', key: 'herb', qty: 1, mode: 'fixed', price: CAT.mats.herb * 2 });
+  await assert.rejects(s.list('b2', { kind: 'mat', key: 'herb', qty: 1, mode: 'fixed', price: CAT.mats.herb * 2 }), /slots_full/);
+  await backup(db, 'b3', { gold: 100000, mats: { herb: 50 }, buildings: { stars: { market: 3 } } });
+  const r = await s.list('b3', { kind: 'mat', key: 'herb', qty: 1, mode: 'fixed', price: CAT.mats.herb * 2 });
+  assert.equal(r.listing.endsAt - T0, 72 * H);
+  for (let i = 0; i < 8; i++) await s.list('b3', { kind: 'mat', key: 'herb', qty: 1, mode: 'fixed', price: CAT.mats.herb * 2 });
+  await assert.rejects(s.list('b3', { kind: 'mat', key: 'herb', qty: 1, mode: 'fixed', price: CAT.mats.herb * 2 }), /slots_full/);
+  const a = await s.list('b3', { kind: 'mat', key: 'herb', qty: 1, mode: 'auction', start: CAT.mats.herb * 2 }).catch((e) => e);
+  assert.match(String(a.code || a), /slots_full/);
+});
+
+test('묶음 67 #273: 「약초」로 쓴 건 다른 약초에서 흔한 것부터 뺌 (앱과 같은 셈)', () => {
+  const r = countSnapshot({
+    'history.v1': JSON.stringify([
+      { date: '2026-11-19', gains: { herb: 1, gortRoot: 2, silvaFern: 3 }, spends: {} },
+      { date: '2026-11-20', gains: {}, spends: { herb: 4 } },
+    ]),
+  });
+  assert.equal(r.mats.herb, 0);
+  assert.equal(r.mats.gortRoot, 0);
+  assert.equal(r.mats.silvaFern, 2);
 });

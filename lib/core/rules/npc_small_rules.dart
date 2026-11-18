@@ -221,7 +221,7 @@ class NpcSmallRules {
       ], '볼이 발그레하네! 고마워, 이제 푹 쉬어.'),
       NpcSmall('수프에 넣을 약초가 두 개 모자라. 구해 줄래?', [
         NpcRequestStep(RequestStepKind.deliver, 2, '약초 2개 가져오기',
-            mats: {MaterialId.herb}),
+            mats: {...Materials.herbGroup}),
       ], '좋아, 오늘 수프는 네 몫까지 끓일게!'),
       NpcSmall('창밖에 슬라임이 자꾸 기웃거려. 세 마리만 쫓아 줄래?', [
         NpcRequestStep(RequestStepKind.tally, 3, '슬라임 3마리 잡기',
@@ -260,7 +260,7 @@ class NpcSmallRules {
       ], '보글보글! 가마솥이 신났어요!'),
       NpcSmall('약초 세 개만 나눠 주실래요? 실험에 써 볼게요!', [
         NpcRequestStep(RequestStepKind.deliver, 3, '약초 3개 가져오기',
-            mats: {MaterialId.herb}),
+            mats: {...Materials.herbGroup}),
       ], '좋은 냄새! 고마워요!'),
       NpcSmall('맑은 기운이 필요해요. 2,500보 걸으며 모아 주세요!', [
         NpcRequestStep(RequestStepKind.stepsSince, 2500, '2,500보 걷기'),
@@ -381,7 +381,7 @@ class NpcSmallRules {
         ]),
         NpcRelicStage('마지막으로 약초 두 개. 따뜻한 차를 담아 줄게.', [
           NpcRequestStep(RequestStepKind.deliver, 2, '약초 2개 가져오기',
-              mats: {MaterialId.herb}),
+              mats: {...Materials.herbGroup}),
         ]),
       ],
       done: '자, 이건 이제 네 거야. 걸을 때마다 몸이 따뜻해질 거야.',

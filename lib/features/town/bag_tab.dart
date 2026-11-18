@@ -111,8 +111,8 @@ List<BagEntry> bagEntries(AppController c) {
       for (final n in split(e.value)) PotionEntry(e.key, n),
     for (final i in TownRules.bagItems)
       for (final n in split(c.bagCount(i))) ItemEntry(i, n),
-    for (final m in MaterialId.values)
-      for (final n in split(c.player.materialCount(m))) MaterialEntry(m, n),
+    for (final m in Materials.displayOrder)
+      for (final n in split(c.player.materialExact(m))) MaterialEntry(m, n),
   ];
 }
 

@@ -352,7 +352,9 @@ extension HarvestOps on AppController {
         streak: grade == HarvestGrade.perfect ? h.streak : 0,
         element: h.elementOf(tool),
         month: now.month,
-        forceRare: minigame ? rare : null);
+        forceRare: minigame ? rare : null,
+        land: lands?.kindAt(s.point),
+        night: HarvestRules.isNight(now));
     // 묶음 27 #176: 그 종류(약초·광석·나무) 채집 숙련도 → 가끔 하나 더, 도구가 가끔 안 닳음 (숨김)
     final hk = MasteryRules.harvestKind(s.kind);
     final hf = hk == null ? 0.0 : _detailFrac(MasteryRules.harvestKey(hk));

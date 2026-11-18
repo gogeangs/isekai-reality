@@ -81,12 +81,13 @@ class _MapScreenState extends State<MapScreen> {
 
   // 묶음 66 #267: 몬스터 칸이 바뀌는 때 (30초마다 확인, 바뀌면 짧게 사라졌다 나타남)
   Timer? _slotTimer;
-  late String _slot = controller.spawnSlot;
+  late String _slot;
   bool _slotFade = false;
 
   @override
   void initState() {
     super.initState();
+    _slot = controller.spawnSlot;
     _slotTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkSlot());
   }
 
@@ -104,6 +105,9 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
     _slot = now;
+    // 묶음 67: 지도를 보고 있을 때만 위쪽 띠 한 번 (다른 탭 · 다른 화면이 위에 있으면 안 띄움)
+    final onMap = TickerMode.valuesOf(context).enabled && (ModalRoute.of(context)?.isCurrent ?? true);
+    if (onMap) showTopNotice(context, '새 몬스터가 나타났어요!', icon: Icons.pets_rounded);
     setState(() => _slotFade = true);
     Future<void>.delayed(const Duration(milliseconds: 450), () {
       if (!mounted) return;

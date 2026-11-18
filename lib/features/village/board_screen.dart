@@ -653,7 +653,7 @@ class _ErrandNoteState extends State<_ErrandNote> {
     final slot = widget.slot;
     final b = c.board;
     final s = b.slots[slot];
-    final t = BoardRules.template(s.templateId);
+    final t = BoardRules.template(s.templateId, level: c.player.level.level);
     final claimed = _claimed;
     if (claimed != null && !_vanished.contains(claimed.$1)) {
       return VanishingNote(
@@ -748,7 +748,7 @@ class _ErrandDetailState extends State<_ErrandDetail> {
           final c = widget.controller;
           final slot = widget.slot;
           final s = c.board.slots[slot];
-          final t = BoardRules.template(s.templateId);
+          final t = BoardRules.template(s.templateId, level: c.player.level.level);
           if (t == null) return const SizedBox.shrink();
           final progress = c.errandProgress(slot);
           final done = s.accepted && progress >= t.target;

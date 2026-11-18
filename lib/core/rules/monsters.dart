@@ -125,6 +125,20 @@ enum MonsterId {
   cloneMage,
   clonePriest,
   cloneRogue,
+  // 묶음 69 #281: Lv.50부터 지도 몬스터 (5단계)
+  doppelganger,
+  arachne,
+  sphinx,
+  clockworkKnight,
+  centaur,
+  owlbear,
+  kelpie,
+  naga,
+  roc,
+  dullahan,
+  werewolf,
+  deathKnight,
+  basilisk,
 }
 
 /// 전투 성향 (도감 설명)
@@ -157,6 +171,15 @@ enum MonsterTrait {
 
   /// 맞히면 낮은 확률로 약한 중독 (11-11 A4 큰쥐: 2턴 동안 매 턴 최대 HP 1%)
   weakPoison,
+
+  /// 묶음 69 #281 도플갱어: 첫 턴에 내 공격을 따라 함
+  mirror,
+
+  /// 바실리스크: 가끔 한 턴 돌로 굳게 함
+  petrify,
+
+  /// 웨어울프: 보름달 밤엔 더 셈
+  moon,
 }
 
 class MonsterInfo {
@@ -182,7 +205,11 @@ class MonsterInfo {
     this.element,
     this.highland = false,
     this.art,
+    this.preLine,
   });
+
+  /// 묶음 69 #281: 싸우기 전 한 마디 (스핑크스의 수수께끼)
+  final String? preLine;
 
   /// 그림이 아직 없을 때 대신 쓰는 그림 이름 (같은 이름 그림이 오면 지움)
   final String? art;
@@ -1500,9 +1527,188 @@ class Monsters {
       huntLine: '',
       retired: true,
     ),
+    // 묶음 69 #281: Lv.50부터 지도 몬스터 (도감 「더 강한 필드 몬스터」 칸)
+    MonsterInfo(
+      id: MonsterId.doppelganger,
+      element: Element.dark,
+      name: '도플갱어',
+      habitat: '마을 (Lv.50~)',
+      huntLine: '도플갱어가 흐려져 사라졌어. 잠깐 너랑 똑같은 얼굴이었어!',
+      description: '마주친 사람의 모습을 흉내 내는 그림자. 첫 수를 똑같이 따라 한다.',
+      tendency: Tendency.charm,
+      trait: MonsterTrait.mirror,
+      traitText: '첫 턴에 내 공격을 따라 해요',
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.arachne,
+      element: Element.poison,
+      name: '아라크네',
+      habitat: '마을 (Lv.50~)',
+      huntLine: '아라크네가 실을 끊고 달아났어. 반짝이는 거미줄이 남았어.',
+      description: '골목 지붕 사이에 거미줄을 치는 반은 사람, 반은 거미.',
+      tendency: Tendency.nimble,
+      trait: MonsterTrait.poison,
+      traitText: '맞으면 30% 확률로 중독 (3턴)',
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.sphinx,
+      element: Element.fire,
+      name: '스핑크스',
+      habitat: '도시 (Lv.50~)',
+      huntLine: '스핑크스가 웃으며 물러났어. 답을 맞힌 걸로 해 준대!',
+      description: '광장 한가운데 앉아 지나가는 사람에게 수수께끼를 낸다.',
+      tendency: Tendency.arcane,
+      traitText: '싸우기 전 수수께끼를 내요',
+      preLine: '「아침엔 네 발, 낮엔 두 발, 밤엔 세 발로 걷는 것은?」',
+      hp: 1.2,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.clockworkKnight,
+      element: Element.metal,
+      name: '태엽 기사',
+      habitat: '도시 (Lv.50~)',
+      huntLine: '태엽 기사가 멈췄어. 태엽이 다 풀렸나 봐.',
+      description: '누가 감아 두었는지 모를 태엽으로 움직이는 갑옷 기사.',
+      traitText: '태엽이 감긴 만큼 단단해요',
+      defense: 1.4,
+      speed: 0.9,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.centaur,
+      element: Element.earth,
+      name: '켄타우로스',
+      habitat: '숲 · 공원 (Lv.50~)',
+      huntLine: '켄타우로스가 숲 너머로 달려갔어. 말발굽 소리가 아직 들려.',
+      description: '숲길을 달리는 반인반마 궁수. 빠르게 피한다.',
+      tendency: Tendency.nimble,
+      trait: MonsterTrait.evade,
+      traitText: '각성자 공격을 가끔 피해요',
+      speed: 1.2,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.owlbear,
+      element: Element.earth,
+      name: '아울베어',
+      habitat: '숲 · 공원 (Lv.50~)',
+      huntLine: '아울베어가 부엉 하고 울더니 굴로 돌아갔어.',
+      description: '부엉이 머리에 곰의 몸. 털이 두꺼워 쉽게 쓰러지지 않는다.',
+      trait: MonsterTrait.regen,
+      traitText: '매 턴 조금씩 회복해요',
+      hp: 1.3,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.kelpie,
+      element: Element.water,
+      name: '켈피',
+      habitat: '물가 (Lv.50~)',
+      huntLine: '켈피가 물속으로 사라졌어. 젖은 갈기 한 가닥이 남았어.',
+      description: '물가에서 말의 모습으로 사람을 꾀는 물의 요정.',
+      tendency: Tendency.charm,
+      trait: MonsterTrait.drain,
+      traitText: '때린 만큼 기운을 빼앗아요',
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.naga,
+      element: Element.water,
+      name: '나가',
+      habitat: '물가 (Lv.50~)',
+      huntLine: '나가가 비늘을 번쩍이며 물로 돌아갔어.',
+      description: '물가를 지키는 뱀의 몸을 한 수호자.',
+      tendency: Tendency.arcane,
+      trait: MonsterTrait.freeze,
+      traitText: '맞으면 가끔 얼어 한 차례 쉬어요',
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.roc,
+      element: Element.fire,
+      name: '록',
+      habitat: '산 (Lv.50~)',
+      huntLine: '록이 커다란 날개를 펴고 날아갔어! 바람이 휘몰아쳤어.',
+      description: '산꼭대기에 둥지를 튼 거대한 새. 날개짓 한 번에 바위가 구른다.',
+      trait: MonsterTrait.burn,
+      traitText: '맞으면 30% 확률로 화상',
+      attack: 1.3,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.dullahan,
+      element: Element.dark,
+      name: '듀라한',
+      habitat: '밤 (오후 7시 ~ 새벽 6시, Lv.50~)',
+      huntLine: '듀라한이 말머리를 돌려 어둠 속으로 사라졌어.',
+      description: '제 머리를 옆구리에 낀 기사. 밤길을 가로지른다.',
+      traitText: '머리 없이 돌진해요',
+      attack: 1.2,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.werewolf,
+      element: Element.wind,
+      name: '웨어울프',
+      habitat: '밤 (오후 7시 ~ 새벽 6시, Lv.50~)',
+      huntLine: '웨어울프가 달을 보며 울더니 사라졌어.',
+      description: '달빛을 받으면 늑대가 되는 사람. 보름달 밤엔 더 사나워진다.',
+      tendency: Tendency.nimble,
+      trait: MonsterTrait.moon,
+      traitText: '보름달 밤엔 더 세요',
+      speed: 1.1,
+      expBonus: 0.3,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.deathKnight,
+      element: Element.dark,
+      name: '데스나이트',
+      habitat: '밤 (오후 7시 ~ 새벽 6시, Lv.50~)',
+      huntLine: '데스나이트가 무릎을 꿇었어. 검은 갑옷이 재로 흩어졌어.',
+      description: '죽어서도 칼을 놓지 못한 기사. 벤 만큼 기운을 빨아들인다.',
+      trait: MonsterTrait.drain,
+      traitText: '때린 만큼 기운을 빼앗아요',
+      hp: 1.2,
+      attack: 1.2,
+      expBonus: 0.4,
+      retired: true,
+    ),
+    MonsterInfo(
+      id: MonsterId.basilisk,
+      element: Element.poison,
+      name: '바실리스크',
+      habitat: '어디서나 드물게 (Lv.50~)',
+      huntLine: '바실리스크를 쓰러뜨렸어! 뱀의 왕이 눈을 감았어.',
+      description: '눈빛만으로 돌을 만든다는 뱀의 왕. 아주 드물게 나타난다.',
+      tendency: Tendency.arcane,
+      trait: MonsterTrait.petrify,
+      traitText: '가끔 한 턴 돌로 굳게 해요',
+      hp: 1.5,
+      attack: 1.2,
+      expBonus: 1.0,
+      retired: true,
+    ),
   ];
 
   static MonsterInfo info(MonsterId id) => _all.firstWhere((m) => m.id == id);
+
+  /// 묶음 69 #281: 앱에 들어 있는 그림 (main 에서 채움 · 모르면 null = 있다고 봄)
+  static Set<String>? knownAssets;
+  static bool hasArt(MonsterId id) => knownAssets == null || knownAssets!.contains(info(id).asset);
 
   static MonsterId? byName(String name) {
     for (final id in MonsterId.values) {

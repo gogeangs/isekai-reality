@@ -105,6 +105,8 @@ enum TitleId {
   // 묶음 60 #247: 5막 에르바르드
   erbardCrown,
   pioneer,
+  // 묶음 69 #281: 바실리스크 첫 사냥
+  basiliskSlayer,
   // 묶음 57 #249: 숨은 특별 짝 10 (그림 title_pair_<짝>)
   pairWeaponsmith,
   pairRunesmith,
@@ -217,6 +219,7 @@ class TitleRules {
       TitleId.erbardCrown => '공성전에서 에르바르드 왕성을 지켰어요',
       TitleId.vanguard => '공성전에서 길드 가장 앞에 섰어요 (다음 공성전 끝까지)',
       TitleId.pioneer => '5막 「흑등 연맹의 귀환」을 끝냈어요',
+      TitleId.basiliskSlayer => '아주 드물게 나타나는 바실리스크를 처음 쓰러뜨렸어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
       TitleId.pairWeaponsmith => '숨은 짝 「무기 장인」을 찾았어요',
       TitleId.pairRunesmith => '숨은 짝 「룬 대장장이」을 찾았어요',
@@ -301,6 +304,7 @@ class TitleRules {
     TitleId.guildLegend,
     TitleId.erbardCrown,
     TitleId.pioneer,
+    TitleId.basiliskSlayer,
   ];
 
   static String skyCounter(TitleId t) => 'stitle:${t.name}';
@@ -501,6 +505,7 @@ class TitleRules {
     TitleInfo(TitleId.erbardCrown, '에르바르드의 왕관', '숨은 칭호'),
     TitleInfo(TitleId.vanguard, '선봉장', '숨은 칭호'),
     TitleInfo(TitleId.pioneer, '에르바르드의 개척자', '숨은 칭호'),
+    TitleInfo(TitleId.basiliskSlayer, '뱀의 왕을 쓰러뜨린 자', '숨은 칭호'),
     TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 짝'),
     TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 짝'),
     TitleInfo(TitleId.pairJeweler, '보석 세공사', '숨은 짝'),

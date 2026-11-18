@@ -1,6 +1,8 @@
 import '../models/board_state.dart';
 import '../models/daily_record.dart';
+import 'field_monster_rules.dart';
 import 'materials.dart';
+import 'monsters.dart';
 import 'npc_small_rules.dart';
 import 'quest_rules.dart';
 import 'town_rules.dart';
@@ -276,11 +278,36 @@ class BoardRules {
       unit: '마리',
       gold: 30);
 
-  static ErrandTemplate? template(String? id) {
+  static ErrandTemplate? template(String? id, {int level = 1}) {
     for (final t in [...errands, ...urgents, guideErrand, ...NpcSmallRules.boardNotes, ...regionErrands]) {
-      if (t.id == id) return t;
+      if (t.id == id) return forLevel(t, level);
     }
     return null;
+  }
+
+  /// 묶음 69 #280: 「○○ ○마리 사냥」 — 그 몬스터가 내 단계에서 거의 안 나오면 그 단계의 비슷한 몬스터로
+  static ErrandTemplate forLevel(ErrandTemplate t, int level) {
+    if (!t.counter.startsWith('hunt:')) return t;
+    final m = Monsters.byName(t.counter.substring(5));
+    if (m == null) return t;
+    final to = FieldMonsterRules.askFor(m, level);
+    if (to == m) return t;
+    final name = Monsters.info(m).name;
+    final title = t.title.replaceFirst(name, Monsters.info(to).name);
+    return ErrandTemplate(
+      id: t.id,
+      title: title,
+      counter: 'hunt:${to.name}',
+      target: t.target,
+      gold: t.gold,
+      manaStones: t.manaStones,
+      materials: t.materials,
+      unit: t.unit,
+      npc: t.npc,
+      exp: t.exp,
+      tickets: t.tickets,
+      region: t.region,
+    );
   }
 
   /// 오늘의 긴급 의뢰 (없는 날은 null): (의뢰, 뜨는 시각, 보상 종류, 귀한 재료)

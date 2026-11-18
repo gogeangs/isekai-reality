@@ -589,6 +589,30 @@ class LootRules {
           (common: [MaterialId.batWing], rare: MaterialId.gemDark, chance: rareChance),
         MonsterId.salamander || MonsterId.ifrit || MonsterId.koboldrake || MonsterId.cultFlamePriest =>
           (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance),
+        // 묶음 69 #280: 3막 지역 1 몬스터가 지도에 나올 때 (그 몬스터에 어울리는 재료)
+        MonsterId.goblinRaider =>
+          (common: [MaterialId.toughHide, MaterialId.ironShard], rare: MaterialId.gemEarth, chance: rareChance),
+        MonsterId.skeletonGuard =>
+          (common: [MaterialId.ironShard], rare: MaterialId.gemDark, chance: rareChance),
+        MonsterId.harpy =>
+          (common: [MaterialId.windJelly], rare: MaterialId.windCore, chance: rareChance),
+        MonsterId.ogre =>
+          (common: [MaterialId.toughHide, MaterialId.boarMeat], rare: MaterialId.smallTusk, chance: rareChance),
+        // 묶음 69 #281: Lv.50 지도 몬스터 (지금 재료 중 어울리는 것)
+        MonsterId.doppelganger => (common: [MaterialId.darkJelly], rare: MaterialId.shadowCore, chance: rareChance * 1.5),
+        MonsterId.arachne => (common: [MaterialId.poisonJelly], rare: MaterialId.poisonCore, chance: rareChance * 1.5),
+        MonsterId.sphinx => (common: [MaterialId.fireJelly], rare: MaterialId.fireCore, chance: rareChance * 1.5),
+        MonsterId.clockworkKnight =>
+          (common: [MaterialId.ironShard, MaterialId.metalJelly], rare: MaterialId.metalCore, chance: rareChance * 1.5),
+        MonsterId.centaur => (common: [MaterialId.twig, MaterialId.herb], rare: MaterialId.gemEarth, chance: rareChance * 1.5),
+        MonsterId.owlbear => (common: [MaterialId.toughHide, MaterialId.twig], rare: MaterialId.gemEarth, chance: rareChance * 1.5),
+        MonsterId.kelpie => (common: [MaterialId.waterJelly], rare: MaterialId.waterCore, chance: rareChance * 1.5),
+        MonsterId.naga => (common: [MaterialId.waterJelly, MaterialId.iceJelly], rare: MaterialId.iceCore, chance: rareChance * 1.5),
+        MonsterId.roc => (common: [MaterialId.fireJelly, MaterialId.windJelly], rare: MaterialId.stardust, chance: rareChance * 1.5),
+        MonsterId.dullahan => (common: [MaterialId.darkJelly, MaterialId.ironShard], rare: MaterialId.gemDark, chance: rareChance * 1.5),
+        MonsterId.werewolf => (common: [MaterialId.windJelly, MaterialId.ratHide], rare: MaterialId.windCore, chance: rareChance * 1.5),
+        MonsterId.deathKnight => (common: [MaterialId.darkJelly, MaterialId.ironShard], rare: MaterialId.shadowCore, chance: rareChance * 1.5),
+        MonsterId.basilisk => (common: [MaterialId.poisonJelly], rare: MaterialId.poisonCore, chance: 0.3),
         // 묶음 60: 에르바르드 야생 수비대 (그 지방 재료)
         MonsterId.wildGriffin || MonsterId.wildKnightCaptain =>
           (common: [MaterialId.lightJelly], rare: MaterialId.stardust, chance: rareChance * 2),
@@ -672,10 +696,6 @@ class LootRules {
         MonsterId.guardWater ||
         MonsterId.stoneSoldier ||
         // 묶음 52 3막: 저쪽 몬스터는 장비·금화를 따로 준다
-        MonsterId.goblinRaider ||
-        MonsterId.skeletonGuard ||
-        MonsterId.harpy ||
-        MonsterId.ogre ||
         MonsterId.ashHounds ||
         MonsterId.ashArmor ||
         MonsterId.ashWolfAlpha ||

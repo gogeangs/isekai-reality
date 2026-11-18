@@ -268,7 +268,7 @@ extension MailOps on AppController {
     if (rec != null) {
       for (var i = 0; i < old.slots.length; i++) {
         final s = old.slots[i];
-        final t = BoardRules.template(s.templateId);
+        final t = BoardRules.template(s.templateId, level: player.level.level);
         if (t == null || !s.accepted) continue;
         if (BoardRules.progress(t, rec, s.baseline) < t.target) continue;
         await _sendMail(MailItem(

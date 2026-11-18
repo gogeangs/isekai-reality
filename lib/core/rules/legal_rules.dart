@@ -29,7 +29,11 @@ enum LegalKind {
 
 /// 문서 한 판
 class LegalVersion {
-  const LegalVersion(this.kind, this.version, this.effective, {this.unfavorable = false, this.summary = ''});
+  const LegalVersion(this.kind, this.version, this.effective,
+      {this.unfavorable = false, this.summary = '', this.noticeOnly = false});
+
+  /// 묶음 63: 다시 동의 없이 알림만 하는 판 (예전 판에 동의했으면 그대로 이어서)
+  final bool noticeOnly;
   final LegalKind kind;
   final int version;
 
@@ -61,7 +65,14 @@ abstract final class LegalRules {
     LegalVersion(LegalKind.operation, 2, v2Date),
     // 묶음 62: 개인정보 처리방침만 3판 (공성전 · 부정 이용 막기 · 마법 돋보기 ML Kit · 보관 기간)
     LegalVersion(LegalKind.privacy, 3, v3Date, summary: '공성전 · 부정 이용 막기 기록과 보관 기간, 마법 돋보기 처리 방식을 더했어요'),
+    // 묶음 63: 처리방침 4판 — 알림만 (적용 = 빌드 날 + 7일)
+    LegalVersion(LegalKind.privacy, 4, v4Date,
+        noticeOnly: true,
+        summary: '처리 위탁에 진짜 앱 확인(Google Play Integrity · Apple DeviceCheck · App Attest)을 더하고, 서버 기능 목록에 공성전 · 부정 이용 막기를 적었어요'),
   ];
+
+  /// 묶음 63 판의 적용일 (빌드 날 11-18 + 7일)
+  static final DateTime v4Date = DateTime(2026, 11, 25);
 
   /// 묶음 62 판의 적용일 (빌드가 나가는 날)
   static final DateTime v3Date = DateTime(2026, 11, 18);
@@ -106,10 +117,20 @@ abstract final class LegalRules {
           if (upcoming(k, now) case final v?) v,
       ];
 
-  /// 다시(또는 처음) 동의받을 문서: 동의한 판이 지금 판보다 낮은 필수 문서
+  /// 동의가 있어야 하는 가장 새 판 (알림만 하는 판은 건너뜀)
+  static int requiredVersion(LegalKind k, DateTime now) {
+    var best = 1;
+    for (final v in _all) {
+      if (v.kind != k || v.noticeOnly || v.effective.isAfter(_day(now))) continue;
+      if (v.version > best) best = v.version;
+    }
+    return best;
+  }
+
+  /// 다시(또는 처음) 동의받을 문서: 동의한 판이 동의가 있어야 하는 판보다 낮은 필수 문서 (보여 주는 글은 지금 판)
   static List<LegalVersion> needed(Map<LegalKind, int> agreed, DateTime now) => [
         for (final k in LegalKind.values)
-          if (k.required && (agreed[k] ?? 0) < current(k, now).version) current(k, now),
+          if (k.required && (agreed[k] ?? 0) < requiredVersion(k, now)) current(k, now),
       ];
 
   static String dateLabel(DateTime d) => '${d.year}년 ${d.month}월 ${d.day}일';

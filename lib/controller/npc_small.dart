@@ -378,6 +378,15 @@ extension NpcSmallOps on AppController {
   }
 
   /// 상태 탭 「마을 사람 부탁」: 받은 부탁 모두 (큰 · 특별한 · 작은)
+  /// 묶음 69 #286: 아직 받지 않은 새 부탁 (게시판 「마을 사람 부탁」에 「새 부탁」 리본)
+  List<({Npc npc, AskKind kind})> get newAsks => [
+        for (final n in Npc.values) ...[
+          if (requestActive(n) == null && requestOffer(n) != null) (npc: n, kind: AskKind.big),
+          if (relicActive(n) == null && relicOffer(n) != null) (npc: n, kind: AskKind.special),
+          if (smallActive(n) == null && smallOffer(n) != null) (npc: n, kind: AskKind.small),
+        ],
+      ];
+
   List<NpcAskLine> get activeAsks => [
         for (final n in Npc.values) ...[
           if (requestActive(n) != null)

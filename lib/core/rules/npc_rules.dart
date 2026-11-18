@@ -236,6 +236,9 @@ class NpcRules {
   /// 부탁 알림 한 줄 (마을 사람 말풍선)
   static const String askLine = '부탁이 하나 있는데…';
 
+  /// 묶음 69 #286: 부탁은 의뢰 게시판 「마을 사람 부탁」에서
+  static const String boardAskLine = '게시판에 부탁 하나 붙여 뒀어!';
+
   // ───────────── 재료 묶음
 
   static const Set<MaterialId> flowerMushroom = {

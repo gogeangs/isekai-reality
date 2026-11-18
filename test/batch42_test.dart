@@ -244,8 +244,8 @@ void main() {
 
     test('튜토리얼·기능 안내 중엔 부탁을 숨김 · 순서 규칙(첫 줄 → 부탁 알림)', () async {
       final c = await startNpc(npc: _npc(points: {'mina': 10}));
-      // 이미 만난 사람: 부탁 알림이 먼저
-      expect(c.takeNpcLine(Npc.mina), NpcRules.askLine);
+      // 이미 만난 사람: 부탁 알림이 먼저 (묶음 69 #286: 부탁은 게시판에서)
+      expect(c.takeNpcLine(Npc.mina), NpcRules.boardAskLine);
       // 상황 안내가 있으면 그것이 먼저
       expect(c.takeNpcLine(Npc.mina, situation: '상황'), '상황');
     });
@@ -262,9 +262,13 @@ void main() {
           home: Scaffold(
               body: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: NpcHeader(controller: c, npc: Npc.mina)))));
+                  child: Column(children: [
+                    NpcHeader(controller: c, npc: Npc.mina),
+                    // 묶음 69 #286: 부탁 듣기 · 받기는 게시판 쪽지에서 같은 창으로 (건물 위쪽 줄은 없앰)
+                    NpcRequestBar(controller: c, npc: Npc.mina),
+                  ])))));
       await tester.pump();
-      expect(_text(tester), contains(NpcRules.askLine));
+      expect(_text(tester), contains(NpcRules.boardAskLine));
       await tester.tap(find.byKey(const Key('npcAsk_mina')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('npcRequestSheet')), findsOneWidget);

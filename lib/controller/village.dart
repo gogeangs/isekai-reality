@@ -130,7 +130,30 @@ extension VillageOps on AppController {
   /// 이번에 들어갈 때 마을 사람 한마디 (처음이면 첫 줄). 부를 때마다 한 번 들어간 것으로 센다.
   /// 묶음 38 #213: 처음 만날 때 첫 줄 → [situation](상황 안내)이 있으면 그것 →
   /// 그 밖엔 「그 막의 평소 대사」와 [guide](기본 안내)를 번갈아
-  String takeNpcLine(Npc n, {String? guide, String? situation}) {
+  String takeNpcLine(Npc n, {String? guide, String? situation}) => npcTalk(n, guide: guide, situation: situation).first;
+
+  /// 묶음 69 #286 #289: 건물에 들어갈 때 마을 사람 대사
+  /// - auto: 저절로 열리는 한 줄 (처음 만남 · 지금 상황 · 새 부탁 → 「게시판에 부탁 하나 붙여 뒀어!」 · 한 번뿐인 말)
+  /// - lines: 얼굴을 누를 때마다 차례로 (기본 안내 · 그 막 대사 · 친해지기 대사)
+  ({String? auto, List<String> lines, String first}) npcTalk(Npc n, {String? guide, String? situation}) {
+    final met = _village.contains('met:${n.name}');
+    final acts = [
+      ...VillageRules.linesFor(n, villageAct),
+      ...npcStageLines(n),
+      ...act3NpcLines(n),
+    ];
+    final lines = [if (guide != null) guide, ...acts];
+    final line = _takeNpcLine(n, guide: guide, situation: situation);
+    final auto = !met ||
+        (situation != null && line == situation) ||
+        line == NpcRules.askLine ||
+        line == NpcRules.boardAskLine ||
+        NpcSmallRules.boardAsk.values.contains(line) ||
+        !lines.contains(line);
+    return (auto: auto ? line : null, lines: lines.isEmpty ? [line] : lines, first: line);
+  }
+
+  String _takeNpcLine(Npc n, {String? guide, String? situation}) {
     final met = _village.contains('met:${n.name}');
     final visits = _npcVisits[n.name] ?? 0;
     // 묶음 42 #226: 시설에 들르면 친해지기 점수 (하루 한 번)
@@ -152,13 +175,12 @@ extension VillageOps on AppController {
       if (r != null) return r;
     }
     // 묶음 42 #226: 처음 만날 때 첫 줄 → 상황 안내 → 부탁 알림 → 번갈아
-    if (met && requestOffer(n) != null) return NpcRules.askLine;
-    // 묶음 45 #231·#232: 특별한 부탁 · 작은 부탁 (게시판 쪽지를 여러 번 끝냈으면 그 말풍선)
-    if (met && relicOffer(n) != null) return NpcRules.askLine;
-    if (met && smallOffer(n) != null) {
-      return _npc.smallBoard.contains(n.name)
-          ? NpcSmallRules.boardAsk[n] ?? NpcRules.askLine
-          : NpcRules.askLine;
+    // 묶음 69 #286: 부탁은 의뢰 게시판에서 — 새 부탁이 있으면 「게시판에 부탁 하나 붙여 뒀어!」
+    if (met && smallOffer(n) != null && _npc.smallBoard.contains(n.name) && NpcSmallRules.boardAsk[n] != null) {
+      return NpcSmallRules.boardAsk[n]!;
+    }
+    if (met && (requestOffer(n) != null || relicOffer(n) != null || smallOffer(n) != null)) {
+      return NpcRules.boardAskLine;
     }
     final String line;
     // 단계가 오르면 그 사람 새 대사 2줄이 그 막의 평소 대사에 섞인다

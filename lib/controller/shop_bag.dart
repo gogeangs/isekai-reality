@@ -154,7 +154,8 @@ extension ShopBagOps on AppController {
             if (bagCount(i) > 0) i: bagCount(i),
         },
         armory: _armory,
-        eggs: _pets.eggs.length,
+        // 묶음 69 #282: 품는 중인 알은 가방 칸에서 뺌
+        eggs: _pets.eggs.where((e) => e.incubatedAt == null).length,
         extraStacks: [..._alc.potions.values, ..._extraBagCounts()],
       );
 

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
@@ -33,7 +31,8 @@ class BulssiBubble extends StatelessWidget {
     // 정령 몸 전체가 배경 위에 떠 있고, 둘레에 은은한 빛이 번진다.
     // 말풍선 첫 줄에 플레이어가 지어 준 이름을 작게 쓴다.
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      // 묶음 69 #288: 캐릭터를 먼저 놓고 말풍선 꼬리는 캐릭터 얼굴 높이
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: size,
@@ -69,12 +68,14 @@ class BulssiBubble extends StatelessWidget {
         const SizedBox(width: 2),
         Flexible(
           child: SpeechBubbleArt(
+            // 꼬리는 정령 얼굴 높이 (말풍선 위쪽에서 정령 높이의 절반쯤)
+            at: size * 0.5,
             child: Text.rich(
               TextSpan(children: [
                 TextSpan(
                   text: '$name\n',
                   style: const TextStyle(
-                    color: Color(0xFFB27C1C),
+                    color: kBubbleName,
                     fontSize: 12,
                     height: 1.5,
                     fontWeight: FontWeight.w800,
@@ -211,13 +212,14 @@ class ArtSpirit extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.only(bottom: size * 0.35),
             child: SpeechBubbleArt(
-              mirrored: true,
+              side: BubbleSide.right,
+              at: -size * 0.2,
               child: Text.rich(
                 TextSpan(children: [
                   TextSpan(
                     text: '$name\n',
                     style: const TextStyle(
-                        color: Color(0xFFB27C1C),
+                        color: kBubbleName,
                         fontSize: 12,
                         height: 1.45,
                         fontWeight: FontWeight.w800),
@@ -260,7 +262,11 @@ class SpiritTalkBadge extends StatefulWidget {
     this.retalk,
     this.actionLabel,
     this.onAction,
+    this.more = const [],
   });
+
+  /// 묶음 69 #289: 열 때마다 차례로 보여 줄 다른 대사
+  final List<String> more;
 
   /// 묶음 25 #166: 배지를 눌렀을 때 대사 끝에 붙는 한마디 (예: 「서두를까?」).
   /// 누르면 [onAction]
@@ -285,47 +291,55 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
     with SingleTickerProviderStateMixin {
   late final AnimationController _hop = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 180));
-  String? _said;
   bool _open = false;
   bool _withAction = false;
-  Timer? _hide;
 
-  @override
-  void initState() {
-    super.initState();
-    widget.retalk?.addListener(_again);
-  }
+  /// 묶음 69 #289: 평소엔 얼굴만 — 누르면 말풍선이 열리고, 열 때마다 다음 대사.
+  /// 아직 안 본 대사가 있으면 얼굴 오른쪽 위 작은 점 (열어 보면 사라짐)
+  static final Set<String> _seen = {};
+  int _turn = 0;
+  String _now = '';
 
-  void _again() {
-    if (mounted) setState(_talk);
-  }
+  List<String> get _lines => [widget.line, ...(widget.more.isEmpty ? idleTalk : widget.more).where((x) => x != widget.line)];
 
-  void _talk() {
+  bool get _unseen => _lines.any((l) => !_seen.contains(l));
+
+  void _toggle() {
+    if (_open) {
+      setState(() => _open = false);
+      return;
+    }
+    final lines = _lines;
+    // 안 본 대사부터, 없으면 차례로
+    final fresh = lines.where((l) => !_seen.contains(l)).toList();
+    _now = fresh.isNotEmpty ? fresh.first : lines[_turn++ % lines.length];
+    _seen.add(_now);
     _open = true;
+    _withAction = widget.actionLabel != null && widget.onAction != null;
     _hop
       ..reset()
       ..repeat(reverse: true, count: 2);
-    _hide?.cancel();
-    _hide = Timer(widget.hideAfter, () {
-      if (mounted) setState(() => _open = false);
-    });
+    setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(SpiritTalkBadge old) {
+    super.didUpdateWidget(old);
+    // 열려 있는 동안 대사가 바뀌면 새 대사로
+    if (_open && widget.line != old.line) {
+      _now = widget.line;
+      _seen.add(_now);
+    }
   }
 
   @override
   void dispose() {
-    widget.retalk?.removeListener(_again);
-    _hide?.cancel();
     _hop.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.line != _said) {
-      _said = widget.line;
-      _withAction = false;
-      _talk();
-    }
     final action = _withAction && widget.onAction != null
         ? widget.actionLabel
         : null;
@@ -335,31 +349,45 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
     final name = scope?.spiritName ?? kind.defaultName;
     final badge = GestureDetector(
       key: const Key('spiritBadge'),
-      onTap: () => setState(() {
-        _talk();
-        _withAction = widget.actionLabel != null && widget.onAction != null;
-      }),
+      onTap: _toggle,
       child: AnimatedBuilder(
         animation: _hop,
         builder: (context, child) => Transform.translate(
             offset: Offset(0, -3 * Curves.easeOut.transform(_hop.value)),
             child: child),
-        child: Container(
-          width: s,
-          height: s,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF141638),
-            border: Border.all(color: AppColors.goldBright, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                  color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 8),
-            ],
+        child: Stack(clipBehavior: Clip.none, children: [
+          Container(
+            width: s,
+            height: s,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF141638),
+              border: Border.all(color: AppColors.goldBright, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                    color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 8),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: CompanionArt(size: s * 0.82, mood: widget.mood),
           ),
-          clipBehavior: Clip.antiAlias,
-          alignment: Alignment.center,
-          child: CompanionArt(size: s * 0.82, mood: widget.mood),
-        ),
+          if (!_open && _unseen)
+            Positioned(
+              right: -1,
+              top: -1,
+              child: Container(
+                key: const Key('spiritDot'),
+                width: 11,
+                height: 11,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE5484D),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+        ]),
       ),
     );
     return Row(
@@ -379,53 +407,53 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
                     child: ConstrainedBox(
                       constraints:
                           BoxConstraints(maxWidth: widget.maxBubbleWidth),
-                      child: CustomPaint(
-                        painter: TailBubblePainter(side: TailSide.left, at: s / 2),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(18, 7, 10, 8),
-                          child: Text.rich(
-                            TextSpan(children: [
-                              TextSpan(
-                                text: '$name\n',
-                                style: const TextStyle(
-                                  color: Color(0xFFB27C1C),
-                                  fontSize: 11,
-                                  height: 1.4,
-                                  fontWeight: FontWeight.w800,
+                      child: CodeBubble(
+                        side: BubbleSide.left,
+                        at: s / 2,
+                        padding: const EdgeInsets.fromLTRB(10, 7, 12, 8),
+                        minWidth: 60,
+                        child: Text.rich(
+                          TextSpan(children: [
+                            TextSpan(
+                              text: '$name\n',
+                              style: const TextStyle(
+                                color: kBubbleName,
+                                fontSize: 11,
+                                height: 1.4,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            TextSpan(text: keepAll(_now)),
+                            if (action != null) ...[
+                              const TextSpan(text: ' '),
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: GestureDetector(
+                                  key: const Key('spiritAction'),
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    setState(() {
+                                      _open = false;
+                                      _withAction = false;
+                                    });
+                                    widget.onAction?.call();
+                                  },
+                                  child: Text(action,
+                                      style: const TextStyle(
+                                        color: kBubbleName,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        decoration: TextDecoration.underline,
+                                      )),
                                 ),
                               ),
-                              TextSpan(text: keepAll(widget.line)),
-                              if (action != null) ...[
-                                const TextSpan(text: ' '),
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.middle,
-                                  child: GestureDetector(
-                                    key: const Key('spiritAction'),
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () {
-                                      setState(() {
-                                        _open = false;
-                                        _withAction = false;
-                                      });
-                                      widget.onAction?.call();
-                                    },
-                                    child: Text(action,
-                                        style: const TextStyle(
-                                          color: Color(0xFFB27C1C),
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w800,
-                                          decoration: TextDecoration.underline,
-                                        )),
-                                  ),
-                                ),
-                              ],
-                            ]),
-                            style: const TextStyle(
-                              color: AppColors.night,
-                              fontSize: 13.5,
-                              height: 1.35,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            ],
+                          ]),
+                          style: const TextStyle(
+                            color: AppColors.night,
+                            fontSize: 13.5,
+                            height: 1.35,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -437,6 +465,15 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
     );
   }
 }
+
+/// 묶음 69 #289: 얼굴을 누를 때마다 차례로 나오는 평소 대사 (그 화면 대사 다음)
+const List<String> idleTalk = [
+  '오늘도 같이 걸어서 좋아!',
+  '조금 쉬었다 가도 괜찮아. 천천히 가자.',
+  '걷다 보면 새로운 게 꼭 보이더라.',
+  '물 한 모금 마시고 갈까?',
+  '네 발소리가 들리면 힘이 나.',
+];
 
 /// 말풍선 꼬리가 나오는 쪽 (묶음 25 #164)
 enum TailSide { left, right, down }

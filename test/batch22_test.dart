@@ -103,7 +103,7 @@ void main() {
       addTearDown(tester.view.reset);
     }
 
-    testWidgets('마을: 위쪽 줄 대신 배지 + 말풍선, 접힌 뒤 배지를 누르면 다시', (tester) async {
+    testWidgets('마을: 위쪽 줄 대신 배지 · 묶음 69 #289 평소엔 얼굴만, 누르면 말풍선 · 다시 누르면 닫힘 · 안 본 대사 점', (tester) async {
       phone(tester);
       late AppController c;
       await tester.runAsync(() async => c = await start(
@@ -113,20 +113,14 @@ void main() {
       await tester.pump();
       expect(find.byType(BulssiLine), findsNothing);
       expect(find.byKey(const Key('spiritBadge')), findsOneWidget);
-      expect(find.byKey(const Key('spiritBubble')), findsOneWidget);
-      await tester.pump(const Duration(seconds: 9));
-      await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('spiritBubble')), findsNothing);
       await tester.tap(find.byKey(const Key('spiritBadge')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('spiritBubble')), findsOneWidget);
-      // 칸에 다시 들어오면 다시 말한다
-      await tester.pump(const Duration(seconds: 9));
-      await tester.pump(const Duration(milliseconds: 300));
-      spiritTabVisits.value++;
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byKey(const Key('spiritBubble')), findsOneWidget);
-      await tester.pump(const Duration(seconds: 9));
+      await tester.tap(find.byKey(const Key('spiritBadge')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('spiritBubble')), findsNothing);
     });
 
     testWidgets('도감도 배지', (tester) async {

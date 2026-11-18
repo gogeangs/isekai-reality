@@ -105,7 +105,9 @@ List<BagEntry> bagEntries(AppController c) {
   return [
     for (final e in c.armory.items)
       if (!c.armory.isWorn(e)) EquipEntry(e),
-    for (final e in c.pets.eggs) EggEntry(e),
+    // 묶음 69 #282: 품는 중인 알은 가방이 아니라 펫 쉼터 「알 부화장」에
+    for (final e in c.pets.eggs)
+      if (e.incubatedAt == null) EggEntry(e),
     for (final n in split(c.gather.pouches)) PouchEntry(n),
     for (final e in c.alchemy.potions.entries)
       for (final n in split(e.value)) PotionEntry(e.key, n),
@@ -250,6 +252,16 @@ class _BagTabState extends State<BagTab> {
               child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
           children: [
+            // 묶음 69 #282: 품는 중인 알은 펫 쉼터에서
+            if (c.pets.eggs.any((e) => e.incubatedAt != null))
+              Padding(
+                key: const Key('bagIncubating'),
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                    '품는 중인 알 ${c.pets.eggs.where((e) => e.incubatedAt != null).length}개 · 펫 쉼터에서 볼 수 있어요',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+              ),
             // 지금 걸린 물약 (11-11 #74): 전투 · 속성 · 탐험 하나씩
             if (c.activeBuffs.isNotEmpty) ...[
               const SizedBox(height: 8),

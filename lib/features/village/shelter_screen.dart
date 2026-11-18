@@ -8,10 +8,9 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../pets/farewell_screen.dart' show showHatchSheet;
 import '../pets/pet_art.dart';
-import '../town/bag_tab.dart' show showBagEntry, EggEntry;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
+import 'hatchery.dart';
 import 'npc_header.dart';
 
 /// 펫 쉼터 (묶음 35): Lv.11 첫 펫과 함께 열린다.
@@ -52,14 +51,6 @@ class _ShelterScreenState extends State<ShelterScreen> {
     return '$m분';
   }
 
-  Future<void> _openEgg(PetEgg e) async {
-    if (c.eggReady(e)) {
-      await showHatchSheet(context, c, e);
-    } else {
-      await showBagEntry(context, c, EggEntry(e));
-    }
-  }
-
   Future<void> _rest(Pet p) async {
     final ok = await c.restInShelter(p.uid);
     if (ok && mounted) {
@@ -80,7 +71,6 @@ class _ShelterScreenState extends State<ShelterScreen> {
           child: ListenableBuilder(
             listenable: c,
             builder: (context, _) {
-              final eggs = c.pets.eggs;
               final tired = c.tiredPets;
               return ListView(
                 padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -96,29 +86,8 @@ class _ShelterScreenState extends State<ShelterScreen> {
                       npc: Npc.lumi,
                       guide: VillageRules.shelterGuide),
                   const SizedBox(height: 10),
-                  // ───── 알 부화장
-                  OrnatePanel(
-                    key: const Key('shelterNests'),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('알 부화장', style: AppText.title(17)),
-                        const SizedBox(height: 8),
-                        if (eggs.isEmpty)
-                          const KText('지금은 알이 없어요. 알을 얻으면 둥지에 놓아 둘게요.',
-                              style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 13))
-                        else
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [
-                              for (final e in eggs) _nest(e),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
+                  // ───── 알 부화장 (묶음 69 #285)
+                  HatcheryPanel(controller: c),
                   const SizedBox(height: 10),
                   // ───── 지친 펫
                   OrnatePanel(
@@ -146,60 +115,6 @@ class _ShelterScreenState extends State<ShelterScreen> {
             },
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _nest(PetEgg e) {
-    final ready = c.eggReady(e);
-    final String label;
-    if (e.incubatedAt == null) {
-      label = '품기 전';
-    } else if (ready) {
-      label = '깨어나려 해요!';
-    } else {
-      label = '${_left(e.incubatedAt!.add(PetRules.hatchTime).difference(c.now))} 남음';
-    }
-    return GestureDetector(
-      key: Key('nest_${e.id}'),
-      onTap: () => _openEgg(e),
-      child: SizedBox(
-        width: 96,
-        child: Column(children: [
-          SizedBox(
-            width: 96,
-            height: 86,
-            child: Stack(alignment: Alignment.bottomCenter, children: [
-              // 짚 둥지
-              Positioned(
-                bottom: 4,
-                child: Container(
-                  width: 84,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(40),
-                    gradient: const RadialGradient(colors: [
-                      Color(0xFF8A6A3A),
-                      Color(0xFF5A4022),
-                    ]),
-                    border: Border.all(color: const Color(0xFFC9A05A), width: 2),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 14,
-                child: EggArt(
-                    size: 60, glowing: ready || e.incubatedAt != null),
-              ),
-            ]),
-          ),
-          Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: ready ? AppColors.goldBright : AppColors.text,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700)),
-        ]),
       ),
     );
   }

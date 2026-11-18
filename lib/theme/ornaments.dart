@@ -115,60 +115,172 @@ class _NineSlice extends StatelessWidget {
 ///
 /// 폭이 120 이상이면 그림 테두리(ui_panel_wide / ui_panel)를,
 /// 그보다 작으면 코드로 그린 테두리를 쓴다.
-/// 불씨 말풍선 그림 (ui_bubble.png, 477×234, 왼쪽 아래 꼬리)
+/// 묶음 69 #287 #288: 큰 안내 말풍선을 그림(ui_bubble) 대신 코드로.
+/// 크림색 바탕(아래로 살짝 진하게) · 굵은 금갈색 테 한 줄 · 둥근 모서리 · 아래 그림자.
+/// 꼬리는 길이가 늘 같고(약 18) 말하는 캐릭터 쪽 변([side])의 [at] 자리에서 캐릭터를 향한다.
+/// [mirrored] 는 예전 이름 그대로 (꼬리가 오른쪽 아래)
 class SpeechBubbleArt extends StatelessWidget {
-  const SpeechBubbleArt({super.key, required this.child, this.mirrored = false});
+  const SpeechBubbleArt({super.key, required this.child, this.mirrored = false, this.side, this.at, this.border});
 
   final Widget child;
-
-  /// true 면 꼬리가 오른쪽 아래 (말하는 쪽이 오른쪽에 있을 때)
   final bool mirrored;
+  final BubbleSide? side;
 
-  static const double _scale = 2.8;
+  /// 꼬리 자리: 왼쪽 · 오른쪽 변이면 위에서부터, 위 · 아래 변이면 왼쪽에서부터 (null = 가운데, 음수 = 끝에서부터)
+  final double? at;
+
+  /// 테 색 (정령 이별처럼 말하는 이의 색으로 은은하게)
+  final Color? border;
 
   @override
   Widget build(BuildContext context) {
-    if (mirrored) {
-      return ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
-        child: Stack(children: [
-          Positioned.fill(
-            child: Transform.flip(
-              flipX: true,
-              child: const _NineSlice(
-                asset: 'assets/images/ui_bubble.webp',
-                slice: Rect.fromLTRB(110, 55, 400, 175),
-                scale: _scale,
-                child: SizedBox.expand(),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 17, 34, 21),
-            child: child,
-          ),
-        ]),
-      );
-    }
+    final sd = side ?? (mirrored ? BubbleSide.right : BubbleSide.left);
+    return CodeBubble(side: sd, at: at, border: border, child: child);
+  }
+}
+
+/// 꼬리가 나오는 변
+enum BubbleSide { left, right, up, down }
+
+/// 코드로 그린 말풍선 (#287 #288)
+class CodeBubble extends StatelessWidget {
+  const CodeBubble({
+    super.key,
+    required this.child,
+    this.side = BubbleSide.left,
+    this.at,
+    this.border,
+    this.padding = const EdgeInsets.fromLTRB(16, 11, 16, 12),
+    this.minWidth = 80,
+  });
+
+  final Widget child;
+  final BubbleSide side;
+  final double? at;
+  final Color? border;
+  final EdgeInsets padding;
+  final double minWidth;
+
+  static const double tail = 18;
+  static const Color edge = Color(0xFF8A5A2B);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tail;
+    final inset = switch (side) {
+      BubbleSide.left => EdgeInsets.only(left: t),
+      BubbleSide.right => EdgeInsets.only(right: t),
+      BubbleSide.up => EdgeInsets.only(top: t),
+      BubbleSide.down => EdgeInsets.only(bottom: t),
+    };
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 50, minWidth: 80),
-      child: _NineSlice(
-        asset: 'assets/images/ui_bubble.webp',
-        slice: const Rect.fromLTRB(110, 55, 400, 175),
-        scale: _scale,
+      constraints: BoxConstraints(minWidth: minWidth + t, minHeight: 44),
+      child: CustomPaint(
+        painter: CodeBubblePainter(side: side, at: at, border: border ?? edge),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(34, 17, 24, 21),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: 1,
-            heightFactor: 1,
-            child: child,
-          ),
+          padding: inset + padding,
+          child: Align(alignment: Alignment.centerLeft, widthFactor: 1, heightFactor: 1, child: child),
         ),
       ),
     );
   }
 }
+
+class CodeBubblePainter extends CustomPainter {
+  CodeBubblePainter({required this.side, this.at, this.border = CodeBubble.edge});
+
+  final BubbleSide side;
+  final double? at;
+  final Color border;
+
+  static const double radius = 20;
+  static const double stroke = 4.5;
+
+  Path shape(Size size) {
+    const t = CodeBubble.tail;
+    final body = switch (side) {
+      BubbleSide.left => Rect.fromLTWH(t, 0, size.width - t, size.height),
+      BubbleSide.right => Rect.fromLTWH(0, 0, size.width - t, size.height),
+      BubbleSide.up => Rect.fromLTWH(0, t, size.width, size.height - t),
+      BubbleSide.down => Rect.fromLTWH(0, 0, size.width, size.height - t),
+    }.deflate(stroke / 2);
+    final rr = RRect.fromRectAndRadius(body, const Radius.circular(radius));
+    // 꼬리: 변에서 [t] 만큼 나와 끝이 살짝 둥근 삼각형 (밑변 22)
+    const half = 11.0;
+    final vertical = side == BubbleSide.left || side == BubbleSide.right;
+    final len = vertical ? body.height : body.width;
+    // [at] 이 음수면 끝(아래 · 오른쪽)에서부터
+    final a = at;
+    final from = a == null
+        ? (vertical ? body.center.dy : body.center.dx)
+        : a < 0
+            ? (vertical ? body.bottom : body.right) + a
+            : a;
+    final start = vertical ? body.top : body.left;
+    var lo = start + radius + half - 6, hi = start + len - radius - half + 6;
+    if (lo > hi) lo = hi = start + len / 2;
+    final pos = from.clamp(lo, hi);
+    final tip = Path();
+    switch (side) {
+      case BubbleSide.left:
+        tip
+          ..moveTo(body.left + 2, pos - half)
+          ..quadraticBezierTo(body.left - t * 0.55, pos - 3, body.left - t + 3, pos - 1)
+          ..quadraticBezierTo(body.left - t, pos, body.left - t + 3, pos + 1.5)
+          ..quadraticBezierTo(body.left - t * 0.45, pos + 4, body.left + 2, pos + half)
+          ..close();
+      case BubbleSide.right:
+        tip
+          ..moveTo(body.right - 2, pos - half)
+          ..quadraticBezierTo(body.right + t * 0.55, pos - 3, body.right + t - 3, pos - 1)
+          ..quadraticBezierTo(body.right + t, pos, body.right + t - 3, pos + 1.5)
+          ..quadraticBezierTo(body.right + t * 0.45, pos + 4, body.right - 2, pos + half)
+          ..close();
+      case BubbleSide.up:
+        tip
+          ..moveTo(pos - half, body.top + 2)
+          ..quadraticBezierTo(pos - 3, body.top - t * 0.55, pos - 1, body.top - t + 3)
+          ..quadraticBezierTo(pos, body.top - t, pos + 1.5, body.top - t + 3)
+          ..quadraticBezierTo(pos + 4, body.top - t * 0.45, pos + half, body.top + 2)
+          ..close();
+      case BubbleSide.down:
+        tip
+          ..moveTo(pos - half, body.bottom - 2)
+          ..quadraticBezierTo(pos - 3, body.bottom + t * 0.55, pos - 1, body.bottom + t - 3)
+          ..quadraticBezierTo(pos, body.bottom + t, pos + 1.5, body.bottom + t - 3)
+          ..quadraticBezierTo(pos + 4, body.bottom + t * 0.45, pos + half, body.bottom - 2)
+          ..close();
+    }
+    return Path.combine(PathOperation.union, Path()..addRRect(rr), tip);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = shape(size);
+    canvas.drawShadow(p.shift(const Offset(0, 2)), const Color(0x99000000), 4, false);
+    canvas.drawPath(
+        p,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFF7E6), Color(0xFFF3E2C0)],
+          ).createShader(Offset.zero & size));
+    canvas.drawPath(
+        p,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeJoin = StrokeJoin.round
+          ..color = border);
+  }
+
+  @override
+  bool shouldRepaint(CodeBubblePainter old) => old.side != side || old.at != at || old.border != border;
+}
+
+/// 말풍선 위 이름 줄 색 (금갈색)
+const Color kBubbleName = Color(0xFF9A6324);
 
 /// 금테 박스 안쪽 여백 (테두리 두께 밖으로 더하는 값)
 const double kPanelGapH = 14;

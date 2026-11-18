@@ -102,7 +102,8 @@ class _NpcHeaderState extends State<NpcHeader> {
             overlayChildBuilder: (_) => CompositedTransformFollower(
               link: _link,
               showWhenUnlinked: false,
-              offset: const Offset(62, 26),
+              // 이름표 아래, 얼굴 오른쪽에 (아래 내용 위로 겹쳐 뜸)
+              offset: const Offset(62, 30),
               child: Align(
                 alignment: Alignment.topLeft,
                 child: !_open
@@ -116,7 +117,7 @@ class _NpcHeaderState extends State<NpcHeader> {
                             constraints: BoxConstraints(maxWidth: (w - 62 - 28).clamp(160.0, 440.0)),
                             child: CodeBubble(
                               side: BubbleSide.left,
-                              at: 22,
+                              at: 16,
                               padding: const EdgeInsets.fromLTRB(12, 8, 14, 9),
                               child: KText(line,
                                   key: Key('npcLine_${widget.npc.name}'),
@@ -128,7 +129,7 @@ class _NpcHeaderState extends State<NpcHeader> {
                       }),
               ),
             ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               GestureDetector(
                 key: Key('npcFace_${widget.npc.name}'),
                 onTap: _toggle,

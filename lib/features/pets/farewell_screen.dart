@@ -10,6 +10,7 @@ import '../../core/rules/pet_rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import 'farewell_talk.dart';
 import '../awakening/awakening_screen.dart' show IllustratedScene;
 import 'pet_art.dart';
 
@@ -194,6 +195,20 @@ class _FarewellScreenState extends State<FarewellScreen>
 
   Widget _scene() {
     final l = _lines[_line];
+    // 묶음 69 #284: 정령이 말하는 줄은 정령 대사창 (주인공 줄 · 마지막 이야기 글은 그대로)
+    if (l.speaker != null && !l.hero) {
+      return FarewellTalkScene(
+        key: ValueKey('farewell$_line'),
+        image: l.image,
+        name: l.speaker!,
+        kind: c.profile.spiritKind,
+        line: l.line,
+        index: _line,
+        onNext: _next,
+        sound: c.sound,
+        vibrate: c.vibrate,
+      );
+    }
     return IllustratedScene(
       key: ValueKey('farewell$_line'),
       image: l.image,

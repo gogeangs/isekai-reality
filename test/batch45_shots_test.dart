@@ -171,7 +171,7 @@ void main() {
       await _settle(tester);
       await _shot(tester, '${n}_04_작은부탁_창');
       await tester.pump(const Duration(seconds: 9));
-    });
+    }, skip: true /* 묶음 69 #286: 건물 위쪽 부탁 줄을 게시판으로 옮김 — 예전 캡처는 그대로 둠 */);
 
     testWidgets('b45 $n: 마을 이름표 표시 · 다 했어요 → 한마디 → 특별한 부탁 · 상태 탭',
         (tester) async {
@@ -224,7 +224,7 @@ void main() {
       await _settle(tester, 3);
       await _shot(tester, '${n}_09_상태탭_부탁');
       await tester.pump(const Duration(seconds: 9));
-    });
+    }, skip: true /* 묶음 69 #286: 건물 위쪽 부탁 줄을 게시판으로 옮김 — 예전 캡처는 그대로 둠 */);
 
     testWidgets('b45 $n: 특별한 부탁 단계 · 받는 장면 · 가방 소중한 물건', (tester) async {
       _device(tester, d);
@@ -268,6 +268,6 @@ void main() {
       await _settle(tester, 3);
       await _shot(tester, '${n}_12_가방_소중한물건');
       await tester.pump(const Duration(seconds: 9));
-    });
+    }, skip: true /* 묶음 69 #286: 건물 위쪽 부탁 줄을 게시판으로 옮김 — 예전 캡처는 그대로 둠 */);
   }
 }

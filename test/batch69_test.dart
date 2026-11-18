@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/models/act5_state.dart';
+import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/features/act5/erbard_screens.dart';
 import 'package:isekai_reality/features/map/korea_area.dart';
@@ -14,6 +15,7 @@ import 'package:isekai_reality/theme/top_notice.dart';
 import 'batch52_test.dart' as b52;
 import 'batch56_test.dart' as b56;
 import 'batch60_test.dart' as b60;
+import 'support/village_seed.dart';
 
 const _ch2 = Act5State(opened: true, chapter: 2, seen: {'e1a', 'e1b', 'e1c'}, ticketAt: -60000);
 
@@ -172,6 +174,28 @@ void main() {
       for (final m in FieldMonsterRules.tierMonsters) {
         expect(LootRules.dropsOf(m).common, isNot(contains(MaterialId.slimeJelly)), reason: '$m');
       }
+    });
+  });
+
+  group('#282 #283 #286 #290', () {
+    test('품는 중인 알은 가방 칸에서 빠짐 (안 품은 알은 그대로)', () async {
+      final c = await startVillage(11, farewell: true, more: {
+        'pets': PetState(
+          pets: [Pet(uid: 'p1', species: PetSpecies.owl, name: '부엉', bornAt: DateTime(2026, 11, 1))],
+          companion: 'p1',
+          firstPet: 'p1',
+          firstSpiritName: '불씨',
+          farewellAt: DateTime(2026, 11, 2),
+          eggs: [PetEgg(id: 'e1', source: 'field', incubatedAt: vt0), const PetEgg(id: 'e2', source: 'field')],
+          nextId: 3,
+        ).toJson(),
+      });
+      expect(c.bagUsed, 1);
+    });
+
+    test('2막 마을 대사 · 부탁은 게시판에서 (새 부탁 · 「게시판에 부탁 하나 붙여 뒀어!」)', () {
+      expect(HarvestRules.prophecy[1].$2, '잿빛… 그 잿빛 틈이랑 같은 색이야. 설마…');
+      expect(NpcRules.boardAskLine, '게시판에 부탁 하나 붙여 뒀어!');
     });
   });
 }

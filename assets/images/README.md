@@ -458,3 +458,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | monster_wildGriffin, monster_wildTroll, monster_wildBoar, monster_wildLizardman, monster_wildLavaGolem | 5막 야생 수비대 바깥(보통) 5 (#247, 붉은 번짐 정리, 512) |
 | 2026-11-18 | monster_wildKnightCaptain, monster_wildRuneGolem, monster_wildElfArcher, monster_wildBanshee, monster_wildDragonCaptain | 5막 야생 수비대 안쪽(강함) 5 (옛 왕국 왕관 문장 깃발, #247, 색 번짐 정리, 512) |
 | 2026-11-18 | item_siegeTicket | 5막 공성권 (금 나팔 + 성탑 밀랍 인장 쪽지, #247, 512) |
+| 2026-11-18 | title_erbardCrown, title_pioneer | 5막 칭호 「에르바르드의 왕관」·「에르바르드의 개척자」 (꼭대기 작은 성탑 표시, #247, 512 → 개발이 160으로) |

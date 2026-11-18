@@ -72,7 +72,7 @@ void main() {
       final now = DateTime(2026, 11, 18, 12);
       final need = LegalRules.needed({for (final k in LegalKind.values) k: 1}, now);
       expect(need.map((v) => v.kind).toSet(), {LegalKind.terms, LegalKind.privacy, LegalKind.location});
-      expect(need.every((v) => v.version == 2), isTrue);
+      expect({for (final v in need) v.kind: v.version}, {LegalKind.terms: 2, LegalKind.privacy: 3, LegalKind.location: 2}, reason: '묶음 62: 처리방침은 3판');
       expect(LegalRules.needed({for (final k in LegalKind.values) k: 1}, DateTime(2026, 11, 17, 12)), isEmpty);
     });
 

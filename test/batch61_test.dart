@@ -121,7 +121,7 @@ void main() {
       expect(ErbardRules.cloneOf('gateHeir'), MonsterId.cloneKnight);
       expect(ErbardRules.cloneOf('ashHunter'), MonsterId.cloneArcher);
       expect(ErbardRules.cloneOf('alchemist'), MonsterId.cloneMage);
-      expect(ErbardRules.cloneOf('herbalist'), MonsterId.clonePriest);
+      expect(ErbardRules.cloneOf('herbalist'), MonsterId.cloneArcher);
       expect(ErbardRules.cloneOf('nightWalker'), MonsterId.cloneRogue);
       expect(ErbardRules.cloneOf('blacksmith'), MonsterId.cloneWarrior);
       expect(ErbardRules.cloneOf(null), MonsterId.cloneWarrior);

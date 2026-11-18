@@ -210,14 +210,20 @@ abstract final class ErbardRules {
   static double guardMult(EstateInfo e, int slot) =>
       (e.royal ? royalMult : e.inner ? innerMult : 1.0) * (1 + slotStep * slot);
 
-  /// 묶음 61: 길드원 분신 그림 — 주 직업 그림 6장 중 (숨은 · 생산 직업은 가장 가까운 전투 직업, 개발 초안)
+  /// 길드원 분신 그림 — 주 직업 그림 6장 (묶음 62: 지금 직업 20가지 기준, 예전 직업 이름은 예전 기록 대비)
   static MonsterId cloneOf(String? job) => switch (job) {
-        'knight' || 'beastKnight' || 'gateHeir' || 'tamer' => MonsterId.cloneKnight,
-        'archer' || 'hunter' || 'ashHunter' || 'pathfinder' || 'explorer' => MonsterId.cloneArcher,
-        'mage' || 'alchemist' || 'runesmith' || 'jeweler' || 'appraiser' || 'archaeologist' => MonsterId.cloneMage,
-        'priest' || 'healer' || 'herbalist' || 'pilgrim' || 'potionMerchant' => MonsterId.clonePriest,
-        'rogue' || 'nightWalker' || 'merchant' || 'peddler' => MonsterId.cloneRogue,
-        _ => MonsterId.cloneWarrior, // 전사 · 대장장이 · 무기 장인 · 만물 장인 · 모험가 · 직업 없음
+        'archer' || 'herbalist' || 'explorer' || 'ashHunter' => MonsterId.cloneArcher,
+        'mage' || 'alchemist' || 'appraiser' || 'archaeologist' => MonsterId.cloneMage,
+        'priest' || 'pilgrim' => MonsterId.clonePriest,
+        'rogue' || 'merchant' || 'nightWalker' => MonsterId.cloneRogue,
+        'knight' || 'tamer' || 'gateHeir' => MonsterId.cloneKnight,
+        // 예전 직업 (#249 전 기록)
+        'hunter' || 'pathfinder' => MonsterId.cloneArcher,
+        'runesmith' || 'jeweler' || 'potionMerchant' => MonsterId.cloneMage,
+        'healer' => MonsterId.clonePriest,
+        'peddler' => MonsterId.cloneRogue,
+        'beastKnight' => MonsterId.cloneKnight,
+        _ => MonsterId.cloneWarrior, // 전사 · 대장장이 · 모험가 · 만물 장인 · 직업 없음 (예전 무기 장인)
       };
 
   /// 흑등 연맹 수비대: 1~4자리 용병, 5자리 · 왕성은 지휘관

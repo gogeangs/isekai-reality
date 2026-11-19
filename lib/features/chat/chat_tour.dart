@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../theme/app_colors.dart';
@@ -34,33 +35,63 @@ class _ChatTourLayerState extends State<ChatTourLayer> {
   bool _sent = false;
   bool _askedLogin = false;
 
+  /// 그린 뒤에 정한 지금 단계 (그리는 중에는 자리를 찾지 않는다)
+  (Rect?, String, (String, VoidCallback)?)? _shown;
+  bool _alive = true;
+  bool _queued = false;
+
   @override
   void initState() {
     super.initState();
     tourBridge.addListener(_poke);
     chatHelloTick.addListener(_hello);
+    SchedulerBinding.instance.addPersistentFrameCallback((_) {
+      if (!_alive || _queued || !c.chatTourPending) return;
+      _queued = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _queued = false;
+        if (_alive && mounted) _compute();
+      });
+    });
   }
 
   @override
   void dispose() {
+    _alive = false;
     tourBridge.removeListener(_poke);
     chatHelloTick.removeListener(_hello);
     super.dispose();
   }
 
   void _poke() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _compute();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _compute() {
+    final s = c.chatTourPending ? _step() : null;
+    final old = _shown;
+    if (s?.$1 != old?.$1 || s?.$2 != old?.$2 || (s?.$3 == null) != (old?.$3 == null)) {
+      setState(() => _shown = s);
+    } else {
+      _shown = s;
+    }
   }
 
   void _hello() {
-    if (_started) setState(() => _sent = true);
+    if (_started) {
+      _sent = true;
+      _poke();
+    }
   }
 
   Future<void> _finish() async {
-    setState(() {
-      _started = false;
-      _sent = false;
-    });
+    _started = false;
+    _sent = false;
+    setState(() => _shown = null);
     await c.markChatTour();
   }
 
@@ -88,7 +119,7 @@ class _ChatTourLayerState extends State<ChatTourLayer> {
     }
     if (_sent) {
       if (top == 'chatRoom') {
-        return (null, '잘했어! 친구와는 따로 이야기할 수도 있어.', ('좋아', () => Navigator.of(context).maybePop()));
+        return (null, '잘했어! 친구와는 따로 이야기할 수도 있어.', ('좋아', () => tourBridge.navKey.currentState?.maybePop()));
       }
       if (top == 'chatHub') {
         return (rectOfKey(const Key('chatTab_1'))?.inflate(4), '친구 탭에서 친구를 초대하거나, 친구와 1:1로 이야기해 봐!', ('알겠어', _finish));
@@ -116,11 +147,9 @@ class _ChatTourLayerState extends State<ChatTourLayer> {
         listenable: c,
         builder: (context, _) {
           if (!c.chatTourPending) return const SizedBox.shrink();
-          final s = _step();
+          final s = _shown;
           if (s == null) return const SizedBox.shrink();
           final (hole, line, button) = s;
-          // 그리는 사이 자리가 바뀌면 한 번 더
-          if (hole == null && button == null) WidgetsBinding.instance.addPostFrameCallback((_) => _poke());
           final size = MediaQuery.sizeOf(context);
           final pad = MediaQuery.paddingOf(context);
           final up = hole != null && hole.center.dy > size.height * 0.55;
@@ -183,17 +212,24 @@ class FriendTourOverlay extends StatefulWidget {
 }
 
 class _FriendTourOverlayState extends State<FriendTourOverlay> {
+  Rect? _hole;
+
+  void _find() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !friendTourOn.value) return;
+      final r = rectOfKey(const Key('friendCodePanel'));
+      if (r != _hole) setState(() => _hole = r);
+      if (r == null) _find();
+    });
+  }
+
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
         valueListenable: friendTourOn,
         builder: (context, on, _) {
           if (!on) return const SizedBox.shrink();
-          final hole = rectOfKey(const Key('friendCodePanel'));
-          if (hole == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() {});
-            });
-          }
+          final hole = _hole;
+          if (hole == null) _find();
           final pad = MediaQuery.paddingOf(context);
           return Material(
             key: const Key('friendTour'),
@@ -226,5 +262,23 @@ class _FriendTourOverlayState extends State<FriendTourOverlay> {
             ]),
           );
         },
+      );
+}
+
+/// 정령 한마디 창 (Lv.8 친구 장면 · 기록 지키기). [actions] 는 (키, 글, 누르면)
+class SpiritLineAlert extends StatelessWidget {
+  const SpiritLineAlert({super.key, required this.spiritName, required this.line, required this.actions});
+
+  final String spiritName;
+  final String line;
+  final List<(Key, String, VoidCallback)> actions;
+
+  @override
+  Widget build(BuildContext context) => GameAlert(
+        title: Text(spiritName),
+        content: KText(line, style: const TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          for (final (k, label, tap) in actions) TextButton(key: k, onPressed: tap, child: Text(label)),
+        ],
       );
 }

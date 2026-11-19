@@ -71,8 +71,8 @@ class AlchemyWorkbench extends StatefulWidget {
 
 class _AlchemyWorkbenchState extends State<AlchemyWorkbench> {
   AppController get c => widget.controller;
-  late final PageController _pages = PageController(initialPage: _firstPage());
   late int _page = _firstPage();
+  late final PageController _pages = PageController(initialPage: _page);
 
   /// 다 끓은 가마솥부터
   int _firstPage() {

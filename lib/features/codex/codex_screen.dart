@@ -608,6 +608,7 @@ class _NewDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
+        key: const Key('codexNew'),
         width: 11,
         height: 11,
         decoration: BoxDecoration(

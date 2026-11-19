@@ -334,7 +334,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
                           value: plan.distanceM >= 1000
                               ? '${(plan.distanceM / 1000).toStringAsFixed(1)}km'
                               : '${plan.distanceM.round()}m'
-                                  '${chosenPet != null && chosenPet.info.flies ? '' : !plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ' (날아서)'}'),
+                                  '${chosenPet != null && chosenPet.info.flies ? '' : !plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ''}'),
                       _InfoRow(
                           label: '기력',
                           value: '${plan.mpCost} 사용 (지금 ${c.mp} / '

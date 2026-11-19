@@ -56,15 +56,11 @@ extension _ShellPopups on _HomeShellState {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (d) => GameAlert(
+      builder: (d) => SpiritLineAlert(
         key: const Key('friendScene'),
-        title: Text(c.firstSpiritName),
-        content: const KText('요즘 걷는 길이 좀 심심하지 않아? 함께 걸을 친구가 있으면 더 멀리 갈 수 있을 거야!',
-            style: TextStyle(color: AppColors.text, height: 1.45)),
-        actions: [
-          TextButton(
-              key: const Key('friendSceneOk'), onPressed: () => Navigator.pop(d), child: const Text('응!')),
-        ],
+        spiritName: c.firstSpiritName,
+        line: '요즘 걷는 길이 좀 심심하지 않아? 함께 걸을 친구가 있으면 더 멀리 갈 수 있을 거야!',
+        actions: [(const Key('friendSceneOk'), '응!', () => Navigator.pop(d))],
       ),
     );
     if (!mounted) return;

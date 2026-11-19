@@ -1092,6 +1092,15 @@ class Battle {
   bool practice = false;
   int practiceDealt = 0;
 
+  /// 묶음 75 #324: 연습 기록 — 가장 센 한 방 · 친 횟수 · 각성자 공격 수 · 치명타 수
+  int practiceMax = 0;
+  int practiceHits = 0;
+  int practiceStrikes = 0;
+  int practiceCrits = 0;
+
+  /// 묶음 75 #324: 이번 틱 공격이 잘 안 들었는지 (속성 상성, 효과 좋음은 [lastSuper])
+  bool lastResist = false;
+
   /// 쓴 횟수 (훈련장 부탁: 강타 · 방어 태세 · 스킬)
   int bashes = 0;
   int stances = 0;
@@ -1326,7 +1335,9 @@ class Battle {
     if (crit) {
       dmg = (dmg * StatRules.critMultiplier).round();
       lastCrit = true;
+      if (practice) practiceCrits++;
     }
+    if (practice) practiceStrikes++;
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     if (useElement) {
       final el = element ?? weaponPotion ?? attackElement;
@@ -1374,6 +1385,7 @@ class Battle {
     lastTaken = 0;
     lastCrit = false;
     lastSuper = false;
+    lastResist = false;
     lastHealed = 0;
     lastEvent = event;
   }
@@ -2078,6 +2090,7 @@ class Battle {
     }
     lastCrit = false;
     lastSuper = false;
+    lastResist = false;
     lastHealed = 0;
     lastMove = null;
     lastAllySkill = null;
@@ -2690,7 +2703,10 @@ class Battle {
       lastEvent = superEffective;
       lastSuper = true;
     }
-    if (m < 1) lastEvent = notEffective;
+    if (m < 1) {
+      lastEvent = notEffective;
+      lastResist = true;
+    }
     return math.max(1, d.round());
   }
 
@@ -2700,6 +2716,8 @@ class Battle {
   void _hitFoe(int damage) {
     if (practice) {
       practiceDealt += damage;
+      practiceHits++;
+      if (damage > practiceMax) practiceMax = damage;
       return;
     }
     // 묶음 57 골렘 「돌벽」: 잠시 받는 피해가 줄어요

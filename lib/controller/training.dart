@@ -116,12 +116,31 @@ extension TrainingOps on AppController {
     return b;
   }
 
-  /// 연습을 마침: 가렌 부탁 셈(강타 · 방어 태세 · 스킬)과 친해지기만
-  Future<void> finishPractice(Battle b) async {
+  /// 연습을 마침: 가렌 부탁 셈(강타 · 방어 태세 · 스킬)과 친해지기 + 묶음 75 #324 연습 기록
+  Future<PracticeResult> finishPractice(Battle b, {DummyKind kind = DummyKind.normal, Element? element}) async {
     if (b.bashes > 0) await _npcTally(NpcTally.practiceBash);
     if (b.stances > 0) await _npcTally(NpcTally.practiceStance);
     if (b.skillsUsed > 0) await _npcTally(NpcTally.practiceSkill);
     await _npcUse(Npc.garen);
+    final secs = TrainingRules.practiceSeconds(b.ticks);
+    final dps = TrainingRules.practiceDps(b.practiceDealt, b.ticks);
+    final key = TrainingRules.practiceKey(kind, element);
+    final best = _training.practiceBest[key] ?? 0;
+    final record = secs > TrainingRules.practiceRecordSec && dps > best;
+    if (record) {
+      await _saveTraining(_training.copyWith(practiceBest: {..._training.practiceBest, key: dps}));
+    }
+    return PracticeResult(
+      total: b.practiceDealt,
+      seconds: secs,
+      dps: dps,
+      max: b.practiceMax,
+      critRate: b.practiceStrikes == 0 ? 0 : b.practiceCrits / b.practiceStrikes,
+      bashes: b.bashes,
+      skills: b.skillsUsed,
+      best: best,
+      newRecord: record,
+    );
   }
 
   // ───────────── ② 하루 훈련 (하루 1번 · 3판)

@@ -10,7 +10,52 @@ enum DummyKind { normal, hard, element }
 
 /// 마을 새 건물 「훈련장」 (묶음 43 #228). 수치는 숨은 값(처음 값, 테스트로 조정).
 /// 경험치는 어디에서도 주지 않는다 — 걷기가 중심
+/// 묶음 75 #324: 연습 결과 (준 피해 · 1초당 · 가장 센 한 방 · 치명타 비율 · 강타 · 스킬 · 지난 최고와 비교)
+class PracticeResult {
+  const PracticeResult({
+    required this.total,
+    required this.seconds,
+    required this.dps,
+    required this.max,
+    required this.critRate,
+    required this.bashes,
+    required this.skills,
+    required this.best,
+    required this.newRecord,
+  });
+
+  final int total;
+  final double seconds;
+  final int dps;
+  final int max;
+
+  /// 0~1
+  final double critRate;
+  final int bashes;
+  final int skills;
+
+  /// 지난 최고 1초당 피해 (없으면 0)
+  final int best;
+  final bool newRecord;
+}
+
 class TrainingRules {
+  /// 묶음 75 #324: 연습 기록 시간 — 전투 한 틱을 0.9초로 (속도 배수와 상관없이)
+  static const double practiceTickSec = 0.9;
+
+  /// 이보다 오래 친 판만 최고 기록에 남김
+  static const double practiceRecordSec = 10;
+
+  static double practiceSeconds(int ticks) => ticks * practiceTickSec;
+
+  static int practiceDps(int dealt, int ticks) {
+    final s = practiceSeconds(ticks);
+    return s <= 0 ? 0 : (dealt / s).round();
+  }
+
+  /// 허수아비(종류 · 속성)마다 기록 열쇠
+  static String practiceKey(DummyKind k, Element? e) => k == DummyKind.element ? '${k.name}:${e?.name ?? ''}' : k.name;
+
   TrainingRules._();
 
   /// 열리는 레벨 (#225 공사 중 규칙: Lv.10 터 닦기 · 11 뼈대 · 12 거의 완성)

@@ -240,6 +240,11 @@ void main() {
       }
     }
 
+    // 묶음 70: 위쪽 띠(「도감에 새로 올랐어요」 등)가 설정 버튼을 덮지 않게 지나간 뒤
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(seconds: 3));
+    }
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('설정'));
     await tester.pumpAndSettle();
     await _shot(tester, '11_설정');

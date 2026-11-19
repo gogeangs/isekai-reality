@@ -108,7 +108,8 @@ void main() {
       await openDemo(tester);
       await tester.tap(find.text('도감'));
       await tester.pump();
-      expect(findK('몬스터 도감 0 / 23'), findsOneWidget);
+      // 묶음 70 #293: 발견한 것만 셈
+      expect(find.byKey(const Key('codexFound')), findsOneWidget);
       await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
           scrollable: find.byType(Scrollable).first);
       expect(find.textContaining('희귀·전설'), findsWidgets);

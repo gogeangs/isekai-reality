@@ -335,6 +335,45 @@ extension BattleOps on AppController {
     await _saveFeel();
   }
 
+  /// 묶음 70 #293: 도감에 오른 칸 ('m:<몬스터>' / 'p:<펫>') → 보이는 이름
+  Map<String, String> get codexEntries => {
+        for (final m in purifiedEver)
+          if (Monsters.codexGroup(m) != null) 'm:${m.name}': Monsters.info(m).name,
+        if (petCodexOpen)
+          for (final p in _pets.seen) 'p:${p.name}': PetRules.info(p).name,
+      };
+
+  /// 도감을 연 뒤로 새로 오른 칸 (반짝임 + 점)
+  Set<String> get codexFresh {
+    final seen = _codexSeen;
+    if (seen == null) return const {};
+    return {for (final k in codexEntries.keys) if (!seen.contains(k)) k};
+  }
+
+  /// 아직 위쪽 띠로 알리지 않은 새 칸의 이름 (처음 발견)
+  List<String> get codexToAnnounce {
+    final done = _codexAnnounced;
+    if (done == null) return const [];
+    return [
+      for (final e in codexEntries.entries)
+        if (!done.contains(e.key)) e.value
+    ];
+  }
+
+  Future<void> markCodexAnnounced() async {
+    if (_codexAnnounced == null) return;
+    _codexAnnounced = {..._codexAnnounced!, ...codexEntries.keys};
+    await _saveFeel();
+  }
+
+  Future<void> markCodexSeen() async {
+    if (_codexSeen == null) return;
+    final all = codexEntries.keys.toSet();
+    if (_codexSeen!.containsAll(all)) return;
+    _codexSeen = {..._codexSeen!, ...all};
+    await _saveFeel();
+  }
+
   Future<void> markPetCodexAnnounced() async {
     if (_petCodexAnnounced) return;
     _petCodexAnnounced = true;
@@ -356,6 +395,8 @@ extension BattleOps on AppController {
       'poisonTip': _poisonTipSeen,
       'petCodex': _petCodexSeen,
       'petCodexNotice': _petCodexAnnounced,
+      if (_codexSeen != null) 'codexSeen': [..._codexSeen!],
+      if (_codexAnnounced != null) 'codexNoticed': [..._codexAnnounced!],
       'adPersonal': _adPersonal,
     });
     _notify();

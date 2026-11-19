@@ -287,6 +287,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   bool _titleShowing = false;
   bool _bagHoldShowing = false; // 묶음 47 #240
   bool _petCodexNoticed = false;
+  bool _codexNoticing = false;
 
   /// 앱으로 돌아올 때마다 걸음을 다시 읽는다
   @override
@@ -464,10 +465,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             header: true,
             child: CodexScreen(
               // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
+              // 묶음 70 #293: 발견한 것만 (갈래가 있는 몬스터)
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
-                  if (Monsters.inCodex(m) || FieldMonsterRules.isTierMonster(m)) m,
+                  if (Monsters.codexGroup(m) != null) m,
               },
+              fresh: controller.codexFresh,
+              onSeen: controller.markCodexSeen,
+              active: _tab == tCodex,
               highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,

@@ -521,6 +521,21 @@ extension _ShellPopups on _HomeShellState {
             onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
       });
     }
+    // 묶음 70 #293: 처음 발견하면 위쪽 띠 「도감에 새로 올랐어요 · ○○」
+    final news = c.codexToAnnounce;
+    if (news.isNotEmpty && !_codexNoticing) {
+      _codexNoticing = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await c.markCodexAnnounced();
+        for (final n in news) {
+          if (!mounted) break;
+          showTopNoticeQueued(context, '도감에 새로 올랐어요 · $n', icon: Icons.menu_book_rounded,
+              onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
+        }
+        _codexNoticing = false;
+      });
+    }
     // 떠돌이 상인 (11-11 #84): 창을 저절로 띄우지 않고 위쪽 띠만.
     // 누르면 지도로 가서 상인 자리를 보여 준다.
     if (merchant != null && merchant != _shownMerchant) {

@@ -23,7 +23,19 @@ class CodexScreen extends StatefulWidget {
     this.petsOpen = false,
     this.petsNew = false,
     this.onPetsTab,
+    this.fresh = const {},
+    this.onSeen,
+    this.active = true,
   });
+
+  /// 묶음 70 #293: 처음 발견하고 아직 도감에서 보지 않은 칸 ('m:<몬스터>' · 'p:<펫>') — 반짝임 + 점
+  final Set<String> fresh;
+
+  /// 도감을 보면 (한 번 보면 반짝임 · 점이 사라짐)
+  final VoidCallback? onSeen;
+
+  /// 도감 탭이 보이는 중인지 (보일 때 새 칸을 반짝이고 본 것으로 남김)
+  final bool active;
 
   /// 펫 탭이 열렸는지 (11-11 #96: 첫 알을 받은 뒤부터. 그 전에는 탭을 아예 숨긴다)
   final bool petsOpen;
@@ -58,6 +70,29 @@ class CodexScreen extends StatefulWidget {
 
 class _CodexScreenState extends State<CodexScreen> {
   int _tab = 0;
+
+  /// 이번에 연 동안 반짝일 칸 (열자마자 본 것으로 남김)
+  Set<String> _glow = const {};
+
+  void _opened() {
+    _glow = {...widget.fresh};
+    if (widget.fresh.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => widget.onSeen?.call());
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _opened();
+  }
+
+  @override
+  void didUpdateWidget(CodexScreen old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active) _opened();
+    if (!widget.active && old.active) _glow = const {};
+  }
 
   Set<MonsterId> get purifiedMonsters => widget.purifiedMonsters;
   Map<MonsterId, int> get huntCounts => widget.huntCounts;
@@ -111,14 +146,16 @@ class _CodexScreenState extends State<CodexScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     final tab = widget.petsOpen ? _tab : 0;
-    final all = [
-      for (final m in Monsters.codex)
-        if (!m.highland ||
-            widget.highlandOpen ||
-            purifiedMonsters.contains(m.id))
-          m,
-    ];
-    final have = [for (final m in all) if (purifiedMonsters.contains(m.id)) m];
+    // 묶음 70 #293: 발견한 것만 · 갈래마다 · 「발견 ○종」
+    final found = <String, List<MonsterInfo>>{};
+    for (final m in Monsters.codex.followedBy([for (final id in MonsterId.values) Monsters.info(id)])) {
+      if (!purifiedMonsters.contains(m.id)) continue;
+      final g = Monsters.codexGroup(m.id);
+      if (g == null) continue;
+      final list = found.putIfAbsent(g, () => []);
+      if (!list.any((x) => x.id == m.id)) list.add(m);
+    }
+    final foundCount = found.values.fold<int>(0, (t, l) => t + l.length);
     final records = [
       for (final e in modHunts.entries)
         if (ModifierRules.parseCodexKey(e.key) case (final monster, final mods))
@@ -137,7 +174,7 @@ class _CodexScreenState extends State<CodexScreen> {
           SpiritBadgeRow(
               line: tab == 1 && widget.petsOpen
                   ? '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'
-                  : '사냥한 몬스터는 여기 기록돼. ${all.length}칸 모두 채워 보자!'),
+                  : '사냥한 몬스터는 여기 기록돼. 새로운 몬스터를 찾아보자!'),
           const SizedBox(height: 8),
           // 11-11 #96·#97: 종족은 돋보기 「감정 앨범」으로 옮겼고, 펫 탭은 첫 알 뒤에만
           if (widget.petsOpen)
@@ -184,77 +221,50 @@ class _CodexScreenState extends State<CodexScreen> {
           if (tab == 1)
             Expanded(
                 child: _PetCodex(
-                    seen: widget.petsSeen, onOpenPets: widget.onOpenPets))
+                    seen: widget.petsSeen, onOpenPets: widget.onOpenPets, fresh: _glow))
           else
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 OrnatePanel(
+                  key: const Key('codexMonsters'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('몬스터 도감 ${have.length} / ${all.length}',
-                          style: AppText.title(19)),
-                      const SizedBox(height: 10),
-                      GridView.count(
-                        crossAxisCount: 3,
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 0.72,
-                        children: [
-                          for (final m in all)
-                            _MonsterTile(
-                              info: m,
-                              hunted: purifiedMonsters.contains(m.id),
-                              count: huntCounts[m.id] ?? 0,
-                              onTap: purifiedMonsters.contains(m.id)
-                                  ? () => _showMonster(context, m)
-                                  : null,
-                            ),
+                      Text('몬스터 도감 · 발견 $foundCount종', key: const Key('codexFound'), style: AppText.title(19)),
+                      if (foundCount == 0)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: KText('아직 만난 몬스터가 없어요. 지도에서 몬스터를 찾아보세요.',
+                              textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+                        ),
+                      for (final g in Monsters.codexGroups)
+                        if (found[g] case final list?) ...[
+                          const SizedBox(height: 10),
+                          Text('$g · ${list.length}종', key: Key('codexGroup_$g'), style: AppText.title(15, color: AppColors.goldBright)),
+                          const SizedBox(height: 6),
+                          GridView.count(
+                            crossAxisCount: 3,
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 0.72,
+                            children: [
+                              for (final m in list)
+                                _MonsterTile(
+                                  key: Key('codexTile_${m.id.name}'),
+                                  info: m,
+                                  hunted: true,
+                                  fresh: _glow.contains('m:${m.id.name}'),
+                                  count: huntCounts[m.id] ?? 0,
+                                  onTap: () => _showMonster(context, m),
+                                ),
+                            ],
+                          ),
                         ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // 묶음 69 #280 #281: 레벨이 오르면 지도에 나오는 더 강한 필드 몬스터 (못 만나면 실루엣)
-                OrnatePanel(
-                  key: const Key('codexFieldTier'),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                          '필드 · 더 강한 몬스터 ${FieldMonsterRules.tierMonsters.where(purifiedMonsters.contains).length} / ${FieldMonsterRules.tierMonsters.length}',
-                          style: AppText.title(19)),
-                      const SizedBox(height: 4),
-                      const KText('레벨이 오르면 지도에 더 강한 몬스터가 섞여 나와요.',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                      const SizedBox(height: 10),
-                      GridView.count(
-                        crossAxisCount: 3,
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 0.72,
-                        children: [
-                          for (final id in FieldMonsterRules.tierMonsters)
-                            _MonsterTile(
-                              key: Key('codexTier_${id.name}'),
-                              info: Monsters.info(id),
-                              hunted: purifiedMonsters.contains(id),
-                              count: huntCounts[id] ?? 0,
-                              onTap: purifiedMonsters.contains(id)
-                                  ? () => _showMonster(context, Monsters.info(id))
-                                  : null,
-                            ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -335,7 +345,10 @@ class _Fact extends StatelessWidget {
 
 class _MonsterTile extends StatelessWidget {
   const _MonsterTile(
-      {super.key, required this.info, required this.hunted, this.count = 0, this.onTap});
+      {super.key, required this.info, required this.hunted, this.count = 0, this.onTap, this.fresh = false});
+
+  /// 묶음 70 #293: 처음 발견하고 처음 보는 칸 — 반짝임 + 점
+  final bool fresh;
 
   final MonsterInfo info;
   final bool hunted;
@@ -346,8 +359,21 @@ class _MonsterTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tile = _tileBody();
+    if (!fresh) return GestureDetector(onTap: onTap, child: tile);
     return GestureDetector(
       onTap: onTap,
+      child: Stack(clipBehavior: Clip.none, children: [
+        Positioned.fill(child: _Sparkle(key: Key('codexFresh_${info.id.name}'))),
+        tile,
+        const Positioned(right: 4, top: 4, child: _NewDot()),
+      ]),
+    );
+  }
+
+  Widget _tileBody() {
+    return GestureDetector(
+      onTap: null,
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
@@ -418,9 +444,10 @@ IconData titleIcon(TitleId id) => switch (id) {
 
 /// 도감 펫 탭: 일반 6종 (희귀·전설은 나중에 더한다)
 class _PetCodex extends StatelessWidget {
-  const _PetCodex({required this.seen, this.onOpenPets});
+  const _PetCodex({required this.seen, this.onOpenPets, this.fresh = const {}});
 
   final Set<PetSpecies> seen;
+  final Set<String> fresh;
   final VoidCallback? onOpenPets;
 
   Future<void> _show(BuildContext context, PetSpeciesInfo info) =>
@@ -478,55 +505,60 @@ class _PetCodex extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('펫 도감 ${seen.length} / ${PetSpecies.values.length}',
-                  style: AppText.title(19)),
-              const SizedBox(height: 10),
-              GridView.count(
-                crossAxisCount: 3,
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.8,
-                children: [
-                  for (final s in PetSpecies.values)
-                    GestureDetector(
-                      onTap: seen.contains(s)
-                          ? () => _show(context, PetRules.info(s))
-                          : null,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1B1E4C),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: seen.contains(s)
-                                  ? AppColors.goldBright
-                                  : AppColors.gold.withValues(alpha: 0.3)),
+              // 묶음 70 #293: 한 번이라도 가졌던 펫만 · 등급 갈래마다 · 「발견 ○종」
+              Text('펫 도감 · 발견 ${seen.length}종', key: const Key('petCodexFound'), style: AppText.title(19)),
+              for (final g in PetGrade.values)
+                if ([for (final s in PetSpecies.values) if (seen.contains(s) && PetRules.info(s).grade == g) s] case final list when list.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                      '${switch (g) {
+                        PetGrade.common => '일반',
+                        PetGrade.rare => '희귀',
+                        PetGrade.hero => '영웅',
+                        PetGrade.legend => '전설',
+                      }} · ${list.length}종',
+                      key: Key('petGroup_${g.name}'),
+                      style: AppText.title(15, color: AppColors.goldBright)),
+                  const SizedBox(height: 6),
+                  GridView.count(
+                    crossAxisCount: 3,
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 0.8,
+                    children: [
+                      for (final s in list)
+                        GestureDetector(
+                          key: Key('petTile_${s.name}'),
+                          onTap: () => _show(context, PetRules.info(s)),
+                          child: Stack(clipBehavior: Clip.none, children: [
+                            if (fresh.contains('p:${s.name}')) const Positioned.fill(child: _Sparkle()),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1B1E4C),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.goldBright),
+                              ),
+                              child: Column(children: [
+                                Expanded(child: PetArt(species: s, size: 80)),
+                                Text(PetRules.info(s).name,
+                                    style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ]),
+                            ),
+                            if (fresh.contains('p:${s.name}')) const Positioned(right: 4, top: 4, child: _NewDot()),
+                          ]),
                         ),
-                        child: Column(children: [
-                          Expanded(
-                            child: seen.contains(s)
-                                ? PetArt(species: s, size: 80)
-                                // 11-11 #96: 못 만난 펫은 완전한 검은 실루엣
-                                : ColorFiltered(
-                                    colorFilter: const ColorFilter.mode(
-                                        Color(0xFF05060F), BlendMode.srcATop),
-                                    child: PetArt(species: s, size: 80)),
-                          ),
-                          Text(seen.contains(s) ? PetRules.info(s).name : '???',
-                              style: TextStyle(
-                                  color: seen.contains(s)
-                                      ? AppColors.text
-                                      : AppColors.textMuted,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
-                        ]),
-                      ),
-                    ),
+                    ],
+                  ),
                 ],
-              ),
+              if (seen.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: KText('아직 함께한 펫이 없어요.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+                ),
             ],
           ),
         ),
@@ -537,4 +569,51 @@ class _PetCodex extends StatelessWidget {
       ],
     );
   }
+}
+
+
+/// 묶음 70 #293: 처음 발견한 칸의 반짝임 (한 번 보면 사라짐)
+class _Sparkle extends StatefulWidget {
+  const _Sparkle({super.key});
+
+  @override
+  State<_Sparkle> createState() => _SparkleState();
+}
+
+class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _a,
+        builder: (context, _) => DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(color: AppColors.goldBright.withValues(alpha: 0.35 + 0.45 * _a.value), blurRadius: 10 + 10 * _a.value, spreadRadius: 1),
+            ],
+          ),
+        ),
+      );
+}
+
+class _NewDot extends StatelessWidget {
+  const _NewDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 11,
+        height: 11,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5484D),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+      );
 }

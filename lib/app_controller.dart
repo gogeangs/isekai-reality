@@ -584,6 +584,9 @@ class AppController extends ChangeNotifier {
     _poisonTipSeen = feel['poisonTip'] == true;
     _petCodexSeen = feel['petCodex'] == true;
     _petCodexAnnounced = feel['petCodexNotice'] == true;
+    _codexSeen = feel['codexSeen'] is List ? {for (final v in feel['codexSeen'] as List) '$v'} : null;
+    _codexAnnounced =
+        feel['codexNoticed'] is List ? {for (final v in feel['codexNoticed'] as List) '$v'} : null;
     _adPersonal = feel['adPersonal'] is bool ? feel['adPersonal'] as bool : null;
     _tutorial = await _load(
         _tutorialKey, (j) => (j['step'] as num?)?.toInt() ?? 0, 0);
@@ -812,6 +815,12 @@ class AppController extends ChangeNotifier {
       await _checkWalkMastery();
       await refreshVitals();
     });
+    // 묶음 70 #293: 처음 셀 때는 지금까지 발견한 것을 모두 본 것으로
+    if (_codexSeen == null || _codexAnnounced == null) {
+      _codexSeen ??= codexEntries.keys.toSet();
+      _codexAnnounced ??= codexEntries.keys.toSet();
+      await _saveFeel();
+    }
     notifyListeners();
   }
 
@@ -1188,6 +1197,9 @@ class AppController extends ChangeNotifier {
   bool _poisonTipSeen = false;
   bool _petCodexSeen = false;
   bool _petCodexAnnounced = false;
+  // 묶음 70 #293: 도감에서 본 칸 · 위쪽 띠로 알린 칸 ('m:<몬스터>' / 'p:<펫>'). null = 아직 셈 전
+  Set<String>? _codexSeen;
+  Set<String>? _codexAnnounced;
 
   /// 맞춤형 광고 허용 (묶음 15 #103). null = 아직 묻지 않음 → 처음 광고 볼 때 묻는다
   bool? _adPersonal;

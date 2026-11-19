@@ -531,9 +531,9 @@ void main() {
     tester.view.physicalSize = const Size(750, 1334);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    final base = Monsters.codex.where((m) => !m.highland).length;
-    Finder count(int have, int all) => find.byWidgetPredicate((w) =>
-        w is Text && (w.data ?? '') == '몬스터 도감 $have / $all');
+    // 묶음 70 #293: 발견한 것만 · 「발견 ○종」 · 갈래 제목은 발견했을 때만
+    Finder count(int have) => find.byWidgetPredicate((w) =>
+        w is Text && (w.data ?? '') == '몬스터 도감 · 발견 $have종');
     Future<void> show(Set<MonsterId> got, bool open) async {
       await tester.pumpWidget(MaterialApp(
           home: Scaffold(
@@ -543,11 +543,13 @@ void main() {
     }
 
     await show(const {}, false);
-    expect(count(0, base), findsOneWidget);
+    expect(count(0), findsOneWidget);
+    expect(find.byKey(const Key('codexGroup_하이랜드')), findsNothing);
     await show(const {}, true);
-    expect(count(0, base + 6), findsOneWidget);
+    expect(count(0), findsOneWidget);
     await show(const {MonsterId.guardWind}, false);
-    expect(count(1, base + 1), findsOneWidget);
+    expect(count(1), findsOneWidget);
+    expect(find.text('하이랜드 · 1종'), findsOneWidget);
     await tester.pump(const Duration(seconds: 9));
   });
 }

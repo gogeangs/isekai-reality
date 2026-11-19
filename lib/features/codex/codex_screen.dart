@@ -581,7 +581,9 @@ class _Sparkle extends StatefulWidget {
 }
 
 class _SparkleState extends State<_Sparkle> with SingleTickerProviderStateMixin {
-  late final AnimationController _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..repeat(reverse: true);
+  // 몇 번 반짝인 뒤 은은하게 멈춤 (점은 그대로)
+  late final AnimationController _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
+    ..repeat(reverse: true, count: 6);
 
   @override
   void dispose() {

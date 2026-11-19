@@ -603,7 +603,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                    '${HarvestRules.toolName(t)} · ${josa(Materials.info(HarvestRules.repairMaterial(t)).name, '이/가')} 없어 못 고쳐요',
+                    '${HarvestRules.toolName(t)} · ${josa(Materials.needName(HarvestRules.repairMaterial(t)), '이/가')} 없어 못 고쳐요',
                     key: Key('repairAllShort_${t.name}'),
                     style: const TextStyle(color: Color(0xFFFF8A80), fontSize: 12.5, fontWeight: FontWeight.w700)),
               ),

@@ -32,6 +32,9 @@ class WorkbenchBus extends ChangeNotifier {
   void changed() => notifyListeners();
 }
 
+/// 가마솥 그림의 물 높이 (그림 높이 비율, 묶음 72 큰 가마솥 그림)
+const double _mouthY = 0.17;
+
 /// 재료 그림의 대표 색 (그림이 없으면 이름으로 정한 색)
 Color materialTint(MaterialId m) {
   final asset = Materials.info(m).asset;
@@ -261,7 +264,7 @@ class _BuyPage extends StatelessWidget {
           Center(
             child: Opacity(
               opacity: 0.45,
-              child: Image.asset('assets/images/alchemy_cauldron_base.webp',
+              child: Image.asset('assets/images/alchemy_cauldron.webp',
                   width: math.min(box.maxWidth * 0.55, 200)),
             ),
           ),
@@ -508,23 +511,45 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
             child: AnimatedBuilder(
               animation: _loop,
               builder: (context, _) => Stack(clipBehavior: Clip.none, children: [
-                // 불 (끓는 중이면 크게)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _FirePainter(
-                        t: _loop.value, big: brew != null && !ready, ready: ready),
+                // 불 (끓는 중이면 그림 위로 더 크게 — 가마솥 그림에 잔불이 있음)
+                if (brew != null && !ready)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _FirePainter(t: _loop.value, big: true, ready: ready),
+                    ),
                   ),
-                ),
+                // 묶음 72: 큰 가마솥 그림 + 같은 크기 · 같은 자리의 흰 물(코드로 물 색)
                 Positioned.fill(
-                    child: Image.asset('assets/images/alchemy_cauldron_base.webp',
-                        key: const Key('cauldronArt'))),
+                    child: Image.asset('assets/images/alchemy_cauldron.webp',
+                        key: const Key('cauldronArt'),
+                        errorBuilder: (_, __, ___) => Image.asset('assets/images/alchemy_cauldron_base.webp'))),
                 Positioned.fill(
                   child: ColorFiltered(
                     colorFilter: ColorFilter.mode(liquid, BlendMode.modulate),
-                    child: Image.asset('assets/images/alchemy_liquid.webp',
-                        key: const Key('cauldronLiquid')),
+                    child: Image.asset('assets/images/alchemy_brew.webp',
+                        key: const Key('cauldronLiquid'),
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                   ),
                 ),
+                // 첨벙 (흰 물보라 그림에 재료 색)
+                for (final (color, p) in _splashes)
+                  Positioned(
+                    left: pot * (0.5 - 0.22 * (0.7 + p * 0.5)),
+                    top: pot * (_mouthY - 0.3 * (0.7 + p * 0.5)),
+                    width: pot * 0.44 * (0.7 + p * 0.5),
+                    height: pot * 0.44 * (0.7 + p * 0.5),
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: (1 - p).clamp(0.0, 1.0),
+                        child: ColorFiltered(
+                          colorFilter: ColorFilter.mode(color, BlendMode.modulate),
+                          child: Image.asset('assets/images/fx_splash.webp',
+                              key: const Key('fxSplash'),
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                        ),
+                      ),
+                    ),
+                  ),
                 // 거품 · 첨벙 · 떨어지는 재료 · 반짝임
                 Positioned.fill(
                   child: CustomPaint(
@@ -540,10 +565,10 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
                 ),
                 for (final d in _drops)
                   () {
-                    // 포물선: 출발점 → 위로 살짝 → 가마솥 입구 (0.5, 0.37)
+                    // 포물선: 출발점 → 위로 살짝 → 가마솥 입구
                     final t = Curves.easeIn.transform(d.t.clamp(0.0, 1.0));
                     final x = d.from.dx + (0.5 - d.from.dx) * t;
-                    final y0 = d.from.dy, y1 = 0.37;
+                    final y0 = d.from.dy, y1 = _mouthY;
                     final y = y0 + (y1 - y0) * t - math.sin(t * math.pi) * 0.35;
                     final s = pot * 0.2 * (1 - t * 0.35);
                     return Positioned(
@@ -557,7 +582,7 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
                 if (ready)
                   Positioned(
                     left: pot * 0.5 - pot * 0.14,
-                    top: pot * (0.12 - 0.04 * math.sin(_loop.value * 2 * math.pi)),
+                    top: pot * (_mouthY - 0.16 - 0.04 * math.sin(_loop.value * 2 * math.pi)),
                     child: Column(children: [
                       Container(
                         key: const Key('brewRise'),
@@ -846,7 +871,7 @@ class _BrewFx extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
-    final mouth = Offset(w * 0.5, w * 0.38);
+    final mouth = Offset(w * 0.5, w * _mouthY);
     // 거품 (끓는 중이면 많이 · 높이)
     final bubbles = boiling ? 9 : 3;
     for (var i = 0; i < bubbles; i++) {

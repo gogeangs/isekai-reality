@@ -363,10 +363,15 @@ class _BagTabState extends State<BagTab> {
                     ),
                   ]),
                   if (used > cap)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: KText('칸보다 많이 들어 있어요. 정리하면 새로 얻는 것을 받을 수 있어요.',
-                          style: TextStyle(
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      // 묶음 72 #305: 칸이 줄어 넘친 까닭에 맞게
+                      child: KText(
+                          c.bigPackEnded
+                              ? '늘어났던 칸이 끝나서 칸보다 많아요. 정리하면 새로 얻는 것을 받을 수 있어요.'
+                              : '칸보다 많이 들어 있어요. 정리하면 새로 얻는 것을 받을 수 있어요.',
+                          key: const Key('bagOverLine'),
+                          style: const TextStyle(
                               color: AppColors.textMuted, fontSize: 12)),
                     ),
                   const SizedBox(height: 10),

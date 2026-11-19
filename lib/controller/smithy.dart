@@ -417,12 +417,16 @@ extension SmithyOps on AppController {
         _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
   });
 
-  Future<void> unequip(EquipSlot slot) =>
+  /// 벗는다. 묶음 72 #305: 벗은 장비는 가방 한 칸을 쓰므로, 가방이 가득하면 벗지 않는다 (false)
+  Future<bool> unequip(EquipSlot slot) =>
       _serial(() async {
+    if (_armory.equipped[slot] == null) return false;
+    if (bagFree <= 0) return false;
     await _saveArmory(_armory.copyWith(equipped: {
       for (final e in _armory.equipped.entries)
         if (e.key != slot) e.key: e.value,
     }));
+    return true;
   });
 
   /// 싸울 때마다 입은 장비의 내구도가 준다 (대장장이 튼튼한 손: 가끔 닳지 않음)

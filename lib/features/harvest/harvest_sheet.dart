@@ -319,7 +319,7 @@ class ToolRepairPanel extends StatelessWidget {
                       }
                     : null,
                 key: Key('toolRepair_${t.name}'),
-                child: Text('수리 (${Materials.info(HarvestRules.repairMaterial(t)).name} 1 + 금화 ${HarvestRules.repairGold})'),
+                child: Text('수리 (${Materials.needName(HarvestRules.repairMaterial(t))} 1 + 금화 ${HarvestRules.repairGold})'),
               ),
               if (HarvestRules.upgradeCost(c.toolTier(t)) case final cost?)
                 TextButton(

@@ -1,3 +1,4 @@
+import '../../theme/top_notice.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -55,9 +56,14 @@ Future<void> showEquipPicker(
                         item: item,
                         current: worn,
                         worn: worn?.uid == item.uid,
-                        onPressed: () => worn?.uid == item.uid
-                            ? c.unequip(slot)
-                            : c.equip(item.uid),
+                        onPressed: () async {
+                          if (worn?.uid != item.uid) return c.equip(item.uid);
+                          // 묶음 72 #305: 가방이 가득하면 벗지 못함
+                          if (!await c.unequip(slot) && context.mounted) {
+                            showTopNotice(context, '가방이 가득해서 벗을 수 없어요. 가방을 정리해 주세요.',
+                                icon: Icons.backpack_rounded);
+                          }
+                        },
                       ),
                   ]),
                 ),

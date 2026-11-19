@@ -482,3 +482,22 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | nest_back | 알 부화장 둥지 뒤쪽 (짚·잔가지 테 + 안쪽 깃털, 앞 테 없음, 원본 캔버스 그대로 줄여 nest_front와 겹치면 맞도록, #285, 256) |
 | 2026-11-19 | nest_front | 알 부화장 둥지 앞쪽 테 (nest_back과 같은 256 캔버스·같은 자리 — 겹치면 둥지가 닫힘, 사이에 알을 끼움. 원본보다 위로 올리고 가로 6% 넓혀 맞춤, #285, 256) |
 | 2026-11-19 | monster_sphinx, monster_doppelganger, monster_clockworkKnight, monster_arachne, monster_centaur, monster_owlbear, monster_kelpie, monster_naga, monster_roc | Lv.50 지도 몬스터 9 (한 장에서 잘라 냄, 색 번짐 정리, #281, 512) |
+| 2026-11-19 | monster_sphinx … monster_roc (9장, 다시) | Lv.50 지도 몬스터 9 새 판으로 덮어씀 (외곽선 더 굵고 번짐 적음, #281, 512) |
+| 2026-11-19 | spirit_plant_farewell | 풀 정령 이별 얼굴(눈물 미소), 512, 기본 그림과 같은 크기·위치 |
+| 2026-11-19 | spirit_fire_farewell | 불 정령 이별 얼굴(눈물 미소), 512, 떠다니는 불꽃 조각·후광 제거 |
+| 2026-11-19 | spirit_water_farewell | 물 정령 이별 얼굴(눈물 미소), 512, 떠다니는 거품·반짝이·후광 제거 |
+| 2026-11-19 | monster_dullahan, monster_werewolf, monster_deathKnight, monster_basilisk | Lv.50 지도 몬스터 4종, 512 (2×2 한 장에서 잘라냄) |
+| 2026-11-19 | mat_gortRoot, mat_silvaFern, mat_mireaGrass, mat_zephiraLeaf, mat_noctiGrass, mat_mandragora | 약초 재료 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-19 | village_market_2 | 거래소 ★2(옆 노점 추가), 512, 기본 거래소와 폭·바닥선 맞춤 |
+| 2026-11-19 | bg_in_smithy | 대장간 안 배경(화덕·모루·무기 벽), 1024×1792 |
+| 2026-11-19 | village_market_3 | 거래소 ★3(노점 세 칸·양쪽 깃발·큰 저울), 512, 기본 거래소와 폭·바닥선 맞춤 |
+| 2026-11-19 | bg_in_inn | 여관 안 배경(벽난로·안락의자·객실 문·열쇠판), 1024×1792 |
+| 2026-11-19 | bg_in_alchemy | 연금술 공방 안 배경(끓는 가마솥·물약 선반·증류기·말린 약초), 1024×1792 |
+| 2026-11-19 | bg_in_shop | 상점 안 배경(계산대·저울·물약·가방·자루), 1024×1792 |
+| 2026-11-19 | bg_in_tavern | 주점 안 배경(술통 바·잔 선반·게시판·탁자·류트), 1024×1792 |
+| 2026-11-19 | bg_in_guild | 길드 안 배경(직업 문장 깃발·큰 문·작업대·훈련 인형), 1024×1792 |
+| 2026-11-19 | icon_chat, icon_friends, icon_settings | 위쪽 버튼 아이콘 3종, 512 (그림에 딸려 온 남색 동그라미·금테는 떼어 냄 — 게임 버튼이 따로 그림) |
+| 2026-11-19 | alchemy_cauldron | 연금술 큰 가마솥(빈 상태, 장작불 위), 768 |
+| 2026-11-19 | alchemy_still, alchemy_altar | 연금술 증류기(가공) · 변환 제단(변환), 768, 같은 비율·바닥선 |
+| 2026-11-19 | fx_splash | 재료가 빠질 때 튀는 물보라(흰·회색, 게임이 색을 입힘), 512, 뿌연 흰 번짐 제거 |
+| 2026-11-19 | alchemy_brew | 가마솥 입구에 겹치는 끓는 물(흰·회색, 게임이 색을 입힘)+김, 768, alchemy_cauldron과 같은 캔버스·위치 |

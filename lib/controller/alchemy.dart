@@ -773,8 +773,9 @@ extension AlchemyOps on AppController {
         for (final e in use.entries) e.key.name: e.value,
         if (r.gold > 0) Wallet.gold: r.gold,
       }),
-      gains: DailyRecord.addCounts(today.gains, {r.output.name: r.count}),
     ));
+    // 묶음 72 #305: 만든 재료도 가방에 들어가는 만큼만 (남으면 「가방이 가득 찼어요」 창)
+    await _admitBag({r.output.name: r.count});
     return true;
   });
 

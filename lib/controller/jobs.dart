@@ -676,6 +676,13 @@ extension JobOps on AppController {
   /// 오늘 늘어난 가방 칸
   int get jobBagSlots => bigPackToday ? JobRules.bigPackSlots : 0;
 
+  /// 묶음 72 #305: 어제 큰 짐 보따리로 늘었던 칸이 오늘 끝났는지 (가방이 칸보다 많을 때 까닭)
+  bool get bigPackEnded {
+    final y = _clock().subtract(const Duration(days: 1));
+    return !bigPackToday &&
+        _jobs.marks['bigPackDay'] == int.parse(DailyRecord.dayKeyOf(y).replaceAll('-', ''));
+  }
+
   /// 전투 스킬: MP만 쓴다 (효과는 전투가 낸다). 쓸 수 없으면 false
   Future<bool> payBattleSkill(JobSkill s) async {
     final mine = jobSkills.where((x) => x.$1 == s).toList();

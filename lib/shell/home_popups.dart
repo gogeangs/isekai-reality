@@ -55,7 +55,7 @@ extension _ShellPopups on _HomeShellState {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierColor: const Color(0xD9000000),
+      barrierColor: const Color(0xF2050614), // 묶음 72: 뒤 화면 글자가 비치지 않게
       builder: (d) => SpiritLineAlert(
         key: const Key('friendScene'),
         spiritName: c.firstSpiritName,
@@ -79,7 +79,7 @@ extension _ShellPopups on _HomeShellState {
     final yes = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      barrierColor: line != null ? const Color(0xD9000000) : null,
+      barrierColor: line != null ? const Color(0xF2050614) : null,
       builder: (d) => line != null
           // 묶음 71: Lv.8 친구 장면에 이어서는 정령 얼굴 + 말풍선
           ? SpiritLineAlert(

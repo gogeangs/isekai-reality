@@ -310,7 +310,16 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
 
   /// 늘 도는 시계 (거품·불·반짝임)
   late final AnimationController _loop =
-      AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+      AnimationController(vsync: this, duration: const Duration(seconds: 3));
+
+  /// 끓는 중 · 다 끓음 · 맞는 순서 반짝임일 때만 돈다 (가만히 있는 빈 가마솥은 멈춤)
+  void _syncLoop(bool on) {
+    if (on && !_loop.isAnimating) {
+      _loop.repeat();
+    } else if (!on && _loop.isAnimating) {
+      _loop.stop();
+    }
+  }
 
   final List<_Drop> _drops = [];
 
@@ -460,6 +469,7 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
   Widget build(BuildContext context) {
     final brew = c.alchemy.brews[widget.slot];
     final ready = c.brewReady(widget.slot);
+    _syncLoop(brew != null || _matches);
     return LayoutBuilder(builder: (context, box) {
       final idle = brew == null;
       // 아래 칸(넣은 재료 줄·버튼·선반)을 뺀 만큼, 폭의 70%까지

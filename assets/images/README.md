@@ -489,3 +489,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | monster_dullahan, monster_werewolf, monster_deathKnight, monster_basilisk | Lv.50 지도 몬스터 4종, 512 (2×2 한 장에서 잘라냄) |
 | 2026-11-19 | mat_gortRoot, mat_silvaFern, mat_mireaGrass, mat_zephiraLeaf, mat_noctiGrass, mat_mandragora | 약초 재료 6종, 512 (3×2 한 장에서 잘라냄) |
 | 2026-11-19 | village_market_2 | 거래소 ★2(옆 노점 추가), 512, 기본 거래소와 폭·바닥선 맞춤 |
+| 2026-11-19 | bg_in_smithy | 대장간 안 배경(화덕·모루·무기 벽), 1024×1792 |

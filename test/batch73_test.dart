@@ -126,8 +126,11 @@ void main() {
       for (final e in allies.evaluate()) {
         final r = tester.getRect(find.byWidget(e.widget));
         expect(hero.left, greaterThan(r.left));
-        // 각성자 서기 그림은 위 182px, 동료 그림은 위 22~99px 이 비어 있음
-        expect(headTop(hero, 182), lessThan(headTop(r, 22)));
+        // 각성자 서기 그림은 위 182/1024 가 비어 있음. 동료는 640×640 칸(위 약 110/640 이 비어 있음, 묶음 73b)
+        final allyTop = r.bottom - r.height * (1 - 110 / 640);
+        expect(headTop(hero, 182), lessThan(allyTop));
+        // 동료 얼굴·몸통을 가리지 않게: 각성자 몸(칸 왼쪽 17%부터)이 동료 칸 가운데보다 오른쪽
+        expect(hero.left + hero.width * 0.17, greaterThan(r.center.dx));
       }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 5));

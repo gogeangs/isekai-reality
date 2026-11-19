@@ -118,6 +118,17 @@ class VillageScreen extends StatefulWidget {
 }
 
 class _VillageScreenState extends State<VillageScreen> {
+  /// 묶음 73 #312: 위쪽 띠(제목 · 정령 줄)의 아래 끝 (화면 y). 빛의 다리 이름표가 그 밑으로 내려 붙는다
+  final _topBand = ValueNotifier<double>(0);
+  final _topKey = GlobalKey(debugLabel: 'villageTop');
+
+  void _measureTop() {
+    final box = _topKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !mounted) return;
+    final bottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+    if ((bottom - _topBand.value).abs() > 0.5) _topBand.value = bottom;
+  }
+
   AppController get controller => widget.controller;
 
   /// 소개 줄 (null 이면 소개 없음)
@@ -151,6 +162,7 @@ class _VillageScreenState extends State<VillageScreen> {
   @override
   void dispose() {
     widget.visits?.removeListener(_onVisit);
+    _topBand.dispose();
     super.dispose();
   }
 
@@ -451,6 +463,7 @@ class _VillageScreenState extends State<VillageScreen> {
       });
     }
     final introLines = c.villageIntroLines;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measureTop());
     return ColoredBox(
       color: AppColors.deepNight,
       child: Stack(children: [
@@ -478,6 +491,7 @@ class _VillageScreenState extends State<VillageScreen> {
             onTap: _enter,
             // 묶음 52 #243: 탑 옆 빛의 다리 (Lv.21 · 결말 뒤 만남을 지나면)
             onBridge: c.act3Available ? () => openJourney(context, c) : null,
+            topBand: _topBand,
           ),
         ),
         // 위쪽 버튼 뒤 살짝 어두운 그라데이션
@@ -502,7 +516,7 @@ class _VillageScreenState extends State<VillageScreen> {
           left: 14,
           right: 14,
           top: pad.top + 6,
-          child: Column(children: [
+          child: Column(key: _topKey, children: [
             const OrnateTopBar(title: '마을'),
             const SizedBox(height: 6),
             SpiritBadgeRow(
@@ -548,6 +562,7 @@ class _VillageArt extends StatefulWidget {
   const _VillageArt({
     super.key,
     required this.act,
+    this.topBand,
     required this.all,
     required this.open,
     required this.news,
@@ -605,6 +620,9 @@ class _VillageArt extends StatefulWidget {
 
   /// 묶음 52 #243: 빛의 다리 이름표 (3막으로)
   final VoidCallback? onBridge;
+
+  /// 묶음 73 #312: 위쪽 띠 아래 끝 (화면 y)
+  final ValueListenable<double>? topBand;
 
   @override
   State<_VillageArt> createState() => _VillageArtState();
@@ -751,7 +769,7 @@ class _VillageArtState extends State<_VillageArt> {
       for (final f in widget.all) _building(f, r),
       // 건물 이름표 (#212): 건물 아래쪽 가운데, 건물보다 위에
       for (final f in widget.all) _tag(f, r),
-      if (widget.onBridge != null && widget.act == 3) _bridgeTag(r),
+      if (widget.onBridge != null && widget.act == 3) _bridgeTag(r, viewW),
       // 소개 중: 탑을 금빛 테두리로 비춤
       if (widget.towerGlow)
         Positioned.fromRect(
@@ -844,13 +862,30 @@ class _VillageArtState extends State<_VillageArt> {
   /// 건물 이름표 (#212): 열린 건물 「여관」 · 안 열린 건물 「🔒 연금술 공방 · Lv.7」 ·
   /// 거래소 「거래소 · 준비 중」. 빨간 점은 이름표 오른쪽 위
   /// 빛의 다리 (탑 오른쪽 뒤 그림 자리)
-  Widget _bridgeTag(Rect Function(double, double, double, double) r) {
+  Widget _bridgeTag(Rect Function(double, double, double, double) r, double viewW) {
     final at = r(VillageScreen.bridge.dx, VillageScreen.bridge.dy, 0, 0);
     const half = 70.0;
+    // 묶음 73 #312: 위쪽 띠와 겹치면 그 아래로 내려 붙이고, 다리 그림이 화면 밖이면 숨김 (누르는 칸도 같이)
+    final band = widget.topBand?.value ?? 0;
+    final top = math.max(at.top, band + 6);
     return Positioned(
       left: at.left - half,
       width: half * 2,
-      top: at.top,
+      top: top,
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_scroll, if (widget.topBand case final b?) b]),
+        builder: (context, child) {
+          final x = at.left - (_scroll.hasClients ? _scroll.offset : 0);
+          final shown = x >= 0 && x <= viewW;
+          return Visibility(
+            visible: shown,
+            maintainState: true,
+            child: Transform.translate(
+              offset: Offset(0, math.max(at.top, (widget.topBand?.value ?? 0) + 6) - top),
+              child: child,
+            ),
+          );
+        },
       child: Center(
         child: GestureDetector(
           key: const Key('tag_bridge'),
@@ -875,6 +910,7 @@ class _VillageArtState extends State<_VillageArt> {
             ]),
           ),
         ),
+      ),
       ),
     );
   }

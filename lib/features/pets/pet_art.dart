@@ -121,6 +121,35 @@ class PetArt extends StatelessWidget {
   }
 }
 
+/// 묶음 72 더하기: 전투 무대의 펫 (전투용 그림 · 왼쪽을 보는 그림은 뒤집어 몬스터 쪽으로)
+class PetBattleArt extends StatelessWidget {
+  const PetBattleArt(
+      {super.key, required this.species, this.adult = false, this.awake = false, this.size = 64});
+
+  final PetSpecies species;
+  final bool adult;
+  final bool awake;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final flip = PetRules.flipInBattle(species, adult: adult, awake: awake);
+    return Transform.flip(
+      key: Key('petBattle_${species.name}${flip ? '_flip' : ''}'),
+      flipX: flip,
+      child: Image.asset(
+        PetRules.battleAsset(species, adult: adult, awake: awake),
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        semanticLabel: PetRules.info(species).name,
+        errorBuilder: (_, __, ___) =>
+            PetArt(species: species, adult: adult, awake: awake, size: size),
+      ),
+    );
+  }
+}
+
 /// 펫 알 그림
 class EggArt extends StatelessWidget {
   const EggArt({super.key, this.size = 64, this.glowing = false});

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'features/pets/companion_pet_panel.dart';
 import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
 import 'package:flutter/material.dart';
 
@@ -40,7 +41,6 @@ import 'features/jobs/guild_screen.dart';
 import 'features/jobs/job_skill_bar.dart';
 import 'features/jobs/skill_screen.dart';
 import 'features/alchemy/convert_panel.dart' show LockedJobPanel;
-import 'features/pets/pet_screen.dart';
 import 'features/smithy/equip_picker.dart';
 import 'features/village/board_screen.dart';
 import 'features/status/stat_screen.dart';
@@ -463,6 +463,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             requestPanel: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 묶음 73 #313: 함께하는 펫 · 내 펫 보기 (정령이 떠난 뒤)
+                CompanionPetPanel(controller: controller),
                 // 묶음 43 #228: 오늘 하루 훈련 전이면 은은한 점 한 줄
                 TrainingStatusRow(controller: controller),
                 // 묶음 65 #252: 걸음 상자
@@ -504,9 +506,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               petsOpen: controller.petCodexOpen,
               petsNew: controller.petCodexNew,
               onPetsTab: controller.markPetCodexSeen,
-              onOpenPets: controller.farewellDone
-                  ? () => push(PetScreen(controller: controller))
-                  : null,
+              // 묶음 73 #313: 「내 펫 보기」는 상태 화면으로 (도감 버튼은 뺌)
             ),
           ),
         ];

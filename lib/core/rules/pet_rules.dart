@@ -135,6 +135,44 @@ class PetRules {
   };
   static const int maxLevel = 20;
 
+  /// 묶음 72 더하기: 전투 무대용 그림이 따로 있는 펫 (성체 · 각성일 때, 오른쪽을 봄)
+  static const Set<PetSpecies> battleArt = {
+    PetSpecies.golem,
+    PetSpecies.mimic,
+    PetSpecies.owl,
+    PetSpecies.toad,
+    PetSpecies.homunculus,
+  };
+
+  /// 묶음 72 더하기: 성체(· 각성) 그림이 왼쪽을 보는 펫 — 전투에서는 좌우를 뒤집어 몬스터 쪽을 보게
+  static const Set<PetSpecies> facesLeft = {
+    PetSpecies.blackCat,
+    PetSpecies.crow,
+    PetSpecies.direwolf,
+    PetSpecies.dragon,
+    PetSpecies.drake,
+    PetSpecies.kelpie,
+    PetSpecies.leviathan,
+    PetSpecies.lizard,
+    PetSpecies.nightmare,
+    PetSpecies.pegasus,
+    PetSpecies.phoenix,
+    PetSpecies.stag,
+    PetSpecies.unicorn,
+    PetSpecies.whale,
+    PetSpecies.wolf,
+  };
+
+  /// 전투 무대에 쓰는 그림 (아기는 그대로)
+  static String battleAsset(PetSpecies s, {required bool adult, bool awake = false}) =>
+      (adult || awake) && battleArt.contains(s)
+          ? 'assets/images/pet_${s.name}_battle.webp'
+          : info(s).asset(adult: adult, awake: awake);
+
+  /// 전투 무대에서 좌우를 뒤집는지 (그림마다 보는 방향 표)
+  static bool flipInBattle(PetSpecies s, {required bool adult, bool awake = false}) =>
+      (adult || awake) && !battleArt.contains(s) && facesLeft.contains(s);
+
   /// 아기 → 성체
   static const int adultLevel = 10;
 

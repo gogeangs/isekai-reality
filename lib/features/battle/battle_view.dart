@@ -142,6 +142,14 @@ class _BattleViewState extends State<BattleView> {
   /// 공격이 한 번 오갈 때마다 1씩 늘어난다 (전투 장면 연출의 신호)
   int _beat = 0;
 
+  /// 묶음 73 #306: 동료마다 공격(칸 그림)을 몇 번 했는지 · 마지막 피해 · 스킬(바로)인지
+  final Map<int, ({int swing, int dealt, bool now})> _allySwing = {};
+
+  void _allyStruck(int i, int dealt, {bool now = false}) {
+    final old = _allySwing[i]?.swing ?? 0;
+    _allySwing[i] = (swing: old + 1, dealt: dealt, now: now);
+  }
+
   late bool _fast = widget.fast;
 
   /// 예고가 뜬 뒤 흐른 실제 시간 (2배속이어도 판정은 실제 시간)
@@ -198,7 +206,12 @@ class _BattleViewState extends State<BattleView> {
     setState(() {
       final before = _b.ticks;
       _b.tick();
-      if (_b.ticks != before) _beat++; // 층이 바뀌는 틱은 연출하지 않는다
+      if (_b.ticks != before) {
+        _beat++; // 층이 바뀌는 틱은 연출하지 않는다
+        for (var i = 0; i < _b.allies.length; i++) {
+          if (_b.allies[i].lastDealt > 0) _allyStruck(i, _b.allies[i].lastDealt);
+        }
+      }
       if (_b.floor != floorBefore && _b.foe.isBoss) _bossBeat++;
       _record();
       // 묶음 34: 분신의 특별한 공격 문장 (위쪽 띠 + 기록)
@@ -589,6 +602,9 @@ class _BattleViewState extends State<BattleView> {
                           ? widget.allyArts[i].color
                           : 0xFF9AA6D8,
                       down: _b.allies[i].down,
+                      swing: _allySwing[i]?.swing ?? 0,
+                      dealt: _allySwing[i]?.dealt ?? 0,
+                      now: _allySwing[i]?.now ?? false,
                     ),
                 ],
               )),
@@ -724,8 +740,10 @@ class _BattleViewState extends State<BattleView> {
                         onSkill: _b.isOver
                             ? null
                             : () {
+                                final before = _b.allies[i].lastDealt;
                                 if (_b.useAllySkill(i)) {
                                   setState(() {
+                                    _allyStruck(i, math.max(0, _b.allies[i].lastDealt - before), now: true);
                                     if (_b.lastAllySkill case final s?) _addLog(s);
                                   });
                                   _checkEnd();
@@ -1212,7 +1230,8 @@ class _Scene extends StatefulWidget {
   });
 
   /// 묶음 52: 각성자 뒤에 서는 3막 동료 (그림 · 색 · 쓰러짐)
-  final List<({String? art, int color, bool down})> allies;
+  /// 묶음 73 #306: [swing] 이 바뀌면 공격 칸 그림을 한 번 (now: 스킬이라 바로), [dealt] 는 4칸에 뜨는 피해
+  final List<({String? art, int color, bool down, int swing, int dealt, bool now})> allies;
 
   /// 장면 높이 (null 이면 주어진 자리만큼)
   final double? height;
@@ -1292,13 +1311,72 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
       _c.forward(from: 0);
     }
     if (widget.bossBeat != old.bossBeat) _boss.forward(from: 0);
+    // 묶음 73 #306: 동료 공격 (2→6칸 뒤 1칸). 보통 공격은 각성자가 친 뒤 차례로, 스킬은 바로
+    for (var i = 0; i < widget.allies.length; i++) {
+      final a = widget.allies[i];
+      final before = i < old.allies.length ? old.allies[i].swing : 0;
+      if (a.swing == before || AllyAttackSheet.sheetOf(a.art) == null) continue;
+      final scale = allyScale;
+      final delay = a.now
+          ? 0
+          : (widget.beatDuration.inMilliseconds * 0.45 + i * 120 * scale).round();
+      final total = delay + (AllyAttackSheet.totalMs * scale).round();
+      _allyDelay[i] = delay;
+      final c = _allyC[i] ??= AnimationController(vsync: this);
+      c.duration = Duration(milliseconds: total);
+      c.forward(from: 0);
+    }
+  }
+
+  /// 동료 공격 칸 컨트롤러 · 그 앞에 기다리는 시간(ms)
+  final Map<int, AnimationController> _allyC = {};
+  final Map<int, int> _allyDelay = {};
+
+  /// 빠르게 보기면 같은 비율로 짧게 (1배 한 틱 765ms 기준)
+  double get allyScale =>
+      (widget.beatDuration.inMilliseconds / 765).clamp(0.35, 1.0);
+
+  /// 동료 i 의 지금 칸 (0~5)과, 4칸(맞히는 순간)에서 흐른 비율 (그 칸이 아니면 null)
+  (int, double?) _allyFrame(int i) {
+    final c = _allyC[i];
+    if (c == null || !c.isAnimating) return (0, null);
+    final ms = c.value * c.duration!.inMilliseconds - (_allyDelay[i] ?? 0);
+    return AllyAttackSheet.frameAt(ms / allyScale);
   }
 
   @override
   void dispose() {
+    for (final c in _allyC.values) {
+      c.dispose();
+    }
     _boss.dispose();
     _c.dispose();
     super.dispose();
+  }
+
+  /// 동료 그림 한 칸: 이야기 동료는 공격 칸 그림(640×640), 이름 없는 동료는 통 그림
+  Widget _allyArt(int i, ({String? art, int color, bool down, int swing, int dealt, bool now}) a,
+      int frame, double s, double h) {
+    Widget icon() => Icon(Icons.person_rounded, size: h * 0.3, color: Color(a.color));
+    final sheet = AllyAttackSheet.sheetOf(a.art);
+    if (sheet != null) {
+      return SheetFrame(
+          key: Key('allyFrame_${i}_$frame'),
+          asset: sheet,
+          frames: AllyAttackSheet.frames,
+          frame: frame,
+          fallback: a.art == null ? icon() : Image.asset(a.art!, fit: BoxFit.contain));
+    }
+    if (a.art == null) return Align(alignment: Alignment.bottomCenter, child: icon());
+    // 통 그림(768×1024)은 몸이 칸의 약 95% → 공격 칸 그림(약 80%)과 같은 키로
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        height: s * 0.84,
+        child: Image.asset(a.art!,
+            fit: BoxFit.contain, errorBuilder: (_, __, ___) => icon()),
+      ),
+    );
   }
 
   // t 구간 [a, b] 안에서 0 → 1
@@ -1321,7 +1399,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
           final w = box.maxWidth;
           final h = box.maxHeight;
           return AnimatedBuilder(
-            animation: _c,
+            animation: Listenable.merge([_c, ..._allyC.values]),
             builder: (context, _) {
               final t = _c.value;
               final idle = !_c.isAnimating;
@@ -1360,13 +1438,34 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ? HeroPose.attack
                           : HeroPose.idle;
               final attackT = swinging ? _seg(t, 0, 0.5) : 0.0;
-              final heroW = w * 0.5;
-              // 묶음 73 #260: 동료가 있으면 각성자가 앞(몬스터 쪽), 동료 둘은 뒷줄
-              final front = widget.allies.isEmpty ? 0.0 : w * 0.2;
-              // 각성자 머리가 동료보다 조금 위로 오게
-              final heroH = h * 0.6;
-              final monSize = w * 0.38;
-              final monLeft = w - monSize - w * 0.05 + shake - counter * w * 0.07;
+              // 묶음 73 #260 다듬기: 혼자면 무대 높이의 약 절반(머리가 가운데보다 조금 아래),
+              // 동료와 함께면 조금 작게. 그림 칸은 768×1024 (몸은 왼쪽 17%부터)
+              final party = widget.allies.isNotEmpty;
+              final heroH = h * (party ? 0.5 : 0.58);
+              final heroW = math.min(w * 0.5, heroH * 0.75);
+              // 뒷줄 동료: 640×640 칸, 주인공보다 왼쪽 · 조금 위, 서로 몸 반 넘게 떨어지게
+              final allyS = h * 0.36;
+              final allyBottom = h * 0.1;
+              final allyLeft0 = -allyS * 0.12;
+              final allyStep = allyS * 0.5;
+              // 각성자 몸이 시작하는 자리: 혼자면 정령 말풍선 오른쪽, 함께면 뒷줄 동료 얼굴을 가리지 않게
+              final bodyStart = party
+                  ? allyLeft0 + allyStep * (widget.allies.length - 1) + allyS * 0.74
+                  : 128.0;
+              final heroLeft = math.max(w * 0.02, bodyStart - heroW * 0.17);
+              // (아래 효과 자리들은 「front + w * …」로 각성자를 따라간다)
+              final front = heroLeft - w * 0.02;
+              // 동료 공격 칸 · 4칸(맞히는 순간)
+              final allyFrames = [
+                for (var i = 0; i < widget.allies.length; i++)
+                  widget.allies[i].down ? (0, null) : _allyFrame(i)
+              ];
+              var allyShake = 0.0;
+              for (final (f, p) in allyFrames) {
+                if (f == 3 && p != null) allyShake += math.sin(p * math.pi * 6) * (1 - p) * 4;
+              }
+              final monSize = w * (party ? 0.34 : 0.38);
+              final monLeft = w - monSize - w * 0.02 + shake + allyShake - counter * w * 0.07;
               final monTop = h * 0.24;
               final hitX = monLeft + monSize * 0.45;
               final hitY = monTop + monSize * 0.45;
@@ -1530,28 +1629,22 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ]),
                         ),
                       ),
-                    // 묶음 52 #243: 3막 동료 둘이 각성자 뒤에 선다
+                    // 묶음 52 #243 · 묶음 73 #260/#306: 뒷줄 동료 (이야기 동료는 오른쪽을 본 1칸 + 숨쉬기, 공격하면 2→6칸)
                     for (var i = widget.allies.length - 1; i >= 0; i--)
                       Positioned(
                         key: Key('sceneAlly_$i'),
-                        left: w * (-0.03 + i * 0.15),
-                        bottom: 46 + i * 16.0,
-                        width: heroW * 0.8,
-                        height: h * 0.36,
+                        left: allyLeft0 + i * allyStep,
+                        bottom: allyBottom,
+                        width: allyS,
+                        height: allyS,
                         child: Opacity(
-                          opacity: widget.allies[i].down ? 0.35 : 0.95,
-                          child: Align(
+                          opacity: widget.allies[i].down ? 0.35 : 0.97,
+                          child: Transform.scale(
                             alignment: Alignment.bottomCenter,
-                            child: widget.allies[i].art == null
-                                ? Icon(Icons.person_rounded,
-                                    size: h * 0.3,
-                                    color: Color(widget.allies[i].color))
-                                : Image.asset(widget.allies[i].art!,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Icon(
-                                        Icons.person_rounded,
-                                        size: h * 0.3,
-                                        color: Color(widget.allies[i].color))),
+                            scaleY: allyFrames[i].$1 != 0 || widget.allies[i].down
+                                ? 1
+                                : 1 + math.sin((t + i * 0.37) * math.pi * 2) * 0.015,
+                            child: _allyArt(i, widget.allies[i], allyFrames[i].$1, allyS, h),
                           ),
                         ),
                       ),
@@ -1559,7 +1652,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     Positioned(
                       key: const Key('sceneHero'),
                       left: front + w * 0.02 + lunge * w * 0.08,
-                      bottom: 22 + lunge * 6,
+                      bottom: 8 + lunge * 6,
                       width: heroW,
                       height: heroH,
                       child: Transform.rotate(
@@ -1725,7 +1818,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       Positioned(
                         left: front + w * 0.08,
                         width: heroW * 0.6,
-                        bottom: 22 + heroH * 0.85 + _seg(t, 0.6, 0.95) * 30,
+                        bottom: 8 + heroH * 0.85 + _seg(t, 0.6, 0.95) * 30,
                         child: Opacity(
                           opacity: 1 - _seg(t, 0.8, 0.98),
                           child: Center(
@@ -2024,47 +2117,74 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    // 정령의 응원
-                    Positioned(
-                      left: 8,
-                      bottom: 6,
-                      child: Row(children: [
-                        Transform.translate(
-                          offset: Offset(
-                              widget.petDash && !idle
-                                  ? math.sin(_seg(t, 0, 0.5) * math.pi) *
-                                      w *
-                                      0.45
-                                  : 0,
-                              -math.sin(t * math.pi) * 6),
-                          child: const CompanionArt(size: 54),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFBF5E6),
-                            borderRadius: BorderRadius.circular(14),
+                    // 묶음 73 #306: 동료 피해 숫자 (4칸, 맞히는 순간)
+                    for (var i = 0; i < widget.allies.length; i++)
+                      if (allyFrames[i].$2 case final p? when widget.allies[i].dealt > 0)
+                        Positioned(
+                          key: Key('allyDealt_$i'),
+                          left: monLeft + monSize * (0.05 + i * 0.22),
+                          top: monTop - 8 - p * 26,
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: (1 - p * 0.7).clamp(0.0, 1.0),
+                              child: _Outlined('-${comma(widget.allies[i].dealt)}',
+                                  size: 20, color: const Color(0xFFE8F0FF)),
+                            ),
                           ),
-                          child: Text(
-                              cleared
-                                  ? '잡았어!'
-                                  : widget.defeated
-                                      ? '괜찮아? 오늘은 좀 쉬자.'
-                                  : widget.warning != null
-                                      ? '조심해!'
-                                      : widget.enraged
-                                          ? '화났어, 조심!'
-                                  : widget.skill && hitting
-                                      ? skillLabel(context)
-                                      : '할 수 있어!',
-                              style: const TextStyle(
-                                  color: AppColors.night,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
                         ),
-                      ]),
-                    ),
+                    // 정령의 응원 (묶음 73 #260: 무대 왼쪽 아래 구석, 말풍선은 정령 오른쪽 위 — 누구 발도 덮지 않게)
+                    // 펫이면 주인공 발 앞쪽 아래에 서고, 말풍선만 구석에
+                    Builder(builder: (context) {
+                      final pet = BulssiScope.maybeOf(context)?.petSpecies != null;
+                      final petS = h * 0.17;
+                      final dash = widget.petDash && !idle
+                          ? math.sin(_seg(t, 0, 0.5) * math.pi) * w * 0.3
+                          : 0.0;
+                      return Positioned(
+                        left: pet ? heroLeft + heroW * 0.55 + dash : 4 + dash,
+                        bottom: pet ? 0 : 4,
+                        child: Transform.translate(
+                          offset: Offset(0, -math.sin(t * math.pi) * 6),
+                          child: BattleCompanion(
+                              key: const Key('battleCompanion'), size: pet ? petS : 44),
+                        ),
+                      );
+                    }),
+                    Builder(builder: (context) {
+                      final pet = BulssiScope.maybeOf(context)?.petSpecies != null;
+                      return Positioned(
+                        key: const Key('companionLine'),
+                        left: pet ? 6 : 40,
+                        bottom: pet ? 6 : 38,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: math.max(80, heroLeft + heroW * 0.17 - (pet ? 14 : 46))),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBF5E6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                                cleared
+                                    ? '잡았어!'
+                                    : widget.defeated
+                                        ? '괜찮아? 오늘은 좀 쉬자.'
+                                        : widget.warning != null
+                                            ? '조심해!'
+                                            : widget.enraged
+                                                ? '화났어, 조심!'
+                                                : widget.skill && hitting
+                                                    ? skillLabel(context)
+                                                    : '할 수 있어!',
+                                style: const TextStyle(
+                                    color: AppColors.night,
+                                    fontSize: 11.5,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                  ),
                 ),
@@ -2380,6 +2500,86 @@ String backgroundFallback(String? bg) => switch (bg) {
 
 /// tired: HP 0으로 싸울 수 없을 때 (11-10)
 enum HeroPose { idle, attack, victory, tired }
+
+/// 묶음 73 #306: 이야기 동료 공격 그림 (640×640 × 6칸, 발 바닥 약 620)
+/// 1 준비 → 2 힘 모으기 → 3 휘두르기 시작 → 4 맞히는 순간 → 5 마무리 → 6 다시 준비(→ 1)
+class AllyAttackSheet {
+  AllyAttackSheet._();
+
+  static const frames = 6;
+
+  /// 이야기 동료 (이름 없는 동료 ally_job_* 는 통 그림)
+  static const story = {'lian', 'garen', 'nia', 'barkan', 'popo', 'sera', 'teo'};
+
+  /// 2~6칸 시간 (ms). 1칸은 기다리는 동안
+  static const durations = [100, 80, 160, 100, 120];
+  static int get totalMs => durations.fold(0, (a, b) => a + b);
+
+  /// 통 그림 경로 → 공격 칸 그림 (없으면 null)
+  static String? sheetOf(String? art) {
+    if (art == null) return null;
+    final m = RegExp(r'ally_([a-z]+)\.webp$').firstMatch(art);
+    if (m == null || !story.contains(m.group(1))) return null;
+    return 'assets/images/ally_${m.group(1)}_attack.webp';
+  }
+
+  /// 공격 시작부터 [ms] 뒤의 칸 (0~5)과, 4칸부터 흐른 비율 (0~1, 그 전이면 null)
+  static (int, double?) frameAt(double ms) {
+    if (ms < 0 || ms >= totalMs) return (0, null);
+    var at = 0;
+    for (var k = 0; k < durations.length; k++) {
+      if (ms < at + durations[k]) {
+        final hitAt = durations[0] + durations[1]; // 4칸이 시작하는 때
+        return (k + 1, ms >= hitAt ? (ms - hitAt) / (totalMs - hitAt) : null);
+      }
+      at += durations[k];
+    }
+    return (0, null);
+  }
+}
+
+/// 가로로 이어 붙인 정사각 칸 그림에서 한 칸만 (칸 바닥에 맞춰)
+class SheetFrame extends StatelessWidget {
+  const SheetFrame(
+      {super.key, required this.asset, required this.frames, required this.frame, this.fallback});
+
+  final String asset;
+  final int frames;
+  final int frame;
+  final Widget? fallback;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final s = math.min(box.maxWidth, box.maxHeight);
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: s,
+            height: s,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.centerLeft,
+                minWidth: s * frames,
+                maxWidth: s * frames,
+                child: Transform.translate(
+                  offset: Offset(-frame * s, 0),
+                  child: Image.asset(asset,
+                      width: s * frames,
+                      height: s,
+                      fit: BoxFit.fill,
+                      errorBuilder: (_, __, ___) => SizedBox(
+                          width: s * frames,
+                          height: s,
+                          child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: SizedBox(width: s, height: s, child: fallback)))),
+                ),
+              ),
+            ),
+          ),
+        );
+      });
+}
 
 /// 각성자 그림 (묶음 73 #261: 맨손 새 주인공).
 /// 서기·승리·지침은 768×1024 한 장, 공격은 640×800 여섯 칸을 [t](0~1)에 따라 넘긴다.

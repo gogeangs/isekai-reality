@@ -299,34 +299,22 @@ Future<void> _showFeed(BuildContext context, AppController c, Pet pet) =>
                       '펫 간식 경험치 +40·친밀도 +5, 귀한 재료 +15, 보통 재료 +3 (친밀도 +1)',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   const SizedBox(height: 8),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.cookie_rounded,
-                        color: AppColors.goldBright),
-                    title: Text('펫 간식 × $snacks',
-                        style: const TextStyle(color: AppColors.text)),
-                    trailing: TextButton(
-                      onPressed:
-                          snacks > 0 ? () => c.feedSnack(pet.uid) : null,
-                      child: const Text('주기'),
-                    ),
+                  // 묶음 73 #314: 줄마다 아이콘 칸 44 고정 · 「주기」는 금빛 알약 버튼 (0개면 흐린 회색)
+                  _FeedRow(
+                    key: const Key('feedSnack'),
+                    icon: const Icon(Icons.cookie_rounded, color: AppColors.goldBright, size: 30),
+                    title: '펫 간식 × $snacks',
+                    onFeed: snacks > 0 ? () => c.feedSnack(pet.uid) : null,
                   ),
                   for (final e in mats)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: MaterialIcon(e.key, size: 34),
-                      title: Text('${Materials.info(e.key).name} × ${e.value}',
-                          style: const TextStyle(color: AppColors.text)),
-                      subtitle: Text(
-                          Materials.info(e.key).rare
-                              ? '경험치 +${PetRules.expRareFood}'
-                              : '경험치 +${PetRules.expCommonFood}',
-                          style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 12)),
-                      trailing: TextButton(
-                        onPressed: () => c.feedMaterial(pet.uid, e.key),
-                        child: const Text('주기'),
-                      ),
+                    _FeedRow(
+                      key: Key('feed_${e.key.name}'),
+                      icon: MaterialIcon(e.key, size: 34),
+                      title: '${Materials.info(e.key).name} × ${e.value}',
+                      sub: Materials.info(e.key).rare
+                          ? '경험치 +${PetRules.expRareFood}'
+                          : '경험치 +${PetRules.expCommonFood}',
+                      onFeed: e.value > 0 ? () => c.feedMaterial(pet.uid, e.key) : null,
                     ),
                 ],
               ),
@@ -335,3 +323,40 @@ Future<void> _showFeed(BuildContext context, AppController c, Pet pet) =>
         },
       ),
     );
+
+/// 먹이 한 줄: 아이콘 칸(44) · 이름 · 「주기」 금빛 알약 버튼
+class _FeedRow extends StatelessWidget {
+  const _FeedRow({super.key, required this.icon, required this.title, this.sub, this.onFeed});
+
+  final Widget icon;
+  final String title;
+  final String? sub;
+  final VoidCallback? onFeed;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(children: [
+          SizedBox(width: 44, height: 44, child: Center(child: icon)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(title, style: const TextStyle(color: AppColors.text, fontSize: 15)),
+              if (sub != null)
+                Text(sub!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 76,
+            child: GoldButton(
+              key: const Key('feedGive'),
+              label: '주기',
+              height: 40,
+              fontSize: 15,
+              onPressed: onFeed,
+            ),
+          ),
+        ]),
+      );
+}

@@ -152,6 +152,7 @@ class CodeBubble extends StatelessWidget {
     this.border,
     this.padding = const EdgeInsets.fromLTRB(16, 11, 16, 12),
     this.minWidth = 80,
+    this.stroke = CodeBubblePainter.thick,
   });
 
   final Widget child;
@@ -160,6 +161,9 @@ class CodeBubble extends StatelessWidget {
   final Color? border;
   final EdgeInsets padding;
   final double minWidth;
+
+  /// 묶음 75 #320: 테 두께 (정령 · 마을 사람 작은 말풍선은 2.25, 튜토리얼 · 안내 큰 말풍선은 4.5)
+  final double stroke;
 
   static const double tail = 18;
   static const Color edge = Color(0xFF8A5A2B);
@@ -176,7 +180,7 @@ class CodeBubble extends StatelessWidget {
     return ConstrainedBox(
       constraints: BoxConstraints(minWidth: minWidth + t, minHeight: 44),
       child: CustomPaint(
-        painter: CodeBubblePainter(side: side, at: at, border: border ?? edge),
+        painter: CodeBubblePainter(side: side, at: at, border: border ?? edge, stroke: stroke),
         child: Padding(
           padding: inset + padding,
           child: Align(alignment: Alignment.centerLeft, widthFactor: 1, heightFactor: 1, child: child),
@@ -187,14 +191,16 @@ class CodeBubble extends StatelessWidget {
 }
 
 class CodeBubblePainter extends CustomPainter {
-  CodeBubblePainter({required this.side, this.at, this.border = CodeBubble.edge});
+  CodeBubblePainter({required this.side, this.at, this.border = CodeBubble.edge, this.stroke = thick});
 
   final BubbleSide side;
   final double? at;
   final Color border;
+  final double stroke;
 
   static const double radius = 20;
-  static const double stroke = 4.5;
+  static const double thick = 4.5;
+  static const double thin = 2.25;
 
   Path shape(Size size) {
     const t = CodeBubble.tail;
@@ -276,7 +282,8 @@ class CodeBubblePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CodeBubblePainter old) => old.side != side || old.at != at || old.border != border;
+  bool shouldRepaint(CodeBubblePainter old) =>
+      old.side != side || old.at != at || old.border != border || old.stroke != stroke;
 }
 
 /// 말풍선 위 이름 줄 색 (금갈색)

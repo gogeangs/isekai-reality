@@ -221,6 +221,8 @@ class StatusScreen extends StatelessWidget {
                     key: const Key('statusSpirit'),
                     line: line,
                     mood: mood,
+                    // 묶음 75 #320: 지금 상황 · 새 소식(원정 · 걸음 · 생활 보너스)이면 그 말부터
+                    urgent: lifeLine != null,
                     hideAfter: const Duration(seconds: 12),
                     maxBubbleWidth: math.max(
                         140,

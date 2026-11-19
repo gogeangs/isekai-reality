@@ -7,6 +7,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import 'building_upgrade.dart';
+import '../bulssi/bulssi_bubble.dart' show TalkTurns;
 
 /// 시설 맨 위 마을 사람 (묶음 35): 금테 얼굴 + 이름·역할 + 한마디 말풍선.
 /// 처음 만날 때 한 줄(한 번), 그 뒤엔 그 막의 평소 대사 두 줄을 번갈아.
@@ -35,43 +36,37 @@ class NpcHeader extends StatefulWidget {
 }
 
 class _NpcHeaderState extends State<NpcHeader> {
-  // 묶음 69 #289 · 묶음 71: 들어갈 땐 얼굴 + 이름표만. 꼭 알릴 말(새 부탁 · 한 번뿐인 말 · 지금 상황 ·
-  // 탭 안내)만 저절로 열리고 몇 초 뒤 저절로 닫힘. 말풍선은 이름표 아래 제자리에 열려
-  // 아래 탭 · 버튼을 덮지 않고, 길면 아래를 밀어 냄
+  // 묶음 75 #320: 들어올 때마다 대사 하나가 저절로 열렸다가 5초 뒤 닫힘, 들어올 때마다 다음 대사
+  // (차례 번호는 마을 사람마다 저장). 꼭 알릴 말(새 부탁 · 지금 상황 · 탭 안내)이 먼저.
+  // 말풍선을 누르면 닫히고 이 화면에 있는 동안 다시 안 뜸. 얼굴을 누르면 언제든 다음 대사
   late final ({String? auto, List<String> lines, String first}) _talk =
       widget.controller.npcTalk(widget.npc, guide: widget.guide, situation: widget.situation);
-  late String _line = _talk.auto ?? _talk.first;
-  late bool _open = _talk.auto != null && _important(_talk.auto!);
-  int _turn = 0;
+  late String _line;
+  bool _open = false;
+  bool _dismissed = false;
   Timer? _close;
 
   /// 저절로 닫히기까지
-  static const Duration autoClose = Duration(milliseconds: 3500);
+  static Duration get autoClose => TalkTurns.autoClose;
 
-  /// 화면을 열 때마다 새로 보는 대사가 있으면 얼굴 위 작은 점 (열어 보면 사라짐)
-  static final Set<String> _seen = {};
+  String get _who => 'npc:${widget.npc.name}';
 
-  bool get _unseen => _talk.lines.any((l) => !_seen.contains(l)) || (!_open && !_seen.contains(_line));
-
-  /// 처음 만남 인사는 얼굴 점으로만 (눌러 보면) — 그 밖의 저절로 뜨는 말은 꼭 알릴 말
+  /// 꼭 알릴 말 (새 부탁 · 지금 상황 · 한 번뿐인 말)
   bool _important(String line) =>
-      _wasMet &&
-      (line == widget.situation ||
-          line == NpcRules.askLine ||
-          line == NpcRules.boardAskLine ||
-          !_talk.lines.contains(line));
-
-  /// 이번에 들어오기 전에 만난 적이 있는지 (처음 만남 인사는 저절로 열지 않음)
-  late final bool _wasMet;
+      line == widget.situation ||
+      line == NpcRules.askLine ||
+      line == NpcRules.boardAskLine ||
+      !_talk.lines.contains(line);
 
   @override
   void initState() {
     super.initState();
-    _wasMet = widget.controller.npcMet(widget.npc);
-    if (_open) {
-      _seen.add(_line);
-      _autoClose();
-    }
+    final auto = _talk.auto;
+    _line = auto != null && _important(auto)
+        ? auto
+        : widget.tabLine ?? TalkTurns.next(_who, _talk.lines.isEmpty ? [_talk.first] : _talk.lines);
+    _open = true;
+    _autoClose();
   }
 
   @override
@@ -87,39 +82,27 @@ class _NpcHeaderState extends State<NpcHeader> {
     });
   }
 
+  void _say(String line) {
+    setState(() {
+      _line = line;
+      _open = true;
+    });
+    _autoClose();
+  }
+
   @override
   void didUpdateWidget(NpcHeader old) {
     super.didUpdateWidget(old);
     // 화면에 있는 동안 상황이 바뀌면 (예: 체크인해서 쉬는 중) 그 안내로 열림
     final s = widget.situation;
-    if (s != null && s != old.situation) {
-      _line = s;
-      _open = true;
-      _autoClose();
-    }
+    if (s != null && s != old.situation && !_dismissed) _say(s);
     if (s == null && old.situation != null && widget.guide != null) _line = widget.guide!;
     final t = widget.tabLine;
-    if (t != null && t != old.tabLine) {
-      _line = t;
-      _open = true;
-      _autoClose();
-    }
+    if (t != null && t != old.tabLine && !_dismissed) _say(t);
   }
 
-  void _toggle() {
-    _close?.cancel();
-    setState(() {
-      if (_open) {
-        _open = false;
-        return;
-      }
-      final lines = _talk.lines;
-      final fresh = [if (!_seen.contains(_line)) _line, ...lines.where((l) => !_seen.contains(l))];
-      _line = fresh.isNotEmpty ? fresh.first : lines[_turn++ % lines.length];
-      _seen.add(_line);
-      _open = true;
-    });
-  }
+  /// 얼굴을 누르면 언제든 다음 대사
+  void _toggle() => _say(TalkTurns.next(_who, _talk.lines.isEmpty ? [_talk.first] : _talk.lines));
 
   @override
   Widget build(BuildContext context) {
@@ -134,24 +117,7 @@ class _NpcHeaderState extends State<NpcHeader> {
           GestureDetector(
             key: Key('npcFace_${widget.npc.name}'),
             onTap: _toggle,
-            child: Stack(clipBehavior: Clip.none, children: [
-              NpcFace(npc: widget.npc, size: 58),
-              if (!_open && _unseen)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    key: Key('npcDot_${widget.npc.name}'),
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5484D),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                  ),
-                ),
-            ]),
+            child: NpcFace(npc: widget.npc, size: 58),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -192,11 +158,15 @@ class _NpcHeaderState extends State<NpcHeader> {
                           key: Key('npcBubble_${widget.npc.name}'),
                           onTap: () {
                             _close?.cancel();
-                            setState(() => _open = false);
+                            setState(() {
+                              _open = false;
+                              _dismissed = true;
+                            });
                           },
                           child: CodeBubble(
                             side: BubbleSide.left,
                             at: 10,
+                            stroke: CodeBubblePainter.thin,
                             padding: const EdgeInsets.fromLTRB(12, 6, 12, 7),
                             child: KText(line,
                                 key: Key('npcLine_${widget.npc.name}'),

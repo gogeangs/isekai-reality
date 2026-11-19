@@ -743,6 +743,12 @@ class AppController extends ChangeNotifier {
             el: (e.value as num).toDouble(),
       };
     }
+    // 묶음 75 #320: 정령 · 마을 사람 대사 차례 번호
+    final turns = await store.loadJson('talkTurns');
+    _talkTurns = {
+      for (final e in (turns ?? const {}).entries)
+        if (e.value is num) e.key: (e.value as num).toInt(),
+    };
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
         ? {...player.titles}
@@ -1090,6 +1096,14 @@ class AppController extends ChangeNotifier {
   PetState _pets = const PetState();
 
   bool _newEgg = false;
+
+  /// 묶음 75 #320: 정령 · 마을 사람마다 다음에 보여 줄 대사 차례
+  Map<String, int> _talkTurns = {};
+  Map<String, int> get talkTurns => _talkTurns;
+  Future<void> saveTalkTurns(Map<String, int> t) async {
+    _talkTurns = {...t};
+    await store.saveJson('talkTurns', _talkTurns);
+  }
 
   /// 묶음 75 #327: 방금 전투에서 얻은 알 등급 (결과 창에서 보여 줌)
   EggGrade? _battleEgg;

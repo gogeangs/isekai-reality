@@ -169,8 +169,7 @@ void main() {
         ),
       ));
       await tester.pump();
-      expect(find.byKey(const Key('spiritAction')), findsNothing);
-      await tester.tap(find.byKey(const Key('spiritBadge')));
+      // 묶음 75 #320: 「서두를까?」는 꼭 알릴 말 — 들어오면 저절로 열림
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('spiritAction')), findsOneWidget);
       await tester.tap(find.byKey(const Key('spiritAction')));

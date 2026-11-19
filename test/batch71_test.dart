@@ -46,7 +46,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('마을 사람: 처음 만남도 닫힌 채로(점) · 상황 안내는 저절로 열렸다 몇 초 뒤 닫힘 · 탭을 덮지 않음', (tester) async {
+  testWidgets('마을 사람: 들어오면 저절로 열렸다 5초 뒤 닫힘(점 없음) · 얼굴은 다음 대사 · 탭을 덮지 않음', (tester) async {
     phone(tester);
     late AppController c;
     await tester.runAsync(() async => c = await startVillage(12));
@@ -57,8 +57,11 @@ void main() {
       const Text('탭', key: Key('under')),
     ]))));
     await tester.pump();
-    expect(find.byKey(const Key('npcBubble_hart')), findsNothing, reason: '처음 만남은 닫힌 채로');
-    expect(find.byKey(const Key('npcDot_hart')), findsOneWidget);
+    expect(find.byKey(const Key('npcBubble_hart')), findsOneWidget, reason: '들어오면 저절로');
+    expect(find.byKey(const Key('npcDot_hart')), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('npcBubble_hart')), findsNothing, reason: '5초 뒤 닫힘');
     await tester.tap(find.byKey(const Key('npcFace_hart')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -74,7 +77,7 @@ void main() {
         home: Scaffold(body: NpcHeader(key: UniqueKey(), controller: c, npc: Npc.hart, guide: '안내', situation: '긴급 의뢰가 붙었네!'))));
     await tester.pump();
     expect(find.byKey(const Key('npcBubble_hart')), findsOneWidget);
-    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('npcBubble_hart')), findsNothing);
     await tester.pumpWidget(const SizedBox());

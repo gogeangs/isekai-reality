@@ -478,3 +478,7 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-18 | fx_guardHit | 막았을 때 번쩍임 (방어막 위 금빛 충격·푸른 파문, fx_guard와 같은 테두리·크기, #256, 768) |
 | 2026-11-18 | policy_defense, policy_plenty, policy_trade | 영주의 정책 3 (같은 금테 메달, 색·상징만 다름, 같은 배율, #255, 512) |
 | 2026-11-18 | fx_guardBreak | 막기 실패 · 방어막이 유리처럼 깨져 흩어짐 (금빛 룬 조각 포함, #256, 768) |
+| 2026-11-19 | bg_hatchery | 알 부화장 판 바탕 (짚 바닥·나무 들보·가운데 등불·양옆 선반, 아래 가운데 둥지 자리 비움, #285, 1024×640) |
+| 2026-11-19 | nest_back | 알 부화장 둥지 뒤쪽 (짚·잔가지 테 + 안쪽 깃털, 앞 테 없음, 원본 캔버스 그대로 줄여 nest_front와 겹치면 맞도록, #285, 256) |
+| 2026-11-19 | nest_front | 알 부화장 둥지 앞쪽 테 (nest_back과 같은 256 캔버스·같은 자리 — 겹치면 둥지가 닫힘, 사이에 알을 끼움. 원본보다 위로 올리고 가로 6% 넓혀 맞춤, #285, 256) |
+| 2026-11-19 | monster_sphinx, monster_doppelganger, monster_clockworkKnight, monster_arachne, monster_centaur, monster_owlbear, monster_kelpie, monster_naga, monster_roc | Lv.50 지도 몬스터 9 (한 장에서 잘라 냄, 색 번짐 정리, #281, 512) |

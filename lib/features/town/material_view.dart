@@ -283,43 +283,55 @@ class MaterialGrid extends StatelessWidget {
 /// 보상 칸 (11-11 #51): 전투·던전·원정 결과가 같이 쓴다.
 /// 네모 칸 안에 그림, 아래에 이름과 개수. [showExp] 이면 경험치 칸도.
 class RewardItems extends StatelessWidget {
-  const RewardItems({super.key, required this.reward, this.showExp = false});
+  const RewardItems(
+      {super.key, required this.reward, this.showExp = false, this.plus, this.progress = 1});
 
   final HuntReward reward;
   final bool showExp;
 
+  /// 묶음 73 #310: 광고로 더 받은 몫 — 칸마다 ×2 도장, 숫자가 [progress](0~1)만큼 늘어남
+  final HuntReward? plus;
+  final double progress;
+
+  String _n(int base, int more) =>
+      '+${base + (more * progress).round()}';
+
   @override
   Widget build(BuildContext context) {
-    final slots = <(Widget, String, String, bool)>[
+    final slots = <(Widget, String, String, bool, bool)>[
       if (showExp && reward.exp > 0)
         (
           const Icon(Icons.auto_awesome_rounded,
               color: AppColors.goldBright, size: 28),
           '경험치',
-          '+${reward.exp}',
-          false
+          _n(reward.exp, plus?.exp ?? 0),
+          false,
+          (plus?.exp ?? 0) > 0
         ),
       if (reward.manaStones > 0)
         (
           const GameIcon('mana_stone', size: 30, fallback: Icons.diamond_rounded),
           '마석',
-          '+${reward.manaStones}',
-          false
+          _n(reward.manaStones, plus?.manaStones ?? 0),
+          false,
+          (plus?.manaStones ?? 0) > 0
         ),
       if (reward.gold > 0)
         (
           const GameIcon('gold',
               size: 30, fallback: Icons.monetization_on_rounded),
           '금화',
-          '+${reward.gold}',
-          false
+          _n(reward.gold, plus?.gold ?? 0),
+          false,
+          (plus?.gold ?? 0) > 0
         ),
       for (final e in reward.materials.entries)
         (
           MaterialIcon(e.key, size: 32),
           Materials.info(e.key).name,
-          '+${e.value}',
-          Materials.info(e.key).rare
+          _n(e.value, plus?.materials[e.key] ?? 0),
+          Materials.info(e.key).rare,
+          (plus?.materials[e.key] ?? 0) > 0
         ),
     ];
     return Wrap(
@@ -327,7 +339,7 @@ class RewardItems extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final (icon, name, count, rare) in slots)
+        for (final (icon, name, count, rare, stamp) in slots)
           SizedBox(
             width: 64,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -344,8 +356,32 @@ class RewardItems extends StatelessWidget {
                           : AppColors.gold.withValues(alpha: 0.55),
                       width: rare ? 2 : 1),
                 ),
-                child: Stack(children: [
+                child: Stack(clipBehavior: Clip.none, children: [
                   Center(child: icon),
+                  // ×2 도장 (찍히듯 커졌다 제자리)
+                  if (stamp && progress > 0)
+                    Positioned(
+                      left: -6,
+                      top: -7,
+                      child: Transform.scale(
+                        scale: 1 + (1 - progress) * 0.8,
+                        child: Opacity(
+                          opacity: progress.clamp(0.0, 1.0),
+                          child: Container(
+                            key: const Key('rewardX2'),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD94A3A),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppColors.goldBright, width: 1.2),
+                            ),
+                            child: const Text('×2',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, height: 1.1)),
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned(
                     right: 3,
                     bottom: 1,

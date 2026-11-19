@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -20,12 +22,17 @@ ExpeditionOutcome outcomeOf(Expedition ex) => ex.cleared == true
         : ExpeditionOutcome.fail;
 
 /// 원정 결과에 받은 보상 ('exp'·'manaStone'·'gold'·재료 이름 → 수)
-HuntReward rewardOf(Expedition ex) => HuntReward(
-      exp: ex.reward['exp'] ?? 0,
-      manaStones: ex.reward[Wallet.manaStone] ?? 0,
-      gold: ex.reward[Wallet.gold] ?? 0,
+HuntReward rewardOf(Expedition ex) => _huntOf(ex.reward);
+
+/// 묶음 73 #310: 광고로 한 번 더 받는 기본 보상
+HuntReward baseRewardOf(Expedition ex) => _huntOf(ex.baseReward);
+
+HuntReward _huntOf(Map<String, int> r) => HuntReward(
+      exp: r['exp'] ?? 0,
+      manaStones: r[Wallet.manaStone] ?? 0,
+      gold: r[Wallet.gold] ?? 0,
       materials: {
-        for (final e in ex.reward.entries)
+        for (final e in r.entries)
           if (Materials.byName(e.key) case final m?) m: e.value,
       },
     );
@@ -45,7 +52,7 @@ Future<void> showExpeditionResult(
       ),
     );
 
-class ExpeditionResultCard extends StatelessWidget {
+class ExpeditionResultCard extends StatefulWidget {
   const ExpeditionResultCard(
       {super.key,
       required this.ex,
@@ -81,7 +88,49 @@ class ExpeditionResultCard extends StatelessWidget {
       };
 
   @override
+  State<ExpeditionResultCard> createState() => _ExpeditionResultCardState();
+}
+
+class _ExpeditionResultCardState extends State<ExpeditionResultCard> {
+  AppController? get controller => widget.controller;
+  Expedition get ex => widget.ex;
+  String get spiritName => widget.spiritName;
+  String? get more => widget.more;
+
+  /// 묶음 73 #310: 광고를 끝까지 봐서 두 배를 받았으면 더해진 몫 (×2 도장 · 숫자가 늘어남)
+  HuntReward? _plus;
+  Timer? _close;
+
+  /// 두 배 연출 뒤 저절로 닫히기까지
+  static const autoClose = Duration(milliseconds: 1500);
+
+  void _doubled() {
+    setState(() => _plus = baseRewardOf(ex));
+    _close = Timer(autoClose, _pop);
+  }
+
+  void _pop() {
+    _close?.cancel();
+    _close = null;
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  void dispose() {
+    _close?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final card = _card(context);
+    if (_plus == null) return card;
+    // 그사이 아무 곳이나 누르면 바로 닫힘
+    return GestureDetector(
+        key: const Key('adDoubledClose'), behavior: HitTestBehavior.opaque, onTap: _pop, child: AbsorbPointer(child: card));
+  }
+
+  Widget _card(BuildContext context) {
     final o = outcomeOf(ex);
     final id = Monsters.byName(ex.monster);
     final name = id == null ? '몬스터' : Monsters.info(id).name;
@@ -125,17 +174,17 @@ class ExpeditionResultCard extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 3,
                 child: LayoutBuilder(builder: (context, box) {
-                  final (b0, b1) = ribbonBand(o);
+                  final (b0, b1) = ExpeditionResultCard.ribbonBand(o);
                   final bandTop = box.maxHeight * b0;
                   final bandH = box.maxHeight * (b1 - b0);
-                  final text = ribbonText(o);
+                  final text = ExpeditionResultCard.ribbonText(o);
                   final size = (bandH * 0.62).clamp(12.0, 26.0);
                   final style = AppText.title(size, color: AppColors.text)
                       .copyWith(height: 1.0);
                   return Stack(children: [
                     Positioned.fill(
                       child: Image.asset(
-                        ribbonAsset(o),
+                        ExpeditionResultCard.ribbonAsset(o),
                         fit: BoxFit.fill,
                         errorBuilder: (_, __, ___) => Stack(children: [
                           Positioned(
@@ -222,7 +271,16 @@ class ExpeditionResultCard extends StatelessWidget {
                   color: AppColors.text, fontSize: 14, height: 1.4)),
           if (!reward.isEmpty) ...[
             const SizedBox(height: 12),
-            RewardItems(reward: reward, showExp: true),
+            if (_plus case final plus?)
+              TweenAnimationBuilder<double>(
+                key: const Key('adDoubledReward'),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOut,
+                builder: (_, v, __) => RewardItems(reward: reward, showExp: true, plus: plus, progress: v),
+              )
+            else
+              RewardItems(reward: reward, showExp: true),
           ],
           const SizedBox(height: 14),
           if (more != null)
@@ -235,7 +293,7 @@ class ExpeditionResultCard extends StatelessWidget {
             ),
           // 묶음 15 #103: 광고 보고 기본 보상 두 배 · 한 번 더 보내기
           if (controller case final c?)
-            _AdRewards(controller: c, ex: ex),
+            _AdRewards(controller: c, ex: ex, onDoubled: _doubled),
           GoldButton(
             label: more != null &&
                     more!.split(' / ').first != more!.split(' / ').last
@@ -252,10 +310,13 @@ class ExpeditionResultCard extends StatelessWidget {
 
 
 class _AdRewards extends StatefulWidget {
-  const _AdRewards({required this.controller, required this.ex});
+  const _AdRewards({required this.controller, required this.ex, this.onDoubled});
 
   final AppController controller;
   final Expedition ex;
+
+  /// 광고를 끝까지 봐서 두 배를 받았을 때
+  final VoidCallback? onDoubled;
 
   @override
   State<_AdRewards> createState() => _AdRewardsState();
@@ -285,6 +346,7 @@ class _AdRewardsState extends State<_AdRewards> {
                       if (!mounted) return;
                       if (ok) {
                         setState(() => _doubled = true);
+                        widget.onDoubled?.call();
                       } else {
                         showTopNotice(this.context, '광고를 불러오지 못했어요.');
                       }

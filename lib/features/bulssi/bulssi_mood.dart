@@ -108,6 +108,30 @@ class CompanionArt extends StatelessWidget {
   }
 }
 
+/// 묶음 72 더하기: 전투 무대의 동행 (펫이면 전투용 펫 그림, 아니면 정령 전투 그림)
+class BattleCompanion extends StatelessWidget {
+  const BattleCompanion({super.key, this.size = 54});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = BulssiScope.maybeOf(context);
+    final pet = scope?.petSpecies;
+    if (pet != null) {
+      return PetBattleArt(species: pet, adult: scope!.petAdult, size: size);
+    }
+    final kind = scope?.kind ?? SpiritKind.fire;
+    return Image.asset('assets/images/spirit_${kind.name}_battle.webp',
+        key: Key('spiritBattle_${kind.name}'),
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            SpiritArt(kind: kind, size: size, name: scope?.spiritName));
+  }
+}
+
 /// 원정에 쓰는 힘의 이름 (#183: 모든 레벨에서 「기력」)
 String mpLabel(BuildContext context) => '기력';
 

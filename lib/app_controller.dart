@@ -293,6 +293,13 @@ class AppController extends ChangeNotifier {
       {for (final r in _history) ...r.visitedPlaceIds};
 
   PlayerProfile _profile = const PlayerProfile(name: '각성자');
+
+  /// 시험·캡처용: 남녀 모습만 바꿔 본다 (저장하지 않음)
+  @visibleForTesting
+  void debugLook(HeroLook look) {
+    _profile = _profile.copyWith(look: look);
+    notifyListeners();
+  }
   List<DailyRecord> _history = [];
   bool _ready = false;
   bool _needsAwakening = false;

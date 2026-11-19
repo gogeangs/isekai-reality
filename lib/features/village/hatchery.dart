@@ -31,51 +31,59 @@ class HatcheryPanel extends StatelessWidget {
     final warm = [for (final e in c.pets.eggs) if (e.incubatedAt != null) e];
     final inBag = [for (final e in c.pets.eggs) if (e.incubatedAt == null) e];
     final empty = c.canIncubateMore;
+    // 묶음 73 #308: 판 높이는 바탕 그림 비율(1024:640), 둥지는 아래쪽 바닥 위(둥지 바닥이 판 높이 약 88%)
     return OrnatePanel(
       key: const Key('shelterNests'),
       padding: EdgeInsets.zero,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
-        child: Stack(children: [
-          Positioned.fill(
-            child: Image.asset(bg,
-                fit: BoxFit.cover, alignment: Alignment.center, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-          ),
-          // 아래쪽만 살짝 어둡게 (글자가 잘 보이게)
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x000B0D26), Color(0x000B0D26), Color(0x990B0D26)],
-                  stops: [0, 0.55, 1],
+        child: AspectRatio(
+          aspectRatio: 1024 / 640,
+          child: LayoutBuilder(builder: (context, box) {
+            final h = box.maxHeight;
+            // 글 칸은 적어도 26 (아주 작은 판에서도 글자가 잘리지 않게)
+            final band = math.max(h * 0.12, 26.0);
+            final floor = h - band;
+            return Stack(children: [
+              Positioned.fill(
+                child: Image.asset(bg,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1B1840))),
+              ),
+              Positioned(
+                left: 10,
+                top: 10,
+                child: _Pill(child: Text('알 부화장', key: const Key('hatcheryTitle'), style: AppText.title(15))),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: floor - _Nest.pic,
+                height: _Nest.pic + band,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (i, e) in warm.indexed) ...[
+                      if (i > 0) const SizedBox(width: 10),
+                      _Nest(key: Key('nest_${e.id}'), controller: c, egg: e, band: band),
+                    ],
+                    if (empty) ...[
+                      if (warm.isNotEmpty) const SizedBox(width: 10),
+                      _EmptyNest(
+                        key: const Key('nestEmpty'),
+                        band: band,
+                        line: inBag.isEmpty ? '알을 얻으면 여기서 품어요' : '가방의 알을 품어 보세요',
+                        onTap: inBag.isEmpty ? null : () => _pickEgg(context, c, inBag),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('알 부화장', style: AppText.title(17)),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final e in warm) _Nest(key: Key('nest_${e.id}'), controller: c, egg: e),
-                  if (empty)
-                    _EmptyNest(
-                      key: const Key('nestEmpty'),
-                      line: inBag.isEmpty ? '알을 얻으면 여기서 품어요' : '가방의 알을 품어 보세요',
-                      onTap: inBag.isEmpty ? null : () => _pickEgg(context, c, inBag),
-                    ),
-                ],
-              ),
-            ]),
-          ),
-        ]),
+            ]);
+          }),
+        ),
       ),
     );
   }
@@ -119,9 +127,15 @@ class HatcheryPanel extends StatelessWidget {
 
 /// 둥지 하나 (뒤 · 알 · 앞 겹침, 아래에 금빛 고리)
 class _Nest extends StatefulWidget {
-  const _Nest({super.key, required this.controller, required this.egg});
+  const _Nest({super.key, required this.controller, required this.egg, required this.band});
   final AppController controller;
   final PetEgg egg;
+
+  /// 둥지 아래 글 칸 높이 (판 아래 12%)
+  final double band;
+
+  /// 둥지 그림 칸 높이
+  static const double pic = 116;
 
   @override
   State<_Nest> createState() => _NestState();
@@ -148,11 +162,11 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
     return GestureDetector(
       onTap: () => ready ? showHatchSheet(context, c, e) : showBagEntry(context, c, EggEntry(e)),
       child: SizedBox(
-        width: 126,
+        width: 136,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
             width: 126,
-            height: 116,
+            height: _Nest.pic,
             child: AnimatedBuilder(
               animation: _a,
               builder: (context, _) {
@@ -169,6 +183,7 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
                   if (ph < 0.18) angle = math.sin(ph / 0.18 * math.pi * 3) * amp;
                 }
                 return Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
+                  const Positioned(bottom: -6, child: _NestShadow()),
                   if (ready)
                     Positioned(
                       bottom: 24,
@@ -211,28 +226,38 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
               },
             ),
           ),
-          const SizedBox(height: 4),
-          if (ready)
-            GoldButton(
-              key: Key('nestWake_${e.id}'),
-              label: '깨우기',
-              height: 36,
-              fontSize: 15,
-              onPressed: () => showHatchSheet(context, c, e),
-            )
-          else
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              SizedBox(
-                width: 22,
-                height: 22,
-                child: CustomPaint(painter: _Ring(done)),
-              ),
-              const SizedBox(width: 6),
-              Text(soon ? '곧 깨어나요!' : _left(left),
-                  key: Key('nestLeft_${e.id}'),
-                  style: TextStyle(
-                      color: soon ? AppColors.goldBright : AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w800)),
-            ]),
+          SizedBox(
+            height: widget.band,
+            child: Center(
+              child: ready
+                  ? SizedBox(
+                      height: math.min(30, widget.band - 2),
+                      child: GoldButton(
+                        key: Key('nestWake_${e.id}'),
+                        label: '깨우기',
+                        height: math.min(30, widget.band - 2),
+                        fontSize: 13,
+                        onPressed: () => showHatchSheet(context, c, e),
+                      ),
+                    )
+                  : _Pill(
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CustomPaint(painter: _Ring(done)),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(soon ? '곧 깨어나요!' : _left(left),
+                            key: Key('nestLeft_${e.id}'),
+                            style: TextStyle(
+                                color: soon ? AppColors.goldBright : AppColors.text,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800)),
+                      ]),
+                    ),
+            ),
+          ),
         ]),
       ),
     );
@@ -294,29 +319,64 @@ class _StrawNest extends StatelessWidget {
       );
 }
 
-/// 빈 둥지 하나 (누르면 가방의 알 고르기)
+/// 둥지 밑 옅은 타원 그림자 (바닥에 놓인 느낌)
+class _NestShadow extends StatelessWidget {
+  const _NestShadow();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 96,
+        height: 18,
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.all(Radius.elliptical(48, 9)),
+          gradient: RadialGradient(colors: [
+            Colors.black.withValues(alpha: 0.45),
+            Colors.black.withValues(alpha: 0),
+          ]),
+        ),
+      );
+}
+
+/// 어두운 반투명 알약 바탕 (덩굴 · 벽 위에서도 글자가 읽히게)
+class _Pill extends StatelessWidget {
+  const _Pill({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xB30B0D26),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
+        ),
+        child: child,
+      );
+}
+
+/// 빈 둥지 하나 (누르면 가방의 알 고르기). 묶음 73 #308: 둥지는 불투명, 비었다는 표시는 + · 안내 글로만
 class _EmptyNest extends StatelessWidget {
-  const _EmptyNest({super.key, required this.line, this.onTap});
+  const _EmptyNest({super.key, required this.line, required this.band, this.onTap});
   final String line;
+  final double band;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: SizedBox(
-          width: 126,
+          width: 136,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             SizedBox(
               width: 126,
-              height: 116,
-              child: Stack(alignment: Alignment.bottomCenter, children: [
+              height: _Nest.pic,
+              child: Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
+                const Positioned(bottom: -6, child: _NestShadow()),
                 Positioned(
                   bottom: 0,
-                  child: Opacity(
-                    opacity: 0.8,
-                    child: Image.asset(HatcheryPanel.nestBack,
-                        width: 110, height: 110, errorBuilder: (_, __, ___) => const _StrawNest()),
-                  ),
+                  child: Image.asset(HatcheryPanel.nestBack,
+                      key: const Key('nestEmptyBack'),
+                      width: 110, height: 110, errorBuilder: (_, __, ___) => const _StrawNest()),
                 ),
                 Positioned(
                   bottom: 0,
@@ -330,10 +390,17 @@ class _EmptyNest extends StatelessWidget {
                   ),
               ]),
             ),
-            const SizedBox(height: 4),
-            KText(line,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700)),
+            SizedBox(
+              height: band,
+              child: Center(
+                child: _Pill(
+                  child: Text(line,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
           ]),
         ),
       );

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../chat/chat_screens.dart';
+import '../profile/profile_screen.dart' show SocialFace;
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/rules/rules.dart';
@@ -692,6 +693,9 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
               },
             ),
             const SizedBox(width: 4),
+            // 묶음 75 #335: 프로필 사진
+            SocialFace(key: Key('guildFace_${m.uid}'), face: m.me ? c.avatarFace : m.face),
+            const SizedBox(width: 6),
             Expanded(
               child: Text('${m.name}${m.me ? ' (나)' : ''}',
                   maxLines: 1,

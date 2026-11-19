@@ -99,6 +99,7 @@ part 'controller/vitals.dart';
 part 'controller/walk_rewards.dart';
 part 'controller/estate_dev.dart';
 part 'controller/chat.dart';
+part 'controller/avatar.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
 ///

@@ -11,7 +11,11 @@ class GuildMember {
     this.line = '',
     this.role = 'member',
     this.me = false,
+    this.face = '',
   });
+
+  /// 묶음 75 #335: 프로필 사진 그림 이름 (없으면 기본 얼굴)
+  final String face;
 
   final String uid, name;
   final int level;
@@ -167,6 +171,7 @@ class GuildView {
               line: '${m['line'] ?? ''}',
               role: '${m['role'] ?? 'member'}',
               me: m['me'] == true,
+              face: '${m['face'] ?? ''}',
             ),
       ],
       walkProgress: [for (final x in (walk['progress'] as List?) ?? const [0, 0, 0]) (x as num).toDouble()],
@@ -371,6 +376,7 @@ extension Act4Ops on AppController {
     return {
       'name': _profile.name,
       'level': player.level.level,
+      'face': avatarFace, // 묶음 75 #335
       ...await _socialSteps(),
       'device': await deviceId(),
       if (mainJob != null) 'job': mainJob!.name,
@@ -543,8 +549,8 @@ extension Act4Ops on AppController {
       progress: 0,
       lian: true,
       members: [
-        GuildMember(uid: 'me', name: _profile.name, level: player.level.level, weekSteps: w, me: true, job: mainJob?.name),
-        const GuildMember(uid: 'lian', name: '리안', level: 30, role: 'owner', line: '자리는 늘 비워 둘게요.'),
+        GuildMember(uid: 'me', name: _profile.name, level: player.level.level, weekSteps: w, me: true, job: mainJob?.name, face: avatarFace),
+        const GuildMember(uid: 'lian', name: '리안', level: 30, role: 'owner', line: '자리는 늘 비워 둘게요.', face: 'npc_lian'),
       ],
       walkProgress: [for (final g in GuildRules.weekSteps) (steps / g).clamp(0.0, 1.0)],
       walkDone: [for (final g in GuildRules.weekSteps) steps >= g],

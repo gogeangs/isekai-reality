@@ -30,7 +30,7 @@ class ChatLine {
 
 /// 친구 · 친구 신청 한 사람
 class ChatPerson {
-  const ChatPerson({required this.uid, required this.name, this.level = 1, this.title = '', this.look = '', this.guild = '', this.steps, this.lastSeen = 0, this.room});
+  const ChatPerson({required this.uid, required this.name, this.level = 1, this.title = '', this.look = '', this.guild = '', this.steps, this.lastSeen = 0, this.room, this.face = ''});
 
   factory ChatPerson.fromJson(Map<String, dynamic> j) => ChatPerson(
         uid: '${j['uid']}',
@@ -42,7 +42,11 @@ class ChatPerson {
         steps: (j['steps'] as num?)?.toInt(),
         lastSeen: (j['lastSeen'] as num?)?.toInt() ?? 0,
         room: j['room'] as String?,
+        face: '${j['face'] ?? ''}',
       );
+
+  /// 묶음 75 #335: 프로필 사진 그림 이름 (없으면 주인공 얼굴)
+  final String face;
 
   final String uid, name, title, look, guild;
   final int level;
@@ -170,6 +174,7 @@ extension ChatOps on AppController {
           'level': player.level.level,
           'title': equippedTitle == null ? '' : TitleRules.info(equippedTitle!).name,
           'look': _profile.look.name,
+          'face': avatarFace, // 묶음 75 #335: 프로필 사진
           ...await _socialSteps(),
           'device': await deviceId(),
         },

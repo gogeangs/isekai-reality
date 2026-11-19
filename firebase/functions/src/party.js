@@ -20,6 +20,11 @@ function safeName(n) {
   return !s || R.bannedName(s) ? '각성자' : s;
 }
 
+/** 묶음 75 #335: 프로필 사진 그림 이름 (앱 안 그림만, 모양이 다르면 빈 값) */
+function safeFace(f) {
+  return typeof f === 'string' && /^[A-Za-z0-9_]{1,48}$/.test(f) ? f : '';
+}
+
 function memberList(p) {
   return Object.entries(p.members || {})
     .map(([uid, m]) => ({ uid, ...m }))
@@ -116,7 +121,7 @@ class PartyService {
         owner: uid,
         code,
         createdAt: at,
-        members: { [uid]: { name: safeName(me.name), level: Number(me.level) || 1, joinedAt: at } },
+        members: { [uid]: { name: safeName(me.name), level: Number(me.level) || 1, face: safeFace(me.face), joinedAt: at } },
       });
       t.set(this.db.doc(`codes/${code}`), { pid });
       t.set(this.db.doc(`partyOf/${uid}`), { pid });
@@ -146,7 +151,7 @@ class PartyService {
       if (Object.keys(cur.members || {}).length >= R.MAX_MEMBERS) fail('full');
       cur.members = {
         ...cur.members,
-        [uid]: { name: safeName(me.name), level: Number(me.level) || 1, joinedAt: this.now() },
+        [uid]: { name: safeName(me.name), level: Number(me.level) || 1, face: safeFace(me.face), joinedAt: this.now() },
       };
       t.set(this.db.doc(`parties/${pid}`), cur);
       t.set(this.db.doc(`partyOf/${uid}`), { pid });
@@ -263,8 +268,13 @@ class PartyService {
         }
         // 이름 · 레벨 새로
         const m = (p.members || {})[uid];
-        if (m && (me.name || me.level)) {
-          p.members[uid] = { ...m, name: me.name ? safeName(me.name) : m.name, level: Number(me.level) || m.level };
+        if (m && (me.name || me.level || (me.face !== undefined && safeFace(me.face) !== (m.face || '')))) {
+          p.members[uid] = {
+            ...m,
+            name: me.name ? safeName(me.name) : m.name,
+            level: Number(me.level) || m.level,
+            ...(me.face !== undefined ? { face: safeFace(me.face) } : {}),
+          };
           t.set(this.db.doc(`parties/${pid}`), p);
         }
         // 보스: 이번 주 처음이면 인원 · 평균 레벨로 체력을 정함
@@ -282,6 +292,7 @@ class PartyService {
       uid: m.uid,
       name: m.name,
       level: m.level,
+      face: m.face || '',
       steps: out.has(m.uid) ? 0 : weekSteps(w, m.uid),
       me: m.uid === uid,
       owner: m.uid === p.owner,

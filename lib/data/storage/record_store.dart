@@ -43,7 +43,15 @@ class PlayerProfile {
     this.lastSeenLevel,
     this.equippedTitle,
     this.renames = 0,
+    this.avatar = 'hero',
+    this.avatarHinted = false,
   });
+
+  /// 묶음 75 #335: 프로필 사진 ('hero' · 'pet:<uid>' · 'npc:marta' · 'ally:lian' · 'title:<id>')
+  final String avatar;
+
+  /// 「프로필 사진을 바꿀 수 있어!」 를 말했는지
+  final bool avatarHinted;
 
   final String name;
   final HeroLook look;
@@ -74,6 +82,8 @@ class PlayerProfile {
     int? lastSeenLevel,
     String? equippedTitle,
     int? renames,
+    String? avatar,
+    bool? avatarHinted,
   }) =>
       PlayerProfile(
         name: name ?? this.name,
@@ -84,6 +94,8 @@ class PlayerProfile {
         lastSeenLevel: lastSeenLevel ?? this.lastSeenLevel,
         equippedTitle: equippedTitle ?? this.equippedTitle,
         renames: renames ?? this.renames,
+        avatar: avatar ?? this.avatar,
+        avatarHinted: avatarHinted ?? this.avatarHinted,
       );
 
   Map<String, dynamic> toJson() => {
@@ -95,6 +107,8 @@ class PlayerProfile {
         'lastSeenLevel': lastSeenLevel,
         'equippedTitle': equippedTitle,
         'renames': renames,
+        'avatar': avatar,
+        if (avatarHinted) 'avatarHinted': true,
       };
 
   factory PlayerProfile.fromJson(Map<String, dynamic> json) => PlayerProfile(
@@ -108,6 +122,8 @@ class PlayerProfile {
         lastSeenLevel: json['lastSeenLevel'] as int?,
         equippedTitle: json['equippedTitle'] as String?,
         renames: json['renames'] as int? ?? 0,
+        avatar: json['avatar'] as String? ?? 'hero',
+        avatarHinted: json['avatarHinted'] as bool? ?? false,
       );
 }
 

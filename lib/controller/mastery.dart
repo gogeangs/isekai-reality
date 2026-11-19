@@ -375,6 +375,14 @@ extension MasteryOps on AppController {
       unawaited(_saveMastery());
       return line;
     }
+    // 묶음 75 #335: 프로필 사진 (처음 한 번)
+    if (_avatarHintDue) {
+      const line = AvatarOps.avatarHintLine;
+      _shownMastery = (line, now);
+      _profile = _profile.copyWith(avatarHinted: true);
+      unawaited(store.saveProfile(_profile));
+      return line;
+    }
     final top = _topMastery();
     if (top != null &&
         MasteryRules.leanReady(masteryOf(top)) &&

@@ -554,6 +554,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               left: 12,
               child: ProfileButton(
                 look: controller.profile.look,
+                face: controller.avatarFace,
                 level: controller.player.level.level,
                 onTap: () => push(ProfileScreen(controller: controller)),
               ),

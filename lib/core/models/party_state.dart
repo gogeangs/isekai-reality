@@ -92,7 +92,11 @@ class PartyMember {
     this.me = false,
     this.owner = false,
     this.cheeredToday = false,
+    this.face = '',
   });
+
+  /// 묶음 75 #335: 프로필 사진 그림 이름 (없으면 기본 얼굴)
+  final String face;
 
   final String uid;
   final String name;
@@ -114,6 +118,7 @@ class PartyMember {
         me: j['me'] == true,
         owner: j['owner'] == true,
         cheeredToday: j['cheeredToday'] == true,
+        face: '${j['face'] ?? ''}',
       );
 }
 

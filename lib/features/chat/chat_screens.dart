@@ -12,7 +12,7 @@ import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import '../act5/erbard_screens.dart' show siegeLine;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
-import '../profile/profile_screen.dart' show PortraitFace;
+import '../profile/profile_screen.dart' show AvatarFace;
 import 'chat_tour.dart';
 
 /// 묶음 68 #275: 상태 화면 위 우편 버튼 옆 말풍선 (안 읽은 수 빨간 점). 로그인했을 때만
@@ -561,7 +561,8 @@ class _PersonRow extends StatelessWidget {
               child: SizedBox(
                   width: 40,
                   height: 40,
-                  child: PortraitFace(
+                  child: AvatarFace(
+                      face: p.face,
                       look: p.look == 'female' ? HeroLook.female : HeroLook.male,
                       fallback: const Icon(Icons.person_rounded, size: 36))),
             ),

@@ -141,6 +141,8 @@ class ChatService {
       level: me.level != null ? Math.max(1, Math.floor(Number(me.level) || 1)) : u.level || 1,
       title: me.title != null ? String(me.title).slice(0, 20) : u.title || '',
       look: me.look != null ? String(me.look).slice(0, 12) : u.look || '',
+      // 묶음 75 #335: 프로필 사진 (앱 안 그림 이름만)
+      face: me.face != null ? (/^[A-Za-z0-9_]{1,48}$/.test(String(me.face)) ? String(me.face) : '') : u.face || '',
       guild: g ? g.name || '' : '',
       lastSeen: now,
     };
@@ -178,6 +180,7 @@ class ChatService {
       level: u.level || 1,
       title: u.title || '',
       look: u.look || '',
+      face: u.face || '',
       guild: u.guild || '',
       steps: u.showSteps !== false && u.day === today ? u.steps || 0 : null,
       lastSeen: u.lastSeen || 0,

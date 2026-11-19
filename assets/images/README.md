@@ -482,3 +482,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | nest_back | 알 부화장 둥지 뒤쪽 (짚·잔가지 테 + 안쪽 깃털, 앞 테 없음, 원본 캔버스 그대로 줄여 nest_front와 겹치면 맞도록, #285, 256) |
 | 2026-11-19 | nest_front | 알 부화장 둥지 앞쪽 테 (nest_back과 같은 256 캔버스·같은 자리 — 겹치면 둥지가 닫힘, 사이에 알을 끼움. 원본보다 위로 올리고 가로 6% 넓혀 맞춤, #285, 256) |
 | 2026-11-19 | monster_sphinx, monster_doppelganger, monster_clockworkKnight, monster_arachne, monster_centaur, monster_owlbear, monster_kelpie, monster_naga, monster_roc | Lv.50 지도 몬스터 9 (한 장에서 잘라 냄, 색 번짐 정리, #281, 512) |
+| 2026-11-19 | monster_sphinx … monster_roc (9장, 다시) | Lv.50 지도 몬스터 9 새 판으로 덮어씀 (외곽선 더 굵고 번짐 적음, #281, 512) |

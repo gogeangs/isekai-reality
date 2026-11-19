@@ -504,3 +504,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | pet_golem_battle, pet_mimic_battle, pet_owl_battle, pet_toad_battle | 펫 전투용(오른쪽을 봄) 4종, 512, 바닥선 496 |
 | 2026-11-19 | pet_homunculus_battle, spirit_plant_battle, spirit_water_battle, spirit_fire_battle | 펫·정령 전투용(오른쪽을 봄) 4종, 512 (호문쿨루스 바닥선 496, 정령은 가운데 · 후광·떠다니는 조각 제거) |
 | 2026-11-19 | ally_lian_attack | 리안 공격 6칸 판(준비→힘 모으기→휘두름→베기+금빛 궤적→마무리→준비), 3840×640, 칸 640·발 바닥선 620 |
+| 2026-11-19 | ally_garen_attack | 가렌 공격 6칸 판(지팡이 짚고 외치며 내려베기+붉은 기운), 3840×640, 칸 640·발 바닥선 맞춤 |

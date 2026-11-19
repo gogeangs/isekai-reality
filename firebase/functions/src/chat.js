@@ -1,5 +1,7 @@
 // 묶음 68 #275 대화 · 친구 (로그인한 사람만)
-// 방: 길드(g_<길드>) · 연맹(a_<연맹>) · 친구 1:1(f_<uid>_<uid>) · 서버(server, Lv.10부터 쓰기)
+// 방: 길드(g_<길드>) · 연맹(a_<연맹>) · 친구 1:1(f_<uid>_<uid>) · 세계(server)
+// 묶음 70 #291·#292: 친구는 Lv.8부터(목록 · 신청 · 초대) · 「세계」와 친구 1:1은 Lv.11부터 읽기 · 쓰기.
+// 초대받아 온 새 각성자는 Lv.8 전이라도 초대한 사람과 바로 친구. 초대받은 사람이 Lv.5가 되면 둘 다 보상 (초대한 사람은 5명까지)
 // 쓰기는 모두 이 서버 함수로: 금칙어 · 개인정보 가림 · 도배 · 대화 금지 · Lv.10 · 진짜 앱 확인.
 // 읽기도 이 함수로 (그 방 사람만) — 방마다 최근 100줄, 위로 올리면 더 불러오기.
 // 기록: 대화 30일(expireAt) · 신고된 줄은 처리 뒤 90일 · 대화 금지 · 차단은 계정이 있는 동안 · 계정 지우기 때 함께 지움
@@ -11,7 +13,11 @@ const C = {
   page: 100,
   keepDays: 30,
   reportKeepDays: 90,
-  serverLevel: 10,
+  serverLevel: 11,
+  friendLevel: 8,
+  inviteLevel: 5,
+  inviteMax: 5,
+  inviteTitle: 3,
   gapMs: 10000,
   repeatN: 3,
   repeatRestMs: 60000,
@@ -62,11 +68,16 @@ function maskBanned(text, list) {
 
 const friendRoom = (a, b) => `f_${[a, b].sort().join('_')}`;
 
+/** 초대 보상 (금화 300 · 마석 5 · 정령 물약 1 — 정령과 헤어진 뒤엔 같은 물건이 펫 간식) */
+const INVITE_REWARD = { gold: 300, manaStone: 5, 'item:bulssiPotion': 1 };
+const HELLO_REWARD = { gold: 100 };
+
 class ChatService {
-  constructor(db, { now = () => Date.now(), guild = null } = {}) {
+  constructor(db, { now = () => Date.now(), guild = null, suspect = null } = {}) {
     this.db = db;
     this.now = now;
     this.guild = guild;
+    this.suspect = suspect;
   }
 
   _uref(uid) {
@@ -97,7 +108,7 @@ class ChatService {
 
   /** 그 방을 읽고 쓸 수 있는지 */
   async _canRoom(uid, room) {
-    if (room === 'server') return true;
+    if (room === 'server') return ((await this._user(uid)).level || 1) >= C.serverLevel;
     if (room.startsWith('g_')) {
       const { gid } = await this._guildOf(uid);
       return !!gid && room === `g_${gid}`;
@@ -111,6 +122,7 @@ class ChatService {
       if (ids.length !== 2 || !ids.includes(uid)) return false;
       const other = ids[0] === uid ? ids[1] : ids[0];
       const me = await this._user(uid);
+      if ((me.level || 1) < C.serverLevel) return false;
       const them = await this._user(other);
       return (me.friends || []).includes(other) && !(them.blocked || []).includes(uid) && !(me.blocked || []).includes(other);
     }
@@ -132,6 +144,9 @@ class ChatService {
       guild: g ? g.name || '' : '',
       lastSeen: now,
     };
+    // 묶음 70: 이 기기 표시 (앱이 만든 무작위 값 — 같은 기기로 초대 보상을 받는지만 봄)
+    const dev = me.device || me.dev;
+    if (dev) next.devs = [...new Set([String(dev).slice(0, 40), ...(u.devs || [])])].slice(0, 5);
     if (me.steps != null) {
       next.day = R.dayKey(now);
       next.steps = Math.max(0, Math.floor(Number(me.steps) || 0));
@@ -172,8 +187,10 @@ class ChatService {
 
   // ───────────── 내 대화 · 친구 한눈에
 
-  async me(uid, me = {}) {
+  async me(uid, me = {}, { appCheckBad = false } = {}) {
     const u = await this._touch(uid, me);
+    await this._inviteCheck(uid, u, appCheckBad);
+    const open = (u.level || 1) >= C.serverLevel;
     const friends = [];
     for (const f of u.friends || []) friends.push(this._card(f, await this._user(f), uid));
     const inbox = await this.db.collection('friendReq').where('to', '==', uid).get();
@@ -203,8 +220,12 @@ class ChatService {
       const a = (await this.db.doc(`alliances/${g.alliance}`).get()).data();
       if (a) await add(`a_${g.alliance}`, 'alliance', a.name || '연맹');
     }
-    await add('server', 'server', '서버 대화방');
-    for (const f of friends) await add(f.room, 'friend', f.name);
+    // 묶음 70: 「세계」 · 친구 1:1은 Lv.11부터
+    if (open) {
+      await add('server', 'server', '세계');
+      for (const f of friends) await add(f.room, 'friend', f.name);
+    }
+    const inv = await this.db.collection('invites').where('inviter', '==', uid).get();
     return {
       uid,
       friendCode: u.friendCode,
@@ -218,6 +239,10 @@ class ChatService {
       blocked,
       rooms,
       maxFriends: C.maxFriends,
+      invited: inv.docs.length,
+      invitePaid: inv.docs.filter((d) => d.data().inviterPaid).length,
+      inviteMax: C.inviteMax,
+      firstHello: !!u.firstHello,
     };
   }
 
@@ -247,6 +272,7 @@ class ChatService {
 
   async read(uid, { room, after, before } = {}) {
     room = String(room || '');
+    if (room === 'server' && ((await this._user(uid)).level || 1) < C.serverLevel) fail('level', 403);
     if (!(await this._canRoom(uid, room))) fail('no_room', 403);
     const u = await this._user(uid);
     let q = this._msgs(room);
@@ -272,8 +298,8 @@ class ChatService {
     const now = this.now();
     if (!u.rulesSeen) fail('rules_first');
     if (u.mutePerm || (u.mutedUntil && u.mutedUntil > now)) fail('muted', 403);
-    if (!(await this._canRoom(uid, room))) fail('no_room', 403);
     if (room === 'server' && (u.level || 1) < C.serverLevel) fail('level');
+    if (!(await this._canRoom(uid, room))) fail('no_room', 403);
     if (u.restUntil && u.restUntil > now) fail('rest');
     if (u.lastSendAt && now - u.lastSendAt < C.gapMs) fail('too_fast');
     const same = u.lastText === t ? (u.repeatN || 1) + 1 : 1;
@@ -287,8 +313,21 @@ class ChatService {
     const ref = await this._msgs(room).add(msg);
     const rooms = new Set(u.rooms || []);
     rooms.add(room);
-    await this._uref(uid).set({ ...u, lastSendAt: now, lastText: t, repeatN: same, rooms: [...rooms], reads: { ...(u.reads || {}), [room]: now } });
-    return { ok: true, line: this._view(ref.id, msg), masked: shown !== t };
+    // 묶음 70 #292: 「세계」에 처음 인사하면 우편 「첫 인사」 (금화 100 · 숨은 칭호는 앱이)
+    const hello = room === 'server' && !u.firstHello;
+    await this._uref(uid).set({ ...u, lastSendAt: now, lastText: t, repeatN: same, rooms: [...rooms], reads: { ...(u.reads || {}), [room]: now }, ...(hello ? { firstHello: true } : {}) });
+    if (hello) {
+      await this.db.collection(`inbox/u_${uid}/msgs`).add({
+        from: '하르트',
+        title: '첫 인사',
+        body: '세계에 처음 인사를 건넸구먼! 같이 걷는 각성자들이 반가워할 걸세.',
+        reward: { ...HELLO_REWARD },
+        equips: [],
+        at: now,
+        kind: 'hello',
+      });
+    }
+    return { ok: true, line: this._view(ref.id, msg), masked: shown !== t, firstHello: hello };
   }
 
   /** 길드 소식을 대화방에도 시스템 줄로 (공성전 · 영지 소식) */
@@ -301,6 +340,7 @@ class ChatService {
 
   async friendAdd(uid, { code, to } = {}) {
     if (await this._restricted(uid)) fail('restricted', 403);
+    if (((await this._user(uid)).level || 1) < C.friendLevel) fail('friend_level', 403);
     let target = to ? String(to) : null;
     if (!target && code) {
       const s = await this.db.doc(`friendCode/${String(code).toUpperCase().replace(/[^A-Z0-9]/g, '')}`).get();
@@ -321,6 +361,7 @@ class ChatService {
   }
 
   async friendAccept(uid, { from } = {}) {
+    if (((await this._user(uid)).level || 1) < C.friendLevel) fail('friend_level', 403);
     const ref = this.db.doc(`friendReq/${uid}_${from}`);
     if (!(await ref.get()).exists) fail('no_request', 404);
     const me = await this._user(uid);
@@ -361,6 +402,64 @@ class ChatService {
     const me = await this._user(uid);
     await this._uref(uid).set({ ...me, blocked: (me.blocked || []).filter((x) => x !== to) });
     return { ok: true };
+  }
+
+  // ───────────── 초대 (묶음 70 #291)
+
+  /**
+   * 초대 링크로 들어온 새 각성자: 레벨과 상관없이 초대한 사람과 바로 친구.
+   * 같은 기기 · 이미 자란 계정(Lv.5 이상) · 진짜 앱 확인 실패면 보상은 없고 의심 목록 「초대 보상」에.
+   */
+  async inviteClaim(uid, { code, level, dev, appCheckBad = false } = {}) {
+    if (await this._restricted(uid)) fail('restricted', 403);
+    const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cs = await this.db.doc(`friendCode/${c}`).get();
+    const inviter = cs.exists ? cs.data().uid : null;
+    if (!inviter || !(await this._uref(inviter).get()).exists) fail('no_user', 404);
+    if (inviter === uid) fail('self');
+    const iref = this.db.doc(`invites/${uid}`);
+    if ((await iref.get()).exists) return { ok: true, already: true };
+    const me = await this._user(uid);
+    const them = await this._user(inviter);
+    if ((them.blocked || []).includes(uid) || (me.blocked || []).includes(inviter)) fail('blocked', 403);
+    const lv = Math.max(Number(level) || 1, me.level || 1);
+    let flag = null;
+    if (appCheckBad) flag = 'appcheck';
+    else if (dev && (them.devs || []).includes(String(dev).slice(0, 40))) flag = 'same_device';
+    else if (lv >= C.inviteLevel) flag = 'old_account';
+    if (!(me.friends || []).includes(inviter) && (me.friends || []).length < C.maxFriends && (them.friends || []).length < C.maxFriends) {
+      await this._uref(uid).set({ ...me, level: me.level || lv, friends: [...new Set([...(me.friends || []), inviter])] });
+      await this._uref(inviter).set({ ...them, friends: [...new Set([...(them.friends || []), uid])] });
+      await this.db.doc(`friendReq/${uid}_${inviter}`).delete();
+      await this.db.doc(`friendReq/${inviter}_${uid}`).delete();
+    }
+    await iref.set({ inviter, invitee: uid, at: this.now(), flag, rewarded: false, inviterPaid: false });
+    if (flag && this.suspect) await this.suspect.hit(uid, 'invite', { reason: flag, inviter });
+    return { ok: true, friend: true, inviterName: them.name || '각성자' };
+  }
+
+  /** 초대받은 사람이 Lv.5가 되면 둘 다 우편 (초대한 사람은 5명까지 · 3명이면 숨은 칭호는 앱이) */
+  async _inviteCheck(uid, u, appCheckBad) {
+    if ((u.level || 1) < C.inviteLevel) return;
+    const iref = this.db.doc(`invites/${uid}`);
+    const s = await iref.get();
+    if (!s.exists) return;
+    const inv = s.data();
+    if (inv.rewarded) return;
+    if (inv.flag || appCheckBad) {
+      const flag = inv.flag || 'appcheck';
+      await iref.set({ ...inv, rewarded: true, flag });
+      if (!inv.flag && this.suspect) await this.suspect.hit(uid, 'invite', { reason: flag, inviter: inv.inviter });
+      return;
+    }
+    const paid = (await this.db.collection('invites').where('inviter', '==', inv.inviter).get()).docs.filter((d) => d.data().inviterPaid).length;
+    const inviterPaid = paid < C.inviteMax && (await this._uref(inv.inviter).get()).exists;
+    const now = this.now();
+    const mail = (to, title, body) =>
+      this.db.collection(`inbox/u_${to}/msgs`).add({ from: '하르트', title, body, reward: { ...INVITE_REWARD }, equips: [], at: now, kind: 'invite' });
+    await mail(uid, '친구 초대 보상', `${(await this._user(inv.inviter)).name || '친구'}님의 초대로 함께 걷기 시작해 벌써 Lv.${C.inviteLevel}! 고마운 마음을 담아 보내네.`);
+    if (inviterPaid) await mail(inv.inviter, '친구 초대 보상', `초대한 ${u.name || '친구'}님이 Lv.${C.inviteLevel}이 됐다네. 길동무를 데려와 줘서 고맙네!`);
+    await iref.set({ ...inv, rewarded: true, inviterPaid, paidAt: now });
   }
 
   // ───────────── 신고 · 운영
@@ -452,8 +551,12 @@ class ChatService {
       for (const d of q.docs) await d.ref.delete();
     }
     if (u.friendCode) await this.db.doc(`friendCode/${u.friendCode}`).delete();
+    // 묶음 70: 초대 기록 (내가 받은 것 · 내가 보낸 것)
+    await this.db.doc(`invites/${uid}`).delete();
+    const sent = await this.db.collection('invites').where('inviter', '==', uid).get();
+    for (const d of sent.docs) await d.ref.delete();
     await this._uref(uid).delete();
   }
 }
 
-module.exports = { ChatService, ChatError, maskPrivate, maskBanned, friendRoom, C, REASONS };
+module.exports = { ChatService, ChatError, maskPrivate, maskBanned, friendRoom, C, REASONS, INVITE_REWARD, HELLO_REWARD };

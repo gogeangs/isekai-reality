@@ -674,7 +674,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
             ? null
             : g.staff
                 ? () => _manage(g, m)
-                : c.chatOpen
+                : c.friendsOpen
                     ? () => askFriend(context, c, m.uid, m.name)
                     : null,
         child: Padding(
@@ -808,7 +808,7 @@ class _GuildHallScreenState extends State<GuildHallScreen> {
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text(m.name, style: AppText.title(18)),
               const SizedBox(height: 10),
-              if (c.chatOpen && !(c.chatMe?.friends.any((f) => f.uid == m.uid) ?? false)) ...[
+              if (c.friendsOpen && !(c.chatMe?.friends.any((f) => f.uid == m.uid) ?? false)) ...[
                 FrameButton(
                     key: const Key('guildMemberFriend'),
                     label: '친구 신청',

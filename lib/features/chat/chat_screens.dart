@@ -10,6 +10,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import '../act5/erbard_screens.dart' show siegeLine;
+import '../tutorial/feature_tour.dart' show TourScreenMark;
+import 'chat_tour.dart';
 
 /// 묶음 68 #275: 상태 화면 위 우편 버튼 옆 말풍선 (안 읽은 수 빨간 점). 로그인했을 때만
 class ChatButton extends StatefulWidget {
@@ -40,6 +42,12 @@ class _ChatButtonState extends State<ChatButton> {
 
   Future<void> _poll() async {
     if (!mounted || !c.chatOpen) return;
+    // 묶음 70 #291: 초대 링크로 들어왔으면 초대한 사람과 바로 친구
+    final inviter = await c.claimInvite();
+    if (inviter != null && mounted) {
+      showTopNotice(context, '$inviter님과 친구가 됐어요', icon: Icons.people_rounded);
+    }
+    if (!mounted || !c.friendsOpen) return;
     await c.refreshChat(onNew: (line) {
       if (mounted && TickerMode.valuesOf(context).enabled) {
         showTopNotice(context, line, icon: Icons.chat_bubble_rounded, onTap: () => openChat(context, c));
@@ -52,18 +60,21 @@ class _ChatButtonState extends State<ChatButton> {
         listenable: c,
         builder: (context, _) {
           if (!c.chatOpen) return const SizedBox.shrink();
-          // 친구 초대 링크로 열렸으면 친구 탭으로 (코드가 칸에 들어가 있음)
+          // 묶음 70 #291: 초대 링크로 열렸으면 바로 친구 (레벨과 상관없이)
           if (c.pendingFriendCode != null && !_opening) {
             _opening = true;
             WidgetsBinding.instance.addPostFrameCallback((_) async {
-              if (mounted) await openChat(context, c, tab: 1);
+              await _poll();
               _opening = false;
             });
           }
-          final n = c.chatMe?.unread ?? 0;
+          // 묶음 70: 친구는 Lv.8부터 (사람 모양) · 「세계」 말풍선은 Lv.11부터
+          if (!c.friendsOpen) return const SizedBox.shrink();
+          final world = c.worldOpen;
+          final n = world ? (c.chatMe?.unread ?? 0) : (c.chatMe?.requests.length ?? 0);
           return GestureDetector(
-            key: const Key('chatButton'),
-            onTap: () => openChat(context, c),
+            key: Key(world ? 'chatButton' : 'friendButton'),
+            onTap: () => openChat(context, c, tab: world ? 0 : 1),
             child: Stack(clipBehavior: Clip.none, children: [
               Container(
                 width: 44,
@@ -73,7 +84,8 @@ class _ChatButtonState extends State<ChatButton> {
                   color: const Color(0xCC14163A),
                   border: Border.all(color: AppColors.gold, width: 1.5),
                 ),
-                child: const Icon(Icons.chat_bubble_rounded, color: AppColors.goldBright, size: 22),
+                child: Icon(world ? Icons.chat_bubble_rounded : Icons.people_alt_rounded,
+                    color: AppColors.goldBright, size: 22),
               ),
               if (n > 0)
                 Positioned(
@@ -129,7 +141,7 @@ String _kindOf(String room) => room == 'server'
 String _roomTitle(ChatRoomInfo r) => switch (r.kind) {
       'guild' => '길드 · ${r.name}',
       'alliance' => '연맹 · ${r.name}',
-      'server' => '서버 대화방',
+      'server' => ChatRules.worldTitle,
       _ => r.name,
     };
 
@@ -284,10 +296,12 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
-    return Scaffold(
+    final world = c.worldOpen;
+    if (!world) _tab = 1;
+    return TourScreenMark(name: 'chatHub', child: Scaffold(
       key: const Key('chatHub'),
       backgroundColor: AppColors.deepNight,
-      body: NightBackground(
+      body: Stack(children: [Positioned.fill(child: NightBackground(
         header: true,
         child: ListenableBuilder(
           listenable: c,
@@ -295,12 +309,13 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
             final me = c.chatMe;
             return ListView(padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 24), children: [
               OrnateTopBar(
-                title: '대화',
+                title: world ? '대화' : '친구',
                 onBack: () => Navigator.of(context).maybePop(),
               ),
               const SizedBox(height: 8),
               Row(children: [
                 for (final (i, t) in ['대화방', '친구${(me?.requests.length ?? 0) > 0 ? ' · 신청 ${me!.requests.length}' : ''}'].indexed)
+                  if (world || i == 1)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -334,8 +349,11 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
             ]);
           },
         ),
-      ),
-    );
+      )),
+        // 묶음 70 #291: Lv.8 친구 장면 뒤 친구 화면 안내
+        const Positioned.fill(child: FriendTourOverlay()),
+      ]),
+    ));
   }
 
   List<Widget> _rooms(ChatMe me) => [
@@ -382,6 +400,11 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
         OrnatePanel(
           key: const Key('friendCodePanel'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // 묶음 70 #291: 초대한 친구 · 보상 받음
+            Text('초대한 친구 ${me.invited.clamp(0, me.inviteMax)}/${me.inviteMax} · 보상 받음 ${me.invitePaid}',
+                key: const Key('inviteStat'),
+                style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
             Row(children: [
               Text('내 친구 코드', style: AppText.title(15)),
               const Spacer(),
@@ -605,6 +628,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (ok) {
       _input.clear();
       _toBottom();
+      if (widget.kind == 'server') chatHelloTick.value++;
     } else {
       _say(ChatRules.errorText(c.chatError), ok: false);
     }
@@ -645,7 +669,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
-    return Scaffold(
+    return TourScreenMark(name: 'chatRoom', child: Scaffold(
       key: Key('chatRoom_${widget.room}'),
       backgroundColor: AppColors.deepNight,
       resizeToAvoidBottomInset: true,
@@ -721,7 +745,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           },
         ),
       ),
-    );
+    ));
   }
 
   Widget _bottom(ChatMe? me, EdgeInsets pad) {

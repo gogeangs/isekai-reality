@@ -30,7 +30,8 @@ void main() {
   group('규칙', () {
     test('숫자 · 빠른 말 · 공성전 빠른 말(집결 영지 자동)', () {
       expect(ChatRules.maxLen, 100);
-      expect(ChatRules.serverLevel, 10);
+      expect(ChatRules.serverLevel, 11, reason: '묶음 70 #292');
+      expect(ChatRules.friendLevel, 8);
       expect(ChatRules.gap, const Duration(seconds: 10));
       expect(ChatRules.maxFriends, 50);
       expect(ChatRules.quick, ['안녕하세요!', '고마워요!', '같이 사냥해요', '잠깐 걷고 올게요', '좋아요!', '수고했어요']);
@@ -89,17 +90,17 @@ void main() {
       expect(a.meSent.last['name'], '하루');
     });
 
-    test('서버 대화방은 Lv.10부터 쓰기 (읽기는 누구나)', () async {
+    test('묶음 70 #292: 「세계」는 Lv.11부터 읽기 · 쓰기', () async {
       final (c, a) = await chatStart();
       a
         ..chatRulesSeen = true
-        ..chatLevel = 9;
+        ..chatLevel = 10;
       a.chatSay('server', 'u_sol', '모두 안녕!');
       await c.refreshChat();
-      expect(await c.readChat('server'), isTrue);
-      expect(c.chatLines('server').single.text, '모두 안녕!');
+      expect(c.chatMe!.room('server'), isNull, reason: '방 목록에도 없음');
+      expect(await c.readChat('server'), isFalse);
       expect(await c.sendChat('server', '안녕'), isFalse);
-      expect(ChatRules.errorText(c.chatError), '서버 대화방은 Lv.10부터 쓸 수 있어요 (읽기는 누구나)');
+      expect(ChatRules.errorText(c.chatError), '세계는 Lv.11부터 함께할 수 있어요');
     });
 
     test('친구: 코드로 신청 · 받은 신청 수락 → 1:1 방 · 걸음 보여 주기 · 끊기', () async {

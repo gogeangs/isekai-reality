@@ -51,8 +51,10 @@ test('서버 대화방: 대화 예절 먼저 · Lv.10부터 쓰기 · 10초에 �
   await assert.rejects(w.c.send('ua', { room: 'server', text: 'x'.repeat(101) }), /too_long/);
   await w.join('low', 5);
   await assert.rejects(w.c.send('low', { room: 'server', text: '안녕' }), /level/);
-  const read = await w.c.read('low', { room: 'server' });
-  assert.equal(read.lines.length, 3, 'Lv.10 아래도 읽기는 됨');
+  // 묶음 70 #292: 「세계」는 Lv.11부터 읽기도
+  await assert.rejects(w.c.read('low', { room: 'server' }), /level/);
+  const read = await w.c.read('ua', { room: 'server' });
+  assert.equal(read.lines.length, 3);
   // 진짜 앱 확인 실패한 요청은 못 씀
   w.add(11000);
   await assert.rejects(w.c.send('ua', { room: 'server', text: '하이', appCheckBad: true }), /app_check/);

@@ -37,12 +37,48 @@ extension _ShellPopups on _HomeShellState {
         await widget.controller.markLoginAsked(ask);
         if (mounted) await _keepRecord(ask);
       }
+      // 묶음 70 #291: Lv.8 친구 장면 (로그인 안 했으면 「기록 지키기」와 함께)
+      if (mounted &&
+          pending.from < ChatRules.friendLevel &&
+          pending.to >= ChatRules.friendLevel &&
+          !widget.controller.friendSceneSeen) {
+        await widget.controller.markFriendScene();
+        if (mounted) await _friendScene();
+      }
       _levelUpShowing = false;
       _kick();
     });
   }
 
-  Future<void> _keepRecord(int level) async {
+  /// 묶음 70 #291: Lv.8 친구 장면 — 정령 한마디 → (로그인 안 했으면) 기록 지키기 → 친구 화면 안내
+  Future<void> _friendScene() async {
+    final c = widget.controller;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (d) => GameAlert(
+        key: const Key('friendScene'),
+        title: Text(c.firstSpiritName),
+        content: const KText('요즘 걷는 길이 좀 심심하지 않아? 함께 걸을 친구가 있으면 더 멀리 갈 수 있을 거야!',
+            style: TextStyle(color: AppColors.text, height: 1.45)),
+        actions: [
+          TextButton(
+              key: const Key('friendSceneOk'), onPressed: () => Navigator.pop(d), child: const Text('응!')),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (!c.chatOpen) {
+      if (!c.cloudAvailable) return;
+      await _keepRecord(8, line: '친구를 사귀려면 기록을 지켜 둬야 해!');
+      if (!mounted || !c.chatOpen) return;
+    }
+    friendTourOn.value = true;
+    await openChat(context, c, tab: 1);
+    friendTourOn.value = false;
+  }
+
+  Future<void> _keepRecord(int level, {String? line}) async {
     final c = widget.controller;
     final yes = await showDialog<bool>(
       context: context,
@@ -51,9 +87,9 @@ extension _ShellPopups on _HomeShellState {
         key: const Key('keepRecord'),
         title: Text('${c.firstSpiritName} · 기록 지키기'),
         content: KText(
-            level >= 8
+            line ?? (level >= 8
                 ? '아직 우리 기록이 이 휴대폰에만 있어. 휴대폰을 바꾸거나 앱을 지우면 사라져. 지금 지켜 둘래?'
-                : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.',
+                : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.'),
             style: const TextStyle(color: AppColors.text, height: 1.45)),
         actions: [
           TextButton(

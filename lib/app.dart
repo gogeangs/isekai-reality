@@ -17,6 +17,7 @@ import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
 import 'features/drive/drive_overlay.dart';
 import 'features/chat/chat_screens.dart';
+import 'features/chat/chat_tour.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
@@ -111,6 +112,30 @@ class IsekaiRealityApp extends StatelessWidget {
                         child: child ?? const SizedBox()))),
             // 묶음 19 #4-2: Lv.3~6 기능 안내 (밀어 올린 화면 위까지)
             Positioned.fill(child: FeatureTourLayer(controller: controller)),
+            // 묶음 70 #292: 「세계」 안내 (첫 펫)
+            Positioned.fill(
+                child: ChatTourLayer(
+                    controller: controller,
+                    onLogin: () async {
+                      final ctx = tourBridge.navKey.currentContext;
+                      if (ctx == null) return;
+                      final p = await showModalBottomSheet<LoginProvider>(
+                        context: ctx,
+                        backgroundColor: AppColors.deepNight,
+                        builder: (s) => SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                              for (final p in controller.loginProviders) ...[
+                                LoginButton(provider: p, onPressed: () => Navigator.pop(s, p)),
+                                const SizedBox(height: 8),
+                              ],
+                            ]),
+                          ),
+                        ),
+                      );
+                      if (p != null && ctx.mounted) await signInFlow(ctx, controller, p);
+                    })),
             if (controller.passengerMode)
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 52,

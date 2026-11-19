@@ -321,27 +321,22 @@ class _VillageScreenState extends State<VillageScreen> {
       };
 
   void _enter(FacilityInfo f) {
+    // 묶음 75 #321: 안 열린 건물은 무슨 건물인지 감추고 「언제」만
     if (f.facility == Facility.market && !_open(f.facility)) {
-      showTopNotice(context, '거래소는 준비 중이에요', icon: Icons.construction_rounded);
+      showTopNotice(context, '아직 짓는 중이에요 · 완공은 조금 더 기다려 주세요', icon: Icons.construction_rounded);
       return;
     }
     if (!_open(f.facility)) {
-      // 묶음 44 #225: 짓는 중인 건물
       if (_stage(f.facility) != null) {
-        // 묶음 69 #290: 「조합 · Lv.15에 완공돼요」
         showTopNotice(
             context,
-            f.facility == Facility.shelter
-                ? '${f.name} · 첫 펫과 함께 완공돼요'
-                : '${f.name} · ${_lockLabel(f.facility)}에 완공돼요',
+            f.facility == Facility.shelter ? '첫 펫과 함께 완공돼요' : '${_lockLabel(f.facility)}에 완공돼요',
             icon: Icons.construction_rounded);
         return;
       }
       showTopNotice(
           context,
-          f.facility == Facility.shelter
-              ? '${f.name} · 첫 펫과 함께 열려요'
-              : '${f.name} · ${_lockLabel(f.facility)}에 열려요',
+          f.facility == Facility.shelter ? '첫 펫과 함께 열려요' : '${_lockLabel(f.facility)}에 열려요',
           icon: Icons.lock_rounded);
       return;
     }
@@ -846,7 +841,8 @@ class _VillageArtState extends State<_VillageArt> {
               rect.width * 0.8, rect.height * 0.88),
           child: Semantics(
             button: true,
-            label: f.name,
+            // 묶음 75 #321: 건설 중 건물 이름은 감춤
+            label: widget.open(f.facility) ? f.name : '건설 중인 건물',
             child: GestureDetector(
               // 열린 시설만 안내·시험이 찾는 이름 (facility_○○)
               key: open ? Key('facility_${f.facility.name}') : null,
@@ -936,17 +932,40 @@ class _VillageArtState extends State<_VillageArt> {
                     : '${widget.lockLabel(f.facility)} 완공'
                 : widget.lockLabel(f.facility);
     const half = 80.0;
-    // 묶음 69 #290: 완성되지 않은 건물(공사 중 · 준비 중 · 잠김)은 이름표 없이 공사 그림만 — 누르면 위쪽 띠
+    // 묶음 75 #321: 완성되지 않은 건물(공사 중 · 준비 중 · 잠김)은 망치 + 「건설 중」 (무슨 건물인지 감춤) — 누르면 위쪽 띠
     if (!open) {
       return Positioned(
-        left: bottom.left - 40,
-        width: 80,
+        left: bottom.left - half,
+        width: half * 2,
         top: bottom.top - 14,
-        height: 30,
-        child: GestureDetector(
-          key: Key(market ? 'tag_market' : 'locked_${f.facility.name}'),
-          behavior: HitTestBehavior.translucent,
-          onTap: () => widget.onTap(f),
+        child: Center(
+          child: GestureDetector(
+            key: Key(market ? 'tag_market' : 'locked_${f.facility.name}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => widget.onTap(f),
+            child: Semantics(
+              label: '건설 중인 건물',
+              button: true,
+              excludeSemantics: true,
+              child: Container(
+                key: Key('building_tag_${f.facility.name}'),
+                padding: const EdgeInsets.fromLTRB(6, 2, 7, 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xD9101024),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.5), width: 1),
+                  boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 4)],
+                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.construction_rounded, size: 11, color: AppColors.gold),
+                  SizedBox(width: 3),
+                  Text('건설 중',
+                      style: TextStyle(
+                          color: Color(0xFFCFC6E0), fontSize: 11, height: 1.2, fontWeight: FontWeight.w800)),
+                ]),
+              ),
+            ),
+          ),
         ),
       );
     }

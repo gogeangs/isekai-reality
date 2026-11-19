@@ -111,7 +111,7 @@ class HatcheryPanel extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
                     ),
-                    child: const EggArt(size: 56),
+                    child: EggArt(size: 56, grade: e.grade),
                   ),
                 ),
             ]),
@@ -213,7 +213,7 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
                     child: Transform.rotate(
                       angle: angle,
                       alignment: Alignment.bottomCenter,
-                      child: EggArt(size: 62, glowing: true),
+                      child: EggArt(size: 62, glowing: true, grade: e.grade),
                     ),
                   ),
                   // 둥지 앞 (알이 반쯤 묻히게)

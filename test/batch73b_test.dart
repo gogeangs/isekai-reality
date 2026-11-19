@@ -199,8 +199,10 @@ void main() {
       late AppController c;
       await tester.runAsync(() async => c = await startVillage(11, farewell: true, more: {'pets': _pets()}));
       await tester.pumpWidget(_app(CompanionPetPanel(controller: c)));
-      expect(find.byKey(const Key('statusPetName')), findsOneWidget);
-      expect(find.text('내 펫 1마리 보기'), findsOneWidget);
+      // 묶음 75 #328: 「내 펫 N마리」 3칸 격자 (함께하는 펫이 맨 앞)
+      expect(find.byKey(const Key('statusPetGrid')), findsOneWidget);
+      expect(find.byKey(const Key('statusPet_p1')), findsOneWidget);
+      expect(find.text('내 펫 1마리'), findsOneWidget);
       late AppController before;
       await tester.runAsync(() async => before = await startVillage(9));
       await tester.pumpWidget(_app(CompanionPetPanel(controller: before)));

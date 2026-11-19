@@ -99,6 +99,7 @@ part 'controller/vitals.dart';
 part 'controller/walk_rewards.dart';
 part 'controller/estate_dev.dart';
 part 'controller/chat.dart';
+part 'controller/avatar.dart';
 
 /// 저장소 · 건강 앱 · 화면을 잇는 앱의 중심.
 ///
@@ -743,6 +744,12 @@ class AppController extends ChangeNotifier {
             el: (e.value as num).toDouble(),
       };
     }
+    // 묶음 75 #320: 정령 · 마을 사람 대사 차례 번호
+    final turns = await store.loadJson('talkTurns');
+    _talkTurns = {
+      for (final e in (turns ?? const {}).entries)
+        if (e.value is num) e.key: (e.value as num).toInt(),
+    };
     final titles = await store.loadJson(_titlesKey);
     _seenTitles = titles == null
         ? {...player.titles}
@@ -1091,6 +1098,20 @@ class AppController extends ChangeNotifier {
 
   bool _newEgg = false;
 
+  /// 묶음 75 #320: 정령 · 마을 사람마다 다음에 보여 줄 대사 차례
+  Map<String, int> _talkTurns = {};
+  Map<String, int> get talkTurns => _talkTurns;
+  Future<void> saveTalkTurns(Map<String, int> t) async {
+    _talkTurns = {...t};
+    await store.saveJson('talkTurns', _talkTurns);
+  }
+
+  /// 묶음 75 #327: 방금 전투에서 얻은 알 등급 (결과 창에서 보여 줌)
+  EggGrade? _battleEgg;
+
+  /// 묶음 75 #327: 가방이 가득해 의뢰 알을 우편함에 넣었는지
+  bool _eggMailed = false;
+
   LetterInfo? _newLetter;
 
 
@@ -1241,7 +1262,8 @@ class AppController extends ChangeNotifier {
 enum SmithResult { ok, failed, cannot }
 
 /// 대장간에서 만들거나 강화할 수 있는지
-enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
+/// 묶음 75 #322: [notSmith] 보스 장비는 대장장이(주 · 보조 직업)만 만듦
+enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull, notSmith }
 
 /// 보스 장비 만들기 결과 (실패면 item 이 null 이고 line 이 대장장이의 말)
 class BossCraftResult {

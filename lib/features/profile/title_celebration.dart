@@ -44,9 +44,9 @@ class _TitleCelebration extends StatefulWidget {
 
 class _TitleCelebrationState extends State<_TitleCelebration>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _a = AnimationController(
-      vsync: this, duration: const Duration(seconds: 3))
-    ..forward();
+  late final AnimationController _a =
+      AnimationController(vsync: this, duration: const Duration(seconds: 3))
+        ..forward();
 
   @override
   void dispose() {
@@ -68,8 +68,7 @@ class _TitleCelebrationState extends State<_TitleCelebration>
           child: IgnorePointer(
             child: AnimatedBuilder(
               animation: _a,
-              builder: (_, __) =>
-                  CustomPaint(painter: _Sparkles(_a.value)),
+              builder: (_, __) => CustomPaint(painter: _Sparkles(_a.value)),
             ),
           ),
         ),
@@ -227,10 +226,15 @@ class _BadgePainter extends CustomPainter {
         c,
         r,
         Paint()
-          ..shader = const RadialGradient(
-                  colors: [Color(0xFFFFF0B3), Color(0xFFE8B04A), Color(0xFFA9781F)],
-                  stops: [0, 0.6, 1])
-              .createShader(Rect.fromCircle(center: c, radius: r)));
+          ..shader = const RadialGradient(colors: [
+            Color(0xFFFFF0B3),
+            Color(0xFFE8B04A),
+            Color(0xFFA9781F)
+          ], stops: [
+            0,
+            0.6,
+            1
+          ]).createShader(Rect.fromCircle(center: c, radius: r)));
     canvas.drawCircle(
         c,
         r,

@@ -35,6 +35,7 @@ export 'rule_constants.dart';
 export 'stat_rules.dart';
 export 'step_goal_rules.dart';
 export 'title_rules.dart';
+export 'title_art.dart';
 export 'town_rules.dart';
 export 'vital_rules.dart';
 export 'village_rules.dart';

@@ -48,6 +48,7 @@ extension PartyOps on AppController {
   Future<Map<String, dynamic>> _partyMe() async => {
         'name': _profile.name,
         'level': player.level.level,
+        'face': avatarFace, // 묶음 75 #335
         ...await _socialSteps(),
         'device': await deviceId(),
       };

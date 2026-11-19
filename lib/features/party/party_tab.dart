@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../chat/chat_screens.dart';
+import '../profile/profile_screen.dart' show SocialFace;
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/models/party_state.dart';
@@ -330,8 +331,11 @@ class _PartyTabState extends State<PartyTab> {
               : null,
         ),
         const SizedBox(width: 4),
+        // 묶음 75 #335: 프로필 사진
+        SocialFace(key: Key('partyFace_${m.uid}'), face: m.me ? c.avatarFace : m.face),
+        const SizedBox(width: 6),
         SizedBox(
-          width: 88,
+          width: 80,
           // 묶음 68 #275: 파티원 이름을 눌러 「친구 신청」
           child: GestureDetector(
             onTap: m.me || !widget.controller.friendsOpen ? null : () => askFriend(context, widget.controller, m.uid, m.name),

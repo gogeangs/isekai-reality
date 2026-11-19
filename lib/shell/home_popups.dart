@@ -394,15 +394,29 @@ extension _ShellPopups on _HomeShellState {
         }
       });
     }
-    final egg = c.takeNewEgg();
-    if (egg) {
+    // 묶음 75 #327: 전투 결과 창이 보여 준 알은 건너뜀 (홈 화면이 맨 위일 때만)
+    final onTop = ModalRoute.of(context)?.isCurrent ?? true;
+    final eggMailed = c.takeEggMailed();
+    if (eggMailed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showTopNoticeQueued(context, '가방이 가득해서 알을 우편함에 넣어 뒀어요', icon: Icons.mail_rounded);
+        }
+      });
+    }
+    final egg = onTop && c.takeNewEgg();
+    final newest = c.newestEgg;
+    if (egg) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        showTopNoticeQueued(
-            context,
-            c.farewellDone
-                ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
-                : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
+        if (!c.farewellDone || newest == null) {
+          showTopNoticeQueued(context, '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
+          return;
+        }
+        // 전투 밖(주간 의뢰 · 우편): 알 그림 작은 창 「알을 얻었어요!」
+        _petNewsShowing = true;
+        await showEggGotDialog(context, c, newest.grade);
+        _petNewsShowing = false;
       });
     }
     if (letter == null && ready == null) return;

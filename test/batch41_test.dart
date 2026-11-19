@@ -237,7 +237,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('sellChip_equip')));
       await tester.pumpAndSettle();
-      expect(allText(tester), contains('입는 중이라 못 팔아요'));
+      expect(allText(tester), contains('입는 중'));
       await tester.tap(find.byKey(const Key('sellRow_e:w')));
       await tester.pump();
       expect(allText(tester), contains('팔 것을 골라 주세요'));

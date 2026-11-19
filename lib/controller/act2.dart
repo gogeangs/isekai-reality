@@ -186,6 +186,7 @@ extension Act2Ops on AppController {
               ? DailyRecord.addCounts(today.gains, {'exp': exp})
               : today.gains,
         ));
+    _battleEgg = null; // 묶음 75 #327: 이번 전투에서 얻은 알만
         EquipItem? item;
         var egg = false;
         if (first) {

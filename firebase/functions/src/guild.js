@@ -90,6 +90,11 @@ function safeName(n) {
   return !s || R.bannedName(s) ? '각성자' : s;
 }
 
+/** 묶음 75 #335: 프로필 사진 그림 이름 (앱 안 그림만, 모양이 다르면 빈 값) */
+function safeFace(f) {
+  return typeof f === 'string' && /^[A-Za-z0-9_]{1,48}$/.test(f) ? f : '';
+}
+
 function cleanGuildName(name) {
   const n = String(name || '').trim().replace(/\s+/g, ' ');
   if (n.length < 2 || n.length > 12) return null;
@@ -365,6 +370,7 @@ class GuildService {
         }
         if (me.name) m.name = safeName(me.name);
         if (me.level) m.level = Number(me.level) || m.level;
+        if (me.face !== undefined) m.face = safeFace(me.face);
         if (me.job) m.job = String(me.job).slice(0, 20);
         if (me.sub !== undefined) m.sub = me.sub ? String(me.sub).slice(0, 20) : null;
         t.set(this.db.doc(`guilds/${gid}`), g);
@@ -394,6 +400,7 @@ class GuildService {
         uid: id,
         name: m.name,
         level: m.level,
+        face: m.face || '',
         job: m.job || null,
         weekSteps: m.weekKey === wk ? m.week || 0 : 0,
         line: star >= 1 ? m.line || '' : '',
@@ -799,6 +806,7 @@ function memberOf(me, at) {
   return {
     name: safeName(me.name),
     level: Number(me.level) || 1,
+    face: safeFace(me.face),
     job: me.job ? String(me.job).slice(0, 20) : null,
     joinedAt: at,
     total: 0,

@@ -297,7 +297,8 @@ void main() {
       expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
       await tester.tap(find.byKey(const Key('locked_alchemy')));
       await tester.pump();
-      expect(find.text('연금술 공방 · Lv.7에 완공돼요'), findsOneWidget);
+      // 묶음 75 #321: 누르면 완공 때만 (이름은 감춤)
+      expect(find.text('Lv.7에 완공돼요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 
@@ -326,10 +327,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: InnScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('npc_marta')), findsOneWidget);
-      // 묶음 71: 처음 만남은 닫힌 채로(점) — 얼굴을 누르면 첫 줄
-      expect(find.byKey(const Key('npcLine_marta')), findsNothing);
-      await tester.tap(find.byKey(const Key('npcFace_marta')));
-      await tester.pump();
+      // 묶음 75 #320: 들어오면 저절로 — 처음 만남은 첫 줄
       expect(
           tester.widget<KText>(find.byKey(const Key('npcLine_marta'))).data,
           VillageRules.npc(Npc.marta).first);

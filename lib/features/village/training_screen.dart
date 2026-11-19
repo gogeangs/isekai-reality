@@ -217,6 +217,11 @@ class _TrainingScreenState extends State<TrainingScreen> {
                         ),
                       ),
                   ]),
+                  // 묶음 75 #324: 이 허수아비에게 잘 듣는 속성 (배율은 숨김)
+                  const SizedBox(height: 6),
+                  KText('잘 듣는 속성: ${ElementRules.beats(_element).map((e) => e.label).join(' · ')}',
+                      key: const Key('dummyBeats'),
+                      style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
                 ],
               ],
             ),
@@ -530,6 +535,7 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
   DailyTrainingResult? _daily;
   TrialResult? _trial;
   int _dealt = 0;
+  PracticeResult? _practiceResult;
 
   @override
   void initState() {
@@ -552,7 +558,7 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
     switch (widget.mode) {
       case TrainingMode.practice:
         _dealt = b.practiceDealt;
-        await _c.finishPractice(b);
+        _practiceResult = await _c.finishPractice(b, kind: widget.dummy, element: widget.element);
       case TrainingMode.daily:
         _daily = await _c.finishDailyTraining(b);
       case TrainingMode.trial:
@@ -657,6 +663,9 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
         onFastChanged: _c.setFastBattle,
         onAutoChanged: (hp, cure) => _c.setAutoUse(hpPercent: hp, cure: cure),
         floorLabelOf: _floorLabel,
+        // 묶음 75 #324: 연습 — 「끝없는 허수아비 ∞」 · 연습 기록 · 속성 허수아비는 「효과 좋음 / 잘 안 들어요」
+        practiceHud: _practice,
+        elementHints: _practice && widget.dummy == DummyKind.element,
         counterOf: switch (widget.mode) {
           TrainingMode.practice => (_) => '연습',
           TrainingMode.daily => null,
@@ -705,7 +714,9 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
     switch (widget.mode) {
       case TrainingMode.practice:
         return [
-          _garen(_dealt > 0
+          _garen(_practiceResult?.skillFull == true
+              ? MasteryRules.practiceFullLine
+              : _dealt > 0
               ? '좋다! 손에 감이 오지? 몇 번이든 다시 와라!'
               : '한 대도 안 치고 끝내면 어쩌나! 다음엔 제대로 휘둘러라!'),
           const SizedBox(height: 12),
@@ -718,6 +729,40 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
               Text(comma(_dealt),
                   key: const Key('practiceDealt'),
                   style: AppText.title(30, color: AppColors.text)),
+              // 묶음 75 #324: 연습 기록
+              if (_practiceResult case final r?) ...[
+                const SizedBox(height: 8),
+                if (r.newRecord)
+                  Text('새 기록!', key: const Key('practiceNewRecord'), style: AppText.title(18, color: AppColors.goldBright)),
+                for (final (k, v) in [
+                  ('1초당 피해', comma(r.dps)),
+                  ('지난 최고 1초당', r.best > 0 ? comma(r.best) : '없음'),
+                  ('가장 센 한 방', comma(r.max)),
+                  ('치명타 비율', '${(r.critRate * 100).round()}%'),
+                  ('강타', '${r.bashes}번'),
+                  ('스킬', '${r.skills}번'),
+                  ('친 시간', '${r.seconds.round() ~/ 60}:${(r.seconds.round() % 60).toString().padLeft(2, '0')}'),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Row(children: [
+                      Expanded(child: Text(k, style: const TextStyle(color: AppColors.textMuted, fontSize: 13.5))),
+                      Text(v, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w800)),
+                    ]),
+                  ),
+                if (r.seconds <= TrainingRules.practiceRecordSec)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: KText('10초 넘게 친 판만 기록에 남아요',
+                        style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                if (widget.dummy == DummyKind.element && widget.element != null) ...[
+                  const SizedBox(height: 6),
+                  KText('잘 듣는 속성: ${ElementRules.beats(widget.element!).map((e) => e.label).join(' · ')}',
+                      key: const Key('practiceBeats'),
+                      style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w700)),
+                ],
+              ],
             ]),
           ),
         ];

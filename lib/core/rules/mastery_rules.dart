@@ -171,6 +171,54 @@ class MasteryRules {
   static String harvestKey(String kind) => 'harvest:$kind';
   static String potionKey(PotionId p) => 'potion:${p.name}';
 
+  // ───────────── 묶음 75 #325: 스킬 숙련도 (세부 열쇠 'skill:<이름>')
+  // 직업 스킬 'skill:<JobSkill>' · 숙련 스킬 'skill:m_<Mastery>' · 강타 'skill:bash' · 방어 태세 'skill:stance'
+  static const List<double> skillSteps = [0, 10, 40, 120, 300];
+  static const double skillRealUse = 1;
+  static const double skillPracticeUse = 0.2;
+  static const double skillPracticeDay = 2;
+
+  /// 장인 기준: 힘 +10% · 대기 −10% · MP −10%
+  static const double skillPowerMax = 0.10;
+  static const double skillWaitMax = 0.10;
+  static const double skillMpMax = 0.10;
+
+  static String skillKey(String id) => 'skill:$id';
+  static bool isSkillKey(String key) => key.startsWith('skill:');
+
+  static MasteryStage skillStage(double v) {
+    var i = 0;
+    while (i + 1 < skillSteps.length && v >= skillSteps[i + 1]) {
+      i++;
+    }
+    return MasteryStage.values[i];
+  }
+
+  static double skillFraction(double v) =>
+      skillStage(v).index / (MasteryStage.values.length - 1);
+
+  /// 스킬 화면 이름 옆 단계 말 (서툰은 안 씀)
+  static String? skillStageWord(MasteryStage s) => switch (s) {
+        MasteryStage.clumsy => null,
+        MasteryStage.familiar => '익숙한',
+        MasteryStage.skilled => '능숙한',
+        MasteryStage.expert => '숙련된',
+        MasteryStage.master => '장인',
+      };
+
+  /// 단계가 오르면 정령 한마디
+  static String skillUpLine(String name, MasteryStage s) =>
+      s == MasteryStage.master
+          ? '이제 ${josa(name, '은/는')} 눈 감고도 하겠다!'
+          : '${josa(name, '이/가')} 손에 익었어!';
+
+  /// 연습 하루 한도 (가렌)
+  static const String practiceFullLine = '그 기술은 오늘 몸에 충분히 익혔다! 이제 실전에서 써 봐라!';
+
+  /// 대기 턴 줄이기 (반올림, 1턴 아래로는 안 감)
+  static int cutTicks(int ticks, double frac) =>
+      math.max(1, (ticks * (1 - skillWaitMax * frac)).round());
+
   /// 세부 열쇠가 어느 큰 숙련도에 속하는지
   static Mastery? bigOf(String detailKey) =>
       switch (detailKey.split(':').first) {

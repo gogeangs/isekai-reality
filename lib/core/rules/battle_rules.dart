@@ -692,7 +692,7 @@ class Battle {
         partyDefTurns = s.turns;
         partyDefMult = 0.7;
         rallyTurns = math.max(rallyTurns, s.turns);
-        if (heroSkills) bashCharge = bashTicks;
+        if (heroSkills) bashCharge = bashNeed;
       case AllySkillKind.selfAtk:
         a.selfAtkTurns = s.turns;
       case AllySkillKind.lowHp:
@@ -1092,6 +1092,15 @@ class Battle {
   bool practice = false;
   int practiceDealt = 0;
 
+  /// 묶음 75 #324: 연습 기록 — 가장 센 한 방 · 친 횟수 · 각성자 공격 수 · 치명타 수
+  int practiceMax = 0;
+  int practiceHits = 0;
+  int practiceStrikes = 0;
+  int practiceCrits = 0;
+
+  /// 묶음 75 #324: 이번 틱 공격이 잘 안 들었는지 (속성 상성, 효과 좋음은 [lastSuper])
+  bool lastResist = false;
+
   /// 쓴 횟수 (훈련장 부탁: 강타 · 방어 태세 · 스킬)
   int bashes = 0;
   int stances = 0;
@@ -1099,20 +1108,35 @@ class Battle {
 
   int bashCharge = 0;
   int stanceCharge = 0;
+
+  /// 묶음 75 #325: 스킬 숙련도 — 강타 · 방어 태세 · 숙련 스킬이 다 차는 턴 (장인이면 −10%)
+  int bashNeed = bashTicks;
+  int stanceNeed = stanceTicks;
+  final Map<Mastery, int> masteryNeed = {};
+  int masteryNeedOf(Mastery m) => masteryNeed[m] ?? JobRules.masteryActiveTicks;
+
+  /// 묶음 75 #325: 숙련 스킬 힘 (장인이면 +10%, 강타 · 방어 태세는 대기만)
+  final Map<Mastery, double> masteryPower = {};
+  double _skillPower = 1;
+
+  /// 묶음 75 #325: 이번 판에 쓴 스킬 (스킬 숙련도 열쇠 이름 → 횟수, 펫 스킬 빼기)
+  final Map<String, int> skillUses = {};
+  bool skillsCounted = false;
+  void _used(String id) => skillUses[id] = (skillUses[id] ?? 0) + 1;
   int stanceTurns = 0;
 
   bool get bashReady =>
       heroSkills &&
       phase == BattlePhase.fighting &&
-      bashCharge >= bashTicks &&
+      bashCharge >= bashNeed &&
       !skillsLocked;
   bool get stanceReady =>
       heroSkills &&
       phase == BattlePhase.fighting &&
-      stanceCharge >= stanceTicks &&
+      stanceCharge >= stanceNeed &&
       !skillsLocked;
-  double get bashRatio => (bashCharge / bashTicks).clamp(0, 1).toDouble();
-  double get stanceRatio => (stanceCharge / stanceTicks).clamp(0, 1).toDouble();
+  double get bashRatio => (bashCharge / bashNeed).clamp(0, 1).toDouble();
+  double get stanceRatio => (stanceCharge / stanceNeed).clamp(0, 1).toDouble();
 
   /// 강타
   bool useBash() {
@@ -1133,6 +1157,7 @@ class Battle {
     lastTaken = 0;
     lastBash = true;
     bashes++;
+    _used('bash');
     _hitFoe(dmg);
     _checkRage();
     return true;
@@ -1298,11 +1323,11 @@ class Battle {
       heroSkills &&
       phase == BattlePhase.fighting &&
       masteryActives.contains(m) &&
-      (masteryCharge[m] ?? 0) >= JobRules.masteryActiveTicks &&
+      (masteryCharge[m] ?? 0) >= masteryNeedOf(m) &&
       !skillsLocked;
 
   double masteryRatio(Mastery m) =>
-      ((masteryCharge[m] ?? 0) / JobRules.masteryActiveTicks)
+      ((masteryCharge[m] ?? 0) / masteryNeedOf(m))
           .clamp(0, 1)
           .toDouble();
 
@@ -1317,7 +1342,7 @@ class Battle {
   /// 스킬 한 번 치기
   int _strike(double mult,
       {Element? element, bool useElement = true, bool crit = false}) {
-    var d = _vary(playerAttack) * mult * dealMult;
+    var d = _vary(playerAttack) * mult * dealMult * _skillPower;
     if (foeBreakTurns > 0) d *= breakTaken;
     if (rallyTurns > 0) d *= rallyAttack;
     if (ashBoost > 0 && foeIsAsh) d *= 1 + ashBoost;
@@ -1326,7 +1351,9 @@ class Battle {
     if (crit) {
       dmg = (dmg * StatRules.critMultiplier).round();
       lastCrit = true;
+      if (practice) practiceCrits++;
     }
+    if (practice) practiceStrikes++;
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     if (useElement) {
       final el = element ?? weaponPotion ?? attackElement;
@@ -1374,6 +1401,7 @@ class Battle {
     lastTaken = 0;
     lastCrit = false;
     lastSuper = false;
+    lastResist = false;
     lastHealed = 0;
     lastEvent = event;
   }
@@ -1388,7 +1416,10 @@ class Battle {
   /// 직업 스킬을 쓴다 (MP는 앱이 따로 쓴다). [power] 는 스킬 단계 세기. 쓸 수 없으면 false
   bool useJobSkill(JobSkill s, {double power = 1}) {
     final ok = _useJobSkill(s, power: power);
-    if (ok) skillsUsed++;
+    if (ok) {
+      skillsUsed++;
+      _used(s.name);
+    }
     return ok;
   }
 
@@ -1757,6 +1788,17 @@ class Battle {
   /// 숙련 스킬 (MP 없이 몇 턴마다)
   bool useMasterySkill(Mastery m) {
     if (!masteryReady(m)) return false;
+    _skillPower = masteryPower[m] ?? 1;
+    try {
+      _useMasterySkill(m);
+    } finally {
+      _skillPower = 1;
+    }
+    _used('m_${m.name}');
+    return true;
+  }
+
+  void _useMasterySkill(Mastery m) {
     skillsUsed++;
     masteryCharge[m] = 0;
     _startSkill('${JobRules.masteryActive(m).name}!');
@@ -1785,7 +1827,6 @@ class Battle {
       case Mastery.trade:
         _strike(1.5);
     }
-    return true;
   }
 
   // ───────────── 호문쿨루스 원정 (묶음 32 #190, 숨은 규칙)
@@ -1818,6 +1859,7 @@ class Battle {
     stanceCharge = 0;
     stanceTurns = stanceLength;
     stances++;
+    _used('stance');
     lastEvent = '방어 태세!';
     lastDealt = 0;
     lastTaken = 0;
@@ -2078,6 +2120,7 @@ class Battle {
     }
     lastCrit = false;
     lastSuper = false;
+    lastResist = false;
     lastHealed = 0;
     lastMove = null;
     lastAllySkill = null;
@@ -2273,15 +2316,15 @@ class Battle {
       skillCharge++;
     }
     if (heroSkills) {
-      if (bashCharge < bashTicks) bashCharge++;
+      if (bashCharge < bashNeed) bashCharge++;
       // 묶음 57: 전사 — 강타가 더 빨리 참 (두 턴에 한 번 더)
-      if (bashFast && floorTicks.isEven && bashCharge < bashTicks) bashCharge++;
+      if (bashFast && floorTicks.isEven && bashCharge < bashNeed) bashCharge++;
       // 전투 함성: 강타가 더 빨리 참
-      if (rallyTurns > 0 && bashCharge < bashTicks) bashCharge++;
-      if (stanceCharge < stanceTicks) stanceCharge++;
+      if (rallyTurns > 0 && bashCharge < bashNeed) bashCharge++;
+      if (stanceCharge < stanceNeed) stanceCharge++;
       for (final m in masteryActives) {
         final c = masteryCharge[m] ?? 0;
-        if (c < JobRules.masteryActiveTicks) masteryCharge[m] = c + 1;
+        if (c < masteryNeedOf(m)) masteryCharge[m] = c + 1;
       }
     }
     if (rallyTurns > 0) rallyTurns--;
@@ -2690,7 +2733,10 @@ class Battle {
       lastEvent = superEffective;
       lastSuper = true;
     }
-    if (m < 1) lastEvent = notEffective;
+    if (m < 1) {
+      lastEvent = notEffective;
+      lastResist = true;
+    }
     return math.max(1, d.round());
   }
 
@@ -2700,6 +2746,8 @@ class Battle {
   void _hitFoe(int damage) {
     if (practice) {
       practiceDealt += damage;
+      practiceHits++;
+      if (damage > practiceMax) practiceMax = damage;
       return;
     }
     // 묶음 57 골렘 「돌벽」: 잠시 받는 피해가 줄어요

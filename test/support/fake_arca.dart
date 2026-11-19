@@ -770,6 +770,7 @@ class FakeArca implements ArcaApi {
       'name': kind == 'sys' ? '' : p['name'],
       'title': p['title'] ?? '',
       'level': p['level'] ?? 1,
+      'face': p['face'] ?? '',
       'text': text,
       'kind': kind,
       'at': chatNow,
@@ -805,6 +806,7 @@ class FakeArca implements ArcaApi {
       'level': p['level'] ?? 1,
       'title': p['title'] ?? '',
       'look': p['look'] ?? 'male',
+      'face': p['face'] ?? '',
       'guild': p['guild'] ?? '',
       'steps': p['showSteps'] == false ? null : p['steps'],
       'lastSeen': p['lastSeen'] ?? 0,
@@ -897,6 +899,7 @@ class FakeArca implements ArcaApi {
         final hello = room == 'server' && !chatFirstHello;
         if (hello) chatFirstHello = true;
         chatPeople.putIfAbsent(me, () => {'name': '${(body['me'] as Map?)?['name'] ?? '나'}'});
+        chatPeople[me]!['face'] = '${(body['me'] as Map?)?['face'] ?? ''}';
         chatSay(room, me, chatMask(text));
         chatReads[room] = chatNow;
         return {'ok': true, 'firstHello': hello};

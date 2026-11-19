@@ -24,6 +24,20 @@ import '../jobs/skill_icon.dart';
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
 ///
+/// 묶음 75 #325: 스킬 숙련도 — 전투 화면이 열릴 때 대기 · 힘을 맞추고, 끝나면(또는 닫히면) 쓴 스킬을 센다.
+/// 앱이 한 번 연결한다 (연습 판은 훈련장이 따로 센다)
+class SkillMasteryHook {
+  SkillMasteryHook._();
+  static void Function(Battle b)? setup;
+  static void Function(Battle b)? finished;
+
+  static void count(Battle b) {
+    if (b.skillsCounted || b.practice) return;
+    b.skillsCounted = true;
+    if (b.skillUses.isNotEmpty) finished?.call(b);
+  }
+}
+
 /// [tickInterval] 마다 [Battle.tick] 을 부르고, 끝나면 [onFinished] 를 한 번 부른다.
 class BattleView extends StatefulWidget {
   const BattleView({
@@ -56,7 +70,15 @@ class BattleView extends StatefulWidget {
     this.floorLabelOf,
     this.counterOf,
     this.allyArts = const [],
+    this.practiceHud = false,
+    this.elementHints = false,
   });
+
+  /// 묶음 75 #324: 훈련장 연습 — 허수아비 HP 대신 「끝없는 허수아비 ∞」 + 「연습 기록」 한 줄
+  final bool practiceHud;
+
+  /// 묶음 75 #324: 칠 때마다 피해 숫자 위 「효과 좋음」 · 「잘 안 들어요」 (속성 허수아비)
+  final bool elementHints;
 
   /// 묶음 33 #202: 화면 남은 높이에 맞춰 전투 장면을 줄인다 (스크롤 없이 한 화면)
   final bool fit;
@@ -186,12 +208,14 @@ class _BattleViewState extends State<BattleView> {
   @override
   void initState() {
     super.initState();
+    SkillMasteryHook.setup?.call(_b);
     _afterTick(first: true);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    SkillMasteryHook.count(_b);
     super.dispose();
   }
 
@@ -483,6 +507,7 @@ class _BattleViewState extends State<BattleView> {
   void _checkEnd() {
     if (!_b.isOver || _reported) return;
     _reported = true;
+    SkillMasteryHook.count(_b);
     _timer?.cancel();
     _warning = false;
     if (widget.sound) {
@@ -583,6 +608,8 @@ class _BattleViewState extends State<BattleView> {
                 aura: widget.aura,
                 crit: _b.lastCrit,
                 superHit: _b.lastSuper,
+                resisted: _b.lastResist,
+                elementHints: widget.elementHints,
                 heals: _b.heals,
                 healed: _b.lastHealed,
                 defeated: _b.phase == BattlePhase.failed,
@@ -667,19 +694,21 @@ class _BattleViewState extends State<BattleView> {
                       ]),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _HpColumn(
-                        name: foe.name,
-                        nameColor: modGradeColor(foe.grade),
-                        element: foe.element,
-                        showElement: true,
-                        hp: _b.foeHp,
-                        maxHp: foe.maxHp,
-                        // 묶음 59: 레이드 보스 체력은 숫자 없이 (숨은 값)
-                        hideNumbers: _b.raidBoss != null || _b.hideFoeNumbers,
-                        colors: BarColors.foe,
-                        note: _b.lastEvent,
-                        alignEnd: true,
-                      ),
+                      child: widget.practiceHud
+                          ? _EndlessDummy(beat: _beat, element: foe.element)
+                          : _HpColumn(
+                              name: foe.name,
+                              nameColor: modGradeColor(foe.grade),
+                              element: foe.element,
+                              showElement: true,
+                              hp: _b.foeHp,
+                              maxHp: foe.maxHp,
+                              // 묶음 59: 레이드 보스 체력은 숫자 없이 (숨은 값)
+                              hideNumbers: _b.raidBoss != null || _b.hideFoeNumbers,
+                              colors: BarColors.foe,
+                              note: _b.lastEvent,
+                              alignEnd: true,
+                            ),
                     ),
                   ]),
                   // 상태 이상 (11-11 #81): 체력 막대 아래 아이콘
@@ -695,6 +724,21 @@ class _BattleViewState extends State<BattleView> {
                               child: _StatusIcons(_foeStatus)),
                         ),
                       ]),
+                    ),
+                  // 묶음 75 #324: 연습 기록 한 줄 (지난 시간 · 1초당 피해 · 합계, 전투 시간 기준)
+                  if (widget.practiceHud)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                          () {
+                            final secs = TrainingRules.practiceSeconds(_b.ticks).round();
+                            final dps = TrainingRules.practiceDps(_b.practiceDealt, _b.ticks);
+                            return '연습 기록 · ${secs ~/ 60}:${(secs % 60).toString().padLeft(2, '0')} · '
+                                '1초당 피해 ${comma(dps)} · 합계 ${comma(_b.practiceDealt)}';
+                          }(),
+                          key: const Key('practiceLine'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w800)),
                     ),
                   // 전투 기록 두 줄
                   Container(
@@ -1227,7 +1271,13 @@ class _Scene extends StatefulWidget {
     this.background,
     this.weapon,
     this.allies = const [],
+    this.resisted = false,
+    this.elementHints = false,
   });
+
+  /// 묶음 75 #324: 잘 안 들었는지 · 숫자 위 「효과 좋음 / 잘 안 들어요」를 보일지
+  final bool resisted;
+  final bool elementHints;
 
   /// 묶음 52: 각성자 뒤에 서는 3막 동료 (그림 · 색 · 쓰러짐)
   /// 묶음 73 #306: [swing] 이 바뀌면 공격 칸 그림을 한 번 (now: 스킬이라 바로), [dealt] 는 4칸에 뜨는 피해
@@ -1798,17 +1848,28 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                               .transform(_seg(t, 0.22, 0.45)) *
                                           0.4,
                               // 피해 숫자 (11-11 #81): 보통 흰색, 치명타 크고 노랑, 약점 빨강
-                              child: _Outlined(
-                                cleared ? '사냥!' : '-${comma(widget.dealt)}',
-                                size: widget.crit || widget.skill ? 38 : 28,
-                                color: cleared
-                                    ? AppColors.goldBright
-                                    : widget.crit || widget.skill
-                                        ? const Color(0xFFFFE14D)
-                                        : widget.superHit
-                                            ? const Color(0xFFFF5A5A)
-                                            : Colors.white,
-                              ),
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                // 묶음 75 #324: 속성 허수아비 — 숫자 위 작은 글 (배율은 숨김)
+                                if (widget.elementHints && !cleared && (widget.superHit || widget.resisted))
+                                  Text(widget.superHit ? '효과 좋음' : '잘 안 들어요',
+                                      key: Key(widget.superHit ? 'hintGood' : 'hintBad'),
+                                      style: TextStyle(
+                                          color: widget.superHit ? AppColors.goldBright : const Color(0xFFB8B8C8),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          shadows: const [Shadow(blurRadius: 3)])),
+                                _Outlined(
+                                  cleared ? '사냥!' : '-${comma(widget.dealt)}',
+                                  size: widget.crit || widget.skill ? 38 : 28,
+                                  color: cleared
+                                      ? AppColors.goldBright
+                                      : widget.crit || widget.skill
+                                          ? const Color(0xFFFFE14D)
+                                          : widget.superHit
+                                              ? const Color(0xFFFF5A5A)
+                                              : Colors.white,
+                                ),
+                              ]),
                             ),
                           ),
                         ),
@@ -2306,6 +2367,43 @@ class _Avatar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 묶음 75 #324: 연습 허수아비 — 가득 찬 금빛 줄 「끝없는 허수아비 ∞」 (맞을 때 살짝 번쩍)
+class _EndlessDummy extends StatelessWidget {
+  const _EndlessDummy({required this.beat, this.element});
+
+  final int beat;
+  final Element? element;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        key: const Key('endlessDummy'),
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            if (element != null) ...[
+              ElementIcon(element, size: 16),
+              const SizedBox(width: 4),
+            ],
+            const Flexible(
+              child: Text('끝없는 허수아비 ∞',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w800)),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          TweenAnimationBuilder<double>(
+            key: ValueKey(beat),
+            tween: Tween(begin: 1, end: 0),
+            duration: const Duration(milliseconds: 380),
+            builder: (context, v, _) => ColorFiltered(
+              colorFilter: ColorFilter.mode(Colors.white.withValues(alpha: v * 0.55), BlendMode.srcATop),
+              child: GlowBar(ratio: 1, colors: BarColors.exp, height: 11),
+            ),
+          ),
+        ],
+      );
 }
 
 class _HpColumn extends StatelessWidget {
@@ -2872,13 +2970,13 @@ class MonsterPicture extends StatelessWidget {
         height: size,
         child: Stack(fit: StackFit.expand, children: [
           picture,
-          // 가슴 수정 자리 (그림 가운데, 위에서 약 45%)
+          // 묶음 75 #323: 실제 가슴 수정 자리 (가운데 0.453, 0.551 · 지름 0.17)
           Positioned(
             key: const Key('dummyCrystal'),
-            left: size * 0.39,
-            top: size * 0.33,
-            width: size * 0.22,
-            height: size * 0.22,
+            left: size * 0.368,
+            top: size * 0.466,
+            width: size * 0.17,
+            height: size * 0.17,
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(

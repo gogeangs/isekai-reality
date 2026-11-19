@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../village/shelter_screen.dart';
 import '../../app_controller.dart';
 import '../../core/format.dart';
 import '../../core/models/armory.dart';
@@ -81,7 +82,7 @@ class PouchEntry extends BagEntry {
   BagFilter get kind => BagFilter.other;
 }
 
-/// 펫 알 (정령이 떠나기 전에는 「신비한 알」)
+/// 알 (등급 이름, 정령이 떠나기 전에는 「신비한 알」)
 class EggEntry extends BagEntry {
   const EggEntry(this.egg);
   final PetEgg egg;
@@ -564,6 +565,7 @@ class BagSlot extends StatelessWidget {
                         color: AppColors.goldBright)),
                 EggEntry(:final egg) => EggArt(
                     size: 64,
+                    grade: controller != null && controller!.farewellDone ? egg.grade : EggGrade.common,
                     glowing: controller != null && controller!.eggReady(egg)),
               },
               ),
@@ -639,7 +641,7 @@ String bagEntryName(BagEntry e, [AppController? c]) => switch (e) {
       ItemEntry(:final item) =>
         c == null ? TownRules.info(item).name : c.itemName(item),
       EquipEntry(:final item) => item.name,
-      EggEntry() => c != null && c.farewellDone ? '펫 알' : '신비한 알',
+      EggEntry(:final egg) => c != null && c.farewellDone ? egg.grade.label : '신비한 알',
       PotionEntry(:final key) => c == null ? key : c.potionName(key),
       PouchEntry() => '걸음 주머니',
     };
@@ -894,17 +896,22 @@ class EggSheet extends StatelessWidget {
               '따뜻한 기운이 느껴지는 알이에요. 정령이 무언가 알고 있는 것 같아요.',
               style: TextStyle(color: AppColors.text, fontSize: 14)));
         } else if (e.incubatedAt == null) {
-          final busy = !c.canIncubateMore;
+          // 묶음 75 #327: 알은 가방에서 품지 않고 펫 쉼터 알 부화장에서
           children.addAll([
             KText(
-                '품으면 ${PetRules.hatchTime.inHours}시간 뒤 깨어나요. '
-                '알은 한 번에 ${c.eggSlots >= 2 ? '두 개까지' : '하나씩'} 품을 수 있어요.',
+                '펫 쉼터 알 부화장에서 품을 수 있어요. '
+                '품으면 ${PetRules.hatchTime.inHours}시간 뒤 깨어나요.',
+                key: const Key('eggSheetHatchery'),
                 style: const TextStyle(color: AppColors.text, fontSize: 14)),
             const SizedBox(height: 12),
             GoldButton(
-              label: busy ? '다른 알을 품는 중이에요' : '품기',
+              key: const Key('eggSheetGo'),
+              label: '알 부화장으로',
               height: 46,
-              onPressed: busy ? null : () => c.incubateEgg(e.id),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ShelterScreen(controller: c)));
+              },
             ),
           ]);
         } else if (c.eggReady(e)) {
@@ -979,9 +986,11 @@ class EggSheet extends StatelessWidget {
               children: [
                 Center(
                     child: EggArt(
-                        size: 96, glowing: e != null && c.eggReady(e))),
+                        size: 96,
+                        grade: c.farewellDone ? egg.grade : EggGrade.common,
+                        glowing: e != null && c.eggReady(e))),
                 const SizedBox(height: 6),
-                Text(c.farewellDone ? '펫 알' : '신비한 알',
+                Text(c.farewellDone ? egg.grade.label : '신비한 알',
                     textAlign: TextAlign.center,
                     style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 10),

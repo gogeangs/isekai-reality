@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'features/battle/battle_view.dart' show SkillMasteryHook;
 import 'features/pets/companion_pet_panel.dart';
+import 'features/pets/egg_news.dart';
 import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
 import 'package:flutter/material.dart';
 
@@ -52,7 +54,7 @@ import 'theme/ornaments.dart';
 import 'theme/top_notice.dart';
 import 'features/profile/title_celebration.dart';
 import 'features/tutorial/feature_tour.dart';
-import 'features/bulssi/bulssi_bubble.dart' show spiritTabVisits;
+import 'features/bulssi/bulssi_bubble.dart' show spiritTabVisits, TalkTurns;
 
 part 'shell/home_popups.dart';
 part 'shell/nav_bar.dart';
@@ -236,6 +238,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       if (mounted) setState(() => _openTab(i));
     };
     tourBridge.tab = _tab;
+    // 묶음 75 #320: 정령 · 마을 사람 대사 차례 (저장된 것부터)
+    TalkTurns.load(widget.controller.talkTurns);
+    TalkTurns.onSave = widget.controller.saveTalkTurns;
+    // 묶음 75 #325: 스킬 숙련도
+    SkillMasteryHook.setup = widget.controller.setupSkillMastery;
+    SkillMasteryHook.finished = (b) => widget.controller.gainSkillUses(b.skillUses);
     // 묶음 19 6-2: 알림을 눌러 들어오면 그 화면으로
     final n = widget.controller.notifier;
     if (n != null) {
@@ -514,7 +522,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         final topInset = MediaQuery.paddingOf(context).top;
         final scaffold = Scaffold(
           body: Stack(children: [
-            Positioned.fill(child: IndexedStack(index: _tab, children: pages)),
+            Positioned.fill(
+                child: IndexedStack(index: _tab, children: [
+              // 묶음 75 #320: 숨은 칸은 움직임을 멈춤 (정령 말풍선이 보이는 칸에서만 말하게)
+              for (final (i, p) in pages.indexed) TickerMode(enabled: i == _tab, child: p),
+            ])),
             // 묶음 16 #133: 지도 위 공통 위쪽 띠는 비치게 (상태 탭은 그대로)
             if (_tab == tMap)
               Positioned(
@@ -542,6 +554,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               left: 12,
               child: ProfileButton(
                 look: controller.profile.look,
+                face: controller.avatarFace,
                 level: controller.player.level.level,
                 onTap: () => push(ProfileScreen(controller: controller)),
               ),

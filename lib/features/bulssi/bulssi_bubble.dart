@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
@@ -263,7 +265,15 @@ class SpiritTalkBadge extends StatefulWidget {
     this.actionLabel,
     this.onAction,
     this.more = const [],
+    this.urgent = false,
+    this.visible,
   });
+
+  /// 보이는지 (말풍선을 맨 위 겹에 그리는 SpiritBadgeRow 가 자기 자리로 알려 줌). null 이면 TickerMode
+  final bool? visible;
+
+  /// 묶음 75 #320: 꼭 알릴 말(지금 상황 · 새 소식)이면 들어올 때 이 대사부터
+  final bool urgent;
 
   /// 묶음 69 #289: 열 때마다 차례로 보여 줄 다른 대사
   final List<String> more;
@@ -293,47 +303,78 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
       vsync: this, duration: const Duration(milliseconds: 180));
   bool _open = false;
   bool _withAction = false;
-
-  /// 묶음 69 #289: 평소엔 얼굴만 — 누르면 말풍선이 열리고, 열 때마다 다음 대사.
-  /// 아직 안 본 대사가 있으면 얼굴 오른쪽 위 작은 점 (열어 보면 사라짐)
-  static final Set<String> _seen = {};
-  int _turn = 0;
   String _now = '';
+
+  /// 묶음 75 #320: 말풍선을 눌러 닫았으면 이 화면에 있는 동안 저절로 다시 안 뜸
+  bool _dismissed = false;
+  bool _shown = false;
+  Timer? _close;
 
   List<String> get _lines => [widget.line, ...(widget.more.isEmpty ? idleTalk : widget.more).where((x) => x != widget.line)];
 
-  bool get _unseen => _lines.any((l) => !_seen.contains(l));
+  /// 화면에 들어올 때마다 대사 하나가 저절로 열렸다가 5초 뒤 닫힘 (꼭 알릴 말이 먼저, 아니면 다음 대사)
+  void _enter() {
+    _dismissed = false;
+    final urgent = widget.urgent || (widget.actionLabel != null && widget.onAction != null);
+    _say(urgent ? widget.line : TalkTurns.next('spirit', _lines));
+  }
 
-  void _toggle() {
-    if (_open) {
-      setState(() => _open = false);
-      return;
-    }
-    final lines = _lines;
-    // 안 본 대사부터, 없으면 차례로
-    final fresh = lines.where((l) => !_seen.contains(l)).toList();
-    _now = fresh.isNotEmpty ? fresh.first : lines[_turn++ % lines.length];
-    _seen.add(_now);
+  void _say(String line) {
+    _now = line;
     _open = true;
     _withAction = widget.actionLabel != null && widget.onAction != null;
     _hop
       ..reset()
       ..repeat(reverse: true, count: 2);
-    setState(() {});
+    _close?.cancel();
+    _close = Timer(TalkTurns.autoClose, () {
+      if (mounted) setState(() => _open = false);
+    });
+    if (mounted) setState(() {});
+  }
+
+  /// 얼굴을 누르면 언제든 다음 대사
+  void _tapFace() => _say(TalkTurns.next('spirit', _lines));
+
+  /// 보이는 칸인지 (아래 메뉴의 숨은 칸은 TickerMode 가 꺼짐)
+  bool get _visible => widget.visible ?? TickerMode.of(context);
+
+  /// 보이는 칸이 됐을 때(처음 · 아래 메뉴로 돌아옴) 한 번
+  void _sync() {
+    final on = _visible;
+    if (on && !_shown) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _visible) _enter();
+      });
+    }
+    if (!on && _open) {
+      _close?.cancel();
+      _open = false;
+    }
+    _shown = on;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
   }
 
   @override
   void didUpdateWidget(SpiritTalkBadge old) {
     super.didUpdateWidget(old);
-    // 열려 있는 동안 대사가 바뀌면 새 대사로
-    if (_open && widget.line != old.line) {
-      _now = widget.line;
-      _seen.add(_now);
+    if (old.visible != widget.visible) _sync();
+    // 꼭 알릴 말이 새로 생기면 (눌러서 닫지 않았으면) 바로
+    if (widget.urgent && widget.line != old.line && !_dismissed && _visible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _say(widget.line);
+      });
     }
   }
 
   @override
   void dispose() {
+    _close?.cancel();
     _hop.dispose();
     super.dispose();
   }
@@ -349,7 +390,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
     final name = scope?.spiritName ?? kind.defaultName;
     final badge = GestureDetector(
       key: const Key('spiritBadge'),
-      onTap: _toggle,
+      onTap: _tapFace,
       child: AnimatedBuilder(
         animation: _hop,
         builder: (context, child) => Transform.translate(
@@ -372,21 +413,6 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
             alignment: Alignment.center,
             child: CompanionArt(size: s * 0.82, mood: widget.mood),
           ),
-          if (!_open && _unseen)
-            Positioned(
-              right: -1,
-              top: -1,
-              child: Container(
-                key: const Key('spiritDot'),
-                width: 11,
-                height: 11,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5484D),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-              ),
-            ),
         ]),
       ),
     );
@@ -401,7 +427,11 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
               ? const SizedBox.shrink()
               : GestureDetector(
                   key: widget.bubbleKey,
-                  onTap: () => setState(() => _open = false),
+                  onTap: () => setState(() {
+                    _open = false;
+                    _dismissed = true;
+                    _close?.cancel();
+                  }),
                   child: Padding(
                     padding: const EdgeInsets.only(left: 2),
                     child: ConstrainedBox(
@@ -410,6 +440,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
                       child: CodeBubble(
                         side: BubbleSide.left,
                         at: s / 2,
+                        stroke: CodeBubblePainter.thin,
                         padding: const EdgeInsets.fromLTRB(10, 7, 12, 8),
                         minWidth: 60,
                         child: Text.rich(
@@ -463,6 +494,32 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
         ),
       ],
     );
+  }
+}
+
+/// 묶음 75 #320: 정령 · 마을 사람마다 다음 대사 차례 (앱이 저장 · 불러옴)
+class TalkTurns {
+  TalkTurns._();
+
+  static final Map<String, int> _turns = {};
+
+  /// 바뀔 때마다 저장 (앱이 정함)
+  static void Function(Map<String, int>)? onSave;
+
+  /// 저절로 열린 말풍선이 닫히기까지
+  static const Duration autoClose = Duration(seconds: 5);
+
+  static void load(Map<String, int> m) => _turns
+    ..clear()
+    ..addAll(m);
+
+  /// [who] 의 다음 대사 (차례를 하나 넘김)
+  static String next(String who, List<String> lines) {
+    if (lines.isEmpty) return '';
+    final n = _turns[who] ?? 0;
+    _turns[who] = n + 1;
+    onSave?.call(Map.of(_turns));
+    return lines[n % lines.length];
   }
 }
 
@@ -573,6 +630,8 @@ class _SpiritBadgeRowState extends State<SpiritBadgeRow> {
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, box) {
           final maxW = (box.maxWidth - 46 - 8).clamp(140.0, 420.0);
+          // 묶음 75 #320: 이 줄이 보이는 칸에 있을 때만 말함 (말풍선은 맨 위 겹이라 자리로 알려 줌)
+          final visible = TickerMode.of(context);
           return CompositedTransformTarget(
             link: _link,
             child: OverlayPortal(
@@ -585,7 +644,7 @@ class _SpiritBadgeRowState extends State<SpiritBadgeRow> {
                   child: SpiritTalkBadge(
                     line: widget.line,
                     mood: widget.mood,
-                    retalk: spiritTabVisits,
+                    visible: visible,
                     maxBubbleWidth: maxW,
                   ),
                 ),

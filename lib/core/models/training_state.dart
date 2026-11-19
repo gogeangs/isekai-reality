@@ -10,7 +10,11 @@ class TrainingState {
     this.petUid,
     this.petEnd,
     this.petDay,
+    this.practiceBest = const {},
   });
+
+  /// 묶음 75 #324: 허수아비(종류 · 속성)마다 가장 높은 1초당 피해 (10초 넘게 친 판만)
+  final Map<String, int> practiceBest;
 
   /// 하루 훈련을 한 날 ('yyyy-mm-dd')
   final String? dailyDay;
@@ -42,6 +46,7 @@ class TrainingState {
     DateTime? petEnd,
     String? petDay,
     bool clearPet = false,
+    Map<String, int>? practiceBest,
   }) =>
       TrainingState(
         dailyDay: dailyDay ?? this.dailyDay,
@@ -53,6 +58,7 @@ class TrainingState {
         petUid: clearPet ? null : petUid ?? this.petUid,
         petEnd: clearPet ? null : petEnd ?? this.petEnd,
         petDay: petDay ?? this.petDay,
+        practiceBest: practiceBest ?? this.practiceBest,
       );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +72,7 @@ class TrainingState {
         if (petUid != null) 'pet': petUid,
         if (petEnd != null) 'petEnd': petEnd!.toIso8601String(),
         if (petDay != null) 'petDay': petDay,
+        if (practiceBest.isNotEmpty) 'practiceBest': practiceBest,
       };
 
   factory TrainingState.fromJson(Map<String, dynamic> j) => TrainingState(
@@ -81,5 +88,9 @@ class TrainingState {
         petUid: j['pet'] as String?,
         petEnd: DateTime.tryParse('${j['petEnd'] ?? ''}'),
         petDay: j['petDay'] as String?,
+        practiceBest: {
+          for (final e in ((j['practiceBest'] as Map?) ?? const {}).entries)
+            if (e.value is num) '${e.key}': (e.value as num).toInt(),
+        },
       );
 }

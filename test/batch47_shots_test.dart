@@ -215,6 +215,9 @@ void main() {
       });
       await _page(tester, MailScreen(key: ValueKey('mail$n'), controller: c));
       await _shot(tester, '${n}_09_우편함');
+      // 묶음 75 #336: 목록 판 안에서만 내려감
+      await tester.scrollUntilVisible(find.byKey(const Key('mailRow_m1')), 60,
+          scrollable: find.descendant(of: find.byKey(const Key('mailScroll')), matching: find.byType(Scrollable)).first);
       await tester.tap(find.byKey(const Key('mailRow_m1')));
       await _settle(tester);
       await _shot(tester, '${n}_10_남겨둔_우편');

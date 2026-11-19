@@ -7,6 +7,7 @@ import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import 'bag_sheet.dart';
 import 'material_view.dart';
+import '../pets/pet_art.dart';
 
 /// 묶음 47 #240: 「가방이 가득 찼어요」 창.
 /// 가방에 들어가지 못한 것마다 「버리기」 · 「바로 판매하기」, 여러 개면 「모두 판매」 · 「모두 버리기」,
@@ -178,6 +179,7 @@ class _HoldRow extends StatelessWidget {
     final c = controller;
     final e = entry;
     final icon = switch (e) {
+      BagHoldEntry(:final egg?) => EggArt(size: 40, grade: egg),
       BagHoldEntry(:final material?) => MaterialIcon(material, size: 40),
       BagHoldEntry(:final item?) => Image.asset(bagIconAsset(c, item),
           width: 40,
@@ -215,7 +217,26 @@ class _HoldRow extends StatelessWidget {
           key: Key('bagHoldDrop_${e.key}'),
           label: '버리기',
           danger: true,
-          onTap: () => c.discardHold(e.key),
+          onTap: () async {
+            // 묶음 75 #327: 알은 버리기 전에 한 번 더
+            if (e.egg != null) {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (d) => GameAlert(
+                  title: const Text('알 버리기'),
+                  content: KText('${e.name} ${e.count}개를 버릴까요? 버린 알은 되찾을 수 없어요'),
+                  actions: [
+                    TextButton(
+                        key: const Key('holdEggNo'), onPressed: () => Navigator.pop(d, false), child: const Text('그만둘래요')),
+                    TextButton(
+                        key: const Key('holdEggYes'), onPressed: () => Navigator.pop(d, true), child: const Text('버리기')),
+                  ],
+                ),
+              );
+              if (ok != true) return;
+            }
+            await c.discardHold(e.key);
+          },
         ),
         const SizedBox(width: 6),
         _SmallButton(

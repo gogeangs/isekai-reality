@@ -469,13 +469,23 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
         // 제목 자리를 비우려고 그림을 조금 내린다
         Positioned.fill(
           top: overlay != null ? MediaQuery.paddingOf(context).top + 46 : 0,
-          child: Image.asset(
-              _look == HeroLook.female
-                  ? 'assets/images/bg_status_female.webp'
-                  : 'assets/images/bg_status_male.webp',
-              fit: BoxFit.cover,
-              alignment: const Alignment(-0.42, -0.6),
-              errorBuilder: (_, __, ___) => const SizedBox()),
+          // 묶음 75: 옛 주인공 그림(bg_status_*) 대신 무대 + 새 주인공
+          child: Stack(fit: StackFit.expand, children: [
+            Image.asset('assets/images/bg_status_stage.webp',
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, 0.55),
+                errorBuilder: (_, __, ___) => const SizedBox()),
+            Align(
+              alignment: const Alignment(0, 0.7),
+              child: FractionallySizedBox(
+                heightFactor: 0.78,
+                child: Image.asset(heroBaseAsset(_look),
+                    key: const Key('awakenStageHero'),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox()),
+              ),
+            ),
+          ]),
         ),
         const Align(
             alignment: Alignment.bottomCenter,

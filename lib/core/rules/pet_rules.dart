@@ -117,6 +117,36 @@ class PetSpeciesInfo {
       'assets/images/pet_${id.name}_${awake ? 'awake' : adult ? 'adult' : 'baby'}.webp';
 }
 
+/// 묶음 75 #334: 알 등급 (얻는 순간 정함)
+enum EggGrade {
+  common('알', 'pet_egg', 150),
+  rare('희귀한 알', 'pet_egg_rare', 500),
+  hero('영웅의 알', 'pet_egg_hero', 1500),
+  legend('전설의 알', 'pet_egg_legend', 4000);
+
+  const EggGrade(this.label, this.image, this.price);
+
+  /// 이름 (정령이 떠나기 전 알은 「신비한 알」)
+  final String label;
+
+  /// 그림 (희귀 · 영웅 · 전설 그림이 오기 전엔 pet_egg)
+  final String image;
+
+  /// 잡화상에 팔 때 금화 (숨은 값)
+  final int price;
+
+  String get asset => 'assets/images/$image.webp';
+
+  /// 우편 · 「가방이 가득 찼어요」 창의 키 ('egg' · 'egg:rare' …)
+  String get key => this == common ? 'egg' : 'egg:$name';
+
+  static EggGrade? ofKey(String k) {
+    if (k == 'egg') return common;
+    if (!k.startsWith('egg:')) return null;
+    return values.asNameMap()[k.substring(4)];
+  }
+}
+
 /// 펫 규칙 (11-11 제안서 3 확정 값)
 class PetRules {
   PetRules._();
@@ -384,6 +414,33 @@ class PetRules {
   static const double stagHp = 0.04;
   static const int stagMp = 4;
   static bool isDawn(DateTime t) => t.hour >= 5 && t.hour < 9;
+
+  /// 묶음 75 #334: 알을 얻는 순간 등급 (전설 → 영웅 → 희귀 → 일반, 확률이 없으면 굴리지 않음)
+  static EggGrade rollEggGrade(math.Random rng, {double heroChance = 0, double legendChance = 0}) {
+    if (legendChance > 0 && rng.nextDouble() < legendChance) return EggGrade.legend;
+    if (heroChance > 0 && rng.nextDouble() < heroChance) return EggGrade.hero;
+    if (rng.nextDouble() < rareChance) return EggGrade.rare;
+    return EggGrade.common;
+  }
+
+  /// 묶음 75 #334: 그 등급 알에서 깨어날 펫 (주 속성 3배 · 연금술 1등 호문쿨루스 3배 그대로)
+  static PetSpecies speciesOfGrade(math.Random rng, EggGrade grade,
+      {PetSpecies? favored, Element? element, bool alchemyTop = false}) {
+    final pool = [
+      for (final s in switch (grade) {
+        EggGrade.legend => legendSpecies,
+        EggGrade.hero => heroSpecies,
+        EggGrade.rare => rareSpecies,
+        EggGrade.common => commonSpecies,
+      }) ...[
+        s,
+        if (s == favored) s,
+        if (element != null && info(s).element == element) ...[s, s],
+        if (alchemyTop && s == PetSpecies.homunculus) ...[s, s],
+      ],
+    ];
+    return pool[rng.nextInt(pool.length)];
+  }
 
   /// 부화할 펫: [heroChance] 로 영웅 6종, 그다음 10%는 희귀 6종, 나머지는 일반 6종
   /// (각 1몫, 정령 짝은 2몫, 주 속성 펫 3배, 연금술 1등이면 호문쿨루스 3배)
@@ -1134,6 +1191,6 @@ class LetterInfo {
         if (snacks > 0) '펫 간식 $snacks',
         if (compasses > 0) '원정 나침반 $compasses',
         if (recipeNotes > 0) '레시피 쪽지 $recipeNotes',
-        if (eggs > 0) '펫 알 $eggs',
+        if (eggs > 0) '알 $eggs',
       ].join(' · ');
 }

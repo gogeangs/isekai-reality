@@ -152,19 +152,27 @@ class PetBattleArt extends StatelessWidget {
 
 /// 펫 알 그림
 class EggArt extends StatelessWidget {
-  const EggArt({super.key, this.size = 64, this.glowing = false});
+  const EggArt({super.key, this.size = 64, this.glowing = false, this.grade = EggGrade.common});
 
   final double size;
   final bool glowing;
 
+  /// 묶음 75 #334: 등급 그림 (그림이 오기 전엔 pet_egg)
+  final EggGrade grade;
+
   @override
-  Widget build(BuildContext context) => Image.asset(
-        'assets/images/pet_egg.webp',
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Icon(Icons.egg_rounded,
-            size: size * 0.9,
-            color: glowing ? AppColors.goldBright : const Color(0xFFF2E6CF)),
-      );
+  Widget build(BuildContext context) {
+    Widget plain() => Image.asset(
+          'assets/images/pet_egg.webp',
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => Icon(Icons.egg_rounded,
+              size: size * 0.9,
+              color: glowing ? AppColors.goldBright : const Color(0xFFF2E6CF)),
+        );
+    if (grade == EggGrade.common) return plain();
+    return Image.asset(grade.asset,
+        width: size, height: size, fit: BoxFit.contain, errorBuilder: (_, __, ___) => plain());
+  }
 }

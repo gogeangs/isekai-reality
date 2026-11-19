@@ -5,7 +5,6 @@ import '../../core/format.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../smithy/equipment_view.dart';
 import 'bag_tab.dart';
 import 'shop_screen.dart' show ShopChip;
 import '../../theme/top_notice.dart';
@@ -15,7 +14,9 @@ int sellPrice(BagEntry e) => switch (e) {
       MaterialEntry(:final id) => BagRules.materialPrice(id),
       ItemEntry(:final item) => BagRules.itemPrice(item),
       EquipEntry(:final item) => BagRules.equipPrice(item),
-      EggEntry() || PotionEntry() || PouchEntry() => 0,
+      // 묶음 75 #327: 알은 등급 값 (일반 150 · 희귀 500 · 영웅 1,500 · 전설 4,000)
+      EggEntry(:final egg) => egg.grade.price,
+      PotionEntry() || PouchEntry() => 0,
     };
 
 /// 팔기 탭 묶음
@@ -69,6 +70,10 @@ class _ShopSellTabState extends State<ShopSellTab> {
             for (final i in TownRules.bagItems)
               if (c.bagCount(i) > 0)
                 _Row('i:${i.name}', ItemEntry(i, c.bagCount(i)), c.bagCount(i)),
+            // 묶음 75 #327: 알 (품는 중인 알은 안 나옴, 정령이 떠난 뒤)
+            if (c.farewellDone)
+              for (final e in c.pets.eggs)
+                if (e.incubatedAt == null) _Row('g:${e.id}', EggEntry(e), 1),
           ],
         SellGroup.equip => [
             for (final s in EquipSlot.values)
@@ -180,6 +185,23 @@ class _ShopSellTabState extends State<ShopSellTab> {
     if (picks.isEmpty) return;
     final kinds = picks.length;
     final total = picks.fold<int>(0, (s, p) => s + p.$2 * sellPrice(p.$1.entry));
+    // 묶음 75 #327: 알은 한 번 더 — 판 알은 되찾을 수 없음
+    final eggs = picks.where((p) => p.$1.entry is EggEntry).length;
+    if (eggs > 0) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => GameAlert(
+          title: const Text('알 팔기'),
+          content: KText('알 $eggs개를 팔까요? 판 알은 되찾을 수 없어요', key: const Key('sellEggConfirm')),
+          actions: [
+            TextButton(
+                key: const Key('sellEggNo'), onPressed: () => Navigator.pop(d, false), child: const Text('그만둘래요')),
+            TextButton(key: const Key('sellEggYes'), onPressed: () => Navigator.pop(d, true), child: const Text('팔기')),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
     // 장비·귀한 재료가 섞였을 때만 한 번 더 묻는다
     final careful = picks.any((p) => switch (p.$1.entry) {
           EquipEntry() => true,
@@ -218,6 +240,7 @@ class _ShopSellTabState extends State<ShopSellTab> {
         MaterialEntry(:final id) => await c.sellMaterial(id, n),
         ItemEntry(:final item) => await c.sellItem(item, n),
         EquipEntry(:final item) => await c.sellEquip(item.uid),
+        EggEntry(:final egg) => await c.sellEgg(egg.id),
         _ => false,
       };
       if (ok) sold += n;
@@ -329,19 +352,33 @@ class _ShopSellTabState extends State<ShopSellTab> {
                           textAlign: TextAlign.center,
                           style: TextStyle(color: AppColors.textMuted)),
                     ),
-                  for (final r in rows)
-                    _SellLine(
-                      key: Key('sellRow_${r.key}'),
-                      row: r,
-                      controller: c,
-                      picked: _picked[r.key],
-                      onTap: r.worn
-                          ? null
-                          : () => setState(() => _picked.containsKey(r.key)
-                              ? _picked.remove(r.key)
-                              : _picked[r.key] = r.count),
-                      onLong: r.worn || r.count <= 1 ? null : () => _pickCount(r),
-                    ),
+                  // 묶음 75 #319: 4칸 격자 (SE도 4칸)
+                  GridView.count(
+                    key: const Key('sellGrid'),
+                    crossAxisCount: 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    mainAxisSpacing: 6,
+                    crossAxisSpacing: 6,
+                    childAspectRatio: 0.66,
+                    children: [
+                      for (final r in rows)
+                        _SellLine(
+                          key: Key('sellRow_${r.key}'),
+                          row: r,
+                          controller: c,
+                          picked: _picked[r.key],
+                          onTap: r.worn
+                              ? () => showTopNotice(context, '입는 중이라 못 팔아요')
+                              : () => setState(() => _picked.containsKey(r.key)
+                                  ? _picked.remove(r.key)
+                                  : _picked[r.key] = r.count),
+                          onLong: r.worn || r.count <= 1 ? null : () => _pickCount(r),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -373,6 +410,8 @@ class _ShopSellTabState extends State<ShopSellTab> {
   }
 }
 
+/// 팔기 칸 하나 (묶음 75 #319): BagSlot 그림(개수는 그림 위 숫자) + 이름 한 줄 + 「금화 5」.
+/// 고르면 금테 · 옅은 금빛 · 오른쪽 위 ✓, 일부만 고르면 「2/4」. 입는 중 장비는 흐리게 + 자물쇠
 class _SellLine extends StatelessWidget {
   const _SellLine({
     super.key,
@@ -393,66 +432,52 @@ class _SellLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final e = row.entry;
     final on = picked != null;
-    final line = Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: const EdgeInsets.fromLTRB(4, 6, 10, 6),
+    final tile = Container(
+      padding: const EdgeInsets.fromLTRB(3, 4, 3, 4),
       decoration: BoxDecoration(
         color: on ? const Color(0x33F2C14E) : const Color(0x5512153A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: on
-                ? AppColors.goldBright
-                : AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(color: on ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.3), width: on ? 2 : 1),
       ),
-      child: Row(children: [
-        Icon(
-            row.worn
-                ? Icons.block_rounded
-                : on
-                    ? Icons.check_box_rounded
-                    : Icons.check_box_outline_blank_rounded,
-            key: Key('sellCheck_${row.key}'),
-            color: on ? AppColors.goldBright : AppColors.textMuted,
-            size: 24),
-        const SizedBox(width: 6),
-        SizedBox(
-            width: 44,
-            height: 44,
-            child: BagSlot(entry: e, controller: controller)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              switch (e) {
-                EquipEntry(:final item) => EquipName(item),
-                _ => Text(bagEntryName(e, controller),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.title(14, color: AppColors.text)),
-              },
-              Text(
-                  row.worn
-                      ? '입는 중이라 못 팔아요'
-                      : on && picked! < row.count
-                          ? '$picked개 고름 · 1개 금화 ${comma(sellPrice(e))}'
-                          : '1개 금화 ${comma(sellPrice(e))}',
-                  style: TextStyle(
-                      color: on ? AppColors.goldBright : AppColors.textMuted,
-                      fontSize: 12)),
-            ],
+      child: Stack(clipBehavior: Clip.none, children: [
+        Column(children: [
+          AspectRatio(aspectRatio: 1, child: BagSlot(entry: e, controller: controller)),
+          const SizedBox(height: 3),
+          Text(bagEntryName(e, controller),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          Text(row.worn ? '입는 중' : '금화 ${comma(sellPrice(e))}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: on ? AppColors.goldBright : AppColors.textMuted, fontSize: 11)),
+        ]),
+        if (on)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              key: Key('sellCheck_${row.key}'),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(color: AppColors.goldBright, borderRadius: BorderRadius.circular(8)),
+              child: Text(picked! < row.count ? '$picked/${row.count}' : '✓',
+                  style: const TextStyle(color: AppColors.night, fontSize: 11, fontWeight: FontWeight.w900)),
+            ),
           ),
-        ),
-        if (e is! EquipEntry)
-          Text('×${comma(row.count)}',
-              style: AppText.title(15, color: AppColors.text)),
+        if (row.worn)
+          const Positioned(
+            right: 2,
+            top: 2,
+            child: Icon(Icons.lock_rounded, size: 16, color: AppColors.textMuted),
+          ),
       ]),
     );
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLong,
       behavior: HitTestBehavior.opaque,
-      child: row.worn ? Opacity(opacity: 0.45, child: line) : line,
+      child: row.worn ? Opacity(opacity: 0.45, child: tile) : tile,
     );
   }
 }

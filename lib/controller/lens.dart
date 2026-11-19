@@ -61,8 +61,8 @@ extension LensOps on AppController {
       if (_random.nextDouble() < appraiseChance(LensRules.materialChance)) {
         mat = LensRules.info(races[_random.nextInt(races.length)]).material;
       }
-      note = _random.nextDouble() <
-          appraiseChance(LensRules.noteChance) + intellectCraft;
+      // 묶음 75 #326: 「우연」 쪽지 — 하루 1장까지 (_maybeNote 가 바로 준다)
+      note = await _maybeNote(appraiseChance(LensRules.noteChance) + intellectCraft);
     }
     // 묶음 48 #230: 약초밭이 열린 뒤 감정 보상으로 가끔 빛나는 씨앗
     if (rewarded &&
@@ -75,7 +75,12 @@ extension LensOps on AppController {
     if (await _consumeSkill(JobSkill.trueEye)) {
       mat ??= LensRules.info(races[_random.nextInt(races.length)]).material;
     }
-    if (await _consumeSkill(JobSkill.memoryRead)) note = true;
+    // 기억 읽기(스킬)는 한도 밖
+    var skillNote = false;
+    if (await _consumeSkill(JobSkill.memoryRead) && !note) {
+      note = true;
+      skillNote = true;
+    }
     await _save(today.copyWith(
       itemsUsed: free
           ? today.itemsUsed
@@ -112,7 +117,7 @@ extension LensOps on AppController {
       await _grant(0, 0, {mat: 1});
       await _seeSeeds([mat]);
     }
-    if (note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    if (skillNote) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     await gainMastery(Mastery.appraise, MasteryRules.appraiseOnce);
     _notify();
     return AppraiseResult(

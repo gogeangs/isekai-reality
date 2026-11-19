@@ -338,10 +338,13 @@ class AlchemyRules {
   static const double callModRareChance = 0.30;
 
   /// 레시피 쪽지 확률
-  static const double noteFromErrand = 0.10;
-  static const double noteFromDungeon = 0.08;
-  static const double noteFromRare = 0.15;
-  static const double noteFromLegend = 0.50;
+  // 묶음 75 #326: 낮춤 (모두 「우연」 쪽지 — 하루 1장까지)
+  static const double noteFromErrand = 0.03;
+  static const double noteFromDungeon = 0.05;
+  static const double noteFromRare = 0.08;
+  static const double noteFromLegend = 0.30;
+  static const double noteFromRoadside = 0.03;
+  static const double noteFromPouch = 0.01;
 
   static PotionInfo info(PotionId id) => _byId[id]!;
   static final Map<PotionId, PotionInfo> _byId = {

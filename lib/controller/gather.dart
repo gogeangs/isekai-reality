@@ -145,8 +145,8 @@ extension GatherOps on AppController {
     final r = GatherRules.openPouch(_random);
     await _saveGather(_gather.copyWith(pouches: _gather.pouches - 1));
     await _grant(r.gold, 0, r.mats);
-    if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
-    return r;
+    final note = await _maybeNote(AlchemyRules.noteFromPouch);
+    return (mats: r.mats, gold: r.gold, note: note);
   });
 
   /// 길가의 발견을 연다 (30분이 지나면 null)
@@ -156,8 +156,8 @@ extension GatherOps on AppController {
     final r = GatherRules.openFind(_random);
     await _saveGather(_gather.copyWith(clearFind: true));
     await _grant(r.gold, 0, r.mats);
-    if (r.note) await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
-    return r;
+    final note = await _maybeNote(AlchemyRules.noteFromRoadside);
+    return (mats: r.mats, gold: r.gold, note: note);
   });
 
   /// 떠돌이 상인에게서 산다 ([m] 이 null 이면 레시피 쪽지)

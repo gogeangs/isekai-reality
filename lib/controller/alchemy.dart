@@ -17,9 +17,15 @@ extension AlchemyOps on AppController {
   /// 읽지 않은 레시피 쪽지
   int get recipeNotes => _pets.recipeNotes;
 
-  Future<void> _maybeNote(double chance) async {
-    if (_random.nextDouble() >= chance) return;
+  /// 묶음 75 #326: 「우연」 레시피 쪽지 (의뢰 · 길가 발견 · 던전 · 희귀/전설 몬스터 · 걸음 주머니 · 감정 렌즈).
+  /// 하루 1장까지 — 받은 날이면 굴리지 않는다. 받았으면 true
+  Future<bool> _maybeNote(double chance) async {
+    final day = DailyRecord.dayKeyOf(_clock());
+    if (_alc.luckNoteDay == day) return false;
+    if (_random.nextDouble() >= chance) return false;
+    await _saveAlc(_alc.copyWith(luckNoteDay: day));
     await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    return true;
   }
 
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
@@ -188,6 +194,14 @@ extension AlchemyOps on AppController {
     await _npcUse(Npc.eliel);
     return true;
   });
+
+  /// 묶음 75 #318: 작업대 「만들어질 물약」 · 「끓이기 · ○분」에 보이는 끓는 시간 (스킬은 빼고)
+  int brewMinutesOf(PotionId? id) {
+    var minutes = (id == null ? AlchemyRules.suspiciousMinutes : AlchemyRules.info(id).minutes).toDouble();
+    minutes *= 1 - JobRules.alchemistTime * jobTrait(JobId.alchemist);
+    if (_star(Building.alchemy, 2)) minutes *= BuildingRules.brewTime;
+    return math.max(1, minutes.round());
+  }
 
   bool brewReady(int slot) {
     final b = _alc.brews[slot];

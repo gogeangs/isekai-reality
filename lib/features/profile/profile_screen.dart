@@ -10,11 +10,11 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/spirit_art.dart';
 import '../pets/pet_art.dart';
-import '../pets/pet_screen.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 import '../jobs/skill_icon.dart' show JobEmblem;
 import '../../theme/top_notice.dart';
+import 'avatar_picker.dart';
 
 /// 지금은 직업이 없다 (각성 기능에서 정하기로 미룸)
 const String kNoJobLabel = '견습 각성자';
@@ -35,7 +35,13 @@ class ProfileCard extends StatelessWidget {
     this.pet,
     this.aura,
     this.jobId,
+    this.face = '',
+    this.onEditFace,
   });
+
+  /// 묶음 75 #335: 프로필 사진 그림 이름 (빈 값이면 주인공 얼굴) · 누르면 고르기 (내 카드만)
+  final String face;
+  final VoidCallback? onEditFace;
 
   /// 나의 기운 (묶음 32 #189, 주 속성. 없으면 줄 없음)
   final String? aura;
@@ -62,17 +68,52 @@ class ProfileCard extends StatelessWidget {
     return OrnatePanel(
       highlight: true,
       child: Row(children: [
-        Container(
-          width: 92,
-          height: 92,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.goldBright, width: 2),
-            color: const Color(0xFF1A1D4A),
+        Semantics(
+          button: onEditFace != null,
+          label: onEditFace != null ? '프로필 사진 바꾸기' : null,
+          child: GestureDetector(
+            key: const Key('profileFace'),
+            onTap: onEditFace,
+            child: SizedBox(
+              width: 92,
+              height: 92,
+              child: Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.goldBright, width: 2),
+                    color: const Color(0xFF1A1D4A),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AvatarFace(
+                      face: face,
+                      look: look,
+                      fallback: const Icon(Icons.person_rounded, size: 56)),
+                ),
+                // 작은 연필
+                if (onEditFace != null)
+                  Positioned(
+                    right: -2,
+                    bottom: 0,
+                    child: Container(
+                      key: const Key('profileFaceEdit'),
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.abyss,
+                        border:
+                            Border.all(color: AppColors.goldBright, width: 1.4),
+                      ),
+                      child: const Icon(Icons.edit_rounded,
+                          size: 14, color: AppColors.goldBright),
+                    ),
+                  ),
+              ]),
+            ),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: PortraitFace(
-              look: look, fallback: const Icon(Icons.person_rounded, size: 56)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -146,21 +187,21 @@ class ProfileCard extends StatelessWidget {
                   ),
                 ]),
               ] else
-              Row(children: [
-                SpiritArt(kind: spiritKind, size: 26),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: KText('함께하는 정령 · $spiritName',
-                      style: const TextStyle(
-                          color: AppColors.text, fontSize: 12)),
-                ),
-                const SizedBox(width: 3),
-                const Tooltip(
-                  message: '정령 이름은 바꿀 수 없어요',
-                  child: Icon(Icons.lock_rounded,
-                      size: 13, color: AppColors.textMuted),
-                ),
-              ]),
+                Row(children: [
+                  SpiritArt(kind: spiritKind, size: 26),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: KText('함께하는 정령 · $spiritName',
+                        style: const TextStyle(
+                            color: AppColors.text, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 3),
+                  const Tooltip(
+                    message: '정령 이름은 바꿀 수 없어요',
+                    child: Icon(Icons.lock_rounded,
+                        size: 13, color: AppColors.textMuted),
+                  ),
+                ]),
             ],
           ),
         ),
@@ -173,6 +214,63 @@ String portraitAsset(HeroLook look) => look == HeroLook.female
     ? 'assets/images/portrait_female.webp'
     : 'assets/images/portrait_male.webp';
 
+/// 묶음 75 #335: 프로필 사진 (게임 속 그림). 빈 값 · 모르는 모양 · 그림 없음이면 주인공 얼굴
+class AvatarFace extends StatelessWidget {
+  const AvatarFace(
+      {super.key, required this.face, required this.look, this.fallback});
+
+  final String face;
+  final HeroLook look;
+  final Widget? fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    final hero = switch (face) {
+      'portrait_female' => HeroLook.female,
+      'portrait_male' => HeroLook.male,
+      _ => null,
+    };
+    if (hero != null || face.isEmpty || !kFaceStem.hasMatch(face)) {
+      return PortraitFace(look: hero ?? look, fallback: fallback);
+    }
+    return Image.asset('assets/images/$face.webp',
+        key: Key('avatar_$face'),
+        fit: BoxFit.cover,
+        // 사람 얼굴 그림은 머리 쪽, 펫 · 배지는 가운데
+        alignment: face.startsWith('npc_')
+            ? const Alignment(0, -0.5)
+            : Alignment.center,
+        errorBuilder: (_, __, ___) =>
+            PortraitFace(look: look, fallback: fallback));
+  }
+}
+
+/// 묶음 75 #335: 파티 · 길드 줄의 작은 얼굴 동그라미
+class SocialFace extends StatelessWidget {
+  const SocialFace({super.key, required this.face, this.size = 30});
+
+  final String face;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFF1A1D4A),
+          border: Border.all(
+              color: AppColors.gold.withValues(alpha: 0.7), width: 1.2),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: AvatarFace(
+            face: face,
+            look: HeroLook.male,
+            fallback: Icon(Icons.person_rounded,
+                size: size * 0.8, color: AppColors.goldBright)),
+      );
+}
+
 /// 묶음 73 #261: 동그라미 안에 얼굴이 가운데 오게 (머리가 위쪽 절반, 손은 잘려도 됨).
 /// 그림은 768×768, 얼굴 가운데: 남 (400, 255) · 여 (445, 315)
 class PortraitFace extends StatelessWidget {
@@ -183,12 +281,14 @@ class PortraitFace extends StatelessWidget {
 
   static const zoom = 1.7;
 
-  static Offset faceOf(HeroLook look) =>
-      look == HeroLook.female ? const Offset(445 / 768, 315 / 768) : const Offset(400 / 768, 255 / 768);
+  static Offset faceOf(HeroLook look) => look == HeroLook.female
+      ? const Offset(445 / 768, 315 / 768)
+      : const Offset(400 / 768, 255 / 768);
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        final s = box.biggest.shortestSide.isFinite ? box.biggest.shortestSide : 48.0;
+        final s =
+            box.biggest.shortestSide.isFinite ? box.biggest.shortestSide : 48.0;
         final big = s * zoom;
         final f = faceOf(look);
         // 얼굴을 동그라미 가운데에서 조금 위(머리가 위쪽 절반)로, 그림 밖이 보이지 않게
@@ -208,7 +308,9 @@ class PortraitFace extends StatelessWidget {
                 child: Image.asset(portraitAsset(look),
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
-                        fallback ?? const Icon(Icons.person_rounded, color: AppColors.goldBright)),
+                        fallback ??
+                        const Icon(Icons.person_rounded,
+                            color: AppColors.goldBright)),
               ),
             ]),
           ),
@@ -219,10 +321,17 @@ class PortraitFace extends StatelessWidget {
 /// 왼쪽 위 프로필 버튼: 얼굴 동그라미 + Lv.
 class ProfileButton extends StatelessWidget {
   const ProfileButton(
-      {super.key, required this.look, required this.level, this.onTap});
+      {super.key,
+      required this.look,
+      required this.level,
+      this.onTap,
+      this.face = ''});
 
   final HeroLook look;
   final int level;
+
+  /// 묶음 75 #335: 프로필 사진 그림 이름
+  final String face;
   final VoidCallback? onTap;
 
   @override
@@ -250,7 +359,7 @@ class ProfileButton extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: PortraitFace(look: look),
+              child: AvatarFace(face: face, look: look),
             ),
             Positioned(
               bottom: 0,
@@ -358,6 +467,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? null
                         : TitleRules.info(equipped).name,
                     onEditName: () => _rename(context, c),
+                    face: c.avatarFace,
+                    onEditFace: () => showAvatarPicker(context, c),
                   ),
                   // 오늘 사냥 수 (11-11 #76: 지도 위 박스에서 옮김, 한도는 보여 주지 않음)
                   Padding(
@@ -381,8 +492,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               size: 16, color: Color(0xFFF2B0B0)),
                           SizedBox(width: 4),
                           Flexible(
-                            child: Text(
-                                '지친 상태 · 「${AppController.tiredLine}」',
+                            child: Text('지친 상태 · 「${AppController.tiredLine}」',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     color: Color(0xFFF7D2D2), fontSize: 12)),
@@ -464,16 +574,7 @@ class _InfoTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        if (c.farewellDone) ...[
-          FrameButton(
-            label: '내 펫 ${c.pets.pets.length}마리',
-            icon: Icons.pets_rounded,
-            height: 44,
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => PetScreen(controller: c))),
-          ),
-          const SizedBox(height: 10),
-        ],
+        // 묶음 75 #330: 「내 펫 ○마리」 버튼은 뺌 (상태 화면 「내 펫」 격자로)
         // 묶음 26 #177: 얻은 칭호만, 새로 얻은 것이 맨 위. 전체 개수·얻는 방법은 숨김
         _Section(title: '칭호', children: [
           KText(
@@ -571,8 +672,8 @@ class _TitleRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                          color: AppColors.goldBright
-                              .withValues(alpha: 0.7 * g),
+                          color:
+                              AppColors.goldBright.withValues(alpha: 0.7 * g),
                           blurRadius: 14 * g,
                           spreadRadius: 1.5 * g),
                     ],
@@ -580,51 +681,56 @@ class _TitleRow extends StatelessWidget {
                   child: child,
                 ),
           child: Opacity(
-          opacity: earned ? 1 : 0.55,
-          child: Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
-            decoration: BoxDecoration(
-              color: equipped ? const Color(0x55E8B04A) : const Color(0x66101333),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: equipped
-                      ? AppColors.goldBright
-                      : AppColors.gold.withValues(alpha: 0.3)),
-            ),
-            child: Row(children: [
-              SizedBox(
-                width: 38,
-                height: 38,
-                child: Image.asset('assets/images/${TitleRules.asset(info.id)}.webp',
-                    errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
-                        color: earned
-                            ? AppColors.goldBright
-                            : AppColors.textMuted)),
+            opacity: earned ? 1 : 0.55,
+            child: Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
+              decoration: BoxDecoration(
+                color: equipped
+                    ? const Color(0x55E8B04A)
+                    : const Color(0x66101333),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: equipped
+                        ? AppColors.goldBright
+                        : AppColors.gold.withValues(alpha: 0.3)),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(earned ? info.name : '???',
-                        style: AppText.title(14,
-                            color: earned ? AppColors.text : AppColors.textMuted)),
-                    KText(earned ? info.hint : '얻는 방법: ${info.hint}',
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
-                  ],
+              child: Row(children: [
+                SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Image.asset(
+                      'assets/images/${TitleRules.asset(info.id)}.webp',
+                      errorBuilder: (_, __, ___) => Icon(titleIcon(info.id),
+                          color: earned
+                              ? AppColors.goldBright
+                              : AppColors.textMuted)),
                 ),
-              ),
-              if (equipped)
-                const Text('대표',
-                    style: TextStyle(
-                        color: AppColors.goldBright,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800)),
-            ]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(earned ? info.name : '???',
+                          style: AppText.title(14,
+                              color: earned
+                                  ? AppColors.text
+                                  : AppColors.textMuted)),
+                      KText(earned ? info.hint : '얻는 방법: ${info.hint}',
+                          style: const TextStyle(
+                              color: AppColors.textMuted, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                if (equipped)
+                  const Text('대표',
+                      style: TextStyle(
+                          color: AppColors.goldBright,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+              ]),
+            ),
           ),
-        ),
         ),
       );
 }
@@ -644,9 +750,8 @@ Future<void> _rename(BuildContext context, AppController c) async {
   if (name.trim().isEmpty || name.trim() == c.profile.name) return;
   final ok = await c.renameHero(name);
   if (!context.mounted) return;
-  showTopNotice(context, ok
-          ? '${josa(name.trim(), '으로/로')} 바꿨어요.'
-          : '금화가 모자라요. (금화 $cost)');
+  showTopNotice(context,
+      ok ? '${josa(name.trim(), '으로/로')} 바꿨어요.' : '금화가 모자라요. (금화 $cost)');
 }
 
 /// 이름 바꾸기 창 (11-11 #72): 금테 팝업, 가격 뱃지, 칸 안 글자 수,
@@ -730,18 +835,22 @@ class _RenameDialogState extends State<RenameDialog> {
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Text('${_text.text.characters.length}/${widget.maxLength}',
-                style: const TextStyle(
-                    color: AppColors.textMuted, fontSize: 14)),
+                style:
+                    const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           ),
           suffixIconConstraints:
               const BoxConstraints(minWidth: 0, minHeight: 0),
-          errorText: bad ? NameRules.bannedMessage : dup ? '이미 쓰는 이름이에요' : null,
+          errorText: bad
+              ? NameRules.bannedMessage
+              : dup
+                  ? '이미 쓰는 이름이에요'
+                  : null,
           errorStyle: const TextStyle(
               color: Color(0xFFFF6B6B), fontWeight: FontWeight.w700),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-                color: AppColors.gold.withValues(alpha: 0.55)),
+            borderSide:
+                BorderSide(color: AppColors.gold.withValues(alpha: 0.55)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
@@ -754,8 +863,7 @@ class _RenameDialogState extends State<RenameDialog> {
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide:
-                const BorderSide(color: Color(0xFFFF6B6B), width: 1.6),
+            borderSide: const BorderSide(color: Color(0xFFFF6B6B), width: 1.6),
           ),
         ),
       ),
@@ -852,8 +960,8 @@ Future<void> _showLetters(BuildContext context, AppController c) =>
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheet) => SafeArea(
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
           child: ListView(
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
@@ -866,7 +974,8 @@ Future<void> _showLetters(BuildContext context, AppController c) =>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(l.title,
-                          style: AppText.title(16, color: AppColors.goldBright)),
+                          style:
+                              AppText.title(16, color: AppColors.goldBright)),
                       const SizedBox(height: 6),
                       KText(l.body,
                           style: const TextStyle(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -33,26 +35,56 @@ class NpcHeader extends StatefulWidget {
 }
 
 class _NpcHeaderState extends State<NpcHeader> {
-  // 묶음 69 #289: 평소엔 얼굴 + 이름표만, 얼굴을 누르면 말풍선(위에 겹쳐 뜸, 아래를 밀지 않음).
-  // 저절로 뜨는 대사(처음 만남 · 상황 · 새 부탁 · 한 번뿐인 말 · 탭 안내)는 그대로 열림
+  // 묶음 69 #289 · 묶음 71: 들어갈 땐 얼굴 + 이름표만. 꼭 알릴 말(새 부탁 · 한 번뿐인 말 · 지금 상황 ·
+  // 탭 안내)만 저절로 열리고 몇 초 뒤 저절로 닫힘. 말풍선은 이름표 아래 제자리에 열려
+  // 아래 탭 · 버튼을 덮지 않고, 길면 아래를 밀어 냄
   late final ({String? auto, List<String> lines, String first}) _talk =
       widget.controller.npcTalk(widget.npc, guide: widget.guide, situation: widget.situation);
   late String _line = _talk.auto ?? _talk.first;
-  late bool _open = _talk.auto != null;
+  late bool _open = _talk.auto != null && _important(_talk.auto!);
   int _turn = 0;
-  final _link = LayerLink();
-  final _portal = OverlayPortalController();
+  Timer? _close;
+
+  /// 저절로 닫히기까지
+  static const Duration autoClose = Duration(milliseconds: 3500);
 
   /// 화면을 열 때마다 새로 보는 대사가 있으면 얼굴 위 작은 점 (열어 보면 사라짐)
   static final Set<String> _seen = {};
 
-  bool get _unseen => _talk.lines.any((l) => !_seen.contains(l));
+  bool get _unseen => _talk.lines.any((l) => !_seen.contains(l)) || (!_open && !_seen.contains(_line));
+
+  /// 처음 만남 인사는 얼굴 점으로만 (눌러 보면) — 그 밖의 저절로 뜨는 말은 꼭 알릴 말
+  bool _important(String line) =>
+      _wasMet &&
+      (line == widget.situation ||
+          line == NpcRules.askLine ||
+          line == NpcRules.boardAskLine ||
+          !_talk.lines.contains(line));
+
+  /// 이번에 들어오기 전에 만난 적이 있는지 (처음 만남 인사는 저절로 열지 않음)
+  late final bool _wasMet;
 
   @override
   void initState() {
     super.initState();
-    _portal.show();
-    if (_open) _seen.add(_line);
+    _wasMet = widget.controller.npcMet(widget.npc);
+    if (_open) {
+      _seen.add(_line);
+      _autoClose();
+    }
+  }
+
+  @override
+  void dispose() {
+    _close?.cancel();
+    super.dispose();
+  }
+
+  void _autoClose() {
+    _close?.cancel();
+    _close = Timer(autoClose, () {
+      if (mounted) setState(() => _open = false);
+    });
   }
 
   @override
@@ -63,23 +95,26 @@ class _NpcHeaderState extends State<NpcHeader> {
     if (s != null && s != old.situation) {
       _line = s;
       _open = true;
+      _autoClose();
     }
     if (s == null && old.situation != null && widget.guide != null) _line = widget.guide!;
     final t = widget.tabLine;
     if (t != null && t != old.tabLine) {
       _line = t;
       _open = true;
+      _autoClose();
     }
   }
 
   void _toggle() {
+    _close?.cancel();
     setState(() {
       if (_open) {
         _open = false;
         return;
       }
       final lines = _talk.lines;
-      final fresh = lines.where((l) => !_seen.contains(l)).toList();
+      final fresh = [if (!_seen.contains(_line)) _line, ...lines.where((l) => !_seen.contains(l))];
       _line = fresh.isNotEmpty ? fresh.first : lines[_turn++ % lines.length];
       _seen.add(_line);
       _open = true;
@@ -89,75 +124,41 @@ class _NpcHeaderState extends State<NpcHeader> {
   @override
   Widget build(BuildContext context) {
     final info = VillageRules.npc(widget.npc);
-    final line = widget.tabLine != null && _line == widget.tabLine ? widget.tabLine! : _line;
+    final line = _line;
     return Column(
       key: Key('npc_${widget.npc.name}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        CompositedTransformTarget(
-          link: _link,
-          child: OverlayPortal(
-            controller: _portal,
-            // 묶음 70 #298: 내려서 얼굴이 상태 표시줄 밑으로 가면 말풍선도 그 아래만 보이게
-            overlayChildBuilder: (context) => ClipRect(
-              clipper: _BelowStatusBar(MediaQuery.paddingOf(context).top + 6),
-              child: CompositedTransformFollower(
-              link: _link,
-              showWhenUnlinked: false,
-              // 이름표 아래, 얼굴 오른쪽에 (아래 내용 위로 겹쳐 뜸)
-              offset: const Offset(62, 30),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: !_open
-                    ? const SizedBox.shrink()
-                    : LayoutBuilder(builder: (context, _) {
-                        final w = MediaQuery.sizeOf(context).width;
-                        return GestureDetector(
-                          key: Key('npcBubble_${widget.npc.name}'),
-                          onTap: () => setState(() => _open = false),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: (w - 62 - 28).clamp(160.0, 440.0)),
-                            child: CodeBubble(
-                              side: BubbleSide.left,
-                              at: 16,
-                              padding: const EdgeInsets.fromLTRB(12, 8, 14, 9),
-                              child: KText(line,
-                                  key: Key('npcLine_${widget.npc.name}'),
-                                  style: const TextStyle(
-                                      color: Color(0xFF3A2614), fontSize: 13.5, height: 1.4, fontWeight: FontWeight.w600)),
-                            ),
-                          ),
-                        );
-                      }),
-              ),
-            )),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              GestureDetector(
-                key: Key('npcFace_${widget.npc.name}'),
-                onTap: _toggle,
-                child: Stack(clipBehavior: Clip.none, children: [
-                  NpcFace(npc: widget.npc, size: 58),
-                  if (!_open && _unseen)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        key: Key('npcDot_${widget.npc.name}'),
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE5484D),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1.5),
-                        ),
-                      ),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          GestureDetector(
+            key: Key('npcFace_${widget.npc.name}'),
+            onTap: _toggle,
+            child: Stack(clipBehavior: Clip.none, children: [
+              NpcFace(npc: widget.npc, size: 58),
+              if (!_open && _unseen)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    key: Key('npcDot_${widget.npc.name}'),
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5484D),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                ]),
-              ),
-              const SizedBox(width: 10),
+                  ),
+                ),
+            ]),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
               // 묶음 38 #214: 뒤 배경 그림 위에서도 또렷하게 어두운 반투명 띠
-              Flexible(
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
                 child: GestureDetector(
                   onTap: _toggle,
                   child: Container(
@@ -179,9 +180,35 @@ class _NpcHeaderState extends State<NpcHeader> {
                   ),
                 ),
               ),
+              // 이름표 아래 제자리에 (아래를 덮지 않음, 길면 밀어 냄)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                alignment: Alignment.topLeft,
+                child: !_open
+                    ? const SizedBox(width: double.infinity)
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: GestureDetector(
+                          key: Key('npcBubble_${widget.npc.name}'),
+                          onTap: () {
+                            _close?.cancel();
+                            setState(() => _open = false);
+                          },
+                          child: CodeBubble(
+                            side: BubbleSide.left,
+                            at: 10,
+                            padding: const EdgeInsets.fromLTRB(12, 6, 12, 7),
+                            child: KText(line,
+                                key: Key('npcLine_${widget.npc.name}'),
+                                style: const TextStyle(
+                                    color: Color(0xFF3A2614), fontSize: 13.5, height: 1.35, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ),
+              ),
             ]),
           ),
-        ),
+        ]),
         // 묶음 69 #286: 부탁 줄은 의뢰 게시판 「마을 사람 부탁」으로 옮김 · 건물 레벨업은 그대로
         Padding(
           padding: const EdgeInsets.only(left: 68),
@@ -222,14 +249,3 @@ class NpcFace extends StatelessWidget {
 }
 
 
-/// 상태 표시줄 아래만 (말풍선이 시계·배터리 위로 뜨지 않게)
-class _BelowStatusBar extends CustomClipper<Rect> {
-  const _BelowStatusBar(this.top);
-  final double top;
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTRB(0, top, size.width, size.height);
-
-  @override
-  bool shouldReclip(_BelowStatusBar old) => old.top != top;
-}

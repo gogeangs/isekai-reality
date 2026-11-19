@@ -326,6 +326,10 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: InnScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('npc_marta')), findsOneWidget);
+      // 묶음 71: 처음 만남은 닫힌 채로(점) — 얼굴을 누르면 첫 줄
+      expect(find.byKey(const Key('npcLine_marta')), findsNothing);
+      await tester.tap(find.byKey(const Key('npcFace_marta')));
+      await tester.pump();
       expect(
           tester.widget<KText>(find.byKey(const Key('npcLine_marta'))).data,
           VillageRules.npc(Npc.marta).first);

@@ -268,7 +268,17 @@ class ToolRepairPanel extends StatelessWidget {
     const tools = HarvestTool.values;
     return OrnatePanel(
       key: const Key('toolRepairPanel'),
-      child: Column(
+      // 묶음 71: 어두운 판 위에서도 또렷하게 (금빛 글자 · 못 누르면 흐린 글자)
+      child: TextButtonTheme(
+        data: TextButtonThemeData(
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith(
+                (s) => s.contains(WidgetState.disabled) ? AppColors.textMuted.withValues(alpha: 0.75) : AppColors.goldBright),
+            textStyle: const WidgetStatePropertyAll(TextStyle(fontFamily: 'Title', fontSize: 13.5, fontWeight: FontWeight.w700)),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('채집 도구', style: AppText.title(16)),
@@ -337,6 +347,7 @@ class ToolRepairPanel extends StatelessWidget {
             ]),
           ],
         ],
+      ),
       ),
     );
   }

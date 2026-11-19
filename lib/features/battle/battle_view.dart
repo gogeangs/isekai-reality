@@ -9,6 +9,7 @@ import '../../core/rules/rules.dart';
 import '../../data/sound/sfx.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
+import '../profile/profile_screen.dart' show PortraitFace;
 import '../../theme/ornaments.dart';
 import 'auto_use_window.dart';
 import 'season_painter.dart';
@@ -1350,35 +1351,20 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                   ? math.sin(hit * math.pi * 8) * (1 - hit) * 6
                   : 0.0;
 
-              // 부위 애니메이션 동작 (6가지)
-              final reduced =
-                  MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-              final guarding = !idle &&
-                  (widget.guard != null || widget.stance) &&
-                  t >= 0.45 &&
-                  t < 0.9;
-              final RigAction rigAction;
-              final double rigT;
-              if (cleared) {
-                rigAction = RigAction.victory;
-                rigT = 0;
-              } else if (widget.defeated) {
-                rigAction = RigAction.tired;
-                rigT = 0;
-              } else if (swinging) {
-                rigAction = RigAction.attack;
-                rigT = _seg(t, 0, 0.5);
-              } else if (guarding) {
-                rigAction = RigAction.guard;
-                rigT = _seg(t, 0.45, 0.9);
-              } else if (hurt > 0) {
-                rigAction = RigAction.hit;
-                rigT = _seg(t, 0.6, 0.85);
-              } else {
-                rigAction = RigAction.idle;
-                rigT = 0;
-              }
+              // 묶음 73 #261: 통 그림 (공격은 여섯 칸)
+              final heroPose = cleared
+                  ? HeroPose.victory
+                  : widget.defeated
+                      ? HeroPose.tired
+                      : swinging
+                          ? HeroPose.attack
+                          : HeroPose.idle;
+              final attackT = swinging ? _seg(t, 0, 0.5) : 0.0;
               final heroW = w * 0.5;
+              // 묶음 73 #260: 동료가 있으면 각성자가 앞(몬스터 쪽), 동료 둘은 뒷줄
+              final front = widget.allies.isEmpty ? 0.0 : w * 0.2;
+              // 각성자 머리가 동료보다 조금 위로 오게
+              final heroH = h * 0.6;
               final monSize = w * 0.38;
               final monLeft = w - monSize - w * 0.05 + shake - counter * w * 0.07;
               final monTop = h * 0.24;
@@ -1447,7 +1433,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     ),
                     // 발밑 그림자
                     Positioned(
-                      left: w * 0.06 + lunge * w * 0.08,
+                      left: front + w * 0.06 + lunge * w * 0.08,
                       bottom: 20,
                       child: _Shadow(width: heroW * 0.6),
                     ),
@@ -1522,7 +1508,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     if (widget.aura != null)
                       Positioned(
                         key: const Key('battleAura'),
-                        left: w * 0.02 + lunge * w * 0.08 - heroW * 0.1,
+                        left: front + w * 0.02 + lunge * w * 0.08 - heroW * 0.1,
                         bottom: 10,
                         width: heroW * 1.2,
                         height: h * 0.62,
@@ -1548,10 +1534,10 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     for (var i = widget.allies.length - 1; i >= 0; i--)
                       Positioned(
                         key: Key('sceneAlly_$i'),
-                        left: w * (0.0 + i * 0.12),
-                        bottom: 52 + i * 14.0,
-                        width: heroW * 0.85,
-                        height: h * 0.44,
+                        left: w * (-0.03 + i * 0.15),
+                        bottom: 46 + i * 16.0,
+                        width: heroW * 0.8,
+                        height: h * 0.36,
                         child: Opacity(
                           opacity: widget.allies[i].down ? 0.35 : 0.95,
                           child: Align(
@@ -1571,10 +1557,11 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       ),
                     // 각성자 (달려들고, 맞으면 붉게 번쩍)
                     Positioned(
-                      left: w * 0.02 + lunge * w * 0.08,
-                      bottom: 26 + lunge * 6,
+                      key: const Key('sceneHero'),
+                      left: front + w * 0.02 + lunge * w * 0.08,
+                      bottom: 22 + lunge * 6,
                       width: heroW,
-                      height: h * 0.52,
+                      height: heroH,
                       child: Transform.rotate(
                         angle: lunge * 0.06 - hurt * 0.05,
                         alignment: Alignment.bottomCenter,
@@ -1593,24 +1580,10 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                               alignment: Alignment.bottomCenter,
                               child: _tinted(
                                   widget.heroTint,
-                                  // #81 2단계: 부위 애니메이션 (그림이 없으면 지금 통 그림)
-                                  HeroRig(
-                                    look: widget.look,
-                                    weapon: widget.weapon,
-                                    reduced: reduced,
-                                    action: rigAction,
-                                    t: rigT,
-                                    breath: t,
-                                    fallback: HeroSprite(
-                                        look: widget.look,
-                                        pose: cleared
-                                            ? HeroPose.victory
-                                            : widget.defeated
-                                                ? HeroPose.tired
-                                                : swinging
-                                                    ? HeroPose.attack
-                                                    : HeroPose.idle),
-                                  )),
+                                  HeroSprite(
+                                      look: widget.look,
+                                      pose: heroPose,
+                                      t: attackT)),
                             ),
                           ),
                         ),
@@ -1619,7 +1592,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     // 묶음 57: 활로 쏘면 화살이 날아감
                     if (widget.weapon == WeaponKind.bow && swinging && !cleared)
                       Positioned(
-                        left: w * 0.12 + (hitX - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
+                        left: front + w * 0.12 + (hitX - front - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
                         top: hitY - 16,
                         width: 128,
                         height: 32,
@@ -1750,9 +1723,9 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     // 받은 피해: 각성자 머리 위
                     if (hurt > 0)
                       Positioned(
-                        left: w * 0.08,
+                        left: front + w * 0.08,
                         width: heroW * 0.6,
-                        bottom: 26 + h * 0.52 - 10 + _seg(t, 0.6, 0.95) * 30,
+                        bottom: 22 + heroH * 0.85 + _seg(t, 0.6, 0.95) * 30,
                         child: Opacity(
                           opacity: 1 - _seg(t, 0.8, 0.98),
                           child: Center(
@@ -1778,7 +1751,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     // 방어 태세: 각성자 둘레 푸른 방패
                     if (widget.stance && !cleared)
                       Positioned(
-                        left: w * 0.06 + lunge * w * 0.08,
+                        left: front + w * 0.06 + lunge * w * 0.08,
                         bottom: 30,
                         width: heroW * 0.8,
                         height: h * 0.5,
@@ -1798,7 +1771,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     if (widget.guarded && widget.warning != null && widget.guard == null)
                       Positioned(
                         key: const Key('fxGuard'),
-                        left: w * 0.06 + heroW * 0.42,
+                        left: front + w * 0.06 + heroW * 0.42,
                         bottom: 20,
                         width: heroW * 0.75,
                         height: heroW * 0.75,
@@ -1819,7 +1792,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     if (widget.guard != null && !idle) ...[
                       Positioned(
                         key: const Key('fxGuardHit'),
-                        left: w * 0.06 + heroW * 0.36,
+                        left: front + w * 0.06 + heroW * 0.36,
                         bottom: 14,
                         width: heroW * 0.9,
                         height: heroW * 0.9,
@@ -1837,7 +1810,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         ),
                       ),
                       Positioned(
-                        left: w * 0.1,
+                        left: front + w * 0.1,
                         width: heroW * 0.8,
                         top: h * 0.28 - _seg(t, 0.4, 0.9) * 20,
                         child: Opacity(
@@ -1853,7 +1826,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     if (widget.guardBroken && widget.guard == null && !idle)
                       Positioned(
                         key: const Key('fxGuardBreak'),
-                        left: w * 0.06 + heroW * 0.36,
+                        left: front + w * 0.06 + heroW * 0.36,
                         bottom: 14,
                         width: heroW * 0.9,
                         height: heroW * 0.9,
@@ -1916,7 +1889,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     // 회복: 초록 숫자
                     if (widget.healed > 0)
                       Positioned(
-                        left: w * 0.06,
+                        left: front + w * 0.06,
                         width: heroW * 0.7,
                         bottom: h * 0.5,
                         child: IgnorePointer(
@@ -2191,10 +2164,10 @@ class _SparkPainter extends CustomPainter {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar({required this.look, this.size = 46});
+  const _Avatar({required this.look});
 
   final HeroLook look;
-  final double size;
+  double get size => 46;
 
   @override
   Widget build(BuildContext context) {
@@ -2207,15 +2180,9 @@ class _Avatar extends StatelessWidget {
         border: Border.all(color: AppColors.goldBright, width: 1.6),
       ),
       child: ClipOval(
-        child: Image.asset(
-          look == HeroLook.female
-              ? 'assets/images/portrait_female.webp'
-              : 'assets/images/portrait_male.webp',
-          fit: BoxFit.cover,
-          alignment: const Alignment(0, -0.6),
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.person_rounded, color: AppColors.textMuted),
-        ),
+        child: PortraitFace(
+            look: look,
+            fallback: const Icon(Icons.person_rounded, color: AppColors.textMuted)),
       ),
     );
   }
@@ -2414,29 +2381,65 @@ String backgroundFallback(String? bg) => switch (bg) {
 /// tired: HP 0으로 싸울 수 없을 때 (11-10)
 enum HeroPose { idle, attack, victory, tired }
 
-/// 각성자 SD 그림 (공격·승리 자세). 그림이 없으면 서 있는 그림이나 초상화로 대신한다.
-/// 파일 이름: hero_attack_male.png, hero_victory_female.png ...
+/// 각성자 그림 (묶음 73 #261: 맨손 새 주인공).
+/// 서기·승리·지침은 768×1024 한 장, 공격은 640×800 여섯 칸을 [t](0~1)에 따라 넘긴다.
+/// 두 그림 모두 발끝이 아래에서 20px 위라서, 768×1024 칸 바닥에 맞춰 그린다.
 class HeroSprite extends StatelessWidget {
-  const HeroSprite({super.key, required this.look, required this.pose});
+  const HeroSprite({super.key, required this.look, required this.pose, this.t = 0});
 
   final HeroLook look;
   final HeroPose pose;
 
+  /// 공격 동작 진행 (0~1). 공격이 아니면 쓰지 않는다
+  final double t;
+
+  static const attackFrames = 6;
+
+  /// 공격 [t] 에서 보여 줄 칸 (0~5)
+  static int frameAt(double t) =>
+      (t.clamp(0.0, 1.0) * attackFrames).floor().clamp(0, attackFrames - 1);
+
+  String get _asset => 'assets/images/hero_${pose.name}_${look.name}.webp';
+
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/hero_${pose.name}_${look.name}.webp',
-      fit: BoxFit.contain,
-      semanticLabel: '각성자',
-      errorBuilder: (_, __, ___) => look == HeroLook.male
-          ? Image.asset('assets/images/hero_chibi_male.webp',
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded,
-                  size: 140, color: AppColors.textMuted))
-          : const Padding(
-              padding: EdgeInsets.only(top: 60),
-              child: _Avatar(look: HeroLook.female, size: 120),
+    Widget fallback(BuildContext _, Object __, StackTrace? ___) =>
+        const Icon(Icons.person_rounded, size: 140, color: AppColors.textMuted);
+    if (pose != HeroPose.attack) {
+      return Image.asset(_asset,
+          fit: BoxFit.contain, semanticLabel: '각성자', errorBuilder: fallback);
+    }
+    final frame = frameAt(t);
+    return AspectRatio(
+      aspectRatio: 768 / 1024,
+      child: LayoutBuilder(builder: (context, box) {
+        final fw = box.maxWidth * 640 / 768;
+        final fh = box.maxHeight * 800 / 1024;
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            key: Key('heroFrame_$frame'),
+            width: fw,
+            height: fh,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.centerLeft,
+                minWidth: fw * attackFrames,
+                maxWidth: fw * attackFrames,
+                child: Transform.translate(
+                  offset: Offset(-frame * fw, 0),
+                  child: Image.asset(_asset,
+                      width: fw * attackFrames,
+                      height: fh,
+                      fit: BoxFit.fill,
+                      semanticLabel: '각성자',
+                      errorBuilder: fallback),
+                ),
+              ),
             ),
+          ),
+        );
+      }),
     );
   }
 }

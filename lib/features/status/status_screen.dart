@@ -22,6 +22,11 @@ import '../smithy/set_aura.dart';
 import '../battle/element_view.dart';
 import '../bulssi/bulssi_mood.dart';
 
+/// 묶음 73 #261: 서 있는 주인공 (지치면 지친 모습)
+String heroBaseAsset(HeroLook look, {bool tired = false}) =>
+    'assets/images/hero_${tired ? 'stand_tired' : 'base'}_'
+    '${look == HeroLook.female ? 'female' : 'male'}.webp';
+
 /// 메인 상태창 (목업 확정본 구도).
 ///
 /// 위: 각성자 그림 + 월계관 레벨 배지 / 가운데: 경험치·던전 게이지·HP·정령 MP·스탯 /
@@ -366,8 +371,7 @@ class _HeroArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hero = 'assets/images/hero_stand_${tired ? 'tired_' : ''}'
-        '${look == HeroLook.female ? 'female' : 'male'}.webp';
+    final hero = heroBaseAsset(look, tired: tired);
     return LayoutBuilder(builder: (context, box) {
       final h = box.maxHeight;
       // 마법진 가운데 (무대 그림의 아래쪽 1/4쯤)

@@ -71,10 +71,8 @@ class ProfileCard extends StatelessWidget {
             color: const Color(0xFF1A1D4A),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Image.asset(portraitAsset(look),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.person_rounded, size: 56)),
+          child: PortraitFace(
+              look: look, fallback: const Icon(Icons.person_rounded, size: 56)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -175,6 +173,49 @@ String portraitAsset(HeroLook look) => look == HeroLook.female
     ? 'assets/images/portrait_female.webp'
     : 'assets/images/portrait_male.webp';
 
+/// 묶음 73 #261: 동그라미 안에 얼굴이 가운데 오게 (머리가 위쪽 절반, 손은 잘려도 됨).
+/// 그림은 768×768, 얼굴 가운데: 남 (400, 255) · 여 (445, 315)
+class PortraitFace extends StatelessWidget {
+  const PortraitFace({super.key, required this.look, this.fallback});
+
+  final HeroLook look;
+  final Widget? fallback;
+
+  static const zoom = 1.7;
+
+  static Offset faceOf(HeroLook look) =>
+      look == HeroLook.female ? const Offset(445 / 768, 315 / 768) : const Offset(400 / 768, 255 / 768);
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
+        final s = box.biggest.shortestSide.isFinite ? box.biggest.shortestSide : 48.0;
+        final big = s * zoom;
+        final f = faceOf(look);
+        // 얼굴을 동그라미 가운데에서 조금 위(머리가 위쪽 절반)로, 그림 밖이 보이지 않게
+        final left = (s / 2 - f.dx * big).clamp(s - big, 0.0);
+        final top = (s * 0.42 - f.dy * big).clamp(s - big, 0.0);
+        return ClipRect(
+          child: SizedBox(
+            width: s,
+            height: s,
+            child: Stack(clipBehavior: Clip.hardEdge, children: [
+              Positioned(
+                key: const Key('portraitFace'),
+                left: left,
+                top: top,
+                width: big,
+                height: big,
+                child: Image.asset(portraitAsset(look),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        fallback ?? const Icon(Icons.person_rounded, color: AppColors.goldBright)),
+              ),
+            ]),
+          ),
+        );
+      });
+}
+
 /// 왼쪽 위 프로필 버튼: 얼굴 동그라미 + Lv.
 class ProfileButton extends StatelessWidget {
   const ProfileButton(
@@ -209,11 +250,7 @@ class ProfileButton extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: Image.asset(portraitAsset(look),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.person_rounded,
-                      color: AppColors.goldBright)),
+              child: PortraitFace(look: look),
             ),
             Positioned(
               bottom: 0,

@@ -4,6 +4,7 @@ import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../../theme/top_notice.dart';
 import '../alchemy/convert_panel.dart' show LockedJobPanel;
 import '../battle/element_view.dart';
 import '../town/material_view.dart';
@@ -35,6 +36,15 @@ class BossGearTab extends StatelessWidget {
             ),
           ]),
         ),
+        // 묶음 75 #322: 세트 판 위 작은 줄 (대장장이가 아니면)
+        if (!c.bossSmith)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: KText('대장장이가 만들 수 있어요',
+                key: Key('bossSmithLine'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ),
         const SizedBox(height: 10),
         for (final s in BossGearRules.sets) ...[
           c.bossSetOpen(s.id)
@@ -71,7 +81,7 @@ class BossGearTab extends StatelessWidget {
         ],
         const LockedJobPanel(
           title: '대장장이',
-          lines: ['보스 장비가 덜 실패해요', '금화가 덜 들어요'],
+          lines: ['보스 장비를 만들 수 있어요'],
         ),
       ],
     );
@@ -156,6 +166,9 @@ class _SetCard extends StatelessWidget {
     );
   }
 }
+
+/// 묶음 75 #322: 대장장이가 아닌 사람이 보스 장비 만들기를 눌렀을 때
+const String bossSmithOnly = '보스 장비는 대장장이만 만들 수 있어요 · 주 직업이나 보조 직업으로 대장장이를 두면 돼요';
 
 /// 「잿빛 왕의 유품」 (묶음 34): 만들기 버튼 없이 얻은 부위만 밝게
 class _RelicCard extends StatelessWidget {
@@ -364,12 +377,22 @@ class _PartRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        TextButton(
-          key: Key('bossCraft_${base.name}'),
-          style: gameButtonStyle(gold: check == CraftCheck.ok),
-          onPressed: check == CraftCheck.ok ? () => _craft(context) : null,
-          child: Text(has ? '또 만들기' : '만들기'),
-        ),
+        // 묶음 75 #322: 대장장이가 아니면 흐린 자물쇠 「대장장이만」 → 누르면 안내
+        if (check == CraftCheck.notSmith)
+          TextButton.icon(
+            key: Key('bossCraftLocked_${base.name}'),
+            style: gameButtonStyle(gold: false),
+            onPressed: () => showTopNotice(context, bossSmithOnly, icon: Icons.lock_rounded),
+            icon: const Icon(Icons.lock_rounded, size: 14, color: AppColors.textMuted),
+            label: const Text('대장장이만', style: TextStyle(color: AppColors.textMuted)),
+          )
+        else
+          TextButton(
+            key: Key('bossCraft_${base.name}'),
+            style: gameButtonStyle(gold: check == CraftCheck.ok),
+            onPressed: check == CraftCheck.ok ? () => _craft(context) : null,
+            child: Text(has ? '또 만들기' : '만들기'),
+          ),
       ]),
     );
   }

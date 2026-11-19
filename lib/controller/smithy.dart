@@ -148,6 +148,9 @@ extension SmithyOps on AppController {
   /// 대장장이 고유 기술과는 따로라 지금은 끔
   bool get blacksmith => false;
 
+  /// 묶음 75 #322: 보스 장비를 만들 수 있는지 — 대장장이가 주 직업이거나 보조 직업일 때만 (한 곳에서 판단)
+  bool get bossSmith => mainJob == JobId.blacksmith || subJobs.contains(JobId.blacksmith);
+
   /// 방금 강화 실패가 무사했는지 (대장장이·집중 단조)
   bool get lastEnhanceSafe => _lastEnhanceSafe;
 
@@ -169,6 +172,7 @@ extension SmithyOps on AppController {
     if (set == null || !bossSetOpen(set) || set == BossSet.ash) {
       return CraftCheck.materials;
     }
+    if (!bossSmith) return CraftCheck.notSmith;
     final c = BossGearRules.partCost(base, blacksmith: blacksmith);
     final p = player;
     for (final e in c.mats.entries) {

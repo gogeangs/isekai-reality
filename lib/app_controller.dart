@@ -1261,7 +1261,8 @@ class AppController extends ChangeNotifier {
 enum SmithResult { ok, failed, cannot }
 
 /// 대장간에서 만들거나 강화할 수 있는지
-enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull }
+/// 묶음 75 #322: [notSmith] 보스 장비는 대장장이(주 · 보조 직업)만 만듦
+enum CraftCheck { ok, materials, manaStones, gold, maxed, bagFull, notSmith }
 
 /// 보스 장비 만들기 결과 (실패면 item 이 null 이고 line 이 대장장이의 말)
 class BossCraftResult {

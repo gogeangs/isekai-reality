@@ -132,11 +132,15 @@ void main() {
   });
 
   group('#82 보스 장비 만들기 (앱)', () {
-    Future<AppController> start(double roll, {bool metWarden = true}) async {
+    Future<AppController> start(double roll, {bool metWarden = true, bool smith = true}) async {
       final c = AppController(
         area: KoreaArea.area,
         store: InMemoryRecordStore(
           profile: const PlayerProfile(name: '하루'),
+          // 묶음 75 #322: 보스 장비는 대장장이만
+          json: {
+            if (smith) 'jobs': {'main': 'blacksmith'},
+          },
           history: [
             DailyRecord(
               date: DateTime(2026, 11, 10),
@@ -180,6 +184,13 @@ void main() {
       final c = await start(0.9, metWarden: false);
       expect(c.bossSetOpen(BossSet.warden), isFalse);
       expect(c.canCraftBoss(EquipBase.wardenWeapon), isNot(CraftCheck.ok));
+    });
+
+    test('묶음 75 #322: 대장장이가 아니면 만들 수 없음', () async {
+      final c = await start(0.9, smith: false);
+      expect(c.bossSmith, isFalse);
+      expect(c.canCraftBoss(EquipBase.wardenWeapon), CraftCheck.notSmith);
+      expect(await c.craftBoss(EquipBase.wardenWeapon), isNull);
     });
 
     test('성공: 조각·전용 재료·금화를 쓰고, 보스 속성이 입혀진 장비가 나온다', () async {

@@ -485,7 +485,8 @@ class JobRules {
 
   static const List<JobInfo> jobs = [
     JobInfo(JobId.blacksmith, '대장장이', JobKind.basic, [Mastery.smith],
-        '내가 만들거나 고친 장비가 천천히 닳아요',
+        // 묶음 75 #322: 보스 장비는 대장장이만
+        '내가 만들거나 고친 장비가 천천히 닳아요 · 보스 장비를 만들 수 있어요',
         [JobSkill.hotHammer, JobSkill.anvilDrop, JobSkill.focusForge, JobSkill.masterTouch, JobSkill.quickRepair, JobSkill.masterBlade, JobSkill.runeCarve]),
     JobInfo(JobId.herbalist, '채집가', JobKind.basic, [Mastery.harvest],
         '채집 자리가 더 멀리서 보여요',

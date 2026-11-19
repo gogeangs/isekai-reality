@@ -287,6 +287,7 @@ namespace Arca.Battle
                 float tickStart = Time.time;
                 while (Transitioning) yield return null;
                 if (CurrentPhase != Phase.Fight) break;
+                int monsterAtStart = Rules.monsterIndex;
 
                 // 동료 자동 공격 (주인공과 함께, 조금씩 늦게)
                 for (int i = 0; i < allies.Length; i++)
@@ -299,8 +300,8 @@ namespace Arca.Battle
                 while (Transitioning) yield return null;
                 if (CurrentPhase != Phase.Fight) break;
 
-                // 몬스터가 남아 있으면 반격
-                if (Rules.monster.Alive) yield return Counter();
+                // 몬스터가 남아 있으면 반격 (이번 틱에 새로 나온 몬스터는 다음 틱부터)
+                if (Rules.monster.Alive && Rules.monsterIndex == monsterAtStart) yield return Counter();
                 if (!Rules.hero.Alive) { yield return Defeat(); break; }
 
                 Rules.EndTick();

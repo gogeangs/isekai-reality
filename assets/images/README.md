@@ -488,3 +488,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | spirit_water_farewell | 물 정령 이별 얼굴(눈물 미소), 512, 떠다니는 거품·반짝이·후광 제거 |
 | 2026-11-19 | monster_dullahan, monster_werewolf, monster_deathKnight, monster_basilisk | Lv.50 지도 몬스터 4종, 512 (2×2 한 장에서 잘라냄) |
 | 2026-11-19 | mat_gortRoot, mat_silvaFern, mat_mireaGrass, mat_zephiraLeaf, mat_noctiGrass, mat_mandragora | 약초 재료 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-19 | village_market_2 | 거래소 ★2(옆 노점 추가), 512, 기본 거래소와 폭·바닥선 맞춤 |

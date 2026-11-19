@@ -501,3 +501,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | alchemy_still, alchemy_altar | 연금술 증류기(가공) · 변환 제단(변환), 768, 같은 비율·바닥선 |
 | 2026-11-19 | fx_splash | 재료가 빠질 때 튀는 물보라(흰·회색, 게임이 색을 입힘), 512, 뿌연 흰 번짐 제거 |
 | 2026-11-19 | alchemy_brew | 가마솥 입구에 겹치는 끓는 물(흰·회색, 게임이 색을 입힘)+김, 768, alchemy_cauldron과 같은 캔버스·위치 |
+| 2026-11-19 | pet_golem_battle, pet_mimic_battle, pet_owl_battle, pet_toad_battle | 펫 전투용(오른쪽을 봄) 4종, 512, 바닥선 496 |

@@ -41,8 +41,9 @@ class HatcheryPanel extends StatelessWidget {
           aspectRatio: 1024 / 640,
           child: LayoutBuilder(builder: (context, box) {
             final h = box.maxHeight;
-            final floor = h * 0.88;
-            final band = h - floor;
+            // 글 칸은 적어도 26 (아주 작은 판에서도 글자가 잘리지 않게)
+            final band = math.max(h * 0.12, 26.0);
+            final floor = h - band;
             return Stack(children: [
               Positioned.fill(
                 child: Image.asset(bg,
@@ -161,11 +162,11 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
     return GestureDetector(
       onTap: () => ready ? showHatchSheet(context, c, e) : showBagEntry(context, c, EggEntry(e)),
       child: SizedBox(
-        width: 126,
+        width: 150,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
             width: 126,
-            height: 116,
+            height: _Nest.pic,
             child: AnimatedBuilder(
               animation: _a,
               builder: (context, _) {

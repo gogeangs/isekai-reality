@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import '../../app_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import '../tutorial/feature_tour.dart' show HoleSpotlight, rectOfKey, tourBridge, GoldButtonLite, FeatureTourLayer;
 
@@ -271,14 +272,36 @@ class SpiritLineAlert extends StatelessWidget {
 
   final String spiritName;
   final String line;
+
+  /// (키, 글, 누르면). 「나중에」는 아래 작은 글자, 나머지는 금빛 버튼
   final List<(Key, String, VoidCallback)> actions;
 
+  // 묶음 71: 글상자 대신 정령 얼굴 + 말풍선(꼬리가 얼굴 쪽, #288) + 아래 버튼
   @override
-  Widget build(BuildContext context) => GameAlert(
-        title: Text(spiritName),
-        content: KText(line, style: const TextStyle(color: AppColors.text, height: 1.45)),
-        actions: [
-          for (final (k, label, tap) in actions) TextButton(key: k, onPressed: tap, child: Text(label)),
-        ],
+  Widget build(BuildContext context) => Material(
+        type: MaterialType.transparency,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                BulssiBubble(key: const Key('spiritLine'), line: line, size: 72),
+                const SizedBox(height: 18),
+                for (final (k, label, tap) in actions)
+                  if (label != '나중에')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: TextButton(key: k, style: gameButtonStyle(gold: true), onPressed: tap, child: Text(label)),
+                    ),
+                for (final (k, label, tap) in actions)
+                  if (label == '나중에')
+                    Center(
+                      child: TextButton(key: k, style: smallButtonStyle(), onPressed: tap, child: Text(label)),
+                    ),
+              ]),
+            ),
+          ),
+        ),
       );
 }

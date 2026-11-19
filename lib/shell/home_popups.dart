@@ -3,7 +3,6 @@ part of '../app.dart';
 /// 홈 화면 위에 차례로 뜨는 창·띠 (묶음 21: app.dart 에서 나눔).
 /// 순서는 #131: 레벨업 → 칭호 → 원정 → 편지(그 밖). 튜토리얼 중에는 모아 둔다.
 extension _ShellPopups on _HomeShellState {
-
   /// 확인하지 않은 레벨업이 있으면 화면이 그려진 뒤 연출을 띄운다
   void _maybeShowLevelUp() {
     final pending = widget.controller.pendingLevelUp;
@@ -56,6 +55,7 @@ extension _ShellPopups on _HomeShellState {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      barrierColor: const Color(0xD9000000),
       builder: (d) => SpiritLineAlert(
         key: const Key('friendScene'),
         spiritName: c.firstSpiritName,
@@ -79,25 +79,46 @@ extension _ShellPopups on _HomeShellState {
     final yes = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (d) => GameAlert(
-        key: const Key('keepRecord'),
-        title: Text('${c.firstSpiritName} · 기록 지키기'),
-        content: KText(
-            line ?? (level >= 8
-                ? '아직 우리 기록이 이 휴대폰에만 있어. 휴대폰을 바꾸거나 앱을 지우면 사라져. 지금 지켜 둘래?'
-                : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.'),
-            style: const TextStyle(color: AppColors.text, height: 1.45)),
-        actions: [
-          TextButton(
-              key: const Key('keepRecordLogin'),
-              onPressed: () => Navigator.pop(d, true),
-              child: const Text('로그인')),
-          TextButton(
-              key: const Key('keepRecordLater'),
-              onPressed: () => Navigator.pop(d, false),
-              child: const Text('나중에')),
-        ],
-      ),
+      barrierColor: line != null ? const Color(0xD9000000) : null,
+      builder: (d) => line != null
+          // 묶음 71: Lv.8 친구 장면에 이어서는 정령 얼굴 + 말풍선
+          ? SpiritLineAlert(
+              key: const Key('keepRecord'),
+              spiritName: c.firstSpiritName,
+              line: line,
+              actions: [
+                (
+                  const Key('keepRecordLogin'),
+                  '로그인',
+                  () => Navigator.pop(d, true)
+                ),
+                (
+                  const Key('keepRecordLater'),
+                  '나중에',
+                  () => Navigator.pop(d, false)
+                ),
+              ],
+            )
+          : GameAlert(
+              key: const Key('keepRecord'),
+              title: Text('${c.firstSpiritName} · 기록 지키기'),
+              content: KText(
+                  line ??
+                      (level >= 8
+                          ? '아직 우리 기록이 이 휴대폰에만 있어. 휴대폰을 바꾸거나 앱을 지우면 사라져. 지금 지켜 둘래?'
+                          : '여기까지 잘 왔어! 로그인해 두면 휴대폰을 바꾸거나 앱을 다시 깔아도 이 기록 그대로 이어서 할 수 있어.'),
+                  style: const TextStyle(color: AppColors.text, height: 1.45)),
+              actions: [
+                TextButton(
+                    key: const Key('keepRecordLogin'),
+                    onPressed: () => Navigator.pop(d, true),
+                    child: const Text('로그인')),
+                TextButton(
+                    key: const Key('keepRecordLater'),
+                    onPressed: () => Navigator.pop(d, false),
+                    child: const Text('나중에')),
+              ],
+            ),
     );
     if (yes != true || !mounted) return;
     final p = await showModalBottomSheet<LoginProvider>(
@@ -106,12 +127,16 @@ extension _ShellPopups on _HomeShellState {
       builder: (s) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (final p in c.loginProviders) ...[
-              LoginButton(provider: p, onPressed: () => Navigator.pop(s, p)),
-              const SizedBox(height: 8),
-            ],
-          ]),
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final p in c.loginProviders) ...[
+                  LoginButton(
+                      provider: p, onPressed: () => Navigator.pop(s, p)),
+                  const SizedBox(height: 8),
+                ],
+              ]),
         ),
       ),
     );
@@ -252,7 +277,10 @@ extension _ShellPopups on _HomeShellState {
   /// 묶음 34: 결말을 보다 앱을 껐으면 다음에 켤 때 다시 · 결말 뒤 Lv.21이 되면 한 줄
   void _maybeShowAct2() {
     final c = widget.controller;
-    if (_popupBusy || c.pendingLevelUp != null || c.holdNotices || c.inTutorial) {
+    if (_popupBusy ||
+        c.pendingLevelUp != null ||
+        c.holdNotices ||
+        c.inTutorial) {
       return;
     }
     if (c.endingPending) {
@@ -299,7 +327,8 @@ extension _ShellPopups on _HomeShellState {
         if ((act == 4 ? c.pendingAct4Scene : c.pendingAct5Scene)?.id == a4.id) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
               fullscreenDialog: true,
-              builder: (_) => Act4SceneScreen(controller: c, scene: a4, act: act)));
+              builder: (_) =>
+                  Act4SceneScreen(controller: c, scene: a4, act: act)));
         }
         _endingShowing = false;
         _kick();
@@ -314,7 +343,9 @@ extension _ShellPopups on _HomeShellState {
     // 묶음 61: 가짜 위치 띠 (한 번)
     if (c.takeMockBanner()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showTopNoticeQueued(context, FairOps.mockLine, icon: Icons.location_off_rounded);
+        if (mounted)
+          showTopNoticeQueued(context, FairOps.mockLine,
+              icon: Icons.location_off_rounded);
       });
     }
     final find = c.takeJobFind();
@@ -343,7 +374,8 @@ extension _ShellPopups on _HomeShellState {
     final trained = c.takePetTrainedNotice();
     if (trained != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showTopNoticeQueued(context, '${josa(trained, '이/가')} 훈련을 마쳤어요');
+        if (mounted)
+          showTopNoticeQueued(context, '${josa(trained, '이/가')} 훈련을 마쳤어요');
       });
     }
     // 묶음 45 #231·#232: 마을 사람 작은 부탁 · 특별한 부탁 다음 단계 (위쪽 띠 한 번)
@@ -353,8 +385,8 @@ extension _ShellPopups on _HomeShellState {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (stage != null) {
-          showTopNoticeQueued(context,
-              '${VillageRules.npc(stage.$1).name} · 「${stage.$2}」');
+          showTopNoticeQueued(
+              context, '${VillageRules.npc(stage.$1).name} · 「${stage.$2}」');
         }
         if (small != null) {
           showTopNoticeQueued(context,
@@ -366,9 +398,11 @@ extension _ShellPopups on _HomeShellState {
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showTopNoticeQueued(context, c.farewellDone
-              ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
-              : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
+        showTopNoticeQueued(
+            context,
+            c.farewellDone
+                ? '펫 알을 주웠어요! 가방에서 품을 수 있어요.'
+                : '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
       });
     }
     if (letter == null && ready == null) return;
@@ -387,7 +421,8 @@ extension _ShellPopups on _HomeShellState {
               Image.asset('assets/images/letter_spirit.webp',
                   height: 120,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-              KText('${letter.body}\n\n함께 온 선물: ${letter.giftLabel}\n'
+              KText(
+                  '${letter.body}\n\n함께 온 선물: ${letter.giftLabel}\n'
                   '선물은 우편함에서 받아요. 편지는 우편함 「편지」에 남아요.',
                   style: const TextStyle(color: AppColors.text, height: 1.45)),
             ]),
@@ -417,7 +452,8 @@ extension _ShellPopups on _HomeShellState {
   /// 묶음 57: 초대 링크로 열렸으면 「파티에 들어갈까요?」
   void _maybeShowInvite() {
     final c = widget.controller;
-    if (!_popupBusy && !c.inTutorial && c.pendingGuildInvite != null) return _guildInvite();
+    if (!_popupBusy && !c.inTutorial && c.pendingGuildInvite != null)
+      return _guildInvite();
     if (_popupBusy || c.inTutorial || c.pendingInvite == null) return;
     final code = c.takeInvite()!;
     _walkShowing = true;
@@ -434,7 +470,9 @@ extension _ShellPopups on _HomeShellState {
                   : '초대 코드 $code 파티에 들어가려면 로그인이 필요해요. 주점 파티 탭으로 갈게요.',
               style: const TextStyle(color: AppColors.text)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('나중에')),
+            TextButton(
+                onPressed: () => Navigator.pop(d, false),
+                child: const Text('나중에')),
             TextButton(
                 key: const Key('inviteJoinYes'),
                 onPressed: () => Navigator.pop(d, true),
@@ -443,12 +481,16 @@ extension _ShellPopups on _HomeShellState {
         ),
       );
       if (yes == true && mounted) {
-        if (c.cloud.signedIn && c.party == null && await c.joinParty(code) && mounted) {
+        if (c.cloud.signedIn &&
+            c.party == null &&
+            await c.joinParty(code) &&
+            mounted) {
           showTopNoticeQueued(context, '파티에 들어갔어요!');
         }
         if (mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => TavernScreen(controller: c, partyTab: true, inviteCode: code)));
+              builder: (_) => TavernScreen(
+                  controller: c, partyTab: true, inviteCode: code)));
         }
       }
       _walkShowing = false;
@@ -477,7 +519,9 @@ extension _ShellPopups on _HomeShellState {
                       : '초대 코드 $code 길드에 들어가려면 로그인이 필요해요. 길드 회관으로 갈게요.',
               style: const TextStyle(color: AppColors.text)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: Text(open ? '나중에' : '확인')),
+            TextButton(
+                onPressed: () => Navigator.pop(d, false),
+                child: Text(open ? '나중에' : '확인')),
             if (open)
               TextButton(
                   key: const Key('guildInviteYes'),
@@ -487,12 +531,16 @@ extension _ShellPopups on _HomeShellState {
         ),
       );
       if (yes == true && mounted) {
-        if (c.cloud.signedIn && !(c.guild?.inGuild ?? false) && await c.joinGuild(code: code) && mounted) {
+        if (c.cloud.signedIn &&
+            !(c.guild?.inGuild ?? false) &&
+            await c.joinGuild(code: code) &&
+            mounted) {
           showTopNoticeQueued(context, '길드에 들어갔어요!');
         }
         if (mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => GuildHallScreen(controller: c, inviteCode: code)));
+              builder: (_) =>
+                  GuildHallScreen(controller: c, inviteCode: code)));
         }
       }
       _walkShowing = false;
@@ -549,7 +597,8 @@ extension _ShellPopups on _HomeShellState {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         c.markPetCodexAnnounced();
-        showTopNoticeQueued(context, '새 도감이 열렸어요', icon: Icons.menu_book_rounded,
+        showTopNoticeQueued(context, '새 도감이 열렸어요',
+            icon: Icons.menu_book_rounded,
             onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
       });
     }
@@ -562,7 +611,8 @@ extension _ShellPopups on _HomeShellState {
         await c.markCodexAnnounced();
         for (final n in news) {
           if (!mounted) break;
-          showTopNoticeQueued(context, '도감에 새로 올랐어요 · $n', icon: Icons.menu_book_rounded,
+          showTopNoticeQueued(context, '도감에 새로 올랐어요 · $n',
+              icon: Icons.menu_book_rounded,
               onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
         }
         _codexNoticing = false;
@@ -574,8 +624,7 @@ extension _ShellPopups on _HomeShellState {
       _shownMerchant = merchant;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        showTopNoticeQueued(
-            context, '떠돌이 상인이 왔어요 · ${c.merchantMinutesLeft}분',
+        showTopNoticeQueued(context, '떠돌이 상인이 왔어요 · ${c.merchantMinutesLeft}분',
             icon: Icons.storefront_rounded, onTap: () {
           final at = c.merchantPoint;
           if (at == null) return;
@@ -596,8 +645,6 @@ extension _ShellPopups on _HomeShellState {
           icon: Icons.favorite_rounded);
     });
   }
-
-
 
   /// 칭호를 새로 얻으면 화면 가운데 축하 연출 (11-11 #85).
   /// 전투 중에는 전투 결과를 닫은 뒤에, 여러 개면 하나씩 차례로.
@@ -676,7 +723,8 @@ extension _ShellPopups on _HomeShellState {
       case NotifyTarget.expedition:
         _set(() => _openTab(_HomeShellState.tMap));
         await c.refreshVitals();
-        if (mounted && c.finishedExpeditions.isNotEmpty) await _showResultsNow();
+        if (mounted && c.finishedExpeditions.isNotEmpty)
+          await _showResultsNow();
       case NotifyTarget.status:
         _set(() => _openTab(_HomeShellState.tStatus));
       case NotifyTarget.bag:

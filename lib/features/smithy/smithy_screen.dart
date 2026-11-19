@@ -563,7 +563,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
       // 맨 위 금빛 칸: 입은 장비 모두 수리
       OrnatePanel(
         key: const Key('repairAllPanel'),
-        highlight: true,
+        // 묶음 71: 뒤에 남던 베이지색 강조 상자는 뺌
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

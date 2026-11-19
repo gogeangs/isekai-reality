@@ -132,6 +132,9 @@ extension VillageOps on AppController {
   /// 그 밖엔 「그 막의 평소 대사」와 [guide](기본 안내)를 번갈아
   String takeNpcLine(Npc n, {String? guide, String? situation}) => npcTalk(n, guide: guide, situation: situation).first;
 
+  /// 그 마을 사람을 만난 적이 있는지
+  bool npcMet(Npc n) => _village.contains('met:${n.name}');
+
   /// 묶음 69 #286 #289: 건물에 들어갈 때 마을 사람 대사
   /// - auto: 저절로 열리는 한 줄 (처음 만남 · 지금 상황 · 새 부탁 → 「게시판에 부탁 하나 붙여 뒀어!」 · 한 번뿐인 말)
   /// - lines: 얼굴을 누를 때마다 차례로 (기본 안내 · 그 막 대사 · 친해지기 대사)

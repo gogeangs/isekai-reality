@@ -317,15 +317,24 @@ class _SpawnSheetState extends State<SpawnSheet> {
                               style: const TextStyle(
                                   color: AppColors.goldBright, fontSize: 12)),
                         ),
+                      // 묶음 70 #294: 나는 펫
+                      if (chosenPet != null && chosenPet.info.flies)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: KText('하늘을 날아 곧장 가요',
+                              key: Key('flyLine'),
+                              style: TextStyle(color: Color(0xFF9BD7FF), fontSize: 12)),
+                        ),
                     ],
                     const SizedBox(height: 8),
                     if (plan.check != ExpeditionCheck.needsLocation) ...[
                       _InfoRow(
                           label: '거리',
+                          wing: chosenPet != null && chosenPet.info.flies,
                           value: plan.distanceM >= 1000
                               ? '${(plan.distanceM / 1000).toStringAsFixed(1)}km'
                               : '${plan.distanceM.round()}m'
-                                  '${!plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ' (날아서)'}'),
+                                  '${chosenPet != null && chosenPet.info.flies ? '' : !plan.routeReady ? ' (길 찾는 중…)' : plan.followsRoads ? ' (길 따라)' : ' (날아서)'}'),
                       _InfoRow(
                           label: '기력',
                           value: '${plan.mpCost} 사용 (지금 ${c.mp} / '
@@ -415,10 +424,13 @@ List<Widget> _manaButtons(AppController c, int need) {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.wing = false});
 
   final String label;
   final String value;
+
+  /// 묶음 70 #294: 나는 펫이면 거리 옆에 작은 날개
+  final bool wing;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -431,8 +443,17 @@ class _InfoRow extends StatelessWidget {
                     const TextStyle(color: AppColors.textMuted, fontSize: 14)),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(color: AppColors.text, fontSize: 14)),
+            child: Row(children: [
+              Flexible(
+                child: Text(value,
+                    style: const TextStyle(color: AppColors.text, fontSize: 14)),
+              ),
+              if (wing) ...[
+                const SizedBox(width: 4),
+                Image.asset('assets/images/flag_emb_wing.webp',
+                    key: const Key('flyWing'), width: 18, height: 18),
+              ],
+            ]),
           ),
         ]),
       );

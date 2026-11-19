@@ -24,6 +24,7 @@ class Expedition {
     this.petName,
     this.baseReward = const {},
     this.adUsed = const {},
+    this.sky = false,
     bool? back,
   }) : back = back ?? cleared != null;
 
@@ -81,8 +82,12 @@ class Expedition {
         petName: petName,
         baseReward: baseReward,
         adUsed: adUsed ?? this.adUsed,
+        sky: sky,
         back: back ?? this.back,
       );
+
+  /// 묶음 70 #294: 하늘을 나는 펫이 곧장 날아가는 원정 (지도에 살짝 굽은 하늘 점선)
+  final bool sky;
 
   /// 원정을 간 펫 (null 이면 정령)
   final String? petUid;
@@ -128,12 +133,31 @@ class Expedition {
 
   /// 가는 길 점들 (출발 → 몬스터). 끝은 언제나 몬스터 자리에 정확히 닿는다 (11-11 #90)
   List<(double, double)> get path {
+    if (sky) return skyArc((fromLat ?? lat, fromLng ?? lng), (lat, lng));
     if (route.length < 2) return [(fromLat ?? lat, fromLng ?? lng), (lat, lng)];
     final last = route.last;
     if ((last.$1 - lat).abs() < 1e-7 && (last.$2 - lng).abs() < 1e-7) {
       return route;
     }
     return [...route, (lat, lng)];
+  }
+
+  /// 묶음 70 #294: 두 점 사이를 살짝 굽은 하늘 길로 (가운데가 직선 길이의 12%만큼 비켜남)
+  static List<(double, double)> skyArc((double, double) a, (double, double) b) {
+    final dy = b.$1 - a.$1, dx = b.$2 - a.$2;
+    // 가는 방향의 왼쪽으로 (경도 보정은 대략)
+    final cy = (a.$1 + b.$1) / 2 + dx * 0.8 * 0.24;
+    final cx = (a.$2 + b.$2) / 2 - dy / 0.8 * 0.24;
+    return [
+      for (var i = 0; i <= 16; i++)
+        () {
+          final t = i / 16, u = 1 - t;
+          return (
+            u * u * a.$1 + 2 * u * t * cy + t * t * b.$1,
+            u * u * a.$2 + 2 * u * t * cx + t * t * b.$2,
+          );
+        }()
+    ];
   }
 
   /// 길 위에서 지금 있는 비율 (0 = 출발점, 1 = 몬스터)
@@ -243,6 +267,7 @@ class Expedition {
         petName: petName,
         baseReward: baseReward ?? reward,
         adUsed: adUsed,
+        sky: sky,
         back: false,
       );
 
@@ -268,6 +293,7 @@ class Expedition {
         if (petName != null) 'petName': petName,
         if (baseReward.isNotEmpty) 'baseReward': baseReward,
         if (adUsed.isNotEmpty) 'adUsed': adUsed.toList(),
+        if (sky) 'sky': true,
         'back': back,
       };
 
@@ -293,6 +319,7 @@ class Expedition {
         newSpecies: j['newSpecies'] as bool? ?? false,
         petUid: j['petUid'] as String?,
         petName: j['petName'] as String?,
+        sky: j['sky'] == true,
         baseReward: {
           for (final e in ((j['baseReward'] as Map?) ?? const {}).entries)
             e.key as String: (e.value as num).toInt(),

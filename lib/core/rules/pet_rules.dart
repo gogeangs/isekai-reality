@@ -109,6 +109,9 @@ class PetSpeciesInfo {
   /// 좋아하는 재료 (돌려보낼 때 남긴다)
   final MaterialId favorite;
 
+  /// 묶음 70 #294: 하늘을 나는 펫 (원정은 곧장 직선, 길·물·막힌 곳을 따지지 않음)
+  bool get flies => PetRules.flyers.contains(id);
+
   /// [awake]: 영웅 펫이 단짝(친밀도 100)이 되면 「각성 모습」 (묶음 49 #235)
   String asset({required bool adult, bool awake = false}) =>
       'assets/images/pet_${id.name}_${awake ? 'awake' : adult ? 'adult' : 'baby'}.webp';
@@ -119,6 +122,17 @@ class PetRules {
   PetRules._();
 
   static const int maxPets = 6;
+
+  /// 묶음 70 #294: 하늘을 나는 펫
+  static const Set<PetSpecies> flyers = {
+    PetSpecies.crow,
+    PetSpecies.owl,
+    PetSpecies.griffin,
+    PetSpecies.drake,
+    PetSpecies.phoenix,
+    PetSpecies.pegasus,
+    PetSpecies.dragon,
+  };
   static const int maxLevel = 20;
 
   /// 아기 → 성체

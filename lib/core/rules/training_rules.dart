@@ -22,7 +22,11 @@ class PracticeResult {
     required this.skills,
     required this.best,
     required this.newRecord,
+    this.skillFull = false,
   });
+
+  /// 묶음 75 #325: 연습으로 오늘 스킬을 충분히 익혔는지 (가렌 한마디)
+  final bool skillFull;
 
   final int total;
   final double seconds;

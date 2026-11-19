@@ -24,6 +24,20 @@ import '../jobs/skill_icon.dart';
 /// 자동 전투 화면 (목업 구도): 동굴 배경 위 각성자 vs 몬스터,
 /// 아래에 체력 막대, 정화 수, 둥근 스킬 버튼 '정령의 일격'.
 ///
+/// 묶음 75 #325: 스킬 숙련도 — 전투 화면이 열릴 때 대기 · 힘을 맞추고, 끝나면(또는 닫히면) 쓴 스킬을 센다.
+/// 앱이 한 번 연결한다 (연습 판은 훈련장이 따로 센다)
+class SkillMasteryHook {
+  SkillMasteryHook._();
+  static void Function(Battle b)? setup;
+  static void Function(Battle b)? finished;
+
+  static void count(Battle b) {
+    if (b.skillsCounted || b.practice) return;
+    b.skillsCounted = true;
+    if (b.skillUses.isNotEmpty) finished?.call(b);
+  }
+}
+
 /// [tickInterval] 마다 [Battle.tick] 을 부르고, 끝나면 [onFinished] 를 한 번 부른다.
 class BattleView extends StatefulWidget {
   const BattleView({
@@ -194,12 +208,14 @@ class _BattleViewState extends State<BattleView> {
   @override
   void initState() {
     super.initState();
+    SkillMasteryHook.setup?.call(_b);
     _afterTick(first: true);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    SkillMasteryHook.count(_b);
     super.dispose();
   }
 
@@ -491,6 +507,7 @@ class _BattleViewState extends State<BattleView> {
   void _checkEnd() {
     if (!_b.isOver || _reported) return;
     _reported = true;
+    SkillMasteryHook.count(_b);
     _timer?.cancel();
     _warning = false;
     if (widget.sound) {

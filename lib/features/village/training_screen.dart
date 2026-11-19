@@ -714,7 +714,9 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
     switch (widget.mode) {
       case TrainingMode.practice:
         return [
-          _garen(_dealt > 0
+          _garen(_practiceResult?.skillFull == true
+              ? MasteryRules.practiceFullLine
+              : _dealt > 0
               ? '좋다! 손에 감이 오지? 몇 번이든 다시 와라!'
               : '한 대도 안 치고 끝내면 어쩌나! 다음엔 제대로 휘둘러라!'),
           const SizedBox(height: 12),

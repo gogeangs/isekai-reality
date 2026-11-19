@@ -138,6 +138,71 @@ extension MasteryOps on AppController {
             {'masteryGauge': target - given, 'gaugeBonus': target - given})));
   }
 
+  // ───────────── 묶음 75 #325: 스킬 숙련도 (숨은 값)
+
+  /// 스킬 숙련도 값 · 단계 · 효과 비율 ([id]: JobSkill 이름 · 'm_<Mastery>' · 'bash' · 'stance')
+  double skillMastery(String id) => _mastery.detailOf(MasteryRules.skillKey(id));
+  MasteryStage skillStageOf(String id) => MasteryRules.skillStage(skillMastery(id));
+  double skillFrac(String id) => MasteryRules.skillFraction(skillMastery(id));
+
+  /// 스킬 이름 (대사용)
+  String skillNameOf(String id) {
+    if (id == 'bash') return '강타';
+    if (id == 'stance') return '방어 태세';
+    if (id.startsWith('m_')) {
+      final m = Mastery.values.where((x) => x.name == id.substring(2)).firstOrNull;
+      return m == null ? '기술' : JobRules.masteryActive(m).name;
+    }
+    final s = JobSkill.values.where((x) => x.name == id).firstOrNull;
+    return s == null ? '기술' : JobRules.skill(s).name;
+  }
+
+  /// 전투를 시작할 때: 강타 · 방어 태세 · 숙련 스킬 대기 줄이기와 숙련 스킬 힘
+  void setupSkillMastery(Battle b) {
+    b.bashNeed = MasteryRules.cutTicks(Battle.bashTicks, skillFrac('bash'));
+    b.stanceNeed = MasteryRules.cutTicks(Battle.stanceTicks, skillFrac('stance'));
+    for (final m in Mastery.values) {
+      final f = skillFrac('m_${m.name}');
+      if (f <= 0) continue;
+      b.masteryNeed[m] = MasteryRules.cutTicks(JobRules.masteryActiveTicks, f);
+      b.masteryPower[m] = 1 + MasteryRules.skillPowerMax * f;
+    }
+  }
+
+  /// 전투가 끝나면: 쓴 스킬마다 1 (연습은 0.2 · 스킬마다 하루 2까지).
+  /// 연습 하루 한도에 닿은 스킬이 있으면 true
+  Future<bool> gainSkillUses(Map<String, int> uses, {bool practice = false}) async {
+    if (uses.isEmpty) return false;
+    final s = _mastery;
+    final today = DailyRecord.dayKeyOf(_clock());
+    final pd = {...(s.skillDay == today ? s.skillPractice : const <String, double>{})};
+    final d = {...s.detail};
+    var full = false;
+    double r1(double v) => (v * 10).roundToDouble() / 10;
+    uses.forEach((id, n) {
+      if (n <= 0) return;
+      final k = MasteryRules.skillKey(id);
+      var add = (practice ? MasteryRules.skillPracticeUse : MasteryRules.skillRealUse) * n;
+      if (practice) {
+        final room = math.max(0.0, MasteryRules.skillPracticeDay - (pd[k] ?? 0));
+        if (add >= room - 0.001) full = true;
+        add = math.min(add, room);
+        pd[k] = r1((pd[k] ?? 0) + add);
+      }
+      if (add > 0) d[k] = r1((d[k] ?? 0) + add);
+    });
+    _mastery = s.copyWith(
+      detail: d,
+      skillDay: practice ? today : null,
+      skillPractice: practice ? pd : null,
+    );
+    await _afterMastery();
+    return full;
+  }
+
+  /// 전투 밖에서 직업 스킬을 쓴 한 번
+  Future<void> _skillUsedOnce(JobSkill s) => gainSkillUses({s.name: 1});
+
   // ───────────── 쌓기
 
   /// 큰 숙련도 [m] 에 [amount] 를, 세부 [details] 에 1씩 더한다.
@@ -191,6 +256,15 @@ extension MasteryOps on AppController {
     }
     final masters = [...s.masters];
     s.detail.forEach((k, v) {
+      // 묶음 75 #325: 스킬 숙련도는 단계마다 한마디 (장인 목록 · 칭호와 따로)
+      if (MasteryRules.isSkillKey(k)) {
+        final st = MasteryRules.skillStage(v);
+        if (st.index > (announced[k] ?? 0)) {
+          announced[k] = st.index;
+          lines.add(MasteryRules.skillUpLine(skillNameOf(k.substring(6)), st));
+        }
+        return;
+      }
       if (masters.contains(k)) return;
       if (MasteryRules.stageOf(v, detail: true) == MasteryStage.master) {
         masters.add(k);
@@ -345,7 +419,8 @@ extension MasteryOps on AppController {
       announced: announced,
       masters: [
         for (final e in _mastery.detail.entries)
-          if (MasteryRules.stageOf(e.value, detail: true) == MasteryStage.master)
+          if (!MasteryRules.isSkillKey(e.key) &&
+              MasteryRules.stageOf(e.value, detail: true) == MasteryStage.master)
             e.key,
       ],
       top: _topMastery()?.name,

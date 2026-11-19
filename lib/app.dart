@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'features/battle/battle_view.dart' show SkillMasteryHook;
 import 'features/pets/companion_pet_panel.dart';
 import 'features/pets/egg_news.dart';
 import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
@@ -240,6 +241,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     // 묶음 75 #320: 정령 · 마을 사람 대사 차례 (저장된 것부터)
     TalkTurns.load(widget.controller.talkTurns);
     TalkTurns.onSave = widget.controller.saveTalkTurns;
+    // 묶음 75 #325: 스킬 숙련도
+    SkillMasteryHook.setup = widget.controller.setupSkillMastery;
+    SkillMasteryHook.finished = (b) => widget.controller.gainSkillUses(b.skillUses);
     // 묶음 19 6-2: 알림을 눌러 들어오면 그 화면으로
     final n = widget.controller.notifier;
     if (n != null) {

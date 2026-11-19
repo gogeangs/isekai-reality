@@ -13,7 +13,13 @@ class MasteryState {
     this.leanAt,
     this.quietTitles = const [],
     this.smithFloor,
+    this.skillDay,
+    this.skillPractice = const {},
   });
+
+  /// 묶음 75 #325: 스킬 연습으로 오늘 쌓은 양 (스킬 열쇠마다) · 그날
+  final String? skillDay;
+  final Map<String, double> skillPractice;
 
   /// 대장간 좋은 등급 보너스 바닥값(%p). 예전 「만든 장비 10개마다 +1%p」로 센 값을
   /// 처음 한 번 저장해 두고, 장비 종류 숙련도 보너스와 비교해 큰 쪽을 쓴다 (11-15 결정)
@@ -56,6 +62,8 @@ class MasteryState {
     DateTime? leanAt,
     List<String>? quietTitles,
     double? smithFloor,
+    String? skillDay,
+    Map<String, double>? skillPractice,
   }) =>
       MasteryState(
         big: big ?? this.big,
@@ -67,6 +75,8 @@ class MasteryState {
         leanAt: leanAt ?? this.leanAt,
         quietTitles: quietTitles ?? this.quietTitles,
         smithFloor: smithFloor ?? this.smithFloor,
+        skillDay: skillDay ?? this.skillDay,
+        skillPractice: skillPractice ?? this.skillPractice,
       );
 
   Map<String, dynamic> toJson() => {
@@ -79,6 +89,8 @@ class MasteryState {
         if (leanAt != null) 'leanAt': leanAt!.toIso8601String(),
         'quietTitles': quietTitles,
         if (smithFloor != null) 'smithFloor': smithFloor,
+        if (skillDay != null) 'skillDay': skillDay,
+        if (skillPractice.isNotEmpty) 'skillPractice': skillPractice,
       };
 
   static Map<String, double> _nums(Object? j) => {
@@ -103,5 +115,7 @@ class MasteryState {
           for (final x in (j['quietTitles'] as List?) ?? const []) '$x'
         ],
         smithFloor: (j['smithFloor'] as num?)?.toDouble(),
+        skillDay: j['skillDay'] as String?,
+        skillPractice: _nums(j['skillPractice']),
       );
 }

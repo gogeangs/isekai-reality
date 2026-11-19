@@ -500,14 +500,22 @@ extension JobOps on AppController {
   }
 
   /// 이 스킬을 지금 쓰면 드는 MP (보조 1.5배, 생활 스킬은 단계마다 덜, 장인의 직감이면 절반)
-  int skillCost(JobSkill s, {bool? sub}) => JobRules.skillCost(s,
-      sub: sub ?? _isSub(s),
-      level: math.max(1, skillLevel(s)),
-      half: s != JobSkill.artisanIntuition &&
-          _jobs.hasPending(JobSkill.artisanIntuition));
+  /// 묶음 75 #325: 스킬 숙련도 — 장인이면 MP −10% (스킬 포인트 단계와 곱해서)
+  int skillCost(JobSkill s, {bool? sub}) {
+    final base = JobRules.skillCost(s,
+        sub: sub ?? _isSub(s),
+        level: math.max(1, skillLevel(s)),
+        half: s != JobSkill.artisanIntuition &&
+            _jobs.hasPending(JobSkill.artisanIntuition));
+    final f = skillFrac(s.name);
+    if (f <= 0 || base <= 0) return base;
+    return math.max(1, (base * (1 - MasteryRules.skillMpMax * f)).round());
+  }
 
-  /// 공격·전투 스킬 세기 (단계마다 더 세짐)
-  double skillPower(JobSkill s) => JobRules.levelPower(math.max(1, skillLevel(s)));
+  /// 공격·전투 스킬 세기 (단계마다 더 세짐). 묶음 75 #325: 장인이면 +10%
+  double skillPower(JobSkill s) =>
+      JobRules.levelPower(math.max(1, skillLevel(s))) *
+      (1 + MasteryRules.skillPowerMax * skillFrac(s.name));
 
   bool skillPending(JobSkill s) => _jobs.hasPending(s);
   bool skillTimedOn(JobSkill s) => _jobs.timedOn(s, _clock());
@@ -608,6 +616,7 @@ extension JobOps on AppController {
           case SkillMode.battle:
             break;
         }
+        await _skillUsedOnce(s); // 묶음 75 #325
         _notify();
         return SkillUse.ok;
       });
@@ -719,6 +728,7 @@ extension JobOps on AppController {
         if (jobMp < skillCost(s, sub: sub)) return SkillUse.notEnoughMp;
         if (!await act()) return SkillUse.cannot;
         await _paySkill(s, sub);
+        await _skillUsedOnce(s); // 묶음 75 #325
         _notify();
         return SkillUse.ok;
       });

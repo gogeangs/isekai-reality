@@ -122,6 +122,12 @@ extension TrainingOps on AppController {
     if (b.stances > 0) await _npcTally(NpcTally.practiceStance);
     if (b.skillsUsed > 0) await _npcTally(NpcTally.practiceSkill);
     await _npcUse(Npc.garen);
+    // 묶음 75 #325: 연습은 스킬 숙련도 0.2 · 스킬마다 하루 2까지
+    var skillFull = false;
+    if (!b.skillsCounted) {
+      b.skillsCounted = true;
+      skillFull = await gainSkillUses(b.skillUses, practice: true);
+    }
     final secs = TrainingRules.practiceSeconds(b.ticks);
     final dps = TrainingRules.practiceDps(b.practiceDealt, b.ticks);
     final key = TrainingRules.practiceKey(kind, element);
@@ -140,6 +146,7 @@ extension TrainingOps on AppController {
       skills: b.skillsUsed,
       best: best,
       newRecord: record,
+      skillFull: skillFull,
     );
   }
 

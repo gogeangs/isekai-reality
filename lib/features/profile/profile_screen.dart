@@ -247,8 +247,9 @@ class SettingsButton extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xCC1A1D4A),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.8)),
+        // 묶음 72 #303: 우편 버튼과 같은 모양
+        color: const Color(0xCC14163A),
+        border: Border.all(color: AppColors.gold, width: 1.5),
       ),
       child: SizedBox.square(
         dimension: 44,
@@ -256,8 +257,12 @@ class SettingsButton extends StatelessWidget {
           onPressed: onTap,
           tooltip: '설정',
           padding: EdgeInsets.zero,
-          icon: const Icon(Icons.settings_rounded,
-              color: AppColors.goldBright, size: 24),
+          // 묶음 72 #303: 금 톱니 그림 (없으면 글꼴 아이콘)
+          icon: Image.asset('assets/images/icon_settings.webp',
+              width: 26,
+              height: 26,
+              errorBuilder: (_, __, ___) => const Icon(Icons.settings_rounded,
+                  color: AppColors.goldBright, size: 24)),
         ),
       ),
     );

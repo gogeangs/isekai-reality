@@ -84,8 +84,14 @@ class _ChatButtonState extends State<ChatButton> {
                   color: const Color(0xCC14163A),
                   border: Border.all(color: AppColors.gold, width: 1.5),
                 ),
-                child: Icon(world ? Icons.chat_bubble_rounded : Icons.people_alt_rounded,
-                    color: AppColors.goldBright, size: 22),
+                // 묶음 72 #303: 우편 버튼처럼 그림 26 (없으면 글꼴 아이콘)
+                child: Center(
+                  child: Image.asset('assets/images/${world ? 'icon_chat' : 'icon_friends'}.webp',
+                      width: 26,
+                      height: 26,
+                      errorBuilder: (_, __, ___) => Icon(world ? Icons.chat_bubble_rounded : Icons.people_alt_rounded,
+                          color: AppColors.goldBright, size: 22)),
+                ),
               ),
               if (n > 0)
                 Positioned(
@@ -330,7 +336,10 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
                 IconButton(
                   key: const Key('chatSettings'),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ChatSettingsScreen(controller: c))),
-                  icon: const Icon(Icons.settings_rounded, color: AppColors.goldBright),
+                  icon: Image.asset('assets/images/icon_settings.webp',
+                      width: 26,
+                      height: 26,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.settings_rounded, color: AppColors.goldBright)),
                 ),
               ]),
               const SizedBox(height: 8),

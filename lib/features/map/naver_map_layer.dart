@@ -234,8 +234,9 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             id: 'route_$i',
             coords: coords,
             width: 2,
+            // 묶음 72 #304: 투명 선 위엔 무늬가 안 그려져서 옅은 흰 선 + 날개 무늬
             color: actives[i].sky
-                ? const Color(0x00000000)
+                ? const Color(0x40FFFFFF)
                 : _routeColor(c, actives[i]).withValues(alpha: 0.28),
             outlineWidth: 0,
             outlineColor: const Color(0x00000000),

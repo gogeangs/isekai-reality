@@ -142,12 +142,12 @@ class Expedition {
     return [...route, (lat, lng)];
   }
 
-  /// 묶음 70 #294: 두 점 사이를 살짝 굽은 하늘 길로 (가운데가 직선 길이의 12%만큼 비켜남)
+  /// 묶음 70 #294 · 72 #304: 두 점 사이를 살짝 굽은 하늘 길로 (가운데가 직선 길이의 10%만큼, 늘 가는 방향 왼쪽으로)
   static List<(double, double)> skyArc((double, double) a, (double, double) b) {
     final dy = b.$1 - a.$1, dx = b.$2 - a.$2;
     // 가는 방향의 왼쪽으로 (경도 보정은 대략)
-    final cy = (a.$1 + b.$1) / 2 + dx * 0.8 * 0.24;
-    final cx = (a.$2 + b.$2) / 2 - dy / 0.8 * 0.24;
+    final cy = (a.$1 + b.$1) / 2 + dx * 0.8 * 0.2;
+    final cx = (a.$2 + b.$2) / 2 - dy / 0.8 * 0.2;
     return [
       for (var i = 0; i <= 16; i++)
         () {

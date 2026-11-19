@@ -66,11 +66,11 @@ class HatcheryPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final (i, e) in warm.indexed) ...[
-                      if (i > 0) const SizedBox(width: 18),
+                      if (i > 0) const SizedBox(width: 10),
                       _Nest(key: Key('nest_${e.id}'), controller: c, egg: e, band: band),
                     ],
                     if (empty) ...[
-                      if (warm.isNotEmpty) const SizedBox(width: 18),
+                      if (warm.isNotEmpty) const SizedBox(width: 10),
                       _EmptyNest(
                         key: const Key('nestEmpty'),
                         band: band,
@@ -162,7 +162,7 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
     return GestureDetector(
       onTap: () => ready ? showHatchSheet(context, c, e) : showBagEntry(context, c, EggEntry(e)),
       child: SizedBox(
-        width: 150,
+        width: 136,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(
             width: 126,
@@ -365,7 +365,7 @@ class _EmptyNest extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: SizedBox(
-          width: 150,
+          width: 136,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             SizedBox(
               width: 126,

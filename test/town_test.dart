@@ -426,7 +426,6 @@ void main() {
       expect(c.canUse(ShopItem.purifyIncense), UseCheck.none);
       final spawn = c.todaySpawns.first;
       final b = c.startFieldBattle(spawn)!..runToEnd();
-      final x2 = c.player.level.level <= 5 ? 2 : 1; // 묶음 25 #171
       // 묶음 66 #265: 잡는 순간 레벨만큼 조금 더 (Lv.1~5 사이)
       final base = (RuleConstants.fieldMonsterExp * 1.5).round();
       final got = await c.finishFieldBattle(spawn, b);

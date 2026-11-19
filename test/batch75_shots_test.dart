@@ -177,7 +177,8 @@ Future<void> _put(WidgetTester tester, String m) async {
   final pot = find.byKey(const Key('cauldronPot'));
   if (pot.evaluate().isNotEmpty) {
     await tester.drag(pot.first, const Offset(0, 900));
-    await _settle(tester, 3);
+    // 튕겨 오르는 스크롤이 멈출 때까지 (움직이는 중에 누르면 멈추기만 함)
+    await _settle(tester, 12);
   }
 }
 
@@ -272,17 +273,25 @@ void main() {
       await _shot(tester, '${n}_03_작업대_맞는레시피');
       await _put(tester, 'lightRelic');
       await _shot(tester, '${n}_04_작업대_특산물');
+      await tester.ensureVisible(find.byKey(const Key('benchNext')).first);
+      await _settle(tester, 8);
       await tester.tap(find.byKey(const Key('benchNext')).first);
       await _settle(tester, 6);
       await _shot(tester, '${n}_05_작업대_끓는중');
+      await tester.ensureVisible(find.byKey(const Key('recipeOpen')));
+      await _settle(tester, 8);
       await tester.tap(find.byKey(const Key('recipeOpen')));
       await _settle(tester, 4);
       await _shot(tester, '${n}_06_레시피창');
+      if (find.byKey(const Key('recipeTile_antidote')).evaluate().isNotEmpty) await tester.ensureVisible(find.byKey(const Key('recipeTile_antidote')));
+      await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('recipeTile_antidote')));
       await _settle(tester, 4);
       await _shot(tester, '${n}_07_레시피_상세');
       Navigator.of(tester.element(find.byKey(const Key('recipeFill')))).pop();
       await _settle(tester, 3);
+      if (find.byKey(const Key('recipeTile_healSmall')).evaluate().isNotEmpty) await tester.ensureVisible(find.byKey(const Key('recipeTile_healSmall')));
+      await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('recipeTile_healSmall')));
       await _settle(tester, 4);
       await tester.tap(find.byKey(const Key('recipeFill')));
@@ -327,16 +336,24 @@ void main() {
       await tester.tap(find.text('열기'));
       await _settle(tester, 6);
       await _shot(tester, '${n}_11_알_얻음창_전설');
+      await tester.tap(find.byKey(const Key('eggGotLater')));
+      await _settle(tester, 4);
       await _page(tester, _scaffold(BagTab(key: ObjectKey('bag$n'), controller: c)));
       await _shot(tester, '${n}_12_가방_등급알');
       await _page(tester, ShopScreen(key: ObjectKey('shop$n'), controller: c));
-      await tester.tap(find.byKey(const Key('shopTab_1')));
-      await _settle(tester, 4);
-      for (final k in ['sellRow_herb', 'sellRow_slimeJelly']) {
+      await tester.tap(find.text('팔기').first);
+      await _settle(tester, 6);
+      for (final k in ['sellRow_m:herb', 'sellRow_g:e4', 'sellRow_m:ironShard']) {
         final f = find.byKey(Key(k));
-        if (f.evaluate().isNotEmpty) {
-          await tester.tap(f.first, warnIfMissed: false);
-          await _settle(tester, 3);
+        if (f.evaluate().isEmpty) continue;
+        await tester.ensureVisible(f.first);
+        await _settle(tester, 4);
+        await tester.tap(f.first, warnIfMissed: false);
+        await _settle(tester, 4);
+        final ok = find.byKey(const Key('sellCountOk'));
+        if (ok.evaluate().isNotEmpty) {
+          await tester.tap(ok);
+          await _settle(tester, 4);
         }
       }
       await _shot(tester, '${n}_13_잡화상_팔기격자_일부고름');
@@ -410,7 +427,7 @@ void main() {
     testWidgets('b75 $n: 4 말풍선 · 건설 중', (tester) async {
       _device(tester, d);
       late AppController c;
-      await tester.runAsync(() async => c = await startVillage(14, farewell: true, more: {'pets': _pets(1)}));
+      await tester.runAsync(() async => c = await startVillage(14, farewell: true, village: {'seen': ['intro', 'v44', 'farewell']}, more: {'pets': _pets(1)}));
       await _page(tester, Scaffold(key: ObjectKey('v$n'), body: VillageScreen(controller: c)));
       await _shot(tester, '${n}_30_마을_정령말풍선');
       for (var i = 0; i < 6; i++) {
@@ -504,7 +521,12 @@ void main() {
         v = await startVillage(14);
         await v.gainSkillUses({'bash': 10});
       });
-      await _page(tester, Scaffold(key: ObjectKey('vv$n'), body: VillageScreen(controller: v)));
+      // 단계 한마디는 상태 화면 · 지도 정령 말풍선으로 (전투 뒤)
+      await _page(
+          tester,
+          _scaffold(StatusScreen(
+              key: ObjectKey('vv$n'), player: v.player, look: v.profile.look, lifeLine: v.masteryTalk)));
+      await _settle(tester, 4);
       await _shot(tester, '${n}_61_정령_강타가손에익었어');
       await _page(
           tester,
@@ -537,11 +559,17 @@ void main() {
       await _shot(tester, '${n}_71_우편_마지막쪽');
       await tester.tap(find.byKey(const Key('mailPage_1')));
       await _settle(tester, 3);
+      await tester.scrollUntilVisible(find.byKey(const Key('mailRow_m0')), 60,
+          scrollable: find.descendant(of: find.byKey(const Key('mailScroll')), matching: find.byType(Scrollable)).first);
+      await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('mailRow_m0')));
       await _settle(tester, 6);
       await _shot(tester, '${n}_72_우편_선물그림');
       Navigator.of(tester.element(find.byKey(const Key('mailGifts')))).pop();
       await _settle(tester, 4);
+      await tester.scrollUntilVisible(find.byKey(const Key('mailRow_m1')), 60,
+          scrollable: find.descendant(of: find.byKey(const Key('mailScroll')), matching: find.byType(Scrollable)).first);
+      await _settle(tester, 2);
       await tester.tap(find.byKey(const Key('mailRow_m1')));
       await _settle(tester, 6);
       await _shot(tester, '${n}_73_우편_일부받음');
@@ -566,9 +594,11 @@ void main() {
       await tester.tap(find.byKey(const Key('avatarTab_title')));
       await _settle(tester, 3);
       await _shot(tester, '${n}_81_프로필사진_배지탭');
+      Navigator.of(tester.element(find.byKey(const Key('avatarPicker')))).pop();
+      await _settle(tester, 4);
       await tester.runAsync(() async {
-        a.chatPeople['u_sol'] = {...(a.chatPeople['u_sol'] as Map? ?? {'name': '솔'}), 'face': 'pet_owl_adult'};
-        a.chatPeople['u_ria'] = {'name': '리아', 'level': 18, 'face': 'npc_marta'};
+        a.chatPeople['u_sol'] = <String, dynamic>{...((a.chatPeople['u_sol'] as Map?) ?? {'name': '솔'}).cast<String, dynamic>(), 'face': 'pet_owl_adult'};
+        a.chatPeople['u_ria'] = <String, dynamic>{'name': '리아', 'level': 18, 'face': 'npc_marta'};
         a.chatSay('server', 'u_sol', '펫 얼굴로 바꿨어요!');
         a.chatSay('server', 'u_ria', '마르타 아주머니 얼굴이네요 ㅎㅎ');
         await c.refreshChat();

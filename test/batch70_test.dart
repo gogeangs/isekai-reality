@@ -263,24 +263,19 @@ void main() {
   });
 
   group('#300 #301 게시판', () {
-    testWidgets('탭 「오늘 · 주간」 (조합은 Lv.15부터 · 마을 사람은 부탁이 있을 때만)', (tester) async {
+    testWidgets('탭 「오늘 · 주간 · 조합」 (마을 사람은 부탁이 있을 때만)', (tester) async {
       phone(tester);
       late AppController c;
       await tester.runAsync(() async => c = await startVillage(12));
       await tester.pumpWidget(MaterialApp(home: BoardScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('boardTab_today')), findsOneWidget);
-      expect(find.byKey(const Key('boardTab_errand')), findsNothing);
       expect(find.byKey(const Key('boardTab_npc')), findsNothing);
-      await tester.pumpWidget(const SizedBox());
-      await tester.runAsync(() async => c = await startVillage(16));
-      await tester.pumpWidget(MaterialApp(home: BoardScreen(key: UniqueKey(), controller: c)));
-      await tester.pump();
-      expect(find.byKey(const Key('boardTab_errand')), findsOneWidget);
       await tester.tap(find.byKey(const Key('boardTab_errand')));
-      await tester.pumpAndSettle();
+      await settle(tester);
       expect(find.text('조합 의뢰'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 5));
     });
   });
 

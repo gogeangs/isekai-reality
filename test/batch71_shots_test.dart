@@ -31,17 +31,21 @@ import 'support/route_seed.dart';
 final _root = GlobalKey();
 
 Future<void> _loadFonts() async {
-  final korean = FontLoader('Roboto');
-  for (final f in [
-    'NanumGothic-Regular',
-    'NanumGothic-Bold',
-    'NanumGothic-ExtraBold',
-  ]) {
-    korean.addFont(File('test/fonts/$f.ttf')
-        .readAsBytes()
-        .then((b) => ByteData.view(b.buffer)));
+  // 묶음 71: 글꼴을 정하지 않은 글자(버튼 등)는 시험 기본 글꼴(FlutterTest)로 그려져 □로 나옴 —
+  // 기기처럼 한글이 보이게 그 이름에도 한글 글꼴을 넣는다
+  for (final family in ['Roboto', 'FlutterTest']) {
+    final korean = FontLoader(family);
+    for (final f in [
+      'NanumGothic-Regular',
+      'NanumGothic-Bold',
+      'NanumGothic-ExtraBold',
+    ]) {
+      korean.addFont(File('test/fonts/$f.ttf')
+          .readAsBytes()
+          .then((b) => ByteData.view(b.buffer)));
+    }
+    await korean.load();
   }
-  await korean.load();
   final manifest =
       jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
   for (final family in manifest.cast<Map<String, dynamic>>()) {
@@ -108,6 +112,8 @@ Future<void> _page(WidgetTester tester, Widget home) async {
     key: _root,
     child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        // 기기에선 글꼴을 정하지 않은 글자가 휴대폰 기본 글꼴(한글 있음)로 나옴 — 시험에서도 한글 글꼴로
+        theme: ThemeData(brightness: Brightness.dark, fontFamily: 'Roboto'),
         builder: (context, child) => TopNoticeHost(child: child!),
         home: home),
   ));
@@ -162,15 +168,17 @@ void main() {
                                   onPressed: () => showDialog<void>(
                                       context: ctx,
                                       barrierColor: const Color(0xD9000000),
-                                      builder: (_) => SpiritLineAlert(
+                                      builder: (dc) => SpiritLineAlert(
                                           spiritName: '불씨',
                                           line: line,
-                                          actions: [for (final a in acts) (Key(a), a, () {})])),
+                                          actions: [for (final a in acts) (Key(a), a, () => Navigator.pop(dc))])),
                                   child: const Text('열기')))))),
             ));
         await tester.tap(find.text('열기'));
         await _settle(tester, 4);
         await _shot(tester, '${n}_$k');
+        await tester.tap(find.byKey(Key(acts.first)));
+        await _settle(tester, 3);
       }
       await tester.pumpWidget(const SizedBox());
     });

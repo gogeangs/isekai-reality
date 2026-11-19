@@ -1252,8 +1252,9 @@ ButtonStyle dangerButtonStyle() => gameButtonStyle(gold: false).copyWith(
 /// 취소: 작은 글자 버튼
 ButtonStyle smallButtonStyle() => ButtonStyle(
       minimumSize: const WidgetStatePropertyAll(Size(64, 36)),
+      // 묶음 71: 금빛 버튼과 같은 제목 글꼴 (글꼴을 비워 두면 버튼마다 다른 글꼴로 나옴)
       textStyle: const WidgetStatePropertyAll(
-          TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          TextStyle(fontFamily: 'Title', fontSize: 14, fontWeight: FontWeight.w700)),
       foregroundColor: const WidgetStatePropertyAll(AppColors.textMuted),
     );
 

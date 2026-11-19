@@ -1,0 +1,32 @@
+{
+    "name": "ArcaBattle.Editor",
+    "rootNamespace": "Arca.Battle.EditorTools",
+    "references": [
+        "ArcaBattle",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.2D.Sprite.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "17.0.0",
+            "define": "ARCA_URP"
+        },
+        {
+            "name": "com.unity.2d.sprite",
+            "expression": "1.0.0",
+            "define": "ARCA_SPRITE_EDITOR"
+        }
+    ],
+    "noEngineReferences": false
+}

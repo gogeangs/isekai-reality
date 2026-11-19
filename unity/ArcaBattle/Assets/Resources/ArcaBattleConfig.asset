@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cca5283a9e9f44b7b11d3f5bbfa7349b, type: 3}
+  m_Name: ArcaBattleConfig
+  m_EditorClassIdentifier: 
+  tickSeconds: 1
+  heroName: "\uAC01\uC131\uC790"
+  heroMaxHp: 2400
+  heroAttack: 200
+  critChance: 0.15
+  critMultiplier: 1.6
+  damageJitter: 0.1
+  strikeMultiplier: 2.2
+  strikeCooldownTicks: 5
+  guardCooldownTicks: 4
+  guardBreakDamageRate: 0.6
+  petId: owl
+  petName: "\uBD80\uC5C9\uC774"
+  petGaugePerTick: 20
+  petGaugePerHurt: 8
+  petSkillPower: 380
+  petElement: 3
+  spiritId: plant
+  cheerText: "\uD560 \uC218 \uC788\uC5B4!"
+  heroGender: 0
+  heroJob: 0
+  background: bg_field_forest
+  party:
+  - lian
+  - barkan
+  allies:
+  - id: lian
+    displayName: "\uB9AC\uC548"
+    maxHp: 1200
+    attack: 90
+    skillName: "\uD63C\uC790\uAC00 \uC544\uB2CC \uAC80"
+    skillMultiplier: 2.6
+    skillCooldownTicks: 6
+    element: 0
+  - id: garen
+    displayName: "\uAC00\uB80C"
+    maxHp: 1500
+    attack: 80
+    skillName: "\uC9C0\uD321\uC774 \uD6C4\uB824\uCE58\uAE30"
+    skillMultiplier: 2.4
+    skillCooldownTicks: 6
+    element: 10
+  - id: nia
+    displayName: "\uB2C8\uC544"
+    maxHp: 1000
+    attack: 95
+    skillName: "\uADF8\uB9BC\uC790 \uAE09\uC18C"
+    skillMultiplier: 3.2
+    skillCooldownTicks: 7
+    element: 6
+  - id: barkan
+    displayName: "\uBC14\uB974\uCE78"
+    maxHp: 1600
+    attack: 85
+    skillName: "\uBD88 \uC228\uACB0"
+    skillMultiplier: 2.4
+    skillCooldownTicks: 6
+    element: 1
+  - id: popo
+    displayName: "\uD3EC\uD3EC"
+    maxHp: 900
+    attack: 70
+    skillName: "\uB369\uAD74 \uBB36\uAE30"
+    skillMultiplier: 2.0
+    skillCooldownTicks: 5
+    element: 4
+  - id: sera
+    displayName: "\uC138\uB77C"
+    maxHp: 1700
+    attack: 75
+    skillName: "\uBC29\uD328 \uBC00\uCE58\uAE30"
+    skillMultiplier: 1.8
+    skillCooldownTicks: 5
+    element: 10
+  - id: teo
+    displayName: "\uD14C\uC624"
+    maxHp: 1400
+    attack: 90
+    skillName: "\uBE5B\uC758 \uCC3D"
+    skillMultiplier: 2.8
+    skillCooldownTicks: 6
+    element: 5
+  monsters:
+  - id: slime
+    displayName: "\uC2AC\uB77C\uC784"
+    sprite: monster_slime
+    maxHp: 700
+    attack: 60
+    grade: 0
+    heavyEvery: 0
+    heavyMultiplier: 1.8
+    footY: 472
+  - id: goblinRaider
+    displayName: "\uACE0\uBE14\uB9B0 \uC57D\uD0C8\uC790"
+    sprite: monster_goblinRaider
+    maxHp: 2192
+    attack: 120
+    grade: 1
+    heavyEvery: 3
+    heavyMultiplier: 1.8
+    footY: 487

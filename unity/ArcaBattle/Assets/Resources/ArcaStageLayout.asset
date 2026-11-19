@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc4a3cc4753f4bdf9aa9e3f02ab2cc36, type: 3}
+  m_Name: ArcaStageLayout
+  m_EditorClassIdentifier: 
+  stageScreenFraction: 0.6
+  heroX: 0.05
+  heroFootY: 0.075
+  heroHeight: 0.5
+  allyBack: {x: -0.375, y: 0.225}
+  allyFront: {x: -0.2, y: 0.15}
+  allyHeight: 0.36
+  monsterX: 0.335
+  monsterFootY: 0.1
+  monsterHeightNormal: 0.34
+  monsterHeightBoss: 0.42
+  petOffsetX: 0.24
+  petFootY: 0.015
+  petHeight: 0.13
+  spiritX: -0.42
+  spiritFootY: 0.01
+  spiritHeight: 0.12
+  bubbleOffset: {x: 0.19, y: 0.04}
+  breathAmount: 0.015
+  breathPeriod: 2.6
+  breathPeriodJitter: 0.18
+  attackFrameSeconds:
+  - 0.1
+  - 0.08
+  - 0.16
+  - 0.1
+  - 0.12
+  hitFrame: 4
+  hitStopSeconds: 0.05
+  attackStep: 0.03
+  monsterShake: 0.12
+  monsterShakeSeconds: 0.28
+  flashSeconds: 0.22
+  counterLunge: 0.07
+  counterSeconds: 0.32
+  victoryHop: 0.04
+  swayEnabled: 0
+  swayPixels: 3
+  swaySpeed: 3.2
+  swayWaves: 9
+  swayStart: 0.45

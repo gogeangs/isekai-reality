@@ -50,7 +50,7 @@ MAX_SIDE: list[tuple[str, int]] = [
 ]
 
 # 크기를 절대 바꾸지 않는 그림 (그림 안 좌표를 코드가 씀)
-FIXED = ('rig/', 'ui_', 'weapon_', 'banner_', 'ribbon_')
+FIXED = ('ui_', 'weapon_', 'banner_', 'ribbon_')
 
 # 테두리가 또렷해야 하는 그림은 무손실
 LOSSLESS = ('ui_', 'map_step_', 'slot_')

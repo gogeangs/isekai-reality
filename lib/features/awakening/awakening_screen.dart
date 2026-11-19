@@ -7,6 +7,7 @@ import '../../core/rules/age_rules.dart';
 
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
+import '../status/status_screen.dart' show heroBaseAsset;
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_mood.dart';
@@ -1215,9 +1216,7 @@ class _AwakenHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final asset = look == HeroLook.female
-        ? 'assets/images/hero_stand_female.webp'
-        : 'assets/images/hero_stand_male.webp';
+    final asset = heroBaseAsset(look);
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 450),
       transitionBuilder: (child, anim) => FadeTransition(

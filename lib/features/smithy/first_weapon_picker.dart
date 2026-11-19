@@ -1,11 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../battle/hero_rig.dart';
-import '../battle/battle_view.dart' show HeroSprite, HeroPose;
+import '../status/status_screen.dart' show heroBaseAsset;
 import 'equipment_view.dart';
 
 /// 첫 무기 고르기 (묶음 19 #5): 5종 카드 + 고른 무기로 휘두르는 모습 미리보기.
@@ -104,27 +105,31 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
             SizedBox(
               height: 170,
               child: Row(children: [
+                // 묶음 73 #261: 맨손 주인공 옆에 고른 무기 (살짝 떠오름)
                 Expanded(
-                  child: AnimatedBuilder(
-                    animation: _a,
-                    builder: (context, _) {
-                      // 앞 70% 휘두르기, 뒤 30% 숨 고르기
-                      final v = _a.value;
-                      final swing = v < 0.7;
-                      return HeroRig(
-                        key: const Key('firstWeaponPreview'),
-                        look: look,
-                        weapon: weaponKindOf(pick),
-                        action: swing ? RigAction.attack : RigAction.idle,
-                        t: swing ? v / 0.7 : 0,
-                        breath: v,
-                        reduced:
-                            MediaQuery.maybeDisableAnimationsOf(context) ?? false,
-                        fallback: HeroSprite(
-                            look: look,
-                            pose: swing ? HeroPose.attack : HeroPose.idle),
-                      );
-                    },
+                  child: Row(
+                    key: const Key('firstWeaponPreview'),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Flexible(
+                          child: Image.asset(heroBaseAsset(look),
+                              height: 170,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person_rounded,
+                                  size: 96,
+                                  color: AppColors.textMuted))),
+                      AnimatedBuilder(
+                        animation: _a,
+                        builder: (context, child) => Transform.translate(
+                          offset: Offset(
+                              0, -50 - 6 * math.sin(_a.value * math.pi * 2)),
+                          child: child,
+                        ),
+                        child: EquipIcon(base: pick, size: 56),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -134,7 +139,8 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(EquipmentRules.info(pick).name,
-                          style: AppText.title(18, color: AppColors.goldBright)),
+                          style:
+                              AppText.title(18, color: AppColors.goldBright)),
                       const SizedBox(height: 4),
                       KText(EquipmentRules.info(pick).trait ?? '',
                           style: const TextStyle(
@@ -148,12 +154,12 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
             KeyedSubtree(
               key: _craftKey,
               child: GoldButton(
-              key: const Key('firstWeaponCraft'),
-              label: '만들기 (무료)',
-              height: 46,
-              fontSize: 16,
-              onPressed: () => widget.onCraft(pick),
-            ),
+                key: const Key('firstWeaponCraft'),
+                label: '만들기 (무료)',
+                height: 46,
+                fontSize: 16,
+                onPressed: () => widget.onCraft(pick),
+              ),
             ),
           ],
         ],
@@ -163,7 +169,8 @@ class _FirstWeaponPickerState extends State<FirstWeaponPicker>
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.base, required this.selected, required this.onTap});
+  const _Card(
+      {required this.base, required this.selected, required this.onTap});
 
   final EquipBase base;
   final bool selected;

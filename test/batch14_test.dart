@@ -72,7 +72,7 @@ void main() {
     });
   });
 
-  group('#81 2단계 부위 애니메이션', () {
+  group('무기 종류 (묶음 73: 부위 애니메이션은 통 그림으로)', () {
     test('장비 → 무기 종류 (보스 무기는 가까운 종류, 무기 아니면 맨손)', () {
       expect(weaponKindOf(EquipBase.dagger), WeaponKind.dagger);
       expect(weaponKindOf(EquipBase.hornDagger), WeaponKind.dagger);
@@ -82,31 +82,6 @@ void main() {
       expect(weaponKindOf(EquipBase.wardenWeapon), WeaponKind.sword);
       expect(weaponKindOf(EquipBase.armor), isNull);
       expect(weaponKindOf(null), isNull);
-    });
-
-    test('공격은 서기에서 시작해 서기로 돌아온다, 동작 줄이기면 작게', () {
-      for (final w in [...WeaponKind.values, null]) {
-        final a = RigMotions.poseAt(RigAction.attack, w, 0);
-        final b = RigMotions.poseAt(RigAction.attack, w, 1);
-        expect(a['arm_f_up'], RigPose.stand['arm_f_up']);
-        expect(b['arm_f_up'], RigPose.stand['arm_f_up']);
-        final mid = RigMotions.poseAt(RigAction.attack, w, 0.55);
-        final small =
-            RigMotions.poseAt(RigAction.attack, w, 0.55, reduced: true);
-        expect((small['dx']).abs(), lessThanOrEqualTo(mid['dx'].abs()));
-      }
-      for (final a in RigAction.values) {
-        expect(RigMotions.poseAt(a, WeaponKind.sword, 0.3)['torso'], isA<double>());
-      }
-    });
-
-    test('뼈대: 부모가 먼저 있고, 부위 그림 13장', () {
-      final names = <String>{};
-      for (final b in HeroRigData.bones) {
-        if (b.parent != null) expect(names, contains(b.parent));
-        names.add(b.name);
-      }
-      expect(HeroRigData.partImages.toSet().length, 13);
     });
   });
 }

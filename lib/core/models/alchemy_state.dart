@@ -182,7 +182,11 @@ class AlchemyState {
     this.saved = const [],
     this.convert,
     this.mastery = 0,
+    this.luckNoteDay,
   });
+
+  /// 묶음 75 #326: 「우연」 레시피 쪽지를 받은 날 (하루 1장까지)
+  final String? luckNoteDay;
 
   /// 변환대 (11-11 #74, 1칸)
   final ConvertJob? convert;
@@ -246,6 +250,7 @@ class AlchemyState {
     ConvertJob? convert,
     bool clearConvert = false,
     int? mastery,
+    String? luckNoteDay,
   }) =>
       AlchemyState(
         potions: potions ?? this.potions,
@@ -263,6 +268,7 @@ class AlchemyState {
         saved: saved,
         convert: clearConvert ? null : (convert ?? this.convert),
         mastery: mastery ?? this.mastery,
+        luckNoteDay: luckNoteDay ?? this.luckNoteDay,
       );
 
   /// [key] 를 [n] 개 더한다 (빼면 0개는 지운다)
@@ -293,6 +299,7 @@ class AlchemyState {
         'saved': saved,
         if (convert != null) 'convert': convert!.toJson(),
         'mastery': mastery,
+        if (luckNoteDay != null) 'luckNoteDay': luckNoteDay,
       };
 
   factory AlchemyState.fromJson(Map<String, dynamic> j) {
@@ -327,6 +334,7 @@ class AlchemyState {
       },
       autoHp: (j['autoHp'] as num?)?.toInt() ?? 0,
       autoCure: j['autoCure'] as bool? ?? false,
+      luckNoteDay: j['luckNoteDay'] as String?,
       saved: [
         for (final s in (j['saved'] as List?) ?? const [])
           Map<String, dynamic>.from(s as Map),

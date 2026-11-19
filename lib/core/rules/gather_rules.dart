@@ -49,7 +49,8 @@ class GatherRules {
       mats[r] = (mats[r] ?? 0) + 1;
     }
     final gold = rng.nextDouble() < 0.10 ? 10 + rng.nextInt(21) : 0;
-    return (mats: mats, gold: gold, note: rng.nextDouble() < 0.03);
+    // 묶음 75 #326: 레시피 쪽지는 컨트롤러 _maybeNote 에서 (하루 1장까지)
+    return (mats: mats, gold: gold, note: false);
   }
 
   // ───────────── 던전 재료
@@ -71,7 +72,8 @@ class GatherRules {
   /// 재료 2~3개(귀한 것 30%) 또는 금화 30~60, 10%로 레시피 쪽지
   static ({Map<MaterialId, int> mats, int gold, bool note}) openFind(
       math.Random rng) {
-    final note = rng.nextDouble() < 0.10;
+    // 묶음 75 #326: 레시피 쪽지는 컨트롤러 _maybeNote 에서 (하루 1장까지)
+    const note = false;
     if (rng.nextDouble() < 0.5) {
       return (mats: const {}, gold: 30 + rng.nextInt(31), note: note);
     }
@@ -111,7 +113,7 @@ class GatherRules {
   /// 귀한 재료 3가지를 1개씩 금화 60, 20%로 레시피 쪽지 금화 150
   static const int offerPrice = 60;
   static const int notePrice = 150;
-  static const double noteOfferChance = 0.20;
+  static const double noteOfferChance = 0.10; // 묶음 75 #326 (0.20 → 0.10, 값 150 그대로)
 
   static Map<MaterialId, int> offers(math.Random rng) {
     final pool = [...rares]..shuffle(rng);

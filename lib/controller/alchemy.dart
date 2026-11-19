@@ -17,9 +17,15 @@ extension AlchemyOps on AppController {
   /// 읽지 않은 레시피 쪽지
   int get recipeNotes => _pets.recipeNotes;
 
-  Future<void> _maybeNote(double chance) async {
-    if (_random.nextDouble() >= chance) return;
+  /// 묶음 75 #326: 「우연」 레시피 쪽지 (의뢰 · 길가 발견 · 던전 · 희귀/전설 몬스터 · 걸음 주머니 · 감정 렌즈).
+  /// 하루 1장까지 — 받은 날이면 굴리지 않는다. 받았으면 true
+  Future<bool> _maybeNote(double chance) async {
+    final day = DailyRecord.dayKeyOf(_clock());
+    if (_alc.luckNoteDay == day) return false;
+    if (_random.nextDouble() >= chance) return false;
+    await _saveAlc(_alc.copyWith(luckNoteDay: day));
     await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
+    return true;
   }
 
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)

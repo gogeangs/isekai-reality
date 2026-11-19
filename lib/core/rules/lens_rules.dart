@@ -42,7 +42,7 @@ class LensRules {
   /// 감정·종족 골라 찍기가 같은 횟수를 쓴다
   static const int freePerDay = 5;
   static const double materialChance = 0.30;
-  static const double noteChance = 0.05;
+  static const double noteChance = 0.02; // 묶음 75 #326 (0.05 → 0.02)
 
   /// 감정 연출 시간
   static const Duration appraiseTime = Duration(milliseconds: 2200);

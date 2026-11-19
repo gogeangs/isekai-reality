@@ -171,6 +171,7 @@ class AlchemyState {
     this.cauldrons = 1,
     this.brews = const {},
     this.discovered = const [],
+    this.bestMade = const [],
     this.noted = const [],
     this.knownSuspicious = const [],
     this.buffs = const [],
@@ -200,6 +201,9 @@ class AlchemyState {
 
   /// 레시피를 안 물약 (재료·개수)
   final List<String> discovered;
+
+  /// 묶음 70 #298: 최상 품질로 만들어 본 물약 (레시피 칸 금빛 테두리)
+  final List<String> bestMade;
 
   /// 레시피 쪽지로 재료만 안 물약
   final List<String> noted;
@@ -231,6 +235,7 @@ class AlchemyState {
     int? cauldrons,
     Map<int, Brew>? brews,
     List<String>? discovered,
+    List<String>? bestMade,
     List<String>? noted,
     List<String>? knownSuspicious,
     List<ActiveBuff>? buffs,
@@ -247,6 +252,7 @@ class AlchemyState {
         cauldrons: cauldrons ?? this.cauldrons,
         brews: brews ?? this.brews,
         discovered: discovered ?? this.discovered,
+        bestMade: bestMade ?? this.bestMade,
         noted: noted ?? this.noted,
         knownSuspicious: knownSuspicious ?? this.knownSuspicious,
         buffs: buffs ?? this.buffs,
@@ -276,6 +282,7 @@ class AlchemyState {
         'cauldrons': cauldrons,
         'brews': {for (final e in brews.entries) '${e.key}': e.value.toJson()},
         'discovered': discovered,
+        if (bestMade.isNotEmpty) 'bestMade': bestMade,
         'noted': noted,
         'knownSuspicious': knownSuspicious,
         'buffs': [for (final b in buffs) b.toJson()],
@@ -303,6 +310,7 @@ class AlchemyState {
             int.tryParse(e.key as String) ?? 0: b,
       },
       discovered: strings(j['discovered']),
+      bestMade: strings(j['bestMade']),
       noted: strings(j['noted']),
       knownSuspicious: strings(j['knownSuspicious']),
       buffs: [

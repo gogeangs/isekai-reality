@@ -199,7 +199,7 @@ void main() {
     addTearDown(tester.view.reset);
     late AppController c;
     await tester.runAsync(() async => c = await startNpc(
-          level: 8,
+          level: 15,
           json: {
             'board': const BoardState(day: '2026-11-16', seq: 2, slots: [
               ErrandSlot(templateId: 'npc_hart_0', accepted: true, baseline: 0),
@@ -213,9 +213,13 @@ void main() {
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }
-    final sc = find.byType(Scrollable).first;
+    await tester.tap(find.byKey(const Key('boardTab_errand')));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    final sc = find.byKey(const Key('boardScroll_errand'));
     await tester.scrollUntilVisible(find.byKey(const Key('errandNote_0')), 200,
-        scrollable: sc);
+        scrollable: find.descendant(of: sc, matching: find.byType(Scrollable)).first);
     for (var i = 0; i < 3; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }

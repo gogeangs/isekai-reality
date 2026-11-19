@@ -35,8 +35,121 @@ class BoardScreen extends StatefulWidget {
 class _BoardScreenState extends State<BoardScreen> {
   AppController get controller => widget.controller;
 
-  /// 위에 얹은 머리(뒤로 가기 + 하르트)의 높이. 그려 본 뒤 재서 맞춘다
+  /// 위에 얹은 머리(뒤로 가기 + 하르트 + 탭)의 높이. 그려 본 뒤 재서 맞춘다
   double? _headerH;
+
+  /// 묶음 70 #300: 같은 날 다시 들어오면 마지막 탭
+  static String? _lastDay;
+  static BoardTab? _lastTab;
+
+  late BoardTab _tab = _firstTab();
+  late final PageController _pages =
+      PageController(initialPage: _tabs.indexOf(_tab).clamp(0, 3));
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  List<BoardTab> get _tabs => [
+        BoardTab.today,
+        if (controller.boardFull) BoardTab.weekly,
+        if (controller.player.level.level >= BoardRules.errandTabLevel) BoardTab.errand,
+        if (controller.activeAsks.isNotEmpty || controller.newAsks.isNotEmpty) BoardTab.npc,
+      ];
+
+  /// 받을 것이 있는 탭 (빨간 점)
+  bool _claimable(BoardTab t) => switch (t) {
+        BoardTab.errand => [
+            for (var i = 0; i < controller.board.slots.length; i++)
+              if (BoardRules.template(controller.board.slots[i].templateId,
+                      level: controller.player.level.level)
+                  case final tp?)
+                if (controller.board.slots[i].accepted && controller.errandProgress(i) >= tp.target) i
+          ].isNotEmpty,
+        BoardTab.npc => controller.activeAsks.any(_askDone),
+        _ => false,
+      };
+
+  bool _fresh(BoardTab t) => t == BoardTab.npc && controller.newAsks.isNotEmpty;
+
+  BoardTab _firstTab() {
+    final tabs = _tabs;
+    final day = controller.player.today?.dayKey;
+    if (_lastDay == day && _lastTab != null && tabs.contains(_lastTab)) return _lastTab!;
+    for (final t in tabs) {
+      if (_claimable(t)) return t;
+    }
+    for (final t in tabs) {
+      if (_fresh(t)) return t;
+    }
+    return BoardTab.today;
+  }
+
+  void _go(BoardTab t, {bool animate = true}) {
+    setState(() => _tab = t);
+    _lastTab = t;
+    _lastDay = controller.player.today?.dayKey;
+    final i = _tabs.indexOf(t);
+    if (i < 0 || !_pages.hasClients) return;
+    if (animate) {
+      _pages.animateToPage(i, duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
+    } else {
+      _pages.jumpToPage(i);
+    }
+  }
+
+  String _sub(BoardTab t) {
+    final p = controller.player;
+    switch (t) {
+      case BoardTab.today:
+        final q = QuestRules.forDay(p.today!);
+        return '${q.where((x) => x.completed).length}/${q.length}';
+      case BoardTab.weekly:
+        final q = BoardRules.thisWeek(controller.history);
+        return '${q.where((x) => x.completed).length}/${q.length} · '
+            '${BoardRules.daysLeftInWeek(controller.now)}일';
+      case BoardTab.errand:
+        return '${controller.board.doneToday}/${controller.errandsPerDay}';
+      case BoardTab.npc:
+        return '${controller.activeAsks.length + controller.newAsks.length}';
+    }
+  }
+
+  Widget _page(BoardTab t, double headerH, double screenH, double bottom) {
+    final p = controller.player;
+    final today = p.today!;
+    final Widget panel = switch (t) {
+      BoardTab.today => _DailyPanel(
+          quests: QuestRules.forDay(today),
+          allDone: QuestRules.allDone(today),
+          streak: QuestRules.allDoneStreak(p.history),
+          day: today.dayKey,
+        ),
+      BoardTab.weekly => _WeeklyPanel(controller: controller),
+      BoardTab.errand => _ErrandPanel(controller: controller),
+      BoardTab.npc => _NpcAskPanel(controller: controller),
+    };
+    return ListView(
+      key: Key('boardScroll_${t.name}'),
+      padding: EdgeInsets.zero,
+      children: [
+        WoodBoard(
+          topInset: headerH + 4,
+          minHeight: screenH,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              JobSkillBar(controller: controller, places: const [SkillPlace.board]),
+              panel,
+              SizedBox(height: bottom),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,57 +160,28 @@ class _BoardScreenState extends State<BoardScreen> {
       body: ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
-          final p = controller.player;
-          final today = p.today!;
-          // 묶음 16 #142: 막 열린 게시판(Lv.4)은 오늘의·길드 의뢰만
+          // 묶음 16 #142: 막 열린 게시판(Lv.4)은 오늘의 의뢰만
           final full = controller.boardFull;
           final urgent = full ? controller.urgent : null;
-          final headerH = _headerH ?? pad.top + 160;
+          final headerH = _headerH ?? pad.top + 210;
+          final tabs = _tabs;
+          if (!tabs.contains(_tab)) _tab = BoardTab.today;
           return Stack(children: [
             Positioned.fill(
-              child: ListView(
-                key: const Key('boardScroll'),
-                padding: EdgeInsets.zero,
-                children: [
-                  WoodBoard(
-                    topInset: headerH + 4,
-                    minHeight: screenH,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        JobSkillBar(
-                            controller: controller,
-                            places: const [SkillPlace.board]),
-                        if (urgent != null && !controller.board.urgentDone) ...[
-                          const BoardPlaque('긴급 의뢰', note: '오늘 자정까지'),
-                          const SizedBox(height: 4),
-                          NoteGrid(children: [
-                            _UrgentNote(controller: controller),
-                          ]),
-                          const SizedBox(height: 14),
-                        ],
-                        _DailyPanel(
-                          quests: QuestRules.forDay(today),
-                          allDone: QuestRules.allDone(today),
-                          streak: QuestRules.allDoneStreak(p.history),
-                          day: today.dayKey,
-                        ),
-                        if (full) ...[
-                          const SizedBox(height: 14),
-                          _WeeklyPanel(controller: controller),
-                        ],
-                        const SizedBox(height: 14),
-                        _ErrandPanel(controller: controller),
-                        // 묶음 66 #268: 마을 사람 부탁 (상태 화면 목록과 같은 데이터)
-                        _NpcAskPanel(controller: controller),
-                        SizedBox(height: pad.bottom),
-                      ],
-                    ),
-                  ),
-                ],
+              child: PageView(
+                key: const Key('boardPages'),
+                controller: _pages,
+                onPageChanged: (i) {
+                  if (i < tabs.length && tabs[i] != _tab) {
+                    setState(() => _tab = tabs[i]);
+                    _lastTab = tabs[i];
+                    _lastDay = controller.player.today?.dayKey;
+                  }
+                },
+                children: [for (final t in tabs) _page(t, headerH, screenH, pad.bottom)],
               ),
             ),
-            // 위에 얹은 머리 (뒤로 가기 · 하르트)
+            // 위에 얹은 머리 (뒤로 가기 · 하르트 · 긴급 띠 · 탭)
             Positioned(
               left: 0,
               right: 0,
@@ -110,14 +194,14 @@ class _BoardScreenState extends State<BoardScreen> {
                 },
                 child: Container(
                   key: const Key('boardHeader'),
-                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 14),
+                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 10),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       // 아래로 지나가는 쪽지가 위쪽 글과 겹쳐 보이지 않게 머리 부분은 짙게
-                      colors: [Color(0xF20B0D26), Color(0xE00B0D26), Color(0x000B0D26)],
-                      stops: [0, 0.8, 1],
+                      colors: [Color(0xF20B0D26), Color(0xE80B0D26), Color(0x000B0D26)],
+                      stops: [0, 0.88, 1],
                     ),
                   ),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -135,6 +219,28 @@ class _BoardScreenState extends State<BoardScreen> {
                           ? VillageRules.boardUrgent
                           : null,
                     ),
+                    // 묶음 70 #301: 긴급 의뢰는 탭 위 붉은 띠
+                    if (urgent != null && !controller.board.urgentDone) ...[
+                      const SizedBox(height: 8),
+                      _UrgentBand(controller: controller),
+                    ],
+                    const SizedBox(height: 8),
+                    // 묶음 70 #300: 쪽지 모양 탭
+                    Row(children: [
+                      for (final (i, t) in tabs.indexed) ...[
+                        if (i > 0) const SizedBox(width: 6),
+                        Expanded(
+                          child: _BoardTabChip(
+                            key: Key('boardTab_${t.name}'),
+                            label: t.label,
+                            sub: _sub(t),
+                            selected: t == _tab,
+                            dot: _claimable(t) || _fresh(t),
+                            onTap: () => _go(t),
+                          ),
+                        ),
+                      ],
+                    ]),
                   ]),
                 ),
               ),
@@ -143,6 +249,152 @@ class _BoardScreenState extends State<BoardScreen> {
         },
       ),
     ));
+  }
+}
+
+/// 묶음 70 #300: 게시판 탭
+enum BoardTab {
+  today('오늘'),
+  weekly('주간'),
+  errand('조합'),
+  npc('마을 사람');
+
+  const BoardTab(this.label);
+  final String label;
+}
+
+bool _askDone(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
+
+/// 쪽지 모양 탭 한 칸 (고른 칸은 금빛), 아래 작은 글 · 받을 것이 있으면 빨간 점
+class _BoardTabChip extends StatelessWidget {
+  const _BoardTabChip({
+    super.key,
+    required this.label,
+    required this.sub,
+    required this.selected,
+    required this.dot,
+    required this.onTap,
+  });
+
+  final String label;
+  final String sub;
+  final bool selected;
+  final bool dot;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Stack(clipBehavior: Clip.none, children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.fromLTRB(4, 6, 4, 5),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: selected
+                    ? const [Color(0xFFFFE7A3), Color(0xFFE2B354)]
+                    : const [Color(0xFFEBDDBE), Color(0xFFCDB991)],
+              ),
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(
+                  color: selected ? const Color(0xFFFFF2C4) : const Color(0xFF8C6A42),
+                  width: selected ? 1.6 : 1),
+              boxShadow: [
+                BoxShadow(
+                    color: selected ? const Color(0x88F2C14E) : const Color(0x66000000),
+                    blurRadius: selected ? 8 : 4,
+                    offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label,
+                    maxLines: 1,
+                    style: TextStyle(
+                        color: selected ? const Color(0xFF3A230C) : kInk,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800)),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(sub,
+                    maxLines: 1,
+                    style: const TextStyle(color: kInkSoft, fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+          ),
+          if (dot)
+            Positioned(
+              right: -2,
+              top: -3,
+              child: Container(
+                key: const Key('boardTabDot'),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.4),
+                ),
+              ),
+            ),
+        ]),
+      );
+}
+
+/// 묶음 70 #301: 탭 위 긴급 띠 「긴급 · ○○ · 오늘 자정까지」 — 누르면 쪽지 창 (다 하면 받기)
+class _UrgentBand extends StatelessWidget {
+  const _UrgentBand({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final u = c.urgent!;
+    final b = c.board;
+    final ready = b.urgentAccepted && c.urgentProgress >= u.quest.target;
+    return GestureDetector(
+      key: const Key('urgentBand'),
+      onTap: ready
+          ? () async {
+              await c.claimUrgent();
+              if (context.mounted) showTopNotice(context, '긴급 의뢰 완료!');
+            }
+          : () => _showUrgentDetail(context, c),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: ready
+              ? const [Color(0xFFE2B354), Color(0xFFB8862B)]
+              : const [Color(0xFF9E2A22), Color(0xFF6E1A15)]),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: ready ? const Color(0xFFFFF2C4) : const Color(0xFFE5826F)),
+        ),
+        child: Row(children: [
+          Icon(ready ? Icons.redeem_rounded : Icons.priority_high_rounded,
+              size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              ready
+                  ? '긴급 · ${u.quest.title} · 받기!'
+                  : '긴급 · ${u.quest.title} · 오늘 자정까지',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+          ),
+          if (b.urgentAccepted && !ready)
+            Text('${comma(c.urgentProgress)}/${comma(u.quest.target)}',
+                style: const TextStyle(color: Color(0xFFFFD9CF), fontSize: 12, fontWeight: FontWeight.w700)),
+        ]),
+      ),
+    );
   }
 }
 
@@ -603,7 +855,7 @@ class _NpcAskPanel extends StatelessWidget {
     // 묶음 69 #286: 아직 안 받은 새 부탁도 함께 (누르면 그 사람 부탁 창에서 받기)
     final fresh = controller.newAsks;
     if (list.isEmpty && fresh.isEmpty) return const SizedBox.shrink();
-    bool done(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
+    bool done(NpcAskLine a) => _askDone(a);
     final doneList = [for (final a in list) if (done(a)) a];
     final going = [for (final a in list) if (!done(a)) a];
     String title(Npc n, AskKind k) => switch (k) {
@@ -613,7 +865,7 @@ class _NpcAskPanel extends StatelessWidget {
         };
     return Padding(
       key: const Key('boardNpcAsks'),
-      padding: const EdgeInsets.only(top: 14),
+      padding: EdgeInsets.zero,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         BoardPlaque('마을 사람 부탁', note: fresh.isEmpty ? '받은 부탁 ${list.length}개' : '새 부탁 ${fresh.length}개 · 받은 부탁 ${list.length}개'),
         const SizedBox(height: 4),
@@ -1002,39 +1254,6 @@ Future<void> _showQuestDetail(BuildContext context, QuestProgress q,
     );
 
 /// 긴급 의뢰 쪽지 (빨간 테두리)
-class _UrgentNote extends StatelessWidget {
-  const _UrgentNote({required this.controller});
-
-  final AppController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    final u = c.urgent!;
-    final b = c.board;
-    final progress = c.urgentProgress;
-    final ready = b.urgentAccepted && progress >= u.quest.target;
-    return SmallNote(
-      key: const Key('urgentNote'),
-      title: u.quest.title,
-      seed: 2,
-      edge: const Color(0xFFB8322A),
-      ratio: b.urgentAccepted ? progress / u.quest.target : null,
-      progress: b.urgentAccepted
-          ? '${comma(progress)} / ${comma(u.quest.target)}${u.quest.unit}'
-          : '수락 전',
-      glow: ready,
-      sealed: b.urgentAccepted && !ready,
-      onTap: ready
-          ? () async {
-              await c.claimUrgent();
-              if (context.mounted) showTopNotice(context, '긴급 의뢰 완료!');
-            }
-          : () => _showUrgentDetail(context, c),
-    );
-  }
-}
-
 Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
     showModalBottomSheet<void>(
       context: context,

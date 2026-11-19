@@ -21,7 +21,6 @@ import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/village/tavern_screen.dart' show TavernScreen;
-import 'features/village/npc_request.dart';
 import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
@@ -443,7 +442,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 TrainingStatusRow(controller: controller),
                 // 묶음 65 #252: 걸음 상자
                 StepChestRow(controller: controller),
-                NpcRequestPanel(controller: controller),
+                // 묶음 70 #301: 마을 사람 부탁은 의뢰 게시판 탭으로
               ],
             ),
           ),

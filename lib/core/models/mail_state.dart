@@ -26,7 +26,13 @@ class MailItem {
     this.expiresAt,
     this.claimed = false,
     this.read = false,
+    this.taken = const {},
+    this.takenEquips = const [],
   });
+
+  /// 묶음 75 #333: 가방이 가득해 일부만 받았을 때 이미 받은 선물 (그림을 흐리게)
+  final Map<String, int> taken;
+  final List<EquipItem> takenEquips;
 
   /// 같은 우편을 두 번 보내지 않으려고 쓰는 id
   final String id;
@@ -55,7 +61,9 @@ class MailItem {
           {bool? claimed,
           bool? read,
           Map<String, int>? gifts,
-          List<EquipItem>? equips}) =>
+          List<EquipItem>? equips,
+          Map<String, int>? taken,
+          List<EquipItem>? takenEquips}) =>
       MailItem(
         id: id,
         kind: kind,
@@ -68,6 +76,8 @@ class MailItem {
         expiresAt: expiresAt,
         claimed: claimed ?? this.claimed,
         read: read ?? this.read,
+        taken: taken ?? this.taken,
+        takenEquips: takenEquips ?? this.takenEquips,
       );
 
   Map<String, dynamic> toJson() => {
@@ -82,6 +92,9 @@ class MailItem {
         if (expiresAt != null) 'expiresAt': expiresAt!.toIso8601String(),
         'claimed': claimed,
         'read': read,
+        if (taken.isNotEmpty) 'taken': taken,
+        if (takenEquips.isNotEmpty)
+          'takenEquips': [for (final e in takenEquips) e.toJson()],
       };
 
   static MailItem? fromJson(Object? raw) {
@@ -108,6 +121,15 @@ class MailItem {
       expiresAt: DateTime.tryParse(raw['expiresAt'] as String? ?? ''),
       claimed: raw['claimed'] as bool? ?? false,
       read: raw['read'] as bool? ?? false,
+      taken: {
+        for (final e in ((raw['taken'] as Map?) ?? const {}).entries)
+          if (e.value is num) e.key as String: (e.value as num).toInt(),
+      },
+      takenEquips: [
+        for (final e in (raw['takenEquips'] as List?) ?? const [])
+          if (e is Map)
+            if (EquipItem.fromJson(Map<String, dynamic>.from(e)) case final x?) x,
+      ],
     );
   }
 }

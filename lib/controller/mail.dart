@@ -80,7 +80,23 @@ extension MailOps on AppController {
         else if (done)
           x.copyWith(claimed: true, read: true, gifts: m.gifts, equips: m.equips)
         else
-          x.copyWith(read: true, gifts: r.left, equips: eqLeft),
+          x.copyWith(
+            read: true,
+            gifts: r.left,
+            equips: eqLeft,
+            // 묶음 75 #333: 이번에 받은 것은 「받은 선물」로 남겨 흐리게 보인다
+            taken: {
+              ...m.taken,
+              for (final e in m.gifts.entries)
+                if (e.value - (r.left[e.key] ?? 0) > 0)
+                  e.key: (m.taken[e.key] ?? 0) + e.value - (r.left[e.key] ?? 0),
+            },
+            takenEquips: [
+              ...m.takenEquips,
+              for (final e in m.equips)
+                if (!eqLeft.contains(e)) e,
+            ],
+          ),
     ]));
     if (!done) r.got.add('(가방이 가득해 ${r.left.length + eqLeft.length}가지는 우편에 남겨 뒀어요)');
     return r.got.join(', ');

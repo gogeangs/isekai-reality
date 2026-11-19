@@ -107,6 +107,11 @@ jobs:
           NEW=$(curl -sS "$CFG" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" | HOST="$HOST" python3 -c 'import json,sys,os;d=json.load(sys.stdin).get("authorizedDomains",[]);h=os.environ["HOST"];d=d+([h] if h not in d else []);print(json.dumps({"authorizedDomains":d}))')
           curl -sS -X PATCH "$CFG?updateMask=authorizedDomains" -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: arca-d0cab" -H "Content-Type: application/json" -d "$NEW" -o /dev/null -w "로그인 허용 주소 반영: HTTP %{http_code}\n"
 
+      - name: TTL 자리 문서 (콘솔에서 msgs · chatReport 를 고를 수 있게)
+        continue-on-error: true
+        working-directory: firebase/functions
+        run: node scripts/ttl_seed.js
+
       - name: TTL 정책 (함께 있어요 · 걸음 기기 · 문의 · 대화 · 대화 신고)
         continue-on-error: true
         run: |

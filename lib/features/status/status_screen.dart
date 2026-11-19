@@ -369,6 +369,9 @@ class _HeroArt extends StatelessWidget {
   /// 상태 표시줄 높이
   final double top;
 
+  /// 묶음 75 #329: 위 버튼 줄 높이 + 여유 (그 아래에서 머리가 시작)
+  static const double topBar = 66;
+
   @override
   Widget build(BuildContext context) {
     final hero = heroBaseAsset(look, tired: tired);
@@ -376,7 +379,8 @@ class _HeroArt extends StatelessWidget {
       final h = box.maxHeight;
       // 마법진 가운데 (무대 그림의 아래쪽 1/4쯤)
       final floorY = h * 0.86;
-      final heroH = (floorY - top - 8).clamp(120.0, 520.0);
+      // 묶음 75 #329: 머리 꼭대기가 위 버튼 줄(레벨 얼굴 · 대화 · 우편 · 설정, 상태 줄 + 58) 아래로 오게
+      final heroH = (floorY - top - topBar).clamp(120.0, 520.0);
       return Stack(fit: StackFit.expand, children: [
         // 무대: 아래쪽은 밤하늘 배경에 경계 없이 녹인다
         ShaderMask(
@@ -390,12 +394,7 @@ class _HeroArt extends StatelessWidget {
           child: Image.asset('assets/images/bg_status_stage.webp',
               fit: BoxFit.cover,
               alignment: const Alignment(0, 0.55),
-              errorBuilder: (_, __, ___) => Image.asset(
-                  look == HeroLook.female
-                      ? 'assets/images/bg_status_female.webp'
-                      : 'assets/images/bg_status_male.webp',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox())),
+              errorBuilder: (_, __, ___) => const SizedBox()),
         ),
         // 계절 입자 (묶음 14 A4): 무대 위에 은은하게, 멈춘 그림으로
         if (season != null)

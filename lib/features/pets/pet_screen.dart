@@ -13,10 +13,32 @@ import '../battle/element_view.dart';
 import '../../theme/top_notice.dart';
 
 /// 펫 목록 (11-11 #38): 데리고 다니기, 먹이 주기, 이름 바꾸기, 자연으로 돌려보내기
-class PetScreen extends StatelessWidget {
-  const PetScreen({super.key, required this.controller});
+class PetScreen extends StatefulWidget {
+  const PetScreen({super.key, required this.controller, this.focus});
 
   final AppController controller;
+
+  /// 묶음 75 #328: 이 펫 자세히 (그 카드로 굴리고 금테)
+  final String? focus;
+
+  @override
+  State<PetScreen> createState() => _PetScreenState();
+}
+
+class _PetScreenState extends State<PetScreen> {
+  AppController get controller => widget.controller;
+  final _focusKey = GlobalKey(debugLabel: 'petFocus');
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focus != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _focusKey.currentContext;
+        if (ctx != null && mounted) Scrollable.ensureVisible(ctx, alignment: 0.1);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +84,17 @@ class PetScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textMuted)),
                 for (final p in pets) ...[
-                  _PetCard(controller: c, pet: p),
+                  if (p.uid == widget.focus)
+                    Container(
+                      key: _focusKey,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: const [BoxShadow(color: Color(0x88FFD86B), blurRadius: 12)],
+                      ),
+                      child: _PetCard(controller: c, pet: p),
+                    )
+                  else
+                    _PetCard(controller: c, pet: p),
                   const SizedBox(height: 10),
                 ],
               ],

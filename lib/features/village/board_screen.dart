@@ -288,6 +288,8 @@ class _BoardTabChip extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         child: Stack(clipBehavior: Clip.none, children: [
           AnimatedContainer(
+            // 묶음 71: 칸 폭을 가득 (큰 화면에서 쪽지가 작아 보이지 않게)
+            width: double.infinity,
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 5),
             decoration: BoxDecoration(

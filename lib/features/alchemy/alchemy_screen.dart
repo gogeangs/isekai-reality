@@ -8,14 +8,14 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/element_view.dart' show elementColor;
 import '../town/material_view.dart';
-import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
+import 'workbench.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart'
     show TourScreenMark, firstPotionPicked, firstPotionMadeTick;
 import '../jobs/job_skill_bar.dart';
 
-/// 연금술 공방 (11-11 #57·#58): 가마솥 · 레시피 책 · 재료 가공
+/// 연금술 공방 (11-11 #57·#58). 묶음 70 #297·#298: 「작업대 · 레시피」 두 탭
 class AlchemyScreen extends StatefulWidget {
   const AlchemyScreen({super.key, required this.controller});
 
@@ -25,18 +25,48 @@ class AlchemyScreen extends StatefulWidget {
   State<AlchemyScreen> createState() => _AlchemyScreenState();
 }
 
+/// 레시피 갈래 (묶음 70 #298)
+enum RecipeGroup {
+  all('전체'),
+  heal('회복'),
+  buff('강화'),
+  resist('저항'),
+  weapon('공격'),
+  etc('기타');
+
+  const RecipeGroup(this.label);
+  final String label;
+
+  static RecipeGroup of(PotionId id) => switch (AlchemyRules.info(id).kind) {
+        PotionKind.heal || PotionKind.mana || PotionKind.care => heal,
+        PotionKind.buff => buff,
+        PotionKind.resist => resist,
+        PotionKind.weapon => weapon,
+        PotionKind.special => etc,
+      };
+}
+
 class _AlchemyScreenState extends State<AlchemyScreen> {
   int _tab = 0;
+  RecipeGroup _group = RecipeGroup.all;
+  final WorkbenchBus _bus = WorkbenchBus();
 
   /// 탭을 바꾼 뒤 마을 사람 말풍선 (탭 안내)
   String? _tabLine;
-  static const _tabs = ['가마솥', '레시피', '가공', '변환'];
+  static const _tabs = ['작업대', '레시피'];
 
   AppController get c => widget.controller;
 
   @override
+  void dispose() {
+    _bus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
+    final bottom = MediaQuery.paddingOf(context).bottom;
     return TourScreenMark(name: 'alchemy', child: Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
@@ -44,186 +74,371 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
         interior: 'alchemy', // 묶음 67 #272
         child: ListenableBuilder(
           listenable: c,
-          builder: (context, _) => ListView(
-            padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
-            children: [
-              OrnateTopBar(
-                  title: '연금술 공방',
-                  onBack: () => Navigator.of(context).maybePop()),
-              const SizedBox(height: 6),
-              // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내 (탭을 바꾸면 그 탭 안내)
-              NpcHeader(
-                controller: c,
-                npc: Npc.eliel,
-                guide: VillageRules.alchemyGuide(0),
-                tabLine: _tabLine,
-              ),
-              const SizedBox(height: 10),
-              JobSkillBar(
-                  controller: widget.controller,
-                  places: const [SkillPlace.alchemy]),
-              Row(children: [
-                for (var i = 0; i < _tabs.length; i++) ...[
-                  Expanded(
-                    child: ChoiceChip(
-                      label: SizedBox(
-                          width: double.infinity,
-                          child: Text(_tabs[i], textAlign: TextAlign.center)),
-                      selected: _tab == i,
-                      onSelected: (_) => setState(() {
-                        _tab = i;
-                        _tabLine = VillageRules.alchemyGuide(i);
-                      }),
-                      selectedColor: AppColors.gold,
-                      backgroundColor: AppColors.chipBg,
-                      labelStyle: TextStyle(
-                          color: _tab == i ? AppColors.night : AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
-                      showCheckmark: false,
+          builder: (context, _) => Padding(
+            padding: EdgeInsets.fromLTRB(14, top + 6, 14, bottom + 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OrnateTopBar(
+                    title: '연금술 공방',
+                    onBack: () => Navigator.of(context).maybePop()),
+                const SizedBox(height: 6),
+                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내 (탭을 바꾸면 그 탭 안내)
+                NpcHeader(
+                  controller: c,
+                  npc: Npc.eliel,
+                  guide: VillageRules.alchemyGuide(0),
+                  tabLine: _tabLine,
+                ),
+                const SizedBox(height: 8),
+                JobSkillBar(
+                    controller: widget.controller,
+                    places: const [SkillPlace.alchemy]),
+                Row(children: [
+                  for (var i = 0; i < _tabs.length; i++) ...[
+                    Expanded(
+                      child: ChoiceChip(
+                        key: Key('alchemyTab_$i'),
+                        label: SizedBox(
+                            width: double.infinity,
+                            child: Text(_tabs[i], textAlign: TextAlign.center)),
+                        selected: _tab == i,
+                        onSelected: (_) => setState(() {
+                          _tab = i;
+                          _tabLine = VillageRules.alchemyGuide(i);
+                        }),
+                        selectedColor: AppColors.gold,
+                        backgroundColor: AppColors.chipBg,
+                        labelStyle: TextStyle(
+                            color: _tab == i ? AppColors.night : AppColors.text,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14),
+                        showCheckmark: false,
+                      ),
                     ),
-                  ),
-                  if (i < _tabs.length - 1) const SizedBox(width: 6),
-                ],
-              ]),
-              const SizedBox(height: 10),
-              ...switch (_tab) {
-                0 => _cauldrons(context),
-                1 => _book(context),
-                3 => [ConvertPanel(controller: c)],
-                _ => [
-                    ProcessPanel(controller: c),
-                    const SizedBox(height: 10),
-                    ToolRepairPanel(controller: c, smithy: false),
+                    if (i < _tabs.length - 1) const SizedBox(width: 6),
                   ],
-              },
-            ],
+                ]),
+                const SizedBox(height: 8),
+                // 묶음 28 #181: 첫 물약 안내 중이면 회복 물약 판이 맨 위에
+                if (_tab == 0 && c.firstPotionGuide) ...[
+                  _FirstPotionPanel(controller: c),
+                  const SizedBox(height: 8),
+                ],
+                Expanded(
+                  child: _tab == 0
+                      ? AlchemyWorkbench(controller: c, bus: _bus)
+                      : _book(context),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     ));
   }
 
-  // ───────────── 가마솥
+  // ───────────── 레시피 (3칸 격자)
 
-  List<Widget> _cauldrons(BuildContext context) {
-    final gold = c.cauldronGold;
-    return [
-      // 묶음 28 #181: 첫 물약 안내 중이면 회복 물약 판이 맨 위에
-      if (c.firstPotionGuide) ...[
-        _FirstPotionPanel(controller: c),
-        const SizedBox(height: 10),
-      ],
-      for (var i = 0; i < c.cauldronCount; i++) ...[
-        _CauldronCard(controller: c, slot: i),
-        const SizedBox(height: 10),
-      ],
-      if (gold != null) ...[
-        FrameButton(
-          label: '가마솥 하나 더 · 금화 ${comma(gold)}'
-              '${c.cauldronStone > 0 ? ' + 미궁 석재 ${c.cauldronStone}' : ''}',
-          gameIcon: 'gold',
-          height: 44,
-          onPressed: () async {
-            final ok = await c.buyCauldron();
-            if (!context.mounted) return;
-            showTopNotice(context, ok ? '가마솥이 하나 늘었어요!' : '금화나 재료가 모자라요.');
-          },
-        ),
-        const SizedBox(height: 10),
-      ],
-      AlchemistPanel(controller: c),
-    ];
-  }
-
-  // ───────────── 레시피 책
-
-  List<Widget> _book(BuildContext context) {
+  Widget _book(BuildContext context) {
     final known = c.knownRecipes;
-    return [
-      if (c.recipeNotes > 0)
-        Center(
-          child: Image.asset('assets/images/item_recipe_note.webp',
-              height: 64,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-        ),
-      if (c.recipeNotes > 0)
-        GoldButton(
-          label: '레시피 쪽지 읽기 (${c.recipeNotes}장)',
-          height: 46,
-          onPressed: () async {
-            final id = await c.readNote();
-            if (!context.mounted) return;
-            showTopNotice(context, id == null
-                    ? '더 알아낼 레시피가 없어요.'
-                    : '「${AlchemyRules.info(id).name}」의 재료를 알아냈어요!');
-          },
-        ),
-      if (c.recipeNotes > 0) const SizedBox(height: 10),
-      OrnatePanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    final groups = [
+      RecipeGroup.all,
+      for (final g in RecipeGroup.values.skip(1))
+        if (known.any((id) => RecipeGroup.of(id) == g)) g,
+    ];
+    if (!groups.contains(_group)) _group = RecipeGroup.all;
+    final shown = [
+      for (final id in known)
+        if (_group == RecipeGroup.all || RecipeGroup.of(id) == _group) id,
+    ];
+    return ListView(
+      key: const Key('recipeList'),
+      padding: EdgeInsets.zero,
+      children: [
+        if (c.recipeNotes > 0) ...[
+          GoldButton(
+            label: '레시피 쪽지 읽기 (${c.recipeNotes}장)',
+            height: 44,
+            fontSize: 16,
+            onPressed: () async {
+              final id = await c.readNote();
+              if (!context.mounted) return;
+              showTopNotice(context, id == null
+                      ? '더 알아낼 레시피가 없어요.'
+                      : '「${AlchemyRules.info(id).name}」의 재료를 알아냈어요!');
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+        Text('알아낸 레시피 ${known.length}',
+            key: const Key('recipeCount'), style: AppText.title(17)),
+        const SizedBox(height: 6),
+        if (groups.length > 2)
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final g in groups)
+              ChoiceChip(
+                key: Key('recipeGroup_${g.name}'),
+                label: Text(g.label),
+                selected: _group == g,
+                onSelected: (_) => setState(() => _group = g),
+                selectedColor: AppColors.gold,
+                backgroundColor: AppColors.chipBg,
+                labelStyle: TextStyle(
+                    color: _group == g ? AppColors.night : AppColors.text,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5),
+                visualDensity: VisualDensity.compact,
+                showCheckmark: false,
+              ),
+          ]),
+        const SizedBox(height: 8),
+        GridView.count(
+          key: const Key('recipeGrid'),
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 0.72,
           children: [
-            Row(children: [
-              Image.asset('assets/images/item_recipe_book.webp',
-                  width: 40,
-                  height: 40,
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.menu_book_rounded,
-                      color: AppColors.goldBright)),
-              const SizedBox(width: 8),
-              Text('알아낸 레시피 ${known.length}', style: AppText.title(19)),
-            ]),
-            const SizedBox(height: 2),
-            const KText('모르는 물약은 이름도 보이지 않아요. 재료를 자유롭게 넣어 끓여 보세요.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-            const SizedBox(height: 8),
-            for (final id in known) _RecipeRow(controller: c, id: id),
+            for (final id in shown)
+              _RecipeTile(
+                controller: c,
+                id: id,
+                onTap: () => _showRecipe(context, id),
+              ),
           ],
         ),
+        const SizedBox(height: 12),
+        AlchemistPanel(controller: c),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Future<void> _showRecipe(BuildContext context, PotionId id) => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.night,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (sheet) => _RecipeDetail(
+          controller: c,
+          id: id,
+          onFill: (put) {
+            // 빈 가마솥 (넣어 둔 재료도 없는 칸 먼저)
+            int? slot;
+            for (var i = 0; i < c.cauldronCount; i++) {
+              if (c.alchemy.brews[i] == null && (_bus.drafts[i]?.isEmpty ?? true)) {
+                slot = i;
+                break;
+              }
+            }
+            if (slot == null) {
+              for (var i = 0; i < c.cauldronCount; i++) {
+                if (c.alchemy.brews[i] == null) {
+                  slot = i;
+                  break;
+                }
+              }
+            }
+            if (slot == null) return false;
+            Navigator.of(sheet).pop();
+            _bus.fill(slot, put);
+            setState(() {
+              _tab = 0;
+              _tabLine = VillageRules.alchemyGuide(0);
+            });
+            return true;
+          },
+        ),
+      );
+}
+
+/// 레시피 한 칸: 물약 그림 · 이름(두 줄까지) · 「10분 · 3개」.
+/// 재료가 다 있으면 초록 점, 쪽지로 알았으면 작은 쪽지, 최상으로 만들어 봤으면 금빛 테두리
+class _RecipeTile extends StatelessWidget {
+  const _RecipeTile({required this.controller, required this.id, required this.onTap});
+
+  final AppController controller;
+  final PotionId id;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final info = AlchemyRules.info(id);
+    final best = c.madeBest(id);
+    final noted = !c.recipeDiscovered(id);
+    final ready = c.hasRecipeMats(id);
+    return GestureDetector(
+      key: Key('recipeTile_${id.name}'),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+        decoration: BoxDecoration(
+          color: AppColors.slotBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: best ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.35),
+              width: best ? 2 : 1),
+          boxShadow: best ? const [BoxShadow(color: Color(0x66FFD86B), blurRadius: 6)] : null,
+        ),
+        child: Stack(children: [
+          Column(children: [
+            PotionIcon(potion: id, size: 64),
+            const SizedBox(height: 4),
+            Expanded(
+              child: Text(keepAll(info.name),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700, height: 1.2)),
+            ),
+            Text('${info.minutes}분 · ${info.yields}개',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          ]),
+          if (ready)
+            Positioned(
+              left: 2,
+              top: 0,
+              child: Container(
+                key: const Key('recipeReadyDot'),
+                width: 9,
+                height: 9,
+                decoration: const BoxDecoration(color: Color(0xFF6BD97A), shape: BoxShape.circle),
+              ),
+            ),
+          if (noted)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Image.asset('assets/images/item_recipe_note.webp',
+                  key: const Key('recipeNoteMark'),
+                  width: 18,
+                  height: 18,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.sticky_note_2_rounded, size: 15, color: AppColors.goldBright)),
+            ),
+        ]),
       ),
-    ];
+    );
   }
 }
 
-class _RecipeRow extends StatelessWidget {
-  const _RecipeRow({required this.controller, required this.id});
+/// 레시피 상세: 큰 그림 · 효과 · 재료(가진 수 / 필요) · 시간 · 개수 · 잘 맞는 약초 · 「가마솥에 넣기」
+class _RecipeDetail extends StatelessWidget {
+  const _RecipeDetail({required this.controller, required this.id, required this.onFill});
 
   final AppController controller;
   final PotionId id;
 
+  /// 넣을 재료 → 빈 가마솥이 없으면 false
+  final bool Function(List<MaterialId>) onFill;
+
   @override
   Widget build(BuildContext context) {
+    final c = controller;
     final info = AlchemyRules.info(id);
-    final made = controller.recipeDiscovered(id);
-    // 넣는 순서는 알려 주지 않는다: 재료 순서로 정렬해서 보여 준다
-    final counts = info.counts.entries.toList()
-      ..sort((a, b) => a.key.index.compareTo(b.key.index));
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(children: [
-        PotionIcon(potion: id, size: 40),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${info.name}${made ? '' : ' (쪽지)'}',
-                  style: AppText.title(14, color: AppColors.text)),
-              KText(
-                  '${[for (final e in counts) '${Materials.needName(e.key)} ${e.value}'].join(' · ')}'
-                  ' · ${info.minutes}분 · ${info.yields}개',
-                  style:
-                      const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-              // 묶음 67 #273: 「약초」 칸에 잘 맞는 약초
-              if (info.counts.containsKey(MaterialId.herb) && AlchemyRules.bestHerb(id) != null)
-                Text('잘 맞는 약초: ${Materials.info(AlchemyRules.bestHerb(id)!).name}',
-                    key: Key('bestHerb_${id.name}'),
-                    style: const TextStyle(color: Color(0xFF9FE3A8), fontSize: 11.5)),
-            ],
-          ),
+    final made = c.recipeDiscovered(id);
+    // 만들어 본 레시피만 넣는 순서대로, 쪽지로만 알면 재료 순서로 (순서는 숨김)
+    final order = made
+        ? info.recipe
+        : ([...info.recipe]..sort((a, b) => a.index.compareTo(b.index)));
+    final need = <MaterialId, int>{};
+    for (final m in order) {
+      need[m] = (need[m] ?? 0) + 1;
+    }
+    int have(MaterialId m) => m == MaterialId.herb
+        ? Materials.herbGroup.fold(0, (t, h) => t + c.player.materialCount(h))
+        : c.player.materialCount(m);
+    final fill = c.recipeFill(id);
+    final empty = [for (var i = 0; i < c.cauldronCount; i++) if (c.alchemy.brews[i] == null) i];
+    final herb = AlchemyRules.bestHerb(id);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: PotionIcon(potion: id, size: 110)),
+            const SizedBox(height: 6),
+            Text(info.name, textAlign: TextAlign.center, style: AppText.title(20)),
+            const SizedBox(height: 4),
+            KText(info.description,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.text, fontSize: 13, height: 1.4)),
+            const SizedBox(height: 10),
+            Text(made ? '넣는 순서' : '재료', style: AppText.title(14, color: AppColors.goldBright)),
+            const SizedBox(height: 4),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final (i, m) in (made ? order : need.keys.toList()).indexed)
+                Container(
+                  key: Key('recipeNeed_$i'),
+                  padding: const EdgeInsets.fromLTRB(4, 3, 8, 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.slotBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: have(m) >= need[m]! ? AppColors.gold.withValues(alpha: 0.4) : AppColors.danger),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (made)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Text('${i + 1}',
+                            style: const TextStyle(
+                                color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w800)),
+                      ),
+                    MaterialIcon(m == MaterialId.herb ? (herb ?? m) : m, size: 26),
+                    const SizedBox(width: 3),
+                    Text('${Materials.needName(m)} ${have(m)}/${need[m]}',
+                        style: TextStyle(
+                            color: have(m) >= need[m]! ? AppColors.text : AppColors.danger,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+            ]),
+            const SizedBox(height: 8),
+            Text('${info.minutes}분 · ${info.yields}개',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            // 묶음 67 #273: 「약초」 칸에 잘 맞는 약초
+            if (info.counts.containsKey(MaterialId.herb) && herb != null)
+              Text('잘 맞는 약초: ${Materials.info(herb).name}',
+                  key: Key('bestHerb_${id.name}'),
+                  style: const TextStyle(color: Color(0xFF9FE3A8), fontSize: 12)),
+            const SizedBox(height: 12),
+            if (fill == null)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: KText('재료가 모자라요',
+                    key: Key('recipeShort'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700)),
+              )
+            else if (empty.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: KText('가마솥이 모두 끓고 있어요',
+                    key: Key('recipeBusy'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              ),
+            GoldButton(
+              key: const Key('recipeFill'),
+              label: '가마솥에 넣기',
+              height: 46,
+              fontSize: 17,
+              onPressed: fill == null || empty.isEmpty ? null : () => onFill(fill),
+            ),
+          ],
         ),
-      ]),
+      ),
     );
   }
 }
@@ -370,91 +585,8 @@ class _FirstPotionPanelState extends State<_FirstPotionPanel> {
   }
 }
 
-class _CauldronCard extends StatelessWidget {
-  const _CauldronCard({required this.controller, required this.slot});
-
-  final AppController controller;
-  final int slot;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    final brew = c.alchemy.brews[slot];
-    final ready = c.brewReady(slot);
-    Widget body;
-    if (brew == null) {
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const KText('비어 있어요. 재료를 최대 5개까지 순서대로 넣어 끓여요.',
-              style: TextStyle(color: AppColors.text, fontSize: 14)),
-          const SizedBox(height: 8),
-          GoldButton(
-            label: '재료 넣기',
-            height: 44,
-            onPressed: () => showBrewSheet(context, c, slot),
-          ),
-        ],
-      );
-    } else {
-      final total = brew.readyAt.difference(brew.startedAt).inSeconds;
-      final done = c.now.difference(brew.startedAt).inSeconds;
-      final left = brew.readyAt.difference(c.now);
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(spacing: 4, runSpacing: 4, children: [
-            for (final n in brew.put)
-              if (Materials.byName(n) case final m?) MaterialIcon(m, size: 28),
-          ]),
-          const SizedBox(height: 6),
-          GlowBar(
-              ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0),
-              colors: BarColors.exp,
-              height: 7),
-          const SizedBox(height: 4),
-          Text(
-              ready
-                  ? '다 끓었어요!'
-                  : '${left.inMinutes >= 60 ? '${left.inHours}시간 ${left.inMinutes % 60}분' : '${left.inMinutes + 1}분'} 남았어요',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          if (ready) ...[
-            const SizedBox(height: 8),
-            GoldButton(
-              label: '꺼내기',
-              height: 44,
-              onPressed: () async {
-                final r = await c.collectBrew(slot);
-                if (r == null || !context.mounted) return;
-                await _showResult(context, c, r);
-              },
-            ),
-          ],
-        ],
-      );
-    }
-    return OrnatePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(children: [
-            Image.asset('assets/images/cauldron.webp',
-                width: 44,
-                height: 44,
-                errorBuilder: (_, __, ___) => const Icon(Icons.soup_kitchen_rounded,
-                    size: 36, color: AppColors.goldBright)),
-            const SizedBox(width: 8),
-            Text('가마솥 ${slot + 1}', style: AppText.title(16)),
-          ]),
-          const SizedBox(height: 8),
-          body,
-        ],
-      ),
-    );
-  }
-}
-
-Future<void> _showResult(BuildContext context, AppController c, BrewResult r) {
+/// 다 끓은 물약을 받았을 때 (품질 보여 줌)
+Future<void> showBrewResult(BuildContext context, AppController c, BrewResult r) {
   final String title;
   final String line;
   if (r.suspicious != null) {
@@ -488,137 +620,6 @@ Future<void> _showResult(BuildContext context, AppController c, BrewResult r) {
       actions: [
         TextButton(onPressed: () => Navigator.pop(d), child: const Text('좋아요')),
       ],
-    ),
-  );
-}
-
-/// 가마솥에 재료 넣기: 누른 순서대로 쌓이고, 다시 누르면 빠진다
-Future<void> showBrewSheet(BuildContext context, AppController c, int slot) {
-  final put = <MaterialId>[];
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.night,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-    builder: (sheet) => StatefulBuilder(
-      builder: (sheet, setState) {
-        final have = c.player.materials;
-        int left(MaterialId m) =>
-            (have[m] ?? 0) - put.where((x) => x == m).length;
-        final mats = have.keys.toList()
-          ..sort((a, b) => a.index.compareTo(b.index));
-        return SafeArea(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(sheet).height * 0.8),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('가마솥 ${slot + 1}에 넣기', style: AppText.title(19)),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 56,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.slotBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
-                    ),
-                    child: Row(children: [
-                      // 묶음 66: 영지 특산물은 한 칸 더 (더 넣는 재료)
-                      for (var i = 0; i < AlchemyRules.maxIngredients + (put.any(AlchemyRules.isAdditive) ? 1 : 0); i++) ...[
-                        Expanded(
-                          child: i < put.length
-                              ? GestureDetector(
-                                  onTap: () => setState(() => put.removeAt(i)),
-                                  child: MaterialIcon(put[i], size: 38))
-                              : Icon(Icons.add_circle_outline_rounded,
-                                  color: AppColors.gold.withValues(alpha: 0.3)),
-                        ),
-                        if (i < AlchemyRules.maxIngredients + (put.any(AlchemyRules.isAdditive) ? 1 : 0) - 1)
-                          Icon(Icons.chevron_right_rounded,
-                              size: 14,
-                              color: AppColors.gold.withValues(alpha: 0.4)),
-                      ],
-                    ]),
-                  ),
-                  const SizedBox(height: 4),
-                  const KText('넣은 재료를 누르면 빠져요. 왼쪽부터 넣은 순서예요.',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: mats.isEmpty
-                        ? const KText('가방에 재료가 없어요.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textMuted))
-                        : GridView.count(
-                            crossAxisCount: 5,
-                            shrinkWrap: true,
-                            padding: EdgeInsets.zero,
-                            mainAxisSpacing: 6,
-                            crossAxisSpacing: 6,
-                            children: [
-                              for (final m in mats)
-                                GestureDetector(
-                                  onTap: left(m) > 0 &&
-                                          (AlchemyRules.isAdditive(m)
-                                              ? !put.any(AlchemyRules.isAdditive)
-                                              : put.where((x) => !AlchemyRules.isAdditive(x)).length < AlchemyRules.maxIngredients)
-                                      ? () => setState(() => put.add(m))
-                                      : null,
-                                  child: Opacity(
-                                    opacity: left(m) > 0 ? 1 : 0.35,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.slotBg,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                            color: AppColors.gold
-                                                .withValues(alpha: 0.4)),
-                                      ),
-                                      child: Stack(children: [
-                                        Center(child: MaterialIcon(m, size: 36)),
-                                        Positioned(
-                                          right: 4,
-                                          bottom: 2,
-                                          child: Text('${left(m)}',
-                                              style: const TextStyle(
-                                                  color: AppColors.text,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w800,
-                                                  shadows: [Shadow(blurRadius: 3)])),
-                                        ),
-                                      ]),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                  ),
-                  const SizedBox(height: 10),
-                  GoldButton(
-                    label: '끓이기',
-                    height: 46,
-                    onPressed: put.isEmpty
-                        ? null
-                        : () async {
-                            final ok = await c.startBrew(slot, put);
-                            if (sheet.mounted) Navigator.of(sheet).pop();
-                            if (!ok && context.mounted) {
-                              showTopNotice(context, '끓이지 못했어요.');
-                            }
-                          },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     ),
   );
 }

@@ -31,7 +31,7 @@ function realDeps() {
   const market = new MarketService(db);
   market.suspect = suspect;
   // 묶음 68: 대화 · 친구
-  const chat = new ChatService(db, { guild });
+  const chat = new ChatService(db, { guild, suspect });
   _deps = {
     db,
     party,
@@ -275,7 +275,9 @@ async function handle(req, res) {
       const uid = tok.uid;
       const ch = deps.chat;
       const r = {
-        '/chat/me': () => ch.me(uid, body.me || {}),
+        '/chat/me': () => ch.me(uid, body.me || {}, { appCheckBad: !!req.appCheckBad }),
+        '/chat/invite/claim': () =>
+          ch.inviteClaim(uid, { code: body.code, level: (body.me || {}).level, dev: (body.me || {}).device, appCheckBad: !!req.appCheckBad }),
         '/chat/rules': () => ch.rules(uid),
         '/chat/settings': () => ch.settings(uid, body),
         '/chat/read': () => ch.read(uid, body),

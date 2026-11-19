@@ -610,8 +610,11 @@ void main() {
         MaterialPageRoute<void>(builder: (_) => AlchemyScreen(controller: c)));
     await tester.pumpAndSettle();
     await _shot(tester, '28e_공방_가마솥');
-    await tester.tap(find.text('변환'));
-    await tester.pumpAndSettle();
+    // 묶음 70 #297: 작업대를 넘겨 변환 제단으로
+    for (var i = 0; i < c.cauldronCount + 1; i++) {
+      await tester.tap(find.byKey(const Key('benchNext')));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.text('마석 정제'));
     await tester.pumpAndSettle();
     await _shot(tester, '28f_공방_변환');

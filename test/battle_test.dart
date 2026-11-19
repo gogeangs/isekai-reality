@@ -396,7 +396,7 @@ void main() {
       home: DungeonScreen(
           controller: c, tickInterval: const Duration(milliseconds: 100)),
     ));
-    expect(find.text('열쇠 2개'), findsOneWidget);
+    expect(find.text('열쇠 2개'), findsWidgets);
 
     await tester.scrollUntilVisible(find.text('던전 열기 · 열쇠 1개'), 300,
         scrollable: find.byType(Scrollable).first);

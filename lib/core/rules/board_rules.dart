@@ -63,6 +63,9 @@ enum UrgentPrize { key, rareMaterial }
 /// 의뢰 게시판 규칙 (제안서 4장, 11-10 확정).
 /// 경험치는 일일·주간에서만 주고, 수시·긴급은 금화·재료만 준다.
 class BoardRules {
+  /// 묶음 70 #300: 게시판 「조합」 탭이 열리는 레벨
+  static const int errandTabLevel = 15;
+
   BoardRules._();
 
   // ───────────────────────── 주간 (월요일 시작, 자동 진행)

@@ -28,7 +28,6 @@ class RuleConstants {
   // ---------------------------------------------------------------- 던전 게이지
   static const int stepsPerKey = 2500;
   static const int maxKeysEarnedPerDay = 4; // 10,000보
-  static const int maxKeysCarryOver = 3;
 
   /// 자기 걸음 목표를 채운 날 주는 보너스 열쇠 (밸런스 A안)
   static const int goalBonusKeys = 1;
@@ -38,8 +37,6 @@ class RuleConstants {
   static const int dungeonFailExp = 10;
   static const double gateBonusMultiplier = 1.5;
 
-  /// 하루에 경험치를 받을 수 있는 던전 횟수 (이월 열쇠를 써도 같음)
-  static const int maxDungeonRunsPerDay = 4;
 
   static const int fieldMonsterExp = 15;
   /// 하루 사냥 보상이 그대로인 마리 수 (11-11 #69: 그 뒤에도 사냥은 되고 보상만 줄어든다)

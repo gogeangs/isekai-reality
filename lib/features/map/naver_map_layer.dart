@@ -234,11 +234,15 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
             id: 'route_$i',
             coords: coords,
             width: 2,
-            color: _routeColor(c, actives[i]).withValues(alpha: 0.28),
+            color: actives[i].sky
+                ? const Color(0x00000000)
+                : _routeColor(c, actives[i]).withValues(alpha: 0.28),
             outlineWidth: 0,
             outlineColor: const Color(0x00000000),
-            patternImage: NOverlayImage.fromAssetImage(
-                'assets/images/map_step_${_stepKey(c, actives[i])}.webp'),
+            // 묶음 70 #294: 나는 펫은 하늘 점선
+            patternImage: NOverlayImage.fromAssetImage(actives[i].sky
+                ? 'assets/images/map_step_wing.webp'
+                : 'assets/images/map_step_${_stepKey(c, actives[i])}.webp'),
             patternInterval: _stepGap,
           ),
       for (var i = 0; i < actives.length; i++)
@@ -538,8 +542,11 @@ class _NaverMapLayerState extends State<_NaverMapLayer> {
         final dy = ahead.$1 - p.$1;
         final moving = dx.abs() + dy.abs() > 1e-7;
         // 마리마다 박자가 조금씩 다르게. 멈춰 있으면 천천히 오르내림
-        final phase = (ms / (moving ? 1300 : 2600)) * 2 * math.pi + i * 1.7;
-        final lift = (moving ? 0.10 : 0.06) * (1 + math.sin(phase)) / 2;
+        // 묶음 70 #294: 나는 펫은 더 높이 · 빠르게 날갯짓
+        final sky = ex.sky && moving;
+        final phase = (ms / (sky ? 1000 : moving ? 1300 : 2600)) * 2 * math.pi + i * 1.7;
+        final lift = (sky ? 0.35 : moving ? 0.10 : 0.06) * (1 + math.sin(phase)) / 2 +
+            (sky ? 0.25 : 0);
         m.setAnchor(NPoint(0.5, 1 + lift));
         // 묶음 19 #153: 돌리지 않고 똑바로 선 채, 방향은 좌우 뒤집기로만
         if (moving && dx.abs() > 1e-7) {

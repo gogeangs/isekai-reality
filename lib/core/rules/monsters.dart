@@ -1,3 +1,4 @@
+import 'field_monster_rules.dart';
 import 'element_rules.dart';
 
 /// 몬스터 (11-10 '정화' → '사냥'으로 바꿈).
@@ -1705,6 +1706,31 @@ class Monsters {
   ];
 
   static MonsterInfo info(MonsterId id) => _all.firstWhere((m) => m.id == id);
+
+  /// 묶음 70 #293: 도감 갈래 (발견한 것만 칸을 그리고, 하나라도 발견해야 갈래 제목이 나옴). null = 도감에 없음
+  static String? codexGroup(MonsterId id) {
+    final m = info(id);
+    // 레벨 단계 지도 몬스터 (3막 · 5막 몬스터를 지도에서 다시 씀)
+    if (FieldMonsterRules.isTierMonster(id)) return '필드';
+    if (m.highland) return '하이랜드';
+    const ash = {MonsterId.ashRage, MonsterId.ashSorrow, MonsterId.ashGreed, MonsterId.ashFear, MonsterId.ashLonely, MonsterId.ashKing};
+    if (ash.contains(id)) return '2막 분신';
+    const train = {MonsterId.dummy, MonsterId.dummyHard, MonsterId.dummyElement, MonsterId.trainingGolem};
+    if (train.contains(id)) return '훈련장';
+    const party = {MonsterId.partyGolem, MonsterId.partyHydra, MonsterId.partyWyvern, MonsterId.partyKraken};
+    if (party.contains(id)) return '파티 보스';
+    const raid = {MonsterId.raidGiant, MonsterId.raidDragon, MonsterId.raidLich, MonsterId.raidTortoise};
+    if (raid.contains(id)) return '길드 레이드';
+    const clones = {MonsterId.cloneWarrior, MonsterId.cloneKnight, MonsterId.cloneArcher, MonsterId.cloneMage, MonsterId.clonePriest, MonsterId.cloneRogue, MonsterId.garrisonClone};
+    if (clones.contains(id)) return null;
+    if (id.index >= MonsterId.doppelganger.index) return '필드';
+    if (id.index >= MonsterId.wildGriffin.index && id.index <= MonsterId.blackCaptain.index) return '공성전';
+    if (!m.retired || m.codexOnly) return '필드';
+    if (id.index >= MonsterId.goblinRaider.index && id.index <= MonsterId.phoenixMother.index) return '3막 지역';
+    return null;
+  }
+
+  static const List<String> codexGroups = ['필드', '하이랜드', '2막 분신', '3막 지역', '파티 보스', '길드 레이드', '공성전', '훈련장'];
 
   /// 묶음 69 #281: 앱에 들어 있는 그림 (main 에서 채움 · 모르면 null = 있다고 봄)
   static Set<String>? knownAssets;

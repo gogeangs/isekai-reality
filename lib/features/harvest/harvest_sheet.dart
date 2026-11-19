@@ -209,12 +209,11 @@ class HarvestSheet extends StatelessWidget {
       );
 }
 
-/// 채집 도구 목록·수리·등급·속성 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대·붓)
+/// 채집 도구 목록·수리·등급·속성 — 묶음 70 #302: 다섯 가지 모두 대장간 「수리」 탭
 class ToolRepairPanel extends StatelessWidget {
-  const ToolRepairPanel({super.key, required this.controller, required this.smithy});
+  const ToolRepairPanel({super.key, required this.controller});
 
   final AppController controller;
-  final bool smithy;
 
   /// 빛나는 속성 코어가 있는 속성만 고를 수 있다 (금화 100)
   Future<void> _imbue(BuildContext context, HarvestTool t) async {
@@ -266,11 +265,9 @@ class ToolRepairPanel extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final c = controller;
-    final tools = [
-      for (final t in HarvestTool.values)
-        if (HarvestRules.smithyTool(t) == smithy) t,
-    ];
+    const tools = HarvestTool.values;
     return OrnatePanel(
+      key: const Key('toolRepairPanel'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -298,6 +295,8 @@ class ToolRepairPanel extends StatelessWidget {
                     ' ${c.toolDurability(t)} / ${c.toolMaxOf(t)}',
                     style: const TextStyle(color: AppColors.text)),
               ),
+            ]),
+            Wrap(spacing: 6, children: [
               TextButton(
                 onPressed: c.harvest.granted &&
                         c.toolDurability(t) < c.toolMaxOf(t) &&
@@ -309,10 +308,9 @@ class ToolRepairPanel extends StatelessWidget {
                         }
                       }
                     : null,
-                child: Text('수리 (${Materials.info(HarvestRules.repairMaterial(t)).name} 1)'),
+                key: Key('toolRepair_${t.name}'),
+                child: Text('수리 (${Materials.info(HarvestRules.repairMaterial(t)).name} 1 + 금화 ${HarvestRules.repairGold})'),
               ),
-            ]),
-            Wrap(spacing: 6, children: [
               if (HarvestRules.upgradeCost(c.toolTier(t)) case final cost?)
                 TextButton(
                   key: Key('toolUpgrade_${t.name}'),

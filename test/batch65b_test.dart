@@ -36,13 +36,12 @@ void main() {
       expect(WalkRewardRules.chestsOn(11999, _d20), isEmpty);
     });
 
-    test('열쇠 조각: 두 개 = 열쇠, 넘어가는 열쇠가 차 있으면 조각으로 보관', () {
-      // 1만5천 보 → 열쇠 4 + 조각 2. 열쇠가 4개 있으니 조각은 보관
+    test('열쇠 조각: 두 개 = 늘 바로 열쇠 (묶음 70 #296)', () {
+      // 1만5천 보 → 열쇠 4 + 조각 2 → 열쇠 5
       var g = DungeonGaugeRules.today(steps: 15000, shardsToday: 2);
-      expect(g.keysAvailable, 4);
-      expect(g.shards, 2);
-      expect(g.shardKeysToday, 0);
-      // 열쇠를 두 개 쓰면 (남은 2 < 3) 조각이 맞물려 열쇠 하나
+      expect(g.keysAvailable, 5);
+      expect(g.shards, 0);
+      expect(g.shardKeysToday, 1);
       g = DungeonGaugeRules.today(steps: 15000, shardsToday: 2, keysUsedToday: 2);
       expect(g.keysAvailable, 3);
       expect(g.shards, 0);

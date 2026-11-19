@@ -216,6 +216,17 @@ class _PetCard extends StatelessWidget {
               '${pet.adult ? '' : '\nLv.${PetRules.adultLevel}에 성체가 돼요. 자라면 더 좋아져요.'}'
               '${pet.hero && !pet.awake ? '\n단짝이 되면 각성 모습을 보여 줘요.' : ''}',
               style: const TextStyle(color: AppColors.text, fontSize: 12)),
+          // 묶음 70 #294: 나는 펫
+          if (info.flies)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(key: const Key('petFlies'), children: [
+                Image.asset('assets/images/flag_emb_wing.webp', width: 16, height: 16),
+                const SizedBox(width: 4),
+                const KText('원정은 하늘을 날아 곧장 가요',
+                    style: TextStyle(color: Color(0xFF9BD7FF), fontSize: 12)),
+              ]),
+            ),
           // 묶음 32 #191: 기운 공명
           if (c.petResonant(pet))
             const Padding(

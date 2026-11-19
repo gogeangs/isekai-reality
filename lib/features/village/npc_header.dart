@@ -99,7 +99,10 @@ class _NpcHeaderState extends State<NpcHeader> {
           link: _link,
           child: OverlayPortal(
             controller: _portal,
-            overlayChildBuilder: (_) => CompositedTransformFollower(
+            // 묶음 70 #298: 내려서 얼굴이 상태 표시줄 밑으로 가면 말풍선도 그 아래만 보이게
+            overlayChildBuilder: (context) => ClipRect(
+              clipper: _BelowStatusBar(MediaQuery.paddingOf(context).top + 6),
+              child: CompositedTransformFollower(
               link: _link,
               showWhenUnlinked: false,
               // 이름표 아래, 얼굴 오른쪽에 (아래 내용 위로 겹쳐 뜸)
@@ -128,7 +131,7 @@ class _NpcHeaderState extends State<NpcHeader> {
                         );
                       }),
               ),
-            ),
+            )),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               GestureDetector(
                 key: Key('npcFace_${widget.npc.name}'),
@@ -218,3 +221,15 @@ class NpcFace extends StatelessWidget {
       );
 }
 
+
+/// 상태 표시줄 아래만 (말풍선이 시계·배터리 위로 뜨지 않게)
+class _BelowStatusBar extends CustomClipper<Rect> {
+  const _BelowStatusBar(this.top);
+  final double top;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, top, size.width, size.height);
+
+  @override
+  bool shouldReclip(_BelowStatusBar old) => old.top != top;
+}

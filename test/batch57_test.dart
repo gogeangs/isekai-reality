@@ -79,9 +79,8 @@ void main() {
       expect(c.loginAskFor(2, 3), 3);
       await c.markLoginAsked(3);
       expect(c.loginAskFor(2, 3), isNull);
-      expect(c.loginAskFor(7, 8), 8);
-      await c.markLoginAsked(8);
-      expect(c.loginAskFor(7, 9), isNull);
+      // 묶음 70 #291: Lv.8은 친구 장면이 「기록 지키기」를 함께 물음
+      expect(c.loginAskFor(7, 8), isNull);
       final (d, _) = await b56.start();
       expect(d.loginAskFor(2, 3), isNull, reason: '로그인했으면 묻지 않음');
     });

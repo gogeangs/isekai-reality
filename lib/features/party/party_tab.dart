@@ -334,7 +334,7 @@ class _PartyTabState extends State<PartyTab> {
           width: 88,
           // 묶음 68 #275: 파티원 이름을 눌러 「친구 신청」
           child: GestureDetector(
-            onTap: m.me || !widget.controller.chatOpen ? null : () => askFriend(context, widget.controller, m.uid, m.name),
+            onTap: m.me || !widget.controller.friendsOpen ? null : () => askFriend(context, widget.controller, m.uid, m.name),
             child: Text('${m.name}${m.me ? ' (나)' : ''}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

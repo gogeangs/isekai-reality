@@ -38,12 +38,6 @@ extension ShopBagOps on AppController {
       await _save(t.copyWith(
           gains: DailyRecord.addCounts(t.gains, {Wallet.gold: mina})));
     }
-    // 묶음 57: 사냥 활은 사자마자 장비로
-    if (item == ShopItem.basicBow) {
-      await _giveEquipOrMail(
-          EquipItem(uid: 'eq${_armory.nextId}', base: EquipBase.bow, grade: EquipGrade.white));
-      await _saveArmory(_armory.copyWith(nextId: _armory.nextId + 1));
-    }
     await _shopTraded();
     await _npcUse(Npc.mina);
     // 묶음 27 #176: 잡화상 거래 1건마다 장사·의뢰 숙련도

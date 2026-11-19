@@ -3,7 +3,20 @@ class ChatRules {
   ChatRules._();
 
   static const int maxLen = 100;
-  static const int serverLevel = 10;
+  /// 묶음 70 #292: 「세계」 · 친구 1:1 (읽기 · 쓰기)
+  static const int serverLevel = 11;
+
+  /// 묶음 70 #291: 친구 (목록 · 신청 · 초대 링크 · 코드 · 초대 보상)
+  static const int friendLevel = 8;
+
+  /// 초대받은 친구가 이 레벨이 되면 둘 다 우편
+  static const int inviteLevel = 5;
+  static const int inviteMax = 5;
+  static const int inviteTitleN = 3;
+
+  /// 「세계」 방 이름
+  static const String worldName = '세계';
+  static const String worldTitle = '세계 · 모든 각성자';
   static const Duration gap = Duration(seconds: 10);
   static const int maxFriends = 50;
 
@@ -46,7 +59,8 @@ class ChatRules {
         'too_long' => '한 번에 $maxLen자까지 쓸 수 있어요',
         'too_fast' => '조금 천천히! 10초에 한 번 말할 수 있어요',
         'rest' => '같은 말을 여러 번 했어요. 1분 쉬었다가 다시 말해 주세요',
-        'level' => '서버 대화방은 Lv.$serverLevel부터 쓸 수 있어요 (읽기는 누구나)',
+        'level' => '세계는 Lv.$serverLevel부터 함께할 수 있어요',
+        'friend_level' => '친구는 Lv.$friendLevel부터 사귈 수 있어요',
         'muted' => '지금은 대화할 수 없어요',
         'rules_first' => '대화 예절을 먼저 읽어 주세요',
         'no_room' => '이 대화방에 들어갈 수 없어요',

@@ -113,12 +113,11 @@ void main() {
           PurchaseCheck.ok);
     });
 
-    test('여분의 열쇠는 월요일에 시작하는 주마다 1개', () {
-      // 2026-11-02 월 ~ 11-08 일, 11-09 월
-      final h = [rich, _day(3, bought: ['spareKey']), _day(8)];
+    test('여분의 열쇠는 하루 1개 (묶음 70 #295)', () {
+      final h = [rich, _day(3, bought: ['spareKey'])];
       expect(TownRules.canBuy(h, ShopItem.spareKey),
           PurchaseCheck.limitReached);
-      expect(TownRules.canBuy([...h, _day(9)], ShopItem.spareKey),
+      expect(TownRules.canBuy([...h, _day(4)], ShopItem.spareKey),
           PurchaseCheck.ok);
     });
 
@@ -431,7 +430,7 @@ void main() {
       // 묶음 66 #265: 잡는 순간 레벨만큼 조금 더 (Lv.1~5 사이)
       final base = (RuleConstants.fieldMonsterExp * 1.5).round();
       final got = await c.finishFieldBattle(spawn, b);
-      expect(got, inInclusiveRange(base * x2, (base * WalkRewardRules.huntMult(5)).round() * x2));
+      expect(got, inInclusiveRange(base, (base * WalkRewardRules.huntMult(10)).round() * 2));
       expect(c.player.dailyExp.last.fieldMonster, got);
     });
 

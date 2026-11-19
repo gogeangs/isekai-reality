@@ -739,6 +739,11 @@ class FakeArca implements ArcaApi {
   bool chatRulesSeen = false;
   int? chatMutedUntil;
   int chatLevel = 12;
+  // 묶음 70 #291·#292: 초대 · 첫 인사
+  int chatInvited = 0;
+  int chatInvitePaid = 0;
+  bool chatFirstHello = false;
+  final List<Map<String, dynamic>> chatInviteClaims = [];
   bool chatShowSteps = true;
   Map<String, bool> chatPush = {'dm': true, 'mention': true, 'staff': true};
   final Map<String, Map<String, dynamic>> chatPeople = {};
@@ -787,8 +792,9 @@ class FakeArca implements ArcaApi {
   List<String> _chatRoomIds() => [
         if (guild != null) 'g_${guild!['id']}',
         if (alliance != null) 'a_${alliance!['id'] ?? 'al1'}',
-        'server',
-        for (final f in chatFriends) chatFriendRoom(uid, f),
+        if (chatLevel >= 11) 'server',
+        if (chatLevel >= 11)
+          for (final f in chatFriends) chatFriendRoom(uid, f),
       ];
 
   Map<String, dynamic> _person(String u) {
@@ -821,7 +827,7 @@ class FakeArca implements ArcaApi {
                     ? 'alliance'
                     : 'friend',
         'name': r == 'server'
-            ? '서버 대화방'
+            ? '세계'
             : r.startsWith('g_')
                 ? guild!['name']
                 : r.startsWith('a_')
@@ -843,6 +849,10 @@ class FakeArca implements ArcaApi {
       'requests': [for (final f in chatRequests) _person(f)],
       'blocked': [for (final b in chatBlocked) {'uid': b, 'name': chatPeople[b]?['name'] ?? b}],
       'rooms': rooms,
+      'invited': chatInvited,
+      'invitePaid': chatInvitePaid,
+      'inviteMax': 5,
+      'firstHello': chatFirstHello,
     };
   }
 
@@ -860,6 +870,7 @@ class FakeArca implements ArcaApi {
         return {'ok': true};
       case '/chat/read':
         final room = '${body['room']}';
+        if (room == 'server' && chatLevel < 11) throw const ArcaApiError('level', status: 403);
         if (!_chatRoomIds().contains(room)) throw const ArcaApiError('no_room', status: 403);
         var lines = [for (final l in chatRooms[room] ?? const <Map<String, dynamic>>[]) if (!chatBlocked.contains(l['uid'])) l];
         if (body['after'] is int) lines = [for (final l in lines) if ((l['at'] as int) > (body['after'] as int)) l];
@@ -880,14 +891,23 @@ class FakeArca implements ArcaApi {
         if (text.length > 100) throw const ArcaApiError('too_long', status: 400);
         if (!chatRulesSeen) throw const ArcaApiError('rules_first', status: 403);
         if (chatMutedUntil != null) throw const ArcaApiError('muted', status: 403);
+        if (room == 'server' && chatLevel < 11) throw const ArcaApiError('level', status: 403);
         if (!_chatRoomIds().contains(room)) throw const ArcaApiError('no_room', status: 403);
-        if (room == 'server' && chatLevel < 10) throw const ArcaApiError('level', status: 403);
         chatSent.add({'room': room, 'text': text});
+        final hello = room == 'server' && !chatFirstHello;
+        if (hello) chatFirstHello = true;
         chatPeople.putIfAbsent(me, () => {'name': '${(body['me'] as Map?)?['name'] ?? '나'}'});
         chatSay(room, me, chatMask(text));
         chatReads[room] = chatNow;
-        return {'ok': true};
+        return {'ok': true, 'firstHello': hello};
+      case '/chat/invite/claim':
+        chatInviteClaims.add(Map<String, dynamic>.from(body));
+        final host = chatPeople.entries.where((e) => e.value['code'] == body['code']).map((e) => e.key).firstOrNull;
+        if (host == null) throw const ArcaApiError('no_user', status: 404);
+        if (!chatFriends.contains(host)) chatFriends.add(host);
+        return {'ok': true, 'friend': true, 'inviterName': chatPeople[host]?['name'] ?? host};
       case '/chat/friend/add':
+        if (chatLevel < 8) throw const ArcaApiError('friend_level', status: 403);
         final code = body['code'] as String?;
         final t = code != null ? chatPeople.entries.where((e) => e.value['code'] == code).map((e) => e.key).firstOrNull : to();
         if (t == null) throw const ArcaApiError('no_user', status: 404);

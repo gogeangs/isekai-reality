@@ -175,7 +175,7 @@ void main() {
       late AppController c;
       await tester.runAsync(() async => c = await startNpc(level: 50));
       await _page(tester, Scaffold(body: NightBackground(child: CodexScreen(purifiedMonsters: {MonsterId.goblinRaider, MonsterId.orcMerc, MonsterId.ogre, ...c.purifiedEver}, huntCounts: const {}))));
-      await tester.scrollUntilVisible(find.byKey(const Key('codexFieldTier')), 300, scrollable: find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(find.byKey(const Key('codexGroup_필드')), 300, scrollable: find.byType(Scrollable).first);
       await _settle(tester, 2);
       await _shot(tester, '${n}_09_도감_필드');
       await tester.pumpWidget(const SizedBox());

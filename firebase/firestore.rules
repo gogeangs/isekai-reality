@@ -18,6 +18,7 @@ service cloud.firestore {
     match /chatRooms/{room}/{rest=**} { allow read, write: if false; }
     match /chatUser/{uid} { allow read, write: if false; }
     match /friendCode/{code} { allow read, write: if false; }
+    match /invites/{uid} { allow read, write: if false; }
     match /friendReq/{id} { allow read, write: if false; }
     match /chatReport/{id} { allow read, write: if false; }
   }

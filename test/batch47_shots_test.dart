@@ -170,7 +170,7 @@ void main() {
       _device(tester, d);
       late AppController c;
       await tester.runAsync(() async => c = await startNpc(
-            level: 8,
+            level: 15,
             json: {
               'board': const BoardState(day: '2026-11-16', seq: 2, slots: [
                 ErrandSlot(templateId: 'npc_hart_0', accepted: true, baseline: 0),
@@ -179,9 +179,9 @@ void main() {
             },
           ));
       await _page(tester, BoardScreen(key: ValueKey('board$n'), controller: c));
-      final sc = find.byType(Scrollable).first;
-      await tester.scrollUntilVisible(find.byKey(const Key('errandNote_0')), 200,
-          scrollable: sc);
+      // 묶음 70 #300: 조합 탭
+      await tester.tap(find.byKey(const Key('boardTab_errand')));
+      await _settle(tester, 3);
       await _settle(tester, 3);
       await _shot(tester, '${n}_06_게시판_조합의뢰');
       await tester.tap(find.byKey(const Key('errandNote_0')));

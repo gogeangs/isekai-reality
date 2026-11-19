@@ -13,6 +13,7 @@ Future<AppController> startVillage(int level,
     {Map<String, dynamic>? village,
     bool farewell = false,
     Map<String, dynamic>? more,
+    Map<String, int> gains = const {},
     DateTime Function()? clock}) async {
   final c = AppController(
     store: InMemoryRecordStore(
@@ -24,7 +25,7 @@ Future<AppController> startVillage(int level,
       history: [
         DailyRecord(
           date: DateTime(2026, 11, 15),
-          gains: {'exp': LevelRules.totalExpToReach(level)},
+          gains: {'exp': LevelRules.totalExpToReach(level), ...gains},
         ),
       ],
       json: {

@@ -19,10 +19,8 @@ extension BattleOps on AppController {
         .any((p) => p.kind == PlaceKind.labyrinthGate);
   }
 
-  /// 오늘 경험치를 받을 수 있는 던전 횟수가 남았는지
-  bool get dungeonExpLeftToday =>
-      (player.today?.dungeonRuns.length ?? 0) <
-      RuleConstants.maxDungeonRunsPerDay;
+  /// 묶음 70 #296: 던전 하루 상한 없음 — 들어갈 때마다 경험치 · 보상
+  bool get dungeonExpLeftToday => true;
 
   /// 던전을 연다. 열쇠가 없거나 이동 중이면 null.
   /// 열쇠는 전투가 끝날 때([finishDungeon]) 쓴다. 중간에 나가면 쓰지 않는다.
@@ -88,9 +86,7 @@ extension BattleOps on AppController {
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
-    var exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
-        ? ExpRules.dungeonRunExp(run)
-        : 0;
+    var exp = ExpRules.dungeonRunExp(run);
     var mana = run.cleared
         ? RuleConstants.crystalsPerDungeonClear
         : RuleConstants.crystalsPerDungeonFail;
@@ -339,6 +335,45 @@ extension BattleOps on AppController {
     await _saveFeel();
   }
 
+  /// 묶음 70 #293: 도감에 오른 칸 ('m:<몬스터>' / 'p:<펫>') → 보이는 이름
+  Map<String, String> get codexEntries => {
+        for (final m in purifiedEver)
+          if (Monsters.codexGroup(m) != null) 'm:${m.name}': Monsters.info(m).name,
+        if (petCodexOpen)
+          for (final p in _pets.seen) 'p:${p.name}': PetRules.info(p).name,
+      };
+
+  /// 도감을 연 뒤로 새로 오른 칸 (반짝임 + 점)
+  Set<String> get codexFresh {
+    final seen = _codexSeen;
+    if (seen == null) return const {};
+    return {for (final k in codexEntries.keys) if (!seen.contains(k)) k};
+  }
+
+  /// 아직 위쪽 띠로 알리지 않은 새 칸의 이름 (처음 발견)
+  List<String> get codexToAnnounce {
+    final done = _codexAnnounced;
+    if (done == null) return const [];
+    return [
+      for (final e in codexEntries.entries)
+        if (!done.contains(e.key)) e.value
+    ];
+  }
+
+  Future<void> markCodexAnnounced() async {
+    if (_codexAnnounced == null) return;
+    _codexAnnounced = {..._codexAnnounced!, ...codexEntries.keys};
+    await _saveFeel();
+  }
+
+  Future<void> markCodexSeen() async {
+    if (_codexSeen == null) return;
+    final all = codexEntries.keys.toSet();
+    if (_codexSeen!.containsAll(all)) return;
+    _codexSeen = {..._codexSeen!, ...all};
+    await _saveFeel();
+  }
+
   Future<void> markPetCodexAnnounced() async {
     if (_petCodexAnnounced) return;
     _petCodexAnnounced = true;
@@ -360,6 +395,8 @@ extension BattleOps on AppController {
       'poisonTip': _poisonTipSeen,
       'petCodex': _petCodexSeen,
       'petCodexNotice': _petCodexAnnounced,
+      if (_codexSeen != null) 'codexSeen': [..._codexSeen!],
+      if (_codexAnnounced != null) 'codexNoticed': [..._codexAnnounced!],
       'adPersonal': _adPersonal,
     });
     _notify();

@@ -415,7 +415,9 @@ extension ExpeditionOps on AppController {
     final pet = farewellDone
         ? (petUid == null ? companionPet : _pets.byUid(petUid))
         : null;
-    final route = routeFor(spawn);
+    // 묶음 70 #294: 나는 펫은 곧장 직선 (길·물가 특기 없음)
+    final flying = pet != null && PetRules.info(pet.species).flies;
+    final route = flying ? ExpeditionRoute.straight(from, spawn.point) : routeFor(spawn);
     final dist = route?.lengthM ?? from.distanceTo(spawn.point);
     final water = _waterside(route);
     var cost = VitalRules.expeditionCost(dist);
@@ -486,7 +488,11 @@ extension ExpeditionOps on AppController {
   /// 정령(또는 펫)을 보낸다. MP는 보내는 순간 쓴다.
   Future<ExpeditionCheck> sendSpirit(FieldSpawn spawn, {String? petUid}) async {
     // 길 찾기(인터넷)는 잠금 밖에서
-    final route = AppController.isTutorialSpawn(spawn.id)
+    final sendPet = farewellDone
+        ? (petUid == null ? companionPet : _pets.byUid(petUid))
+        : null;
+    final route = AppController.isTutorialSpawn(spawn.id) ||
+            (sendPet != null && PetRules.info(sendPet.species).flies)
         ? ExpeditionRoute.straight(_lastFix?.point ?? spawn.point, spawn.point)
         : await prepareRoute(spawn);
     return _serial(() async {
@@ -521,6 +527,7 @@ extension ExpeditionOps on AppController {
           : const [],
       petUid: pet?.uid,
       petName: pet?.name,
+      sky: pet != null && PetRules.info(pet.species).flies,
     );
     _vitals = _vitals.copyWith(
       mp: mp - plan.mpCost,

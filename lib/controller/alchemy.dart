@@ -48,6 +48,41 @@ extension AlchemyOps on AppController {
     return m;
   }
 
+  /// 묶음 70 #298: 최상 품질로 만들어 본 물약
+  bool madeBest(PotionId id) => _alc.bestMade.contains(id.name);
+
+  /// 레시피 재료가 모두 있는지 (「아무 약초」는 약초 합계로)
+  bool hasRecipeMats(PotionId id) => recipeFill(id) != null;
+
+  /// 묶음 70 #298: 레시피대로 넣을 재료 (만들어 본 레시피는 순서대로, 「아무 약초」는 잘 맞는
+  /// 약초 → 가장 많은 약초). 모자라면 null
+  List<MaterialId>? recipeFill(PotionId id) {
+    final info = AlchemyRules.info(id);
+    final order = recipeDiscovered(id)
+        ? info.recipe
+        : ([...info.recipe]..sort((a, b) => a.index.compareTo(b.index)));
+    final left = <MaterialId, int>{};
+    int have(MaterialId m) => left[m] ?? player.materialCount(m);
+    final out = <MaterialId>[];
+    for (final m in order) {
+      MaterialId? pick;
+      if (m == MaterialId.herb) {
+        final best = AlchemyRules.bestHerb(id);
+        final herbs = [...Materials.herbGroup]..sort((a, b) => have(b).compareTo(have(a)));
+        pick = best != null && have(best) > 0
+            ? best
+            : herbs.firstWhere((h) => have(h) > 0, orElse: () => MaterialId.herb);
+        if (have(pick) <= 0) return null;
+      } else {
+        if (have(m) <= 0) return null;
+        pick = m;
+      }
+      left[pick] = have(pick) - 1;
+      out.add(pick);
+    }
+    return out;
+  }
+
   /// 재료·개수를 아는지 (쪽지로만 알면 아직 만들어 보지 않은 것)
   bool recipeDiscovered(PotionId id) =>
       AlchemyRules.info(id).public || _alc.discovered.contains(id.name);
@@ -202,6 +237,9 @@ extension AlchemyOps on AppController {
           mastery: a.mastery +
               AlchemistRules.brewPoints +
               (q == PotionQuality.best ? AlchemistRules.bestBonusPoints : 0));
+      if (q == PotionQuality.best && !a.bestMade.contains(match.id.name)) {
+        a = a.copyWith(bestMade: [...a.bestMade, match.id.name]);
+      }
       if (info.shopItem != null &&
           (q == PotionQuality.normal || AlchemyRules.needsJobs(match.id))) {
         // 잡화상과 같은 물약은 같은 물건으로 가방에.

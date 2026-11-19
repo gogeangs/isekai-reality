@@ -153,7 +153,7 @@ void main() {
       await tester.tap(find.byKey(const Key('shopItem_spareKey')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('buyPlus')), findsNothing);
-      expect(allText(tester), contains('이번 주 1개 더 살 수 있어요'));
+      expect(allText(tester), contains('오늘 1개 더 살 수 있어요'));
       final keys = c.player.gauge.keysAvailable;
       await tester.tap(find.byKey(const Key('buyConfirm')));
       await wait(tester);

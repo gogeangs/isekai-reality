@@ -10,6 +10,7 @@ const KINDS = {
   manual: '손으로 입력한 걸음',
   wallet: '거래 지갑 맞지 않음',
   fight: '싸움 결과 맞지 않음',
+  invite: '초대 보상',
 };
 
 class SuspectService {

@@ -77,7 +77,19 @@ class ChatMe {
     this.requests = const [],
     this.blocked = const [],
     this.rooms = const [],
+    this.invited = 0,
+    this.invitePaid = 0,
+    this.inviteMax = 5,
+    this.firstHello = false,
   });
+
+  /// 묶음 70 #291: 내가 초대한 친구 수 · 보상을 받은 수 (5명까지)
+  final int invited;
+  final int invitePaid;
+  final int inviteMax;
+
+  /// 묶음 70 #292: 「세계」에 처음 인사했는지
+  final bool firstHello;
 
   factory ChatMe.fromJson(Map<String, dynamic> j) => ChatMe(
         uid: '${j['uid'] ?? ''}',
@@ -104,6 +116,10 @@ class ChatMe {
                 last: x['last'] is Map ? ChatLine.fromJson({'id': '', ...Map<String, dynamic>.from(x['last'] as Map)}) : null,
               ),
         ],
+        invited: (j['invited'] as num?)?.toInt() ?? 0,
+        invitePaid: (j['invitePaid'] as num?)?.toInt() ?? 0,
+        inviteMax: (j['inviteMax'] as num?)?.toInt() ?? 5,
+        firstHello: j['firstHello'] == true,
       );
 
   final String uid;
@@ -129,6 +145,12 @@ extension ChatOps on AppController {
   ChatMe? get chatMe => _chatMe;
   String? get chatError => _chatError;
   bool get chatOpen => _cloud.signedIn && arcaApi != null && cloudAuth != null;
+
+  /// 묶음 70 #291: 친구 (목록 · 신청 · 초대)는 Lv.8부터
+  bool get friendsOpen => chatOpen && player.level.level >= ChatRules.friendLevel;
+
+  /// 묶음 70 #292: 「세계」 · 친구 1:1 · 상태 화면 말풍선은 Lv.11부터
+  bool get worldOpen => chatOpen && player.level.level >= ChatRules.serverLevel;
   List<ChatLine> chatLines(String room) => _chatLines[room] ?? const [];
   bool chatMore(String room) => _chatMoreRooms.contains(room);
 
@@ -172,6 +194,7 @@ extension ChatOps on AppController {
     }
     final before = _chatMe;
     _chatMe = ChatMe.fromJson(j);
+    await _chatTitles();
     if (before != null && onNew != null) {
       for (final r in _chatMe!.rooms) {
         final old = before.room(r.room);
@@ -226,6 +249,10 @@ extension ChatOps on AppController {
         rooms: [
           for (final r in me.rooms) r.room == room ? ChatRoomInfo(room: r.room, kind: r.kind, name: r.name, last: r.last) : r,
         ],
+        invited: me.invited,
+        invitePaid: me.invitePaid,
+        inviteMax: me.inviteMax,
+        firstHello: me.firstHello,
       );
     }
     _notify();
@@ -238,8 +265,48 @@ extension ChatOps on AppController {
       _notify();
       return false;
     }
+    // 묶음 70 #292: 「세계」 첫 인사 → 숨은 칭호 「첫 인사」 (우편은 서버가)
+    if (j['firstHello'] == true) await _skyTitle(TitleId.firstHello);
     await readChat(room);
     return true;
+  }
+
+  /// 서버가 알려 준 숨은 칭호 (초대 3명 · 첫 인사)
+  Future<void> _chatTitles() async {
+    final me = _chatMe;
+    if (me == null) return;
+    if (me.invitePaid >= ChatRules.inviteTitleN) await _skyTitle(TitleId.wayfarers);
+    if (me.firstHello) await _skyTitle(TitleId.firstHello);
+  }
+
+  Future<void> _skyTitle(TitleId t) async {
+    final k = TitleRules.skyCounter(t);
+    if (_history.any((d) => (d.counters[k] ?? 0) > 0)) return;
+    final today = await _todayRecord();
+    await _save(today.copyWith(counters: DailyRecord.addCounts(today.counters, {k: 1})));
+  }
+
+  /// 묶음 70 #291: 초대 링크로 들어왔으면 (로그인한 뒤) 초대한 사람과 바로 친구.
+  /// 로그인 전이면 코드를 남겨 두었다가 로그인하면. 친구가 되면 초대한 사람 이름
+  Future<String?> claimInvite() async {
+    var code = _pendingFriendCode;
+    if (code == null) {
+      final saved = await store.loadSide('inviteCode');
+      if (saved != null && saved.length == 8) code = saved;
+    }
+    if (code == null) return null;
+    if (!chatOpen) {
+      await store.saveSide('inviteCode', code);
+      return null;
+    }
+    final j = await _chatCall('/chat/invite/claim', {'code': code});
+    final err = _chatError;
+    if (j == null && err == 'offline') return null;
+    _pendingFriendCode = null;
+    await store.saveSide('inviteCode', '');
+    if (j == null) return null;
+    await refreshChat();
+    return j['already'] == true ? null : '${j['inviterName'] ?? '친구'}';
   }
 
   Future<bool> seeChatRules() async {
@@ -289,6 +356,27 @@ extension ChatOps on AppController {
     if (p == null || p.id == null || p.code.isEmpty) return false;
     return sendChat(room, ChatRules.partyInviteLine(p.name, p.code));
   }
+
+  /// 묶음 70 #292: 「세계」 안내 (정령과 이별 → 이름 → 쉼터 안내 뒤, 상태 화면에 들어오면 한 번)
+  bool get chatTourPending =>
+      player.level.level >= ChatRules.serverLevel &&
+      _pets.farewellDone &&
+      _pets.firstPet != null &&
+      _village.contains('shelterCard') &&
+      !_village.contains('chatTour') &&
+      !inTutorial &&
+      pendingFeatureIntro == null &&
+      !farewellPending &&
+      !shelterIntroPending;
+
+  Future<void> markChatTour() => _markVillage(['chatTour']);
+
+  /// 첫 펫 (「세계」 안내에서 말하는 펫)
+  Pet? get chatTourPet => _pets.firstPet == null ? null : _pets.byUid(_pets.firstPet!);
+
+  /// 묶음 70 #291: Lv.8 친구 장면 (한 번)
+  bool get friendSceneSeen => _village.contains('friendScene');
+  Future<void> markFriendScene() => _markVillage(['friendScene']);
 
   /// 친구 초대 링크로 앱이 열렸을 때
   String? get pendingFriendCode => _pendingFriendCode;

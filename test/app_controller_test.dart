@@ -64,24 +64,24 @@ void main() {
     expect(controller.history.last.steps, 0);
   });
 
-  test('남은 열쇠는 다음 날로 넘어가고, 하루를 건너뛰면 사라진다', () {
+  test('남은 열쇠는 모두 다음 날로 넘어가고, 하루를 건너뛰어도 그대로 (묶음 70 #296)', () {
     final history = [
       DailyRecord(
         date: DateTime(2026, 11, 6),
         steps: 10000,
         dungeonRuns: const [DungeonRun(cleared: true)],
-      ), // 4개 얻고 1개 사용 → 3개 이월
+      ), // 걸음 4 + 목표 보너스 1 − 사용 1 → 4개 이월 (묶음 70: 상한 없음)
       DailyRecord(date: DateTime(2026, 11, 7), steps: 0),
     ];
     final p = PlayerState.fromHistory(name: '하루', history: history);
-    expect(p.gauge.keysAvailable, 3);
+    expect(p.gauge.keysAvailable, 4);
 
     final skipped = [
       history.first,
       DailyRecord(date: DateTime(2026, 11, 8), steps: 0),
     ];
     final q = PlayerState.fromHistory(name: '하루', history: skipped);
-    expect(q.gauge.keysAvailable, 0);
+    expect(q.gauge.keysAvailable, 4);
   });
 
   test('하루 기록은 JSON 으로 저장했다 되살려도 같다', () {

@@ -153,12 +153,18 @@ void main() {
   testWidgets('#180 게시판: 오늘의 의뢰·길드 의뢰, 수락하면 도장', (tester) async {
     phone(tester, const Size(750, 1334), 2);
     late AppController c;
+    // 묶음 70 #300: 「조합」 탭은 Lv.15부터
     await tester.runAsync(() async => c = await start(InMemoryRecordStore(
-        profile: const PlayerProfile(name: '하루'))));
+        profile: const PlayerProfile(name: '하루'),
+        history: [
+          DailyRecord(date: DateTime(2026, 1, 1), gains: {Wallet.exp: LevelRules.totalExpToReach(15)}),
+        ])));
     await tester.pumpWidget(MaterialApp(home: BoardScreen(controller: c)));
     await tester.pump();
+    expect(allText(tester), contains('오늘의 의뢰'));
+    await tester.tap(find.byKey(const Key('boardTab_errand')));
+    await tester.pumpAndSettle();
     final text = allText(tester);
-    expect(text, contains('오늘의 의뢰'));
     expect(text, contains('조합 의뢰'));
     expect(text, isNot(contains('일일 퀘스트')));
     expect(text, isNot(contains('수시 의뢰')));

@@ -85,7 +85,8 @@ extension LegalOps on AppController {
   /// 「기록 지키기」 (Lv.3 레벨업 창 뒤, 로그인 안 했으면 Lv.8 에 한 번 더): 물어볼 레벨, 없으면 null
   int? loginAskFor(int from, int to) {
     if (!cloudAvailable || _cloud.signedIn) return null;
-    for (final l in const [8, 3]) {
+    // 묶음 70 #291: Lv.8은 친구 장면이 함께 물음
+    for (final l in const [3]) {
       if (from < l && to >= l && !_consent.loginAsked.contains(l)) return l;
     }
     return null;

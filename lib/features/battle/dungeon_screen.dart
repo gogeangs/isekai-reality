@@ -209,8 +209,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
       line = '열쇠가 없어. ${comma(RuleConstants.stepsPerKey)}보를 걸으면 하나 생겨!';
     } else if (atGate) {
       line = '미궁 입구야! 여기서 열면 보상이 1.5배야.';
-    } else if (!_c.dungeonExpLeftToday) {
-      line = '오늘 경험치는 다 받았어. 열쇠는 내일을 위해 아껴 둘까?';
     } else if (hp < maxHp * 0.3) {
       line = 'HP가 얼마 안 남았어. 들어가면 쓰러질 수도 있어!';
     } else {
@@ -376,9 +374,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
               '보상: 클리어 $reward · 실패 ${RuleConstants.dungeonFailExp} 경험치',
               style: const TextStyle(color: AppColors.goldBright, fontSize: 14),
             ),
+            // 묶음 70 #296: 하루 상한 없음 — 열쇠 수만
             Text(
-              '오늘 연 던전 ${player.today?.dungeonRuns.length ?? 0} / '
-              '${RuleConstants.maxDungeonRunsPerDay}회 (경험치 인정)',
+              '열쇠 ${player.gauge.keysAvailable}개',
+              key: const Key('dungeonKeys'),
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],

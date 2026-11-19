@@ -25,6 +25,8 @@ enum SfxKind {
   talkLeaf,
   talkFire,
   talkWater,
+  // 묶음 70 #297: 가마솥에 재료가 「퐁」 (직접 합성)
+  pong,
 }
 
 extension on SfxKind {
@@ -48,6 +50,7 @@ extension on SfxKind {
         SfxKind.talkLeaf => 'sfx/talk_leaf.m4a',
         SfxKind.talkFire => 'sfx/talk_fire.m4a',
         SfxKind.talkWater => 'sfx/talk_water.m4a',
+        SfxKind.pong => 'sfx/pong.m4a',
       };
 }
 

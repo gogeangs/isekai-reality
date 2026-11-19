@@ -17,11 +17,11 @@ import 'features/bulssi/bulssi_mood.dart';
 import 'features/codex/codex_screen.dart';
 import 'features/drive/drive_overlay.dart';
 import 'features/chat/chat_screens.dart';
+import 'features/chat/chat_tour.dart';
 import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/village/tavern_screen.dart' show TavernScreen;
-import 'features/village/npc_request.dart';
 import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
@@ -112,6 +112,30 @@ class IsekaiRealityApp extends StatelessWidget {
                         child: child ?? const SizedBox()))),
             // 묶음 19 #4-2: Lv.3~6 기능 안내 (밀어 올린 화면 위까지)
             Positioned.fill(child: FeatureTourLayer(controller: controller)),
+            // 묶음 70 #292: 「세계」 안내 (첫 펫)
+            Positioned.fill(
+                child: ChatTourLayer(
+                    controller: controller,
+                    onLogin: () async {
+                      final ctx = tourBridge.navKey.currentContext;
+                      if (ctx == null) return;
+                      final p = await showModalBottomSheet<LoginProvider>(
+                        context: ctx,
+                        backgroundColor: AppColors.deepNight,
+                        builder: (s) => SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                              for (final p in controller.loginProviders) ...[
+                                LoginButton(provider: p, onPressed: () => Navigator.pop(s, p)),
+                                const SizedBox(height: 8),
+                              ],
+                            ]),
+                          ),
+                        ),
+                      );
+                      if (p != null && ctx.mounted) await signInFlow(ctx, controller, p);
+                    })),
             if (controller.passengerMode)
               Positioned(
                 top: MediaQuery.paddingOf(context).top + 52,
@@ -287,6 +311,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   bool _titleShowing = false;
   bool _bagHoldShowing = false; // 묶음 47 #240
   bool _petCodexNoticed = false;
+  bool _codexNoticing = false;
 
   /// 앱으로 돌아올 때마다 걸음을 다시 읽는다
   @override
@@ -442,7 +467,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 TrainingStatusRow(controller: controller),
                 // 묶음 65 #252: 걸음 상자
                 StepChestRow(controller: controller),
-                NpcRequestPanel(controller: controller),
+                // 묶음 70 #301: 마을 사람 부탁은 의뢰 게시판 탭으로
               ],
             ),
           ),
@@ -464,10 +489,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             header: true,
             child: CodexScreen(
               // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
+              // 묶음 70 #293: 발견한 것만 (갈래가 있는 몬스터)
               purifiedMonsters: {
                 for (final m in controller.purifiedEver)
-                  if (Monsters.inCodex(m) || FieldMonsterRules.isTierMonster(m)) m,
+                  if (Monsters.codexGroup(m) != null) m,
               },
+              fresh: controller.codexFresh,
+              onSeen: controller.markCodexSeen,
+              active: _tab == tCodex,
               highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,

@@ -750,6 +750,7 @@ extension TutorialOps on AppController {
       gold: gold,
       materials: mats,
     );
+    _battleEgg = null; // 묶음 75 #327: 이번 전투에서 얻은 알만
     await _rollFieldEgg(ModifierRules.gradeOf(mods));
     switch (ModifierRules.gradeOf(mods)) {
       case ModGrade.rare:

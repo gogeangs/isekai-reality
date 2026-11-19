@@ -176,7 +176,7 @@ extension MailOps on AppController {
 
   /// 선물 키 → 이름
   String _giftName(String k) {
-    if (k == 'egg') return '알';
+    if (EggGrade.ofKey(k) case final g?) return g.label;
     if (k.startsWith('alc:')) return potionName(k.substring(4));
     if (k.startsWith('item:')) {
       final it = _shopItemNamed(k.substring(5));

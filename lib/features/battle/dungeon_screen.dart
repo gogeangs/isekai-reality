@@ -1,3 +1,4 @@
+import '../pets/egg_news.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -79,8 +80,12 @@ class _DungeonScreenState extends State<DungeonScreen> {
     setState(() {
       _exp = exp;
       _stage = _Stage.result;
+      // 묶음 75 #327: 이 던전에서 얻은 알 (결과 창 보상 맨 앞)
+      _egg = _c.takeBattleEgg();
     });
   }
+
+  EggGrade? _egg;
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +527,10 @@ class _DungeonScreenState extends State<DungeonScreen> {
         ornament: true,
         child: Column(
           children: [
+            if (_egg case final g?) ...[
+              EggGotBanner(grade: g, farewell: _c.farewellDone),
+              const SizedBox(height: 6),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

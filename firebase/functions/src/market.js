@@ -68,10 +68,15 @@ function nextBid(l) {
   return l.bidder ? l.bid + Math.max(1, Math.ceil(l.bid * CAT.bidStep)) : l.start;
 }
 
-function nameOf(kind, key, equip) {
+/** 묶음 75 #334: 알 등급 이름 · 우편 키 */
+const EGG_NAMES = { common: '알', rare: '희귀한 알', hero: '영웅의 알', legend: '전설의 알' };
+const eggGradeOf = (g) => (g in EGG_NAMES ? g : 'common');
+const eggKey = (g) => (eggGradeOf(g) === 'common' ? 'egg' : 'egg:' + eggGradeOf(g));
+
+function nameOf(kind, key, equip, grade) {
   if (kind === 'mat') return CAT.matNames[key] || key;
   if (kind === 'item') return CAT.itemNames[key] || key;
-  if (kind === 'egg') return '알';
+  if (kind === 'egg') return EGG_NAMES[eggGradeOf(grade)];
   if (kind === 'alc') return (CAT.alcNames || {})[key] || key;
   return CAT.equipNames[(equip && equip.base) || key] || key;
 }
@@ -130,10 +135,13 @@ function countSnapshot(snap) {
   const worn = new Set(Object.values(armory.equipped || {}));
   const equips = {};
   for (const it of armory.items || []) if (it && it.uid && !worn.has(it.uid)) equips[it.uid] = it;
-  const eggs = new Set((pets.eggs || []).filter((e) => e && e.id && !e.incubatedAt).map((e) => e.id));
+  const eggList = (pets.eggs || []).filter((e) => e && e.id && !e.incubatedAt);
+  const eggs = new Set(eggList.map((e) => e.id));
+  const eggGrades = {};
+  for (const e of eggList) eggGrades[e.id] = eggGradeOf(e.grade);
   const alcs = {};
   for (const [k, v] of Object.entries(alchemy.potions || {})) if (k in (CAT.alcs || {})) alcs[k] = Number(v) || 0;
-  return { gold: Math.max(0, gold), mats, items, equips, eggs, alcs, buildings: parse('json.buildings', {}) };
+  return { gold: Math.max(0, gold), mats, items, equips, eggs, eggGrades, alcs, buildings: parse('json.buildings', {}) };
 }
 
 /** 묶음 67 #271: 백업에 남은 거래소 ★ (다 고친 시각이 지났으면 한 단계 위). 시각에 시간대가 없으면 한국 시간 */
@@ -278,7 +286,7 @@ class MarketService {
     const equips = [];
     if (l.kind === 'mat') reward[l.key] = l.qty;
     if (l.kind === 'item') reward['item:' + l.key] = l.qty;
-    if (l.kind === 'egg') reward.egg = l.qty;
+    if (l.kind === 'egg') reward[eggKey(l.eggGrade)] = l.qty;
     if (l.kind === 'alc') reward['alc:' + l.key] = l.qty;
     if (l.kind === 'equip' && l.equip) equips.push(l.equip);
     await this._mail(uid, { title, body, reward, equips });
@@ -375,7 +383,8 @@ class MarketService {
       kind,
       key: kind === 'equip' ? equip.base : k,
       itemId: k,
-      name: nameOf(kind, k, equip),
+      name: nameOf(kind, k, equip, kind === 'egg' ? (have.eggGrades || {})[k] : undefined),
+      ...(kind === 'egg' ? { eggGrade: eggGradeOf((have.eggGrades || {})[k]) } : {}),
       qty,
       equip,
       mode,

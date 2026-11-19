@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../pets/egg_news.dart';
+
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
@@ -67,8 +69,12 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
     setState(() {
       _exp = exp;
       _done = true;
+      // 묶음 75 #327: 이 싸움에서 얻은 알 (결과 창 보상 맨 앞, 위쪽 띠는 안 띄움)
+      _egg = widget.controller.takeBattleEgg();
     });
   }
+
+  EggGrade? _egg;
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +240,10 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             color: AppColors.text, fontSize: 14)),
+                    if (_egg case final g?) ...[
+                      const SizedBox(height: 6),
+                      EggGotBanner(grade: g, farewell: widget.controller.farewellDone),
+                    ],
                     if (!widget.controller.lastReward.isEmpty) ...[
                       const SizedBox(height: 8),
                       RewardItems(reward: widget.controller.lastReward),

@@ -13,7 +13,11 @@ class BagHoldEntry {
       required this.name,
       required this.price,
       this.material,
-      this.item});
+      this.item,
+      this.egg});
+
+  /// 묶음 75 #327: 알 (등급)
+  final EggGrade? egg;
 
   /// 우편 선물과 같은 키 (재료 이름 · 'item:<잡화상 물건>')
   final String key;
@@ -52,6 +56,9 @@ extension BagHoldOps on AppController {
 
   BagHoldEntry? _holdEntry(String key, int n) {
     if (n <= 0) return null;
+    if (EggGrade.ofKey(key) case final g?) {
+      return BagHoldEntry(key: key, count: n, name: g.label, price: g.price, egg: g);
+    }
     if (key.startsWith('item:')) {
       final it = _shopItemNamed(key.substring(5));
       if (it == null) return null;
@@ -81,16 +88,16 @@ extension BagHoldOps on AppController {
 
   /// 가방 칸을 쓰는 선물인지 (재료 · 잡화상 물건 · 알 · 공방 물약)
   bool _bagKey(String k) =>
-      k == 'egg' ||
+      EggGrade.ofKey(k) != null ||
       k.startsWith('item:') ||
       k.startsWith('alc:') ||
       Materials.byName(k) != null;
 
-  /// 「가방이 가득 찼어요」 창에서 고를 수 있는 것 (팔 수 있는 것). 알·공방 물약은 우편함으로
-  bool _holdable(String k) => k.startsWith('item:') || Materials.byName(k) != null;
+  /// 「가방이 가득 찼어요」 창에서 고를 수 있는 것 (팔 수 있는 것 · 묶음 75 #327 알도). 공방 물약은 우편함으로
+  bool _holdable(String k) => k.startsWith('item:') || EggGrade.ofKey(k) != null || Materials.byName(k) != null;
 
   int _haveOf(String k) {
-    if (k == 'egg') return 0;
+    if (EggGrade.ofKey(k) != null) return 0;
     if (k.startsWith('item:')) {
       final it = _shopItemNamed(k.substring(5));
       return it == null ? 0 : bagCount(it);
@@ -109,7 +116,7 @@ extension BagHoldOps on AppController {
     var free = bagFree;
     for (final e in incoming.entries) {
       if (e.value <= 0) continue;
-      final egg = e.key == 'egg';
+      final egg = EggGrade.ofKey(e.key) != null;
       final have = _haveOf(e.key);
       final room = egg || have == 0
           ? 0
@@ -133,13 +140,13 @@ extension BagHoldOps on AppController {
     if (g.isEmpty) return;
     final mats = <MaterialId, int>{};
     final counters = <String, int>{};
-    var eggs = 0;
+    final eggs = <EggGrade>[];
     var a = _alc;
     var alc = false;
     g.forEach((k, v) {
       if (v <= 0) return;
-      if (k == 'egg') {
-        eggs += v;
+      if (EggGrade.ofKey(k) case final g?) {
+        eggs.addAll(List.filled(v, g));
       } else if (k.startsWith('item:')) {
         if (_shopItemNamed(k.substring(5)) case final it?) {
           final gk = TownRules.giftKey(it);
@@ -165,18 +172,19 @@ extension BagHoldOps on AppController {
       ));
     }
     if (alc) await _saveAlc(a);
-    if (eggs > 0) {
+    if (eggs.isNotEmpty) {
       final p = _pets;
       await _savePets(p.copyWith(
         eggs: [
           ...p.eggs,
-          for (var n = 0; n < eggs; n++)
+          for (final (n, g) in eggs.indexed)
             PetEgg(
                 id: 'egg${p.nextId + n}',
                 source: 'mail',
-                element: mainElement?.name),
+                element: mainElement?.name,
+                grade: g),
         ],
-        nextId: p.nextId + eggs,
+        nextId: p.nextId + eggs.length,
         firstEggFound: true,
       ));
       _newEgg = true;

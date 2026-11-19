@@ -165,24 +165,64 @@ extension PetsOps on AppController {
     return (met: met, days: math.max(1, days), monsters: monsters);
   }
 
+  /// 묶음 75 #334: 알을 얻는 순간 등급을 정한다 (Lv 조건 · 안 나오면 오르는 확률은 예전 부화 때 값 그대로).
+  /// 돌려주는 PetState 에는 안 나온 횟수가 반영돼 있다
+  (EggGrade, PetState) _rollEgg(PetState p) {
+    final heroOn = player.level.level >= PetRules.heroLevel;
+    final legendOn = player.level.level >= PetRules.legendLevel;
+    final g = PetRules.rollEggGrade(_random,
+        heroChance: heroOn ? PetRules.heroChance(p.heroMiss) : 0,
+        legendChance: legendOn ? PetRules.legendChance(p.legendMiss) : 0);
+    final legend = g == EggGrade.legend;
+    final hero = g == EggGrade.hero;
+    return (
+      g,
+      p.copyWith(
+        heroMiss: hero ? 0 : (heroOn && !legend ? p.heroMiss + 1 : p.heroMiss),
+        legendMiss: legend ? 0 : (legendOn ? p.legendMiss + 1 : p.legendMiss),
+      )
+    );
+  }
+
   /// 확률로 알 하나 (Lv.11 전에는 한 번만, 정령이 떠난 뒤에는 [chance])
   Future<bool> _maybeEgg(double chance, String source) async {
     if (_random.nextDouble() >= chance) return false;
-    // 묶음 47 #240: 정령이 떠난 뒤 가방이 가득하면 알은 우편함에 (팔 수 없어 잃지 않게).
-    // 떠나기 전 숨은 알은 그대로 (보이지 않아서)
+    final (grade, rolled) = _rollEgg(_pets);
+    _battleEgg = grade;
+    // 묶음 75 #327: 정령이 떠난 뒤 가방이 가득하면 다른 아이템처럼 「가방이 가득 찼어요」 창으로
+    // (버리기 · 바로 판매). 떠나기 전 숨은 알은 그대로 (보이지 않아서)
     if (_pets.farewellDone && bagFree <= 0) {
-      await _mailBagRest(const {'egg': 1}, title: '알 하나');
-      _notify();
+      await _savePets(rolled.copyWith(firstEggFound: true));
+      await _bagOverflowTo({grade.key: 1}, over: BagOver.hold);
       return true;
     }
-    final p = _pets;
+    final p = rolled;
     await _savePets(p.copyWith(
-      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source, element: mainElement?.name)],
+      eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: source, element: mainElement?.name, grade: grade)],
       firstEggFound: true,
       nextId: p.nextId + 1,
     ));
     _newEgg = true;
     return true;
+  }
+
+  /// 묶음 75 #327: 방금 끝난 전투(필드 · 던전 · 잿빛 분신)에서 얻은 알 등급. 결과 창이 보여 주면
+  /// 위쪽 띠 · 알 창은 띄우지 않는다 (한 번 쓰고 비움)
+  EggGrade? takeBattleEgg() {
+    final g = _battleEgg;
+    _battleEgg = null;
+    if (g != null) _newEgg = false;
+    return g;
+  }
+
+  /// 결과 창이 보여 줄 알 (비우지 않음)
+  EggGrade? get battleEgg => _battleEgg;
+
+  /// 가방이 가득해 의뢰 알을 우편함에 넣었는지 (띠 한 번)
+  bool takeEggMailed() {
+    final v = _eggMailed;
+    _eggMailed = false;
+    return v;
   }
 
   Future<void> _rollFieldEgg(ModGrade grade) async {
@@ -198,8 +238,12 @@ extension PetsOps on AppController {
   bool takeNewEgg() {
     final v = _newEgg;
     _newEgg = false;
+    _battleEgg = null;
     return v;
   }
+
+  /// 가장 최근에 가방에 들어온 알 (알 창 그림 · 이름)
+  PetEgg? get newestEgg => _pets.eggs.isEmpty ? null : _pets.eggs.last;
 
   /// 알을 품는다 (정령이 떠난 뒤에만, 한 번에 하나)
   Future<bool> incubateEgg(String eggId) async {
@@ -217,7 +261,7 @@ extension PetsOps on AppController {
     ]));
     await _npcUse(Npc.lumi);
     unawaited(notifier?.schedule(NotifyId.hatch, at.add(PetRules.hatchTime),
-        '알이 깨어나려 해요', '가방에서 알을 확인하고 이름을 지어 주세요!'));
+        '알이 깨어나려 해요', '알 부화장에서 확인하고 이름을 지어 주세요!'));
     return true;
   }
 
@@ -301,7 +345,7 @@ extension PetsOps on AppController {
         if (e.id == eggId) {
           unawaited(notifier?.schedule(NotifyId.hatch,
               e.incubatedAt!.add(PetRules.hatchTime),
-              '알이 깨어나려 해요', '가방에서 알을 확인하고 이름을 지어 주세요!'));
+              '알이 깨어나려 해요', '알 부화장에서 확인하고 이름을 지어 주세요!'));
         }
       }
       return true;
@@ -317,16 +361,10 @@ extension PetsOps on AppController {
       if (e.id == eggId) egg = e;
     }
     if (egg == null || !eggReady(egg)) return null;
-    // 묶음 49 #235: Lv.15부터 아주 드물게 영웅 펫 (안 나오면 다음 알부터 조금씩 오름)
-    final heroOn = player.level.level >= PetRules.heroLevel;
-    // 묶음 57 #244: Lv.21(3막)부터 아주 드물게 전설 펫 (전설 → 영웅 → 희귀 → 일반)
-    final legendOn = player.level.level >= PetRules.legendLevel;
+    // 묶음 75 #334: 등급은 얻을 때 정했다 — 그 등급 안에서 종류만
     final s = species ??
-        PetRules.rollSpecies(_random,
-            element: ElementRules.parse(egg.element),
-            alchemyTop: alchemyIsTop,
-            heroChance: heroOn ? PetRules.heroChance(p.heroMiss) : 0,
-            legendChance: legendOn ? PetRules.legendChance(p.legendMiss) : 0);
+        PetRules.speciesOfGrade(_random, egg.grade,
+            element: ElementRules.parse(egg.element), alchemyTop: alchemyIsTop);
     final legend = PetRules.isLegend(s);
     final hero = PetRules.isHero(s) || legend;
     final pet = Pet(
@@ -345,8 +383,6 @@ extension PetsOps on AppController {
       eggs: [for (final e in p.eggs) if (e.id != eggId) e],
       pets: [...p.pets, pet],
       nextId: p.nextId + 1,
-      heroMiss: PetRules.isHero(s) ? 0 : (heroOn && species == null && !legend ? p.heroMiss + 1 : p.heroMiss),
-      legendMiss: legend ? 0 : (legendOn && species == null ? p.legendMiss + 1 : p.legendMiss),
     ));
     await _npcTally(NpcTally.hatch);
     return pet;
@@ -428,26 +464,35 @@ extension PetsOps on AppController {
     final given = _pets.boardEggWeeks.length;
     if (due <= given) return;
     var p = _pets;
-    // 묶음 47 #240: 의뢰 보상 알은 가방이 가득하면 우편함에
+    // 묶음 47 #240 · 묶음 75 #327: 의뢰 보상 알은 가방이 가득하면 우편함에 (등급은 얻는 순간)
     var free = bagFree;
-    var mailed = 0;
+    final mailed = <String, int>{};
+    var bagged = 0;
     for (var k = given; k < due; k++) {
       final week = fullWeeks[(k + 1) * 2 - 1];
+      final (grade, rolled) = _rollEgg(p);
+      p = rolled.copyWith(boardEggWeeks: [...rolled.boardEggWeeks, week]);
       if (free <= 0) {
-        mailed++;
-        p = p.copyWith(boardEggWeeks: [...p.boardEggWeeks, week]);
+        mailed[grade.key] = (mailed[grade.key] ?? 0) + 1;
         continue;
       }
       free--;
+      bagged++;
       p = p.copyWith(
-        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board', element: mainElement?.name)],
+        eggs: [...p.eggs, PetEgg(id: 'egg${p.nextId}', source: 'board', element: mainElement?.name, grade: grade)],
         nextId: p.nextId + 1,
-        boardEggWeeks: [...p.boardEggWeeks, week],
       );
     }
-    if (mailed > 0) await _mailBagRest({'egg': mailed}, title: '주간 의뢰 보상 알');
     await _savePets(p);
-    _newEgg = true;
+    if (mailed.isNotEmpty) {
+      await _mailBagRest(mailed, title: '주간 의뢰 보상 알');
+      // 띠는 알 전용 문구로 (일반 「우편함에 맡겨 뒀어요」 띠는 세지 않음)
+      _bagMailed = math.max(0, _bagMailed - mailed.length);
+      _eggMailed = true;
+    }
+    // 가방에 들어간 알이 있을 때만 「알을 얻었어요!」
+    if (bagged > 0) _newEgg = true;
+    _notify();
   }
 
   /// 데리고 다닐 펫을 고른다

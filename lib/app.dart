@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'features/pets/companion_pet_panel.dart';
+import 'features/pets/egg_news.dart';
 import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
 import 'package:flutter/material.dart';
 

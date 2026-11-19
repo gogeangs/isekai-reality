@@ -189,6 +189,19 @@ extension ExpeditionOps on AppController {
     return true;
   });
 
+  /// 묶음 75 #327: 잡화상에서 알을 판다 (등급 값, 품는 중인 알은 못 팖)
+  Future<bool> sellEgg(String id) => _serial(() async {
+        final egg = _pets.eggs.where((e) => e.id == id && e.incubatedAt == null).firstOrNull;
+        if (egg == null || !_pets.farewellDone) return false;
+        await _savePets(_pets.copyWith(eggs: [for (final e in _pets.eggs) if (e.id != id) e]));
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+            gains: DailyRecord.addCounts(today.gains, {Wallet.gold: egg.grade.price})));
+        await _shopTraded();
+        await _npcUse(Npc.mina);
+        return true;
+      });
+
   /// 잡화상에서 가방 물건을 판다 (산 값의 절반)
   Future<bool> sellItem(ShopItem item, int n) =>
       _serial(() async {

@@ -79,14 +79,15 @@ void main() {
       expect({for (final e in c.bagHoldList) e.key: e.count}, {'item:healSmall': 1});
     });
 
-    test('알·공방 물약(팔 수 없는 것)은 창이 아니라 우편함에', () async {
+    test('공방 물약(팔 수 없는 것)은 창이 아니라 우편함에 · 묶음 75: 알은 창으로', () async {
       final c = await startNpc(level: 12, mats: _full99);
-      await c.admitBagForTest(const {'egg': 1, 'alc:healBig': 2, 'herb': 1});
-      expect({for (final e in c.bagHoldList) e.key: e.count}, {'herb': 1});
+      await c.admitBagForTest(const {'egg:rare': 1, 'alc:healBig': 2, 'herb': 1});
+      expect({for (final e in c.bagHoldList) e.key: e.count}, {'egg:rare': 1, 'herb': 1});
+      expect(c.bagHoldList.firstWhere((e) => e.key == 'egg:rare').price, EggGrade.rare.price);
       final m = c.giftMails.firstWhere((m) => m.id.startsWith('bag_'));
-      expect(m.gifts, {'egg': 1, 'alc:healBig': 2});
+      expect(m.gifts, {'alc:healBig': 2});
       expect(m.expiresAt, isNull); // 사라지지 않음
-      expect(c.takeBagMailed(), 2);
+      expect(c.takeBagMailed(), 1);
     });
 
     test('의뢰·이야기 보상은 창 없이 모두 우편함에', () async {

@@ -95,6 +95,7 @@ extension BattleOps on AppController {
     final tiredMana = tired ? mana - _tiredCut(mana) : 0;
     exp -= tiredExp;
     mana -= tiredMana;
+    _battleEgg = null; // 묶음 75 #327: 이번 전투에서 얻은 알만
     if (run.cleared && _pets.farewellDone) {
       await _maybeEgg(PetRules.dungeonEggChance, 'dungeon');
     }

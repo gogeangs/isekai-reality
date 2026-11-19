@@ -1,3 +1,4 @@
+import '../pets/egg_news.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Element;
@@ -44,6 +45,9 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
   _Stage _stage = _Stage.entry;
   Battle? _battle;
   AshResult? _result;
+
+  /// 묶음 75 #327: 이 싸움에서 얻은 알 등급
+  EggGrade? _egg;
   late final AshAvatar? _avatar = widget.controller.nextAvatar;
 
   AppController get _c => widget.controller;
@@ -88,6 +92,7 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
     setState(() {
       _result = r;
       _stage = _Stage.result;
+      _egg = r.egg ? (_c.takeBattleEgg() ?? EggGrade.common) : null;
     });
     if (r.won && r.story != null) {
       final i = Act2Rules.avatars.indexWhere((a) => a.story == r.story);
@@ -355,6 +360,11 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
         OrnatePanel(
           ornament: true,
           child: Column(children: [
+            // 묶음 75 #327: 알은 보상 칸 맨 앞에 크게
+            if (_egg case final g?) ...[
+              EggGotBanner(grade: g, farewell: _c.farewellDone),
+              const SizedBox(height: 8),
+            ],
             if (r.item case final item?) ...[
               Text('유품 장비', style: AppText.title(14, color: AppColors.goldBright)),
               const SizedBox(height: 6),
@@ -390,15 +400,7 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
                     style: AppText.title(15, color: AppColors.text)),
               ]),
             ],
-            if (r.egg) ...[
-              const SizedBox(height: 8),
-              const Row(children: [
-                Icon(Icons.egg_rounded, color: AppColors.goldBright),
-                SizedBox(width: 8),
-                Text('알 하나를 얻었어요',
-                    style: TextStyle(color: AppColors.text, fontSize: 14)),
-              ]),
-            ],
+
             if (r.story != null) ...[
               const SizedBox(height: 8),
               TextButton.icon(

@@ -8,7 +8,11 @@ class PetEgg {
       this.source = '',
       this.incubatedAt,
       this.element,
-      this.adHalved = false});
+      this.adHalved = false,
+      this.grade = EggGrade.common});
+
+  /// 묶음 75 #334: 알 등급 (얻는 순간 정함). 깨어날 때는 이 등급 안에서 종류만
+  final EggGrade grade;
 
   /// 광고로 남은 시간을 절반으로 줄였는지 (알 하나에 한 번, 묶음 32 #187)
   final bool adHalved;
@@ -27,7 +31,8 @@ class PetEgg {
       source: source,
       incubatedAt: at,
       element: element,
-      adHalved: adHalved ?? this.adHalved);
+      adHalved: adHalved ?? this.adHalved,
+      grade: grade);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -35,6 +40,7 @@ class PetEgg {
         if (incubatedAt != null) 'incubatedAt': incubatedAt!.toIso8601String(),
         if (element != null) 'element': element,
         if (adHalved) 'adHalved': true,
+        if (grade != EggGrade.common) 'grade': grade.name,
       };
 
   factory PetEgg.fromJson(Map<String, dynamic> j) => PetEgg(
@@ -45,6 +51,7 @@ class PetEgg {
             : DateTime.tryParse(j['incubatedAt'] as String),
         element: j['element'] as String?,
         adHalved: j['adHalved'] == true,
+        grade: EggGrade.values.asNameMap()[j['grade']] ?? EggGrade.common,
       );
 }
 

@@ -288,7 +288,7 @@ class _MarketScreenState extends State<MarketScreen> {
     ];
   }
 
-  Widget _icon(MarketKind k, String key, EquipItem? e, {double size = 44}) => SizedBox(
+  Widget _icon(MarketKind k, String key, EquipItem? e, {double size = 44, String? name}) => SizedBox(
         width: size,
         height: size,
         child: switch (k) {
@@ -303,7 +303,8 @@ class _MarketScreenState extends State<MarketScreen> {
           MarketKind.equip => e == null
               ? const Icon(Icons.shield_rounded)
               : EquipIcon(base: e.base, grade: e.grade, size: size),
-          MarketKind.egg => EggArt(size: size),
+          // 묶음 75 #334: 거래소 알은 등급이 보임
+          MarketKind.egg => EggArt(size: size, grade: EggGrade.values.where((g) => g.label == name).firstOrNull ?? EggGrade.common),
           MarketKind.alc => switch (PotionId.values.where((p) => p.name == key).firstOrNull) {
               final p? => PotionIcon(potion: p, size: size),
               null => const Icon(Icons.science_rounded),
@@ -323,7 +324,7 @@ class _MarketScreenState extends State<MarketScreen> {
         key: Key('listing_${l.id}'),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         child: Row(children: [
-          _icon(l.kind, l.key, l.equip),
+          _icon(l.kind, l.key, l.equip, name: l.name),
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -482,7 +483,7 @@ class _MarketScreenState extends State<MarketScreen> {
           key: Key('own_${o.key}'),
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           child: Row(children: [
-            _icon(o.kind, o.equip?.base.name ?? o.key, o.equip),
+            _icon(o.kind, o.equip?.base.name ?? o.key, o.equip, name: o.name),
             const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

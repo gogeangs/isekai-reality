@@ -33,7 +33,8 @@ class Acc {
 Acc account(int level,
     {Map<String, int> mats = const {},
     Map<String, dynamic>? highland,
-    bool farewell = true}) =>
+    bool farewell = true,
+    bool smith = false}) =>
     Acc(
       InMemoryRecordStore(
         profile: const PlayerProfile(
@@ -50,6 +51,8 @@ Acc account(int level,
         ],
         json: {
           'tutorial': {'step': TutorialStep.done.index},
+          // 묶음 75 #322: 보스 장비는 대장장이만
+          if (smith) 'jobs': {'main': 'blacksmith'},
           'gates': {
             'legacy': false,
             'v28': true,
@@ -458,6 +461,7 @@ void main() {
     test('대장간: 결정과 하늘 돌이 있으면 만들 수 있고 부위 속성은 그 결정의 섬', () async {
       final c = await start(account(18,
           mats: {'skyStone': 20, 'stormCore': 2},
+          smith: true,
           highland: const HighlandState(beaten: [1]).toJson()));
       expect(c.canCraftBoss(EquipBase.skyWeapon), CraftCheck.ok);
       expect(c.canCraftBoss(EquipBase.skyHead), isNot(CraftCheck.ok));

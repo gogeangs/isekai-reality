@@ -297,7 +297,8 @@ void main() {
       expect(find.byKey(const Key('locked_alchemy')), findsOneWidget);
       await tester.tap(find.byKey(const Key('locked_alchemy')));
       await tester.pump();
-      expect(find.text('연금술 공방 · Lv.7에 완공돼요'), findsOneWidget);
+      // 묶음 75 #321: 누르면 완공 때만 (이름은 감춤)
+      expect(find.text('Lv.7에 완공돼요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 

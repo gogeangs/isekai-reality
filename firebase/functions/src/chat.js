@@ -270,7 +270,7 @@ class ChatService {
   // ───────────── 읽기 · 쓰기
 
   _view(id, m) {
-    return { id, uid: m.uid || null, name: m.name || '', title: m.title || '', level: m.level || 0, text: m.text, kind: m.kind || 'user', at: m.at };
+    return { id, uid: m.uid || null, name: m.name || '', title: m.title || '', level: m.level || 0, face: m.face || '', text: m.text, kind: m.kind || 'user', at: m.at };
   }
 
   async read(uid, { room, after, before } = {}) {
@@ -312,7 +312,7 @@ class ChatService {
     }
     const list = await words.refresh(this.db, now);
     const shown = maskPrivate(maskBanned(t, list));
-    const msg = { room, uid, name: u.name || '각성자', title: u.title || '', level: u.level || 1, text: shown, kind: 'user', at: now, expireAt: new Date(now + C.keepDays * DAY) };
+    const msg = { room, uid, name: u.name || '각성자', title: u.title || '', level: u.level || 1, face: u.face || '', text: shown, kind: 'user', at: now, expireAt: new Date(now + C.keepDays * DAY) };
     const ref = await this._msgs(room).add(msg);
     const rooms = new Set(u.rooms || []);
     rooms.add(room);

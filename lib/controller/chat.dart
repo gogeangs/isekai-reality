@@ -2,7 +2,7 @@ part of '../app_controller.dart';
 
 /// 묶음 68 #275: 대화 한 줄
 class ChatLine {
-  const ChatLine({required this.id, this.uid, this.name = '', this.title = '', this.level = 0, required this.text, this.kind = 'user', required this.at});
+  const ChatLine({required this.id, this.uid, this.name = '', this.title = '', this.level = 0, required this.text, this.kind = 'user', required this.at, this.face = ''});
 
   factory ChatLine.fromJson(Map<String, dynamic> j) => ChatLine(
         id: '${j['id']}',
@@ -13,7 +13,11 @@ class ChatLine {
         text: '${j['text'] ?? ''}',
         kind: '${j['kind'] ?? 'user'}',
         at: (j['at'] as num?)?.toInt() ?? 0,
+        face: '${j['face'] ?? ''}',
       );
+
+  /// 묶음 75 #335: 말한 사람의 프로필 사진 그림 이름
+  final String face;
 
   final String id;
   final String? uid;

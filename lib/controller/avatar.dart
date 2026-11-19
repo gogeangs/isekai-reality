@@ -83,15 +83,12 @@ extension AvatarOps on AppController {
   Future<void> setAvatar(String key) =>
       updateProfile(_profile.copyWith(avatar: key));
 
-  /// 고를 사진이 둘 이상이면 처음 한 번 정령 한마디
+  /// 주인공 말고 고를 얼굴(펫 · 단짝 마을 사람 · 동료)이 생기면 처음 한 번 한마디
   bool get _avatarHintDue {
     if (_profile.avatarHinted) return false;
-    var n = 0;
-    for (final t in AvatarTab.values) {
-      n += avatarChoices(t).length;
-      if (n > 1) return true;
-    }
-    return false;
+    return _pets.pets.isNotEmpty ||
+        avatarChoices(AvatarTab.npc).isNotEmpty ||
+        avatarChoices(AvatarTab.ally).isNotEmpty;
   }
 
   static const String avatarHintLine = '프로필 사진을 바꿀 수 있어! 얼굴을 눌러 봐.';

@@ -12,7 +12,7 @@ import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import '../act5/erbard_screens.dart' show siegeLine;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
-import '../profile/profile_screen.dart' show AvatarFace;
+import '../profile/profile_screen.dart' show AvatarFace, SocialFace;
 import 'chat_tour.dart';
 
 /// 묶음 68 #275: 상태 화면 위 우편 버튼 옆 말풍선 (안 읽은 수 빨간 점). 로그인했을 때만
@@ -861,7 +861,14 @@ class _Bubble extends StatelessWidget {
       onLongPress: mine ? null : onLong,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // 묶음 75 #335: 다른 사람 말 옆에 프로필 사진
+          if (!mine) ...[
+            SocialFace(key: Key('chatFace_${l.id}'), face: l.face, size: 32),
+            const SizedBox(width: 6),
+          ],
+          Expanded(
+            child: Column(crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
           if (!mine)
             Text('${l.name}${l.title.isNotEmpty ? ' · ${l.title}' : ''} · Lv.${l.level}',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w700)),
@@ -894,6 +901,8 @@ class _Bubble extends StatelessWidget {
             if (!mine) const SizedBox(width: 4),
             if (!mine) Text(time, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
           ]),
+        ]),
+          ),
         ]),
       ),
     );

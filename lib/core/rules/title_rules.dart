@@ -1,3 +1,4 @@
+import '../format.dart' show josa;
 import 'erbard_rules.dart' show ErbardRules;
 import 'element_rules.dart';
 import '../models/daily_record.dart';
@@ -226,16 +227,16 @@ class TitleRules {
       TitleId.wayfarers => '초대한 친구 셋이 함께 걷게 됐어요',
       TitleId.firstHello => '「세계」에 처음 인사를 건넸어요',
       TitleId.trialEndurer => '훈련장 시련에서 처음으로 15판을 넘겼어요',
-      TitleId.pairWeaponsmith => '숨은 짝 「무기 장인」을 찾았어요',
-      TitleId.pairRunesmith => '숨은 짝 「룬 대장장이」을 찾았어요',
-      TitleId.pairJeweler => '숨은 짝 「보석 세공사」을 찾았어요',
-      TitleId.pairPotionMerchant => '숨은 짝 「물약 상인」을 찾았어요',
-      TitleId.pairPeddler => '숨은 짝 「행상인」을 찾았어요',
-      TitleId.pairBeastKnight => '숨은 짝 「마수 기사」을 찾았어요',
-      TitleId.pairPathfinder => '숨은 짝 「길잡이」을 찾았어요',
-      TitleId.pairPaladin => '숨은 짝 「성기사」을 찾았어요',
-      TitleId.pairNightThief => '숨은 짝 「밤의 도둑」을 찾았어요',
-      TitleId.pairRanger => '숨은 짝 「레인저」을 찾았어요',
+      TitleId.pairWeaponsmith => _pairFound('무기 장인'),
+      TitleId.pairRunesmith => _pairFound('룬 대장장이'),
+      TitleId.pairJeweler => _pairFound('보석 세공사'),
+      TitleId.pairPotionMerchant => _pairFound('물약 상인'),
+      TitleId.pairPeddler => _pairFound('행상인'),
+      TitleId.pairBeastKnight => _pairFound('마수 기사'),
+      TitleId.pairPathfinder => _pairFound('길잡이'),
+      TitleId.pairPaladin => _pairFound('성기사'),
+      TitleId.pairNightThief => _pairFound('밤의 도둑'),
+      TitleId.pairRanger => _pairFound('레인저'),
 
       _ => '새 칭호를 얻었어요',
     };
@@ -678,3 +679,7 @@ class TitleRules {
     return best;
   }
 }
+
+/// 묶음 75 #332: 「숨은 짝 「○○」을/를 찾았어요」 — 이름 끝 받침에 맞춰
+String _pairFound(String name) =>
+    '숨은 짝 「$name」${josa(name, '을/를').substring(name.length)} 찾았어요';

@@ -193,7 +193,8 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
                         errorBuilder: (_, __, ___) => const _StrawNest()),
                   ),
                   Positioned(
-                    bottom: 30 - lift.abs() * 0 + (-lift),
+                    // 묶음 72 #285: 알 아랫선을 둥지 그림 높이의 78%에 (반쯤 묻히고 양옆 테가 감쌈)
+                    bottom: 110 * (1 - 0.78) - lift,
                     child: Transform.rotate(
                       angle: angle,
                       alignment: Alignment.bottomCenter,

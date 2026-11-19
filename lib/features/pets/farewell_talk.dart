@@ -256,7 +256,8 @@ class _Face extends StatelessWidget {
     // 마지막 인사는 눈물 맺힌 미소 (그림이 없으면 웃음)
     final art = index == 4
         ? Image.asset('assets/images/spirit_${kind.name}_${'farewell'}.webp',
-            width: size * 0.86, height: size * 0.95, fit: BoxFit.contain, errorBuilder: (_, __, ___) => fallback)
+            // 묶음 72 #284: 여백을 잘라 낸 그림을 기본 정령 그림과 같은 칸에 (표정만 바뀌어 보이게)
+            width: size * 0.86, height: size * 0.86 * 1.1, fit: BoxFit.contain, errorBuilder: (_, __, ___) => fallback)
         : fallback;
     return Container(
       key: Key('farewellFace_${mood.name}'),

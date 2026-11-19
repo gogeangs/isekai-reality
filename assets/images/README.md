@@ -490,3 +490,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | mat_gortRoot, mat_silvaFern, mat_mireaGrass, mat_zephiraLeaf, mat_noctiGrass, mat_mandragora | 약초 재료 6종, 512 (3×2 한 장에서 잘라냄) |
 | 2026-11-19 | village_market_2 | 거래소 ★2(옆 노점 추가), 512, 기본 거래소와 폭·바닥선 맞춤 |
 | 2026-11-19 | bg_in_smithy | 대장간 안 배경(화덕·모루·무기 벽), 1024×1792 |
+| 2026-11-19 | village_market_3 | 거래소 ★3(노점 세 칸·양쪽 깃발·큰 저울), 512, 기본 거래소와 폭·바닥선 맞춤 |

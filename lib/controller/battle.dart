@@ -19,10 +19,8 @@ extension BattleOps on AppController {
         .any((p) => p.kind == PlaceKind.labyrinthGate);
   }
 
-  /// 오늘 경험치를 받을 수 있는 던전 횟수가 남았는지
-  bool get dungeonExpLeftToday =>
-      (player.today?.dungeonRuns.length ?? 0) <
-      RuleConstants.maxDungeonRunsPerDay;
+  /// 묶음 70 #296: 던전 하루 상한 없음 — 들어갈 때마다 경험치 · 보상
+  bool get dungeonExpLeftToday => true;
 
   /// 던전을 연다. 열쇠가 없거나 이동 중이면 null.
   /// 열쇠는 전투가 끝날 때([finishDungeon]) 쓴다. 중간에 나가면 쓰지 않는다.
@@ -88,9 +86,7 @@ extension BattleOps on AppController {
     final today = await _todayRecord();
     final run = DungeonRun(
         cleared: battle.phase == BattlePhase.cleared, atGate: atGate);
-    var exp = today.dungeonRuns.length < RuleConstants.maxDungeonRunsPerDay
-        ? ExpRules.dungeonRunExp(run)
-        : 0;
+    var exp = ExpRules.dungeonRunExp(run);
     var mana = run.cleared
         ? RuleConstants.crystalsPerDungeonClear
         : RuleConstants.crystalsPerDungeonFail;

@@ -66,7 +66,6 @@ enum ShopItem {
   specialKnot,
 
   /// 묶음 57 #249: 기본 활 (Lv.15부터, 사면 바로 장비로)
-  basicBow,
 }
 
 enum ShopLimit { perDay, perWeek }
@@ -251,9 +250,10 @@ class TownRules {
     ShopItemInfo(
       item: ShopItem.spareKey,
       name: '여분의 열쇠',
-      description: '오늘 던전 열쇠가 하나 늘어나요.',
+      description: '던전 열쇠가 하나 늘어나요.',
       price: 150,
-      limit: ShopLimit.perWeek,
+      // 묶음 70 #295: 일주일에 하나 → 하루에 하나
+      limit: ShopLimit.perDay,
       icon: 'icon_key',
     ),
     ShopItemInfo(
@@ -385,15 +385,6 @@ class TownRules {
       price: 60,
       limit: ShopLimit.perDay,
       icon: 'icon_lens',
-    ),
-    ShopItemInfo(
-      item: ShopItem.basicBow,
-      name: '사냥 활',
-      description: '멀리서 먼저 쏘는 기본 활이에요. 사면 바로 장비 가방에 들어가요.',
-      price: 150,
-      limit: ShopLimit.perWeek,
-      icon: 'weapon_bow',
-      minLevel: 15,
     ),
   ];
 

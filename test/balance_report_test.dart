@@ -158,7 +158,6 @@ Result simulate(Persona p, {int days = 14, int seed = 7}) {
       final keys = state.gauge.keysAvailable;
       if (keys <= 0 ||
           hp <= 0 ||
-          today.dungeonRuns.length >= RuleConstants.maxDungeonRunsPerDay ||
           runs >= (state.gauge.keysEarnedToday * p.dungeonShare).ceil() + 3) {
         break;
       }

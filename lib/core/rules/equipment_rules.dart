@@ -54,7 +54,7 @@ enum EquipBase {
   uniqVolkHelm, uniqTeoSpear, uniqWindPendant, baldrinSpear,
   // 묶음 56 #236: 파티 보스 세트 「동행」 (보스 재료로 대장간에서)
   partyWeapon, partyHead, partyBody, partyHands, partyFeet, partyAcc,
-  // 묶음 57 #249: 플레이어 무기 「활」 (Lv.15부터 대장간 · 잡화상)
+  // 묶음 57 #249: 플레이어 무기 「활」 (Lv.15부터 대장간 「만들기」에서만, 묶음 69 #299)
   bow,
   // 묶음 57 #243: 3막 지역 2~5 일반 장비 6부위 · 이름 있는 장비 3 · 지역 무기
   seleniaWeapon, seleniaHead, seleniaBody, seleniaHands, seleniaFeet, seleniaAcc,

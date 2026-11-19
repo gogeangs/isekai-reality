@@ -8,7 +8,6 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/element_view.dart' show elementColor;
 import '../town/material_view.dart';
-import '../harvest/harvest_sheet.dart' show ToolRepairPanel;
 import 'convert_panel.dart';
 import '../../theme/top_notice.dart';
 import '../tutorial/feature_tour.dart'
@@ -91,11 +90,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                 0 => _cauldrons(context),
                 1 => _book(context),
                 3 => [ConvertPanel(controller: c)],
-                _ => [
-                    ProcessPanel(controller: c),
-                    const SizedBox(height: 10),
-                    ToolRepairPanel(controller: c, smithy: false),
-                  ],
+                _ => [ProcessPanel(controller: c)],
               },
             ],
           ),

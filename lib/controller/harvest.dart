@@ -244,7 +244,7 @@ extension HarvestOps on AppController {
   /// 채집가 직업 (#55 각성 뒤, 지금은 늘 false. 규칙만 준비)
   bool get gatherer => false;
 
-  /// 도구를 다음 등급으로 (대장간: 곡괭이·도끼, 공방: 낫·낚싯대·붓)
+  /// 도구를 다음 등급으로 (묶음 70: 모두 대장간)
   CraftCheck canUpgradeTool(HarvestTool t) {
     final cost = HarvestRules.upgradeCost(_harvest.tierOf(t));
     if (cost == null) return CraftCheck.maxed;
@@ -496,7 +496,7 @@ extension HarvestOps on AppController {
         for (var i = 0; i < _prophecy; i++) HarvestRules.prophecy[i].$1,
       ];
 
-  /// 도구 수리: 금화 30 + 재료 1 (곡괭이·도끼는 대장간, 낫·낚싯대·붓은 공방)
+  /// 도구 수리: 금화 30 + 재료 1 (묶음 70 #302: 모두 대장간)
   Future<bool> repairTool(HarvestTool t) =>
       _serial(() async {
     if (!_harvest.granted || _harvest.durability(t) >= toolMaxOf(t)) {

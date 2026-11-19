@@ -551,8 +551,14 @@ class _SmithyScreenState extends State<SmithyScreen> {
       for (final w in c.armory.worn)
         if (c.masteryRepairCost(w) > 0) w,
     ];
-    final total =
-        damaged.fold<int>(0, (s, w) => s + c.masteryRepairCost(w));
+    // 묶음 70 #302: 닳은 채집 도구도 함께 (재료가 모자란 도구는 빼고, 그 줄은 빨간색)
+    final tools = c.featureOpen(Feature.harvest) && c.harvestToolsReady && c.harvest.granted
+        ? [for (final t in HarvestTool.values) if (c.toolDurability(t) < c.toolMaxOf(t)) t]
+        : const <HarvestTool>[];
+    final toolsOk = [for (final t in tools) if (c.player.materialCount(HarvestRules.repairMaterial(t)) > 0) t];
+    final toolsShort = [for (final t in tools) if (!toolsOk.contains(t)) t];
+    final total = damaged.fold<int>(0, (s, w) => s + c.masteryRepairCost(w)) + toolsOk.length * HarvestRules.repairGold;
+    final any = damaged.isNotEmpty || toolsOk.isNotEmpty;
     return [
       // 맨 위 금빛 칸: 입은 장비 모두 수리
       OrnatePanel(
@@ -562,9 +568,12 @@ class _SmithyScreenState extends State<SmithyScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             KText(
-                damaged.isEmpty
+                !any
                     ? '입은 장비가 모두 멀쩡해요 · 0이 되면 능력이 절반이에요'
-                    : '입은 장비 ${damaged.length}개가 닳았어요 · 0이 되면 능력이 절반이에요',
+                    : [
+                        if (damaged.isNotEmpty) '입은 장비 ${damaged.length}개',
+                        if (toolsOk.isNotEmpty) '채집 도구 ${toolsOk.length}개',
+                      ].join(' · ') + '가 닳았어요 · 0이 되면 능력이 절반이에요',
                 style: const TextStyle(
                     color: AppColors.goldBright,
                     fontSize: 13,
@@ -572,21 +581,32 @@ class _SmithyScreenState extends State<SmithyScreen> {
             const SizedBox(height: 8),
             GoldButton(
               key: const Key('repairAll'),
-              label: damaged.isEmpty ? '모두 멀쩡해요' : '모두 수리 · 금화 $total',
+              label: !any ? '모두 멀쩡해요' : '모두 수리 · 금화 $total',
               height: 42,
               fontSize: 15,
-              onPressed: damaged.isNotEmpty && p.gold >= total
+              onPressed: any && p.gold >= total
                   ? () async {
                       var ok = true;
                       for (final w in damaged) {
                         ok = await c.repair(w.uid) && ok;
                       }
-                      if (mounted && ok) _snack('입은 장비를 모두 고쳤어요!');
+                      for (final t in toolsOk) {
+                        ok = await c.repairTool(t) && ok;
+                      }
+                      if (mounted && ok) _snack('모두 고쳤어요!');
                     }
                   : null,
             ),
-            if (damaged.isNotEmpty && p.gold < total)
+            if (any && p.gold < total)
               _Short(lines: [(_ic('gold'), '금화 ${total - p.gold}')]),
+            for (final t in toolsShort)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                    '${HarvestRules.toolName(t)} · ${josa(Materials.info(HarvestRules.repairMaterial(t)).name, '이/가')} 없어 못 고쳐요',
+                    key: Key('repairAllShort_${t.name}'),
+                    style: const TextStyle(color: Color(0xFFFF8A80), fontSize: 12.5, fontWeight: FontWeight.w700)),
+              ),
           ],
         ),
       ),
@@ -634,7 +654,8 @@ class _SmithyScreenState extends State<SmithyScreen> {
           );
         }),
       const SizedBox(height: 6),
-      ToolRepairPanel(controller: c, smithy: true),
+      // 묶음 70 #302: 채집 도구 다섯 가지 모두 여기서
+      ToolRepairPanel(controller: c),
     ];
   }
 

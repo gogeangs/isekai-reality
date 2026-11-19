@@ -68,7 +68,7 @@ void main() {
         newPlaces: 5,
         quests: 5,
       ));
-      expect(b.dungeon, 200); // 4회
+      expect(b.dungeon, 300); // 묶음 70 #296: 하루 상한 없음 (6회)
       expect(b.fieldMonster, 105); // 5마리 + 4마리 절반 (11-11 #69)
       expect(b.exploration, 90); // 3곳
       expect(b.quest, 60); // 3개
@@ -105,10 +105,10 @@ void main() {
       expect(g.dailyKeyLimitReached, isTrue);
     });
 
-    test('이월은 최대 3개', () {
+    test('이월은 상한 없음 (묶음 70 #296)', () {
       final g = DungeonGaugeRules.today(steps: 10000, carriedKeys: 1);
       expect(g.keysAvailable, 5);
-      expect(DungeonGaugeRules.carryOverToTomorrow(g), 3);
+      expect(DungeonGaugeRules.carryOverToTomorrow(g), 5);
     });
 
     test('자기 걸음 목표를 채운 날은 보너스 열쇠 1개 (걸음 한도와 별도)', () {

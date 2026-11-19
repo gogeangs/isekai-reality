@@ -24,7 +24,6 @@ extension ShopGroupInfo on ShopGroup {
       };
 
   static ShopGroup of(ShopItem item) => switch (item) {
-        ShopItem.basicBow => ShopGroup.travel,
         ShopItem.healSmall ||
         ShopItem.heal ||
         ShopItem.manaSmall ||
@@ -75,7 +74,6 @@ class ShopScreen extends StatefulWidget {
 
   static String boughtLine(ShopItem item) => switch (item) {
         ShopItem.spareKey => '여분의 열쇠를 샀어요. 던전 열쇠가 하나 늘었어요!',
-        ShopItem.basicBow => '사냥 활을 장비 가방에 넣었어요. 대장간이나 상태에서 들어 봐요!',
         ShopItem.bulssiPotion => '가방에 넣었어요!',
         ShopItem.magicLens => '마법 돋보기는 더 이상 팔지 않아요.',
         ShopItem.raceLens =>

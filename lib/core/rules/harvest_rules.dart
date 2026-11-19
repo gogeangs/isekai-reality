@@ -269,10 +269,6 @@ class HarvestRules {
 
   static String toolName(HarvestTool t) => ofTool(t).toolName;
 
-  /// 대장간에서 고치는 도구 (나머지는 연금술 공방)
-  static bool smithyTool(HarvestTool t) =>
-      t == HarvestTool.pickaxe || t == HarvestTool.axe;
-
   /// 고칠 때 드는 재료
   static MaterialId repairMaterial(HarvestTool t) => switch (t) {
         HarvestTool.sickle => MaterialId.herb,

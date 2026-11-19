@@ -87,9 +87,7 @@ class ExpRules {
   /// [weeklyDone] 는 그날 새로 마친 주간 의뢰 수
   static DailyExpBreakdown forDay(DailyRecord record,
       {int restStreak = 0, int weeklyDone = 0}) {
-    final runs = record.dungeonRuns
-        .take(RuleConstants.maxDungeonRunsPerDay)
-        .toList(); // 하루 최대 4회까지 경험치 인정
+    final runs = record.dungeonRuns; // 묶음 70 #296: 하루 던전 기록 전부
     final dungeon = runs.fold<int>(0, (sum, r) => sum + dungeonRunExp(r));
 
     // 11-11 #69: 5마리 뒤로는 보상이 줄어든다 (숨은 규칙)

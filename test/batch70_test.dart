@@ -231,33 +231,43 @@ void main() {
       });
       await tester.pumpWidget(MaterialApp(home: AlchemyScreen(controller: c)));
       await tester.pump();
+      // 묶음 75 #318: 탭 대신 「작업대」 + 오른쪽 위 「레시피」 버튼
       expect(find.text('작업대'), findsOneWidget);
-      expect(find.text('레시피'), findsOneWidget);
+      expect(find.byKey(const Key('recipeOpen')), findsOneWidget);
       expect(find.text('가공'), findsNothing);
-      expect(find.text('가마솥 1 · 비어 있어요'), findsOneWidget);
+      expect(find.text('가마솥 1 / 1'), findsOneWidget);
       // 선반에서 눌러 넣기
+      await tester.ensureVisible(find.byKey(const Key('shelf_herb')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('shelf_herb')));
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(find.descendant(of: find.byKey(const Key('brewSlots')), matching: find.byType(Image)), findsWidgets);
-      await tester.tap(find.byKey(const Key('benchNext')));
+      await tester.ensureVisible(find.byKey(const Key('benchNext')).first);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('benchNext')).first);
       await settle(tester);
       expect(find.text('증류기 · 가공'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('benchNext')));
+      await tester.tap(find.byKey(const Key('benchNext')).first);
       await settle(tester);
       expect(find.text('변환 제단 · 변환'), findsOneWidget);
-      // 레시피
-      await tester.tap(find.byKey(const Key('alchemyTab_1')));
-      await tester.pump();
+      await tester.tap(find.byKey(const Key('benchPrev')).first);
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('benchPrev')).first);
+      await settle(tester);
+      // 레시피 창
+      await tester.tap(find.byKey(const Key('recipeOpen')));
+      await settle(tester);
       expect(find.byKey(const Key('recipeGrid')), findsOneWidget);
       expect(find.text('(쪽지)'), findsNothing);
       await tester.tap(find.byKey(const Key('recipeTile_healSmall')));
       await settle(tester);
-      expect(find.byKey(const Key('recipeFill')), findsOneWidget);
+      expect(find.text('채우기'), findsOneWidget);
       await tester.tap(find.byKey(const Key('recipeFill')));
       await settle(tester);
-      expect(find.text('가마솥 1 · 비어 있어요'), findsOneWidget, reason: '작업대로 돌아옴');
+      expect(find.byKey(const Key('recipeSheet')), findsNothing, reason: '작업대로 돌아옴');
+      expect(find.byKey(const Key('forecast_healSmall')), findsOneWidget, reason: '①~⑤가 순서대로 참');
       await tester.pumpWidget(const SizedBox());
     });
   });

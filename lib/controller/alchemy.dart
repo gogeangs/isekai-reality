@@ -189,6 +189,14 @@ extension AlchemyOps on AppController {
     return true;
   });
 
+  /// 묶음 75 #318: 작업대 「만들어질 물약」 · 「끓이기 · ○분」에 보이는 끓는 시간 (스킬은 빼고)
+  int brewMinutesOf(PotionId? id) {
+    var minutes = (id == null ? AlchemyRules.suspiciousMinutes : AlchemyRules.info(id).minutes).toDouble();
+    minutes *= 1 - JobRules.alchemistTime * jobTrait(JobId.alchemist);
+    if (_star(Building.alchemy, 2)) minutes *= BuildingRules.brewTime;
+    return math.max(1, minutes.round());
+  }
+
   bool brewReady(int slot) {
     final b = _alc.brews[slot];
     return b != null && !_clock().isBefore(b.readyAt);

@@ -617,7 +617,7 @@ void main() {
     await _shot(tester, '28e_공방_가마솥');
     // 묶음 70 #297: 작업대를 넘겨 변환 제단으로
     for (var i = 0; i < c.cauldronCount + 1; i++) {
-      await tester.tap(find.byKey(const Key('benchNext')));
+      await tester.tap(find.byKey(const Key('benchNext')).first, warnIfMissed: false);
       await tester.pumpAndSettle();
     }
     await tester.tap(find.text('마석 정제'));

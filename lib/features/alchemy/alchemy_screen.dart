@@ -47,13 +47,11 @@ enum RecipeGroup {
 }
 
 class _AlchemyScreenState extends State<AlchemyScreen> {
-  int _tab = 0;
   RecipeGroup _group = RecipeGroup.all;
   final WorkbenchBus _bus = WorkbenchBus();
 
-  /// 탭을 바꾼 뒤 마을 사람 말풍선 (탭 안내)
+  /// 마을 사람 말풍선 (안내)
   String? _tabLine;
-  static const _tabs = ['작업대', '레시피'];
 
   AppController get c => widget.controller;
 
@@ -79,57 +77,29 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 묶음 75 #318 B안: 위 「작업대」 + 오른쪽 위 둥근 「레시피」 버튼 (탭은 없앰)
                 OrnateTopBar(
-                    title: '연금술 공방',
-                    onBack: () => Navigator.of(context).maybePop()),
+                  title: '작업대',
+                  onBack: () => Navigator.of(context).maybePop(),
+                  trailing: _RecipeButton(onTap: () => _openBook(context)),
+                ),
                 const SizedBox(height: 6),
-                // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내 (탭을 바꾸면 그 탭 안내)
                 NpcHeader(
                   controller: c,
                   npc: Npc.eliel,
                   guide: VillageRules.alchemyGuide(0),
                   tabLine: _tabLine,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 JobSkillBar(
                     controller: widget.controller,
                     places: const [SkillPlace.alchemy]),
-                Row(children: [
-                  for (var i = 0; i < _tabs.length; i++) ...[
-                    Expanded(
-                      child: ChoiceChip(
-                        key: Key('alchemyTab_$i'),
-                        label: SizedBox(
-                            width: double.infinity,
-                            child: Text(_tabs[i], textAlign: TextAlign.center)),
-                        selected: _tab == i,
-                        onSelected: (_) => setState(() {
-                          _tab = i;
-                          _tabLine = VillageRules.alchemyGuide(i);
-                        }),
-                        selectedColor: AppColors.gold,
-                        backgroundColor: AppColors.chipBg,
-                        labelStyle: TextStyle(
-                            color: _tab == i ? AppColors.night : AppColors.text,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14),
-                        showCheckmark: false,
-                      ),
-                    ),
-                    if (i < _tabs.length - 1) const SizedBox(width: 6),
-                  ],
-                ]),
-                const SizedBox(height: 8),
                 // 묶음 28 #181: 첫 물약 안내 중이면 회복 물약 판이 맨 위에
-                if (_tab == 0 && c.firstPotionGuide) ...[
+                if (c.firstPotionGuide) ...[
                   _FirstPotionPanel(controller: c),
                   const SizedBox(height: 8),
                 ],
-                Expanded(
-                  child: _tab == 0
-                      ? AlchemyWorkbench(controller: c, bus: _bus)
-                      : _book(context),
-                ),
+                Expanded(child: AlchemyWorkbench(controller: c, bus: _bus)),
               ],
             ),
           ),
@@ -138,9 +108,34 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
     ));
   }
 
+  /// 「아는 레시피」 창 (아래에서)
+  Future<void> _openBook(BuildContext context) => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.night,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (sheet) => SizedBox(
+          key: const Key('recipeSheet'),
+          height: MediaQuery.sizeOf(sheet).height * 0.82,
+          child: StatefulBuilder(
+            builder: (sheet, set) => ListenableBuilder(
+              listenable: c,
+              builder: (sheet, _) => Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Text('아는 레시피', style: AppText.title(19)),
+                  const SizedBox(height: 6),
+                  Expanded(child: _book(sheet, set)),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      );
+
   // ───────────── 레시피 (3칸 격자)
 
-  Widget _book(BuildContext context) {
+  Widget _book(BuildContext context, [StateSetter? set]) {
     final known = c.knownRecipes;
     final groups = [
       RecipeGroup.all,
@@ -181,7 +176,10 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
                 key: Key('recipeGroup_${g.name}'),
                 label: Text(g.label),
                 selected: _group == g,
-                onSelected: (_) => setState(() => _group = g),
+                onSelected: (_) {
+                  setState(() => _group = g);
+                  set?.call(() {});
+                },
                 selectedColor: AppColors.gold,
                 backgroundColor: AppColors.chipBg,
                 labelStyle: TextStyle(
@@ -228,8 +226,10 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
           controller: c,
           id: id,
           onFill: (put) {
-            // 빈 가마솥 (넣어 둔 재료도 없는 칸 먼저)
+            // 지금 보고 있는 가마솥이 비어 있으면 거기, 아니면 빈 가마솥 (넣어 둔 재료도 없는 칸 먼저)
             int? slot;
+            final cur = _bus.current;
+            if (cur < c.cauldronCount && c.alchemy.brews[cur] == null) slot = cur;
             for (var i = 0; i < c.cauldronCount; i++) {
               if (c.alchemy.brews[i] == null && (_bus.drafts[i]?.isEmpty ?? true)) {
                 slot = i;
@@ -245,12 +245,10 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
               }
             }
             if (slot == null) return false;
+            // 상세 창 · 레시피 창을 닫고 ①~⑤ 칸이 순서대로 참
             Navigator.of(sheet).pop();
+            Navigator.of(context).maybePop();
             _bus.fill(slot, put);
-            setState(() {
-              _tab = 0;
-              _tabLine = VillageRules.alchemyGuide(0);
-            });
             return true;
           },
         ),
@@ -431,7 +429,7 @@ class _RecipeDetail extends StatelessWidget {
               ),
             GoldButton(
               key: const Key('recipeFill'),
-              label: '가마솥에 넣기',
+              label: fill == null ? '재료 부족' : '채우기',
               height: 46,
               fontSize: 17,
               onPressed: fill == null || empty.isEmpty ? null : () => onFill(fill),
@@ -687,4 +685,35 @@ class ProcessPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 묶음 75 #318: 오른쪽 위 둥근 「레시피」 버튼
+class _RecipeButton extends StatelessWidget {
+  const _RecipeButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        key: const Key('recipeOpen'),
+        onTap: onTap,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xE61A1636),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.goldBright, width: 1.4),
+            boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.45), blurRadius: 8)],
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset('assets/images/item_recipe_note.webp',
+                width: 22,
+                height: 22,
+                errorBuilder: (_, __, ___) => const Icon(Icons.menu_book_rounded, color: AppColors.goldBright, size: 20)),
+            const SizedBox(width: 4),
+            Text('레시피', style: AppText.title(14, color: AppColors.goldBright)),
+          ]),
+        ),
+      );
 }

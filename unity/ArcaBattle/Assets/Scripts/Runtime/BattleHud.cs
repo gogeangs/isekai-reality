@@ -248,6 +248,8 @@ namespace Arca.Battle
             // 위쪽 작은 버튼: 살랑임 켜고 끄기 · 모습 바꾸기
             var sway = UiKit.TextButton("Sway", stageUi, new Vector2(0.03f, 0.905f), new Vector2(0.36f, 0.965f), "", 30, out swayText);
             sway.onClick.AddListener(() => { dir.ToggleSway(); Refresh(); });
+            var look = UiKit.TextButton("Look", stageUi, new Vector2(0.64f, 0.905f), new Vector2(0.97f, 0.965f), "모습 바꾸기", 30, out _);
+            look.onClick.AddListener(() => HeroSelectPanel.Open(dir, root));
 
             // 정령 응원 말풍선
             var b = UiKit.Image("Bubble", popupLayer, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), UiKit.Bubble, Color.white, true);

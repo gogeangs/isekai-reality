@@ -117,6 +117,36 @@ extension JobOps on AppController {
         byValue, MasteryRules.weaponKind(_armory.wornIn(EquipSlot.weapon)?.base));
   }
 
+  /// 묶음 76 #340: 추천 이유 한 문장 (recommendedJob 과 같은 기준)
+  String get recommendReason {
+    final byValue = [...Mastery.values]..sort((a, b) => masteryOf(b).compareTo(masteryOf(a)));
+    final weapon = MasteryRules.weaponKind(_armory.wornIn(EquipSlot.weapon)?.base);
+    for (final m in byValue) {
+      switch (m) {
+        case Mastery.smith:
+          return '지금까지 대장일을 가장 많이 했어요';
+        case Mastery.harvest:
+          return '지금까지 채집을 가장 많이 했어요';
+        case Mastery.alchemy:
+          return '지금까지 물약을 가장 많이 했어요';
+        case Mastery.appraise:
+          return '지금까지 감정을 가장 많이 했어요';
+        case Mastery.trade:
+          return '지금까지 장사와 의뢰를 가장 많이 했어요';
+        case Mastery.spirit:
+          return '지금까지 정령 · 펫과 가장 많이 함께했어요';
+        case Mastery.combat:
+          final w = MasteryRules.weaponLabels[weapon];
+          return w == null
+              ? '지금까지 전투를 가장 많이 했어요'
+              : '지금까지 전투를 가장 많이 했고, ${josa(w, '을/를')} 들고 있어요';
+        case Mastery.walk:
+          continue;
+      }
+    }
+    return '지금까지 전투를 가장 많이 했어요';
+  }
+
   /// 직업 고르기 목록: 추천이 맨 위, 그다음 전투 · 생산 · (열린) 히든
   List<JobId> get jobChoices {
     final open = unlockedJobs;

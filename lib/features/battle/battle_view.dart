@@ -1559,10 +1559,11 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
               final heroLeftNow = front + w * 0.02 + lunge * w * 0.08;
               final heroBottomNow = 8 + lunge * 6;
               final spriteH = heroW * 1024 / 768;
-              final feetY = heroBottomNow + spriteH * 20 / 1024; // 무대 아래에서 발까지
-              final bodyH = spriteH * 0.86; // 발 → 머리 끝
+              // 서기 · 공격 그림 모두 몸은 칸 가운데, 키는 칸 높이의 약 68% (640×800 칸이 768×1024 칸 바닥에)
+              final feetY = heroBottomNow + spriteH * 22 / 1024; // 무대 아래에서 발까지
+              final bodyH = spriteH * 0.68; // 발 → 머리 끝
               final shieldD = bodyH * 0.55;
-              final shieldCx = heroLeftNow + heroW * 0.66; // 몸 앞쪽 (몬스터 쪽)
+              final shieldCx = heroLeftNow + heroW * 0.72; // 몸 앞쪽 (몬스터 쪽)
               final shieldCy = feetY + bodyH * 0.62; // 가슴 높이 (아래에서)
               final heroHeadY = feetY + bodyH; // 머리 끝 (아래에서)
               Widget shieldAt(Key key, Widget child, {double scale = 1}) => Positioned(
@@ -1898,11 +1899,9 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                     // 준 피해: 몬스터 머리 위로 떠오르며 사라진다
                     if (hitting || cleared)
                       Positioned(
-                        left: cleared && widget.guard != null ? w * 0.25 : monLeft,
-                        width: cleared && widget.guard != null ? w * 0.5 : monSize,
-                        top: cleared && widget.guard != null
-                            ? h * 0.1
-                            : monTop - 10 - (cleared ? 0 : _seg(t, 0.22, 0.8) * 40),
+                        left: monLeft,
+                        width: monSize,
+                        top: monTop - 10 - (cleared ? 0 : _seg(t, 0.22, 0.8) * 40),
                         child: Opacity(
                           opacity: cleared
                               ? (widget.guard != null && !idle ? _seg(t, 0.42, 0.55) : 1)
@@ -2015,7 +2014,8 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         key: const Key('guardText'),
                         left: heroLeftNow,
                         width: heroW,
-                        bottom: heroHeadY + 6 + _seg(t, 0.1, 0.6) * 16,
+                        // 승리 자세(통 그림)는 키가 더 커서 그 머리 위로
+                        bottom: (cleared ? feetY + spriteH * 0.86 : heroHeadY) + 6 + _seg(t, 0.1, 0.6) * 16,
                         child: Opacity(
                           opacity: cleared ? 1 - _seg(t, 0.3, 0.45) : 1 - _seg(t, 0.75, 0.98),
                           child: Center(
@@ -2141,11 +2141,13 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       ),
                       for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: monLeft +
-                              monSize / 2 -
-                              14 +
-                              (i - 1) * 30 * _seg(t, 0, 0.5) +
-                              _seg(t, 0.5, 1) * w * 0.25,
+                          // 묶음 76 #315: 보상 아이콘은 무대 안쪽에 (오른쪽 끝에서 잘리지 않게)
+                          left: (monLeft +
+                                  monSize / 2 -
+                                  14 +
+                                  (i - 1) * 30 * _seg(t, 0, 0.5) +
+                                  _seg(t, 0.5, 1) * w * 0.25)
+                              .clamp(4.0, w - 36),
                           top: monTop +
                               monSize / 2 -
                               math.sin(_seg(t, 0, 0.5) * math.pi) * 60 +

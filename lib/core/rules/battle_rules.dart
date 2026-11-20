@@ -1468,7 +1468,7 @@ class Battle {
         _strike((w == null ? 1.4 : 1.8) * p, element: w);
       case JobSkill.chargeOrder:
         _startSkill('돌격 명령!');
-        _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+        _strike(1.0 * p * RuleConstants.skillDamageMultiplier,
             element: skillElement, useElement: skillElement != null);
         skillCharge = math.min(skillChargeTicks, skillCharge + 2);
       case JobSkill.coinToss:
@@ -1513,7 +1513,7 @@ class Battle {
         _startSkill('합동 돌격!');
         _strike(1.0 * p);
         if (phase == BattlePhase.fighting) {
-          _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+          _strike(1.0 * p * RuleConstants.skillDamageMultiplier,
               element: skillElement, useElement: skillElement != null);
         }
         skillCharge = math.min(skillChargeTicks, skillCharge + 2);
@@ -1775,7 +1775,7 @@ class Battle {
         _startSkill('휘파람 신호!');
         for (var i = 0; i < 2; i++) {
           if (phase != BattlePhase.fighting) break;
-          _strike(1.0 * p * skillDamage / math.max(1, playerAttack),
+          _strike(1.0 * p * RuleConstants.skillDamageMultiplier,
               element: skillElement, useElement: skillElement != null);
         }
         skillCharge = math.min(skillChargeTicks, skillCharge + 2);

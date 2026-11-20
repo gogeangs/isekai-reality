@@ -856,8 +856,19 @@ extension JobOps on AppController {
         for (final e in battleLoadout)
           if (e.startsWith('job:'))
             if (JobRules.parseSkill(e.substring(4)) case final s?)
-              (s, skillCost(s), skillPower(s)),
+              (s, skillCost(s), skillPower(s) * jobStatRatio(s)),
       ];
+
+  /// 묶음 76 #341: 이 스킬 직업의 주 스탯 바탕 / 힘 바탕 (장비 · 버프 스탯 더한 값).
+  /// 보조 직업 스킬은 보조 직업의 주 스탯 — 스킬이 속한 직업으로 정해진다
+  double jobStatRatio(JobSkill s) => JobRules.statRatio(
+      JobRules.mainStat(JobRules.jobOf(s)),
+      level: player.level.level,
+      stats: combatStats + gear.stats);
+
+  /// 지금 주 직업의 주 스탯 (없으면 null)
+  StatKind? get mainJobStat => mainJob == null ? null : JobRules.mainStat(mainJob!);
+  StatKind? get subJobStat => subJob == null ? null : JobRules.mainStat(subJob!);
 
   /// 숙련 스킬을 썼을 때: 장사·의뢰(동전 튕기기)는 금화가 조금 든다
   Future<void> payMasterySkill(Mastery m) async {

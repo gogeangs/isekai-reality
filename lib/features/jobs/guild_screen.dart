@@ -26,6 +26,13 @@ class JobSummary extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       KText(info.trait,
           style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+      // 묶음 76 #341
+      Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Text('잘 맞는 스탯 · ${info.mainStat.label}',
+            key: Key('jobStat_${job.name}'),
+            style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+      ),
       Padding(
         padding: const EdgeInsets.only(top: 3),
         child: Row(children: [

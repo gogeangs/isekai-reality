@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'features/battle/battle_view.dart' show SkillMasteryHook;
+import 'features/status/status_cards.dart';
 import 'features/pets/companion_pet_panel.dart';
 import 'features/pets/egg_news.dart';
 import 'features/act4/act4_screens.dart' show Act4SceneScreen, GuildHallScreen;
@@ -40,7 +41,6 @@ import 'features/pets/farewell_screen.dart';
 import 'features/act2/ash_battle_screen.dart' show EndingScreen;
 import 'features/highland/highland_screen.dart' show HighlandSceneScreen;
 import 'features/jobs/guild_screen.dart';
-import 'features/jobs/job_skill_bar.dart';
 import 'features/jobs/skill_screen.dart';
 import 'features/alchemy/convert_panel.dart' show LockedJobPanel;
 import 'features/smithy/equip_picker.dart';
@@ -442,9 +442,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             mp: controller.mp,
             maxHp: controller.maxHp,
             mpMax: controller.mpMax,
-            jobMpBar: controller.jobsOpen
-                ? JobMpBar(controller: controller)
-                : null,
+            // 묶음 77 #353: 각성 뒤 HP | MP · 아래 기력
+            jobMp: controller.jobsOpen ? (controller.jobMp, controller.jobMpMax) : null,
+            // 묶음 77 #355: 스탯 · 스킬 카드
+            cards: StatusCards(
+              controller: controller,
+              onOpenStats: () => push(StatScreen(controller: controller)),
+              onOpenSkills: () => push(SkillScreen(controller: controller)),
+            ),
             stats: controller.shownStats,
             unspentPoints: controller.unspentPoints,
             onOpenStats: () => push(StatScreen(controller: controller)),

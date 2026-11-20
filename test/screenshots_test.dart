@@ -802,15 +802,13 @@ void main() {
     await tester.tap(find.byKey(const Key('jobAwakenGo')));
     await tester.pump(const Duration(milliseconds: 400));
     await _shot(tester, '47b_직업_고르기');
+    // 묶음 76 #340: 한 화면 (전투 탭 → 전사 → 시작) · 보조 단계 없음
+    await tester.tap(find.byKey(const Key('jobTabCombat')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.byKey(const Key('jobPick_warrior')));
     await tester.tap(find.byKey(const Key('jobPick_warrior')));
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.ensureVisible(find.byKey(const Key('jobPickMain')));
     await tester.tap(find.byKey(const Key('jobPickMain')));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.byKey(const Key('jobSub_herbalist')));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.ensureVisible(find.byKey(const Key('jobPickSub')));
-    await tester.tap(find.byKey(const Key('jobPickSub')));
     await tester.pump(const Duration(milliseconds: 500));
     await _shot(tester, '47c_직업_각성_끝');
     expect(c.mainJob, JobId.warrior);

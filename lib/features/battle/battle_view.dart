@@ -47,6 +47,7 @@ class BattleView extends StatefulWidget {
     this.tickInterval = const Duration(milliseconds: 900),
     this.playerName = '각성자',
     this.look = HeroLook.male,
+    this.heroJob,
     this.vibrate = false,
     this.sound = false,
     this.fast = false,
@@ -135,6 +136,9 @@ class BattleView extends StatefulWidget {
   final Duration tickInterval;
   final String playerName;
   final HeroLook look;
+
+  /// 묶음 76 #307: 주인공 직업 그림 ('warrior' …, 없으면 맨손 새 주인공)
+  final String? heroJob;
 
   /// 때리고 막을 때 진동 (설정 「진동」, 11-11 #75)
   final bool vibrate;
@@ -362,6 +366,9 @@ class _BattleViewState extends State<BattleView> {
     }
   }
 
+  /// 묶음 76 #338: 강한 공격 예고 중 (아래 「막기!」 버튼 · 다른 버튼은 쉼)
+  bool get _guardTime => _warning && !_b.isOver;
+
   /// 화면 아무 곳이나 누르면 막기 (예고 하나에 한 번만, 일찍 눌러도 벌 없음)
   void _onPointer(PointerDownEvent _) {
     if (!_warning || _tapped || _b.isOver) return;
@@ -539,9 +546,12 @@ class _BattleViewState extends State<BattleView> {
         if (_b.foeBound) _Status.bound,
       ];
 
-  Color? get _heroTint => _heroStatus.isEmpty || _b.isOver
-      ? null
-      : _heroStatus.first.color;
+  /// 묶음 76 #315: 방어 태세는 방패로만 보이고 주인공을 물들이지 않는다
+  Color? get _heroTint {
+    if (_b.isOver) return null;
+    final s = [for (final x in _heroStatus) if (x != _Status.stance) x];
+    return s.isEmpty ? null : s.first.color;
+  }
 
   Color? get _foeTint => _foeStatus.isEmpty || _b.isOver
       ? null
@@ -596,11 +606,13 @@ class _BattleViewState extends State<BattleView> {
                 skill: _b.lastWasSkill || _b.lastBash,
                 petDash: _b.lastWasSkill,
                 look: widget.look,
+                heroJob: widget.heroJob,
                 weapon: widget.weapon,
                 beat: _beat,
                 beatDuration: _interval * 0.85,
                 warning: warning ? (_b.strongLabel ?? '강한 공격!') : null,
                 guarded: _tapped && warning,
+                guardButton: _b.heroSkills,
                 guard: _b.lastGuard,
                 guardBroken: _b.lastGuardBroken,
                 enraged: _b.enraged,
@@ -813,12 +825,22 @@ class _BattleViewState extends State<BattleView> {
                         icon: Icons.gavel_rounded,
                         art: 'btn_strike',
                         ratio: _b.bashRatio,
-                        ready: _b.bashReady,
+                        // 묶음 76 #338: 경고 동안 다른 버튼은 쉬고, 눌러도 막기로만 셈
+                        ready: _b.bashReady && !_guardTime,
                         onPressed: _bash,
                       ),
                     ),
                     Expanded(
-                      child: _MiniSkill(
+                      // 묶음 76 #338: 경고(강한 공격 예고) 동안 이 자리가 「막기!」
+                      child: _guardTime
+                          ? _GuardButton(
+                              key: const Key('guardButton'),
+                              clock: _warnClock,
+                              window: Battle.guardWindow * _b.guardEase,
+                              perfect: Battle.guardWindow - Battle.perfectFrom,
+                              done: _tapped,
+                            )
+                          : _MiniSkill(
                         key: const Key('stanceButton'),
                         label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
                         icon: Icons.shield_rounded,
@@ -844,7 +866,7 @@ class _BattleViewState extends State<BattleView> {
                                     !_b.isOver &&
                                     !_b.skillsLocked)),
                             ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
-                            ready: mp >= cost && !_b.isOver && !_b.skillsLocked,
+                            ready: mp >= cost && !_b.isOver && !_b.skillsLocked && !_guardTime,
                             ringColor: const Color(0xFFB27BFF),
                             onPressed: () => _jobSkill(sk, cost, power),
                           );
@@ -860,7 +882,7 @@ class _BattleViewState extends State<BattleView> {
                           artFrame: SkillArt.masteryIcon(m,
                               active: true, dim: !_b.masteryReady(m)),
                           ratio: _b.masteryRatio(m),
-                          ready: _b.masteryReady(m),
+                          ready: _b.masteryReady(m) && !_guardTime,
                           onPressed: () => _masterySkill(m),
                         ),
                       ),
@@ -892,7 +914,7 @@ class _BattleViewState extends State<BattleView> {
                     Expanded(
                       child: _SkillOrb(
                         ratio: _b.skillRatio,
-                        ready: _b.skillReady,
+                        ready: _b.skillReady && !_guardTime,
                         away: _b.skillDisabled,
                         onPressed: _skill,
                         size: 56,
@@ -1247,11 +1269,13 @@ class _Scene extends StatefulWidget {
     required this.taken,
     required this.skill,
     required this.look,
+    this.heroJob,
     required this.beat,
     required this.beatDuration,
     this.petDash = false,
     this.warning,
     this.guarded = false,
+    this.guardButton = false,
     this.guard,
     this.guardBroken = false,
     this.enraged = false,
@@ -1312,6 +1336,9 @@ class _Scene extends StatefulWidget {
   /// 예고에 이미 막기를 눌렀다
   final bool guarded;
 
+  /// 묶음 76 #338: 아래에 「막기!」 버튼이 있음 (안내 글만 바뀜)
+  final bool guardButton;
+
   /// 방금 막은 결과
   final GuardResult? guard;
 
@@ -1331,6 +1358,7 @@ class _Scene extends StatefulWidget {
   final int taken;
   final bool skill;
   final HeroLook look;
+  final String? heroJob;
 
   /// 바뀔 때마다 한 번의 공격 연출을 처음부터 재생한다
   final int beat;
@@ -1488,6 +1516,14 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ? HeroPose.attack
                           : HeroPose.idle;
               final attackT = swinging ? _seg(t, 0, 0.5) : 0.0;
+              // 묶음 76 #307: 직업 그림 — 대기 = 1칸 + 숨쉬기, 공격 = 2→6칸 (4칸이 0.22 타격 순간)
+              var jobFrame = 0;
+              if (widget.heroJob != null && !idle && widget.dealt > 0 && !cleared && !widget.defeated) {
+                final dur = _c.duration!.inMilliseconds;
+                final start = 0.22 * dur -
+                    (AllyAttackSheet.durations[0] + AllyAttackSheet.durations[1]) * allyScale;
+                jobFrame = AllyAttackSheet.frameAt((t * dur - start) / allyScale).$1;
+              }
               // 묶음 73 #260 다듬기: 혼자면 무대 높이의 약 절반(머리가 가운데보다 조금 아래),
               // 동료와 함께면 조금 작게. 그림 칸은 768×1024 (몸은 왼쪽 17%부터)
               final party = widget.allies.isNotEmpty;
@@ -1519,6 +1555,25 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
               final monTop = h * 0.24;
               final hitX = monLeft + monSize * 0.45;
               final hitY = monTop + monSize * 0.45;
+              // 묶음 76 #315: 방패 자리 — 주인공 그림의 실제 머리 · 발 위치로 (768×1024 칸, 발 바닥 1004)
+              final heroLeftNow = front + w * 0.02 + lunge * w * 0.08;
+              final heroBottomNow = 8 + lunge * 6;
+              final spriteH = heroW * 1024 / 768;
+              // 서기 · 공격 그림 모두 몸은 칸 가운데, 키는 칸 높이의 약 68% (640×800 칸이 768×1024 칸 바닥에)
+              final feetY = heroBottomNow + spriteH * 22 / 1024; // 무대 아래에서 발까지
+              final bodyH = spriteH * 0.68; // 발 → 머리 끝
+              final shieldD = bodyH * 0.55;
+              final shieldCx = heroLeftNow + heroW * 0.72; // 몸 앞쪽 (몬스터 쪽)
+              final shieldCy = feetY + bodyH * 0.62; // 가슴 높이 (아래에서)
+              final heroHeadY = feetY + bodyH; // 머리 끝 (아래에서)
+              Widget shieldAt(Key key, Widget child, {double scale = 1}) => Positioned(
+                    key: key,
+                    left: shieldCx - shieldD * scale / 2,
+                    bottom: shieldCy - shieldD * scale / 2,
+                    width: shieldD * scale,
+                    height: shieldD * scale,
+                    child: IgnorePointer(child: child),
+                  );
 
               // 치명타·스킬: 살짝 확대 (11-11 #81)
               final punch = !idle && (widget.crit || widget.skill)
@@ -1717,7 +1772,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                             alignment: Alignment.bottomLeft,
                             // 쉬는 동안 살짝 숨 쉬듯 늘었다 줄었다 한다
                             child: Transform.scale(
-                              scaleY: swinging || cleared
+                              scaleY: swinging || cleared || jobFrame > 0
                                   ? 1
                                   : 1 + math.sin(t * math.pi * 2) * 0.015,
                               alignment: Alignment.bottomCenter,
@@ -1725,15 +1780,25 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                   widget.heroTint,
                                   HeroSprite(
                                       look: widget.look,
-                                      pose: heroPose,
-                                      t: attackT)),
+                                      pose: widget.heroJob == null ||
+                                              heroPose == HeroPose.victory ||
+                                              heroPose == HeroPose.tired
+                                          ? heroPose
+                                          : jobFrame > 0
+                                              ? HeroPose.attack
+                                              : HeroPose.idle,
+                                      t: attackT,
+                                      job: widget.heroJob,
+                                      frame: jobFrame)),
                             ),
                           ),
                         ),
                       ),
                     ),
                     // 묶음 57: 활로 쏘면 화살이 날아감
-                    if (widget.weapon == WeaponKind.bow && swinging && !cleared)
+                    // 묶음 76 #307: 궁수 그림은 4칸에 화살이 이미 있어 코드 화살은 뺀다
+                    if (widget.weapon == WeaponKind.bow && swinging && !cleared &&
+                        widget.heroJob != JobId.archer.name)
                       Positioned(
                         left: front + w * 0.12 + (hitX - front - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
                         top: hitY - 16,
@@ -1838,7 +1903,9 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                         width: monSize,
                         top: monTop - 10 - (cleared ? 0 : _seg(t, 0.22, 0.8) * 40),
                         child: Opacity(
-                          opacity: cleared ? 1 : 1 - _seg(t, 0.6, 0.9),
+                          opacity: cleared
+                              ? (widget.guard != null && !idle ? _seg(t, 0.42, 0.55) : 1)
+                              : 1 - _seg(t, 0.6, 0.9),
                           child: Center(
                             child: Transform.scale(
                               scale: cleared
@@ -1902,35 +1969,21 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ),
                         ),
                       ),
-                    // 방어 태세: 각성자 둘레 푸른 방패
-                    if (widget.stance && !cleared)
-                      Positioned(
-                        left: front + w * 0.06 + lunge * w * 0.08,
-                        bottom: 30,
-                        width: heroW * 0.8,
-                        height: h * 0.5,
-                        child: IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(80),
-                              border: Border.all(
-                                  color: AppColors.mana.withValues(alpha: 0.7),
-                                  width: 3),
-                              color: AppColors.mana.withValues(alpha: 0.12),
-                            ),
+                    // 방어 태세: 주인공 앞 원형 방패 (fx_guard, 은은히 숨쉬기) — 묶음 76 #315
+                    if (widget.stance && !cleared && !(widget.guarded && widget.warning != null && widget.guard == null))
+                      shieldAt(
+                          const Key('fxStance'),
+                          Opacity(
+                            opacity: 0.7 + 0.15 * math.sin(t * math.pi * 2).abs(),
+                            child: Image.asset('assets/images/fx_guard.webp',
+                                errorBuilder: (_, __, ___) => const SizedBox()),
                           ),
-                        ),
-                      ),
+                          scale: 1 + 0.03 * math.sin(t * math.pi * 2)),
                     // 묶음 65 #256: 막기 준비 (캐릭터 앞 방어막, 은은히 숨 쉬듯)
                     if (widget.guarded && widget.warning != null && widget.guard == null)
-                      Positioned(
-                        key: const Key('fxGuard'),
-                        left: front + w * 0.06 + heroW * 0.42,
-                        bottom: 20,
-                        width: heroW * 0.75,
-                        height: heroW * 0.75,
-                        child: IgnorePointer(
-                          child: Opacity(
+                      shieldAt(
+                          const Key('fxGuard'),
+                          Opacity(
                             opacity: 0.75 + 0.25 * math.sin(t * math.pi * 2).abs(),
                             child: Image.asset('assets/images/fx_guard.webp',
                                 errorBuilder: (_, __, ___) => DecoratedBox(
@@ -1939,58 +1992,50 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                         border: Border.all(color: AppColors.mana.withValues(alpha: 0.7), width: 3),
                                       ),
                                     )),
-                          ),
-                        ),
-                      ),
+                          )),
                     // 막기 결과: 막은 순간 방어막이 번쩍 + 「막았다!」(안내 글은 그 뒤에)
+                    // 묶음 76 #315: 그 공격으로 몬스터가 쓰러지면 번쩍임은 0.4초 안에 끝내고 승리 자세로,
+                    // 글은 「완벽한 막기!」(주인공 위) → 「사냥!」(무대 가운데 위) 차례로
                     if (widget.guard != null && !idle) ...[
-                      Positioned(
-                        key: const Key('fxGuardHit'),
-                        left: front + w * 0.06 + heroW * 0.36,
-                        bottom: 14,
-                        width: heroW * 0.9,
-                        height: heroW * 0.9,
-                        child: IgnorePointer(
-                          child: Opacity(
-                            opacity: 1 - _seg(t, 0.55, 0.95),
+                      shieldAt(
+                          const Key('fxGuardHit'),
+                          Opacity(
+                            opacity: cleared ? 1 - _seg(t, 0.15, 0.45) : 1 - _seg(t, 0.55, 0.95),
                             child: Transform.scale(
-                              scale: 0.9 + 0.2 * _seg(t, 0.4, 0.6),
+                              scale: 0.95 + 0.15 * _seg(t, 0.0, 0.2),
                               child: Image.asset('assets/images/fx_guardHit.webp',
                                   errorBuilder: (_, __, ___) => Icon(Icons.shield_rounded,
                                       size: 56,
                                       color: widget.guard == GuardResult.perfect ? AppColors.goldBright : AppColors.mana)),
                             ),
                           ),
-                        ),
-                      ),
+                          scale: 1.15),
                       Positioned(
-                        left: front + w * 0.1,
-                        width: heroW * 0.8,
-                        top: h * 0.28 - _seg(t, 0.4, 0.9) * 20,
+                        key: const Key('guardText'),
+                        left: heroLeftNow,
+                        width: heroW,
+                        // 승리 자세(통 그림)는 키가 더 커서 그 머리 위로
+                        bottom: (cleared ? feetY + spriteH * 0.86 : heroHeadY) + 6 + _seg(t, 0.1, 0.6) * 16,
                         child: Opacity(
-                          opacity: 1 - _seg(t, 0.75, 0.98),
-                          child: _Outlined(
-                              widget.guard == GuardResult.perfect ? '완벽한 막기!' : '막았다!',
-                              size: 22,
-                              color: widget.guard == GuardResult.perfect ? AppColors.goldBright : Colors.white),
+                          opacity: cleared ? 1 - _seg(t, 0.3, 0.45) : 1 - _seg(t, 0.75, 0.98),
+                          child: Center(
+                            child: _Outlined(
+                                widget.guard == GuardResult.perfect ? '완벽한 막기!' : '막았다!',
+                                size: 22,
+                                color: widget.guard == GuardResult.perfect ? AppColors.goldBright : Colors.white),
+                          ),
                         ),
                       ),
                     ],
                     // 막지 못함: 방어막이 깨짐
                     if (widget.guardBroken && widget.guard == null && !idle)
-                      Positioned(
-                        key: const Key('fxGuardBreak'),
-                        left: front + w * 0.06 + heroW * 0.36,
-                        bottom: 14,
-                        width: heroW * 0.9,
-                        height: heroW * 0.9,
-                        child: IgnorePointer(
-                          child: Opacity(
+                      shieldAt(
+                          const Key('fxGuardBreak'),
+                          Opacity(
                             opacity: 1 - _seg(t, 0.55, 0.95),
                             child: Image.asset('assets/images/fx_guardBreak.webp', errorBuilder: (_, __, ___) => const SizedBox()),
                           ),
-                        ),
-                      ),
+                          scale: 1.15),
                     // 강한 공격 예고: 화면을 누르면 막기
                     if (widget.warning != null)
                       Positioned(
@@ -2024,19 +2069,32 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ]),
                         ),
                       ),
+                    // 묶음 76 #338: 무대 아래쪽 가운데 작게 (머리 · 몬스터 · 경고 띠와 안 겹치게)
                     if (widget.warning != null && !(widget.guard != null && !idle))
                       Positioned(
+                        key: const Key('guardHint'),
                         left: 0,
                         right: 0,
-                        bottom: h * 0.42,
+                        bottom: 6,
                         child: IgnorePointer(
                           child: Center(
-                            child: _Outlined(
-                                widget.guarded ? '막기 준비!' : '화면을 눌러 막기!',
-                                size: 20,
-                                color: widget.guarded
-                                    ? AppColors.mana
-                                    : AppColors.goldBright),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xB30B0D26),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                  widget.guarded
+                                      ? '막기 준비!'
+                                      : widget.guardButton
+                                          ? '아래 「막기!」를 눌러요'
+                                          : '화면을 눌러 막기!',
+                                  style: TextStyle(
+                                      color: widget.guarded ? AppColors.mana : AppColors.goldBright,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800)),
+                            ),
                           ),
                         ),
                       ),
@@ -2083,11 +2141,13 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       ),
                       for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: monLeft +
-                              monSize / 2 -
-                              14 +
-                              (i - 1) * 30 * _seg(t, 0, 0.5) +
-                              _seg(t, 0.5, 1) * w * 0.25,
+                          // 묶음 76 #315: 보상 아이콘은 무대 안쪽에 (오른쪽 끝에서 잘리지 않게)
+                          left: (monLeft +
+                                  monSize / 2 -
+                                  14 +
+                                  (i - 1) * 30 * _seg(t, 0, 0.5) +
+                                  _seg(t, 0.5, 1) * w * 0.25)
+                              .clamp(4.0, w - 36),
                           top: monTop +
                               monSize / 2 -
                               math.sin(_seg(t, 0, 0.5) * math.pi) * 60 +
@@ -2469,12 +2529,133 @@ class _HpColumn extends StatelessWidget {
             ratio: maxHp == 0 ? 0 : hp / maxHp, colors: colors, height: 11),
         if (!hideNumbers) ...[
           const SizedBox(height: 3),
-          Text('HP ${comma(hp)} / ${comma(maxHp)}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          // 묶음 76 #338: 큰 숫자도 한 줄에 (넘치면 글자를 줄임)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('HP ${comma(hp)} / ${comma(maxHp)}',
+                maxLines: 1,
+                softWrap: false,
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          ),
         ],
       ],
     );
   }
+}
+
+/// 묶음 76 #338: 강한 공격 예고 동안 「방어 태세」 자리의 「막기!」 버튼.
+/// 1.15배 · 금빛으로 숨쉬고, 둘레 고리가 예고 시간만큼 차오른다 (끝 완벽한 막기 구간은 금색).
+/// 판정은 전투 화면 전체 Listener([_BattleViewState._onPointer])가 한다 — 이 버튼은 누르는 자리일 뿐
+class _GuardButton extends StatefulWidget {
+  const _GuardButton(
+      {super.key, required this.clock, required this.window, required this.perfect, this.done = false});
+
+  final Stopwatch clock;
+  final Duration window;
+
+  /// 끝에서 이만큼이 완벽한 막기
+  final Duration perfect;
+
+  /// 이미 눌렀음
+  final bool done;
+
+  @override
+  State<_GuardButton> createState() => _GuardButtonState();
+}
+
+class _GuardButtonState extends State<_GuardButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _t =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: '막기',
+        child: AnimatedBuilder(
+          animation: _t,
+          builder: (context, _) {
+            final w = widget.window.inMilliseconds;
+            final p = w <= 0 ? 1.0 : (widget.clock.elapsedMilliseconds / w).clamp(0.0, 1.0);
+            final perfectFrom = w <= 0 ? 1.0 : 1 - widget.perfect.inMilliseconds / w;
+            final glow = widget.done ? 0.3 : 0.45 + 0.4 * _t.value;
+            return Column(mainAxisSize: MainAxisSize.min, children: [
+              Transform.scale(
+                scale: 1.15,
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CustomPaint(
+                    painter: _GuardRingPainter(progress: p, perfectFrom: perfectFrom),
+                    child: Center(
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: AppColors.goldBright.withValues(alpha: glow), blurRadius: 16, spreadRadius: 1),
+                          ],
+                        ),
+                        child: Image.asset('assets/images/btn_guard.webp',
+                            width: 46,
+                            height: 46,
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.shield_rounded, size: 26, color: AppColors.goldBright)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(widget.done ? '막는 중' : '막기!',
+                  style: const TextStyle(
+                      color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w900)),
+            ]);
+          },
+        ),
+      );
+}
+
+class _GuardRingPainter extends CustomPainter {
+  _GuardRingPainter({required this.progress, required this.perfectFrom});
+
+  final double progress;
+  final double perfectFrom;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    const start = -math.pi / 2;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..color = const Color(0x55FFFFFF);
+    canvas.drawArc(r, 0, math.pi * 2, false, track);
+    // 완벽한 막기 구간 (옅은 금색)
+    canvas.drawArc(r, start + perfectFrom * math.pi * 2, (1 - perfectFrom) * math.pi * 2, false,
+        track..color = AppColors.gold.withValues(alpha: 0.45));
+    // 지금까지 찬 만큼 (완벽 구간에 들어가면 금색)
+    canvas.drawArc(
+        r,
+        start,
+        progress * math.pi * 2,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4
+          ..strokeCap = StrokeCap.round
+          ..color = progress >= perfectFrom ? AppColors.goldBright : Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(_GuardRingPainter old) => old.progress != progress || old.perfectFrom != perfectFrom;
 }
 
 /// 둥근 스킬 버튼: 바깥 고리가 충전 정도
@@ -2683,10 +2864,18 @@ class SheetFrame extends StatelessWidget {
 /// 서기·승리·지침은 768×1024 한 장, 공격은 640×800 여섯 칸을 [t](0~1)에 따라 넘긴다.
 /// 두 그림 모두 발끝이 아래에서 20px 위라서, 768×1024 칸 바닥에 맞춰 그린다.
 class HeroSprite extends StatelessWidget {
-  const HeroSprite({super.key, required this.look, required this.pose, this.t = 0});
+  const HeroSprite(
+      {super.key, required this.look, required this.pose, this.t = 0, this.job, this.frame});
 
   final HeroLook look;
   final HeroPose pose;
+
+  /// 묶음 76 #307: 직업 그림 ('warrior' …). 서기 · 공격은 hero_<job>_attack 여섯 칸
+  /// (대기 = 1칸), 승리 · 지침은 그대로
+  final String? job;
+
+  /// 직업 그림 공격 칸 (0~5). 없으면 [t] 로 정한다
+  final int? frame;
 
   /// 공격 동작 진행 (0~1). 공격이 아니면 쓰지 않는다
   final double t;
@@ -2697,17 +2886,23 @@ class HeroSprite extends StatelessWidget {
   static int frameAt(double t) =>
       (t.clamp(0.0, 1.0) * attackFrames).floor().clamp(0, attackFrames - 1);
 
-  String get _asset => 'assets/images/hero_${pose.name}_${look.name}.webp';
+  bool get _jobSheet => job != null && (pose == HeroPose.attack || pose == HeroPose.idle);
+
+  String get _asset => _jobSheet
+      ? 'assets/images/hero_${job}_attack_${look.name}.webp'
+      : 'assets/images/hero_${pose.name}_${look.name}.webp';
 
   @override
   Widget build(BuildContext context) {
     Widget fallback(BuildContext _, Object __, StackTrace? ___) =>
         const Icon(Icons.person_rounded, size: 140, color: AppColors.textMuted);
-    if (pose != HeroPose.attack) {
+    if (!_jobSheet && pose != HeroPose.attack) {
       return Image.asset(_asset,
           fit: BoxFit.contain, semanticLabel: '각성자', errorBuilder: fallback);
     }
-    final frame = frameAt(t);
+    final frame = _jobSheet
+        ? (pose == HeroPose.idle ? 0 : (this.frame ?? frameAt(t)))
+        : frameAt(t);
     return AspectRatio(
       aspectRatio: 768 / 1024,
       child: LayoutBuilder(builder: (context, box) {

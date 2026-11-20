@@ -1238,6 +1238,7 @@ class _Act3BattleScreenState extends State<Act3BattleScreen> {
                             tickInterval: widget.tickInterval,
                             playerName: c.profile.name,
                             look: c.profile.look,
+                            heroJob: c.heroJobArt, // 묶음 76 #307
                             vibrate: c.vibrate,
                             sound: c.sound,
                             hour: c.now.hour,

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'stat_rules.dart';
 import 'element_rules.dart';
 import 'harvest_rules.dart';
 import 'mastery_rules.dart';
@@ -332,6 +335,9 @@ class JobInfo {
   final List<JobSkill> skills;
 
   List<JobSkill> get openSkills => skills;
+
+  /// 묶음 76 #341: 이 직업 스킬이 세지는 스탯 (한 곳에서: [JobRules.mainStat])
+  StatKind get mainStat => JobRules.mainStat(id);
 }
 
 /// 숙련 스킬 (#197): 큰 숙련도 8가지 × 단계 4개. 익숙한·능숙한·장인은 패시브,
@@ -574,6 +580,60 @@ class JobRules {
   ];
 
   static JobInfo info(JobId id) => jobs[id.index];
+
+  /// 묶음 76 #341: 직업마다 주 스탯 — 직업 공격 스킬(회복 포함) 바탕 = 2.5×Lv + 5×주 스탯.
+  /// 복합 · 히든 직업은 기획이 다음에 정함 — 지금은 첫 짝(첫 숙련)의 기본 직업, 없으면 가까운 전투 직업
+  static StatKind mainStat(JobId j) {
+    switch (j) {
+      case JobId.warrior || JobId.blacksmith:
+        return StatKind.strength;
+      case JobId.knight || JobId.tamer:
+        return StatKind.vitality;
+      case JobId.archer || JobId.herbalist:
+        return StatKind.agility;
+      case JobId.mage || JobId.priest || JobId.alchemist || JobId.appraiser:
+        return StatKind.intellect;
+      case JobId.rogue || JobId.merchant:
+        return StatKind.luck;
+      default:
+    }
+    final me = info(j);
+    if (me.kind == JobKind.complex && me.masteries.isNotEmpty) {
+      for (final x in jobs) {
+        if (x.kind == JobKind.basic && x.id != j && x.masteries.isNotEmpty &&
+            x.masteries.first == me.masteries.first) {
+          return mainStat(x.id);
+        }
+      }
+    }
+    final art = heroArtJob(j);
+    return art == null || art == j ? StatKind.strength : mainStat(art);
+  }
+
+  /// 직업 스킬 바탕 / 물리 공격 바탕 (힘) — 전투에 넘기는 스킬 세기에 곱한다
+  static double statRatio(StatKind main, {required int level, required Stats stats}) {
+    double base(int v) => 2.5 * level + 5 * v;
+    return base(stats.of(main)) / math.max(1.0, base(stats.strength));
+  }
+
+  /// 묶음 76 #307: 직업별 주인공 그림 (전투 6직업). 생산 · 히든 직업은 분신 그림과 같은 짝으로
+  /// 가까운 전투 직업 그림 (전용 그림이 오면 이 표만 바꾼다). 직업이 없으면 null (맨손 새 주인공)
+  static const List<JobId> combatArtJobs = [
+    JobId.warrior, JobId.archer, JobId.mage, JobId.priest, JobId.rogue, JobId.knight,
+  ];
+
+  static JobId? heroArtJob(JobId? j) => switch (j) {
+        null => null,
+        JobId.warrior || JobId.blacksmith || JobId.adventurer || JobId.allCrafter ||
+        JobId.weaponsmith => JobId.warrior,
+        JobId.archer || JobId.herbalist || JobId.explorer || JobId.ashHunter ||
+        JobId.hunter || JobId.pathfinder => JobId.archer,
+        JobId.mage || JobId.alchemist || JobId.appraiser || JobId.archaeologist ||
+        JobId.runesmith || JobId.jeweler || JobId.potionMerchant => JobId.mage,
+        JobId.priest || JobId.pilgrim || JobId.healer => JobId.priest,
+        JobId.rogue || JobId.merchant || JobId.nightWalker || JobId.peddler => JobId.rogue,
+        JobId.knight || JobId.tamer || JobId.gateHeir || JobId.beastKnight => JobId.knight,
+      };
 
   static JobId? parse(String? name) {
     for (final j in JobId.values) {

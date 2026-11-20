@@ -166,6 +166,7 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 tickInterval: widget.tickInterval,
                 playerName: widget.controller.profile.name,
                 look: widget.controller.profile.look,
+                heroJob: widget.controller.heroJobArt, // 묶음 76 #307
                 vibrate: widget.controller.vibrate,
                 sound: widget.controller.sound,
                 hour: widget.controller.now.hour,

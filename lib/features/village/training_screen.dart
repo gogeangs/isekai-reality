@@ -654,6 +654,7 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
         tickInterval: widget.tickInterval,
         playerName: _c.profile.name,
         look: _c.profile.look,
+        heroJob: _c.heroJobArt, // 묶음 76 #307
         vibrate: _c.vibrate,
         sound: _c.sound,
         hour: _c.now.hour,

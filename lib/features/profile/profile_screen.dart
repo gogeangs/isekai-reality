@@ -8,8 +8,6 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
-import '../bulssi/spirit_art.dart';
-import '../pets/pet_art.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 import '../jobs/skill_icon.dart' show JobEmblem;
@@ -164,44 +162,7 @@ class ProfileCard extends StatelessWidget {
                     key: const Key('profileAura'),
                     style: const TextStyle(
                         color: AppColors.textMuted, fontSize: 12)),
-              const SizedBox(height: 4),
-              if (pet != null) ...[
-                Row(children: [
-                  PetArt.of(pet!, size: 26),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: KText('함께하는 펫 · ${pet!.name}',
-                        style: const TextStyle(
-                            color: AppColors.text, fontSize: 12)),
-                  ),
-                ]),
-                Row(children: [
-                  Opacity(
-                      opacity: 0.7,
-                      child: SpiritArt(kind: spiritKind, size: 22)),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: KText('처음 함께한 정령 · $spiritName',
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
-                  ),
-                ]),
-              ] else
-                Row(children: [
-                  SpiritArt(kind: spiritKind, size: 26),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: KText('함께하는 정령 · $spiritName',
-                        style: const TextStyle(
-                            color: AppColors.text, fontSize: 12)),
-                  ),
-                  const SizedBox(width: 3),
-                  const Tooltip(
-                    message: '정령 이름은 바꿀 수 없어요',
-                    child: Icon(Icons.lock_rounded,
-                        size: 13, color: AppColors.textMuted),
-                  ),
-                ]),
+              // 묶음 76 #339: 함께하는 펫 · 처음 함께한 정령 줄은 뺌 (펫은 아래 「내 펫」, 정령은 기록에)
             ],
           ),
         ),

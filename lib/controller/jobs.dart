@@ -117,6 +117,36 @@ extension JobOps on AppController {
         byValue, MasteryRules.weaponKind(_armory.wornIn(EquipSlot.weapon)?.base));
   }
 
+  /// 묶음 76 #340: 추천 이유 한 문장 (recommendedJob 과 같은 기준)
+  String get recommendReason {
+    final byValue = [...Mastery.values]..sort((a, b) => masteryOf(b).compareTo(masteryOf(a)));
+    final weapon = MasteryRules.weaponKind(_armory.wornIn(EquipSlot.weapon)?.base);
+    for (final m in byValue) {
+      switch (m) {
+        case Mastery.smith:
+          return '지금까지 대장일을 가장 많이 했어요';
+        case Mastery.harvest:
+          return '지금까지 채집을 가장 많이 했어요';
+        case Mastery.alchemy:
+          return '지금까지 물약을 가장 많이 했어요';
+        case Mastery.appraise:
+          return '지금까지 감정을 가장 많이 했어요';
+        case Mastery.trade:
+          return '지금까지 장사와 의뢰를 가장 많이 했어요';
+        case Mastery.spirit:
+          return '지금까지 정령 · 펫과 가장 많이 함께했어요';
+        case Mastery.combat:
+          final w = MasteryRules.weaponLabels[weapon];
+          return w == null
+              ? '지금까지 전투를 가장 많이 했어요'
+              : '지금까지 전투를 가장 많이 했고, ${josa(w, '을/를')} 들고 있어요';
+        case Mastery.walk:
+          continue;
+      }
+    }
+    return '지금까지 전투를 가장 많이 했어요';
+  }
+
   /// 직업 고르기 목록: 추천이 맨 위, 그다음 전투 · 생산 · (열린) 히든
   List<JobId> get jobChoices {
     final open = unlockedJobs;
@@ -138,6 +168,9 @@ extension JobOps on AppController {
       ];
 
   JobId? get mainJob => _jobs.mainJob;
+
+  /// 묶음 76 #307: 주인공 그림 직업 이름 ('warrior' …, 직업 각성 전이면 null)
+  String? get heroJobArt => JobRules.heroArtJob(mainJob)?.name;
   List<JobId> get subJobs => _jobs.subJobs;
   bool get jobApprentice => _jobs.apprentice;
   /// 묶음 57: 보조는 한 칸
@@ -853,8 +886,19 @@ extension JobOps on AppController {
         for (final e in battleLoadout)
           if (e.startsWith('job:'))
             if (JobRules.parseSkill(e.substring(4)) case final s?)
-              (s, skillCost(s), skillPower(s)),
+              (s, skillCost(s), skillPower(s) * jobStatRatio(s)),
       ];
+
+  /// 묶음 76 #341: 이 스킬 직업의 주 스탯 바탕 / 힘 바탕 (장비 · 버프 스탯 더한 값).
+  /// 보조 직업 스킬은 보조 직업의 주 스탯 — 스킬이 속한 직업으로 정해진다
+  double jobStatRatio(JobSkill s) => JobRules.statRatio(
+      JobRules.mainStat(JobRules.jobOf(s)),
+      level: player.level.level,
+      stats: combatStats + gear.stats);
+
+  /// 지금 주 직업의 주 스탯 (없으면 null)
+  StatKind? get mainJobStat => mainJob == null ? null : JobRules.mainStat(mainJob!);
+  StatKind? get subJobStat => subJob == null ? null : JobRules.mainStat(subJob!);
 
   /// 숙련 스킬을 썼을 때: 장사·의뢰(동전 튕기기)는 금화가 조금 든다
   Future<void> payMasterySkill(Mastery m) async {

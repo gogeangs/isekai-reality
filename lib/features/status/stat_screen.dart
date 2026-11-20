@@ -34,6 +34,14 @@ class _StatScreenState extends State<StatScreen> {
 
   AppController get c => widget.controller;
 
+  /// 묶음 76 #341: 주 직업 스탯 줄 「마법사 스킬」, 보조 직업 스탯이 다르면 「보조 · 상인 스킬」
+  String? _jobTag(StatKind k) {
+    final main = c.mainJob, sub = c.subJob;
+    if (main != null && JobRules.mainStat(main) == k) return '${JobRules.info(main).name} 스킬';
+    if (sub != null && JobRules.mainStat(sub) == k) return '보조 · ${JobRules.info(sub).name} 스킬';
+    return null;
+  }
+
   @override
   void dispose() {
     statDraftLeft.value = null;
@@ -123,6 +131,9 @@ class _StatScreenState extends State<StatScreen> {
                       for (final k in StatKind.values)
                         _StatRow(
                           kind: k,
+                          // 묶음 76 #341: 주 직업 · 보조 직업 스킬이 세지는 스탯
+                          jobTag: _jobTag(k),
+                          jobMain: k == widget.controller.mainJobStat,
                           icon: icon(k),
                           total: shown.of(k) + _draft.of(k),
                           adding: _draft.of(k),
@@ -215,7 +226,13 @@ class _StatRow extends StatelessWidget {
     this.onRemove,
     this.flash = false,
     this.flashTick = 0,
+    this.jobTag,
+    this.jobMain = false,
   });
+
+  /// 묶음 76 #341: 「마법사 스킬」 · 「보조 · 상인 스킬」 (없으면 null) · 주 직업이면 금테
+  final String? jobTag;
+  final bool jobMain;
 
   final bool flash;
   final int flashTick;
@@ -262,7 +279,13 @@ class _StatRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0x66101333),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: jobTag == null
+                ? AppColors.gold.withValues(alpha: 0.3)
+                : jobMain
+                    ? AppColors.goldBright
+                    : AppColors.gold.withValues(alpha: 0.6),
+            width: jobTag == null ? 1 : jobMain ? 2 : 1.4),
       ),
       child: Row(children: [
         // 스탯이 하는 일은 메달을 누르면 작은 말풍선으로
@@ -275,7 +298,18 @@ class _StatRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(kind.label, style: AppText.title(19, color: AppColors.text)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text(kind.label, style: AppText.title(19, color: AppColors.text)),
+            if (jobTag != null)
+              Text(jobTag!,
+                  key: Key('statJob_${kind.name}'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: jobMain ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.8),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700)),
+          ]),
         ),
         if (dividing) ...[
           IconButton(

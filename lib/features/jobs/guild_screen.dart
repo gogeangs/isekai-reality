@@ -10,6 +10,7 @@ import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import 'job_skill_bar.dart';
+import 'job_picker.dart';
 
 /// 직업 하나의 짧은 소개 (고유 기술 한 줄 · 스킬 이름)
 class JobSummary extends StatelessWidget {
@@ -26,6 +27,13 @@ class JobSummary extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       KText(info.trait,
           style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+      // 묶음 76 #341
+      Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Text('잘 맞는 스탯 · ${info.mainStat.label}',
+            key: Key('jobStat_${job.name}'),
+            style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+      ),
       Padding(
         padding: const EdgeInsets.only(top: 3),
         child: Row(children: [
@@ -437,7 +445,7 @@ class _Tag extends StatelessWidget {
       );
 }
 
-/// Lv.15 직업 각성 (묶음 30 #55): 첫 펫 한마디 → 직업 고르기(추천 맨 위) → 보조(건너뛰기) → MP
+/// Lv.15 직업 각성 (묶음 30 #55): 첫 펫 한마디 → 직업 고르기(묶음 76 #340 한 화면) → MP
 class JobAwakenScreen extends StatefulWidget {
   const JobAwakenScreen({super.key, required this.controller});
 
@@ -451,23 +459,20 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
   AppController get c => widget.controller;
   int _step = 0;
   JobId? _main;
-  JobId? _sub;
-  late final List<JobId> _choices = c.jobChoices;
-  late final bool _apprentice = c.jobStartsApprentice;
-  late final JobId _rec = c.recommendedJob;
   late final bool _repick = c.jobRepick;
 
   /// 직업을 고른 순간 금빛 터짐 (묶음 35, 고를 때마다 1씩)
   int _burst = 0;
 
-  void _pick(JobId j) => setState(() {
-        _main = j;
+  /// 묶음 76 #340: 보조 직업 단계는 뺌 — 보조는 조합에서만 더한다
+  Future<void> _finish() async {
+    await c.awakenJob(_main!, subs: const []);
+    if (mounted) {
+      setState(() {
+        _step = 3;
         _burst++;
       });
-
-  Future<void> _finish() async {
-    await c.awakenJob(_main!, subs: [if (_sub != null) _sub!]);
-    if (mounted) setState(() => _step = 3);
+    }
   }
 
   @override
@@ -488,7 +493,7 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
           _Bubble(
               name: c.companionName,
               line: _repick
-                  ? '조합의 직업이 전투 · 생산 · 히든으로 다시 나뉘었어. 주 직업 하나와 보조 직업 하나를 대가 없이 새로 골라 봐! 쓴 스킬 포인트도 모두 돌려받았어.'
+                  ? '조합의 직업이 전투 · 생산 · 히든으로 다시 나뉘었어. 주 직업 하나를 대가 없이 새로 골라 봐! 쓴 스킬 포인트도 모두 돌려받았어.'
                   : JobRules.awakenLine),
           const SizedBox(height: 22),
           GoldButton(
@@ -496,105 +501,12 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
               label: '조합에 가기',
               onPressed: () => setState(() => _step = 1)),
         ]),
-      1 => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('직업 고르기', style: AppText.title(22, color: AppColors.goldBright)),
-          const SizedBox(height: 6),
-          KText(
-              _apprentice
-                  ? '아직 열린 직업이 없어요. 가장 익숙한 일의 견습으로 시작해요. 그 일에 더 익숙해지면 견습을 떼요.'
-                  : '주 직업 하나를 골라요. 전투 · 생산 직업은 처음엔 자유롭게 고를 수 있고, 「추천」은 지금까지 해 온 일에서 골랐어요.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
-          const SizedBox(height: 12),
-          for (final j in _choices)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: GestureDetector(
-                key: Key('jobPick_${j.name}'),
-                onTap: () => _pick(j),
-                child: OrnatePanel(
-                  highlight: _main == j,
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(children: [
-                          // 묶음 35: 직업 문장
-                          JobEmblem(j, size: 40),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                                _apprentice
-                                    ? '견습 ${JobRules.info(j).name}'
-                                    : JobRules.info(j).name,
-                                style: AppText.title(17, color: AppColors.text)),
-                          ),
-                          if (j == _rec) const _Tag('추천'),
-                        ]),
-                        const SizedBox(height: 4),
-                        JobSummary(job: j),
-                      ]),
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          GoldButton(
-              key: const Key('jobPickMain'),
-              label: '이 길로 갈래요',
-              onPressed: _main == null
-                  ? null
-                  : () {
-                      final rest = _choices.where((x) => x != _main).toList();
-                      if (rest.isEmpty || c.subJobSlots <= 0) {
-                        _finish();
-                      } else {
-                        setState(() => _step = 2);
-                      }
-                    }),
-        ]),
-      2 => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('보조 직업', style: AppText.title(22, color: AppColors.goldBright)),
-          const SizedBox(height: 6),
-          const KText('보조 직업은 주 직업에 각인을 하나 새기고, 그 직업 스킬도 쓸 수 있어요. 짝에 따라 이름이 달라져요.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
-          if (_main != null && _sub != null) ...[
-            const SizedBox(height: 8),
-            Text(c.jobPreview(_main!, _sub).name,
-                key: const Key('jobAwakenPair'),
-                textAlign: TextAlign.center,
-                style: AppText.title(18, color: AppColors.goldBright)),
-          ],
-          const SizedBox(height: 12),
-          for (final j in _choices)
-            if (j != _main)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: GestureDetector(
-                  key: Key('jobSub_${j.name}'),
-                  onTap: () => setState(() => _sub = _sub == j ? null : j),
-                  child: OrnatePanel(
-                    highlight: _sub == j,
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(children: [
-                            JobEmblem(j, size: 36),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(JobRules.info(j).name,
-                                  style: AppText.title(17, color: AppColors.text)),
-                            ),
-                          ]),
-                          const SizedBox(height: 4),
-                          JobSummary(job: j, sub: true),
-                        ]),
-                  ),
-                ),
-              ),
-          const SizedBox(height: 8),
-          GoldButton(
-              key: const Key('jobPickSub'),
-              label: _sub == null ? '건너뛰기' : '이렇게 할래요',
-              onPressed: _finish),
-        ]),
+      1 => JobPicker(
+          controller: c,
+          onPick: (j) {
+            _main = j;
+            _finish();
+          }),
       _ => Column(mainAxisSize: MainAxisSize.min, children: [
           if (pet != null) PetArt.of(pet, size: 120),
           const SizedBox(height: 12),
@@ -635,12 +547,15 @@ class _JobAwakenScreenState extends State<JobAwakenScreen> {
             ),
           ),
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                child: body,
-              ),
-            ),
+            child: _step == 1
+                // 묶음 76 #340: 한 화면 (가운데만 내려감, 아래 버튼 고정)
+                ? Padding(padding: const EdgeInsets.fromLTRB(14, 10, 14, 10), child: body)
+                : Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                      child: body,
+                    ),
+                  ),
           ),
           if (_burst > 0)
             IgnorePointer(

@@ -189,6 +189,8 @@ void main() {
       expect(find.byKey(const Key('rewardX2')), findsWidgets);
       expect(find.text('+60'), findsOneWidget);
       expect(find.byType(ExpeditionResultCard), findsOneWidget);
+      // 묶음 76 #310: 닫히기까지 버튼 글은 「두 배 받았어요」(누를 수 없음)
+      expect(find.text('두 배 받았어요'), findsOneWidget);
       // 광고에서 돌아온 뒤 1.5초 (광고 콜백 안에서 잰 실제 시간)
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1400)));
       await tester.pumpAndSettle();

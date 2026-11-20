@@ -168,7 +168,7 @@ class _SetCard extends StatelessWidget {
 }
 
 /// 묶음 75 #322: 대장장이가 아닌 사람이 보스 장비 만들기를 눌렀을 때
-const String bossSmithOnly = '보스 장비는 대장장이만 만들 수 있어요 · 주 직업이나 보조 직업으로 대장장이를 두면 돼요';
+const String bossSmithOnly = '보스 장비는 대장장이만 만들 수 있어요 · 조합에서 대장장이를 두면 돼요';
 
 /// 「잿빛 왕의 유품」 (묶음 34): 만들기 버튼 없이 얻은 부위만 밝게
 class _RelicCard extends StatelessWidget {

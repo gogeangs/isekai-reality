@@ -53,19 +53,28 @@ class _SpiritCornerState extends State<_SpiritCorner> {
   }
 }
 
-/// 지도 오른쪽 작은 MP 표시 · 누르면 지도에서 쓰는 직업 스킬 (묶음 30)
+/// 묶음 77 #354: 지도 오른쪽 「기력 ○ / ○」 칩 · 누르면 기력 막대 (+ 직업 각성 뒤 지도 스킬)
 class _JobMapButton extends StatelessWidget {
   const _JobMapButton({required this.controller});
 
   final AppController controller;
 
+  static const _places = [
+    SkillPlace.map,
+    SkillPlace.nightMap,
+    SkillPlace.anywhere,
+    SkillPlace.petExpedition,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final on = [
-      for (final (s, _) in c.jobSkills)
-        if (c.skillTimedOn(s) || c.skillPending(s)) s,
-    ];
+    final on = c.jobsOpen
+        ? [
+            for (final (s, _) in c.jobSkills)
+              if (c.skillTimedOn(s) || c.skillPending(s)) s,
+          ]
+        : const <JobSkill>[];
     return GestureDetector(
       key: const Key('mapJobMp'),
       onTap: () => showModalBottomSheet<void>(
@@ -76,45 +85,60 @@ class _JobMapButton extends StatelessWidget {
         builder: (sheet) => SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('직업 스킬', style: AppText.title(18)),
-                const SizedBox(height: 10),
-                JobMpBar(controller: c),
-                const SizedBox(height: 12),
-                JobSkillBar(controller: c, places: const [
-                  SkillPlace.map,
-                  SkillPlace.nightMap,
-                  SkillPlace.anywhere,
-                  SkillPlace.petExpedition,
-                ]),
-                if (c.skillsAt(const [
-                  SkillPlace.map,
-                  SkillPlace.nightMap,
-                  SkillPlace.anywhere,
-                  SkillPlace.petExpedition,
-                ]).isEmpty)
-                  const KText('지도에서 쓰는 스킬은 없어요. 스킬은 그 일을 하는 곳에서 써요.',
+            child: ListenableBuilder(
+              listenable: c,
+              builder: (sheet, _) => Column(
+                key: const Key('mapEnergySheet'),
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    const GameIcon('mp', size: 22),
+                    const SizedBox(width: 6),
+                    Text('기력', style: AppText.title(18)),
+                    const Spacer(),
+                    Text('${c.mp} / ${c.mpMax}',
+                        style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 6),
+                  GlowBar(ratio: c.mpMax <= 0 ? 0 : c.mp / c.mpMax, colors: BarColors.mana, height: 10),
+                  const SizedBox(height: 6),
+                  const KText('걸으면 조금씩 차고, 여관에서 쉬거나 레벨이 오르면 가득 차요. 원정을 보낼 때 써요.',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-              ],
+                  if (c.jobsOpen) ...[
+                    const SizedBox(height: 14),
+                    Divider(height: 1, color: AppColors.gold.withValues(alpha: 0.3)),
+                    const SizedBox(height: 12),
+                    Text('직업 스킬', style: AppText.title(17)),
+                    const SizedBox(height: 8),
+                    JobMpBar(controller: c),
+                    const SizedBox(height: 12),
+                    JobSkillBar(controller: c, places: _places),
+                    if (c.skillsAt(_places).isEmpty)
+                      const KText('지도에서 쓰는 스킬은 없어요. 스킬은 그 일을 하는 곳에서 써요.',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
       ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+        padding: const EdgeInsets.fromLTRB(6, 4, 10, 4),
         decoration: BoxDecoration(
           color: const Color(0xE60B0D26),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: kJobMpColor.withValues(alpha: 0.8)),
+          border: Border.all(color: AppColors.mana.withValues(alpha: 0.8)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(on.isEmpty ? Icons.bolt_rounded : Icons.auto_awesome,
-              size: 16, color: kJobMpColor),
-          const SizedBox(width: 4),
-          Text('MP ${c.jobMp}',
+          if (on.isNotEmpty) ...[
+            const Icon(Icons.auto_awesome, key: Key('mapSkillOn'), size: 13, color: AppColors.goldBright),
+            const SizedBox(width: 2),
+          ],
+          const GameIcon('mp', size: 18),
+          const SizedBox(width: 3),
+          Text('기력 ${c.mp} / ${c.mpMax}',
               style: const TextStyle(
                   color: AppColors.text,
                   fontSize: 12,

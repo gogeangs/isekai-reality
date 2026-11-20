@@ -55,6 +55,8 @@ class StatusScreen extends StatelessWidget {
     this.season,
     this.now,
     this.jobMpBar,
+    this.jobMp,
+    this.cards,
     this.onOpenSkills,
     this.skillDot = false,
     this.requestPanel,
@@ -69,6 +71,12 @@ class StatusScreen extends StatelessWidget {
 
   /// 직업 스킬 MP 막대 (묶음 30, 직업 각성 뒤에만)
   final Widget? jobMpBar;
+
+  /// 묶음 77 #353: 직업 MP (각성 뒤만, 지금 · 최대). 있으면 위 줄 HP | MP · 아래 줄 기력
+  final (int, int)? jobMp;
+
+  /// 묶음 77 #355: 스탯 · 스킬 카드 둘 (없으면 예전 한 줄)
+  final Widget? cards;
 
   /// 계절 (상태 화면 무대 위 계절 입자, 묶음 14 A4)
   final Season? season;
@@ -271,10 +279,11 @@ class StatusScreen extends StatelessWidget {
                   mp: curMp,
                   spiritAway: spiritAway,
                   resting: restLeft != null,
-                  jobMpBar: jobMpBar,
+                  jobMpBar: jobMp == null ? jobMpBar : null,
+                  jobMp: jobMp,
                 ),
                 const SizedBox(height: 12),
-                Row(children: [
+                if (cards != null) cards! else Row(children: [
                   Expanded(
                     child: _StatsSection(
                         stats: stats ?? player.stats,
@@ -661,9 +670,11 @@ class _StatusPanel extends StatelessWidget {
     this.spiritAway,
     this.resting = false,
     this.jobMpBar,
+    this.jobMp,
   });
 
   final Widget? jobMpBar;
+  final (int, int)? jobMp;
 
   /// 여관에서 쉬는 중: 막대가 천천히 차오르며 살짝 빛난다 (묶음 15 #107)
   final bool resting;
@@ -674,46 +685,81 @@ class _StatusPanel extends StatelessWidget {
   final int mpMax;
   final String? spiritAway;
 
+  /// 묶음 77 #353: 각성하고 처음 볼 때 MP 막대가 빈 데서 차오름 (앱을 켤 때마다 한 번)
+  static bool _mpShown = false;
+
   @override
   Widget build(BuildContext context) {
+    final hpGauge = _Gauge(
+      key: const Key('statusHp'),
+      filling: resting,
+      icon: 'vitality',
+      label: hp <= 0 ? 'HP · 쉬어야 해요' : 'HP',
+      ratio: maxHp == 0 ? 0 : hp / maxHp,
+      colors: BarColors.hp,
+      value: '${comma(hp)} / ${comma(maxHp)}',
+    );
+    final spirit = _Gauge(
+      key: const Key('statusSpiritMp'),
+      filling: resting,
+      icon: 'mp',
+      label: spiritAway == null ? mpLabel(context) : '${mpLabel(context)} · 원정 중',
+      ratio: mp / mpMax,
+      colors: BarColors.mana,
+      value: '$mp / $mpMax',
+    );
+    final jm = jobMp;
+    if (jm == null && jobMpBar == null) {
+      // 각성 전: 위 줄 HP 한 줄(가로 꽉) · 아래 줄 기력 (MP 칸 없음)
+      return OrnatePanel(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          hpGauge,
+          const SizedBox(height: 10),
+          spirit,
+        ]),
+      );
+    }
+    if (jm == null) {
+      // (예전 호출) HP | 기력 · 아래 직업 MP
+      return OrnatePanel(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: hpGauge),
+            const SizedBox(width: 14),
+            Expanded(child: spirit),
+          ]),
+          const SizedBox(height: 10),
+          jobMpBar!,
+        ]),
+      );
+    }
+    final ratio = jm.$2 <= 0 ? 0.0 : (jm.$1 / jm.$2).clamp(0.0, 1.0);
+    final first = !_mpShown;
+    _mpShown = true;
     return OrnatePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _Gauge(
-                  filling: resting,
-                  icon: 'vitality',
-                  label: hp <= 0 ? 'HP · 쉬어야 해요' : 'HP',
-                  ratio: maxHp == 0 ? 0 : hp / maxHp,
-                  colors: BarColors.hp,
-                  value: '${comma(hp)} / ${comma(maxHp)}',
-                ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: hpGauge),
+          const SizedBox(width: 14),
+          Expanded(
+            child: TweenAnimationBuilder<double>(
+              key: const Key('statusJobMp'),
+              tween: Tween(begin: first ? 0 : ratio, end: ratio),
+              duration: Duration(milliseconds: first ? 1100 : 1),
+              curve: Curves.easeOutCubic,
+              builder: (_, r, __) => _Gauge(
+                icon: 'mp',
+                label: 'MP',
+                ratio: r,
+                colors: const [Color(0xFF8A5BE0), Color(0xFFB27BFF)],
+                value: '${jm.$1} / ${jm.$2}',
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _Gauge(
-                  filling: resting,
-                  icon: 'mp',
-                  label: spiritAway == null
-                      ? mpLabel(context)
-                      : '${mpLabel(context)} · 원정 중',
-                  ratio: mp / mpMax,
-                  colors: BarColors.mana,
-                  value: '$mp / $mpMax',
-                ),
-              ),
-            ],
+            ),
           ),
-          if (jobMpBar != null) ...[
-            const SizedBox(height: 10),
-            jobMpBar!,
-          ],
-        ],
-      ),
+        ]),
+        const SizedBox(height: 10),
+        spirit,
+      ]),
     );
   }
 }
@@ -899,6 +945,7 @@ class _Dot extends StatelessWidget {
 
 class _Gauge extends StatelessWidget {
   const _Gauge({
+    super.key,
     required this.label,
     required this.ratio,
     required this.colors,

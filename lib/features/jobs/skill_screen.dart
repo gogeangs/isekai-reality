@@ -319,7 +319,7 @@ class _SkillScreenState extends State<SkillScreen> {
         for (final s in JobRules.info(j).skills)
           _SkillTile(controller: c, skill: s, sub: j != c.mainJob),
         if (j == c.mainJob && c.activePair?.skill != null) ...[
-          KText('숨은 짝 「${c.activePair!.name}」의 스킬',
+          KText('숨은 이명 「${c.activePair!.name}」의 스킬',
               style:
                   const TextStyle(color: AppColors.goldBright, fontSize: 13)),
           const SizedBox(height: 4),

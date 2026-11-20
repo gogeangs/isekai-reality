@@ -6,6 +6,9 @@ import 'monsters.dart';
 import 'rule_constants.dart';
 import 'town_rules.dart';
 
+/// 묶음 77 #351: 칭호 등급 (연출 세기) — 보통 · 희귀 · 전설
+enum TitleGrade { common, rare, legend }
+
 enum TitleId {
   firstSteps,
   persistentTraveler,
@@ -122,6 +125,9 @@ enum TitleId {
   pairPaladin,
   pairNightThief,
   pairRanger,
+  // 묶음 77 #346
+  pairSpellblade,
+  pairSage,
   // 묶음 65 #251: 공성전 선봉장 (그 공성전부터 다음 공성전 끝까지)
   vanguard,
 }
@@ -237,6 +243,8 @@ class TitleRules {
       TitleId.pairPaladin => _pairFound('성기사'),
       TitleId.pairNightThief => _pairFound('밤의 도둑'),
       TitleId.pairRanger => _pairFound('레인저'),
+      TitleId.pairSpellblade => _pairFound('마검사'),
+      TitleId.pairSage => _pairFound('현자'),
 
       _ => '새 칭호를 얻었어요',
     };
@@ -275,7 +283,38 @@ class TitleRules {
     TitleId.pairPaladin,
     TitleId.pairNightThief,
     TitleId.pairRanger,
+    TitleId.pairSpellblade,
+    TitleId.pairSage,
   ];
+
+  /// 묶음 77 #351: 칭호 등급 (한 곳에서)
+  /// 전설: 막 끝 · 숨은 칭호 · 전설의 길드 / 희귀: 숙련 장인 · 보스 · 마을 사람 마지막 부탁 · 숨은 이명 / 나머지 보통
+  static const Set<TitleId> legendTitles = {
+    TitleId.bridgeMaker, TitleId.fiveLamps, TitleId.guildLegend, TitleId.pioneer, TitleId.erbardCrown,
+    TitleId.windMemory, TitleId.stardustFinder, TitleId.mossFriend, TitleId.guardMemory, TitleId.phoenixHonor,
+  };
+  static const Set<TitleId> rareTitles = {
+    TitleId.smithMaster, TitleId.harvestMaster, TitleId.alchemyMaster, TitleId.combatMaster,
+    TitleId.walkMaster, TitleId.appraiseMaster, TitleId.spiritMaster, TitleId.tradeMaster,
+    ...bossTitles,
+    TitleId.raidGiant, TitleId.raidDragon, TitleId.raidLich, TitleId.raidTortoise,
+    ...ashTitles,
+    TitleId.basiliskSlayer,
+    ...npcTitles,
+    ...pairTitles,
+  };
+
+  static TitleGrade gradeOf(TitleId t) => legendTitles.contains(t)
+      ? TitleGrade.legend
+      : rareTitles.contains(t)
+          ? TitleGrade.rare
+          : TitleGrade.common;
+
+  static String gradeLabel(TitleGrade g) => switch (g) {
+        TitleGrade.common => '보통',
+        TitleGrade.rare => '희귀',
+        TitleGrade.legend => '전설',
+      };
 
   /// 칭호 그림 이름 (특별 짝은 title_pair_<짝>)
   static String asset(TitleId t) {
@@ -516,16 +555,18 @@ class TitleRules {
     TitleInfo(TitleId.basiliskSlayer, '뱀의 왕을 쓰러뜨린 자', '숨은 칭호'),
     TitleInfo(TitleId.wayfarers, '길동무를 모은 자', '숨은 칭호'),
     TitleInfo(TitleId.firstHello, '첫 인사', '숨은 칭호'),
-    TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 짝'),
-    TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 짝'),
-    TitleInfo(TitleId.pairJeweler, '보석 세공사', '숨은 짝'),
-    TitleInfo(TitleId.pairPotionMerchant, '물약 상인', '숨은 짝'),
-    TitleInfo(TitleId.pairPeddler, '행상인', '숨은 짝'),
-    TitleInfo(TitleId.pairBeastKnight, '마수 기사', '숨은 짝'),
-    TitleInfo(TitleId.pairPathfinder, '길잡이', '숨은 짝'),
-    TitleInfo(TitleId.pairPaladin, '성기사', '숨은 짝'),
-    TitleInfo(TitleId.pairNightThief, '밤의 도둑', '숨은 짝'),
-    TitleInfo(TitleId.pairRanger, '레인저', '숨은 짝'),
+    TitleInfo(TitleId.pairWeaponsmith, '무기 장인', '숨은 이명'),
+    TitleInfo(TitleId.pairRunesmith, '룬 대장장이', '숨은 이명'),
+    TitleInfo(TitleId.pairJeweler, '보석 세공사', '숨은 이명'),
+    TitleInfo(TitleId.pairPotionMerchant, '물약 상인', '숨은 이명'),
+    TitleInfo(TitleId.pairPeddler, '행상인', '숨은 이명'),
+    TitleInfo(TitleId.pairBeastKnight, '마수 기사', '숨은 이명'),
+    TitleInfo(TitleId.pairPathfinder, '길잡이', '숨은 이명'),
+    TitleInfo(TitleId.pairPaladin, '성기사', '숨은 이명'),
+    TitleInfo(TitleId.pairNightThief, '밤의 도둑', '숨은 이명'),
+    TitleInfo(TitleId.pairRanger, '레인저', '숨은 이명'),
+    TitleInfo(TitleId.pairSpellblade, '마검사', '숨은 이명'),
+    TitleInfo(TitleId.pairSage, '현자', '숨은 이명'),
 
   ];
 
@@ -682,4 +723,4 @@ class TitleRules {
 
 /// 묶음 75 #332: 「숨은 짝 「○○」을/를 찾았어요」 — 이름 끝 받침에 맞춰
 String _pairFound(String name) =>
-    '숨은 짝 「$name」${josa(name, '을/를').substring(name.length)} 찾았어요';
+    '숨은 이명 「$name」${josa(name, '을/를').substring(name.length)} 찾았어요';

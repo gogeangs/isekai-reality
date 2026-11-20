@@ -90,9 +90,10 @@ void main() {
       expect(JobRules.maxMp(10), 50);
       expect(JobRules.maxMp(25), 80);
       expect(JobRules.maxMp(40), 110);
+      // 묶음 77 #357: 보조 직업은 Lv.20에 한 칸
       expect(JobRules.subSlots(14), 0);
-      expect(JobRules.subSlots(15), 1);
-      expect(JobRules.subSlots(20), 2);
+      expect(JobRules.subSlots(19), 0);
+      expect(JobRules.subSlots(20), 1);
       expect(JobRules.skillCost(JobSkill.rush), 20);
       expect(JobRules.skillCost(JobSkill.rush, sub: true), 30);
       expect(JobRules.skillCost(JobSkill.focusForge, sub: true), 45);
@@ -223,8 +224,9 @@ void main() {
       expect(c.subJobs, [JobId.blacksmith, JobId.warrior]);
     });
 
-    test('숨은 직업: 저녁 걸음 5만 보 → 밤의 산책자', () async {
-      final c = await start(account(15, night: 50000), night: 50000);
+    // 묶음 77 #345: 조건이 저녁 걸음 50만 보로
+    test('숨은 직업: 저녁 걸음 → 밤의 산책자', () async {
+      final c = await start(account(15, night: JobRules.nightWalkerSteps), night: JobRules.nightWalkerSteps);
       expect(c.unlockedJobs, contains(JobId.nightWalker));
     });
 

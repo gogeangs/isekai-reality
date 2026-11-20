@@ -194,11 +194,11 @@ class _MapScreenState extends State<MapScreen> {
             top: top + 114,
             child: _BuffBar(controller: controller, buffs: buffs),
           ),
-        // 묶음 30 #55: 직업 각성 뒤 MP 작게 + 지도에서 쓰는 스킬
-        if (!tut && controller.jobsOpen)
+        // 묶음 77 #354: 기력 칩 — 위쪽 버튼 줄 아래 오른쪽 고정 (몬스터 · 채집 아이콘을 덮지 않게)
+        if (!tut && controller.player.today != null)
           Positioned(
             right: 14,
-            top: top + 150,
+            top: top + 62,
             child: _JobMapButton(controller: controller),
           ),
         if (away)

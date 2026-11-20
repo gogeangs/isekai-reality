@@ -18,21 +18,23 @@ WeaponKind? weaponKindOf(EquipBase? base) => switch (base) {
       EquipBase.hornDagger ||
       EquipBase.nightWeapon ||
       EquipBase.uniqArbelDagger ||
-      EquipBase.uniqMoonFang =>
+      EquipBase.uniqMoonFang ||
+      EquipBase.monGoblinDagger =>
         WeaponKind.dagger,
       EquipBase.staff ||
       EquipBase.flameWeapon ||
       EquipBase.elowinStaff ||
       EquipBase.uniqNaomiStaff =>
         WeaponKind.staff,
-      EquipBase.ironSword || EquipBase.morvalWeapon || EquipBase.morvalSword => WeaponKind.sword,
+      EquipBase.ironSword || EquipBase.morvalWeapon || EquipBase.morvalSword || EquipBase.monDeathSword => WeaponKind.sword,
       EquipBase.woodAxe ||
       EquipBase.seleniaWeapon ||
       EquipBase.seleniaAxe ||
-      EquipBase.uniqGrumHammer =>
+      EquipBase.uniqGrumHammer ||
+      EquipBase.monOrcAxe =>
         WeaponKind.axe,
-      EquipBase.ironSpear || EquipBase.elowinWeapon || EquipBase.aurelWeapon => WeaponKind.spear,
-      EquipBase.bow || EquipBase.aurelBow => WeaponKind.bow,
+      EquipBase.ironSpear || EquipBase.elowinWeapon || EquipBase.aurelWeapon || EquipBase.monClockSpear => WeaponKind.spear,
+      EquipBase.bow || EquipBase.aurelBow || EquipBase.monCentaurBow => WeaponKind.bow,
       EquipBase.wardenWeapon ||
       EquipBase.frostWeapon ||
       EquipBase.ashWeapon ||

@@ -231,13 +231,14 @@ abstract final class ErbardRules {
   /// 엿보기 · 상성: 수비대 직업에 강한 직업 (내 주 직업이면 +25% · 받는 피해 −30%, 보조면 절반 — 레이드 약점과 같음)
   static const Map<String, List<JobId>> cloneWeakTo = {
     'cloneWarrior': [JobId.mage, JobId.archer],
-    'cloneKnight': [JobId.mage, JobId.rogue],
-    'cloneArcher': [JobId.knight, JobId.rogue],
+    // 묶음 77 #343: 고르게
+    'cloneKnight': [JobId.mage, JobId.priest],
+    'cloneArcher': [JobId.knight, JobId.warrior],
     'cloneMage': [JobId.rogue, JobId.archer],
     'clonePriest': [JobId.warrior, JobId.rogue],
-    'cloneRogue': [JobId.knight, JobId.warrior],
+    'cloneRogue': [JobId.knight, JobId.priest],
     'blackGuard': [JobId.mage, JobId.priest],
-    'blackCaptain': [JobId.priest, JobId.knight],
+    'blackCaptain': [JobId.knight, JobId.warrior],
   };
 
   /// 그림 (오기 전엔 아이콘)
@@ -273,6 +274,8 @@ abstract final class ErbardRules {
         'healer' => MonsterId.clonePriest,
         'peddler' => MonsterId.cloneRogue,
         'beastKnight' => MonsterId.cloneKnight,
+        // 묶음 77 #346: 숨은 이명 그림 짝
+        'sage' => MonsterId.cloneMage,
         _ => MonsterId.cloneWarrior, // 전사 · 대장장이 · 모험가 · 만물 장인 · 직업 없음 (예전 무기 장인)
       };
 

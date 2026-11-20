@@ -49,16 +49,16 @@ void main() {
       for (final j in JobRules.combatArtJobs) {
         expect(JobRules.heroArtJob(j), j);
       }
-      expect(JobRules.heroArtJob(JobId.blacksmith), JobId.warrior);
+      expect(JobRules.heroArtJob(JobId.blacksmith), JobId.blacksmith);
       expect(JobRules.heroArtJob(JobId.allCrafter), JobId.warrior);
-      expect(JobRules.heroArtJob(JobId.herbalist), JobId.archer);
+      expect(JobRules.heroArtJob(JobId.herbalist), JobId.herbalist);
       expect(JobRules.heroArtJob(JobId.ashHunter), JobId.archer);
-      expect(JobRules.heroArtJob(JobId.alchemist), JobId.mage);
+      expect(JobRules.heroArtJob(JobId.alchemist), JobId.alchemist);
       expect(JobRules.heroArtJob(JobId.archaeologist), JobId.mage);
       expect(JobRules.heroArtJob(JobId.pilgrim), JobId.priest);
-      expect(JobRules.heroArtJob(JobId.merchant), JobId.rogue);
+      expect(JobRules.heroArtJob(JobId.merchant), JobId.merchant);
       expect(JobRules.heroArtJob(JobId.nightWalker), JobId.rogue);
-      expect(JobRules.heroArtJob(JobId.tamer), JobId.knight);
+      expect(JobRules.heroArtJob(JobId.tamer), JobId.tamer);
       expect(JobRules.heroArtJob(JobId.gateHeir), JobId.knight);
       for (final j in JobId.values) {
         final a = JobRules.heroArtJob(j)!;
@@ -70,7 +70,8 @@ void main() {
 
     test('주 직업을 바꾸면 그림 직업도 바로', () async {
       final c = await _job('alchemist');
-      expect(c.heroJobArt, 'mage');
+      // 묶음 77 #342: 생산 직업은 자기 그림
+      expect(c.heroJobArt, 'alchemist');
       final none = await startVillage(14);
       expect(none.heroJobArt, isNull);
     });

@@ -163,8 +163,9 @@ extension Job57Ops on AppController {
 
   /// 세라의 특별 짝 힌트 (조합 ★2, 하루 한 줄). 다 찾았으면 null
   String? get seraPairHint {
-    if (!guildDetailHint || !_jobs.awakened) return null;
-    final left = [for (final p in JobPairRules.specials) if (!_jobs.pairs.contains(p.id)) p];
+    // 묶음 77 #357 · #347: Lv.20(보조 직업)부터 · 장소 관련 이명은 빼고
+    if (!guildDetailHint || !_jobs.awakened || !subJobsOpen) return null;
+    final left = [for (final p in JobPairRules.visibleSpecials) if (!_jobs.pairs.contains(p.id)) p];
     if (left.isEmpty) return null;
     final day = _dayNum(_clock());
     return JobPairRules.hintOf(left[day % left.length]);

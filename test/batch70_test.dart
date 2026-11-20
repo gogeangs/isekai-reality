@@ -280,7 +280,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: BoardScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('boardTab_today')), findsOneWidget);
-      expect(find.byKey(const Key('boardTab_npc')), findsNothing);
+      // 묶음 77 #350: 마을 사람 탭은 부탁이나 쪽지가 있을 때 (조합 의뢰에 쪽지가 붙으면 보임)
       await tester.tap(find.byKey(const Key('boardTab_errand')));
       await settle(tester);
       expect(find.text('조합 의뢰'), findsOneWidget);

@@ -7,6 +7,7 @@ import 'boss_gear_rules.dart';
 import 'element_rules.dart';
 import 'materials.dart';
 import 'guild_rules.dart';
+import 'mon_gear_rules.dart';
 import 'region_rules.dart';
 import 'stat_rules.dart';
 
@@ -67,6 +68,10 @@ enum EquipBase {
   uniqTeoCloak, uniqNaomiStaff, uniqPhoenixCharm, aurelBow,
   // 묶음 59 #246: 길드 상점 「등불 수호단」 6부위
   lanternWeapon, lanternHead, lanternBody, lanternHands, lanternFeet, lanternAcc,
+  // 묶음 77 #337: 인간형 몬스터 전용 장비 13종 (지도 Lv.11 단계부터, 만들 수 없음)
+  monGoblinDagger, monKoboldHelm, monOrcAxe, monLizardNecklace, monSkeletonBoots, monOgreBracers,
+  monArmorChest, monDoppelHood, monClockSpear, monCentaurBow, monNagaBangle, monDullahanCloak,
+  monDeathSword,
 }
 
 /// 장비 하나의 기본 정보와 제작법
@@ -373,6 +378,7 @@ class EquipmentRules {
     for (final e in BaldrinRules.gearInfos) e.id: e,
     for (final e in RegionRules.gearInfos) e.id: e,
     for (final e in GuildRules.gearInfos) e.id: e,
+    for (final e in MonGearRules.infos) e.id: e,
   };
 
   /// 마을 사람 특별 보상 장비 (묶음 42 #226, 만들 수 없다)

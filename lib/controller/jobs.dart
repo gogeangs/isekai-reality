@@ -51,29 +51,39 @@ extension JobOps on AppController {
         spiritDays + petDays >= JobRules.gateHeirDays) {
       out.add(JobId.gateHeir);
     }
-    if (ash > 0) out.add(JobId.ashHunter);
+    // 묶음 77 #345: 잿빛 사냥꾼 = 2막 잿빛 분신 모두 + 잿빛 몬스터 500마리
+    var ashKills = 0;
+    for (final d in _history) {
+      d.huntCounts.forEach((k, v) {
+        if (k.startsWith('ash')) ashKills += v;
+      });
+    }
+    if (ash > 0 &&
+        _act2.beaten >= Act2Rules.avatars.length &&
+        ashKills >= JobPairRules.ashHunterKills) {
+      out.add(JobId.ashHunter);
+    }
     final masters = Mastery.values
         .where((m) => masteryStage(m) == MasteryStage.master)
         .length;
-    if (masters >= 4) out.add(JobId.allCrafter);
+    if (masters >= JobPairRules.allCrafterMasters) out.add(JobId.allCrafter);
     // 묶음 57 #249: 탐험형 히든 (게임엔 조건을 보여 주지 않음)
-    var places = 0, relics = 0, dungeons = 0, errands = 0;
+    // 묶음 77 #347: 탐험가 · 순례자는 장소 기능이 생길 때까지 열지 않음 (조건은 남겨 둠)
+    var relics = 0, dungeons = 0, errands = 0;
     for (final d in _history) {
-      places += d.newPlacesVisited;
       relics += d.counters['relicDug'] ?? 0;
       dungeons += d.dungeonRuns.where((r) => r.cleared).length;
-      errands += d.counters['errandDone'] ?? 0;
+      errands += d.counters['errandDone'] ?? 0; // 조합 의뢰 · 마을 사람 쪽지 모두
     }
-    if (places >= JobPairRules.explorerPlaces) out.add(JobId.explorer);
     if (relics >= JobPairRules.archaeologistRelics) out.add(JobId.archaeologist);
     if (dungeons >= JobPairRules.adventurerDungeons && errands >= JobPairRules.adventurerQuests) {
       out.add(JobId.adventurer);
     }
-    if (_pilgrimDone()) out.add(JobId.pilgrim);
     return out;
   }
 
-  /// 순례자: 한 장소에 4주 이어서 매주 3번 넘게 (그 주에 간 날 수로 셈)
+  /// 순례자: 같은 장소 한 주 5일 이상 × 12주 연속 (묶음 77 #347: 장소 기능 전까지 쓰지 않음)
+  // ignore: unused_element
   bool _pilgrimDone() {
     final weeks = <String, Map<DateTime, int>>{};
     for (final d in _history) {
@@ -107,7 +117,7 @@ extension JobOps on AppController {
           if (JobPairRules.hidden.contains(j)) j,
         // 예전 기록에서 열려 있던 히든은 열린 채로
         for (final j in _jobs.ownedJobs)
-          if (JobPairRules.hidden.contains(j)) j,
+          if (JobPairRules.hidden.contains(j) && !JobPairRules.placeJobs.contains(j)) j,
       };
 
   /// 추천 직업 (묶음 57): 가장 높은 큰 숙련도 → 직업. 전투면 무기로, 걷기·탐험이면 다음 숙련도
@@ -174,7 +184,9 @@ extension JobOps on AppController {
   List<JobId> get subJobs => _jobs.subJobs;
   bool get jobApprentice => _jobs.apprentice;
   /// 묶음 57: 보조는 한 칸
-  int get subJobSlots => player.level.level >= JobRules.awakenLevel ? 1 : 0;
+  /// 묶음 77 #357: Lv.20부터 (그 전엔 보조 · 이명 · 각인이라는 말도 보이지 않음)
+  int get subJobSlots => player.level.level >= JobPairRules.subJobLevel ? 1 : 0;
+  bool get subJobsOpen => subJobSlots > 0;
 
   /// 화면에 보이는 주 직업 이름 (견습이면 「견습 ○○」)
   String? get mainJobLabel {
@@ -313,12 +325,12 @@ extension JobOps on AppController {
     if (first == 'deep') {
       final s = subJobs.isEmpty ? null : subJobs.first;
       _jobNoticeArt = s == null ? null : 'assets/images/job_${s.name}.webp';
-      return '보조 각인 2단계 — 짝이 더 깊어졌어요';
+      return '보조 각인 2단계 — 이명이 더 깊어졌어요';
     }
     if (first.startsWith('pair:')) {
       final p = JobPairRules.specialById(first.substring(5));
       _jobNoticeArt = p == null ? null : 'assets/images/${TitleRules.asset(TitleRules.pairTitles.firstWhere((t) => t.name.toLowerCase() == 'pair${p.id.toLowerCase()}'))}.webp';
-      return p == null ? null : '새 짝을 찾았어요 · ${p.name}';
+      return p == null ? null : '숨은 이명을 찾았어요 · ${p.name}';
     }
     if (first.startsWith('done:')) {
       final j = JobRules.parse(first.substring(5));
@@ -892,7 +904,8 @@ extension JobOps on AppController {
   /// 묶음 76 #341: 이 스킬 직업의 주 스탯 바탕 / 힘 바탕 (장비 · 버프 스탯 더한 값).
   /// 보조 직업 스킬은 보조 직업의 주 스탯 — 스킬이 속한 직업으로 정해진다
   double jobStatRatio(JobSkill s) => JobRules.statRatio(
-      JobRules.mainStat(JobRules.jobOf(s)),
+      // 묶음 77 #341: 숨은 이명 전용 스킬은 주 직업의 주 스탯
+      JobRules.mainStat(activePair?.skill == s && mainJob != null ? mainJob! : JobRules.jobOf(s)),
       level: player.level.level,
       stats: combatStats + gear.stats);
 
@@ -1237,6 +1250,11 @@ extension JobOps on AppController {
         if (b.nightTime) b.extraLoot = true;
       case 'ranger':
         b.firstStrike = true;
+      case 'spellblade':
+        b.spellblade = true;
+      case 'sage':
+        b.sage = true;
+        b.weakBoost += Battle.sageWeak;
       default:
         break;
     }

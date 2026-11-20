@@ -222,6 +222,19 @@ extension VillageOps on AppController {
 
   Future<void> markShelterIntro() => _markVillage(['shelterCard']);
 
+  /// 묶음 77 #357: Lv.20 「새로 열렸어요 · 보조 직업」 카드 (한 번)
+  bool get subJobIntroPending =>
+      subJobsOpen &&
+      _jobs.awakened &&
+      mainJob != null &&
+      !_village.contains('subJobCard') &&
+      !inTutorial &&
+      pendingFeatureIntro == null &&
+      !skillIntroPending &&
+      !farewellPending;
+
+  Future<void> markSubJobIntro() => _markVillage(['subJobCard']);
+
   /// 묶음 43 #228: 「새로 열렸어요」 훈련장 카드 (한 번만, 예전 Lv.13 이상 계정도)
   bool get trainingIntroPending =>
       trainingOpen &&

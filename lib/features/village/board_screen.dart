@@ -56,7 +56,8 @@ class _BoardScreenState extends State<BoardScreen> {
         BoardTab.today,
         if (controller.boardFull) BoardTab.weekly,
         if (controller.player.level.level >= BoardRules.errandTabLevel) BoardTab.errand,
-        if (controller.activeAsks.isNotEmpty || controller.newAsks.isNotEmpty) BoardTab.npc,
+        if (controller.activeAsks.isNotEmpty || controller.newAsks.isNotEmpty || _npcNotes(controller).isNotEmpty)
+          BoardTab.npc,
       ];
 
   /// 받을 것이 있는 탭 (빨간 점)
@@ -262,6 +263,12 @@ enum BoardTab {
   const BoardTab(this.label);
   final String label;
 }
+
+/// 묶음 77 #350: 마을 사람 쪽지가 붙은 조합 의뢰 칸
+List<int> _npcNotes(AppController c) => [
+      for (var i = 0; i < c.board.slots.length; i++)
+        if (BoardRules.template(c.board.slots[i].templateId, level: c.player.level.level)?.npc != null) i,
+    ];
 
 bool _askDone(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
 
@@ -856,7 +863,8 @@ class _NpcAskPanel extends StatelessWidget {
     final list = [...controller.activeAsks];
     // 묶음 69 #286: 아직 안 받은 새 부탁도 함께 (누르면 그 사람 부탁 창에서 받기)
     final fresh = controller.newAsks;
-    if (list.isEmpty && fresh.isEmpty) return const SizedBox.shrink();
+    final notes = _npcNotes(controller);
+    if (list.isEmpty && fresh.isEmpty && notes.isEmpty) return const SizedBox.shrink();
     bool done(NpcAskLine a) => _askDone(a);
     final doneList = [for (final a in list) if (done(a)) a];
     final going = [for (final a in list) if (!done(a)) a];
@@ -886,6 +894,15 @@ class _NpcAskPanel extends StatelessWidget {
             ),
           for (final (i, a) in going.indexed) _ask(context, a, i + doneList.length, done(a)),
         ]),
+        // 묶음 77 #350: 그 아래 지금 마을 사람 쪽지
+        if (notes.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const BoardPlaque('마을 사람 쪽지'),
+          const SizedBox(height: 4),
+          NoteGrid(children: [
+            for (final i in notes) _ErrandNote(controller: controller, slot: i),
+          ]),
+        ],
       ]),
     );
   }

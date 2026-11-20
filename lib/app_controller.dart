@@ -339,11 +339,14 @@ class AppController extends ChangeNotifier {
   Set<TitleId> _seenTitles = {};
 
   /// 새로 얻었지만 아직 알려 주지 않은 칭호 (없으면 null)
+  /// 여럿이면 높은 등급부터 (묶음 77 #351)
   TitleId? get newTitle {
+    TitleId? best;
     for (final t in player.titles) {
-      if (!_seenTitles.contains(t)) return t;
+      if (_seenTitles.contains(t)) continue;
+      if (best == null || TitleRules.gradeOf(t).index > TitleRules.gradeOf(best).index) best = t;
     }
-    return null;
+    return best;
   }
 
   /// 칭호 축하 창 대신 위쪽 띠로만 (예시 모드)
@@ -1108,6 +1111,9 @@ class AppController extends ChangeNotifier {
 
   /// 묶음 75 #327: 방금 전투에서 얻은 알 등급 (결과 창에서 보여 줌)
   EggGrade? _battleEgg;
+
+  /// 묶음 77 #337: 방금 필드 전투에서 얻은 몬스터 전용 장비 (결과 창에서 보여 줌)
+  EquipItem? _battleMonGear;
 
   /// 묶음 75 #327: 가방이 가득해 의뢰 알을 우편함에 넣었는지
   bool _eggMailed = false;

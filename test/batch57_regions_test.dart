@@ -126,8 +126,9 @@ void main() {
 
     test('직업: 전투 6 · 숨은 특별 짝 10 · 활은 Lv.15', () {
       expect(JobPairRules.combat, hasLength(6));
-      expect(JobPairRules.specials, hasLength(10));
-      expect(TitleRules.pairTitles, hasLength(10));
+      // 묶음 77 #346: 마검사 · 현자 더해 12
+      expect(JobPairRules.specials, hasLength(12));
+      expect(TitleRules.pairTitles, hasLength(12));
     });
 
     test('이름 금칙어: 띄어쓰기 · 기호를 빼고 비교', () {

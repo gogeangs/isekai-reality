@@ -723,6 +723,25 @@ class _BattleViewState extends State<BattleView> {
                             ),
                     ),
                   ]),
+                  // 묶음 77 #346 현자: 몬스터 약점 속성이 늘 보임
+                  if (_b.shownWeakness case final wk?)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Container(
+                          key: const Key('foeWeakChip'),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: elementColor(wk).withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: elementColor(wk)),
+                          ),
+                          child: Text('약점 · ${wk.label}',
+                              style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ),
                   // 상태 이상 (11-11 #81): 체력 막대 아래 아이콘
                   if (_heroStatus.isNotEmpty || _foeStatus.isNotEmpty)
                     Padding(

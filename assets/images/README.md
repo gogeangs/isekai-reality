@@ -549,3 +549,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | hero_knight_female | 주인공 기사 서기 · 여, 768×1024, 남자 기사와 같은 크기·바닥선 |
 | 2026-11-19 | hero_knight_attack_female | 주인공 기사 공격 6칸 · 여(방패 밀치기+푸른 파동→검 찌르기), 3840×800 |
 | 2026-11-20 | title_npcMarta, title_npcMina, title_npcDorgun, title_npcEliel, title_npcHart, title_npcSera | 마을 사람 마지막 부탁 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-20 | title_npcLumi, title_npcGaren, title_guildLegend, title_basiliskSlayer, title_wayfarers, title_firstHello | 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |

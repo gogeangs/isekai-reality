@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'job_pair_rules.dart';
 import 'stat_rules.dart';
 import 'element_rules.dart';
 import 'harvest_rules.dart';
@@ -264,6 +265,8 @@ enum JobSkill {
   jointAttack, runTogether,
   windBlade, longRoad,
   poisonFlask, specialSale,
+  // 묶음 77 #346: 공격형 숨은 이명 전용
+  spellbladeSlash, sageStrike,
   // 숨은
   shadowSlash, moonWalk,
   gatekeeperLight, lightResonance,
@@ -362,7 +365,8 @@ class JobRules {
   static const int awakenLevel = 15;
 
   /// 보조 슬롯: Lv.15 1칸, Lv.20 2칸
-  static int subSlots(int level) => level >= 20 ? 2 : (level >= awakenLevel ? 1 : 0);
+  /// 묶음 77 #357: 보조 직업은 Lv.20부터 한 칸
+  static int subSlots(int level) => level >= 20 ? 1 : 0;
 
   /// 숙련도가 쌓이는 배율 (주 · 보조)
   static const double mainGrowth = 1.5;
@@ -401,8 +405,16 @@ class JobRules {
   }
 
   /// 스킬의 직업
-  static JobId jobOf(JobSkill s) =>
-      jobs.firstWhere((j) => j.skills.contains(s)).id;
+  static JobId jobOf(JobSkill s) {
+    for (final j in jobs) {
+      if (j.skills.contains(s)) return j.id;
+    }
+    // 묶음 77: 숨은 이명 전용 스킬은 그 이명의 주 직업
+    for (final p in JobPairRules.specials) {
+      if (p.skill == s) return p.main;
+    }
+    return JobId.warrior;
+  }
 
   /// 그 직업의 ① 공격 스킬
   static JobSkill firstOf(JobId j) => info(j).skills.first;
@@ -480,8 +492,9 @@ class JobRules {
   static const double farSightRare = 0.05; // 먼 눈: 희귀 수식어 몫 더 (30분)
 
   // ───────────── 숨은 직업 조건
-  static const int nightWalkerSteps = 50000;
-  static const int gateHeirDays = 60;
+  /// 묶음 77 #345
+  static const int nightWalkerSteps = 500000;
+  static const int gateHeirDays = 180;
 
   /// 밤 (오후 7시 ~ 새벽 6시)
   static bool isNight(DateTime t) => HarvestRules.isNight(t); // 묶음 69: 밤은 19~6시 하나로
@@ -595,6 +608,17 @@ class JobRules {
         return StatKind.intellect;
       case JobId.rogue || JobId.merchant:
         return StatKind.luck;
+      // 묶음 77 #341: 히든 직업 표
+      case JobId.adventurer || JobId.allCrafter:
+        return StatKind.strength;
+      case JobId.gateHeir || JobId.pilgrim:
+        return StatKind.vitality;
+      case JobId.explorer || JobId.ashHunter:
+        return StatKind.agility;
+      case JobId.archaeologist:
+        return StatKind.intellect;
+      case JobId.nightWalker:
+        return StatKind.luck;
       default:
     }
     final me = info(j);
@@ -620,19 +644,24 @@ class JobRules {
   /// 가까운 전투 직업 그림 (전용 그림이 오면 이 표만 바꾼다). 직업이 없으면 null (맨손 새 주인공)
   static const List<JobId> combatArtJobs = [
     JobId.warrior, JobId.archer, JobId.mage, JobId.priest, JobId.rogue, JobId.knight,
+    // 묶음 77 #342
+    JobId.blacksmith, JobId.alchemist, JobId.herbalist, JobId.appraiser, JobId.merchant, JobId.tamer,
   ];
 
   static JobId? heroArtJob(JobId? j) => switch (j) {
         null => null,
-        JobId.warrior || JobId.blacksmith || JobId.adventurer || JobId.allCrafter ||
+        // 묶음 77 #342: 생산 6직업은 자기 그림
+        JobId.blacksmith || JobId.alchemist || JobId.herbalist || JobId.appraiser ||
+        JobId.merchant || JobId.tamer => j,
+        JobId.warrior || JobId.adventurer || JobId.allCrafter ||
         JobId.weaponsmith => JobId.warrior,
-        JobId.archer || JobId.herbalist || JobId.explorer || JobId.ashHunter ||
+        JobId.archer || JobId.explorer || JobId.ashHunter ||
         JobId.hunter || JobId.pathfinder => JobId.archer,
-        JobId.mage || JobId.alchemist || JobId.appraiser || JobId.archaeologist ||
+        JobId.mage || JobId.archaeologist ||
         JobId.runesmith || JobId.jeweler || JobId.potionMerchant => JobId.mage,
         JobId.priest || JobId.pilgrim || JobId.healer => JobId.priest,
-        JobId.rogue || JobId.merchant || JobId.nightWalker || JobId.peddler => JobId.rogue,
-        JobId.knight || JobId.tamer || JobId.gateHeir || JobId.beastKnight => JobId.knight,
+        JobId.rogue || JobId.nightWalker || JobId.peddler => JobId.rogue,
+        JobId.knight || JobId.gateHeir || JobId.beastKnight => JobId.knight,
       };
 
   static JobId? parse(String? name) {
@@ -743,6 +772,12 @@ class JobRules {
     JobSkillInfo(JobSkill.regular, '단골 손님', SkillPlace.shop,
         '하루 개수가 정해진 물건을 오늘 하나 더 살 수 있어요', 30),
     // 복합
+    JobSkillInfo(JobSkill.spellbladeSlash, '마검 베기', _b,
+        '몬스터 약점 속성(없으면 내 속성)을 실어 크게 베어요', 25,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.sageStrike, '현자의 일섬', _b,
+        '약점을 꿰뚫어 베어요. 약점이면 훨씬 세요', 25,
+        mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.masterSlash, '명검 베기', _b,
         '무기로 크게 베어요. 강화한 무기일수록 더 세요', 20,
         mode: SkillMode.battle, attack: true),

@@ -27,7 +27,11 @@ class JobImprint {
 
 /// 숨은 특별 짝 (주 + 보조) — 처음 맞추면 「새 짝을 찾았어요」 + 칭호
 class SpecialPair {
-  const SpecialPair(this.id, this.name, this.main, this.sub, this.text, {this.legacy, this.skill});
+  const SpecialPair(this.id, this.name, this.main, this.sub, this.text,
+      {this.legacy, this.skill, this.place = false});
+
+  /// 묶음 77 #347: 장소(탐험가)가 있어야 되는 이명 — 장소 기능 전까지 숨김
+  final bool place;
   final String id;
   final String name;
   final JobId main;
@@ -120,16 +124,33 @@ abstract final class JobPairRules {
     SpecialPair('potionMerchant', '물약 상인', JobId.alchemist, JobId.merchant, '잡화상에서 물약을 싸게 사요',
         legacy: JobId.potionMerchant, skill: JobSkill.poisonFlask),
     SpecialPair('peddler', '행상인', JobId.merchant, JobId.explorer, '많이 걸은 날은 더 비싸게 팔아요',
-        legacy: JobId.peddler, skill: JobSkill.bundleSwing),
+        legacy: JobId.peddler, skill: JobSkill.bundleSwing, place: true),
     SpecialPair('beastKnight', '마수 기사', JobId.knight, JobId.tamer, '펫과 함께 싸우면 더 세져요',
         legacy: JobId.beastKnight, skill: JobSkill.jointAttack),
     SpecialPair('pathfinder', '길잡이', JobId.explorer, JobId.tamer, '먼 곳 원정에서 이기면 더 가져와요',
-        legacy: JobId.pathfinder),
+        legacy: JobId.pathfinder, place: true),
     SpecialPair('paladin', '성기사', JobId.knight, JobId.priest,
         '대신 맞을 때 HP가 조금 차고, 잿빛 몬스터에게 빛 피해를 줘요'),
     SpecialPair('nightThief', '밤의 도둑', JobId.rogue, JobId.nightWalker, '밤에는 훔치기가 꼭 되고 한 번 더 베어요'),
-    SpecialPair('ranger', '레인저', JobId.archer, JobId.explorer, '처음 가는 곳에서는 꼭 먼저 쏘고 먼 몬스터가 더 보여요'),
+    SpecialPair('ranger', '레인저', JobId.archer, JobId.explorer, '처음 가는 곳에서는 꼭 먼저 쏘고 먼 몬스터가 더 보여요',
+        place: true),
+    // 묶음 77 #346: 공격형 숨은 이명 둘
+    SpecialPair('spellblade', '마검사', JobId.warrior, JobId.mage,
+        '강타에 내 속성이 실리고, 몬스터가 그 속성에 약하면 더 세요',
+        skill: JobSkill.spellbladeSlash),
+    SpecialPair('sage', '현자', JobId.mage, JobId.appraiser,
+        '몬스터 약점 속성이 늘 보이고 약점 피해가 더 세요',
+        skill: JobSkill.sageStrike),
   ];
+
+  /// 묶음 77 #347: 장소 기능이 생길 때까지 숨기는 것 (탐험가 · 순례자 · 탐험가가 있어야 하는 숨은 이명)
+  static const Set<JobId> placeJobs = {JobId.explorer, JobId.pilgrim};
+
+  /// 게임에 보이는 숨은 이명 (장소 관련은 빼고)
+  static List<SpecialPair> get visibleSpecials => [for (final p in specials) if (!p.place) p];
+
+  /// 게임에 보이는 히든 직업
+  static List<JobId> get visibleHidden => [for (final j in hidden) if (!placeJobs.contains(j)) j];
 
   static SpecialPair? specialOf(JobId? main, JobId? sub) {
     if (main == null || sub == null) return null;
@@ -164,8 +185,10 @@ abstract final class JobPairRules {
   // ───────────── 숨은 수치
 
   /// 보조 각인 세기 (Lv.20 보조 각인 2단계에 더 셈)
-  static double imprintPower(int level) => level >= 20 ? 1.5 : 1.0;
-  static const int imprintDeepLevel = 20;
+  /// 묶음 77 #357: 각인 2단계(1.5배)는 Lv.30부터 · 보조 직업은 Lv.20부터
+  static double imprintPower(int level) => level >= imprintDeepLevel ? 1.5 : 1.0;
+  static const int imprintDeepLevel = 30;
+  static const int subJobLevel = 20;
 
   /// 전직의 증표: 일주일에 5만 보마다 1장 · 조합 상점에서 주에 1장 (금화)
   static const int tokenSteps = 50000;
@@ -173,12 +196,15 @@ abstract final class JobPairRules {
   static const int changeGold = 100;
 
   /// 히든 조건 (게임엔 보여 주지 않음)
-  static const int explorerPlaces = 100;
-  static const int pilgrimWeeks = 4;
-  static const int pilgrimVisits = 3; // 매주 3번 넘게
-  static const int archaeologistRelics = 50;
-  static const int adventurerDungeons = 30;
-  static const int adventurerQuests = 50;
+  /// 묶음 77 #345 · #347: 히든 직업은 극소수만 (숨은 값)
+  static const int explorerPlaces = 500;
+  static const int pilgrimWeeks = 12;
+  static const int pilgrimVisits = 4; // 한 주 5일 이상 (4 넘게)
+  static const int archaeologistRelics = 300;
+  static const int adventurerDungeons = 200;
+  static const int adventurerQuests = 500;
+  static const int ashHunterKills = 500;
+  static const int allCrafterMasters = 6;
 
   /// 옛 숨은 직업 · 탐험형 직업 (예전 기록에서 열려 있었으면 열린 채로)
   static const legacyHiddenFrom = {
@@ -263,6 +289,8 @@ abstract final class JobPairRules {
       'paladin' => '방패와 기도가 만나면 빛이 대신 맞아 준대요.',
       'nightThief' => '밤길을 아는 손은 무엇이든 가져온대요.',
       'ranger' => '활 쏘는 사람이 처음 가는 길을 좋아하면 늘 먼저 쏜대요.',
+      'spellblade' => '칼끝에 마법을 실을 줄 아는 전사가 있대요.',
+      'sage' => '약점을 꿰뚫어 보는 마법사는 한 번에 끝낸대요.',
       _ => '$m에게 $s의 힘이 더해지면 무슨 일이 생길까요?',
     };
   }

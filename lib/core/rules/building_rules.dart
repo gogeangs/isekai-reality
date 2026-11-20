@@ -91,7 +91,7 @@ class BuildingRules {
           MaterialId.ancientShard: 3,
           MaterialId.runeStone: 1,
         }),
-        text2: '세라가 하루 한 번 숨은 짝 힌트를 들려줘요',
+        text2: '세라가 하루 한 번 숨은 이명 힌트를 들려줘요',
         text3: '숙련도가 조금 더 빨리 올라요'),
     BuildingInfo(Building.smithy, '대장간', Npc.dorgun,
         to2: BuildingNeed(500, {MaterialId.ironShard: 10, MaterialId.roughGem: 2}),

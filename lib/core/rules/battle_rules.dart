@@ -1151,8 +1151,13 @@ class Battle {
     }
     var dmg = (_vary(playerAttack) * bashMultiplier * (1 + bashBoost) * dealMult).round();
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
-    dmg = _elemental(dmg, weaponPotion ?? attackElement,
+    // 묶음 77 #346 마검사: 강타에 내 공격 속성이 실리고, 그 속성에 약하면 더
+    final bashEl = weaponPotion ?? attackElement ?? (spellblade ? mainElement : null);
+    dmg = _elemental(dmg, bashEl,
         level: weaponPotion != null ? 0 : attackLevel);
+    if (spellblade && bashEl != null && ElementRules.multiplier(bashEl, foe.element) > 1) {
+      dmg = (dmg * (1 + spellbladeWeak)).round();
+    }
     lastDealt = dmg;
     lastTaken = 0;
     lastBash = true;
@@ -1235,6 +1240,15 @@ class Battle {
 
   /// 밤의 도둑 짝: 밤엔 훔치기가 꼭 되고 한 번 더 벰
   bool nightThief = false;
+
+  /// 묶음 77 #346: 마검사 (강타에 속성 · 약점이면 더) · 현자 (약점 늘 보임 · 약점 피해 +15%)
+  bool spellblade = false;
+  static const double spellbladeWeak = 0.2;
+  bool sage = false;
+  static const double sageWeak = 0.15;
+
+  /// 화면에 보여 줄 몬스터 약점 속성 (현자일 때만)
+  Element? get shownWeakness => sage ? _foeWeakTo : null;
 
   /// 다음 보통 공격이 꼭 치명타
   bool nextCrit = false;
@@ -1474,6 +1488,14 @@ class Battle {
       case JobSkill.coinToss:
         _startSkill('금화 던지기!');
         _strike(2.0 * p);
+      // 묶음 77 #346: 마검사 · 현자
+      case JobSkill.spellbladeSlash:
+        _startSkill('마검 베기!');
+        _strike(3.0 * p, element: _foeWeakTo ?? mainElement ?? attackElement);
+      case JobSkill.sageStrike:
+        _startSkill('현자의 일섬!');
+        final w = _foeWeakTo;
+        _strike((w != null ? 3.0 : 2.0) * p, element: w);
       case JobSkill.masterSlash:
         _startSkill('명검 베기!');
         _strike((1.6 + 0.1 * weaponEnhance) * p);
@@ -1510,11 +1532,11 @@ class Battle {
         _strike(1.3 * p);
         reflectNext = true;
       case JobSkill.jointAttack:
+        // 묶음 77 #344: 약 3배 = 나 1배 + 펫 2배
         _startSkill('합동 돌격!');
         _strike(1.0 * p);
         if (phase == BattlePhase.fighting) {
-          _strike(1.0 * p * RuleConstants.skillDamageMultiplier,
-              element: skillElement, useElement: skillElement != null);
+          _strike(2.0 * p, element: skillElement, useElement: skillElement != null);
         }
         skillCharge = math.min(skillChargeTicks, skillCharge + 2);
       case JobSkill.windBlade:

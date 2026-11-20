@@ -83,10 +83,23 @@ class SkillArt {
     JobSkill.miracle, JobSkill.smokeBomb, JobSkill.guard, JobSkill.taunt, JobSkill.paladinOath,
   };
 
+  /// 묶음 77 #342: 생활 스킬 그림 30장 (assets/images/skill_<id>.webp)
+  static const lifeArt = {
+    JobSkill.drill, JobSkill.track, JobSkill.manaSense, JobSkill.firstAid, JobSkill.lockpick,
+    JobSkill.runTogether, JobSkill.focusForge, JobSkill.masterTouch, JobSkill.quickRepair,
+    JobSkill.masterBlade, JobSkill.runeCarve, JobSkill.quickBrew, JobSkill.recipeHunch,
+    JobSkill.instantBrew, JobSkill.specialSale, JobSkill.bountyTouch, JobSkill.harvestSense,
+    JobSkill.rootPull, JobSkill.sproutCare, JobSkill.trueEye, JobSkill.wideView, JobSkill.memoryRead,
+    JobSkill.polish, JobSkill.bargain, JobSkill.knack, JobSkill.regular, JobSkill.bigPack,
+    JobSkill.cheer, JobSkill.snackPouch, JobSkill.eggWarm,
+  };
+
   static (SkillFrame, String) job(JobSkill s) {
     final info = JobRules.skill(s);
     if (s == JobSkill.windBlade) return (SkillFrame.attack, 'skill_windArrow');
     if (info.attack || _ownArt.contains(s)) return (SkillFrame.attack, 'skill_${s.name}');
+    // 묶음 77 #342: 그림이 있는 생활 스킬은 그 그림 + 생활 테
+    if (lifeArt.contains(s)) return (info.isBattle ? SkillFrame.attack : SkillFrame.life, 'skill_${s.name}');
     final owner = JobRules.jobs.firstWhere((j) => j.skills.contains(s),
         orElse: () => JobRules.jobs.first);
     return (

@@ -8,6 +8,7 @@ import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import '../battle/element_view.dart';
+import '../smithy/equipment_view.dart' show EquipIcon;
 
 /// 도감 (11-11 #41): 탭 없이 몬스터 한 목록. 속성 슬라임도 각각 한 칸.
 /// 목록 아래에 「희귀·전설 사냥 기록」. 칭호는 프로필로 옮겼다.
@@ -18,6 +19,7 @@ class CodexScreen extends StatefulWidget {
     this.highlandOpen = false,
     this.huntCounts = const {},
     this.modHunts = const {},
+    this.monGearFound = const {},
     this.petsSeen = const {},
     this.onOpenPets,
     this.petsOpen = false,
@@ -27,6 +29,9 @@ class CodexScreen extends StatefulWidget {
     this.onSeen,
     this.active = true,
   });
+
+  /// 묶음 77 #337: 얻은 적 있는 몬스터 전용 장비 (얻기 전엔 「???」)
+  final Set<EquipBase> monGearFound;
 
   /// 묶음 70 #293: 처음 발견하고 아직 도감에서 보지 않은 칸 ('m:<몬스터>' · 'p:<펫>') — 반짝임 + 점
   final Set<String> fresh;
@@ -133,6 +138,31 @@ class _CodexScreenState extends State<CodexScreen> {
                 const SizedBox(height: 10),
                 _Fact(label: '전투 특징', value: m.traitText),
                 _Fact(label: '성향', value: m.tendencyName),
+                // 묶음 77 #337: 인간형 몬스터 전용 장비
+                if (MonGearRules.gearOf(m.id) case final g?)
+                  Padding(
+                    key: const Key('codexDrops'),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(children: [
+                      const SizedBox(
+                        width: 72,
+                        child: Text('떨어뜨리는 것',
+                            style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                      if (widget.monGearFound.contains(g)) ...[
+                        EquipIcon(base: g, size: 36),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: KText(EquipmentRules.info(g).name,
+                              key: Key('codexDrop_${g.name}'),
+                              style: const TextStyle(color: AppColors.text, fontSize: 14)),
+                        ),
+                      ] else
+                        const Text('???',
+                            key: Key('codexDropUnknown'),
+                            style: TextStyle(color: AppColors.textMuted, fontSize: 14, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
                 const SizedBox(height: 12),
                 FrameButton(
                     label: '닫기', onPressed: () => Navigator.of(sheet).pop()),

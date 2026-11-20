@@ -752,6 +752,9 @@ extension TutorialOps on AppController {
     );
     _battleEgg = null; // 묶음 75 #327: 이번 전투에서 얻은 알만
     await _rollFieldEgg(ModifierRules.gradeOf(mods));
+    // 묶음 77 #337: 인간형 몬스터 전용 장비 (드물게, 같은 몬스터 6마리째부터 절반)
+    _battleMonGear = null;
+    await _rollMonGear(monster, ModifierRules.gradeOf(mods), sameToday: today.huntCounts[monster.name] ?? 0);
     switch (ModifierRules.gradeOf(mods)) {
       case ModGrade.rare:
         await _maybeNote(AlchemyRules.noteFromRare);
@@ -765,6 +768,43 @@ extension TutorialOps on AppController {
     }
     // 묶음 66: 결과 화면은 Lv.21부터의 배율(#254)까지 곱한 값
     return _lastReward.exp;
+  }
+
+  Future<void> _rollMonGear(MonsterId monster, ModGrade grade, {required int sameToday}) async {
+    final base = MonGearRules.gearOf(monster);
+    if (base == null) return;
+    if (_random.nextDouble() >= MonGearRules.chanceFor(grade, sameToday: sameToday)) return;
+    final g = MonGearRules.rollGrade(_random);
+    final a = _armory;
+    final item = EquipItem(
+      uid: 'eq${a.nextId}',
+      base: base,
+      grade: g,
+      extras: EquipmentRules.rollExtras(g, _random),
+    );
+    await _saveArmory(a.copyWith(nextId: a.nextId + 1));
+    // 가방이 가득하면 다른 장비처럼 우편함으로
+    await _giveEquipOrMail(item, title: '몬스터가 떨어뜨린 장비');
+    await _markVillage([MonGearRules.foundKey(base)]);
+    _battleMonGear = item;
+  }
+
+  /// 묶음 77 #337: 방금 필드 전투에서 얻은 몬스터 장비 (결과 창이 한 번 쓰고 비움)
+  EquipItem? takeBattleMonGear() {
+    final g = _battleMonGear;
+    _battleMonGear = null;
+    return g;
+  }
+
+  /// 도감 「떨어뜨리는 것」: 얻은 적 있는지
+  bool monGearFound(EquipBase b) => _village.contains(MonGearRules.foundKey(b));
+
+  /// 시험용: 몬스터 장비를 굴린다 (확률 무시하려면 [force])
+  @visibleForTesting
+  Future<EquipItem?> rollMonGearForTest(MonsterId m, {ModGrade grade = ModGrade.legend, int same = 0}) async {
+    _battleMonGear = null;
+    await _rollMonGear(m, grade, sameToday: same);
+    return _battleMonGear;
   }
 
   /// 많이 사냥한 날 가끔 정령(펫)이 넌지시 (6마리째부터 세 번에 한 번, 숫자는 말하지 않는다)

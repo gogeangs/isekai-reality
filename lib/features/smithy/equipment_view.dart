@@ -272,3 +272,50 @@ class ItemStats extends StatelessWidget {
     );
   }
 }
+
+/// 묶음 77 #337: 전투 결과 창에서 몬스터 전용 장비가 나왔을 때 — 그림 크게 + 「○○을 얻었어요!」
+/// (알 연출과 같은 자리)
+class MonGearGotBanner extends StatelessWidget {
+  const MonGearGotBanner({super.key, required this.item, this.size = 96});
+
+  final EquipItem item;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = equipGradeColor(item.grade);
+    final name = item.info.name;
+    final last = name.isEmpty ? 0 : name.codeUnitAt(name.length - 1);
+    final batchim = last >= 0xAC00 && last <= 0xD7A3 && (last - 0xAC00) % 28 != 0;
+    return Column(key: Key('monGearGot_${item.base.name}'), mainAxisSize: MainAxisSize.min, children: [
+      TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.easeOutBack,
+        builder: (context, v, child) => SizedBox(
+          width: size * 1.8,
+          height: size * 1.35,
+          child: Stack(alignment: Alignment.center, children: [
+            Container(
+              width: size * (1.1 + 0.4 * v.clamp(0.0, 1.0)),
+              height: size * (1.1 + 0.4 * v.clamp(0.0, 1.0)),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [
+                  color.withValues(alpha: 0.45 * v.clamp(0.0, 1.0)),
+                  Colors.transparent,
+                ]),
+              ),
+            ),
+            Transform.scale(scale: 0.6 + 0.4 * v, child: child),
+          ]),
+        ),
+        child: EquipIcon(base: item.base, grade: item.grade, size: size),
+      ),
+      Text('$name${batchim ? '을' : '를'} 얻었어요!',
+          key: const Key('monGearGotLine'),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+    ]);
+  }
+}

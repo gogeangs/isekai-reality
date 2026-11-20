@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../pets/egg_news.dart';
+import '../smithy/equipment_view.dart' show MonGearGotBanner;
+import '../../core/models/armory.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
@@ -71,10 +73,12 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
       _done = true;
       // 묶음 75 #327: 이 싸움에서 얻은 알 (결과 창 보상 맨 앞, 위쪽 띠는 안 띄움)
       _egg = widget.controller.takeBattleEgg();
+      _gear = widget.controller.takeBattleMonGear();
     });
   }
 
   EggGrade? _egg;
+  EquipItem? _gear;
 
   @override
   Widget build(BuildContext context) {
@@ -241,6 +245,11 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             color: AppColors.text, fontSize: 14)),
+                    // 묶음 77 #337: 몬스터 전용 장비 (알과 같은 자리)
+                    if (_gear case final g?) ...[
+                      const SizedBox(height: 6),
+                      MonGearGotBanner(item: g),
+                    ],
                     if (_egg case final g?) ...[
                       const SizedBox(height: 6),
                       EggGotBanner(grade: g, farewell: widget.controller.farewellDone),

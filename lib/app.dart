@@ -516,6 +516,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,
               modHunts: controller.modHuntTotals,
+              monGearFound: {
+                for (final b in MonGearRules.byMonster.values)
+                  if (controller.monGearFound(b)) b,
+              },
               petsSeen: controller.pets.seen,
               petsOpen: controller.petCodexOpen,
               petsNew: controller.petCodexNew,

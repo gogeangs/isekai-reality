@@ -232,16 +232,17 @@ void main() {
   group('#193 #194 직업 다듬기', () {
     test('숨은 직업 조건: 밤 걸음 · 정령+첫 펫 날 수와 친밀도', () async {
       final night = await start(account(15, extra: [
-        DailyRecord(date: DateTime(2026, 11, 1), stepsNight: 50000),
+        DailyRecord(date: DateTime(2026, 11, 1), stepsNight: JobRules.nightWalkerSteps),
       ]));
       expect(night.unlockedJobs, contains(JobId.nightWalker));
       final weak = await start(account(15,
           pet: pets(bond: 99, petBorn: DateTime(2026, 9, 1)),
           extra: [DailyRecord(date: DateTime(2026, 8, 1))]));
       expect(weak.unlockedJobs, isNot(contains(JobId.gateHeir)));
+      // 묶음 77 #345: 날 수 조건이 늘어 (정령 + 첫 펫 180일)
       final heir = await start(account(15,
-          pet: pets(bond: 100, petBorn: DateTime(2026, 9, 1)),
-          extra: [DailyRecord(date: DateTime(2026, 8, 1))]));
+          pet: pets(bond: 100, petBorn: DateTime(2026, 6, 1)),
+          extra: [DailyRecord(date: DateTime(2026, 5, 1))]));
       expect(heir.unlockedJobs, contains(JobId.gateHeir));
     });
 

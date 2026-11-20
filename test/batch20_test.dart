@@ -70,7 +70,7 @@ void main() {
       await tester.runAsync(() async => c = await start(
           InMemoryRecordStore(profile: const PlayerProfile(name: '하루'))));
       await open(tester, c);
-      final p = tester.renderObject<RenderParagraph>(find.text('새 칭호'));
+      final p = tester.renderObject<RenderParagraph>(find.textContaining('새 칭호'));
       expect(p.text.style?.decoration, isNot(TextDecoration.underline));
       final img = tester.widget<Image>(find.byKey(const Key('titleBadge')));
       expect((img.image as AssetImage).assetName,

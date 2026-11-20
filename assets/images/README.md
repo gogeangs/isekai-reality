@@ -548,3 +548,11 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-19 | hero_knight_attack_male | 주인공 기사 공격 6칸 · 남(방패 밀치기+푸른 파동→검 찌르기), 3840×800, 뿌연 회색 배경 띠 제거 |
 | 2026-11-19 | hero_knight_female | 주인공 기사 서기 · 여, 768×1024, 남자 기사와 같은 크기·바닥선 |
 | 2026-11-19 | hero_knight_attack_female | 주인공 기사 공격 6칸 · 여(방패 밀치기+푸른 파동→검 찌르기), 3840×800 |
+| 2026-11-20 | title_npcMarta, title_npcMina, title_npcDorgun, title_npcEliel, title_npcHart, title_npcSera | 마을 사람 마지막 부탁 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-20 | title_npcLumi, title_npcGaren, title_guildLegend, title_basiliskSlayer, title_wayfarers, title_firstHello | 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-20 | title_pairWeaponsmith, title_pairRunesmith, title_pairJeweler, title_pairPotionMerchant, title_pairPeddler, title_pairBeastKnight | 숨은 직업 짝 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
+| 2026-11-20 | pet_egg_rare, pet_egg_hero, pet_egg_legend | 등급별 알 3종(희귀·영웅·전설), 512, 같은 비율 · 전설 알 넓은 빛 번짐·떠다니는 반짝이 제거(얇은 테두리 빛만) |
+| 2026-11-20 | title_pairPathfinder, title_pairPaladin, title_pairNightThief, title_pairRanger | 숨은 직업 짝 칭호 배지 4종, 512 — 칭호 배지 22종 완료 |
+| 2026-11-20 | equip_monGoblinDagger, equip_monKoboldHelm, equip_monOrcAxe, equip_monLizardNecklace, equip_monSkeletonBoots, equip_monOgreBracers, equip_monArmorChest | 인간형 몬스터 전용 장비 7종(위 줄 몬스터), 512 (4×2 한 장에서 잘라냄) |
+| 2026-11-20 | equip_monDoppelHood, equip_monClockSpear, equip_monCentaurBow, equip_monNagaBangle, equip_monDullahanCloak, equip_monDeathSword | 인간형 몬스터 전용 장비 6종(아래 줄 몬스터), 512 — 전용 장비 13종 완료 |
+| 2026-11-20 | ending_02_face_to_face | 결말 마주 봄 — 옛 주인공(배낭·등불)을 새 주인공(남, 후드티·청바지·맨손)으로 편집해 덮어씀, 852×1846 |

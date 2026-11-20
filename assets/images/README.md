@@ -566,3 +566,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | ending_03_promise | 결말 약속(악수) — 왼쪽 소매를 남색 후드티 소매로 편집해 덮어씀, 852×1846 |
 | 2026-11-20 | farewell_04_light | 이별 · 빛을 받는 손 — 주인공 소매를 남색 후드티로 고친 편집본 (덮어씀) |
 | 2026-11-20 | skill_drill, skill_track, skill_manaSense, skill_firstAid, skill_lockpick, skill_runTogether | 생활 스킬 아이콘 묶음 1 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_focusForge, skill_masterTouch, skill_quickRepair, skill_masterBlade, skill_runeCarve, skill_quickBrew | 생활 스킬 아이콘 묶음 2 (512, 테두리 없음, 넓은 빛 번짐 제거) |

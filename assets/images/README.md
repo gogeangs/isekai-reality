@@ -555,3 +555,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | title_pairPathfinder, title_pairPaladin, title_pairNightThief, title_pairRanger | 숨은 직업 짝 칭호 배지 4종, 512 — 칭호 배지 22종 완료 |
 | 2026-11-20 | equip_monGoblinDagger, equip_monKoboldHelm, equip_monOrcAxe, equip_monLizardNecklace, equip_monSkeletonBoots, equip_monOgreBracers, equip_monArmorChest | 인간형 몬스터 전용 장비 7종(위 줄 몬스터), 512 (4×2 한 장에서 잘라냄) |
 | 2026-11-20 | equip_monDoppelHood, equip_monClockSpear, equip_monCentaurBow, equip_monNagaBangle, equip_monDullahanCloak, equip_monDeathSword | 인간형 몬스터 전용 장비 6종(아래 줄 몬스터), 512 — 전용 장비 13종 완료 |
+| 2026-11-20 | ending_02_face_to_face | 결말 마주 봄 — 옛 주인공(배낭·등불)을 새 주인공(남, 후드티·청바지·맨손)으로 편집해 덮어씀, 852×1846 |

@@ -274,6 +274,7 @@ class _VillageScreenState extends State<VillageScreen> {
       f == Facility.training && controller.trainingDailyPending;
 
   /// 묶음 42 #226: 그 시설 마을 사람 (거래소는 없음)
+  // ignore: unused_element
   static Npc? npcOf(Facility f) => switch (f) {
         Facility.inn => Npc.marta,
         Facility.shop => Npc.mina,
@@ -290,10 +291,18 @@ class _VillageScreenState extends State<VillageScreen> {
       };
 
   /// 「!」: 큰 부탁은 금빛, 특별한 부탁은 보랏빛 별, 작은 부탁은 하늘빛 (빨간 점과 따로)
-  AskKind? _ask(Facility f) => switch (npcOf(f)) {
-        final n? => controller.npcAskKind(n),
-        null => null,
-      };
+  /// 묶음 77 #350: 마을 사람 부탁은 의뢰 게시판 한 곳에만 (★ 부탁이 있으면 ★)
+  AskKind? _ask(Facility f) {
+    if (f != Facility.board) return null;
+    AskKind? out;
+    for (final n in Npc.values) {
+      final k = controller.npcAskKind(n);
+      if (k == null) continue;
+      if (k == AskKind.special) return AskKind.special;
+      out = AskKind.big;
+    }
+    return out;
+  }
 
   List<FacilityInfo> get _openList => [
         for (final f in VillageScreen.facilities)

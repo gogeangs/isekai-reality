@@ -302,6 +302,8 @@ void main() {
       _device(tester, d);
       for (final (i, lv, job, label) in [(0, 14, null, '각성전'), (1, 20, 'mage', '각성뒤')]) {
         late AppController c;
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(seconds: 1));
         await tester.runAsync(() async => c = await startVillage(lv, farewell: true, more: {if (job != null) 'jobs': _jobs(job)}));
         await _page(tester, Scaffold(body: MapScreen(key: ObjectKey('m$n$i'), controller: c)));
         await _settle(tester, 4);

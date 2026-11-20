@@ -149,8 +149,13 @@ class _CodexScreenState extends State<CodexScreen> {
                     child: Row(children: [
                       const SizedBox(
                         width: 72,
-                        child: Text('떨어뜨리는 것',
-                            style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('떨어뜨리는 것',
+                              maxLines: 1,
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
                       ),
                       if (widget.monGearFound.contains(g)) ...[
                         EquipIcon(base: g, size: 36),

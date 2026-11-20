@@ -44,6 +44,7 @@ class HatcheryPanel extends StatelessWidget {
             // 글 칸은 적어도 26 (아주 작은 판에서도 글자가 잘리지 않게)
             final band = math.max(h * 0.12, 26.0);
             final floor = h - band;
+            final emptyLine = inBag.isEmpty ? '알을 얻으면 여기서 품어요' : '가방의 알을 품어 보세요';
             return Stack(children: [
               Positioned.fill(
                 child: Image.asset(bg,
@@ -74,13 +75,30 @@ class HatcheryPanel extends StatelessWidget {
                       _EmptyNest(
                         key: const Key('nestEmpty'),
                         band: band,
-                        line: inBag.isEmpty ? '알을 얻으면 여기서 품어요' : '가방의 알을 품어 보세요',
+                        // 묶음 76 #316: 둥지 하나뿐이면 안내 글은 판 가운데 아래(넓게), 여러 개면 그 둥지 아래 두 줄까지
+                        line: warm.isEmpty ? null : emptyLine,
                         onTap: inBag.isEmpty ? null : () => _pickEgg(context, c, inBag),
                       ),
                     ],
                   ],
                 ),
               ),
+              if (empty && warm.isEmpty)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  top: floor,
+                  height: band,
+                  child: Center(
+                    child: _Pill(
+                      child: Text(emptyLine,
+                          key: const Key('nestEmptyLine'),
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
             ]);
           }),
         ),
@@ -183,7 +201,8 @@ class _NestState extends State<_Nest> with SingleTickerProviderStateMixin {
                   if (ph < 0.18) angle = math.sin(ph / 0.18 * math.pi * 3) * amp;
                 }
                 return Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
-                  const Positioned(bottom: -6, child: _NestShadow()),
+                  // 묶음 76 #316: 둥지 그림의 실제 바닥(칸 높이 80%)에 붙임
+                  const Positioned(bottom: 13, child: _NestShadow()),
                   if (ready)
                     Positioned(
                       bottom: 24,
@@ -357,7 +376,9 @@ class _Pill extends StatelessWidget {
 /// 빈 둥지 하나 (누르면 가방의 알 고르기). 묶음 73 #308: 둥지는 불투명, 비었다는 표시는 + · 안내 글로만
 class _EmptyNest extends StatelessWidget {
   const _EmptyNest({super.key, required this.line, required this.band, this.onTap});
-  final String line;
+
+  /// 둥지 아래 글 (null 이면 판이 대신 보여 줌)
+  final String? line;
   final double band;
   final VoidCallback? onTap;
 
@@ -371,7 +392,8 @@ class _EmptyNest extends StatelessWidget {
               width: 126,
               height: _Nest.pic,
               child: Stack(alignment: Alignment.bottomCenter, clipBehavior: Clip.none, children: [
-                const Positioned(bottom: -6, child: _NestShadow()),
+                // 묶음 76 #316: 둥지 그림의 실제 바닥(칸 높이 80%)에 붙임
+                  const Positioned(bottom: 13, child: _NestShadow()),
                 Positioned(
                   bottom: 0,
                   child: Image.asset(HatcheryPanel.nestBack,
@@ -392,14 +414,18 @@ class _EmptyNest extends StatelessWidget {
             ),
             SizedBox(
               height: band,
-              child: Center(
-                child: _Pill(
-                  child: Text(line,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
-                ),
-              ),
+              child: line == null
+                  ? null
+                  : Center(
+                      child: _Pill(
+                        child: Text(line!,
+                            key: const Key('nestEmptyLine'),
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: AppColors.text, fontSize: 10.5, fontWeight: FontWeight.w700, height: 1.1)),
+                      ),
+                    ),
             ),
           ]),
         ),

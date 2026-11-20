@@ -334,7 +334,13 @@ Future<void> _showFeed(BuildContext context, AppController c, Pet pet) =>
                   // 묶음 73 #314: 줄마다 아이콘 칸 44 고정 · 「주기」는 금빛 알약 버튼 (0개면 흐린 회색)
                   _FeedRow(
                     key: const Key('feedSnack'),
-                    icon: const Icon(Icons.cookie_rounded, color: AppColors.goldBright, size: 30),
+                    // 묶음 76 #317: 가방과 같은 그림
+                    icon: Image.asset('assets/images/item_pet_snack.webp',
+                        key: const Key('feedSnackArt'),
+                        width: 40,
+                        height: 40,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.cookie_rounded, color: AppColors.goldBright, size: 30)),
                     title: '펫 간식 × $snacks',
                     onFeed: snacks > 0 ? () => c.feedSnack(pet.uid) : null,
                   ),

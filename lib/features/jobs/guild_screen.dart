@@ -1,4 +1,5 @@
-import '../village/npc_header.dart';
+import 'dart:math' as math;
+
 import 'skill_icon.dart';
 import 'package:flutter/material.dart' hide Element;
 
@@ -7,7 +8,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import 'job_skill_bar.dart';
 import 'job_picker.dart';
@@ -52,9 +52,12 @@ class JobSummary extends StatelessWidget {
 
 /// 마을 「길드」 (묶음 30 #55, Lv.15 직업 각성 뒤): 얻은 직업, 주·보조 바꾸기(무료)
 class GuildScreen extends StatefulWidget {
-  const GuildScreen({super.key, required this.controller});
+  const GuildScreen({super.key, required this.controller, this.glowSub = false});
 
   final AppController controller;
+
+  /// 묶음 77 #357: Lv.20 보조 직업 카드에서 왔으면 빈 보조 칸이 세 번 빛남
+  final bool glowSub;
 
   @override
   State<GuildScreen> createState() => _GuildScreenState();
@@ -130,37 +133,48 @@ class _GuildScreenState extends State<GuildScreen> {
     }
   }
 
-  Future<void> _pickFor(JobId j) async {
-    final main = c.mainJob, sub = c.subJob;
-    final pick = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: AppColors.night,
-      builder: (s) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          if (j != main)
-            ListTile(
-                key: const Key('jobAsMain'),
-                title: Text('주 직업으로 · ${JobRules.info(j).name}', style: const TextStyle(color: AppColors.text)),
-                onTap: () => Navigator.of(s).pop(0)),
-          if (j != sub && j != main)
-            ListTile(
-                key: const Key('jobAsSub'),
-                title: Text('보조 직업으로 · ${JobRules.info(j).name}', style: const TextStyle(color: AppColors.text)),
-                onTap: () => Navigator.of(s).pop(1)),
-        ]),
-      ),
-    );
-    if (pick == null || main == null) return;
-    if (pick == 0) {
-      await _change(j, sub == j ? main : sub);
-    } else {
-      await _change(main, j);
-    }
-  }
+  /// 묶음 77 #356: 고른 칸 (아래 판) · 탭
+  JobId? _sel;
+  JobGroup? _tab;
+
+  Future<void> _tokenSheet() => showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: AppColors.night,
+        builder: (s) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: ListenableBuilder(
+              listenable: c,
+              builder: (s, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Text('전직의 증표 ${c.jobTokens}장', key: const Key('guildTokenCount'), style: AppText.title(17)),
+                const SizedBox(height: 4),
+                KText(
+                    c.jobChangeFree
+                        ? '첫 번째 바꾸기는 무료예요. 그다음부터 증표 1장 + 금화 ${JobPairRules.changeGold}'
+                        : '바꿀 때마다 증표 1장 + 금화 ${JobPairRules.changeGold} · 많이 걸으면 생겨요',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                const SizedBox(height: 10),
+                GoldButton(
+                  key: const Key('guildBuyToken'),
+                  label: c.jobTokenBoughtThisWeek ? '이번 주에 샀어요' : '조합 상점에서 사기 · 금화 ${JobPairRules.tokenShopGold}',
+                  onPressed: c.jobTokenBoughtThisWeek
+                      ? null
+                      : () async {
+                          final ok = await c.buyJobToken();
+                          if (!s.mounted) return;
+                          showTopNotice(s, ok ? '전직의 증표를 샀어요' : '금화가 모자라요',
+                              icon: ok ? Icons.verified_rounded : Icons.info_outline_rounded);
+                        },
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
+    final pad = MediaQuery.paddingOf(context);
     return Scaffold(
       backgroundColor: AppColors.deepNight,
       body: NightBackground(
@@ -170,163 +184,433 @@ class _GuildScreenState extends State<GuildScreen> {
           builder: (context, _) {
             final main = c.mainJob;
             final sub = c.subJob;
+            final open20 = c.subJobsOpen;
             final owned = c.ownedJobs.toSet();
-            final hint = c.seraPairHint;
-            Widget group(JobGroup g, List<JobId> list) {
-              final shown = [for (final j in list) if (owned.contains(j)) j];
-              if (shown.isEmpty) return const SizedBox.shrink();
-              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const SizedBox(height: 12),
-                Text('${g.label} 직업', style: AppText.title(16)),
-                const SizedBox(height: 6),
-                for (final j in shown)
-                  _JobCard(
-                    key: Key('guildJob_${j.name}'),
-                    job: j,
-                    fresh: _fresh.contains(j),
-                    isMain: j == main,
-                    isSub: j == sub,
-                    apprentice: false,
-                    canSub: false,
-                    onMain: () => _pickFor(j),
-                    onSub: () {},
-                  ),
-              ]);
+            final hidden = [for (final j in JobPairRules.visibleHidden) if (owned.contains(j)) j];
+            final tab = _tab ?? (main == null ? JobGroup.combat : JobPairRules.groupOf(main));
+            final list = switch (tab) {
+              JobGroup.craft => JobPairRules.craft,
+              JobGroup.hidden => hidden,
+              _ => JobPairRules.combat,
+            };
+            final sel = _sel ?? main;
+            final hint = open20 ? c.seraPairHint : null;
+            final found = {for (final p in c.foundPairs) p.id};
+            bool star(JobId j) {
+              if (!open20 || main == null || j == main) return false;
+              final sp = JobPairRules.specialOf(main, j);
+              return sp != null && found.contains(sp.id);
             }
-
-            return ListView(
-              padding: EdgeInsets.fromLTRB(14, top + 6, 14, 30),
-              children: [
-                OrnateTopBar(
-                    title: '조합', onBack: () => Navigator.of(context).maybePop()),
-                const SizedBox(height: 6),
-                // 묶음 35: 길드 홀 그림 (띠처럼) + 길드장 세라
-                ClipRRect(
-                  key: const Key('guildHall'),
-                  borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    height: 110,
-                    child: Image.asset('assets/images/guild_hall.webp',
-                        fit: BoxFit.cover,
-                        alignment: const Alignment(0, -0.1),
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                NpcHeader(controller: c, npc: Npc.sera),
-                const SizedBox(height: 8),
-                SpiritBadgeRow(
-                    key: const Key('guildGreeting'),
-                    line: hint ?? '주 직업 하나에 보조 직업 하나. 짝에 따라 이름도 힘도 달라져!'),
-                const SizedBox(height: 10),
-                OrnatePanel(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(children: [
-                          if (main != null) ...[
-                            JobEmblem(main, size: 44),
-                            const SizedBox(width: 8),
-                          ],
-                          Expanded(
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(c.pairName ?? '-',
-                                  key: const Key('guildPair'),
-                                  style: AppText.title(19, color: AppColors.goldBright)),
-                              Text('주 직업 · ${c.mainJobLabel ?? '-'}',
-                                  key: const Key('guildMain'),
-                                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
-                              Text('보조 직업 · ${sub == null ? '비어 있음' : JobRules.info(sub).name}',
-                                  key: const Key('guildSub0'),
-                                  style: const TextStyle(color: AppColors.text, fontSize: 14)),
+            return Column(children: [
+              Expanded(
+                child: ListView(
+                  key: const Key('guildScroll'),
+                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 12),
+                  children: [
+                    // 위: 뒤로 · 조합 + 증표 칩
+                    Row(children: [
+                      Expanded(child: OrnateTopBar(title: '조합', onBack: () => Navigator.of(context).maybePop())),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        key: const Key('guildTokenChip'),
+                        onTap: _tokenSheet,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(4, 3, 9, 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xCC14163A),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Image.asset('assets/images/item_jobToken.webp',
+                                width: 22, height: 22,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.verified_rounded, color: AppColors.gold, size: 18)),
+                            const SizedBox(width: 3),
+                            Text(c.jobChangeFree ? '증표 ${c.jobTokens} · 첫 바꾸기 무료' : '증표 ${c.jobTokens}',
+                                style: const TextStyle(color: AppColors.goldBright, fontSize: 11.5, fontWeight: FontWeight.w800)),
+                          ]),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 6),
+                    // 세라 줄: 길드 그림은 세라 뒤 배경으로 낮게 (묶음 77 #349 펫 말풍선 줄은 뺌)
+                    ClipRRect(
+                      key: const Key('guildHall'),
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        height: 90,
+                        child: Stack(fit: StackFit.expand, children: [
+                          Image.asset('assets/images/guild_hall.webp',
+                              fit: BoxFit.cover,
+                              alignment: const Alignment(0, -0.1),
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          const ColoredBox(color: Color(0x66060818)),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(children: [
+                              ClipOval(
+                                child: Image.asset('assets/images/npc_sera.webp',
+                                    width: 58, height: 58, fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const SizedBox(width: 58)),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  key: const Key('guildSeraLine'),
+                                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xEE0B0D26),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+                                  ),
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                                    const Text('세라 · 조합장',
+                                        style: TextStyle(color: AppColors.goldBright, fontSize: 11, fontWeight: FontWeight.w800)),
+                                    Text(
+                                        hint ??
+                                            (open20
+                                                ? '주 직업 하나에 보조 직업 하나. 이명에 따라 이름도 힘도 달라지지.'
+                                                : '직업은 언제든 바꿀 수 있다. 한 길을 깊게 걸어 보거라.'),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: AppColors.text, fontSize: 12.5, height: 1.3)),
+                                  ]),
+                                ),
+                              ),
                             ]),
                           ),
                         ]),
-                        if (main != null) ...[
-                          const SizedBox(height: 6),
-                          JobSummary(job: main),
-                        ],
-                        if (c.imprintLine != null) ...[
-                          const SizedBox(height: 6),
-                          KText('보조 각인${c.imprintDeep ? ' 2단계' : ''} · ${c.imprintLine}',
-                              key: const Key('guildImprint'),
-                              style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
-                        ],
-                        if (c.activePair != null) ...[
-                          const SizedBox(height: 4),
-                          KText('숨은 짝 · ${c.activePair!.text}',
-                              key: const Key('guildSpecial'),
-                              style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
-                        ],
-                        const SizedBox(height: 8),
-                        JobMpBar(controller: c),
-                      ]),
-                ),
-                const SizedBox(height: 8),
-                // 전직의 증표 · 조합 상점 (주에 1장)
-                OrnatePanel(
-                  key: const Key('guildTokens'),
-                  child: Row(children: [
-                    Image.asset('assets/images/item_jobToken.webp',
-                        width: 36,
-                        height: 36,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.verified_rounded, color: AppColors.gold, size: 30)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('전직의 증표 ${c.jobTokens}장',
-                            key: const Key('guildTokenCount'),
-                            style: AppText.title(15, color: AppColors.text)),
-                        KText(
-                            c.jobChangeFree
-                                ? '첫 번째 바꾸기는 무료예요'
-                                : '바꿀 때마다 증표 1장 + 금화 ${JobPairRules.changeGold}',
-                            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                      ]),
-                    ),
-                    TextButton(
-                      key: const Key('guildBuyToken'),
-                      onPressed: c.jobTokenBoughtThisWeek
-                          ? null
-                          : () async {
-                              final ok = await c.buyJobToken();
-                              if (!context.mounted) return;
-                              showTopNotice(context,
-                                  ok ? '전직의 증표를 샀어요' : '금화가 모자라요',
-                                  icon: ok ? Icons.verified_rounded : Icons.info_outline_rounded);
-                            },
-                      child: Text(c.jobTokenBoughtThisWeek ? '이번 주 삼' : '금화 ${JobPairRules.tokenShopGold}'),
-                    ),
-                  ]),
-                ),
-                const SizedBox(height: 6),
-                const KText('스킬은 상태 → 스킬에서 배우고 강화해요. 직업을 바꿔도 키운 것은 그대로예요.',
-                    key: Key('guildSkillNote'),
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                if (c.foundPairs.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text('찾은 숨은 짝 ${c.foundPairs.length}', style: AppText.title(16)),
-                  const SizedBox(height: 4),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    for (final p in c.foundPairs)
-                      Chip(
-                        key: Key('guildPairFound_${p.id}'),
-                        label: Text(p.name),
-                        backgroundColor: const Color(0x33F2C14E),
                       ),
-                  ]),
-                ],
-                group(JobGroup.combat, JobPairRules.combat),
-                group(JobGroup.craft, JobPairRules.craft),
-                group(JobGroup.hidden, JobPairRules.hidden),
-              ],
-            );
+                    ),
+                    const SizedBox(height: 8),
+                    _myJob(main, sub, open20),
+                    const SizedBox(height: 10),
+                    // 탭 전투 6 · 생산 6 · 히든 (찾은 것만)
+                    Row(children: [
+                      for (final (g, n) in [
+                        (JobGroup.combat, JobPairRules.combat.length),
+                        (JobGroup.craft, JobPairRules.craft.length),
+                        if (hidden.isNotEmpty) (JobGroup.hidden, hidden.length),
+                      ]) ...[
+                        Expanded(
+                          child: GestureDetector(
+                            key: Key('guildTab_${g.name}'),
+                            onTap: () => setState(() => _tab = g),
+                            child: Container(
+                              height: 44,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                gradient: tab == g ? kGoldGradient : null,
+                                color: tab == g ? null : const Color(0xCC14163A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: tab == g ? 1 : 0.4)),
+                              ),
+                              child: Text('${g.label} $n',
+                                  style: TextStyle(
+                                      color: tab == g ? AppColors.goldInk : AppColors.text,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                    ]),
+                    const SizedBox(height: 8),
+                    GridView.count(
+                      key: const Key('guildGrid'),
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1.45,
+                      children: [
+                        for (final j in list)
+                          _GuildCell(
+                            key: Key('guildJob_${j.name}'),
+                            job: j,
+                            selected: j == sel,
+                            ribbon: j == main
+                                ? (open20 ? '주' : '지금')
+                                : j == sub
+                                    ? '보조'
+                                    : null,
+                            star: star(j),
+                            fresh: _fresh.contains(j),
+                            onTap: () => setState(() => _sel = j),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // 아래 판 (화면 아래 고정)
+              if (sel != null && main != null) _bottom(sel, main, sub, open20, pad.bottom),
+            ]);
           },
         ),
       ),
     );
   }
+
+  /// 「내 직업」 판
+  Widget _myJob(JobId? main, JobId? sub, bool open20) {
+    if (main == null) return const SizedBox.shrink();
+    final info = JobRules.info(main);
+    final sp = c.activePair;
+    Widget slot(JobId? j, String label, {Key? key, bool glow = false}) {
+      final empty = j == null;
+      final box = Container(
+        key: key,
+        padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+        decoration: BoxDecoration(
+          color: empty ? Colors.transparent : const Color(0x66101333),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: empty ? AppColors.gold.withValues(alpha: 0.5) : AppColors.gold.withValues(alpha: 0.8),
+              width: empty ? 1.2 : 1.4),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (j != null) JobEmblem(j, size: 34) else const Icon(Icons.add_rounded, color: AppColors.gold, size: 26),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text(j == null ? '아래에서 고르기' : JobRules.info(j).name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: j == null ? AppColors.textMuted : AppColors.text,
+                      fontSize: j == null ? 12.5 : 15,
+                      fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ]),
+      );
+      if (!glow) return box;
+      // 묶음 77 #357: 빈 보조 칸이 세 번 빛남
+      return TweenAnimationBuilder<double>(
+        key: const Key('guildSubGlow'),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 2400),
+        builder: (_, t, child) => DecoratedBox(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), boxShadow: [
+            BoxShadow(
+                color: AppColors.goldBright.withValues(alpha: t >= 1 ? 0 : 0.7 * math.sin(t * math.pi * 3).abs()),
+                blurRadius: 16,
+                spreadRadius: 2),
+          ]),
+          child: child,
+        ),
+        child: box,
+      );
+    }
+
+    final dashed = sub == null;
+    return OrnatePanel(
+      key: const Key('guildMyJob'),
+      highlight: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (!open20)
+          Row(children: [
+            JobEmblem(main, size: 44),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('내 직업 · ${info.name}',
+                  key: const Key('guildMain'), style: AppText.title(19, color: AppColors.goldBright)),
+            ),
+          ])
+        else ...[
+          Row(children: [
+            Flexible(
+              child: Text(c.pairName ?? info.name,
+                  key: const Key('guildPair'), style: AppText.title(21, color: AppColors.goldBright)),
+            ),
+            if (sp != null && c.foundPairs.any((p) => p.id == sp.id)) ...[
+              const SizedBox(width: 6),
+              Container(
+                key: const Key('guildPairStar'),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(gradient: kGoldGradient, borderRadius: BorderRadius.circular(8)),
+                child: const Text('★ 숨은 이명',
+                    style: TextStyle(color: AppColors.goldInk, fontSize: 11, fontWeight: FontWeight.w900)),
+              ),
+            ],
+          ]),
+          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(child: slot(main, '주 직업', key: const Key('guildMainSlot'))),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.add_rounded, color: AppColors.goldBright, size: 20),
+            ),
+            Expanded(
+                child: dashed
+                    ? slot(null, '보조 직업', key: const Key('guildSub0'), glow: widget.glowSub)
+                    : slot(sub, '보조 직업', key: const Key('guildSub0'))),
+          ]),
+        ],
+        const SizedBox(height: 8),
+        KText('고유 기술 · ${info.trait}',
+            key: const Key('guildTrait'), style: const TextStyle(color: AppColors.text, fontSize: 13)),
+        if (open20 && sub != null && c.imprintLine != null) ...[
+          const SizedBox(height: 3),
+          KText(
+              '보조 각인${c.imprintDeep ? ' 2단계' : ''} · ${JobPairRules.imprintOf(sub).prefix} — ${c.imprintLine}',
+              key: const Key('guildImprint'),
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+        ],
+        if (open20 && sp != null && c.foundPairs.any((p) => p.id == sp.id)) ...[
+          const SizedBox(height: 3),
+          KText('숨은 이명 · ${sp.text}',
+              key: const Key('guildSpecial'), style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
+        ],
+        const SizedBox(height: 3),
+        Text('잘 맞는 스탯 · ${info.mainStat.label}',
+            key: const Key('guildStat'),
+            style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+
+  /// 아래 판: 고른 직업 · 버튼
+  Widget _bottom(JobId j, JobId main, JobId? sub, bool open20, double bottomPad) {
+    final info = JobRules.info(j);
+    final g = JobPairRules.groupOf(j);
+    final pv = open20 && j != main ? c.jobPreview(main, j) : null;
+    final chipColor = switch (g) {
+      JobGroup.combat => const Color(0xFFE0645A),
+      JobGroup.craft => const Color(0xFF6CC27A),
+      _ => AppColors.goldBright,
+    };
+    Widget btn(String label, Key key, VoidCallback? onTap) => Expanded(
+          child: GoldButton(key: key, label: label, height: 44, onPressed: onTap),
+        );
+    return Container(
+      key: const Key('guildPick'),
+      padding: EdgeInsets.fromLTRB(14, 10, 14, bottomPad + 8),
+      decoration: BoxDecoration(
+        color: const Color(0xF20B0D26),
+        border: Border(top: BorderSide(color: AppColors.gold.withValues(alpha: 0.6))),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+        Row(children: [
+          JobEmblem(j, size: 36),
+          const SizedBox(width: 8),
+          Text(info.name, style: AppText.title(17, color: AppColors.goldBright)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: chipColor.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: chipColor),
+            ),
+            child: Text(g.label, style: TextStyle(color: chipColor, fontSize: 11, fontWeight: FontWeight.w800)),
+          ),
+          const Spacer(),
+          Text('잘 맞는 스탯 · ${info.mainStat.label}',
+              style: const TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 3),
+        KText(info.trait, maxLines: 2, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+        if (pv != null) ...[
+          const SizedBox(height: 4),
+          KText(
+              pv.imprint == null
+                  ? '보조로 달면 → ${pv.name}'
+                  : '보조로 달면 → ${pv.name} · ${JobPairRules.imprintOf(j).prefix} 각인: ${pv.imprint}',
+              key: const Key('guildPickPreview'),
+              style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ],
+        const SizedBox(height: 8),
+        if (!open20)
+          Row(children: [
+            btn('이 직업으로 바꾸기', const Key('jobAsMain'), j == main ? null : () => _change(j, null)),
+          ])
+        else
+          Row(children: [
+            btn('주 직업으로', const Key('jobAsMain'), j == main ? null : () => _change(j, sub == j ? main : sub)),
+            const SizedBox(width: 8),
+            btn('보조 직업으로', const Key('jobAsSub'), j == main || j == sub ? null : () => _change(main, j)),
+          ]),
+        const SizedBox(height: 4),
+        Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',
+            textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+      ]),
+    );
+  }
+}
+
+/// 묶음 77 #356: 조합 직업 칸 (직업 고르기와 같은 칸: 문장 · 이름 · 리본 · ★)
+class _GuildCell extends StatelessWidget {
+  const _GuildCell(
+      {super.key,
+      required this.job,
+      required this.selected,
+      required this.onTap,
+      this.ribbon,
+      this.star = false,
+      this.fresh = false});
+
+  final JobId job;
+  final bool selected;
+  final String? ribbon;
+  final bool star;
+  final bool fresh;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: '${JobRules.info(job).name} 고르기',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Stack(clipBehavior: Clip.none, children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.gold.withValues(alpha: 0.18) : const Color(0xCC14163A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: selected || fresh ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.35),
+                      width: selected ? 2.2 : 1),
+                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  JobEmblem(job, size: 36),
+                  const SizedBox(height: 3),
+                  Text(JobRules.info(job).name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: selected ? AppColors.goldBright : AppColors.text,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800)),
+                ]),
+              ),
+            ),
+            if (ribbon != null)
+              Positioned(
+                left: -2,
+                top: -4,
+                child: Container(
+                  key: Key('guildRibbon_${job.name}'),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(gradient: kGoldGradient, borderRadius: BorderRadius.circular(6)),
+                  child: Text(ribbon!,
+                      style: const TextStyle(color: AppColors.goldInk, fontSize: 10, fontWeight: FontWeight.w900)),
+                ),
+              ),
+            if (star)
+              Positioned(
+                right: 4,
+                top: 2,
+                child: Icon(Icons.star_rounded, key: Key('guildStar_${job.name}'), color: AppColors.goldBright, size: 18),
+              ),
+          ]),
+        ),
+      );
 }
 
 /// 특별 짝 미리보기의 반짝임
@@ -351,97 +635,6 @@ class _Sparkle extends StatelessWidget {
           const SizedBox(width: 4),
           const Icon(Icons.auto_awesome_rounded, color: AppColors.goldBright, size: 18),
         ]),
-      );
-}
-
-class _JobCard extends StatelessWidget {
-  const _JobCard({
-    super.key,
-    required this.job,
-    required this.fresh,
-    required this.isMain,
-    required this.isSub,
-    required this.apprentice,
-    required this.canSub,
-    required this.onMain,
-    required this.onSub,
-  });
-
-  final JobId job;
-  final bool fresh, isMain, isSub, apprentice, canSub;
-  final VoidCallback onMain, onSub;
-
-  @override
-  Widget build(BuildContext context) {
-    final info = JobRules.info(job);
-    final card = OrnatePanel(
-      highlight: isMain || fresh,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          JobEmblem(job, size: 36),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(apprentice ? '견습 ${info.name}' : info.name,
-                style: AppText.title(16, color: AppColors.text)),
-          ),
-          if (isMain)
-            const _Tag('주 직업')
-          else if (isSub)
-            const _Tag('보조'),
-        ]),
-        const SizedBox(height: 4),
-        JobSummary(job: job, sub: isSub),
-        if (!isMain) ...[
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-                key: Key('jobChange_${job.name}'),
-                onPressed: onMain,
-                child: Text(isSub ? '주 직업으로 바꾸기' : '이 직업으로 바꾸기')),
-          ),
-        ],
-      ]),
-    );
-    final out = Padding(padding: const EdgeInsets.only(bottom: 10), child: card);
-    if (!fresh) return out;
-    // 처음 보는 직업은 금빛으로 한 번 빛난다
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1, end: 0),
-      duration: const Duration(milliseconds: 1600),
-      builder: (_, t, child) => DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: AppColors.goldBright.withValues(alpha: 0.6 * t),
-                blurRadius: 18 * t),
-          ],
-        ),
-        child: child,
-      ),
-      child: out,
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: const Color(0x33F2C14E),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.gold),
-        ),
-        child: Text(text,
-            style: const TextStyle(
-                color: AppColors.goldBright,
-                fontSize: 12,
-                fontWeight: FontWeight.w700)),
       );
 }
 

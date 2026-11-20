@@ -92,9 +92,6 @@ class _JobPickerState extends State<JobPicker> {
         label: '${josa(info.name, '으로/로')} 시작할래요',
         onPressed: () => widget.onPick(_job),
       ),
-      const SizedBox(height: 4),
-      const Text('보조 직업은 조합에서 따로 더할 수 있어요',
-          textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
     ]);
   }
 

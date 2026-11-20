@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'dart:async';
 
 import 'package:flutter/gestures.dart' show Drag;
@@ -7,7 +9,9 @@ import 'package:flutter/scheduler.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart'
-    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, GardenRules, MaterialId, TavernRules, TrainingRules;
+    show BoardRules, EquipSlot, EquipmentRules, HarvestTool, GardenRules, MaterialId, TavernRules, TrainingRules, JobRules, JobSkill, JobId;
+import '../jobs/skill_icon.dart' show SkillArt, JobEmblem;
+import '../jobs/guild_screen.dart' show GuildScreen;
 import '../../theme/app_colors.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../status/stat_screen.dart' show statDraftLeft;
@@ -840,6 +844,16 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     _queue();
   }
 
+  /// 묶음 77 #357: Lv.20 보조 직업 카드 → 「가 보기」 조합 (빈 보조 칸이 세 번 빛남)
+  Future<void> _finishSubJob({bool go = false}) async {
+    await c.markSubJobIntro();
+    if (go) {
+      tourBridge.navKey.currentState?.push(MaterialPageRoute<void>(
+          builder: (_) => GuildScreen(controller: c, glowSub: true)));
+    }
+    _queue();
+  }
+
   Future<void> _finishSkill() async {
     _skillCardSeen = false;
     await c.markSkillIntro();
@@ -848,8 +862,11 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
 
   TourStep? _skillIntro() {
     if (!_skillCardSeen) {
+      // 묶음 77 #348: 내 주 직업 ① 스킬 그림 (직업이 없으면 icon_medal)
+      final mj = c.mainJob;
       return TourStep('스킬 페이지가 열렸어! 전투에서 쓸 스킬을 고를 수 있어.',
-          opened: ('스킬', 'medal'), button: ('가 보기', () {
+          opened: ('스킬', mj == null ? 'icon_medal' : 'job_skill:${JobRules.firstOf(mj).name}'),
+          button: ('가 보기', () {
         _skillCardSeen = true;
         _queue();
       }));
@@ -869,7 +886,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
 
   TourStep _openedStep(Feature f) {
     final (name, icon, line) = switch (f) {
-      Feature.stats => ('스탯', 'medal', ''),
+      Feature.stats => ('스탯', 'icon_medal', ''),
       Feature.smithy => ('대장간', 'icon_smithy', '대장간이 열렸어! 첫 무기는 내가 낼게.'),
       Feature.board => ('의뢰 게시판', 'icon_board', '의뢰 게시판이 열렸어! 쉬운 의뢰부터 해 보자.'),
       Feature.harvest => ('채집', 'map_harvest_flower', '이제 꽃이랑 버섯을 딸 수 있어!'),
@@ -908,6 +925,16 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = TourStep('펫 쉼터가 열렸어! 알은 둥지에서, 지친 펫은 여기서 쉬어.',
           opened: ('펫 쉼터', 'village_shelter'),
           button: ('알겠어', _finishShelter));
+    } else if (f == null &&
+        c.subJobIntroPending &&
+        !b.paused &&
+        !c.holdNotices &&
+        c.ready &&
+        (b.top == null || b.top == 'home')) {
+      skill = true;
+      step = TourStep('조합에서 보조 직업을 더할 수 있어!',
+          opened: ('보조 직업', 'sub_job:${c.mainJob!.name}'),
+          button: ('가 보기', () => _finishSubJob(go: true)));
     } else if (f == null &&
         c.trainingIntroPending &&
         !b.paused &&
@@ -988,6 +1015,12 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
             child: _TourView(step: step, onSkip: _finishShelter),
           );
         }
+        if (_skillMode && step != null && c.subJobIntroPending) {
+          return Material(
+            type: MaterialType.transparency,
+            child: _TourView(step: step, onSkip: _finishSubJob),
+          );
+        }
         if (_skillMode && step != null && c.trainingIntroPending) {
           return Material(
             type: MaterialType.transparency,
@@ -1021,19 +1054,42 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   }
 }
 
-class _TourView extends StatelessWidget {
+class _TourView extends StatefulWidget {
   const _TourView({required this.step, required this.onSkip});
 
   final TourStep step;
   final VoidCallback onSkip;
 
   @override
+  State<_TourView> createState() => _TourViewState();
+}
+
+class _TourViewState extends State<_TourView> {
+  // 묶음 77 #352: 안내가 떠 있는 동안 정령 얼굴 · 말풍선 줄은 숨김
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => tourShowing.value++);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (tourShowing.value > 0) tourShowing.value--;
+    });
+    super.dispose();
+  }
+
+  TourStep get step => widget.step;
+  VoidCallback get onSkip => widget.onSkip;
+
+  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final pad = MediaQuery.paddingOf(context);
     final h = step.hole;
-    // 밝힌 곳이 아래쪽이면 말풍선은 위로, 아니면 아래로 (가리지 않게)
-    final bubbleTop = h != null && h.center.dy > size.height * 0.55;
+    // 묶음 77 #352: 말풍선은 밝힌 곳 바로 위(밝힌 곳이 위쪽이면 바로 아래)에 16 띄워, 밝힌 곳 쪽으로 정렬
+    final above = h != null && h.center.dy > size.height * 0.45;
     final bubble = Column(mainAxisSize: MainAxisSize.min, children: [
       // 말풍선은 아래 버튼을 막지 않는다 (말풍선 버튼만 눌린다)
       IgnorePointer(
@@ -1065,17 +1121,27 @@ class _TourView extends StatelessWidget {
                     label: step.label,
                     dim: 0.6),
               ),
-      Positioned(
-        left: 14,
-        right: 14,
-        top: bubbleTop ? pad.top + 96 : null,
-        bottom: bubbleTop
-            ? null
-            : h != null && h.bottom > size.height - pad.bottom - 120
-                ? size.height - h.top + 16
-                : pad.bottom + 96,
-        child: bubble,
-      ),
+      if (h == null)
+        Positioned(left: 14, right: 14, bottom: pad.bottom + 96, child: bubble)
+      else
+        Positioned(
+          left: 14,
+          right: 14,
+          top: above ? null : math.min(h.bottom + 16, size.height - pad.bottom - 140),
+          bottom: above ? math.min(size.height - h.top + 16, size.height - pad.top - 140) : null,
+          child: Align(
+            key: const Key('tourBubbleAlign'),
+            alignment: h.center.dx > size.width * 0.6
+                ? Alignment.centerRight
+                : h.center.dx < size.width * 0.4
+                    ? Alignment.centerLeft
+                    : Alignment.center,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: math.min(size.width - 28, 340)),
+              child: bubble,
+            ),
+          ),
+        ),
       Positioned(
         right: 10,
         top: pad.top + 56,
@@ -1296,10 +1362,19 @@ class _OpenedCardState extends State<_OpenedCard>
           ],
         ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Image.asset('assets/images/${widget.icon}.webp',
-              width: 84,
-              height: 84,
-              errorBuilder: (_, __, ___) => const SizedBox(height: 84)),
+          if (widget.icon.startsWith('sub_job:'))
+            _SubJobArt(main: widget.icon.substring(8))
+          else if (widget.icon.startsWith('job_skill:') &&
+              JobSkill.values.where((x) => x.name == widget.icon.substring(10)).firstOrNull != null)
+            SkillArt.jobIcon(JobSkill.values.firstWhere((x) => x.name == widget.icon.substring(10)), size: 84)
+          else
+            Image.asset('assets/images/${widget.icon}.webp',
+                key: Key('openedIcon_${widget.icon}'),
+                width: 84,
+                height: 84,
+                // 그림이 없으면 빈 칸 대신 메달
+                errorBuilder: (_, __, ___) =>
+                    Image.asset('assets/images/icon_medal.webp', width: 84, height: 84)),
           const SizedBox(height: 6),
           const Text('새로 열렸어요',
               style: TextStyle(
@@ -1312,8 +1387,48 @@ class _OpenedCardState extends State<_OpenedCard>
                   color: AppColors.text,
                   fontSize: 22,
                   fontWeight: FontWeight.w800)),
+          // 묶음 77 #357: 보조 직업 카드는 세라 한마디
+          if (widget.icon.startsWith('sub_job:')) ...[
+            const SizedBox(height: 10),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ClipOval(
+                child: Image.asset('assets/images/npc_sera.webp',
+                    width: 40, height: 40, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(width: 40)),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('이제 보조 직업을 하나 더할 수 있다. 이명에 따라 힘도 달라지지.',
+                    key: Key('subJobSeraLine'),
+                    style: TextStyle(color: AppColors.text, fontSize: 13, height: 1.35)),
+              ),
+            ]),
+          ],
         ]),
       ),
+    );
+  }
+}
+
+/// 묶음 77 #357: 주 직업 문장 + 「+」 + 다른 직업 문장
+class _SubJobArt extends StatelessWidget {
+  const _SubJobArt({required this.main});
+  final String main;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = JobId.values.where((j) => j.name == main).firstOrNull ?? JobId.warrior;
+    final other = m == JobId.mage ? JobId.knight : JobId.mage;
+    return SizedBox(
+      key: const Key('subJobArt'),
+      height: 84,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        JobEmblem(m, size: 62),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6),
+          child: Icon(Icons.add_rounded, color: AppColors.goldBright, size: 26),
+        ),
+        Opacity(opacity: 0.7, child: JobEmblem(other, size: 50)),
+      ]),
     );
   }
 }

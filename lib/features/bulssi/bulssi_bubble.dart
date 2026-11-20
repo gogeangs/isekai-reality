@@ -252,6 +252,9 @@ class ArtSpirit extends StatelessWidget {
 /// 배지(진한 남색 바탕) 안에 정령(이별 뒤엔 함께하는 펫). 말풍선은 배지 오른쪽,
 /// 배지와 같은 높이에서 시작하고 꼬리는 배지 쪽(왼쪽). 말이 바뀌면 배지가 살짝
 /// 톡톡 튀며 말풍선이 열리고, 잠시 뒤 접힌다. 배지를 누르면 다시 말한다.
+/// 묶음 77 #352: 안내(튜토리얼)가 떠 있는 동안 화면의 정령 얼굴 · 말풍선을 숨긴다 (펫이 하나만 보이게)
+final ValueNotifier<int> tourShowing = ValueNotifier<int>(0);
+
 class SpiritTalkBadge extends StatefulWidget {
   const SpiritTalkBadge({
     super.key,
@@ -380,7 +383,19 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: tourShowing,
+        builder: (context, n, child) => Visibility(
+          visible: n == 0,
+          maintainSize: true,
+          maintainState: true,
+          maintainAnimation: true,
+          child: child!,
+        ),
+        child: Builder(builder: _build),
+      );
+
+  Widget _build(BuildContext context) {
     final action = _withAction && widget.onAction != null
         ? widget.actionLabel
         : null;

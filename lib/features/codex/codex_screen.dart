@@ -107,11 +107,14 @@ class _CodexScreenState extends State<CodexScreen> {
       showModalBottomSheet<void>(
         context: context,
         backgroundColor: AppColors.night,
+        // 묶음 77: 「떨어뜨리는 것」 줄이 늘어 작은 화면에서는 스크롤
+        isScrollControlled: true,
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         builder: (sheet) => SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,

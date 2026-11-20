@@ -6,6 +6,9 @@ import 'monsters.dart';
 import 'rule_constants.dart';
 import 'town_rules.dart';
 
+/// 묶음 77 #351: 칭호 등급 (연출 세기) — 보통 · 희귀 · 전설
+enum TitleGrade { common, rare, legend }
+
 enum TitleId {
   firstSteps,
   persistentTraveler,
@@ -283,6 +286,35 @@ class TitleRules {
     TitleId.pairSpellblade,
     TitleId.pairSage,
   ];
+
+  /// 묶음 77 #351: 칭호 등급 (한 곳에서)
+  /// 전설: 막 끝 · 숨은 칭호 · 전설의 길드 / 희귀: 숙련 장인 · 보스 · 마을 사람 마지막 부탁 · 숨은 이명 / 나머지 보통
+  static const Set<TitleId> legendTitles = {
+    TitleId.bridgeMaker, TitleId.fiveLamps, TitleId.guildLegend, TitleId.pioneer, TitleId.erbardCrown,
+    TitleId.windMemory, TitleId.stardustFinder, TitleId.mossFriend, TitleId.guardMemory, TitleId.phoenixHonor,
+  };
+  static const Set<TitleId> rareTitles = {
+    TitleId.smithMaster, TitleId.harvestMaster, TitleId.alchemyMaster, TitleId.combatMaster,
+    TitleId.walkMaster, TitleId.appraiseMaster, TitleId.spiritMaster, TitleId.tradeMaster,
+    ...bossTitles,
+    TitleId.raidGiant, TitleId.raidDragon, TitleId.raidLich, TitleId.raidTortoise,
+    ...ashTitles,
+    TitleId.basiliskSlayer,
+    ...npcTitles,
+    ...pairTitles,
+  };
+
+  static TitleGrade gradeOf(TitleId t) => legendTitles.contains(t)
+      ? TitleGrade.legend
+      : rareTitles.contains(t)
+          ? TitleGrade.rare
+          : TitleGrade.common;
+
+  static String gradeLabel(TitleGrade g) => switch (g) {
+        TitleGrade.common => '보통',
+        TitleGrade.rare => '희귀',
+        TitleGrade.legend => '전설',
+      };
 
   /// 칭호 그림 이름 (특별 짝은 title_pair_<짝>)
   static String asset(TitleId t) {

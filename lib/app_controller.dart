@@ -339,11 +339,14 @@ class AppController extends ChangeNotifier {
   Set<TitleId> _seenTitles = {};
 
   /// 새로 얻었지만 아직 알려 주지 않은 칭호 (없으면 null)
+  /// 여럿이면 높은 등급부터 (묶음 77 #351)
   TitleId? get newTitle {
+    TitleId? best;
     for (final t in player.titles) {
-      if (!_seenTitles.contains(t)) return t;
+      if (_seenTitles.contains(t)) continue;
+      if (best == null || TitleRules.gradeOf(t).index > TitleRules.gradeOf(best).index) best = t;
     }
-    return null;
+    return best;
   }
 
   /// 칭호 축하 창 대신 위쪽 띠로만 (예시 모드)

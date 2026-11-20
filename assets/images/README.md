@@ -557,3 +557,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | equip_monDoppelHood, equip_monClockSpear, equip_monCentaurBow, equip_monNagaBangle, equip_monDullahanCloak, equip_monDeathSword | 인간형 몬스터 전용 장비 6종(아래 줄 몬스터), 512 — 전용 장비 13종 완료 |
 | 2026-11-20 | ending_02_face_to_face | 결말 마주 봄 — 옛 주인공(배낭·등불)을 새 주인공(남, 후드티·청바지·맨손)으로 편집해 덮어씀, 852×1846 |
 | 2026-11-20 | ending_02_face_to_face_female | 결말 마주 봄 · 여(새 주인공, 포니테일), 852×1846 — 받은 그림 비율(934×1684)이 달라 양옆을 조금 잘라 맞춤 |
+| 2026-11-20 | farewell_01_gate | 이별 문 앞 — 망토 입은 옛 주인공을 새 주인공(남, 후드티·청바지)으로 편집해 덮어씀, 852×1846 |

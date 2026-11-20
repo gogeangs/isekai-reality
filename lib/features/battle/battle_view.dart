@@ -47,6 +47,7 @@ class BattleView extends StatefulWidget {
     this.tickInterval = const Duration(milliseconds: 900),
     this.playerName = '각성자',
     this.look = HeroLook.male,
+    this.heroJob,
     this.vibrate = false,
     this.sound = false,
     this.fast = false,
@@ -135,6 +136,9 @@ class BattleView extends StatefulWidget {
   final Duration tickInterval;
   final String playerName;
   final HeroLook look;
+
+  /// 묶음 76 #307: 주인공 직업 그림 ('warrior' …, 없으면 맨손 새 주인공)
+  final String? heroJob;
 
   /// 때리고 막을 때 진동 (설정 「진동」, 11-11 #75)
   final bool vibrate;
@@ -596,6 +600,7 @@ class _BattleViewState extends State<BattleView> {
                 skill: _b.lastWasSkill || _b.lastBash,
                 petDash: _b.lastWasSkill,
                 look: widget.look,
+                heroJob: widget.heroJob,
                 weapon: widget.weapon,
                 beat: _beat,
                 beatDuration: _interval * 0.85,
@@ -1247,6 +1252,7 @@ class _Scene extends StatefulWidget {
     required this.taken,
     required this.skill,
     required this.look,
+    this.heroJob,
     required this.beat,
     required this.beatDuration,
     this.petDash = false,
@@ -1331,6 +1337,7 @@ class _Scene extends StatefulWidget {
   final int taken;
   final bool skill;
   final HeroLook look;
+  final String? heroJob;
 
   /// 바뀔 때마다 한 번의 공격 연출을 처음부터 재생한다
   final int beat;
@@ -1488,6 +1495,14 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                           ? HeroPose.attack
                           : HeroPose.idle;
               final attackT = swinging ? _seg(t, 0, 0.5) : 0.0;
+              // 묶음 76 #307: 직업 그림 — 대기 = 1칸 + 숨쉬기, 공격 = 2→6칸 (4칸이 0.22 타격 순간)
+              var jobFrame = 0;
+              if (widget.heroJob != null && !idle && widget.dealt > 0 && !cleared && !widget.defeated) {
+                final dur = _c.duration!.inMilliseconds;
+                final start = 0.22 * dur -
+                    (AllyAttackSheet.durations[0] + AllyAttackSheet.durations[1]) * allyScale;
+                jobFrame = AllyAttackSheet.frameAt((t * dur - start) / allyScale).$1;
+              }
               // 묶음 73 #260 다듬기: 혼자면 무대 높이의 약 절반(머리가 가운데보다 조금 아래),
               // 동료와 함께면 조금 작게. 그림 칸은 768×1024 (몸은 왼쪽 17%부터)
               final party = widget.allies.isNotEmpty;
@@ -1717,7 +1732,7 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                             alignment: Alignment.bottomLeft,
                             // 쉬는 동안 살짝 숨 쉬듯 늘었다 줄었다 한다
                             child: Transform.scale(
-                              scaleY: swinging || cleared
+                              scaleY: swinging || cleared || jobFrame > 0
                                   ? 1
                                   : 1 + math.sin(t * math.pi * 2) * 0.015,
                               alignment: Alignment.bottomCenter,
@@ -1725,15 +1740,25 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                                   widget.heroTint,
                                   HeroSprite(
                                       look: widget.look,
-                                      pose: heroPose,
-                                      t: attackT)),
+                                      pose: widget.heroJob == null ||
+                                              heroPose == HeroPose.victory ||
+                                              heroPose == HeroPose.tired
+                                          ? heroPose
+                                          : jobFrame > 0
+                                              ? HeroPose.attack
+                                              : HeroPose.idle,
+                                      t: attackT,
+                                      job: widget.heroJob,
+                                      frame: jobFrame)),
                             ),
                           ),
                         ),
                       ),
                     ),
                     // 묶음 57: 활로 쏘면 화살이 날아감
-                    if (widget.weapon == WeaponKind.bow && swinging && !cleared)
+                    // 묶음 76 #307: 궁수 그림은 4칸에 화살이 이미 있어 코드 화살은 뺀다
+                    if (widget.weapon == WeaponKind.bow && swinging && !cleared &&
+                        widget.heroJob != JobId.archer.name)
                       Positioned(
                         left: front + w * 0.12 + (hitX - front - w * 0.12) * _seg(t, 0.05, 0.3) - 64,
                         top: hitY - 16,
@@ -2683,10 +2708,18 @@ class SheetFrame extends StatelessWidget {
 /// 서기·승리·지침은 768×1024 한 장, 공격은 640×800 여섯 칸을 [t](0~1)에 따라 넘긴다.
 /// 두 그림 모두 발끝이 아래에서 20px 위라서, 768×1024 칸 바닥에 맞춰 그린다.
 class HeroSprite extends StatelessWidget {
-  const HeroSprite({super.key, required this.look, required this.pose, this.t = 0});
+  const HeroSprite(
+      {super.key, required this.look, required this.pose, this.t = 0, this.job, this.frame});
 
   final HeroLook look;
   final HeroPose pose;
+
+  /// 묶음 76 #307: 직업 그림 ('warrior' …). 서기 · 공격은 hero_<job>_attack 여섯 칸
+  /// (대기 = 1칸), 승리 · 지침은 그대로
+  final String? job;
+
+  /// 직업 그림 공격 칸 (0~5). 없으면 [t] 로 정한다
+  final int? frame;
 
   /// 공격 동작 진행 (0~1). 공격이 아니면 쓰지 않는다
   final double t;
@@ -2697,17 +2730,23 @@ class HeroSprite extends StatelessWidget {
   static int frameAt(double t) =>
       (t.clamp(0.0, 1.0) * attackFrames).floor().clamp(0, attackFrames - 1);
 
-  String get _asset => 'assets/images/hero_${pose.name}_${look.name}.webp';
+  bool get _jobSheet => job != null && (pose == HeroPose.attack || pose == HeroPose.idle);
+
+  String get _asset => _jobSheet
+      ? 'assets/images/hero_${job}_attack_${look.name}.webp'
+      : 'assets/images/hero_${pose.name}_${look.name}.webp';
 
   @override
   Widget build(BuildContext context) {
     Widget fallback(BuildContext _, Object __, StackTrace? ___) =>
         const Icon(Icons.person_rounded, size: 140, color: AppColors.textMuted);
-    if (pose != HeroPose.attack) {
+    if (!_jobSheet && pose != HeroPose.attack) {
       return Image.asset(_asset,
           fit: BoxFit.contain, semanticLabel: '각성자', errorBuilder: fallback);
     }
-    final frame = frameAt(t);
+    final frame = _jobSheet
+        ? (pose == HeroPose.idle ? 0 : (this.frame ?? frameAt(t)))
+        : frameAt(t);
     return AspectRatio(
       aspectRatio: 768 / 1024,
       child: LayoutBuilder(builder: (context, box) {

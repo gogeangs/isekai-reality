@@ -23,8 +23,9 @@ import '../battle/element_view.dart';
 import '../bulssi/bulssi_mood.dart';
 
 /// 묶음 73 #261: 서 있는 주인공 (지치면 지친 모습)
-String heroBaseAsset(HeroLook look, {bool tired = false}) =>
-    'assets/images/hero_${tired ? 'stand_tired' : 'base'}_'
+/// 묶음 76 #307: 주 직업이 있으면 그 직업 차림 (지치면 직업과 상관없이 지친 모습)
+String heroBaseAsset(HeroLook look, {bool tired = false, String? job}) =>
+    'assets/images/hero_${tired ? 'stand_tired' : job ?? 'base'}_'
     '${look == HeroLook.female ? 'female' : 'male'}.webp';
 
 /// 메인 상태창 (목업 확정본 구도).
@@ -50,6 +51,7 @@ class StatusScreen extends StatelessWidget {
     this.onOpenInn,
     this.equippedTitle,
     this.look = HeroLook.male,
+    this.heroJob,
     this.season,
     this.now,
     this.jobMpBar,
@@ -113,6 +115,9 @@ class StatusScreen extends StatelessWidget {
   final TitleId? equippedTitle;
   final HeroLook look;
 
+  /// 묶음 76 #307: 주 직업 그림 ('warrior' …, 없으면 기본 주인공)
+  final String? heroJob;
+
   @override
   Widget build(BuildContext context) {
     final today = player.today!;
@@ -170,6 +175,7 @@ class StatusScreen extends StatelessWidget {
                 // HP 0이면 지친 각성자 그림
                 _HeroArt(
                     look: look,
+                    job: heroJob,
                     top: top,
                     season: season,
                     tired: curHp <= 0,
@@ -357,9 +363,11 @@ class _HeroArt extends StatelessWidget {
       required this.top,
       this.tired = false,
       this.aura,
-      this.season});
+      this.season,
+      this.job});
 
   final HeroLook look;
+  final String? job;
   final Season? season;
 
   /// 보스 장비 6개 세트 빛 (없으면 보통 금빛 테두리)
@@ -376,7 +384,7 @@ class _HeroArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hero = heroBaseAsset(look, tired: tired);
+    final hero = heroBaseAsset(look, tired: tired, job: job);
     return LayoutBuilder(builder: (context, box) {
       final h = box.maxHeight;
       // 마법진 가운데 (무대 그림의 아래쪽 1/4쯤)

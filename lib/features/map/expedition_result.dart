@@ -124,10 +124,14 @@ class _ExpeditionResultCardState extends State<ExpeditionResultCard> {
   @override
   Widget build(BuildContext context) {
     final card = _card(context);
-    if (_plus == null) return card;
-    // 그사이 아무 곳이나 누르면 바로 닫힘
+    // 그사이 아무 곳이나 누르면 바로 닫힘.
+    // 묶음 76 #310: 늘 같은 모양으로 감싸야 아래 버튼 상태(「두 배 받았어요」)가 사라지지 않는다
+    final doubled = _plus != null;
     return GestureDetector(
-        key: const Key('adDoubledClose'), behavior: HitTestBehavior.opaque, onTap: _pop, child: AbsorbPointer(child: card));
+        key: const Key('adResultCard'),
+        behavior: HitTestBehavior.opaque,
+        onTap: doubled ? _pop : null,
+        child: AbsorbPointer(absorbing: doubled, child: card));
   }
 
   Widget _card(BuildContext context) {

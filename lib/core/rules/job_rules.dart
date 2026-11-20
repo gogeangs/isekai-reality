@@ -575,6 +575,25 @@ class JobRules {
 
   static JobInfo info(JobId id) => jobs[id.index];
 
+  /// 묶음 76 #307: 직업별 주인공 그림 (전투 6직업). 생산 · 히든 직업은 분신 그림과 같은 짝으로
+  /// 가까운 전투 직업 그림 (전용 그림이 오면 이 표만 바꾼다). 직업이 없으면 null (맨손 새 주인공)
+  static const List<JobId> combatArtJobs = [
+    JobId.warrior, JobId.archer, JobId.mage, JobId.priest, JobId.rogue, JobId.knight,
+  ];
+
+  static JobId? heroArtJob(JobId? j) => switch (j) {
+        null => null,
+        JobId.warrior || JobId.blacksmith || JobId.adventurer || JobId.allCrafter ||
+        JobId.weaponsmith => JobId.warrior,
+        JobId.archer || JobId.herbalist || JobId.explorer || JobId.ashHunter ||
+        JobId.hunter || JobId.pathfinder => JobId.archer,
+        JobId.mage || JobId.alchemist || JobId.appraiser || JobId.archaeologist ||
+        JobId.runesmith || JobId.jeweler || JobId.potionMerchant => JobId.mage,
+        JobId.priest || JobId.pilgrim || JobId.healer => JobId.priest,
+        JobId.rogue || JobId.merchant || JobId.nightWalker || JobId.peddler => JobId.rogue,
+        JobId.knight || JobId.tamer || JobId.gateHeir || JobId.beastKnight => JobId.knight,
+      };
+
   static JobId? parse(String? name) {
     for (final j in JobId.values) {
       if (j.name == name) return j;

@@ -138,6 +138,9 @@ extension JobOps on AppController {
       ];
 
   JobId? get mainJob => _jobs.mainJob;
+
+  /// 묶음 76 #307: 주인공 그림 직업 이름 ('warrior' …, 직업 각성 전이면 null)
+  String? get heroJobArt => JobRules.heroArtJob(mainJob)?.name;
   List<JobId> get subJobs => _jobs.subJobs;
   bool get jobApprentice => _jobs.apprentice;
   /// 묶음 57: 보조는 한 칸

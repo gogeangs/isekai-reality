@@ -552,3 +552,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | title_npcLumi, title_npcGaren, title_guildLegend, title_basiliskSlayer, title_wayfarers, title_firstHello | 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
 | 2026-11-20 | title_pairWeaponsmith, title_pairRunesmith, title_pairJeweler, title_pairPotionMerchant, title_pairPeddler, title_pairBeastKnight | 숨은 직업 짝 칭호 배지 6종, 512 (3×2 한 장에서 잘라냄) |
 | 2026-11-20 | pet_egg_rare, pet_egg_hero, pet_egg_legend | 등급별 알 3종(희귀·영웅·전설), 512, 같은 비율 · 전설 알 넓은 빛 번짐·떠다니는 반짝이 제거(얇은 테두리 빛만) |
+| 2026-11-20 | title_pairPathfinder, title_pairPaladin, title_pairNightThief, title_pairRanger | 숨은 직업 짝 칭호 배지 4종, 512 — 칭호 배지 22종 완료 |

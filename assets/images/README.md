@@ -556,3 +556,51 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | equip_monGoblinDagger, equip_monKoboldHelm, equip_monOrcAxe, equip_monLizardNecklace, equip_monSkeletonBoots, equip_monOgreBracers, equip_monArmorChest | 인간형 몬스터 전용 장비 7종(위 줄 몬스터), 512 (4×2 한 장에서 잘라냄) |
 | 2026-11-20 | equip_monDoppelHood, equip_monClockSpear, equip_monCentaurBow, equip_monNagaBangle, equip_monDullahanCloak, equip_monDeathSword | 인간형 몬스터 전용 장비 6종(아래 줄 몬스터), 512 — 전용 장비 13종 완료 |
 | 2026-11-20 | ending_02_face_to_face | 결말 마주 봄 — 옛 주인공(배낭·등불)을 새 주인공(남, 후드티·청바지·맨손)으로 편집해 덮어씀, 852×1846 |
+| 2026-11-20 | ending_02_face_to_face_female | 결말 마주 봄 · 여(새 주인공, 포니테일), 852×1846 — 받은 그림 비율(934×1684)이 달라 양옆을 조금 잘라 맞춤 |
+| 2026-11-20 | farewell_01_gate | 이별 문 앞 — 망토 입은 옛 주인공을 새 주인공(남, 후드티·청바지)으로 편집해 덮어씀, 852×1846 |
+| 2026-11-20 | farewell_01_gate_female | 이별 문 앞 · 여(새 주인공, 포니테일), 852×1846 |
+| 2026-11-20 | farewell_02_lookup | 이별 올려다봄 — 새 주인공(남, 빛 구슬을 든 손)으로 편집해 덮어씀, 852×1846 |
+| 2026-11-20 | farewell_02_lookup_female | 이별 올려다봄 · 여(새 주인공, 빛 구슬을 든 손), 852×1846 |
+| 2026-11-20 | farewell_05_eyes | 이별 닫힌 문 — 새 주인공(남) 뒷모습으로 편집해 덮어씀, 852×1846 |
+| 2026-11-20 | farewell_05_eyes_female | 이별 닫힌 문 · 여(새 주인공, 포니테일), 852×1846 |
+| 2026-11-20 | ending_03_promise | 결말 약속(악수) — 왼쪽 소매를 남색 후드티 소매로 편집해 덮어씀, 852×1846 |
+| 2026-11-20 | farewell_04_light | 이별 · 빛을 받는 손 — 주인공 소매를 남색 후드티로 고친 편집본 (덮어씀) |
+| 2026-11-20 | skill_drill, skill_track, skill_manaSense, skill_firstAid, skill_lockpick, skill_runTogether | 생활 스킬 아이콘 묶음 1 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_focusForge, skill_masterTouch, skill_quickRepair, skill_masterBlade, skill_runeCarve, skill_quickBrew | 생활 스킬 아이콘 묶음 2 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_recipeHunch, skill_instantBrew, skill_specialSale, skill_bountyTouch, skill_harvestSense, skill_rootPull | 생활 스킬 아이콘 묶음 3 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_sproutCare, skill_trueEye, skill_wideView, skill_memoryRead, skill_polish, skill_bargain | 생활 스킬 아이콘 묶음 4 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_knack, skill_regular, skill_bigPack, skill_cheer, skill_snackPouch, skill_eggWarm | 생활 스킬 아이콘 묶음 5 (512, 테두리 없음, 넓은 빛 번짐 제거) — 생활 스킬 30장 완료 |
+| 2026-11-20 | hero_rogue_male | 주인공 도적 서기 · 남 다시(후드 벗음, 회색 목도리는 목에만, 양손 단검), 768×1024, 같은 크기·바닥선 (덮어씀) |
+| 2026-11-20 | hero_rogue_female | 주인공 도적 서기 · 여 다시(후드 벗음, 회색 목도리는 목에만, 양손 단검), 768×1024, 같은 크기·바닥선 (덮어씀) |
+| 2026-11-20 | hero_rogue_attack_male | 주인공 도적 공격 · 남 다시(낮게 달려들어 X자 두 번 베기), 6칸 3840×800 (덮어씀) |
+| 2026-11-20 | hero_rogue_attack_female | 주인공 도적 공격 · 여 다시(낮게 달려들어 X자 두 번 베기), 6칸 3840×800 (덮어씀) — 도적 다시 4장 완료 |
+| 2026-11-20 | scene_erbard_arrive | 5막 에르바르드 도착 — 다리 위 작은 주인공을 후드 쓴 실루엣으로 편집 (덮어씀) |
+| 2026-11-20 | scene_highland_first | 고원 첫발 — 거리 위 주인공을 후드 쓴 작은 뒷모습으로 편집 (덮어씀) |
+| 2026-11-20 | scene_meet_lights | 등불들과 만남 — 돌길 위 주인공을 후드 쓴 작은 뒷모습으로 편집 (덮어씀) |
+| 2026-11-20 | scene_act3_fivelamps | 3막 다섯 등불 — 절벽 위 주인공을 후드 쓴 작은 뒷모습으로 편집 (덮어씀) — 옛 주인공 장면 편집 완료 |
+| 2026-11-20 | hero_blacksmith_male | 주인공 대장장이 서기 · 남(후드티 위 가죽 앞치마, 이마 보안경, 가죽 장갑, 대장 망치), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_blacksmith_female | 주인공 대장장이 서기 · 여(가죽 앞치마, 이마 보안경, 가죽 장갑, 대장 망치), 768×1024 — 비율이 다른 직업보다 짧고 머리가 큼(다시 뽑으면 교체) |
+| 2026-11-20 | hero_blacksmith_attack_female | 주인공 대장장이 공격 · 여(망치 머리 위로 들어 내려찍기, 달군 망치·불티), 6칸 3840×800, 도적 공격과 같은 키 |
+| 2026-11-20 | hero_blacksmith_attack_male | 주인공 대장장이 공격 · 남(망치 내려찍기, 달군 망치·불티), 6칸 3840×800 |
+| 2026-11-20 | hero_alchemist_male | 주인공 연금술사 서기 · 남(올리브 코트, 물약 띠, 목에 건 고글, 둥근 플라스크), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_alchemist_female | 주인공 연금술사 서기 · 여(올리브 코트, 물약 띠, 목에 건 고글, 둥근 플라스크), 768×1024, 같은 바닥선 |
+| 2026-11-20 | hero_alchemist_attack_female | 주인공 연금술사 공격 · 여(플라스크 던져 초록·보라 물약 터짐), 6칸 3840×800 |
+| 2026-11-20 | hero_alchemist_attack_male | 주인공 연금술사 공격 · 남(플라스크 던져 초록·보라 물약 터짐), 6칸 3840×800 — 연금술사 4장 완료 |
+| 2026-11-20 | hero_herbalist_male | 주인공 채집가 서기 · 남(밀짚모자, 잎무늬 조끼, 등 바구니, 낫), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_herbalist_attack_male | 주인공 채집가 공격 · 남(낫 휘둘러 가시 덩굴·잎 날림), 6칸 3840×800 |
+| 2026-11-20 | hero_herbalist_female | 주인공 채집가 서기 · 여(밀짚모자, 잎무늬 조끼, 등 바구니, 낫), 768×1024, 같은 바닥선 |
+| 2026-11-20 | hero_herbalist_attack_female | 주인공 채집가 공격 · 여(낫 휘둘러 가시 덩굴·잎 날림), 6칸 3840×800 — 채집가 4장 완료 |
+| 2026-11-20 | hero_appraiser_male | 주인공 감정사 서기 · 남(외눈 안경, 짙은 녹색 조끼, 보석 주머니, 돋보기), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_appraiser_attack_male | 주인공 감정사 공격 · 남(돋보기로 빛을 모아 쏘는 광선), 6칸 3840×800, 노랑·빨강 번짐 제거 |
+| 2026-11-20 | hero_appraiser_female | 주인공 감정사 서기 · 여(외눈 안경, 짙은 녹색 조끼, 보석 주머니, 돋보기), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_appraiser_attack_female | 주인공 감정사 공격 · 여(돋보기로 빛을 모아 쏘는 광선), 6칸 3840×800 — 감정사 4장 완료 |
+| 2026-11-20 | hero_merchant_male | 주인공 상인 서기 · 남(깃털 모자, 붉은 긴 코트, 돈주머니·저울, 금화), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_merchant_attack_male | 주인공 상인 공격 · 남(금화 튕겨 날리기), 6칸 3840×800 — 검은 배경을 지워 투명하게 만듦 |
+| 2026-11-20 | hero_merchant_female | 주인공 상인 서기 · 여(깃털 모자, 붉은 긴 코트, 돈주머니·저울, 금화), 768×1024, 같은 바닥선 |
+| 2026-11-20 | hero_merchant_attack_female | 주인공 상인 공격 · 여(금화 튕겨 날리기), 6칸 3840×800 — 상인 4장 완료 |
+| 2026-11-20 | hero_tamer_male | 주인공 조련사 서기 · 남(털깃 가죽 조끼, 호루라기, 깃털 지팡이, 팔 위 매), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_tamer_attack_male | 주인공 조련사 공격 · 남(호루라기 불고 지팡이 휘두르면 매가 날아가고 초록 발톱 자국), 6칸 3840×800 (다시 뽑아 교체) |
+| 2026-11-20 | hero_tamer_female | 주인공 조련사 서기 · 여(털깃 가죽 조끼, 호루라기, 깃털 지팡이, 팔 위 매), 768×1024, 같은 크기·바닥선 |
+| 2026-11-20 | hero_tamer_attack_female | 주인공 조련사 공격 · 여(호루라기 → 매가 날아올라 덮치며 초록 발톱 자국 → 공중에서 돌아와 내려앉음), 6칸 3840×800 — 생산 직업 주인공 24장 완료 |
+| 2026-11-20 | title_pairSpellblade, title_pairSage | 새 특별 짝 칭호 배지 — 마검사(불꽃·번개 검, 붉은 리본) · 현자(책·돋보기·4속성 별, 보라 리본), 512 |
+| 2026-11-20 | skill_spellbladeSlash, skill_sageStrike | 새 특별 짝 전용 스킬 — 마검 베기(불·물·잎 베기 궤적) · 현자의 일섬(돋보기 빛줄기·과녁), 512, 넓은 빛 번짐 제거 |

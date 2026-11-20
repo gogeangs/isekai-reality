@@ -569,3 +569,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | skill_focusForge, skill_masterTouch, skill_quickRepair, skill_masterBlade, skill_runeCarve, skill_quickBrew | 생활 스킬 아이콘 묶음 2 (512, 테두리 없음, 넓은 빛 번짐 제거) |
 | 2026-11-20 | skill_recipeHunch, skill_instantBrew, skill_specialSale, skill_bountyTouch, skill_harvestSense, skill_rootPull | 생활 스킬 아이콘 묶음 3 (512, 테두리 없음, 넓은 빛 번짐 제거) |
 | 2026-11-20 | skill_sproutCare, skill_trueEye, skill_wideView, skill_memoryRead, skill_polish, skill_bargain | 생활 스킬 아이콘 묶음 4 (512, 테두리 없음, 넓은 빛 번짐 제거) |
+| 2026-11-20 | skill_knack, skill_regular, skill_bigPack, skill_cheer, skill_snackPouch, skill_eggWarm | 생활 스킬 아이콘 묶음 5 (512, 테두리 없음, 넓은 빛 번짐 제거) — 생활 스킬 30장 완료 |

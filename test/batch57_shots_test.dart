@@ -146,9 +146,9 @@ void main() {
       if (!big) return;
       await _page(tester, GuildScreen(key: ObjectKey('g$n'), controller: c));
       await _shot(tester, '${n}_02_조합_직업');
-      final change = find.byKey(const Key('jobChange_archer'));
-      await tester.scrollUntilVisible(change, 200);
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
+      // 묶음 77 #356: 새 조합 화면 (격자에서 고르고 아래 판 버튼)
+      final change = find.byKey(const Key('guildJob_archer'));
+      await tester.ensureVisible(change);
       await _settle(tester, 2);
       await tester.tap(change, warnIfMissed: true);
       await _settle(tester);

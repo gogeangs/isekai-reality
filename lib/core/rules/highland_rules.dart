@@ -327,8 +327,6 @@ class HighlandRules {
 
   // ───────────── 섬 안 길 (입구 → 갈림길 둘 → 수호자 앞)
 
-  static const int forks = 2;
-
   /// 폐허의 길: 상자 · 빈손 · 하늘 깃털 (운)
   static const double ruinsChest = 0.50;
   static const double ruinsFeather = 0.15;

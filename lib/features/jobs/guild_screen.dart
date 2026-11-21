@@ -524,8 +524,8 @@ class _GuildScreenState extends State<GuildScreen> {
             btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j)),
           ]),
         const SizedBox(height: 4),
-        Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',
-            textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        const Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',
+            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
       ]),
     );
   }

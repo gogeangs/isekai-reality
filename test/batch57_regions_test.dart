@@ -197,7 +197,7 @@ void main() {
     test('「상회에 넘기기」: 니아는 금고 3층에서 합류', () async {
       var c = await inRegion(RegionRules.selenia,
           more: {'selenia:arrive', 'selenia:first', 'selenia:talk', 'selenia:event'});
-      final r = RegionRules.selenia;
+      const r = RegionRules.selenia;
       await c.chooseRegion(r, r.choice.a);
       expect(c.storyJoined(StoryAlly.nia), isFalse);
       c = await full(c);
@@ -208,7 +208,7 @@ void main() {
     test('서브: 사냥 3번 → 보고(모집권 · 금화) · 자장가를 끝내면 별가루 광맥이 열림 → 금속 거인 · 칭호', () async {
       var c = await inRegion(RegionRules.selenia,
           more: {'selenia:arrive', 'selenia:first', 'selenia:talk'});
-      final r = RegionRules.selenia;
+      const r = RegionRules.selenia;
       final ledger = r.quest('sel_ledger');
       expect(c.regionOffer(r, r.resident('eni')), same(ledger));
       await c.acceptQuest(ledger);
@@ -242,7 +242,7 @@ void main() {
     test('동료 퀘스트(걷기): 바르칸 「상단의 깃발」 → 스킬 ④', () async {
       var c = await inRegion(RegionRules.selenia,
           more: {'selenia:arrive', 'selenia:first', 'selenia:talk'});
-      final r = RegionRules.selenia;
+      const r = RegionRules.selenia;
       c = await reload(c, (s) => s.copyWith(allies: [
             ...s.allies,
             const AllyData(id: 'barkan', story: 'barkan', name: '바르칸', level: 29, joinLevel: 20),
@@ -263,7 +263,7 @@ void main() {
 
   group('3막 끝 · 자유 이동 · 심층', () {
     test('아우렐 등불(오르벤 두 모습) → 큰 고르기 → 3막 끝 → 칭호 · 자유 이동 · 심층', () async {
-      final r = RegionRules.aurel;
+      const r = RegionRules.aurel;
       var c = await inRegion(r, more: {
         'aurel:arrive', 'aurel:first', 'aurel:talk', 'aurel:event',
         for (final x in RegionRules.all) 'reach:${x.prefix}',

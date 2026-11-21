@@ -82,30 +82,6 @@ extension JobOps on AppController {
     return out;
   }
 
-  /// 순례자: 같은 장소 한 주 5일 이상 × 12주 연속 (묶음 77 #347: 장소 기능 전까지 쓰지 않음)
-  // ignore: unused_element
-  bool _pilgrimDone() {
-    final weeks = <String, Map<DateTime, int>>{};
-    for (final d in _history) {
-      final w = TownRules.weekStart(d.date);
-      for (final id in d.visitedPlaceIds.toSet()) {
-        final m = weeks.putIfAbsent(id, () => {});
-        m[w] = (m[w] ?? 0) + 1;
-      }
-    }
-    for (final m in weeks.values) {
-      final good = [for (final e in m.entries) if (e.value > JobPairRules.pilgrimVisits) e.key]..sort();
-      var run = 0;
-      DateTime? prev;
-      for (final w in good) {
-        run = prev != null && w.difference(prev).inDays == 7 ? run + 1 : 1;
-        if (run >= JobPairRules.pilgrimWeeks) return true;
-        prev = w;
-      }
-    }
-    return false;
-  }
-
   /// 길드 「곧 열릴 것 같은 직업」 (#192): 아직 없는 기본·복합 직업 중 가까운 2~3개
   List<JobId> get nearJobs => JobRules.nearJobs(masteryOf, _jobs.ownedJobs);
 

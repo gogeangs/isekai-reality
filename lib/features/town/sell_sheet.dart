@@ -296,9 +296,9 @@ class _ShopSellTabState extends State<ShopSellTab> {
                                 Text('마석 팔기 · 가진 것 ${comma(stones)}',
                                     style: AppText.title(15.5,
                                         color: AppColors.text)),
-                                KText(
+                                const KText(
                                     '1개에 금화 ${RuleConstants.goldPerManaStone} · 대장간에서도 써요',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.textMuted,
                                         fontSize: 12)),
                               ],

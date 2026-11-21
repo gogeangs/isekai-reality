@@ -2,7 +2,6 @@
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -193,11 +192,11 @@ void main() {
           row('l1', 'mat', 'herb', '약초', 5, 30),
           row('l2', 'item', 'healSmall', '작은 회복 물약', 3, 45, seller: '달빛'),
           row('l3', 'equip', 'dagger', '단검', 1, 260, seller: '하늘',
-              e: EquipItem(uid: 'x', base: EquipBase.dagger, grade: EquipGrade.blue, enhance: 2)),
+              e: const EquipItem(uid: 'x', base: EquipBase.dagger, grade: EquipGrade.blue, enhance: 2)),
           row('l4', 'mat', 'stardust', '별가루', 2, 120, seller: '모래'),
           row('l5', 'egg', 'egg', '알', 1, 200, mode: 'auction', bid: 260, bids: 3, buyNow: 600),
           row('l6', 'equip', 'seleniaHead', '셀레니아 상단 두건', 1, 300, mode: 'auction', seller: '해',
-              e: EquipItem(uid: 'y', base: EquipBase.seleniaHead, grade: EquipGrade.purple)),
+              e: const EquipItem(uid: 'y', base: EquipBase.seleniaHead, grade: EquipGrade.purple)),
         ]);
       });
       await _page(tester, MarketScreen(key: ObjectKey('m$n'), controller: c));

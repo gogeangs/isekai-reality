@@ -239,7 +239,7 @@ class FakeArca implements ArcaApi {
       case '/siege/rally':
         if (!siegeActive) throw const ArcaApiError('not_siege');
         rallyEstate = id;
-        siegeNews.insert(0, {'at': DateTime.utc(2026, 11, 28, 1).millisecondsSinceEpoch, 'text': '하루님이 ${id}에 집결 깃발을 꽂았어요'});
+        siegeNews.insert(0, {'at': DateTime.utc(2026, 11, 28, 1).millisecondsSinceEpoch, 'text': '하루님이 $id에 집결 깃발을 꽂았어요'});
         return _siegeState(me);
       case '/siege/repair':
         repairTarget = id;

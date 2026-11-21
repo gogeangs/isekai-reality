@@ -176,7 +176,7 @@ class BoardRules {
 
   /// 묶음 53 #243: 3막이 열리면 붙는 지역 의뢰 (발드린 관문). 세는 수는 3막 싸움 · 요새 층
   static final List<ErrandTemplate> regionErrands = [
-    ErrandTemplate(
+    const ErrandTemplate(
         id: 'baldrinHunt3',
         region: 'baldrin',
         title: '발드린 관문 몬스터 3번 물리치기',
@@ -185,7 +185,7 @@ class BoardRules {
         unit: '번',
         gold: 60,
         materials: {MaterialId.ironShard: 2}),
-    ErrandTemplate(
+    const ErrandTemplate(
         id: 'baldrinFloor2',
         region: 'baldrin',
         title: '문지기 지하 요새 2층 내려가기',
@@ -194,7 +194,7 @@ class BoardRules {
         unit: '층',
         gold: 70,
         tickets: 1),
-    ErrandTemplate(
+    const ErrandTemplate(
         id: 'baldrinPatrol5',
         region: 'baldrin',
         title: '관문 순찰: 다리 너머에서 5번 싸우기',

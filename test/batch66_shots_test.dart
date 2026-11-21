@@ -2,7 +2,6 @@
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -137,12 +136,12 @@ Future<AppController> _gear() async {
         }),
       ],
       json: {
-        'armory': Armory(
+        'armory': const Armory(
           items: [
             EquipItem(uid: 'w', base: EquipBase.dagger, grade: EquipGrade.blue, enhance: 7, element: Element.fire, elementLevel: 1),
             EquipItem(uid: 'b', base: EquipBase.armor, grade: EquipGrade.blue, enhance: 8),
           ],
-          equipped: const {EquipSlot.weapon: 'w', EquipSlot.body: 'b'},
+          equipped: {EquipSlot.weapon: 'w', EquipSlot.body: 'b'},
           crafts: 5,
           nextId: 10,
         ).toJson(),

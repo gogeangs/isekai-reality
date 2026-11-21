@@ -299,7 +299,7 @@ extension Act3RegionsOps on AppController {
 
   /// 셀레니아 경매장: 오늘의 물건 (날마다 바뀜, 하루 한 번). 등불 전 · 이미 샀으면 null
   EquipBase? get auctionLot {
-    final r = RegionRules.selenia;
+    const r = RegionRules.selenia;
     if (!_rh(r, 'lamp') || (_act3.prog['sel:auction'] ?? 0) == _dayNo) return null;
     final pool = [
       for (final x in RegionRules.all)

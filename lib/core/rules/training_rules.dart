@@ -209,9 +209,4 @@ class TrainingRules {
         _ => '시련은 끝이 없다! 쓰러질 때까지 버텨 봐라! 기록은 월요일에 새로 센다!',
       };
 
-  /// 하루 훈련을 오늘 이미 했을 때
-  static const String dailyDone = '오늘 훈련은 끝났다! 푹 쉬고 내일 또 와라!';
-
-  /// 시련을 오늘 이미 했을 때
-  static const String trialDone = '오늘 시련은 끝났다! 내일 다시 도전해라!';
 }

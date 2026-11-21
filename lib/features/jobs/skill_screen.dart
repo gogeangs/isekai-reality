@@ -231,7 +231,7 @@ class _SkillScreenState extends State<SkillScreen> {
           border: Border.all(color: const Color(0xFF8A6A2A), width: 1.5),
         ),
         child: Column(children: [
-          Text('전투 화면 아래 버튼이 이렇게 놓여요',
+          const Text('전투 화면 아래 버튼이 이렇게 놓여요',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),

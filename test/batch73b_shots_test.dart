@@ -155,7 +155,7 @@ Widget _battle(Battle b, {List<String> allies = const [], PetSpecies? pet, bool 
 Battle _b({List<String> allies = const []}) => Battle(
       playerMaxHp: 100000,
       playerAttack: 30,
-      floors: [Foe(monster: MonsterId.ashSlime, maxHp: 1000000, attack: 1)],
+      floors: [const Foe(monster: MonsterId.ashSlime, maxHp: 1000000, attack: 1)],
       rng: math.Random(3),
       allies: [for (final a in allies) _ally(a)],
     );

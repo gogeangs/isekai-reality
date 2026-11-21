@@ -181,7 +181,7 @@ void main() {
       for (final (i, name) in [(1, '하루훈련'), (2, '펫훈련'), (3, '시련')]) {
         await tester.tap(find.byKey(Key('trainingTab_$i')));
         await _settle(tester, 3);
-        await _shot(tester, '${n}_0${5 + i}_${name}탭');
+        await _shot(tester, '${n}_0${5 + i}_$name탭');
       }
       for (final (k, el) in [
         (DummyKind.normal, null),

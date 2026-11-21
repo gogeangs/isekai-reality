@@ -10,7 +10,7 @@ import 'package:isekai_reality/data/storage/record_store.dart';
 final t0 = DateTime(2026, 11, 16, 10);
 
 /// 입은 단검(불 속성·닳음) · 모자 · 갑옷(닳음) + 가방 장화(많이 닳음) · 장갑
-Map<String, dynamic> seededArmory() => Armory(
+Map<String, dynamic> seededArmory() => const Armory(
       items: [
         EquipItem(
             uid: 'w',
@@ -33,7 +33,7 @@ Map<String, dynamic> seededArmory() => Armory(
             durability: 20),
         EquipItem(uid: 'g', base: EquipBase.gloves, grade: EquipGrade.white),
       ],
-      equipped: const {
+      equipped: {
         EquipSlot.weapon: 'w',
         EquipSlot.head: 'h',
         EquipSlot.body: 'b',

@@ -116,7 +116,6 @@ abstract final class GuildRules {
   static const String sceneAlley = 'assets/images/village_tavern_2.webp';
   static const String sceneAlchemy = 'assets/images/village_alchemy.webp';
   static const String sceneHall = 'assets/images/bg_guildhall.webp';
-  static const String sceneGiant = 'assets/images/monster_raidGiant.webp';
   static const String sceneOath = 'assets/images/village_guildhall_4.webp';
 
   static const List<Act4Chapter> chapters = [
@@ -189,7 +188,6 @@ abstract final class GuildRules {
   // ───────────── 길드 만들기 · 크기 (서버와 같음)
 
   static const int createGold = 1000;
-  static const int lianName = 0;
   static const String lianGuildName = '리안의 길드';
 
   /// 길드 레벨마다 열리는 것 (화면에 문장으로)
@@ -218,7 +216,6 @@ abstract final class GuildRules {
 
   /// 기부: 금화 10당 · 재료 하나당 회관이 커지고, 모이면 등불 인장 (숨은 값, 서버와 같음)
   static const int donateGoldStep = 100;
-  static const int shareDayLimit = 10;
 
   /// 길드 Lv.5: 여정 기력 조금 더 · ★3 훈련소: 경험치 조금 더 (숨은 값)
   static const double lv5Energy = 0.10;
@@ -375,15 +372,6 @@ abstract final class GuildRules {
     _g(EquipBase.lanternFeet, '등불 수호단 장화', EquipSlot.feet, reduce: 0.05),
     _g(EquipBase.lanternAcc, '등불 수호단 등불', EquipSlot.accessory, maxHp: 0.14),
   ];
-
-  static const Set<EquipBase> lanternSet = {
-    EquipBase.lanternWeapon,
-    EquipBase.lanternHead,
-    EquipBase.lanternBody,
-    EquipBase.lanternHands,
-    EquipBase.lanternFeet,
-    EquipBase.lanternAcc,
-  };
 
   static const String sealImage = 'assets/images/item_lanternSeal.webp';
   static const String charterImage = 'assets/images/item_guildCharter.webp';

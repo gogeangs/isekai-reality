@@ -87,12 +87,12 @@ void main() {
     });
 
     testWidgets('긴 이름은 말줄임 없이', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: Center(
             child: SizedBox(
               width: 300,
-              child: NoteGrid(children: const [
+              child: NoteGrid(children: [
                 SmallNote(title: '필드 몬스터 15마리 잡기', seed: 1, progress: '1 / 15마리'),
                 SmallNote(title: '이번 주 2만 보 걷기', seed: 2, progress: '1 / 2'),
               ]),

@@ -197,9 +197,6 @@ abstract final class JobPairRules {
 
   /// 히든 조건 (게임엔 보여 주지 않음)
   /// 묶음 77 #345 · #347: 히든 직업은 극소수만 (숨은 값)
-  static const int explorerPlaces = 500;
-  static const int pilgrimWeeks = 12;
-  static const int pilgrimVisits = 4; // 한 주 5일 이상 (4 넘게)
   static const int archaeologistRelics = 300;
   static const int adventurerDungeons = 200;
   static const int adventurerQuests = 500;
@@ -219,15 +216,11 @@ abstract final class JobPairRules {
     JobId.allCrafter: JobId.allCrafter,
   };
 
-  /// 전투 스킬 최대 (직업마다)
-  static const int maxCombatSkills = 5;
-
   /// 잘 맞는 무기 (숨은 보너스)
   static const double preferredWeapon = 0.08;
 
   /// 고유 기술 (새 전투 직업, 숨은 값)
   static const double warriorBash = 0.25; // 강타 더 세게
-  static const int warriorBashTicks = 1; // 강타가 한 턴 빨리
   static const double mageMp = 0.30; // 최대 MP 더
   static const double mageMpFill = 0.5; // 걸을 때 더 빨리
   static const double rogueDodge = 0.10;

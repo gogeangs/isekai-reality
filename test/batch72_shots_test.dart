@@ -1,9 +1,7 @@
 // 묶음 72 (build/screenshots/b72_*)
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
-import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui' as ui;
 

@@ -270,10 +270,6 @@ class Act3Rules {
   /// 임시 배경 (그림이 오면 같은 이름으로 바꿔 끼움)
   static const String fallbackBackground = 'assets/images/bg_boss_warden.webp';
 
-  /// 메인 퀘스트 (지역 1, 이번 묶음은 ①만 — 나머지는 지역 1 묶음에서)
-  static const String mainFirstFight = '잿빛 들판에서 첫 싸움';
-  static const String mainFirstFightText = '다리를 건너 잿빛 들판에서 저쪽 세계의 몬스터와 처음 싸워요.';
-
   // ───────────── 필드 몬스터 (지역 1, 정통 판타지)
 
   /// 그 레벨 필드 몬스터 대비 (동료 둘이 함께 싸우니 조금 세게)

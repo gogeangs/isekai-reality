@@ -2,7 +2,6 @@
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -265,10 +264,10 @@ void main() {
         await _page(tester, w);
         await _settle(tester, 3);
         await _shot(tester, '${n}_22_${k}_위쪽');
-        final face = find.byWidgetPredicate((x) => x.key is ValueKey<String> && '${(x.key as ValueKey<String>).value}'.startsWith('npcFace_'));
+        final face = find.byWidgetPredicate((x) => x.key is ValueKey<String> && (x.key as ValueKey<String>).value.startsWith('npcFace_'));
         if (face.evaluate().isNotEmpty) {
           // 열려 있으면 닫았다가 다시 (다음 대사)
-          if (find.byWidgetPredicate((x) => x.key is ValueKey<String> && '${(x.key as ValueKey<String>).value}'.startsWith('npcBubble_')).evaluate().isNotEmpty) {
+          if (find.byWidgetPredicate((x) => x.key is ValueKey<String> && (x.key as ValueKey<String>).value.startsWith('npcBubble_')).evaluate().isNotEmpty) {
             await tester.tap(face.first);
             await _settle(tester, 2);
             await _shot(tester, '${n}_22_${k}_닫힘');
@@ -298,14 +297,14 @@ void main() {
       // 큰 안내 말풍선 (기능 둘러보기와 같은 것)
       await _page(
           tester,
-          Scaffold(
+          const Scaffold(
               body: NightBackground(
                   child: BulssiScope(
                       mood: BulssiMood.gold,
                       kind: SpiritKind.fire,
                       spiritName: '부엉',
                       petSpecies: PetSpecies.owl,
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.fromLTRB(14, 200, 14, 0),
                         child: Column(children: [
                           BulssiBubble(line: '펫 쉼터가 열렸어! 알은 둥지에서, 지친 펫은 여기서 쉬어.', size: 52),

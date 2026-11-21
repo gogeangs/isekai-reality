@@ -273,23 +273,6 @@ class _VillageScreenState extends State<VillageScreen> {
   bool _soft(Facility f) =>
       f == Facility.training && controller.trainingDailyPending;
 
-  /// 묶음 42 #226: 그 시설 마을 사람 (거래소는 없음)
-  // ignore: unused_element
-  static Npc? npcOf(Facility f) => switch (f) {
-        Facility.inn => Npc.marta,
-        Facility.shop => Npc.mina,
-        Facility.smithy => Npc.dorgun,
-        Facility.alchemy => Npc.eliel,
-        Facility.board => Npc.hart,
-        Facility.guild => Npc.sera,
-        Facility.shelter => Npc.lumi,
-        Facility.training => Npc.garen,
-        Facility.garden => Npc.popo,
-        Facility.tavern => Npc.lian,
-        Facility.market => Npc.barkan,
-        Facility.guildhall => null,
-      };
-
   /// 「!」: 큰 부탁은 금빛, 특별한 부탁은 보랏빛 별, 작은 부탁은 하늘빛 (빨간 점과 따로)
   /// 묶음 77 #350: 마을 사람 부탁은 의뢰 게시판 한 곳에만 (★ 부탁이 있으면 ★)
   AskKind? _ask(Facility f) {
@@ -735,7 +718,7 @@ class _VillageArtState extends State<_VillageArt> {
         : 'assets/images/village_bg.webp';
     Rect r(double x, double y, double w, double h) =>
         Rect.fromLTWH(o.dx + x * s, o.dy + y * s, w * s, h * s);
-    final t = VillageScreen.tower;
+    const t = VillageScreen.tower;
     return Stack(clipBehavior: Clip.hardEdge, children: [
       Positioned.fromRect(
         rect: r(0, 0, art.width, art.height),
@@ -1201,10 +1184,10 @@ class SoftDot extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          color: const Color(0xCCF3D27A),
+        decoration: const BoxDecoration(
+          color: Color(0xCCF3D27A),
           shape: BoxShape.circle,
-          boxShadow: const [BoxShadow(color: Color(0x88F3D27A), blurRadius: 5)],
+          boxShadow: [BoxShadow(color: Color(0x88F3D27A), blurRadius: 5)],
         ),
       );
 }

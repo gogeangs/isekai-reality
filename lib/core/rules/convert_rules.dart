@@ -68,9 +68,6 @@ class ConvertRules {
   static const int decomposeCommonCount = 5;
   static const int decomposeRareStones = 2;
 
-  /// 연금술사 우대 (직업 각성 뒤 열림): 상위 변환 3 → 2, 20%로 1개 더, 시간 절반
-  static const int alchemistUpgradeCount = 2;
-  static const double alchemistBonusChance = 0.20;
   static const double alchemistTime = 0.5;
 
   /// 몬스터가 떨어뜨리는 일반 재료 → 그 몬스터의 귀한 재료

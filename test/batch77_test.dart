@@ -45,9 +45,6 @@ void main() {
       expect(JobPairRules.imprintDeepLevel, 30);
       expect(JobPairRules.imprintPower(29), 1.0);
       expect(JobPairRules.imprintPower(30), 1.5);
-      expect(JobRules.subSlots(19), 0);
-      expect(JobRules.subSlots(20), 1);
-      expect(JobRules.subSlots(60), 1);
     });
 
     test('Lv.19는 보조 칸 없음 · Lv.20은 한 칸 + 카드 차례', () async {

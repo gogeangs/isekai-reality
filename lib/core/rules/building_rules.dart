@@ -183,7 +183,6 @@ class BuildingRules {
   static const String needLine = '고치려면 이게 필요해';
   static const String fixingLine = '지금 고치는 중이야. 그동안에도 그대로 써도 돼!';
   static const String maxLine = '더 고칠 데가 없어. 마을에서 제일 멋진 건물이야!';
-  static String doneNotice(String name, int star) => '$name ★$star 완성!';
 
   // ───────────── 효과 (숨은 값, 테스트로 조정)
 

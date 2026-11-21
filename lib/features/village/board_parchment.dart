@@ -539,8 +539,8 @@ class EqualHeightRow extends MultiChildRenderObjectWidget {
       _RenderEqualRow(gap);
 
   @override
-  void updateRenderObject(BuildContext context, _RenderEqualRow r) =>
-      r.gap = gap;
+  void updateRenderObject(BuildContext context, RenderObject renderObject) =>
+      (renderObject as _RenderEqualRow).gap = gap;
 }
 
 class _EqualRowData extends ContainerBoxParentData<RenderBox> {}
@@ -1118,10 +1118,10 @@ class _TornPaperPainter extends CustomPainter {
     canvas.drawRect(
         rect,
         Paint()
-          ..shader = RadialGradient(
+          ..shader = const RadialGradient(
             radius: 0.9,
-            colors: const [Color(0x00000000), Color(0x00000000), Color(0x55A0682A)],
-            stops: const [0, 0.55, 1],
+            colors: [Color(0x00000000), Color(0x00000000), Color(0x55A0682A)],
+            stops: [0, 0.55, 1],
           ).createShader(Rect.fromCenter(
               center: rect.center, width: size.width * 1.1, height: math.max(size.height * 2.2, size.width * 0.5))));
     canvas.restore();

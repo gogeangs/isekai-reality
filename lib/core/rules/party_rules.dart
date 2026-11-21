@@ -45,7 +45,6 @@ class PartyRules {
 
   /// 도전권: 3,000보마다 1장, 하루 3장
   static const int ticketSteps = 3000;
-  static const int ticketsPerDay = 3;
 
   /// 함께 있어요: 서버에 칸을 알리는 간격 · 효과가 이어지는 시간
   static const Duration nearPing = Duration(minutes: 3);
@@ -84,7 +83,6 @@ class PartyRules {
     0xFFE17055,
     0xFF34495E,
   ];
-  static const List<String> colorNames = ['진홍', '하늘', '숲', '금빛', '보라', '청록', '산호', '밤'];
   static const int freeEmblems = 3;
   static const int freeColors = 3;
   static String emblemAsset(int i) => 'assets/images/flag_emb_${emblems[i]}.webp';

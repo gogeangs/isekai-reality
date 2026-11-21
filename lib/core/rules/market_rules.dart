@@ -63,9 +63,6 @@ abstract final class MarketRules {
   static int saleFee(int price, {bool best = false}) =>
       (price * (best ? feeRateBest : feeRate)).round();
 
-  static int nextBid(int current, {required int start, bool hasBid = true}) =>
-      hasBid ? current + math.max(1, (current * bidStep).ceil()) : start;
-
   // ───────────── 사고팔 수 있는 것
 
   /// 사고팔 수 있는 장비 (만들거나 몬스터가 떨어뜨리는 보통 장비).

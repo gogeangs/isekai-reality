@@ -196,9 +196,6 @@ class AlchemyRules {
   /// 가마솥에 넣는 재료 최대 수
   static const int maxIngredients = 5;
 
-  /// 완벽한 조제: 효과·지속 시간 +25% (11-11 #74부터 「좋음」 품질)
-  static const double perfectBonus = 0.25;
-
   // ───────────── 11-11 #74 품질·지속 (숨은 규칙)
 
   /// 전투·속성 물약 지속 (보통)
@@ -315,15 +312,9 @@ class AlchemyRules {
   /// 전투 한 번에 마실 수 있는 물약
   static const int perBattle = 3;
 
-  /// 동시에 걸리는 버프·저항 (11-11 #74부터는 종류마다 하나: [PotionSlot])
-  static const int maxBuffs = 1;
-  static const int maxResists = 1;
-
   static const int buffStat = 5;
   static const double resistCut = 0.30;
 
-  /// 가마솥: 처음 1개, 2번째 금화 500, 3번째 금화 1,500 + 미궁 석재 5
-  static const int maxCauldrons = 3;
   static int? cauldronGold(int owned) => switch (owned) {
         1 => 500,
         2 => 1500,

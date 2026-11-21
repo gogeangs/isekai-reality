@@ -278,7 +278,7 @@ extension Act3RegionOps on AppController {
     final first = A3Enc(kind: kind, foes: f.foes, place: 'baldrin_fort',
         background: BaldrinRules.dungeonBg);
     if (f.boss || _random.nextDouble() >= BaldrinRules.secondFight) return [first];
-    final normals = const [MonsterId.goblinRaider, MonsterId.skeletonGuard, MonsterId.ogre];
+    const normals = [MonsterId.goblinRaider, MonsterId.skeletonGuard, MonsterId.ogre];
     return [
       first,
       A3Enc(
@@ -312,7 +312,7 @@ extension Act3RegionOps on AppController {
         final n = _act3.floorNow;
         switch (b) {
           case Branch.fight:
-            final normals = const [MonsterId.goblinRaider, MonsterId.skeletonGuard, MonsterId.ogre];
+            const normals = [MonsterId.goblinRaider, MonsterId.skeletonGuard, MonsterId.ogre];
             return BranchResult(
                 fight: A3Enc(
                     kind: A3Kind.floor,

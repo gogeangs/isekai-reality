@@ -420,9 +420,6 @@ class EquipmentRules {
     ),
   ];
 
-  /// 마을 사람 특별 보상 장비인지
-  static bool isNpcGear(EquipBase id) => npcGear.any((e) => e.id == id);
-
   /// 보스 장비인지 (11-11 #82)
   static bool isBossGear(EquipBase id) => BossGearRules.setOf(id) != null;
 

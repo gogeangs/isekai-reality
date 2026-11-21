@@ -340,7 +340,7 @@ class _SpiritTalkBadgeState extends State<SpiritTalkBadge>
   void _tapFace() => _say(TalkTurns.next('spirit', _lines));
 
   /// 보이는 칸인지 (아래 메뉴의 숨은 칸은 TickerMode 가 꺼짐)
-  bool get _visible => widget.visible ?? TickerMode.of(context);
+  bool get _visible => widget.visible ?? TickerMode.valuesOf(context).enabled;
 
   /// 보이는 칸이 됐을 때(처음 · 아래 메뉴로 돌아옴) 한 번
   void _sync() {
@@ -646,7 +646,7 @@ class _SpiritBadgeRowState extends State<SpiritBadgeRow> {
         builder: (context, box) {
           final maxW = (box.maxWidth - 46 - 8).clamp(140.0, 420.0);
           // 묶음 75 #320: 이 줄이 보이는 칸에 있을 때만 말함 (말풍선은 맨 위 겹이라 자리로 알려 줌)
-          final visible = TickerMode.of(context);
+          final visible = TickerMode.valuesOf(context).enabled;
           return CompositedTransformTarget(
             link: _link,
             child: OverlayPortal(

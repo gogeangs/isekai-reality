@@ -640,10 +640,12 @@ class _DeepRankScreenState extends State<DeepRankScreen> {
 
   Future<void> _load() async {
     final b = c.cloud.signedIn ? await c.deepBoard() : null;
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _b = b;
       _loaded = true;
     });
+    }
   }
 
   @override

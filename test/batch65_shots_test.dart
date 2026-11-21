@@ -2,7 +2,6 @@
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -209,8 +208,8 @@ void main() {
         playerMaxHp: 100000,
         playerAttack: 30,
         floors: [
-          Foe(monster: MonsterId.ashSlime, maxHp: 1, attack: 1),
-          Foe(monster: MonsterId.fireSlimeKing, maxHp: 100000, attack: 10),
+          const Foe(monster: MonsterId.ashSlime, maxHp: 1, attack: 1),
+          const Foe(monster: MonsterId.fireSlimeKing, maxHp: 100000, attack: 10),
         ],
         rng: math.Random(3),
         telegraphs: true,

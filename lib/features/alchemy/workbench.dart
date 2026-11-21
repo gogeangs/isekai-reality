@@ -1011,7 +1011,7 @@ class _ForecastBand extends StatelessWidget {
       sub = '품질 ${f.quality!.label == '좋음' ? '상' : f.quality!.label} · ${_CauldronPageState._min(f.minutes!)}';
     } else if (f.partial) {
       icon = Stack(alignment: Alignment.center, children: [
-        Opacity(opacity: 0.35, child: PotionIcon(size: 40, suspicious: true)),
+        const Opacity(opacity: 0.35, child: PotionIcon(size: 40, suspicious: true)),
         Text('${f.more}', style: AppText.title(16, color: AppColors.goldBright)),
       ]);
       title = '${f.more}개 더';

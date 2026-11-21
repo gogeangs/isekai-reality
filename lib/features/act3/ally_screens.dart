@@ -574,9 +574,9 @@ class AllyDetailScreen extends StatelessWidget {
                             style: const TextStyle(color: AppColors.goldBright, fontSize: 13)),
                       ]),
                       const SizedBox(height: 2),
-                      KText(
+                      const KText(
                           '동료 레벨 ${Act3Rules.levelsPerPoint}마다 포인트 1. 1번 → 2·3번 → 4번 순서로 열어요. 싸움 버튼에는 하나를 끼워요.',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
                       for (final (i, s) in skills.indexed)
                         _SkillRow(
                           index: i,

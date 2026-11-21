@@ -3,8 +3,8 @@
 
 기준
 - 화면에 실제로 그려지는 가장 큰 크기(물리 픽셀)는 시험을 IMG_LOG 로 돌려 모은 표
-  (그림 경로 · 가로 · 세로)에서 읽는다. 표에 없는 그림은 같은 묶음(이름 앞부분)에서 가장 크게
-  그려진 비율을 쓴다. 그보다 큰 그림만 그 크기(+여유 5%)까지 줄인다.
+  (그림 경로 · 가로 · 세로)에서 읽는다. 같은 묶음(이름 앞부분)에서 가장 크게 그려진 비율보다
+  작게는 줄이지 않는다(시험에 안 나온 화면 대비). 그보다 큰 그림만 그 크기(+여유 5%)까지 줄인다.
 - 그림 안 픽셀 좌표를 코드가 쓰는 그림(ui_ · weapon_ · banner_ · ribbon_ · 돋보기 틀 · 종족 장식 ·
   로고 · 마을 바탕 · 5막 지도 · 부위 원본)은 크기를 바꾸지 않는다.
 - 여섯 칸 그림(hero_*_attack_* · ally_*_attack)은 칸 너비가 정수로 남게 줄인다.
@@ -109,10 +109,9 @@ def main() -> int:
         name = p.name
         if name.startswith(FIXED) or not name.startswith(GROUPS):
             continue
-        need = ratio.get(name)
-        guessed = need is None
-        if need is None:
-            need = group_ratio.get(group_of(name), 1.0)
+        # 같은 묶음에서 가장 크게 그려진 비율보다 작게는 줄이지 않는다 (시험에 안 나온 화면 대비)
+        guessed = name not in ratio
+        need = max(ratio.get(name, 0.0), group_ratio.get(group_of(name), 1.0))
         img = Image.open(p)
         img.load()
         old = p.stat().st_size

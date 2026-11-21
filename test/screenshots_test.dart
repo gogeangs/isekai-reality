@@ -1052,8 +1052,8 @@ void main() {
               errorBuilder: (_, __, ___) => const Icon(Icons.help_outline,
                   color: Colors.redAccent, size: 40))
         ),
-      for (final n in ['icon_post', 'icon_mail', 'icon_alchemy', 'cauldron',
-          'item_recipe_book', 'item_recipe_note', 'item_pouch', 'icon_convert_table'])
+      for (final n in ['icon_post', 'icon_mail', 'icon_alchemy',
+          'item_recipe_note', 'item_pouch', 'icon_convert_table'])
         (
           n,
           Image.asset('assets/images/$n.webp',

@@ -31,7 +31,7 @@ class VillageRules {
   VillageRules._();
 
   // ───────────── 묶음 38 #213: 시설 안 정령 띠 대신 마을 사람이 안내
-  static const innFull = '기운은 벌써 가득하네. 그래도 푹 쉬면 휴식 보너스를 챙겨 줄게.';
+  static const innFull = '기운은 벌써 가득하네. 언제든 일어나도 괜찮아.';
   static const innResting = '푹 쉬는 중이구나. 다른 일 보고 와도 돼. 다 쉬면 알려 줄게.';
   static const innRested = '오늘은 벌써 푹 쉬었지? 지치면 언제든 또 와.';
   static const innGuide = '오늘 하루 고생 많았어. 여기서 쉬면 HP랑 기력이 가득 찰 거야.';

@@ -1,19 +1,17 @@
-import 'dart:math' as math;
-
 import '../village/npc_header.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
+import '../jobs/job_skill_bar.dart' show kJobMpColor;
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../../theme/top_notice.dart';
 
-/// 여관 (앱 안 시설): 하루를 정리하고 쉰다.
-/// 언제든 체크인하고 4시간이 지나면 HP·정령 MP가 가득 차고,
-/// 그날 처음 쉬었으면 휴식 보너스, 며칠 이어서 쉬면 연속 휴식 보너스.
+/// 여관 (앱 안 시설): 체크인하고 쉬면 HP · MP · 기력이 서서히 찬다 (묶음 80 #367).
+/// 언제든 체크인하고 4시간이 지나면 가득. 일어나도 찬 만큼은 그대로.
 class InnScreen extends StatelessWidget {
   const InnScreen({super.key, required this.controller});
 
@@ -35,6 +33,11 @@ class InnScreen extends StatelessWidget {
     return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
   }
 
+  /// 쉬는 동안 차는 것 한 줄 설명 (각성 전엔 MP 없음)
+  static String fillLine({required bool job}) => job
+      ? '쉬는 동안 HP · MP · 기력이 조금씩 차고, 4시간이면 가득 차요'
+      : '쉬는 동안 HP · 기력이 조금씩 차고, 4시간이면 가득 차요';
+
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
@@ -46,15 +49,13 @@ class InnScreen extends StatelessWidget {
         child: ListenableBuilder(
           listenable: controller,
           builder: (context, _) {
-            final p = controller.player;
-            final today = p.today!;
-            final exp = p.dailyExp.isEmpty ? null : p.dailyExp.last;
-            final resting = controller.resting;
-            final full = controller.hp >= controller.maxHp &&
-                controller.mp >= controller.mpMax;
-            final streak = p.restStreak;
-            final next = TownRules.nextRestReward(streak);
-            final cleared = today.dungeonRuns.where((r) => r.cleared).length;
+            final c = controller;
+            final today = c.player.today;
+            final resting = c.resting;
+            final job = c.jobsOpen;
+            final full = c.hp >= c.maxHp &&
+                c.mp >= c.mpMax &&
+                (!job || c.jobMp >= c.jobMpMax);
 
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -66,11 +67,11 @@ class InnScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 // 묶음 38 #213: 정령 띠 대신 마을 사람이 안내
                 NpcHeader(
-                  controller: controller,
+                  controller: c,
                   npc: Npc.marta,
                   guide: VillageRules.innGuide,
                   situation: innSituation(
-                      resting: resting, restedToday: today.rested, full: full),
+                      resting: resting, restedToday: today?.rested ?? false, full: full),
                 ),
                 const SizedBox(height: 4),
                 // 묶음 26 #175: 그림을 줄이고 체크인·쉬는 중 버튼을 바로 아래에
@@ -85,18 +86,18 @@ class InnScreen extends StatelessWidget {
                   GoldButton(
                     key: const Key('innResting'),
                     label: full
-                        ? '회복 완료 · 보너스까지 ${left(controller.restLeft)}'
-                        : '쉬는 중 · ${left(controller.restLeft)} 남음',
+                        ? '가득 찼어요 · ${left(c.restLeft)} 뒤 다 쉬어요'
+                        : '쉬는 중 · ${left(c.restLeft)} 남음',
                     onPressed: null,
                   ),
                   // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
-                  if (controller.canShortenRest) ...[
+                  if (c.canShortenRest) ...[
                     const SizedBox(height: 8),
                     AdButton(
                       key: const Key('adShortenRest'),
                       label: '광고 보고 1시간 줄이기',
                       onPressed: () async {
-                        final ok = await controller.adShortenRest();
+                        final ok = await c.adShortenRest();
                         if (!ok && context.mounted) {
                           showTopNotice(context, '광고를 불러오지 못했어요.');
                         }
@@ -107,7 +108,7 @@ class InnScreen extends StatelessWidget {
                   // 묶음 15 #107: 일어나도 그때까지 찬 HP·기력은 그대로
                   TextButton(
                     key: const Key('innWake'),
-                    onPressed: () => controller.stopResting(),
+                    onPressed: () => c.stopResting(),
                     child: const KText('일어나기 (찬 만큼은 그대로)',
                         style: TextStyle(color: AppColors.textMuted)),
                   ),
@@ -116,120 +117,58 @@ class InnScreen extends StatelessWidget {
                     key: const Key('innCheckIn'),
                     label: '체크인하고 쉬기',
                     onPressed: () async {
-                      final ok = await controller.restAtInn();
+                      final ok = await c.restAtInn();
                       if (ok && context.mounted) {
                         showTopNotice(context, '체크인했어요. 4시간 뒤에 다 쉬어요!');
                       }
                     },
                   ),
                 const SizedBox(height: 12),
+                // 묶음 80 #367: 쉬는 동안 차는 것 (HP · MP(각성 뒤) · 기력)
                 OrnatePanel(
+                  key: const Key('innFillPanel'),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('오늘 하루', style: AppText.title(19)),
-                        const SizedBox(height: 10),
-                        _Row(
-                            icon: 'steps',
-                            label: '걸음',
-                            value: '${comma(today.steps)} / '
-                                '${comma(today.stepGoal)}보',
-                            done: today.stepGoalAchieved),
-                        // 묶음 65 #252: 1만 보를 넘긴 날 발자국 (경험치 숫자는 숨김)
-                        if ((exp?.footprint ?? 0) > 0)
-                          _Row(
-                              key: const Key('innFootprint'),
-                              icon: 'footprint',
-                              label: '발자국',
-                              value: '1만 보 넘어 ${comma(math.min(today.steps, WalkRewardRules.until) - WalkRewardRules.from)}보'),
-                        _Row(
-                            icon: 'key',
-                            label: '던전',
-                            value: today.dungeonRuns.isEmpty
-                                ? '아직 안 열었어요'
-                                : '${today.dungeonRuns.length}번 · 돌파 $cleared번'),
-                        _Row(
-                            icon: 'crystal',
-                            label: '필드 몬스터',
-                            value: '${today.fieldMonstersPurified}마리 사냥'),
-                        _Row(
+                        Text('쉬는 동안 차는 것', style: AppText.title(18)),
+                        const SizedBox(height: 8),
+                        _Fill(
+                            key: const Key('innFill_hp'),
                             icon: 'vitality',
                             label: 'HP',
-                            value: '${comma(controller.hp)} / '
-                                '${comma(controller.maxHp)}'),
-                        _Row(
+                            color: const Color(0xFFE86A6A),
+                            value: c.hp,
+                            max: c.maxHp),
+                        if (job)
+                          _Fill(
+                              key: const Key('innFill_jobMp'),
+                              icon: 'mp',
+                              label: 'MP',
+                              color: kJobMpColor,
+                              value: c.jobMp,
+                              max: c.jobMpMax),
+                        _Fill(
+                            key: const Key('innFill_mp'),
                             icon: 'mp',
                             label: mpLabel(context),
-                            value:
-                                '${controller.mp} / ${controller.mpMax}'),
-                        const Divider(color: Color(0x33E9C46A), height: 18),
-                        _Row(
-                            icon: 'exp',
-                            label: '오늘 경험치',
-                            value: '+${exp?.total ?? 0}',
-                            strong: true),
-                        _Row(
-                            icon: 'mana_stone',
-                            label: '오늘 마석',
-                            value: '+${TownRules.manaStonesEarnedOn(today)}개',
-                            strong: true),
-                        if ((exp?.rest ?? 0) > 0)
-                          _Row(
-                              icon: 'moon',
-                              label: '휴식 보너스',
-                              value: '+${exp!.rest + exp.restStreak}',
-                              strong: true),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OrnatePanel(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                            color: AppColors.mana,
+                            value: c.mp,
+                            max: c.mpMax),
+                        const SizedBox(height: 6),
                         Row(children: [
-                          const GameIcon('streak', size: 32),
-                          const SizedBox(width: 8),
-                          KText('연속 휴식 $streak일',
-                              style: AppText.title(19,
-                                  color: AppColors.goldBright)),
-                        ]),
-                        const SizedBox(height: 8),
-                        _StreakDots(streak: streak),
-                        const SizedBox(height: 8),
-                        if (next.daysLeft > 0)
-                          KText(
-                            '${next.daysLeft}일 더 쉬면 경험치 +${next.exp}'
-                            '${next.crystals > 0 ? ', 마석 +${next.crystals}' : ''}',
-                            style: const TextStyle(
-                                color: AppColors.text, fontSize: 14),
+                          const GameIcon('moon', size: 22),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: KText(fillLine(job: job),
+                                key: const Key('innFillLine'),
+                                style: const TextStyle(
+                                    color: AppColors.textMuted, fontSize: 12.5, height: 1.35)),
                           ),
+                        ]),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const OrnatePanel(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Row(children: [
-                      GameIcon('moon', size: 34),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: KText(
-                          '쉬는 동안 HP와 기력이 조금씩 차오르고, 4시간이면 가득 차요.\n'
-                          '하루 첫 휴식은 경험치 +${RuleConstants.restBonusExp}, '
-                          '며칠 이어서 쉬면 보너스가 커져요.',
-                          style: TextStyle(
-                              color: AppColors.text, fontSize: 14, height: 1.4),
-                        ),
-                      ),
-                    ]),
                   ),
                 ),
               ],
@@ -241,75 +180,60 @@ class InnScreen extends StatelessWidget {
   }
 }
 
-/// 다음 14일 단계까지의 연속 휴식 점
-class _StreakDots extends StatelessWidget {
-  const _StreakDots({required this.streak});
-
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    const marks = {3, 7, 14};
-    final shown = streak <= 14 ? 14 : streak + (7 - (streak - 14) % 7);
-    final start = shown - 14;
-    return Row(children: [
-      for (var i = start + 1; i <= shown; i++)
-        Expanded(
-          child: Container(
-            height: 10,
-            margin: const EdgeInsets.symmetric(horizontal: 1.5),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: i <= streak
-                  ? AppColors.goldBright
-                  : AppColors.gold.withValues(alpha: 0.18),
-              border: marks.contains(i) || (i > 14 && (i - 14) % 7 == 0)
-                  ? Border.all(color: AppColors.goldBright, width: 1.4)
-                  : null,
-            ),
-          ),
-        ),
-    ]);
-  }
-}
-
-class _Row extends StatelessWidget {
-  const _Row({
+/// 차는 것 한 줄: 아이콘 · 이름 · 막대 · 「지금 / 최대」
+class _Fill extends StatelessWidget {
+  const _Fill({
     super.key,
     required this.icon,
     required this.label,
+    required this.color,
     required this.value,
-    this.done = false,
-    this.strong = false,
+    required this.max,
   });
 
   final String icon;
   final String label;
-  final String value;
-  final bool done;
-  final bool strong;
+  final Color color;
+  final int value;
+  final int max;
 
   @override
   Widget build(BuildContext context) {
+    final ratio = max <= 0 ? 0.0 : (value / max).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(children: [
         GameIcon(icon, size: 22),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 34,
+          child: Text(label,
+              maxLines: 1,
+              style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(end: ratio),
+              duration: const Duration(milliseconds: 600),
+              builder: (_, v, __) => LinearProgressIndicator(
+                value: v,
+                minHeight: 10,
+                backgroundColor: color.withValues(alpha: 0.18),
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+          ),
+        ),
         const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
-        const Spacer(),
-        if (done) ...[
-          const GameIcon('check', size: 18),
-          const SizedBox(width: 4),
-        ],
-        Text(value,
-            style: strong
-                ? AppText.title(16, color: AppColors.goldBright)
-                : const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
+        SizedBox(
+          width: 78,
+          child: Text('${comma(value)} / ${comma(max)}',
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+        ),
       ]),
     );
   }

@@ -154,17 +154,7 @@ class RuleConstants {
   /// 체크인하고 이만큼 지나면 휴식이 끝난다 (언제든, 하루 여러 번)
   static const int restHours = 4;
 
-  /// 휴식을 마친 날 경험치 (하루 한 번)
-  static const int restBonusExp = 20;
-
-  /// 연속 휴식 보너스: (연속 일수, 경험치, 마석).
-  /// 14일 뒤로는 7일마다 14일째와 같은 보상.
-  static const List<(int, int, int)> restStreakRewards = [
-    (3, 30, 0),
-    (7, 70, 5),
-    (14, 100, 10),
-  ];
-  static const int restStreakRepeatEvery = 7;
+  // 묶음 80 #367: 휴식 보너스 경험치 · 연속 휴식 보상(경험치 · 마석)은 없앰
 
   // ───────────────────────── HP · MP (2026-11-10)
 

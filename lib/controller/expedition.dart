@@ -119,7 +119,7 @@ extension ExpeditionOps on AppController {
       NotifyId.rest,
       _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 $companionName의 기력이 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요',
     ));
     await refreshVitals();
     return true;

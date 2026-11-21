@@ -4,7 +4,7 @@
 기준
 - 화면에 실제로 그려지는 가장 큰 크기(물리 픽셀)는 시험을 IMG_LOG 로 돌려 모은 표
   (그림 경로 · 가로 · 세로)에서 읽는다. 같은 묶음(이름 앞부분)에서 가장 크게 그려진 비율보다
-  작게는 줄이지 않는다(시험에 안 나온 화면 대비). 그보다 큰 그림만 그 크기(+여유 5%)까지 줄인다.
+  작게는 줄이지 않는다(시험에 안 나온 화면 대비). 그보다 큰 그림만 그 크기(+여유 10%)까지 줄인다.
 - 그림 안 픽셀 좌표를 코드가 쓰는 그림(ui_ · weapon_ · banner_ · ribbon_ · 돋보기 틀 · 종족 장식 ·
   로고 · 마을 바탕 · 5막 지도 · 부위 원본)은 크기를 바꾸지 않는다.
 - 여섯 칸 그림(hero_*_attack_* · ally_*_attack)은 칸 너비가 정수로 남게 줄인다.
@@ -12,6 +12,11 @@
 - 새 파일이 원래보다 5% 넘게 작아질 때만 덮어쓴다.
 
     python3 tool/shrink_images.py <크기표.tsv> [--dry]
+
+크기표 만드는 법 (묶음 80): test/flutter_test_config.dart 에서 시험마다 debugOnPaintImage 로
+ImageSizeInfo(source · displaySize)를 모아 tearDownAll 에 「경로\t가로\t세로」로 적고, 캡처 시험 ·
+일반 시험을 모두 돌림. (Flutter 시험은 이 값을 바꾸면 멈추므로 그때만 painting/debug.dart 의
+debugOnPaintImage 확인을 잠깐 빼고 돌린 뒤 되돌림)
 """
 from __future__ import annotations
 
@@ -31,7 +36,7 @@ KEEP = ROOT / 'art_src' / 'b80_before'
 
 QUALITY = 80
 ALPHA_QUALITY = 100
-MARGIN = 1.05
+MARGIN = 1.1
 
 FIXED = ('ui_', 'weapon_', 'banner_', 'ribbon_', 'lens_', 'filter_', 'logo_', 'village_bg', 'map_erbard')
 SHEETS = (re.compile(r'^hero_.*attack.*\.webp$'), re.compile(r'^ally_.*_attack\.webp$'))

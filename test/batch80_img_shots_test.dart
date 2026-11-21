@@ -81,7 +81,7 @@ Future<void> _settle(WidgetTester tester, [int n = 6]) async {
   }
 }
 
-Future<void> _page(WidgetTester tester, Widget home) async {
+Future<void> _page(WidgetTester tester, Widget home, {int settle = 6}) async {
   await tester.pumpWidget(RepaintBoundary(
     key: _root,
     child: MaterialApp(
@@ -90,7 +90,7 @@ Future<void> _page(WidgetTester tester, Widget home) async {
         builder: (context, child) => TopNoticeHost(child: child!),
         home: home),
   ));
-  await _settle(tester);
+  await _settle(tester, settle);
 }
 
 Widget _battle(Battle b, {String? background, String? job}) => BulssiScope(
@@ -132,7 +132,8 @@ void main() {
   ]) {
     testWidgets('b80img $name', (tester) async {
       _device(tester);
-      await _page(tester, _battle(_b(m), background: bg, job: job));
+      // 첫 공격 전 (대기 모습 · 몬스터 맞기 전)
+      await _page(tester, _battle(_b(m), background: bg, job: job), settle: 1);
       await _shot(tester, name);
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 6));
@@ -156,7 +157,7 @@ void main() {
   testWidgets('b80img 05 마을', (tester) async {
     _device(tester);
     late AppController c;
-    await tester.runAsync(() async => c = await startVillage(12, farewell: true));
+    await tester.runAsync(() async => c = await startVillage(12, farewell: true, village: {'seen': ['intro', 'farewell', 'v44']}));
     await _page(tester, Scaffold(body: VillageScreen(controller: c)));
     await _shot(tester, '05_마을');
     await tester.pumpWidget(const SizedBox());

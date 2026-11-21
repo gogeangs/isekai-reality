@@ -3,6 +3,7 @@
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
@@ -14,9 +15,9 @@ Future<AppController> startVillage(int level,
     bool farewell = false,
     Map<String, dynamic>? more,
     Map<String, int> gains = const {},
-    DateTime Function()? clock}) async {
-  final c = AppController(
-    store: InMemoryRecordStore(
+    DateTime Function()? clock,
+    Vitals? vitals}) async {
+  final store = InMemoryRecordStore(
       profile: const PlayerProfile(
           name: '하루',
           spiritName: '불씨',
@@ -52,7 +53,11 @@ Future<AppController> startVillage(int level,
         if (village != null) 'village': village,
         ...?more,
       },
-    ),
+    );
+  // 묶음 80: HP · 기력을 정해 둔 계정 (여관 막대)
+  if (vitals != null) await store.saveVitals(vitals);
+  final c = AppController(
+    store: store,
     health: FakeHealthSource(stepsByDay: const {}),
     clock: clock ?? () => vt0,
   )..mailSources = const [];

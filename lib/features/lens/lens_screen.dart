@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -13,7 +12,6 @@ import '../../theme/ornaments.dart';
 import 'album_files.dart';
 import 'album_screen.dart';
 import 'consent_note.dart';
-import 'snap_lens.dart';
 import 'camera_sticker_engine.dart';
 import 'lens_output.dart';
 import 'photo_frame.dart';
@@ -110,7 +108,6 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
       _races = races;
       _result = r;
       _phase = _Phase.reveal;
-      _snapFailed = false;
     });
     final id = r.albumId;
     if (id != null) unawaited(_keepInAlbum(id, races));
@@ -137,14 +134,10 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
   /// 앨범 사진을 만드는 중 (셔터와 따로)
   bool _albumBusy = false;
 
-  /// 렌즈 사진을 받지 못했음 → 「렌즈 없이 찍기」를 보여 준다
-  bool _snapFailed = false;
-
   /// 찍은 사진 이름판에 쓴 종족 (렌즈 사진은 렌즈 종족만, 묶음 38 확인 답)
   List<Race>? _photoRaces;
 
-  /// 이번 감정 결과에 AR 렌즈가 있는 종족이 있는지 (있으면 렌즈로 찍기가 기본)
-  bool get _hasLens => SnapLens.supports(_races ?? const []);
+  // AR 필터 다시 할 때 여기: 묶음 80 #370에서 Snap Camera Kit(엘프 렌즈)를 뺌 — 렌즈 종족 · 렌즈로 찍기 · 「렌즈 없이 찍기」
 
   /// 종족 골라 찍기 창 (묶음 37 #209)
   Future<void> _pickRace() async {
@@ -213,53 +206,6 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
     if (png == null) _snack('사진을 찍지 못했어요. 다시 해 볼까요?');
   }
 
-  /// #60 Snap 렌즈로 찍기. 못 열거나 닫으면 지금 장식 그대로.
-  Future<void> _snapShoot() async {
-    final races = _races;
-    if (races == null || _working) return;
-    setState(() => _working = true);
-    Uint8List? png;
-    final lensShown = SnapLens.lensRaces(races);
-    try {
-      await _engine.pause(); // Snap 카메라가 카메라를 쓰게 잠깐 놓는다
-      final shot = await SnapLens.instance.shoot();
-      if (shot != null) {
-        final codec = await ui.instantiateImageCodec(shot);
-        final frame = await codec.getNextFrame();
-        // 묶음 38: 렌즈 사진 이름판엔 렌즈 종족 이름만 (얼굴 모두 그 렌즈라서).
-        // 감정 결과(도감·경험치·보상·숙련도)는 실제대로 그대로
-        png = await PhotoFrame.compose(frame.image, lensShown);
-        frame.image.dispose();
-      }
-    } catch (_) {
-      png = null;
-    }
-    await _engine.resume();
-    if (!mounted) return;
-    setState(() {
-      _working = false;
-      if (png != null) {
-        _png = png;
-        _photoRaces = lensShown;
-        _phase = _Phase.shot;
-      }
-    });
-    // 묶음 14 A1: 시험 빌드에서만 여는 시간을 보여 준다
-    final timing = SnapLens.testBuild ? SnapLens.instance.timingLine : null;
-    if (png == null) {
-      setState(() => _snapFailed = true);
-      _snack('렌즈 사진을 받지 못했어요. 셔터를 눌러 다시 찍어 볼까요?'
-          '${timing == null ? '' : '\n$timing'}');
-      return;
-    }
-    if (timing != null) _snack(timing);
-    final id = _result?.albumId;
-    _snapFailed = false;
-    if (id != null) {
-      final file = await AlbumFiles.writer(id, png);
-      if (file != null) await c.attachAlbumFile(id, file);
-    }
-  }
 
   Future<void> _save() async {
     final png = _png;
@@ -500,18 +446,14 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
         return Text('감정 중…',
             textAlign: TextAlign.center, style: AppText.title(19));
       case _Phase.reveal:
-        // 묶음 37 #207: 렌즈가 있으면 바로 렌즈 카메라, 없으면 맨 얼굴 + 감정 틀
+        // 묶음 37 #207 · 80 #370: 맨 얼굴 + 감정 틀 (AR 렌즈는 뺌)
         return GoldButton(
           key: const Key('lensToFilter'),
-          label: _hasLens ? '변신한 모습 보기' : '사진 찍기',
-          onPressed: () {
-            setState(() => _phase = _Phase.filter);
-            if (_hasLens) _snapShoot();
-          },
+          label: '사진 찍기',
+          onPressed: () => setState(() => _phase = _Phase.filter),
         );
       case _Phase.filter:
-        final snap = _hasLens;
-        final row = Row(children: [
+        return Row(children: [
           Expanded(
             child: FrameButton(
               label: '새 감정',
@@ -526,25 +468,13 @@ class _LensScreenState extends State<LensScreen> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(width: 12),
-          // 렌즈가 있는 종족은 셔터가 렌즈 카메라를 연다 (셔터 하나)
-          _Shutter(busy: _working, onTap: snap ? _snapShoot : _shoot),
+          _Shutter(busy: _working, onTap: _shoot),
           const SizedBox(width: 12),
           Expanded(
             child: Text(PhotoFrame.raceLine(_races ?? const []),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 style: AppText.title(14)),
-          ),
-        ]);
-        if (!snap || !_snapFailed) return row;
-        // 렌즈 사진을 받지 못했을 때만: 렌즈 없이 (맨 얼굴 + 틀)
-        return Column(mainAxisSize: MainAxisSize.min, children: [
-          row,
-          TextButton(
-            key: const Key('shootNoLens'),
-            onPressed: _working ? null : _shoot,
-            child: const Text('렌즈 없이 찍기',
-                style: TextStyle(color: AppColors.textMuted)),
           ),
         ]);
       case _Phase.shot:
@@ -621,7 +551,11 @@ class _Shutter extends StatelessWidget {
 }
 
 /// 종족 골라 찍기 창 (묶음 37 #209): 8종족 한 줄 4칸. AR 렌즈가 있는 종족만 고를 수 있고
-/// ([SnapLens.races] 에 더하면 저절로 열림), 나머지는 흐리게 「준비 중」
+/// ([_lensRaces] 에 더하면 저절로 열림), 나머지는 흐리게 「준비 중」.
+/// 묶음 80 #370: Snap 렌즈를 빼서 지금은 모두 「준비 중」
+// AR 필터 다시 할 때 여기: 렌즈가 있는 종족 (예전엔 {Race.elf})
+const Set<Race> _lensRaces = {};
+
 class _RacePicker extends StatelessWidget {
   const _RacePicker({required this.onLocked});
 
@@ -655,8 +589,8 @@ class _RacePicker extends StatelessWidget {
                     for (final info in LensRules.all)
                       _RaceCell(
                         info: info,
-                        open: SnapLens.races.contains(info.id),
-                        onTap: SnapLens.races.contains(info.id)
+                        open: _lensRaces.contains(info.id),
+                        onTap: _lensRaces.contains(info.id)
                             ? () => Navigator.of(context).pop(info.id)
                             : onLocked,
                       ),

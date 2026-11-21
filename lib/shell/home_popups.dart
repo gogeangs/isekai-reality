@@ -164,7 +164,7 @@ extension _ShellPopups on _HomeShellState {
       if (c.justRested) {
         // 가벼운 알림은 위쪽 띠로만 (#131)
         showTopNoticeQueued(context,
-            '푹 쉬었어요 · HP·기력 가득, 휴식 보너스 경험치 +${RuleConstants.restBonusExp}');
+            c.jobsOpen ? '푹 쉬었어요 · HP · MP · 기력이 가득 찼어요' : '푹 쉬었어요 · HP · 기력이 가득 찼어요');
         c.clearJustRested();
       } else {
         await _showExpeditionResults(done);

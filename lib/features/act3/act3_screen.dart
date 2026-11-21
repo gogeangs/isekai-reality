@@ -590,6 +590,7 @@ Future<void> showPlaceSheet(BuildContext context, AppController c, String id) as
   if (go.kind == A3Kind.wall && c.choicePending) {
     await openLetterChoice(context, c);
   }
+  if (!context.mounted) return;
   if (go.kind == A3Kind.event && reg != null && c.regionChoicePending(reg)) {
     await openRegionChoice(context, c, reg);
   }

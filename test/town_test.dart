@@ -157,13 +157,11 @@ void main() {
       expect(TownRules.currentRestStreak(h), 2);
     });
 
-    test('7일 연속 쉬면 경험치 +70과 마석 +5', () {
+    test('묶음 80 #367: 7일 연속 쉬어도 경험치 · 마석 보상 없음', () {
       final h = List.generate(7, (i) => _day(2 + i, rests: 1));
       final p = PlayerState.fromHistory(name: '하루', history: h);
-      expect(p.dailyExp.last.rest, RuleConstants.restBonusExp);
-      expect(p.dailyExp.last.restStreak, 70);
-      expect(p.dailyExp[2].restStreak, 30); // 3일째
-      expect(TownRules.crystals(h), 5);
+      expect(p.dailyExp.last.total, 0);
+      expect(TownRules.crystals(h), 0);
     });
 
     test('4시간이 지나야 휴식이 끝난다', () {
@@ -345,14 +343,12 @@ void main() {
       expect(c.resting, isFalse);
       expect(c.justRested, isTrue);
       expect(c.history.last.restsCompleted, 1);
-      expect(c.player.dailyExp.last.rest, RuleConstants.restBonusExp);
 
-      // 같은 날 또 쉬어도 된다 (보너스는 하루 한 번)
+      // 같은 날 또 쉬어도 된다
       expect(await c.restAtInn(), isTrue);
       now = DateTime(2026, 11, 8, 22, 30);
       await c.refreshVitals();
       expect(c.history.last.restsCompleted, 2);
-      expect(c.player.dailyExp.last.rest, RuleConstants.restBonusExp);
     });
 
     test('알림: 여관 체크인 4시간 뒤 예약, 그만 쉬면 취소', () async {

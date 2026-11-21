@@ -18,6 +18,8 @@ import '../pets/farewell_screen.dart';
 import '../pets/pet_art.dart';
 import 'bag_hold_sheet.dart';
 import 'bag_sheet.dart';
+import 'sell_sheet.dart' show SellGroup;
+import 'shop_screen.dart' show ShopScreen;
 import 'material_view.dart';
 import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -976,6 +978,32 @@ class EggSheet extends StatelessWidget {
               ),
             ],
           ]);
+        }
+        // 묶음 80 #365: 잡화상에서 팔기 (정령이 떠난 뒤 · 품지 않은 알만)
+        if (e != null) {
+          const muted = TextStyle(color: AppColors.textMuted, fontSize: 12);
+          children.add(const SizedBox(height: 14));
+          if (!c.farewellDone) {
+            children.add(const KText('아직 팔 수 없어요', key: Key('eggSellNot'), style: muted));
+          } else if (e.incubatedAt != null) {
+            children.add(const KText('품는 중이라 팔 수 없어요', key: Key('eggSellHatching'), style: muted));
+          } else {
+            children.addAll([
+              KText('잡화상에서 금화 ${comma(e.grade.price)}', key: const Key('eggSellPrice'), style: muted),
+              const SizedBox(height: 8),
+              FrameButton(
+                key: const Key('eggSellGo'),
+                label: '잡화상에서 팔기',
+                gameIcon: 'gold',
+                height: 44,
+                onPressed: () {
+                  final nav = Navigator.of(context)..pop();
+                  nav.push(MaterialPageRoute<void>(
+                      builder: (_) => ShopScreen(controller: c, sellGroup: SellGroup.egg)));
+                },
+              ),
+            ]);
+          }
         }
         return SafeArea(
           child: Padding(

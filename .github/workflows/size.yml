@@ -12,10 +12,6 @@ permissions:
 
 env:
   NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
-  SNAP_APP_ID: ${{ secrets.SNAP_APP_ID }}
-  SNAP_API_TOKEN: ${{ secrets.SNAP_API_TOKEN_STAGING }}
-  SNAP_LENS_GROUP_ID: ${{ secrets.SNAP_LENS_GROUP_ID }}
-  SNAP_ELF_LENS_ID: ${{ vars.SNAP_ELF_LENS_ID || '3ff54981-128a-44ab-ba03-0a5897b18f1b' }}
   ADMOB_APP_ID_IOS: ${{ vars.ADMOB_APP_ID_IOS }}
   ADMOB_APP_ID_ANDROID: ${{ vars.ADMOB_APP_ID_ANDROID }}
 
@@ -44,16 +40,10 @@ jobs:
         run: |
           flutter build appbundle --release \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
-            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
-            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
-            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
-            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+            --dart-define=ADS_ON=1
           flutter build apk --release --target-platform android-arm64 --split-per-abi \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
-            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
-            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
-            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
-            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+            --dart-define=ADS_ON=1
       - name: arm64 휴대폰이 받는 크기
         shell: bash
         run: |
@@ -98,10 +88,7 @@ jobs:
         run: |
           flutter build ios --release --no-codesign \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
-            --dart-define=SNAP_ON="${SNAP_APP_ID:+1}" \
-            --dart-define=SNAP_LENS_GROUP_ID="${SNAP_LENS_GROUP_ID}" \
-            --dart-define=SNAP_ELF_LENS_ID="${SNAP_ELF_LENS_ID}" \
-            --dart-define=ADS_ON=1 --dart-define=SNAP_STAGE=staging
+            --dart-define=ADS_ON=1
       - name: 크기
         shell: bash
         run: |

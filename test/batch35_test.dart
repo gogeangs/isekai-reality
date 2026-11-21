@@ -267,7 +267,7 @@ void main() {
               if (find.byKey(Key(k)).evaluate().isNotEmpty)
                 tester.getRect(find.byKey(Key(k))),
         ];
-        expect(tags.length, Facility.values.length - 2); // 주점은 결말 뒤 · 길드 회관은 4막
+        expect(tags.length, Facility.values.length - 1); // 길드 회관은 4막 (묶음 80 #368: 2막부터 주점 자리 「건설 중」 이름표)
         for (var i = 0; i < tags.length; i++) {
           for (var j = i + 1; j < tags.length; j++) {
             expect(tags[i].overlaps(tags[j]), isFalse, reason: '$size $i $j');

@@ -56,9 +56,12 @@ extension ShopGroupInfo on ShopGroup {
 /// 묶음 41 (#227): 위쪽(뒤로 가기 · 미나 · 마석·금화 · 사기/팔기 탭)은 화면 위에 붙어 있고
 /// 아래 내용만 굴러간다.
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key, required this.controller});
+  const ShopScreen({super.key, required this.controller, this.sellGroup});
 
   final AppController controller;
+
+  /// 묶음 80 #365: 주면 「팔기」 탭의 이 묶음이 열린 채로
+  final SellGroup? sellGroup;
 
   static String reason(PurchaseCheck check, ShopItemInfo info, int gold) =>
       switch (check) {
@@ -140,7 +143,7 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   AppController get c => widget.controller;
 
-  int _tab = 0;
+  late int _tab = widget.sellGroup != null ? 1 : 0;
 
   /// 사기 탭 묶음 칩 (null = 전체)
   ShopGroup? _group;
@@ -210,7 +213,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                   14, 8, 14, 28 + pad.bottom),
                               children: _buyTab(),
                             )
-                          : ShopSellTab(controller: c),
+                          : ShopSellTab(controller: c, group: widget.sellGroup),
                     ),
                     const Positioned(
                       left: 0,

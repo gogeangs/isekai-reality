@@ -265,7 +265,7 @@ class StatusScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   _RestLine(
                     text: full
-                        ? '여관에서 쉬는 중 · 회복 완료, 보너스까지 ${_left(restLeft!)}'
+                        ? '여관에서 쉬는 중 · 가득 찼어요'
                         : '여관에서 쉬는 중 · ${_left(restLeft!)} 남음',
                     onTap: onOpenInn,
                   ),

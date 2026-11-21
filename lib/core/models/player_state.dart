@@ -27,11 +27,9 @@ class PlayerState {
     int? expCap,
   }) {
     var totalExp = 0;
-    final restStreaks = TownRules.restStreaks(history);
     final dailyExp = <DailyExpBreakdown>[];
     for (var i = 0; i < history.length; i++) {
       var exp = ExpRules.forDay(history[i],
-          restStreak: restStreaks[i],
           weeklyDone: BoardRules.weeklyCompletedOn(history, i));
       // 묶음 65 #254: Lv.21부터 그날 시작할 때 레벨 배율
       final lv = LevelRules.fromTotalExp(expCap != null && totalExp > expCap ? expCap : totalExp).level;

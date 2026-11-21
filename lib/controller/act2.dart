@@ -228,6 +228,9 @@ extension Act2Ops on AppController {
 
   // ───────────── 본체
 
+  /// 묶음 80 #368: 본체(잿빛 군주)를 쓰러뜨렸는지 — 주점 · 거래소 · 건물 레벨업이 이 뒤에 열린다
+  bool get ashKingBeaten => _act2.kingDone;
+
   /// 분신 다섯을 모두 쓰러뜨려 던전 끝 「문 앞」이 열렸는지 (레벨과 상관없이)
   bool get kingOpen => _act2.beaten >= 5 && !_act2.kingDone;
 

@@ -12,8 +12,6 @@ class DailyExpBreakdown {
     required this.fieldMonster,
     required this.exploration,
     required this.quest,
-    this.rest = 0,
-    this.restStreak = 0,
     this.questAll = 0,
     this.weekly = 0,
     this.footprint = 0,
@@ -23,12 +21,6 @@ class DailyExpBreakdown {
   final int fieldMonster;
   final int exploration;
   final int quest;
-
-  /// 여관 휴식을 마친 날의 보너스 (하루 한 번)
-  final int rest;
-
-  /// 연속 휴식 보너스 (3일·7일·14일째, 그 뒤 7일마다)
-  final int restStreak;
 
   /// 일일 퀘스트 3개를 모두 마친 날의 추가 보상
   final int questAll;
@@ -47,8 +39,6 @@ class DailyExpBreakdown {
           fieldMonster: (fieldMonster * m).round(),
           exploration: (exploration * m).round(),
           quest: (quest * m).round(),
-          rest: (rest * m).round(),
-          restStreak: (restStreak * m).round(),
           questAll: (questAll * m).round(),
           weekly: (weekly * m).round(),
           footprint: (footprint * m).round(),
@@ -59,8 +49,6 @@ class DailyExpBreakdown {
       fieldMonster +
       exploration +
       quest +
-      rest +
-      restStreak +
       questAll +
       weekly +
       footprint;
@@ -83,10 +71,10 @@ class ExpRules {
   /// 걸음은 경험치를 직접 주지 않는다. 걸음은 던전 열쇠가 되고,
   /// 던전에서 경험치를 얻는다. 공부·수면은 2026-11-10에 뺐다.
   ///
-  /// [restStreak] 는 오늘을 포함한 연속 휴식 일수 (오늘 쉬지 않았으면 0)
+  /// 묶음 80 #367: 여관 휴식 보너스 · 연속 휴식 보상은 없앰 (여관은 HP · MP · 기력만)
   /// [weeklyDone] 는 그날 새로 마친 주간 의뢰 수
   static DailyExpBreakdown forDay(DailyRecord record,
-      {int restStreak = 0, int weeklyDone = 0}) {
+      {int weeklyDone = 0}) {
     final runs = record.dungeonRuns; // 묶음 70 #296: 하루 던전 기록 전부
     final dungeon = runs.fold<int>(0, (sum, r) => sum + dungeonRunExp(r));
 
@@ -116,8 +104,6 @@ class ExpRules {
       exploration: newPlaces * RuleConstants.newPlaceExp +
           record.placesRevisited * RuleConstants.revisitPlaceExp,
       quest: quests * RuleConstants.questExp,
-      rest: record.rested ? RuleConstants.restBonusExp : 0,
-      restStreak: record.rested ? TownRules.restStreakReward(restStreak).$1 : 0,
       questAll: quests >= perDay
           ? RuleConstants.questAllBonusExp
           : 0,

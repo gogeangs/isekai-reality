@@ -186,6 +186,16 @@ extension VitalsOps on AppController {
             hp: hpNow, mp: mpNow, mpAt: now, restHp0: hp0, restMp0: mp0);
         changed = true;
       }
+      // 묶음 80 #367: 직업 MP도 HP · 기력처럼 서서히 (각성 뒤만)
+      if (_jobs.awakened) {
+        final job0 = v.restJobMp0 ?? jobMp;
+        final jobNow = math.max(jobMp, TownRules.restFill(job0, jobMpMax, f));
+        if (v.restJobMp0 == null) {
+          v = v.copyWith(restJobMp0: job0);
+          changed = true;
+        }
+        if (jobNow != jobMp) await _setJobMp(jobNow);
+      }
     }
 
     // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
@@ -279,7 +289,7 @@ extension VitalsOps on AppController {
             BuildingRules.innHead)
         : now;
     _vitals = _vitals.copyWith(
-        restStartedAt: start, restHp0: hp, restMp0: mp);
+        restStartedAt: start, restHp0: hp, restMp0: mp, restJobMp0: jobsOpen ? jobMp : null);
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
@@ -290,7 +300,8 @@ extension VitalsOps on AppController {
       NotifyId.rest,
       start.add(const Duration(hours: RuleConstants.restHours)),
       '푹 쉬었어요',
-      'HP와 $companionName의 기력이 가득 찼어요. 앱을 열어 휴식 보너스를 받으세요!',
+      // 묶음 80 #367: 휴식 보너스 없음
+      jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요',
     ));
     _notify();
     return true;

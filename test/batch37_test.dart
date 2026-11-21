@@ -7,7 +7,6 @@ import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/lens/photo_frame.dart';
 import 'package:isekai_reality/features/lens/race_stickers.dart';
-import 'package:isekai_reality/features/lens/snap_lens.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 
 void main() {
@@ -76,10 +75,6 @@ void main() {
   group('#207 #208 #209 감정 사진', () {
     test('2D 종족 장식은 그리지 않는다', () {
       expect(raceStickersOn, isFalse);
-    });
-
-    test('렌즈가 있는 종족만 골라 찍기 (지금 엘프)', () {
-      expect(SnapLens.races, {Race.elf});
     });
 
     test('아래 띠 세 줄은 금테 안 이름판에', () {

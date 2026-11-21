@@ -119,10 +119,10 @@ class PetSpeciesInfo {
 
 /// 묶음 75 #334: 알 등급 (얻는 순간 정함)
 enum EggGrade {
-  common('알', 'pet_egg', 150),
-  rare('희귀한 알', 'pet_egg_rare', 500),
-  hero('영웅의 알', 'pet_egg_hero', 1500),
-  legend('전설의 알', 'pet_egg_legend', 4000);
+  common('알', 'pet_egg', 80),
+  rare('희귀한 알', 'pet_egg_rare', 250),
+  hero('영웅의 알', 'pet_egg_hero', 700),
+  legend('전설의 알', 'pet_egg_legend', 2000);
 
   const EggGrade(this.label, this.image, this.price);
 
@@ -132,7 +132,7 @@ enum EggGrade {
   /// 그림 (희귀 · 영웅 · 전설 그림이 오기 전엔 pet_egg)
   final String image;
 
-  /// 잡화상에 팔 때 금화 (숨은 값)
+  /// 잡화상에 팔 때 금화 (숨은 값, 묶음 80 #365 절반쯤)
   final int price;
 
   String get asset => 'assets/images/$image.webp';

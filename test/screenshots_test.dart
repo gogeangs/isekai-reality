@@ -99,6 +99,13 @@ Future<void> _shot(WidgetTester tester, String name) async {
     ..writeAsBytesSync(bytes!);
 }
 
+/// 묶음 80: 휴식 보너스 경험치를 뺀 뒤 예시 데이터 레벨이 달라져 중간에 레벨업 창이 뜰 수 있음 → 닫기
+Future<void> _closeLevelUp(WidgetTester tester) async {
+  if (find.text('LEVEL UP').evaluate().isEmpty) return;
+  await tester.tap(find.text('계속').last, warnIfMissed: false);
+  await tester.pumpAndSettle();
+}
+
 void _phone(WidgetTester tester) {
   tester.view.physicalSize = const Size(1170, 2532); // 아이폰 13·14 크기
   tester.view.devicePixelRatio = 3;
@@ -213,6 +220,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('돌아가기'));
     await tester.pumpAndSettle();
+    await _closeLevelUp(tester);
 
     // 프로필 (왼쪽 위) · 기록
     await tester.tap(find.byType(ProfileButton));
@@ -892,6 +900,7 @@ void main() {
     // 묶음 19 #154: 오늘 첫 감정은 무료라 돋보기는 그대로
     expect(c.bagCount(ShopItem.raceLens), 1);
     expect(c.racesSeen, isNotEmpty);
+    await _closeLevelUp(tester);
     await tester.tap(find.byKey(const Key('lensToFilter')));
     await tester.pumpAndSettle();
     await _shot(tester, '50_돋보기_종족필터');
@@ -1052,8 +1061,8 @@ void main() {
               errorBuilder: (_, __, ___) => const Icon(Icons.help_outline,
                   color: Colors.redAccent, size: 40))
         ),
-      for (final n in ['icon_post', 'icon_mail', 'icon_alchemy', 'cauldron',
-          'item_recipe_book', 'item_recipe_note', 'item_pouch', 'icon_convert_table'])
+      for (final n in ['icon_post', 'icon_mail', 'icon_alchemy',
+          'item_recipe_note', 'item_pouch', 'icon_convert_table'])
         (
           n,
           Image.asset('assets/images/$n.webp',

@@ -34,14 +34,9 @@ info.update({
         "감정한 사진을 사진 앨범에 저장할 때만 써요. 앨범의 다른 사진은 보지 않아요.",
     "ITSAppUsesNonExemptEncryption": False,
 })
-# 11-12 #60 Snap Camera Kit: 앱 ID·API 토큰 (저장소 비밀 값, 없으면 렌즈 없이 지금 장식만)
+# AR 필터 다시 할 때 여기: 묶음 80 #370에서 Snap Camera Kit(SCCameraKitClientID · SCCameraKitAPIToken ·
+# 렌즈 카메라 마이크 설명)를 뺌
 import os
-if os.environ.get("SNAP_APP_ID") and os.environ.get("SNAP_API_TOKEN"):
-    info["SCCameraKitClientID"] = os.environ["SNAP_APP_ID"]
-    info["SCCameraKitAPIToken"] = os.environ["SNAP_API_TOKEN"]
-    # Snap 카메라는 동영상 녹화도 할 수 있어 마이크 설명이 필요하다
-    info["NSMicrophoneUsageDescription"] = (
-        "마법 돋보기의 렌즈 카메라에서 동영상을 찍을 때만 소리를 담아요. 소리를 따로 보내지 않아요.")
 
 # 묶음 15 #103 보상형 광고 (AdMob): 앱 ID 가 없으면 광고 SDK 가 앱을 멈추므로 언제나 넣는다.
 # 저장소 변수 ADMOB_APP_ID_IOS 가 없으면 Google 시험 앱 ID
@@ -86,7 +81,7 @@ podfile = ios / "Podfile"
 if podfile.exists():
     p = podfile.read_text()
     p = re.sub(r"#?\s*platform :ios, '[\d.]+'", "platform :ios, '15.5'", p)
-    # 11-12 #60: Snap Camera Kit 화면 모듈이 iOS 15.5 이상이라 모든 라이브러리를 15.5 로 맞춘다
+    # 11-12 #60: 얼굴 인식(ML Kit)이 iOS 15.5 이상이라 모든 라이브러리를 15.5 로 맞춘다 (예전 Snap 도 같았음)
     if "IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'" not in p:
         p = p.replace(
             "flutter_additional_ios_build_settings(target)",

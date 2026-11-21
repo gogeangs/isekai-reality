@@ -74,20 +74,8 @@ void main() {
       expect(b.quest, 60); // 3개
     });
 
-    test('여관 휴식을 마친 날은 하루 한 번 +20 (여러 번 쉬어도 같다)', () {
-      expect(ExpRules.forDay(day(0, rests: 1)).rest, 20);
-      expect(ExpRules.forDay(day(0, rests: 3)).rest, 20);
-      expect(ExpRules.forDay(day(0)).rest, 0);
-    });
-
-    test('연속 휴식 보너스: 3일 30, 7일 70, 14일 100, 그 뒤 7일마다 100', () {
-      expect(TownRules.restStreakReward(3), (30, 0));
-      expect(TownRules.restStreakReward(7), (70, 5));
-      expect(TownRules.restStreakReward(14), (100, 10));
-      expect(TownRules.restStreakReward(21), (100, 10));
-      expect(TownRules.restStreakReward(28), (100, 10));
-      expect(TownRules.restStreakReward(10), (0, 0));
-      expect(ExpRules.forDay(day(0, rests: 1), restStreak: 7).restStreak, 70);
+    test('묶음 80 #367: 여관 휴식은 경험치를 주지 않는다', () {
+      expect(ExpRules.forDay(day(0, rests: 1)).total, ExpRules.forDay(day(0)).total);
     });
   });
 

@@ -20,7 +20,6 @@ import 'package:isekai_reality/features/act5/erbard_screens.dart';
 import 'package:isekai_reality/features/act5/estate_manage_screen.dart';
 import 'package:isekai_reality/features/map/map_screen.dart';
 import 'package:isekai_reality/features/profile/profile_screen.dart';
-import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/theme/top_notice.dart';
 
 import 'batch52_test.dart' as b52;
@@ -192,10 +191,7 @@ void main() {
             ]),
           )));
       await _shot(tester, '${n}_04_열쇠조각_게이지');
-      await _page(tester, InnScreen(key: ObjectKey('inn$n'), controller: c));
-      await tester.scrollUntilVisible(find.byKey(const Key('innFootprint')), 200, scrollable: find.byType(Scrollable).first);
-      await _settle(tester);
-      await _shot(tester, '${n}_05_여관_발자국');
+      // 묶음 80 #367: 여관 「오늘 하루」 판(발자국 줄)은 뺌
     });
 
     testWidgets('b65b $n: 영지 관리 — 번영도 · 시설 · 정책 · 주민 의뢰 · 창고 · 기부 · 지도 아이콘', (tester) async {

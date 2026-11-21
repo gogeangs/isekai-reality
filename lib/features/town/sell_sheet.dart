@@ -14,19 +14,21 @@ int sellPrice(BagEntry e) => switch (e) {
       MaterialEntry(:final id) => BagRules.materialPrice(id),
       ItemEntry(:final item) => BagRules.itemPrice(item),
       EquipEntry(:final item) => BagRules.equipPrice(item),
-      // 묶음 75 #327: 알은 등급 값 (일반 150 · 희귀 500 · 영웅 1,500 · 전설 4,000)
+      // 묶음 80 #365: 알은 등급 값 (일반 80 · 희귀 250 · 영웅 700 · 전설 2,000)
       EggEntry(:final egg) => egg.grade.price,
       PotionEntry() || PouchEntry() => 0,
     };
 
 /// 팔기 탭 묶음
-enum SellGroup { material, item, equip }
+/// 묶음 80 #365: 「알」 묶음은 팔 수 있는 알이 있을 때만
+enum SellGroup { material, item, equip, egg }
 
 extension SellGroupLabel on SellGroup {
   String get label => switch (this) {
         SellGroup.material => '재료',
         SellGroup.item => '물건',
         SellGroup.equip => '장비',
+        SellGroup.egg => '알',
       };
 }
 
@@ -43,9 +45,12 @@ class _Row {
 /// 잡화상 「팔기」 탭 (11-11 #48 · 묶음 41 #227): 맨 위 마석 팔기, 그 아래
 /// 재료·물건·장비 목록에서 여러 개를 골라 한꺼번에 판다. 입은 장비는 팔 수 없다.
 class ShopSellTab extends StatefulWidget {
-  const ShopSellTab({super.key, required this.controller});
+  const ShopSellTab({super.key, required this.controller, this.group});
 
   final AppController controller;
+
+  /// 처음 열 묶음 (가방 알 창 「잡화상에서 팔기」 → 알)
+  final SellGroup? group;
 
   @override
   State<ShopSellTab> createState() => _ShopSellTabState();
@@ -54,7 +59,7 @@ class ShopSellTab extends StatefulWidget {
 class _ShopSellTabState extends State<ShopSellTab> {
   AppController get c => widget.controller;
 
-  SellGroup _group = SellGroup.material;
+  late SellGroup _group = widget.group ?? SellGroup.material;
 
   /// 고른 줄 → 팔 개수
   final _picked = <String, int>{};
@@ -70,7 +75,9 @@ class _ShopSellTabState extends State<ShopSellTab> {
             for (final i in TownRules.bagItems)
               if (c.bagCount(i) > 0)
                 _Row('i:${i.name}', ItemEntry(i, c.bagCount(i)), c.bagCount(i)),
-            // 묶음 75 #327: 알 (품는 중인 알은 안 나옴, 정령이 떠난 뒤)
+          ],
+        // 묶음 75 #327 · 80 #365: 알은 따로 (품는 중인 알은 안 나옴, 정령이 떠난 뒤)
+        SellGroup.egg => [
             if (c.farewellDone)
               for (final e in c.pets.eggs)
                 if (e.incubatedAt == null) _Row('g:${e.id}', EggEntry(e), 1),
@@ -262,6 +269,9 @@ class _ShopSellTabState extends State<ShopSellTab> {
       builder: (context, _) {
         _prune();
         final stones = c.player.manaStones;
+        final eggCount = _rows(SellGroup.egg).length;
+        // 알을 다 팔았으면 재료 묶음으로
+        if (_group == SellGroup.egg && eggCount == 0) _group = SellGroup.material;
         final rows = _rows(_group);
         final all = {for (final r in _all) r.key: r};
         final picks = [
@@ -330,10 +340,11 @@ class _ShopSellTabState extends State<ShopSellTab> {
                   ),
                   const SizedBox(height: 12),
                   Row(children: [
-                    for (final g in SellGroup.values) ...[
+                    for (final g in SellGroup.values)
+                      if (g != SellGroup.egg || eggCount > 0) ...[
                       ShopChip(
                         key: Key('sellChip_${g.name}'),
-                        label: g.label,
+                        label: g == SellGroup.egg ? '알 $eggCount' : g.label,
                         selected: _group == g,
                         onTap: () => setState(() => _group = g),
                       ),

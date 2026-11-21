@@ -446,13 +446,10 @@ class TownRules {
   /// 지금 가진 마석
   static int manaStones(List<DailyRecord> history) {
     var c = 0;
-    final streaks = restStreaks(history);
-    for (var i = 0; i < history.length; i++) {
-      final r = history[i];
+    for (final r in history) {
       c += manaStonesEarnedOn(r) -
           crystalsSpentOn(r) -
           (r.spends[Wallet.manaStone] ?? 0);
-      if (r.rested) c += restStreakReward(streaks[i]).$2;
     }
     return c < 0 ? 0 : c;
   }
@@ -695,28 +692,6 @@ class TownRules {
       return s[s.length - 2];
     }
     return 0;
-  }
-
-  /// 연속 [streak] 일째에 받는 (경험치, 마석). 해당 없으면 (0, 0).
-  static (int, int) restStreakReward(int streak) {
-    for (final (days, exp, crystals) in RuleConstants.restStreakRewards) {
-      if (streak == days) return (exp, crystals);
-    }
-    final last = RuleConstants.restStreakRewards.last;
-    if (streak > last.$1 &&
-        (streak - last.$1) % RuleConstants.restStreakRepeatEvery == 0) {
-      return (last.$2, last.$3);
-    }
-    return (0, 0);
-  }
-
-  /// 다음 연속 보너스까지 남은 날과 그 보상
-  static ({int daysLeft, int exp, int crystals}) nextRestReward(int streak) {
-    for (var d = streak + 1; d < streak + 30; d++) {
-      final r = restStreakReward(d);
-      if (r.$1 > 0) return (daysLeft: d - streak, exp: r.$1, crystals: r.$2);
-    }
-    return (daysLeft: 0, exp: 0, crystals: 0);
   }
 
   static int _daysBetween(DateTime a, DateTime b) =>

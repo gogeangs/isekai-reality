@@ -245,8 +245,6 @@ String report(List<Result> results) {
       totals.update('퀘스트', (v) => v + e.quest + e.questAll,
           ifAbsent: () => e.quest + e.questAll);
       totals.update('주간 의뢰', (v) => v + e.weekly, ifAbsent: () => e.weekly);
-      totals.update('여관 휴식', (v) => v + e.rest + e.restStreak,
-          ifAbsent: () => e.rest + e.restStreak);
     }
     final sum = totals.values.fold(0, (a, b) => a + b);
     final s = _evenStats(r.finalState);

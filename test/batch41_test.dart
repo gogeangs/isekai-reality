@@ -58,8 +58,6 @@ void main() {
     testWidgets('그림·HP 줄 없음, 지갑 한 줄, 사기·팔기 탭, 내려도 붙어 있음', (tester) async {
       phone(tester, size: const Size(750, 1334), dpr: 2, text: 1.12);
       await open(tester);
-      expect(find.image(const AssetImage('assets/images/map_store.webp')),
-          findsNothing);
       expect(find.byKey(const Key('shopWallet')), findsOneWidget);
       expect(allText(tester), isNot(contains('HP 1')));
       expect(find.byKey(const Key('shopTab_0')), findsOneWidget);

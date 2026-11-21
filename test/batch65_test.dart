@@ -36,7 +36,11 @@ void main() {
     });
 
     test('#256 막기: 막지 못한 강한 공격 표시 · 그림 3장 · 막기 안내는 「막았다!」 뒤에', () {
-      final src = File('lib/features/battle/battle_view.dart').readAsStringSync();
+      // 묶음 79: 전투 화면은 part 파일로 나뉨 — 라이브러리 전체 글
+      final src = [
+        File('lib/features/battle/battle_view.dart'),
+        ...Directory('lib/features/battle/battle_view').listSync().whereType<File>(),
+      ].map((f) => f.readAsStringSync()).join('\n');
       for (final a in ['fx_guard.webp', 'fx_guardHit.webp', 'fx_guardBreak.webp']) {
         expect(src, contains(a));
         expect(File('assets/images/$a').existsSync(), isTrue, reason: a);

@@ -513,11 +513,11 @@ class _ChatHubScreenState extends State<ChatHubScreen> {
       builder: (s) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(title: Text(p.name, style: AppText.title(17))),
-          ListTile(key: const Key('friendDm'), leading: const Icon(Icons.chat_rounded, color: AppColors.goldBright), title: Text('1:1 대화', style: _sheetText), onTap: () => Navigator.pop(s, 'dm')),
+          ListTile(key: const Key('friendDm'), leading: const Icon(Icons.chat_rounded, color: AppColors.goldBright), title: const Text('1:1 대화', style: _sheetText), onTap: () => Navigator.pop(s, 'dm')),
           if (c.party?.id != null)
-            ListTile(key: const Key('friendParty'), leading: const Icon(Icons.groups_rounded, color: AppColors.goldBright), title: Text('파티 초대 보내기', style: _sheetText), onTap: () => Navigator.pop(s, 'party')),
-          ListTile(key: const Key('friendRemove'), leading: const Icon(Icons.person_remove_rounded, color: AppColors.textMuted), title: Text('친구 끊기', style: _sheetText), onTap: () => Navigator.pop(s, 'remove')),
-          ListTile(key: const Key('friendBlock'), leading: const Icon(Icons.block_rounded, color: Color(0xFFFF8A80)), title: Text('차단', style: _sheetText), onTap: () => Navigator.pop(s, 'block')),
+            ListTile(key: const Key('friendParty'), leading: const Icon(Icons.groups_rounded, color: AppColors.goldBright), title: const Text('파티 초대 보내기', style: _sheetText), onTap: () => Navigator.pop(s, 'party')),
+          ListTile(key: const Key('friendRemove'), leading: const Icon(Icons.person_remove_rounded, color: AppColors.textMuted), title: const Text('친구 끊기', style: _sheetText), onTap: () => Navigator.pop(s, 'remove')),
+          ListTile(key: const Key('friendBlock'), leading: const Icon(Icons.block_rounded, color: Color(0xFFFF8A80)), title: const Text('차단', style: _sheetText), onTap: () => Navigator.pop(s, 'block')),
         ]),
       ),
     );
@@ -660,9 +660,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(title: Text(l.name, style: AppText.title(16)), subtitle: Text(l.text, maxLines: 2, style: const TextStyle(color: AppColors.textMuted))),
           if (!friend && widget.kind != 'friend')
-            ListTile(key: const Key('lineFriend'), leading: const Icon(Icons.person_add_rounded, color: AppColors.goldBright), title: Text('친구 신청', style: _sheetText), onTap: () => Navigator.pop(s, 'friend')),
-          ListTile(key: const Key('lineReport'), leading: const Icon(Icons.flag_rounded, color: Color(0xFFFFB74D)), title: Text('신고', style: _sheetText), onTap: () => Navigator.pop(s, 'report')),
-          ListTile(key: const Key('lineBlock'), leading: const Icon(Icons.block_rounded, color: Color(0xFFFF8A80)), title: Text('차단', style: _sheetText), onTap: () => Navigator.pop(s, 'block')),
+            ListTile(key: const Key('lineFriend'), leading: const Icon(Icons.person_add_rounded, color: AppColors.goldBright), title: const Text('친구 신청', style: _sheetText), onTap: () => Navigator.pop(s, 'friend')),
+          ListTile(key: const Key('lineReport'), leading: const Icon(Icons.flag_rounded, color: Color(0xFFFFB74D)), title: const Text('신고', style: _sheetText), onTap: () => Navigator.pop(s, 'report')),
+          ListTile(key: const Key('lineBlock'), leading: const Icon(Icons.block_rounded, color: Color(0xFFFF8A80)), title: const Text('차단', style: _sheetText), onTap: () => Navigator.pop(s, 'block')),
         ]),
       ),
     );

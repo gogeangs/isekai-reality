@@ -559,9 +559,9 @@ class _PartyTabState extends State<PartyTab> {
         child: Row(children: [
           const Icon(Icons.history_rounded, color: AppColors.gold),
           const SizedBox(width: 8),
-          Expanded(
+          const Expanded(
             child: KText('지난주 보스는 놓쳤지만, 준 피해만큼 발자국 표를 받을 수 있어요',
-                style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                style: TextStyle(color: AppColors.text, fontSize: 13)),
           ),
           FilledButton(
             key: const Key('partyLastClaim'),

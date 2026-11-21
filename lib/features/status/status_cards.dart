@@ -196,12 +196,12 @@ class _SkillCard extends StatelessWidget {
             Expanded(child: slot(1)),
           ])
         else
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
             child: Text('Lv.${JobRules.awakenLevel}에 열려요',
-                key: const Key('skillsLocked'),
+                key: Key('skillsLocked'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ),
         Text(open ? '전투에 가져가는 4칸' : '전투에 가져가는 스킬',
             textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 10.5)),

@@ -174,7 +174,7 @@ class _FarewellTalkSceneState extends State<FarewellTalkScene> with TickerProvid
           bottom: pad.bottom + 18,
           child: LayoutBuilder(builder: (context, box) {
             const face = 72.0, gap = 8.0;
-            final bubbleLeft = 14 + face + gap;
+            const bubbleLeft = 14 + face + gap;
             final bubbleW = box.maxWidth - face - gap;
             // 꼬리: 그림 속 정령을 향해 위로 (안 보이면 얼굴 쪽)
             final side = at == null ? BubbleSide.left : BubbleSide.up;

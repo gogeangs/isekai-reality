@@ -46,7 +46,7 @@ void main() {
     });
 
     test('테스 「다섯 불의 기록」: 불씨 5/5 + 걸음 8,000 둘 다 · 지역에 들어갈 때 하나씩', () async {
-      final r = RegionRules.aurel;
+      const r = RegionRules.aurel;
       var c = await r57.inRegion(r, more: {
         'aurel:arrive', 'aurel:first', 'aurel:talk', 'act3End',
         for (final x in RegionRules.all) 'reach:${x.prefix}',
@@ -87,7 +87,7 @@ void main() {
     });
 
     test('지역 싸움 · 던전 층이 그 지역 의뢰 수로 셈 · 현실 지도에 그 지역 재료 (줍기 → 재료 · 의뢰 수)', () async {
-      final r = RegionRules.selenia;
+      const r = RegionRules.selenia;
       var c = await r57.inRegion(r, more: {'selenia:arrive', 'selenia:first', 'selenia:lamp'});
       await b53.field(c, 'selenia_caravan');
       expect(c.history.last.counters['a3fight:selenia'], 1);
@@ -158,7 +158,7 @@ void main() {
       expect(RegionRules.deepRegionOf(DateTime.utc(2026, 11, 18, 3)), Region.selenia);
       expect(RegionRules.deepRegionOf(DateTime.utc(2026, 11, 23, 3)), Region.elowin);
       expect(RegionRules.deepRegionOf(DateTime.utc(2026, 12, 14, 3)), Region.selenia);
-      final r = RegionRules.selenia;
+      const r = RegionRules.selenia;
       final (c0, a) = await b56.start();
       await c0.store.saveJson('act3', (await r57.inRegion(r, more: {
         'selenia:arrive', 'selenia:first', 'selenia:talk', 'selenia:event', 'selenia:choice:free',
@@ -225,7 +225,7 @@ void main() {
       a.listings.add({
         'id': 'other1', 'kind': 'equip', 'key': 'dagger', 'name': '단검', 'qty': 1, 'mode': 'fixed', 'price': 120,
         'status': 'open', 'sellerName': '별',
-        'equip': EquipItem(uid: 'eq1', base: EquipBase.dagger, grade: EquipGrade.blue, enhance: 3).toJson(),
+        'equip': const EquipItem(uid: 'eq1', base: EquipBase.dagger, grade: EquipGrade.blue, enhance: 3).toJson(),
       });
       final rows = await c2.browseMarket();
       expect(rows!.single.sellerName, '별');

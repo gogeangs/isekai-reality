@@ -210,8 +210,9 @@ class _MailScreenState extends State<MailScreen> {
                             if (!list[i].hasGifts) continue;
                             final p = i ~/ perPage;
                             if (best < 0 ||
-                                (p - page).abs() < (best - page).abs())
+                                (p - page).abs() < (best - page).abs()) {
                               best = p;
+                            }
                           }
                           if (best >= 0) _goPage(best);
                         },
@@ -557,8 +558,9 @@ Widget giftArt(AppController c, GiftCellData g, {double size = 56}) {
       height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) => GameIcon('bag', size: size * 0.9));
-  if (g.equip case final e?)
+  if (g.equip case final e?) {
     return EquipIcon(base: e.base, grade: e.grade, size: size);
+  }
   final k = g.key;
   return switch (k) {
     Wallet.gold => img('icon_gold'),
@@ -704,8 +706,9 @@ String giftLabel(AppController c, Map<String, int> gifts,
             '${c.potionName(k.substring(4))} ${e.value}',
           final k when k.startsWith('item:') => () {
               for (final it in ShopItem.values) {
-                if (it.name == k.substring(5))
+                if (it.name == k.substring(5)) {
                   return '${c.itemName(it)} ${e.value}';
+                }
               }
               return k;
             }(),

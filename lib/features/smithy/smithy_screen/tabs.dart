@@ -335,10 +335,10 @@ extension _SmithyTabs on _SmithyScreenState {
             KText(
                 !any
                     ? '입은 장비가 모두 멀쩡해요 · 0이 되면 능력이 절반이에요'
-                    : [
+                    : '${[
                         if (damaged.isNotEmpty) '입은 장비 ${damaged.length}개',
                         if (toolsOk.isNotEmpty) '채집 도구 ${toolsOk.length}개',
-                      ].join(' · ') + '가 닳았어요 · 0이 되면 능력이 절반이에요',
+                      ].join(' · ')}가 닳았어요 · 0이 되면 능력이 절반이에요',
                 style: const TextStyle(
                     color: AppColors.goldBright,
                     fontSize: 13,

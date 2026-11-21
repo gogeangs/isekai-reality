@@ -141,7 +141,7 @@ void main() {
       final c = await startVillage(30, more: {
         'jobs': {'awakened': true, 'main': 'warrior', 'owned': ['warrior'], 'levels': {'ironWall': 1}},
       });
-      final s = JobSkill.ironWall;
+      const s = JobSkill.ironWall;
       final cost = c.skillCost(s), power = c.skillPower(s);
       await c.gainSkillUses({s.name: 300});
       expect(c.skillPower(s), closeTo(power * 1.1, 1e-9));

@@ -343,10 +343,12 @@ class _RecordChoiceScreenState extends State<RecordChoiceScreen> {
   void initState() {
     super.initState();
     c.serverSummary().then((s) {
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _server = s;
         _loading = false;
       });
+      }
     });
   }
 

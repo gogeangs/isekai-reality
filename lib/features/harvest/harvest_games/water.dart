@@ -134,7 +134,7 @@ class _WaterGameState extends State<_WaterGame> {
                 right: 0,
                 top: h * 0.42,
                 height: 3,
-                child: ColoredBox(color: const Color(0x667FD8FF)),
+                child: const ColoredBox(color: Color(0x667FD8FF)),
               ),
               // 찌 (가라앉으면 아래로)
               AnimatedPositioned(

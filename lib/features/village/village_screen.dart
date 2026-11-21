@@ -718,7 +718,7 @@ class _VillageArtState extends State<_VillageArt> {
         : 'assets/images/village_bg.webp';
     Rect r(double x, double y, double w, double h) =>
         Rect.fromLTWH(o.dx + x * s, o.dy + y * s, w * s, h * s);
-    final t = VillageScreen.tower;
+    const t = VillageScreen.tower;
     return Stack(clipBehavior: Clip.hardEdge, children: [
       Positioned.fromRect(
         rect: r(0, 0, art.width, art.height),
@@ -1184,10 +1184,10 @@ class SoftDot extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          color: const Color(0xCCF3D27A),
+        decoration: const BoxDecoration(
+          color: Color(0xCCF3D27A),
           shape: BoxShape.circle,
-          boxShadow: const [BoxShadow(color: Color(0x88F3D27A), blurRadius: 5)],
+          boxShadow: [BoxShadow(color: Color(0x88F3D27A), blurRadius: 5)],
         ),
       );
 }

@@ -141,7 +141,7 @@ class _EndlessDummy extends StatelessWidget {
             duration: const Duration(milliseconds: 380),
             builder: (context, v, _) => ColorFiltered(
               colorFilter: ColorFilter.mode(Colors.white.withValues(alpha: v * 0.55), BlendMode.srcATop),
-              child: GlowBar(ratio: 1, colors: BarColors.exp, height: 11),
+              child: const GlowBar(ratio: 1, colors: BarColors.exp, height: 11),
             ),
           ),
         ],

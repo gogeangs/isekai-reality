@@ -387,8 +387,8 @@ class _MarketScreenState extends State<MarketScreen> {
           Text('금화 ${comma(l.price ?? 0)}에 살까요?', style: const TextStyle(color: AppColors.text, fontSize: 15)),
           const SizedBox(height: 6),
           Text(price, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          Text('거래 지갑 금화로 사요 · 산 물건은 바르칸 우편으로 와요',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const Text('거래 지갑 금화로 사요 · 산 물건은 바르칸 우편으로 와요',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('그만두기')),

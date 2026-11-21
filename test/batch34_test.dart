@@ -105,7 +105,7 @@ void main() {
     });
 
     test('잿빛 틈 자리: 300~800m, 하루 고정', () {
-      final area = AnsanArea.area;
+      const area = AnsanArea.area;
       final a = Act2Rules.riftSpot(area, dayKey: '2026-11-15', anchor: home, avatar: 0);
       final b = Act2Rules.riftSpot(area, dayKey: '2026-11-15', anchor: home, avatar: 0);
       final next = Act2Rules.riftSpot(area, dayKey: '2026-11-16', anchor: home, avatar: 0);
@@ -126,7 +126,7 @@ void main() {
         );
 
     test('겁주기: 한 턴 동안 스킬 버튼이 잠긴다', () {
-      final b = make(Foe(
+      final b = make(const Foe(
           monster: MonsterId.ashFear,
           maxHp: 1000000,
           attack: 1,
@@ -147,7 +147,7 @@ void main() {
     });
 
     test('고립: 그동안 펫 게이지가 멈춘다', () {
-      final b = make(Foe(
+      final b = make(const Foe(
           monster: MonsterId.ashLonely,
           maxHp: 1000000,
           attack: 1,
@@ -162,7 +162,7 @@ void main() {
     });
 
     test('빼앗기: 좋은 효과를 빼앗고 세진다', () {
-      final b = make(Foe(
+      final b = make(const Foe(
           monster: MonsterId.ashGreed,
           maxHp: 1000000,
           attack: 1,
@@ -177,7 +177,7 @@ void main() {
     });
 
     test('눈물비: 그사이 스스로 회복', () {
-      final b = make(Foe(
+      final b = make(const Foe(
           monster: MonsterId.ashSorrow,
           maxHp: 1000000,
           attack: 1,
@@ -189,7 +189,7 @@ void main() {
     });
 
     test('분노 폭발: 체력이 줄면 문장이 나온다', () {
-      final b = make(Foe(
+      final b = make(const Foe(
           monster: MonsterId.ashRage,
           maxHp: 1000000,
           attack: 1,

@@ -2,7 +2,6 @@
 // 작은 iPhone(SE) · 큰 iPhone · Android
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ui' as ui;
 

@@ -168,7 +168,7 @@ void main() {
       final b = Battle(
         playerMaxHp: 100000,
         playerAttack: 30,
-        floors: [Foe(monster: MonsterId.ashSlime, maxHp: 100000, attack: 1)],
+        floors: [const Foe(monster: MonsterId.ashSlime, maxHp: 100000, attack: 1)],
         rng: math.Random(3),
       );
       await _page(

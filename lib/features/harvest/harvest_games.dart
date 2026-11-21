@@ -309,20 +309,20 @@ class _HarvestGameScreenState extends State<HarvestGameScreen> {
                 fit: BoxFit.cover,
                 fallback: _img(_bgFallback(widget.kind), fit: BoxFit.cover)),
           ),
-          Positioned.fill(
+          const Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: const [
+                    colors: [
                       Color(0x88070818),
                       Color(0x22070818),
                       Color(0x33070818),
                       Color(0x99070818),
                     ],
-                    stops: const [0, 0.25, 0.6, 1],
+                    stops: [0, 0.25, 0.6, 1],
                   ),
                 ),
               ),

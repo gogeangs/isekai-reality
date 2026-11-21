@@ -136,15 +136,15 @@ void main() {
 
   group('#221 만들기', () {
     test('비교 한 줄: 좋아지면 ▲, 나빠지면 ▼, 숫자는 실제 값', () {
-      final worn = EquipItem(uid: 'x', base: EquipBase.dagger, grade: EquipGrade.white);
+      const worn = EquipItem(uid: 'x', base: EquipBase.dagger, grade: EquipGrade.white);
       // 같은 장비 흰색 +0 → 차이 없음
       expect(EquipmentRules.compareWith(EquipBase.dagger, worn), isEmpty);
-      final strong = EquipItem(
+      const strong = EquipItem(
           uid: 'y', base: EquipBase.dagger, grade: EquipGrade.green, enhance: 2);
       final lines = EquipmentRules.compareWith(EquipBase.dagger, strong);
       expect(lines.first.$1, isFalse);
       expect(lines.first.$2, startsWith('공격 -'));
-      final weak = EquipItem(
+      const weak = EquipItem(
           uid: 'z', base: EquipBase.staff, grade: EquipGrade.white);
       final up = EquipmentRules.compareWith(EquipBase.ironSword, weak);
       expect(up, isNotEmpty);

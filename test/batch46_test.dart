@@ -43,7 +43,7 @@ void main() {
           forceRare: false);
       expect(no.containsKey(MaterialId.riverPearl), isFalse);
     }
-    final w = HarvestRules.flowerWindMs;
+    const w = HarvestRules.flowerWindMs;
     expect(w.reduce((a, b) => a + b) / w.length, 1300);
     expect(HarvestRules.waterRareChance(3), greaterThan(HarvestRules.waterRareChance(0)));
     // 예전 기록은 그대로 읽고, 새 칸은 비어 있음

@@ -681,7 +681,8 @@ extension Act3Ops on AppController {
           lampNow = l;
         }
         // 장소·퀘스트 진행 (발드린)
-        if (reg == null) switch (e.kind) {
+        if (reg == null) {
+          switch (e.kind) {
           case A3Kind.field:
             if (e.place == 'baldrin_ashplain') _sideStep(SideQuest.beacon, lines, '봉화대에 다시 불을 붙였어요');
             if (e.place == 'baldrin_wallroad') _sideStep(SideQuest.roster, lines, '무너진 돌 틈에서 신병 이름표를 찾았어요');
@@ -729,6 +730,7 @@ extension Act3Ops on AppController {
             }
           case A3Kind.floor || A3Kind.event:
             break;
+        }
         }
         if (tickets > 0) _act3 = _act3.copyWith(tickets: _act3.tickets + tickets);
         await _saveAct3();

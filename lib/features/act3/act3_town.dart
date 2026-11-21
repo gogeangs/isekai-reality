@@ -143,8 +143,8 @@ class TownScreen extends StatelessWidget {
             const SizedBox(height: 8),
             KText('할 일 · ${offer.task}',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-            Text('보상 · 모집권 ${BaldrinRules.sideTickets} · 금화 ${BaldrinRules.sideGold}',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            const Text('보상 · 모집권 ${BaldrinRules.sideTickets} · 금화 ${BaldrinRules.sideGold}',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
           ]),
           actions: [
             TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('나중에')),

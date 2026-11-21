@@ -242,16 +242,16 @@ class _FriendTourOverlayState extends State<FriendTourOverlay> {
                 right: 14,
                 bottom: pad.bottom + 60,
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  IgnorePointer(
+                  const IgnorePointer(
                     child: CodeBubble(
                       side: BubbleSide.left,
                       at: 18,
-                      padding: const EdgeInsets.fromLTRB(12, 8, 14, 9),
+                      padding: EdgeInsets.fromLTRB(12, 8, 14, 9),
                       child: KText(
                           '여기가 친구 화면이야! 초대 링크를 보내거나 친구 코드를 나눠 봐. '
                           '초대한 친구가 자라면 둘 다 선물을 받아.',
-                          key: const Key('friendTourLine'),
-                          style: const TextStyle(
+                          key: Key('friendTourLine'),
+                          style: TextStyle(
                               color: Color(0xFF3A2614), fontSize: 14, height: 1.4, fontWeight: FontWeight.w600)),
                     ),
                   ),

@@ -170,12 +170,12 @@ class CodeBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = tail;
+    const t = tail;
     final inset = switch (side) {
-      BubbleSide.left => EdgeInsets.only(left: t),
-      BubbleSide.right => EdgeInsets.only(right: t),
-      BubbleSide.up => EdgeInsets.only(top: t),
-      BubbleSide.down => EdgeInsets.only(bottom: t),
+      BubbleSide.left => const EdgeInsets.only(left: t),
+      BubbleSide.right => const EdgeInsets.only(right: t),
+      BubbleSide.up => const EdgeInsets.only(top: t),
+      BubbleSide.down => const EdgeInsets.only(bottom: t),
     };
     return ConstrainedBox(
       constraints: BoxConstraints(minWidth: minWidth + t, minHeight: 44),
@@ -1257,12 +1257,12 @@ ButtonStyle dangerButtonStyle() => gameButtonStyle(gold: false).copyWith(
     );
 
 /// 취소: 작은 글자 버튼
-ButtonStyle smallButtonStyle() => ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size(64, 36)),
+ButtonStyle smallButtonStyle() => const ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size(64, 36)),
       // 묶음 71: 금빛 버튼과 같은 제목 글꼴 (글꼴을 비워 두면 버튼마다 다른 글꼴로 나옴)
-      textStyle: const WidgetStatePropertyAll(
+      textStyle: WidgetStatePropertyAll(
           TextStyle(fontFamily: 'Title', fontSize: 14, fontWeight: FontWeight.w700)),
-      foregroundColor: const WidgetStatePropertyAll(AppColors.textMuted),
+      foregroundColor: WidgetStatePropertyAll(AppColors.textMuted),
     );
 
 /// 금테 공용 팝업 (11-11 #72). AlertDialog 와 같은 모양으로 쓴다.

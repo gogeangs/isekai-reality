@@ -268,7 +268,7 @@ class _ErbardScreenState extends State<ErbardScreen> {
       final royal = ErbardRules.estate('royal')!;
       final dx = -(w - box.maxWidth) / 2;
       final dy = -(royal.y * s - box.maxHeight * 0.55).clamp(0.0, (h - box.maxHeight).clamp(0.0, double.infinity));
-      _tc.value = Matrix4.identity()..translate(dx, dy);
+      _tc.value = Matrix4.identity()..translateByDouble(dx, dy, 0, 1);
     }
     final icon = 64 * s * 3.2;
     return InteractiveViewer(

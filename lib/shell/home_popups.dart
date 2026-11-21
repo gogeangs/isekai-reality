@@ -343,9 +343,10 @@ extension _ShellPopups on _HomeShellState {
     // 묶음 61: 가짜 위치 띠 (한 번)
     if (c.takeMockBanner()) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted)
+        if (mounted) {
           showTopNoticeQueued(context, FairOps.mockLine,
               icon: Icons.location_off_rounded);
+        }
       });
     }
     final find = c.takeJobFind();
@@ -374,8 +375,9 @@ extension _ShellPopups on _HomeShellState {
     final trained = c.takePetTrainedNotice();
     if (trained != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted)
+        if (mounted) {
           showTopNoticeQueued(context, '${josa(trained, '이/가')} 훈련을 마쳤어요');
+        }
       });
     }
     // 묶음 45 #231·#232: 마을 사람 작은 부탁 · 특별한 부탁 다음 단계 (위쪽 띠 한 번)
@@ -466,8 +468,9 @@ extension _ShellPopups on _HomeShellState {
   /// 묶음 57: 초대 링크로 열렸으면 「파티에 들어갈까요?」
   void _maybeShowInvite() {
     final c = widget.controller;
-    if (!_popupBusy && !c.inTutorial && c.pendingGuildInvite != null)
+    if (!_popupBusy && !c.inTutorial && c.pendingGuildInvite != null) {
       return _guildInvite();
+    }
     if (_popupBusy || c.inTutorial || c.pendingInvite == null) return;
     final code = c.takeInvite()!;
     _walkShowing = true;
@@ -737,8 +740,9 @@ extension _ShellPopups on _HomeShellState {
       case NotifyTarget.expedition:
         _set(() => _openTab(_HomeShellState.tMap));
         await c.refreshVitals();
-        if (mounted && c.finishedExpeditions.isNotEmpty)
+        if (mounted && c.finishedExpeditions.isNotEmpty) {
           await _showResultsNow();
+        }
       case NotifyTarget.status:
         _set(() => _openTab(_HomeShellState.tStatus));
       case NotifyTarget.bag:

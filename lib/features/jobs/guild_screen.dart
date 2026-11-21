@@ -234,19 +234,7 @@ class _GuildScreenState extends State<GuildScreen> {
                       ),
                     ]),
                     const SizedBox(height: 6),
-                    // 묶음 78 #359: 다른 시설처럼 길드 그림 띠 + 마을 사람 머리줄(세라)
-                    ClipRRect(
-                      key: const Key('guildHall'),
-                      borderRadius: BorderRadius.circular(14),
-                      child: SizedBox(
-                        height: 64,
-                        child: Image.asset('assets/images/guild_hall.webp',
-                            fit: BoxFit.cover,
-                            alignment: const Alignment(0, -0.1),
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
+                    // 묶음 80 #366: 다른 시설처럼 위 줄 → 마을 사람 머리줄(세라) (그림 띠 없음)
                     NpcHeader(
                       key: const Key('guildSeraLine'),
                       controller: c,

@@ -95,6 +95,7 @@ Future<void> _page(WidgetTester tester, Widget home) async {
   await tester.pumpWidget(RepaintBoundary(
     key: _root,
     child: MaterialApp(
+        key: UniqueKey(),
         debugShowCheckedModeBanner: false,
         theme: ThemeData(brightness: Brightness.dark, fontFamily: 'Roboto'),
         builder: (context, child) => TopNoticeHost(child: child!),
@@ -198,7 +199,6 @@ void main() {
         await _settle(tester, 4);
         await _shot(tester, '${n}_$name');
       }
-      await tester.tap(find.byKey(const Key('open')), warnIfMissed: false);
       await _page(tester, KeyedSubtree(key: ValueKey('o4$n'), child: _opener((ctx) => showBagEntry(ctx, c, const EggEntry(free)))));
       await tester.tap(find.byKey(const Key('open')));
       await _settle(tester, 4);
@@ -270,16 +270,20 @@ void main() {
               builder: (context, child) => TopNoticeHost(child: child!),
               home: Scaffold(body: VillageScreen(controller: c))),
         ));
-        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 100));
         final tag = king ? '본체뒤_만남전' : '본체전';
-        for (final (i, key) in [(0, 'locked_tavern'), (1, 'tag_market')]) {
-          final f = find.byKey(Key(key));
-          if (f.evaluate().isEmpty) continue;
-          await tester.tap(f, warnIfMissed: false);
-          await tester.pump(const Duration(milliseconds: 300));
-          await _shot(tester, '${n}_4$k${i}_마을_${key == 'tag_market' ? '거래소' : '주점'}_$tag');
-          await tester.pump(const Duration(seconds: 4));
+        Future<void> tapShot(String key, String name) async {
+          await tester.tap(find.byKey(Key(key)), warnIfMissed: false);
+          await tester.pump(const Duration(milliseconds: 200));
+          await _shot(tester, '${n}_4${k}_${name}_$tag');
+          await tester.pump(const Duration(milliseconds: 200));
         }
+
+        // 거래소 (처음 화면에 보임) → 마을을 오른쪽으로 끌어 왼쪽 위 주점 자리
+        await tapShot('tag_market', '1_마을_거래소');
+        await tester.drag(find.byKey(const Key('villageScroll')), const Offset(260, 0), warnIfMissed: false);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tapShot('locked_tavern', '0_마을_주점');
         await tester.pumpWidget(const SizedBox());
         await tester.pump(const Duration(seconds: 9));
       }

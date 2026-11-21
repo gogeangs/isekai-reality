@@ -30,6 +30,10 @@ import 'package:isekai_reality/features/tutorial/feature_tour.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
 import 'package:isekai_reality/features/village/village_screen.dart';
 import 'support/npc_seed.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
+import 'package:isekai_reality/data/storage/record_store.dart' show InMemoryRecordStore;
+import 'package:isekai_reality/features/alchemy/alchemy_screen.dart';
+import 'package:isekai_reality/features/pets/egg_news.dart';
 import 'package:isekai_reality/theme/app_colors.dart';
 
 import 'batch52_test.dart' as b52;
@@ -182,7 +186,7 @@ void main() {
       _device(tester, d);
       late AppController c;
       await tester.runAsync(() async => c = await startVillage(18, farewell: true, more: {
-            'jobs': {..._jobs('warrior'), 'learned': {'cleave': 1, 'ironWall': 2}},
+            'jobs': {..._jobs('warrior'), 'v31': true, 'learned': {'cleave': 1, 'ironWall': 2}},
             'mastery': {'big': {'combat': 150.0, 'walk': 50.0}},
           }));
       await _page(tester, SkillScreen(key: ObjectKey('s1$n'), controller: c));
@@ -222,7 +226,7 @@ void main() {
       _device(tester, d);
       late AppController c;
       await tester.runAsync(() async => c = await startVillage(18, farewell: true, more: {
-            'jobs': {..._jobs('warrior'), 'learned': {'cleave': 3, 'ironWall': 1}},
+            'jobs': {..._jobs('warrior'), 'v31': true, 'learned': {'cleave': 3, 'ironWall': 1}},
             'mastery': {'big': {'combat': 150.0, 'walk': 50.0, 'smith': 320.0, 'harvest': 12.0}},
           }));
       await _page(tester, SkillScreen(key: ObjectKey('s2$n'), controller: c, tab: 1));
@@ -248,6 +252,99 @@ void main() {
       await tester.ensureVisible(find.byKey(const Key('masteryDetail_combat')));
       await _settle(tester, 2);
       await _shot(tester, '${n}_21_숙련_숙련된펼침');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets('b78 $n: 3 조합 · 원정 · 알 · 레시피 · 게시판', (tester) async {
+      _device(tester, d);
+      late AppController c;
+      // 조합 Lv.17 세라 · 지금 내 직업
+      await tester.runAsync(() async => c = await startVillage(17, farewell: true, more: {'jobs': _jobs('warrior')}));
+      await _page(tester, GuildScreen(key: ObjectKey('g1$n'), controller: c));
+      await _shot(tester, '${n}_30_조합_세라머리줄_지금내직업');
+      await tester.runAsync(() async => c = await startVillage(22, farewell: true, more: {'jobs': _jobs('warrior', subs: ['mage'])}));
+      await _page(tester, GuildScreen(key: ObjectKey('g2$n'), controller: c));
+      await _shot(tester, '${n}_31_조합_Lv20_세라');
+      // 원정 3마리
+      await tester.runAsync(() async {
+        c = await startVillage(14, farewell: true);
+        final now = b56.now;
+        await (c.store as InMemoryRecordStore).saveVitals(Vitals(expeditions: [
+          for (var i = 0; i < 3; i++)
+            Expedition(
+              spawnId: 'x$i',
+              monster: MonsterId.giantRat.name,
+              lat: 37.5 + i * 0.001,
+              lng: 127.0,
+              distanceM: 300.0 + i * 100,
+              mpCost: 6,
+              startedAt: now.subtract(Duration(minutes: 10 + i * 3)),
+              arriveAt: now.add(Duration(minutes: i * 4 - 2)),
+              returnAt: now.add(Duration(minutes: 12 + i * 6)),
+              petName: ['부엉', '토토', '모모'][i],
+            ),
+        ]));
+        c = (await b56.start(login: false, store: c.store as dynamic)).$1;
+      });
+      await _page(tester, Scaffold(body: MapScreen(key: ObjectKey('m$n'), controller: c)));
+      await _settle(tester, 3);
+      await _shot(tester, '${n}_40_지도_원정접힘');
+      final strip = find.byKey(const Key('expeditionStrip'));
+      if (strip.evaluate().isNotEmpty) {
+        await tester.tap(strip);
+        await _settle(tester, 3);
+        await _shot(tester, '${n}_41_지도_원정펼침');
+      }
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      // 알 얻음 창
+      await _page(
+          tester,
+          Builder(
+              builder: (context) => Scaffold(
+                  body: Center(
+                      child: TextButton(
+                          key: const Key('openEgg'),
+                          onPressed: () => showEggGotDialog(context, c, EggGrade.rare),
+                          child: const Text('열기'))))));
+      await tester.tap(find.byKey(const Key('openEgg')));
+      await _settle(tester, 8);
+      await _shot(tester, '${n}_50_알얻음창_등급이름');
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      // 레시피 카드
+      await tester.runAsync(() async => c = await startVillage(16, farewell: true, more: {
+            'jobs': _jobs('alchemist'),
+            'alchemy': {
+              'discovered': ['healSmall', 'manaSmall', 'heal', 'antidote'],
+              'noted': ['burnSalve', 'clearEye'],
+              'cauldrons': 2,
+            },
+          }, gains: {MaterialId.herb.name: 6, MaterialId.slimeJelly.name: 4, 'gold': 2000}));
+      await _page(tester, AlchemyScreen(key: ObjectKey('al$n'), controller: c));
+      final open = find.byKey(const Key('recipeOpen'));
+      if (open.evaluate().isNotEmpty) {
+        await tester.ensureVisible(open);
+        await tester.tap(open);
+        await _settle(tester, 6);
+        await _shot(tester, '${n}_60_레시피카드');
+      }
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
+      // 게시판
+      await tester.runAsync(() async => c = await startNpc(level: 14));
+      await _page(tester, BoardScreen(key: ObjectKey('bd$n'), controller: c));
+      await tester.tap(find.byKey(const Key('boardTab_today')));
+      await _settle(tester, 5);
+      await _shot(tester, '${n}_70_게시판_오늘');
+      for (final (i, t) in [(1, 'weekly'), (2, 'errand'), (3, 'npc')]) {
+        final tab = find.byKey(Key('boardTab_$t'));
+        if (tab.evaluate().isEmpty) continue;
+        await tester.tap(tab);
+        await _settle(tester, 5);
+        await _shot(tester, '${n}_7${i}_게시판_$t');
+      }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 5));
     });

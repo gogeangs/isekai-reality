@@ -42,7 +42,7 @@ void main() {
       expect(EggGrade.ofKey('egg:legend'), EggGrade.legend);
       expect(EggGrade.ofKey('egg:nope'), isNull);
       expect(EggGrade.hero.key, 'egg:hero');
-      expect([for (final g in EggGrade.values) g.price], [150, 500, 1500, 4000]);
+      expect([for (final g in EggGrade.values) g.price], [80, 250, 700, 2000]); // 묶음 80 #365
     });
 
     test('알은 저장될 때 등급을 함께 남김', () {

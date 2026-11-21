@@ -68,7 +68,7 @@ class MapScreen extends StatefulWidget {
   static const double expStripH = 44;
 
   /// 펼친 원정 카드 하나의 높이
-  static const double expCardH = 86;
+  static const double expCardH = 68;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -138,9 +138,12 @@ class _MapScreenState extends State<MapScreen> {
     // 아래에서부터 쌓이는 것들: 던전 띠 → 원정 띠(펼치면 카드) → 몬스터·발견 카드
     final expH = !away
         ? 0.0
-        : _expOpen && actives.isNotEmpty
-            ? MapScreen.expCardH * actives.length + 8
+        : _expOpen && actives.isNotEmpty && returned.isEmpty
+            ? math.min(MapScreen.expStripH + 4 + MapScreen.expCardH * actives.length,
+                MediaQuery.sizeOf(context).height * 0.5)
             : MapScreen.expStripH;
+    // 묶음 78 #360: 원정 목록을 펼친 동안 (뒤 지도 어둡게 · 돋보기 · 칩은 숨김)
+    final expOpen = _expOpen && actives.isNotEmpty && returned.isEmpty;
     const expBottom = MapScreen.stripH + 2;
     final cardBottom = expBottom + (away ? expH + 6 : 0);
     final card = controller.lastDiscovery != null || spawn != null;
@@ -201,6 +204,14 @@ class _MapScreenState extends State<MapScreen> {
             top: top + 62,
             child: _JobMapButton(controller: controller),
           ),
+        if (expOpen)
+          Positioned.fill(
+            child: GestureDetector(
+              key: const Key('expeditionBackdrop'),
+              onTap: _closeExp,
+              child: const ColoredBox(color: Color(0x77000000)),
+            ),
+          ),
         if (away)
           Positioned(
             left: 12,
@@ -239,7 +250,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         // 묶음 19 #154: 돋보기 (Lv.6부터, 내 위치 버튼 반대편 오른쪽 아래)
-        if (!tut && controller.featureOpen(Feature.lens))
+        if (!tut && !expOpen && controller.featureOpen(Feature.lens))
           Positioned(
             right: 12,
             bottom: (card ? cardBottom + 150 : cardBottom) + 8,
@@ -249,7 +260,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         // 묶음 52 #243: 3막 「여정」 (돋보기 위)
-        if (!tut && controller.act3Available)
+        if (!tut && !expOpen && controller.act3Available)
           Positioned(
             right: 12,
             bottom: (card ? cardBottom + 150 : cardBottom) +
@@ -258,7 +269,7 @@ class _MapScreenState extends State<MapScreen> {
             child: _JourneyButton(controller: controller),
           ),
         // 묶음 66 #267: 몬스터가 바뀌기까지 (던전 띠 바로 위 왼쪽 작은 줄)
-        if (!tut)
+        if (!tut && !expOpen)
           Positioned(
             left: 12,
             bottom: (away ? cardBottom - 6 : MapScreen.stripH) + (card ? 150 : 0) + 2,

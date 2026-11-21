@@ -2,7 +2,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart' hide Element;
@@ -11,30 +10,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
-import 'package:isekai_reality/data/storage/record_store.dart' show HeroLook, SpiritKind;
-import 'package:isekai_reality/features/battle/battle_view.dart';
-import 'package:isekai_reality/features/battle/hero_rig.dart' show WeaponKind;
-import 'package:isekai_reality/features/bulssi/bulssi_mood.dart';
-import 'package:isekai_reality/features/status/status_screen.dart';
 import 'package:isekai_reality/features/jobs/guild_screen.dart';
 import 'package:isekai_reality/features/jobs/skill_screen.dart';
-import 'package:isekai_reality/theme/ornaments.dart';
 import 'package:isekai_reality/theme/top_notice.dart';
-import 'package:isekai_reality/core/models/armory.dart';
-import 'package:isekai_reality/features/codex/codex_screen.dart';
 import 'package:isekai_reality/features/map/map_screen.dart';
-import 'package:isekai_reality/features/profile/title_celebration.dart';
-import 'package:isekai_reality/features/smithy/equipment_view.dart';
-import 'package:isekai_reality/features/status/status_cards.dart';
-import 'package:isekai_reality/features/tutorial/feature_tour.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
-import 'package:isekai_reality/features/village/village_screen.dart';
 import 'support/npc_seed.dart';
 import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/data/storage/record_store.dart' show InMemoryRecordStore;
 import 'package:isekai_reality/features/alchemy/alchemy_screen.dart';
 import 'package:isekai_reality/features/pets/egg_news.dart';
-import 'package:isekai_reality/theme/app_colors.dart';
 
 import 'batch52_test.dart' as b52;
 import 'batch56_test.dart' as b56;
@@ -132,46 +117,8 @@ Future<void> _page(WidgetTester tester, Widget home) async {
   await _settle(tester);
 }
 
-Future<bool> _until(WidgetTester tester, Finder f, {int max = 150}) async {
-  for (var i = 0; i < max; i++) {
-    if (f.evaluate().isNotEmpty) return true;
-    await tester.pump(const Duration(milliseconds: 20));
-  }
-  return false;
-}
-
 Map<String, dynamic> _jobs(String main, {List<String> subs = const []}) =>
     {'awakened': true, 'v57': true, 'main': main, 'owned': [main, ...subs], 'subs': subs};
-
-Widget _battle(Battle b, {String? job, HeroLook look = HeroLook.male, WeaponKind? weapon, Duration tick = const Duration(milliseconds: 900)}) =>
-    BulssiScope(
-      key: UniqueKey(),
-      mood: BulssiMood.gold,
-      spiritName: '불씨',
-      kind: SpiritKind.fire,
-      child: Scaffold(
-          body: SafeArea(
-              child: Column(children: [
-        Expanded(
-            child: BattleView(
-                battle: b,
-                fit: true,
-                look: look,
-                heroJob: job,
-                weapon: weapon,
-                onFinished: () {},
-                tickInterval: tick)),
-      ]))),
-    );
-
-Battle _b({MonsterId m = MonsterId.ashSlime, int hp = 1000000, bool boss = false, bool skills = false}) => Battle(
-      playerMaxHp: 100000,
-      playerAttack: 30,
-      floors: [Foe(monster: m, maxHp: hp, attack: boss ? 20 : 1)],
-      rng: math.Random(3),
-      telegraphs: boss,
-      heroSkills: skills,
-    );
 
 
 

@@ -36,8 +36,6 @@ class RouteTiles {
   /// 조각 이름 "행_열"
   static String keyOf(int tileRow, int tileCol) => '${tileRow}_$tileCol';
 
-  static (int, int) tileOfCell(int row, int col) =>
-      (row ~/ cells, col ~/ cells);
 }
 
 /// 받아 둔 조각에서 칸 값을 읽는다. 없는 조각의 칸은 0 (길 없음).

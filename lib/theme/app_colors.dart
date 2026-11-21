@@ -5,8 +5,6 @@ class AppColors {
   AppColors._();
 
   static const Color night = Color(0xFF141B3A);
-  static const Color dusk = Color(0xFF2B2459);
-  static const Color duskPink = Color(0xFF5A3F7A);
   static const Color panel = Color(0xCC1A1F45);
   static const Color panelBorder = Color(0xFFC9A85A);
   static const Color gold = Color(0xFFE8C66A);

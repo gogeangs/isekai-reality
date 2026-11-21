@@ -41,7 +41,6 @@ class WalkRewardRules {
 
   /// 그날 1만2천 · 1만5천 · 2만 보 → 동 · 은 · 금
   static const List<int> chestSteps = [12000, 15000, 20000];
-  static const List<String> chestNames = ['동빛 걸음 상자', '은빛 걸음 상자', '금빛 걸음 상자'];
   static const List<String> chestArt = [
     'assets/images/chest_partyBronze.webp',
     'assets/images/chest_partySilver.webp',

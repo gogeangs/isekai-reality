@@ -45,8 +45,6 @@ class TavernRules {
   // ───────────── 주점 기능
 
   static const String partyName = '파티';
-  static const String partySoon = '준비 중';
-  static const String partyLine = '같이 걸을 사람을 찾는 창구예요. 각성자들이 더 모이면 바로 열게요.';
 
   /// 한 끼 식사 (하루 한 번, 그날 자정까지 걸을 때만)
   static const List<MealInfo> meals = [

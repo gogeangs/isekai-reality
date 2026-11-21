@@ -14,8 +14,6 @@ class ChatRules {
   static const int inviteMax = 5;
   static const int inviteTitleN = 3;
 
-  /// 「세계」 방 이름
-  static const String worldName = '세계';
   static const String worldTitle = '세계 · 모든 각성자';
   static const Duration gap = Duration(seconds: 10);
   static const int maxFriends = 50;

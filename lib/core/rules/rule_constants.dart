@@ -14,7 +14,6 @@ class RuleConstants {
 
   // ---------------------------------------------------------------- 걸음 목표
   static const int defaultStepGoal = 3000; // 모두 같은 목표 (2026-11-09: 적게 걷는 사람도 충분히 즐기도록)
-  static const List<int> stepGoalPresets = [3000, 5000, 8000];
   static const int minStepGoal = 3000;
   static const int maxStepGoal = 10000;
 
@@ -36,7 +35,6 @@ class RuleConstants {
   static const int dungeonClearExp = 50;
   static const int dungeonFailExp = 10;
   static const double gateBonusMultiplier = 1.5;
-
 
   static const int fieldMonsterExp = 15;
   /// 하루 사냥 보상이 그대로인 마리 수 (11-11 #69: 그 뒤에도 사냥은 되고 보상만 줄어든다)
@@ -73,16 +71,11 @@ class RuleConstants {
   /// 일일 퀘스트 3개를 모두 마친 날의 추가 경험치 (11-10 결정)
   static const int questAllBonusExp = 30;
 
-  /// 일일 퀘스트 '새 안개 N칸 걷기'
-  static const int questNewCells = 20;
-
   // ---------------------------------------------------------------- 스탯
   static const int statStartValue = 10;
-  static const int vitalityStepsPerPoint = 30000; // 체력: 누적 걸음
   // 민첩: 걸음 목표 달성한 날 +1
   // 지력: 도감에 새 몬스터 +1, 새 장소(미궁 입구·물가)를 처음 발견 +1 (2026-11-10)
   // 정신: 7일 연속 접속할 때마다 +1, 여관 휴식을 마친 날 +1 (2026-11-10)
-  static const int spiritLoginStreakDays = 7;
 
   // ---------------------------------------------------------------- 전투
   // 자동 전투: 1틱(약 1초)마다 서로 한 번씩 공격한다.
@@ -104,9 +97,6 @@ class RuleConstants {
   /// 스킬 '불씨의 일격': 5틱마다 충전, 공격력 4배
   static const int skillChargeTicks = 5;
   static const int skillDamageMultiplier = 4;
-
-  /// 공격력 = 전투력 ÷ 4
-  static const int attackDivisor = 4;
 
   /// 필드 몬스터: 지역을 이 크기(미터) 블록으로 나눠 블록마다 하루 한 마리,
   /// 블록에 몬스터가 나올 확률, 만나는 거리(미터)
@@ -130,7 +120,6 @@ class RuleConstants {
   static const int firstStepsThreshold = 1000;
   static const int persistentTravelerDays = 7;
   static const int morningSpiritDays = 7; // 여관 휴식 7일 연속
-  static const int codexSageSpecies = 6; // 도감의 현자: 몬스터 6종 모두
   static const int forcedMarchSteps = 15000;
   static const int nightWalkSteps = 3000; // 저녁 8시 이후
   static const int nightWalkDays = 5;
@@ -140,13 +129,11 @@ class RuleConstants {
   // 탐험 칭호
   static const int gateKeeperGates = 5; // 서로 다른 미궁 입구 5곳
   static const int lakeFriendVisits = 5; // 정령의 호수 서로 다른 날 5번
-  static const int brightTownCells = 300; // 안개 300칸 (100m 칸, 약 3km²)
 
   /// 칭호 '동네의 빛': 필드 몬스터 누적 정화 수 (11-10, 안개를 없애며 바꿈)
   static const int townLightMonsters = 30;
 
   // ---------------------------------------------------------------- 직업 각성
-  static const int jobAwakeningDay = 7;
 
   // ───────────────────────── 앱 안 시설 (여관 · 잡화상)
 
@@ -202,5 +189,4 @@ class RuleConstants {
   static const int potionSkillChargeTicks = 3;
 
   /// 마법 돋보기로 안개를 걷는 반경 (m)
-  static const double lensRadiusM = 150;
 }

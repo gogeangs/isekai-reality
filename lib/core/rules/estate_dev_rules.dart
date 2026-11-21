@@ -45,16 +45,6 @@ class EstateDevRules {
         Province.fire => 'fire',
       };
 
-  /// 특산 시설 → 특산물
-  static MaterialId? specialty(String fac) => switch (fac) {
-        'light' => MaterialId.lightRelic,
-        'metal' => MaterialId.metalOre,
-        'earth' => MaterialId.earthWood,
-        'dark' => MaterialId.darkCrystal,
-        'fire' => MaterialId.fireStone,
-        _ => null,
-      };
-
   static const List<MaterialId> specialties = [
     MaterialId.lightRelic,
     MaterialId.metalOre,

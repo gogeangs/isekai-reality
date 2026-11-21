@@ -255,7 +255,6 @@ abstract final class RegionRules {
   /// 묶음 58: 다섯 불씨 (지역 수)
   static const int embersNeed = 5;
   static const int sideGold = 100;
-  static const int matsEach = 2;
 
   /// 보스 세기 (발드린보다 지역마다 조금씩 더)
   static double hpScale(Region r) => 1 + 0.08 * r.index;

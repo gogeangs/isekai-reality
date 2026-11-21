@@ -210,8 +210,6 @@ class HarvestRules {
   static const double stillSpeedMps = 2 / 3.6;
   static const Duration stillFor = Duration(seconds: 10);
 
-  /// 물가: 호수 근처가 아니면 칸의 10%가 작은 샘
-  static const double springShare = 0.10;
   static const double lakeNearM = 500;
 
   static const List<HarvestKindInfo> all = [

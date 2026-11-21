@@ -31,14 +31,6 @@ class VitalRules {
     );
   }
 
-  /// MP가 가득 찰 때까지 남은 시간
-  static Duration mpFullIn(int mp,
-      {int max = RuleConstants.mpMax, num perHour = RuleConstants.mpRegenPerHour}) {
-    final missing = max - mp;
-    if (missing <= 0) return Duration.zero;
-    return Duration(minutes: (missing * 60 / perHour).ceil());
-  }
-
   /// 묶음 66 #270: 레벨마다 최대 기력 +2 (펫 보너스는 따로 더함)
   static int levelMp(int level) => RuleConstants.mpMax + 2 * (level < 1 ? 0 : level - 1);
 

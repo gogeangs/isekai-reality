@@ -148,28 +148,6 @@ class SmallNote extends StatelessWidget {
       );
 }
 
-// ignore: unused_element
-class _TakeRibbon extends StatelessWidget {
-  const _TakeRibbon();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          gradient: kGoldGradient,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [
-            BoxShadow(color: Color(0x88000000), blurRadius: 4, offset: Offset(0, 2)),
-          ],
-        ),
-        child: const Text('받기!',
-            style: TextStyle(
-                color: Color(0xFF3A2614),
-                fontSize: 12,
-                fontWeight: FontWeight.w900)),
-      );
-}
-
 /// 끝낸 쪽지: 「완료」 인장이 찍히고 떼어지듯 사라진다 (한 번)
 class VanishingNote extends StatefulWidget {
   const VanishingNote({super.key, required this.id, required this.child});

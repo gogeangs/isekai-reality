@@ -30,8 +30,6 @@ class MonGearRules {
 
   static EquipBase? gearOf(MonsterId m) => byMonster[m];
 
-  static bool isMonGear(EquipBase b) => byMonster.containsValue(b);
-
   static MonsterId? monsterOf(EquipBase b) {
     for (final e in byMonster.entries) {
       if (e.value == b) return e.key;

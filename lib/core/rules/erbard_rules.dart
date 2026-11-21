@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 
 import 'guild_rules.dart' show Act4Scene, GuildRules;
 import 'job_rules.dart' show JobId;
@@ -61,7 +60,6 @@ abstract final class ErbardRules {
   static const String arriveImage = 'assets/images/scene_erbard_arrive.webp';
   static const String siegeBg = 'assets/images/bg_siege.webp';
   static const String ticketImage = 'assets/images/item_siegeTicket.webp';
-  static const String royalChest = 'assets/images/chest_royal.webp';
   static const String crownMark = 'assets/images/flag_mark_crown.webp';
   static const String npcEmblem = 'assets/images/flag_emb_blackLantern.webp';
 
@@ -290,9 +288,6 @@ abstract final class ErbardRules {
     return e.inner || slot == slots - 1 ? p.inner : p.outer;
   }
 
-  static int garrisonBonusPct(int steps2w, int members) =>
-      (math.min(garrisonStepMax, garrisonStepBonus * steps2w / math.max(1, members * garrisonStepsPer)) * 100).round();
-
   // ───────────── 이야기 (#247 세부 2, 대사 그대로)
 
   static const Act4Scene e1a = Act4Scene('e1a', '길드 회관', GuildRules.sceneHall, [
@@ -404,7 +399,6 @@ abstract final class ErbardRules {
         Province.fire => MaterialId.fireCore,
       };
 }
-
 
 /// 묶음 69 #279: 정기 공성전 일정 (서버 siege_schedule.js 의 정기 부분과 같은 셈)
 class SiegeSchedule {

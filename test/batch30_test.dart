@@ -90,10 +90,8 @@ void main() {
       expect(JobRules.maxMp(10), 50);
       expect(JobRules.maxMp(25), 80);
       expect(JobRules.maxMp(40), 110);
-      // 묶음 77 #357: 보조 직업은 Lv.20에 한 칸
-      expect(JobRules.subSlots(14), 0);
-      expect(JobRules.subSlots(19), 0);
-      expect(JobRules.subSlots(20), 1);
+      // 묶음 77 #357: 보조 직업은 Lv.20에 한 칸 (묶음 79: subSlots 는 지워 JobPairRules.subJobLevel 로)
+      expect(JobPairRules.subJobLevel, 20);
       expect(JobRules.skillCost(JobSkill.rush), 20);
       expect(JobRules.skillCost(JobSkill.rush, sub: true), 30);
       expect(JobRules.skillCost(JobSkill.focusForge, sub: true), 45);

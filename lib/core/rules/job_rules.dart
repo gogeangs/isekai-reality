@@ -5,7 +5,6 @@ import 'stat_rules.dart';
 import 'element_rules.dart';
 import 'harvest_rules.dart';
 import 'mastery_rules.dart';
-import 'monsters.dart';
 
 /// 직업 전용 규칙 (11-11 #74). 직업 각성(#55)이 생기기 전에는 데이터만 있고
 /// 화면에는 「직업 각성 뒤 열림」으로 잠가 둔다.
@@ -67,18 +66,6 @@ class AlchemistRules {
   static const int convertPoints = 1;
   static const int bestBonusPoints = 2;
 
-  /// 물약 투척: 전투 한 번에 1번, 속성 피해 ×2 + 상태 이상
-  static const int throwsPerBattle = 1;
-  static const double throwMultiplier = 2;
-
-  /// 대가 물약
-  static const double reviveHp = 0.5; // 부활 물약: 쓰러지면 HP 50%로 한 번
-  static const double expElixir = 1.5; // 경험의 영약: 30분 경험치 ×1.5
-  static const Duration expElixirTime = Duration(minutes: 30);
-
-  /// 호문쿨루스 연결: 데리고 다니면 끓기·변환 시간 -20%.
-  /// 속성 마석을 먹이면 속성이 생기고, 바꾸려면 다른 속성 마석 3개.
-  static const double homunculusTime = 0.8;
   static const int homunculusChangeStones = 3;
 
   static const List<AlchemistAbilityInfo> abilities = [
@@ -364,10 +351,6 @@ class JobRules {
   /// 직업이 열리는 레벨
   static const int awakenLevel = 15;
 
-  /// 보조 슬롯: Lv.15 1칸, Lv.20 2칸
-  /// 묶음 77 #357: 보조 직업은 Lv.20부터 한 칸
-  static int subSlots(int level) => level >= 20 ? 1 : 0;
-
   /// 숙련도가 쌓이는 배율 (주 · 보조)
   static const double mainGrowth = 1.5;
   static const double subGrowth = 1.2;
@@ -498,9 +481,6 @@ class JobRules {
 
   /// 밤 (오후 7시 ~ 새벽 6시)
   static bool isNight(DateTime t) => HarvestRules.isNight(t); // 묶음 69: 밤은 19~6시 하나로
-
-  /// 잿빛 몬스터인지
-  static bool isAsh(MonsterId m) => m.name.startsWith('ash');
 
   static const List<JobInfo> jobs = [
     JobInfo(JobId.blacksmith, '대장장이', JobKind.basic, [Mastery.smith],
@@ -1014,10 +994,6 @@ class JobRules {
         .join(' · ');
   }
 
-  /// 큰 숙련도의 기본 직업
-  static JobId basicOf(Mastery m) =>
-      jobs.firstWhere((j) => j.kind == JobKind.basic && j.masteries.single == m).id;
-
   /// 첫 펫 한마디
   static const String awakenLine = '이제 너만의 길을 찾을 때야. 조합에 가 보자!';
   static String newJobLine(String job) => '새 길이 열렸어! $job, 조합에서 확인해 봐.';
@@ -1075,13 +1051,6 @@ class JobRules {
 
   static MasterySkillInfo masteryActive(Mastery m) =>
       masterySkill(m, MasteryStage.expert);
-
-  static MasterySkillInfo? masterySkillByKey(String key) {
-    for (final x in masterySkills) {
-      if (x.key == key) return x;
-    }
-    return null;
-  }
 
   /// 지금 단계에서 가진 숙련 스킬: 가장 높은 패시브 하나(앞 단계는 새 것으로 바뀜) +
   /// 숙련된 이상이면 액티브

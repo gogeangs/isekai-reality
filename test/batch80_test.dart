@@ -22,6 +22,10 @@ void _phone(WidgetTester t) {
   addTearDown(t.view.reset);
 }
 
+/// KText 는 글자 사이에 줄바꿈 막는 표시를 넣으므로 빼고 비교
+Finder _txt(String t) => find.byWidgetPredicate(
+    (w) => w is Text && (w.data ?? w.textSpan?.toPlainText() ?? '').replaceAll('\u2060', '') == t);
+
 Widget _host(Widget child) => MaterialApp(builder: (context, c) => TopNoticeHost(child: c!), home: child);
 
 Map<String, dynamic> _pets({bool farewell = true, List<PetEgg> eggs = const []}) => {
@@ -120,15 +124,15 @@ void main() {
       });
       await tester.pumpWidget(_host(Scaffold(body: EggSheet(key: const ValueKey(1), controller: a, egg: free))));
       await tester.pump();
-      expect(find.text('잡화상에서 금화 250'), findsOneWidget);
+      expect(_txt('잡화상에서 금화 250'), findsOneWidget);
       expect(find.byKey(const Key('eggSellGo')), findsOneWidget);
       await tester.pumpWidget(_host(Scaffold(body: EggSheet(key: const ValueKey(2), controller: a, egg: warm))));
       await tester.pump();
-      expect(find.text('품는 중이라 팔 수 없어요'), findsOneWidget);
+      expect(_txt('품는 중이라 팔 수 없어요'), findsOneWidget);
       expect(find.byKey(const Key('eggSellGo')), findsNothing);
       await tester.pumpWidget(_host(Scaffold(body: EggSheet(key: const ValueKey(3), controller: b, egg: free))));
       await tester.pump();
-      expect(find.text('아직 팔 수 없어요'), findsOneWidget);
+      expect(_txt('아직 팔 수 없어요'), findsOneWidget);
       expect(find.byKey(const Key('eggSellGo')), findsNothing);
     });
   });
@@ -190,14 +194,14 @@ void main() {
       await tester.pump();
       expect(find.byKey(const Key('innFillPanel')), findsOneWidget);
       expect(find.byKey(const Key('innFill_jobMp')), findsOneWidget);
-      expect(find.text('쉬는 동안 HP · MP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
+      expect(_txt('쉬는 동안 HP · MP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
       expect(find.text('오늘 하루'), findsNothing);
       expect(find.textContaining('연속 휴식'), findsNothing);
       expect(find.textContaining('보너스'), findsNothing);
       await tester.pumpWidget(_host(InnScreen(key: const ValueKey(2), controller: b)));
       await tester.pump();
       expect(find.byKey(const Key('innFill_jobMp')), findsNothing);
-      expect(find.text('쉬는 동안 HP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
+      expect(_txt('쉬는 동안 HP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 6));
     });
   });

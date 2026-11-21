@@ -15,7 +15,10 @@ String eggName(EggGrade g, {required bool farewell}) => farewell ? g.label : '�
 
 /// 전투 결과 보상 칸 맨 앞: 알 그림 크게 + 「○○을 얻었어요!」 + 흔들림 · 반짝임 (희귀 이상은 빛 더)
 class EggGotBanner extends StatelessWidget {
-  const EggGotBanner({super.key, required this.grade, required this.farewell, this.size = 76});
+  const EggGotBanner({super.key, required this.grade, required this.farewell, this.size = 76, this.nameOnly = false});
+
+  /// 묶음 78 #361: 창 제목이 「알을 얻었어요!」이면 그림 아래는 등급 이름만
+  final bool nameOnly;
 
   final EggGrade grade;
   final bool farewell;
@@ -59,7 +62,7 @@ class EggGotBanner extends StatelessWidget {
         },
         child: EggArt(size: size, grade: grade, glowing: true),
       ),
-      Text('${josa(name, '을/를')} 얻었어요!',
+      Text(nameOnly ? name : '${josa(name, '을/를')} 얻었어요!',
           key: const Key('eggGotLine'), style: AppText.title(16, color: AppColors.goldBright)),
     ]);
   }
@@ -71,7 +74,7 @@ Future<void> showEggGotDialog(BuildContext context, AppController c, EggGrade gr
       builder: (d) => GameAlert(
         title: Text('알을 얻었어요!', style: AppText.title(19)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          EggGotBanner(grade: grade, farewell: true, size: 64),
+          EggGotBanner(grade: grade, farewell: true, size: 64, nameOnly: true),
           const SizedBox(height: 6),
           const KText('펫 쉼터 알 부화장에서 품을 수 있어요',
               key: Key('eggGotHint'),

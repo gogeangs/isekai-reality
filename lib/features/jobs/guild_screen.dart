@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'skill_icon.dart';
+import '../village/npc_header.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../app_controller.dart';
@@ -233,54 +234,27 @@ class _GuildScreenState extends State<GuildScreen> {
                       ),
                     ]),
                     const SizedBox(height: 6),
-                    // 세라 줄: 길드 그림은 세라 뒤 배경으로 낮게 (묶음 77 #349 펫 말풍선 줄은 뺌)
+                    // 묶음 78 #359: 다른 시설처럼 길드 그림 띠 + 마을 사람 머리줄(세라)
                     ClipRRect(
                       key: const Key('guildHall'),
                       borderRadius: BorderRadius.circular(14),
                       child: SizedBox(
-                        height: 90,
-                        child: Stack(fit: StackFit.expand, children: [
-                          Image.asset('assets/images/guild_hall.webp',
-                              fit: BoxFit.cover,
-                              alignment: const Alignment(0, -0.1),
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                          const ColoredBox(color: Color(0x66060818)),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Row(children: [
-                              ClipOval(
-                                child: Image.asset('assets/images/npc_sera.webp',
-                                    width: 58, height: 58, fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const SizedBox(width: 58)),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Container(
-                                  key: const Key('guildSeraLine'),
-                                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xEE0B0D26),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
-                                  ),
-                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                                    const Text('세라 · 조합장',
-                                        style: TextStyle(color: AppColors.goldBright, fontSize: 11, fontWeight: FontWeight.w800)),
-                                    Text(
-                                        hint ??
-                                            (open20
-                                                ? '주 직업 하나에 보조 직업 하나. 이명에 따라 이름도 힘도 달라지지.'
-                                                : '직업은 언제든 바꿀 수 있다. 한 길을 깊게 걸어 보거라.'),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(color: AppColors.text, fontSize: 12.5, height: 1.3)),
-                                  ]),
-                                ),
-                              ),
-                            ]),
-                          ),
-                        ]),
+                        height: 64,
+                        child: Image.asset('assets/images/guild_hall.webp',
+                            fit: BoxFit.cover,
+                            alignment: const Alignment(0, -0.1),
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink()),
                       ),
+                    ),
+                    const SizedBox(height: 6),
+                    NpcHeader(
+                      key: const Key('guildSeraLine'),
+                      controller: c,
+                      npc: Npc.sera,
+                      situation: hint,
+                      guide: open20
+                          ? '주 직업 하나에 보조 직업 하나. 이명에 따라 이름도 힘도 달라지지.'
+                          : '직업은 언제든 바꿀 수 있다. 한 길을 깊게 걸어 보거라.',
                     ),
                     const SizedBox(height: 8),
                     _myJob(main, sub, open20),
@@ -321,6 +295,7 @@ class _GuildScreenState extends State<GuildScreen> {
                       key: const Key('guildGrid'),
                       crossAxisCount: 3,
                       shrinkWrap: true,
+                      padding: EdgeInsets.zero,
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 8,
                       crossAxisSpacing: 8,
@@ -525,15 +500,28 @@ class _GuildScreenState extends State<GuildScreen> {
               style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
         ],
         const SizedBox(height: 8),
-        if (!open20)
+        // 묶음 78 #359: 지금 내 직업(주 · 보조)을 골랐으면 버튼 대신 글
+        if (j == main || (open20 && j == sub))
+          Container(
+            key: const Key('guildMine'),
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+            ),
+            child: const Text('지금 내 직업이에요',
+                style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w800)),
+          )
+        else if (!open20)
           Row(children: [
-            btn('이 직업으로 바꾸기', const Key('jobAsMain'), j == main ? null : () => _change(j, null)),
+            btn('이 직업으로 바꾸기', const Key('jobAsMain'), () => _change(j, null)),
           ])
         else
           Row(children: [
-            btn('주 직업으로', const Key('jobAsMain'), j == main ? null : () => _change(j, sub == j ? main : sub)),
+            btn('주 직업으로', const Key('jobAsMain'), () => _change(j, sub)),
             const SizedBox(width: 8),
-            btn('보조 직업으로', const Key('jobAsSub'), j == main || j == sub ? null : () => _change(main, j)),
+            btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j)),
           ]),
         const SizedBox(height: 4),
         Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',

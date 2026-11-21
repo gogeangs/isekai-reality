@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../core/format.dart';
+import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 
 /// 판타지 의뢰 게시판 (묶음 26 #180): 나무 게시판 위에 핀으로 꽂은 양피지 쪽지.
@@ -889,4 +891,262 @@ class DoneStamp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 묶음 78 #309: 한 줄 넓은 의뢰 카드 (양피지) — 아이콘 · 제목 · 굵은 진행 막대 · 숫자 · 보상 칩 · 버튼.
+/// 가장자리 들쭉날쭉(찢긴 종이) · 가장자리로 갈수록 누렇게 · 오른쪽 아래 접힌 귀퉁이 · 빨간 압정 ·
+/// 카드마다 살짝 기울기(−1.2 · 0.9 · −0.6 · 1.1도)
+class QuestCard extends StatelessWidget {
+  const QuestCard({
+    super.key,
+    required this.title,
+    required this.seed,
+    this.icon,
+    this.ratio,
+    this.progress,
+    this.reward,
+    this.button,
+    this.onButton,
+    this.buttonGold = false,
+    this.glow = false,
+    this.done = false,
+    this.sealed = false,
+    this.sealIn = false,
+    this.edge,
+    this.ribbon,
+  });
+
+  final String title;
+  final int seed;
+  final Widget? icon;
+  final double? ratio;
+  final String? progress;
+  final String? reward;
+  final String? button;
+  final VoidCallback? onButton;
+  final bool buttonGold;
+  final bool glow;
+  final bool done;
+  final bool sealed;
+  final bool sealIn;
+  final Color? edge;
+  final String? ribbon;
+
+  static const List<double> tilts = [-1.2, 0.9, -0.6, 1.1];
+  static double tiltOf(int seed) => tilts[seed.abs() % tilts.length];
+
+  @override
+  Widget build(BuildContext context) {
+    final body = Padding(
+      padding: const EdgeInsets.fromLTRB(14, 16, 22, 14),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        if (icon != null) ...[
+          SizedBox(width: 44, height: 44, child: Center(child: icon)),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+            Text(keepAll(title),
+                key: const Key('noteTitle'),
+                softWrap: true,
+                style: noteTitle(15).copyWith(color: done ? kInkSoft : kInk)),
+            if (ratio != null) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: SizedBox(
+                  height: 10,
+                  child: Stack(children: [
+                    Container(color: const Color(0x333A2614)),
+                    FractionallySizedBox(
+                      widthFactor: ratio!.clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              colors: glow
+                                  ? const [Color(0xFFD9A441), Color(0xFFF7D978)]
+                                  : const [Color(0xFF7A4E22), Color(0xFFB8863E)]),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
+            if (progress != null || reward != null) ...[
+              const SizedBox(height: 4),
+              Wrap(spacing: 6, runSpacing: 3, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                if (progress != null)
+                  Text(progress!,
+                      style: const TextStyle(color: kInkSoft, fontSize: 12, fontWeight: FontWeight.w800)),
+                if (reward != null)
+                  Container(
+                    key: const Key('questReward'),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0x33B8862E),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0x88A07840)),
+                    ),
+                    child: Text(reward!,
+                        style: const TextStyle(color: kInk, fontSize: 11, fontWeight: FontWeight.w800)),
+                  ),
+              ]),
+            ],
+          ]),
+        ),
+        if (button != null && !done) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            key: Key('questButton_$button'),
+            onTap: onButton,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 36, minWidth: 64),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: buttonGold ? kGoldGradient : null,
+                color: buttonGold ? null : const Color(0x22704A20),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: buttonGold ? const Color(0xFF8A5A2B) : const Color(0xFF8C6A42), width: 1.5),
+                boxShadow: buttonGold ? const [BoxShadow(color: Color(0x66000000), blurRadius: 3, offset: Offset(0, 2))] : null,
+              ),
+              child: Text(button!,
+                  style: const TextStyle(color: Color(0xFF3A2614), fontSize: 13, fontWeight: FontWeight.w900)),
+            ),
+          ),
+        ],
+      ]),
+    );
+    Widget paper = CustomPaint(
+      painter: _TornPaperPainter(seed: seed, faded: done, edge: edge),
+      child: body,
+    );
+    if (glow) {
+      paper = DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [BoxShadow(color: AppColors.goldBright.withValues(alpha: 0.7), blurRadius: 18, spreadRadius: 1)],
+        ),
+        child: paper,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      child: Transform.rotate(
+        angle: tiltOf(seed) * math.pi / 180,
+        child: Stack(clipBehavior: Clip.none, children: [
+          Opacity(opacity: done ? 0.78 : 1, child: paper),
+          const Positioned(top: -15, left: 0, right: 0, child: Center(child: BoardPin())),
+          if (done)
+            const Positioned(right: 22, top: 0, bottom: 0, child: IgnorePointer(child: Center(child: DoneStamp(small: true))))
+          else if (sealed)
+            Positioned(right: 18, bottom: 4, child: IgnorePointer(child: WaxSeal(size: 30, stampIn: sealIn))),
+          if (ribbon != null)
+            Positioned(
+              right: -4,
+              top: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB3261E),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 4, offset: Offset(0, 2))],
+                ),
+                child: Text(ribbon!,
+                    style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900)),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// 찢긴 가장자리 양피지 (가장자리로 갈수록 누렇게 · 오른쪽 아래 접힌 귀퉁이)
+class _TornPaperPainter extends CustomPainter {
+  _TornPaperPainter({required this.seed, required this.faded, this.edge});
+
+  final int seed;
+  final bool faded;
+  final Color? edge;
+
+  static const double fold = 16;
+
+  Path _path(Size s) {
+    final r = math.Random(seed * 7919 + 13);
+    double j() => r.nextDouble() * 2.6;
+    final p = Path()..moveTo(j(), j());
+    for (var x = 8.0; x < s.width; x += 8) {
+      p.lineTo(x, j());
+    }
+    p.lineTo(s.width - j(), j());
+    for (var y = 8.0; y < s.height - fold; y += 8) {
+      p.lineTo(s.width - j(), y);
+    }
+    // 접힌 귀퉁이 (오른쪽 아래)
+    p.lineTo(s.width - j(), s.height - fold);
+    p.lineTo(s.width - fold, s.height - j());
+    for (var x = s.width - fold - 8; x > 0; x -= 8) {
+      p.lineTo(x, s.height - j());
+    }
+    p.lineTo(j(), s.height - j());
+    for (var y = s.height - 8; y > 0; y -= 8) {
+      p.lineTo(j(), y);
+    }
+    return p..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _path(size);
+    canvas.drawShadow(path, const Color(0xFF000000), 4, false);
+    final rect = Offset.zero & size;
+    canvas.drawPath(
+        path,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: faded
+                ? const [Color(0xFFE9DDC3), Color(0xFFD9C8A4)]
+                : const [Color(0xFFF7E8C4), Color(0xFFEBD3A2)],
+          ).createShader(rect));
+    // 가장자리로 갈수록 누렇게
+    canvas.save();
+    canvas.clipPath(path);
+    canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = RadialGradient(
+            radius: 0.9,
+            colors: const [Color(0x00000000), Color(0x00000000), Color(0x55A0682A)],
+            stops: const [0, 0.55, 1],
+          ).createShader(Rect.fromCenter(
+              center: rect.center, width: size.width * 1.1, height: math.max(size.height * 2.2, size.width * 0.5))));
+    canvas.restore();
+    canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = edge == null ? 1 : 2
+          ..color = edge ?? const Color(0x66A07840));
+    // 접힌 귀퉁이
+    final f = Path()
+      ..moveTo(size.width - 1, size.height - fold)
+      ..lineTo(size.width - fold, size.height - fold)
+      ..lineTo(size.width - fold, size.height - 1)
+      ..close();
+    canvas.drawPath(f, Paint()..color = faded ? const Color(0xFFCDB88E) : const Color(0xFFD9B97A));
+    canvas.drawPath(
+        f,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0x66A07840));
+  }
+
+  @override
+  bool shouldRepaint(covariant _TornPaperPainter old) =>
+      old.seed != seed || old.faded != faded || old.edge != edge;
 }

@@ -169,39 +169,67 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
         Text('알아낸 레시피 ${known.length}',
             key: const Key('recipeCount'), style: AppText.title(17)),
         const SizedBox(height: 6),
-        if (groups.length > 2)
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final g in groups)
-              ChoiceChip(
-                key: Key('recipeGroup_${g.name}'),
-                label: Text(g.label),
-                selected: _group == g,
-                onSelected: (_) {
-                  setState(() => _group = g);
-                  set?.call(() {});
-                },
-                selectedColor: AppColors.gold,
-                backgroundColor: AppColors.chipBg,
-                labelStyle: TextStyle(
-                    color: _group == g ? AppColors.night : AppColors.text,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5),
-                visualDensity: VisualDensity.compact,
-                showCheckmark: false,
-              ),
-          ]),
+        // 묶음 78 #362: 탭은 한 줄 옆으로 밀기 + 개수 · 만들 수 있는 것 먼저 · 표시 뜻 한 줄
+        if (groups.length > 1)
+          SizedBox(
+            height: 36,
+            child: ListView(
+              key: const Key('recipeTabs'),
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final g in groups)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      key: Key('recipeGroup_${g.name}'),
+                      label: Text(
+                          '${g.label} ${g == RecipeGroup.all ? known.length : known.where((id) => RecipeGroup.of(id) == g).length}',
+                          maxLines: 1),
+                      selected: _group == g,
+                      onSelected: (_) {
+                        setState(() => _group = g);
+                        set?.call(() {});
+                      },
+                      selectedColor: AppColors.gold,
+                      backgroundColor: AppColors.chipBg,
+                      labelStyle: TextStyle(
+                          color: _group == g ? AppColors.night : AppColors.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5),
+                      visualDensity: VisualDensity.compact,
+                      showCheckmark: false,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 6),
+        const KText('초록 테 = 바로 만들 수 있어요 · 보라 「쪽지」 = 쪽지로 배운 레시피 · 빨간 점 = 모자란 재료',
+            key: Key('recipeLegend'), style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
         const SizedBox(height: 8),
-        GridView.count(
+        if (shown.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: KText('아직 아는 레시피가 없어요. 가마솥에 재료를 넣어 보거나 쪽지를 읽어 보세요.',
+                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          )
+        else
+        GridView(
           key: const Key('recipeGrid'),
-          crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: EdgeInsets.zero,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.72,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            mainAxisExtent: 166,
+          ),
           children: [
-            for (final id in shown)
+            for (final id in [
+              ...shown.where(c.hasRecipeMats),
+              ...shown.where((x) => !c.hasRecipeMats(x)),
+            ])
               _RecipeTile(
                 controller: c,
                 id: id,
@@ -255,8 +283,8 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
       );
 }
 
-/// 레시피 한 칸: 물약 그림 · 이름(두 줄까지) · 「10분 · 3개」.
-/// 재료가 다 있으면 초록 점, 쪽지로 알았으면 작은 쪽지, 최상으로 만들어 봤으면 금빛 테두리
+/// 레시피 한 칸 (묶음 78 #362 A안): 그림 · 이름 · 「⏱ 10분 · ×3」 · 재료 그림 줄(모자란 것은 흐리게 + 빨간 점).
+/// 바로 만들 수 있으면 초록 테 + 「만들 수 있어요」 리본, 쪽지로 배웠으면 보라 「쪽지」 리본
 class _RecipeTile extends StatelessWidget {
   const _RecipeTile({required this.controller, required this.id, required this.onTap});
 
@@ -271,56 +299,103 @@ class _RecipeTile extends StatelessWidget {
     final best = c.madeBest(id);
     final noted = !c.recipeDiscovered(id);
     final ready = c.hasRecipeMats(id);
+    final need = <MaterialId, int>{};
+    for (final m in info.recipe) {
+      need[m] = (need[m] ?? 0) + 1;
+    }
+    int have(MaterialId m) => m == MaterialId.herb
+        ? Materials.herbGroup.fold(0, (t, h) => t + c.player.materialCount(h))
+        : c.player.materialCount(m);
+    final mats = need.keys.toList();
+    final herb = AlchemyRules.bestHerb(id);
+    const green = Color(0xFF6BD97A);
+    Widget ribbon(String text, Color bg, Color fg, Key key, {required bool left}) => Positioned(
+          left: left ? -1 : null,
+          right: left ? null : -1,
+          top: -1,
+          child: Container(
+            key: key,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(left ? 11 : 0),
+                topRight: Radius.circular(left ? 0 : 11),
+                bottomLeft: Radius.circular(left ? 0 : 8),
+                bottomRight: Radius.circular(left ? 8 : 0),
+              ),
+            ),
+            child: Text(text, style: TextStyle(color: fg, fontSize: 9, fontWeight: FontWeight.w900)),
+          ),
+        );
     return GestureDetector(
       key: Key('recipeTile_${id.name}'),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
         decoration: BoxDecoration(
           color: AppColors.slotBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: best ? AppColors.goldBright : AppColors.gold.withValues(alpha: 0.35),
-              width: best ? 2 : 1),
-          boxShadow: best ? const [BoxShadow(color: Color(0x66FFD86B), blurRadius: 6)] : null,
+              color: ready
+                  ? green
+                  : best
+                      ? AppColors.goldBright
+                      : AppColors.gold.withValues(alpha: 0.35),
+              width: ready || best ? 2 : 1),
+          boxShadow: ready
+              ? [BoxShadow(color: green.withValues(alpha: 0.3), blurRadius: 6)]
+              : best
+                  ? const [BoxShadow(color: Color(0x66FFD86B), blurRadius: 6)]
+                  : null,
         ),
-        child: Stack(children: [
-          Column(children: [
-            PotionIcon(potion: id, size: 64),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Text(keepAll(info.name),
+        child: Stack(fit: StackFit.expand, clipBehavior: Clip.none, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.center, children: [
+              PotionIcon(potion: id, size: 48),
+              const SizedBox(height: 3),
+              Text(keepAll(info.name),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700, height: 1.2)),
-            ),
-            Text('${info.minutes}분 · ${info.yields}개',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-          ]),
-          if (ready)
-            Positioned(
-              left: 2,
-              top: 0,
-              child: Container(
-                key: const Key('recipeReadyDot'),
-                width: 9,
-                height: 9,
-                decoration: const BoxDecoration(color: Color(0xFF6BD97A), shape: BoxShape.circle),
+                  style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w700, height: 1.2)),
+              const SizedBox(height: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(color: const Color(0x33000000), borderRadius: BorderRadius.circular(8)),
+                child: Text('⏱ ${info.minutes}분 · ×${info.yields}',
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 10.5)),
               ),
-            ),
-          if (noted)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Image.asset('assets/images/item_recipe_note.webp',
-                  key: const Key('recipeNoteMark'),
-                  width: 18,
-                  height: 18,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.sticky_note_2_rounded, size: 15, color: AppColors.goldBright)),
-            ),
+              const SizedBox(height: 4),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (final m in mats.take(5))
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: Stack(clipBehavior: Clip.none, children: [
+                      Opacity(
+                        opacity: have(m) >= need[m]! ? 1 : 0.4,
+                        child: MaterialIcon(m == MaterialId.herb ? (herb ?? m) : m, size: 18),
+                      ),
+                      if (have(m) < need[m]!)
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            key: Key('recipeShortDot_${id.name}_${m.name}'),
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
+                          ),
+                        ),
+                    ]),
+                  ),
+                if (mats.length > 5)
+                  const Text('…', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              ]),
+            ]),
+          ),
+          if (ready) ribbon('만들 수 있어요', green, const Color(0xFF0D2412), const Key('recipeReadyDot'), left: true),
+          if (noted) ribbon('쪽지', const Color(0xFF9B7CF0), Colors.white, const Key('recipeNoteMark'), left: false),
         ]),
       ),
     );

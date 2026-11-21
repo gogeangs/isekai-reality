@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -477,41 +479,52 @@ class ExpeditionCard extends StatelessWidget {
     final total = ex.returnAt.difference(ex.startedAt).inSeconds;
     final done = now.difference(ex.startedAt).inSeconds;
     final left = ex.returnAt.difference(now);
-    final id = Monsters.byName(ex.monster);
-    final name = id == null ? '몬스터' : Monsters.info(id).name;
-    return OrnatePanel(
+    final pet = ex.petUid == null ? null : controller.pets.byUid(ex.petUid!);
+    // 묶음 78 #360: 한 줄짜리 낮은 카드 (얼굴 · 이름 · 가는 중/돌아오는 중 · 막대 · 남은 시간 · 「시간 절반」)
+    return Container(
+      key: Key('expCard_${ex.spawnId}'),
+      height: MapScreenSizes.expCardH,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xF0141638),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+      ),
       child: Row(children: [
-        if (ex.petUid != null && controller.pets.byUid(ex.petUid!) != null)
-          PetArt.of(controller.pets.byUid(ex.petUid!)!, size: 48)
-        else
-          const CompanionArt(size: 48),
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF1A1D4A),
+            border: Border.all(color: AppColors.goldBright, width: 1.2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: pet != null ? PetArt.of(pet, size: 40) : const CompanionArt(size: 40),
+        ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${ex.petName != null ? '${ex.petName} · ' : ''}'
-                '${going ? '$name에게 가는 중' : '싸우고 돌아오는 중'}'
-                '${others > 0 ? ' (외 $others마리)' : ''}',
-                style: AppText.title(16),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Flexible(
+                child: Text(
+                    '${ex.petName ?? controller.firstSpiritName} · ${going ? '가는 중' : '돌아오는 중'}'
+                    '${others > 0 ? ' (외 $others마리)' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),
               ),
-              const SizedBox(height: 4),
-              GlowBar(
-                  ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0),
-                  colors: BarColors.mana,
-                  height: 7),
-              const SizedBox(height: 2),
-              KText(
-                '${_minutes(left.isNegative ? Duration.zero : left)} 뒤 도착 · '
-                '기력 ${ex.mpCost} 사용 · ${comma(ex.distanceM.round())}m',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          ),
+              const SizedBox(width: 6),
+              Text(_minutes(left.isNegative ? Duration.zero : left),
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            ]),
+            const SizedBox(height: 5),
+            GlowBar(ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0), colors: BarColors.mana, height: 6),
+          ]),
         ),
         // 묶음 15 #103: 광고 보고 남은 시간 절반 (튜토리얼 원정에는 없음)
-        if (controller.canHalveExpedition(ex))
+        if (controller.canHalveExpedition(ex)) ...[
+          const SizedBox(width: 8),
           AdChip(
             key: Key('adHalf_${ex.spawnId}'),
             label: '시간 절반',
@@ -522,6 +535,7 @@ class ExpeditionCard extends StatelessWidget {
               }
             },
           ),
+        ],
       ]),
     );
   }
@@ -611,21 +625,55 @@ class ExpeditionStrip extends StatelessWidget {
     }
     if (actives.isEmpty) return const SizedBox.shrink();
     if (open) {
-      return GestureDetector(
-        onTap: onToggle,
-        child: Column(
-          key: const Key('expeditionOpen'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final ex in actives) ...[
-              GestureDetector(
-                onTap: onRush == null ? null : () => onRush!(ex),
-                child: ExpeditionCard(controller: c, ex: ex),
+      // 묶음 78 #360: 맨 위 머리줄(누르면 접힘) + 낮은 카드, 화면 절반을 넘으면 그 안에서 내림
+      final maxH = MediaQuery.sizeOf(context).height * 0.5;
+      return Column(
+        key: const Key('expeditionOpen'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            key: const Key('expeditionClose'),
+            onTap: onToggle,
+            child: Container(
+              height: MapScreenSizes.expStripH,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xF0141638),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.gold.withValues(alpha: 0.7)),
               ),
-              const SizedBox(height: 4),
-            ],
-          ],
-        ),
+              child: Row(children: [
+                Expanded(
+                  child: Text('원정 ${actives.length}마리',
+                      style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+                const Text('접기', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w700)),
+                const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.goldBright),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 4),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: math.max(0, maxH - MapScreenSizes.expStripH - 4)),
+            child: SingleChildScrollView(
+              key: const Key('expeditionList'),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                for (final ex in actives) ...[
+                  GestureDetector(
+                    onTap: onRush == null
+                        ? null
+                        : () {
+                            onToggle(); // ⑥ 서두르기 창을 열면 목록은 접힘
+                            onRush!(ex);
+                          },
+                    child: ExpeditionCard(controller: c, ex: ex),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+              ]),
+            ),
+          ),
+        ],
       );
     }
     final first = actives.first;
@@ -666,7 +714,7 @@ class ExpeditionStrip extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 4,
+            flex: 3,
             child: GlowBar(
                 ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0),
                 colors: BarColors.mana,
@@ -676,9 +724,12 @@ class ExpeditionStrip extends StatelessWidget {
           Text(
             actives.length == 1
                 ? _minutes(left.isNegative ? Duration.zero : left)
-                : '가장 빠른 도착 ${_minutes(left.isNegative ? Duration.zero : left)}',
+                : '빠른 도착 ${_minutes(left.isNegative ? Duration.zero : left)}',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
+          // 묶음 78 #360: 여럿이면 펼칠 수 있다는 ⌃
+          if (actives.length > 1)
+            const Icon(Icons.keyboard_arrow_up_rounded, key: Key('expeditionUp'), color: AppColors.goldBright),
         ]),
       ),
     );
@@ -689,6 +740,7 @@ class ExpeditionStrip extends StatelessWidget {
 class MapScreenSizes {
   MapScreenSizes._();
   static const double expStripH = 44;
+  static const double expCardH = 64;
 }
 
 

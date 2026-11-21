@@ -169,9 +169,10 @@ void main() {
     expect(text, isNot(contains('일일 퀘스트')));
     expect(text, isNot(contains('수시 의뢰')));
     expect(find.byKey(const Key('woodBoard')), findsOneWidget);
-    expect(find.byType(ParchmentNote), findsWidgets);
+    // 묶음 78 #309: 넓은 양피지 카드
+    expect(find.byType(QuestCard), findsWidgets);
     // 쪽지가 화면 밖으로 나가지 않는다
-    for (final e in find.byType(ParchmentNote).evaluate()) {
+    for (final e in find.byType(QuestCard).evaluate()) {
       final box = e.renderObject! as RenderBox;
       final left = box.localToGlobal(Offset.zero).dx;
       expect(left, greaterThanOrEqualTo(0));

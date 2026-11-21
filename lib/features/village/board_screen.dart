@@ -1,6 +1,7 @@
 import 'npc_header.dart';
 import 'npc_request.dart';
 import 'package:flutter/material.dart';
+import '../battle/dungeon_screen.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../app_controller.dart';
@@ -73,6 +74,19 @@ class _BoardScreenState extends State<BoardScreen> {
         _ => false,
       };
 
+  /// 묶음 78 #309: 탭의 받을 것 수 (빨간 숫자)
+  int _claimCount(BoardTab t) => switch (t) {
+        BoardTab.errand => [
+            for (var i = 0; i < controller.board.slots.length; i++)
+              if (BoardRules.template(controller.board.slots[i].templateId,
+                      level: controller.player.level.level)
+                  case final tp?)
+                if (controller.board.slots[i].accepted && controller.errandProgress(i) >= tp.target) i
+          ].length,
+        BoardTab.npc => controller.activeAsks.where(_askDone).length,
+        _ => 0,
+      };
+
   bool _fresh(BoardTab t) => t == BoardTab.npc && controller.newAsks.isNotEmpty;
 
   BoardTab _firstTab() {
@@ -123,6 +137,7 @@ class _BoardScreenState extends State<BoardScreen> {
     final today = p.today!;
     final Widget panel = switch (t) {
       BoardTab.today => _DailyPanel(
+          controller: controller,
           quests: QuestRules.forDay(today),
           allDone: QuestRules.allDone(today),
           streak: QuestRules.allDoneStreak(p.history),
@@ -237,6 +252,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             sub: _sub(t),
                             selected: t == _tab,
                             dot: _claimable(t) || _fresh(t),
+                            count: _claimCount(t),
                             onTap: () => _go(t),
                           ),
                         ),
@@ -270,6 +286,17 @@ List<int> _npcNotes(AppController c) => [
         if (BoardRules.template(c.board.slots[i].templateId, level: c.player.level.level)?.npc != null) i,
     ];
 
+/// 다 한 조합 의뢰 칸 먼저 (그다음은 그대로)
+List<int> _errandOrder(AppController c, List<int> slots) {
+  bool done(int i) {
+    final s = c.board.slots[i];
+    final t = BoardRules.template(s.templateId, level: c.player.level.level);
+    return t != null && s.accepted && c.errandProgress(i) >= t.target;
+  }
+
+  return [...slots.where(done), ...slots.where((i) => !done(i))];
+}
+
 bool _askDone(NpcAskLine a) => a.ready && (a.kind != AskKind.special || a.stage == a.stages - 1);
 
 /// 쪽지 모양 탭 한 칸 (고른 칸은 금빛), 아래 작은 글 · 받을 것이 있으면 빨간 점
@@ -281,12 +308,14 @@ class _BoardTabChip extends StatelessWidget {
     required this.selected,
     required this.dot,
     required this.onTap,
+    this.count = 0,
   });
 
   final String label;
   final String sub;
   final bool selected;
   final bool dot;
+  final int count;
   final VoidCallback onTap;
 
   @override
@@ -336,7 +365,26 @@ class _BoardTabChip extends StatelessWidget {
               ),
             ]),
           ),
-          if (dot)
+          if (count > 0)
+            Positioned(
+              right: -4,
+              top: -6,
+              child: Container(
+                key: const Key('boardTabCount'),
+                constraints: const BoxConstraints(minWidth: 18),
+                height: 18,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: Colors.white, width: 1.4),
+                ),
+                child: Text('$count',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, height: 1.1)),
+              ),
+            )
+          else if (dot)
             Positioned(
               right: -2,
               top: -3,
@@ -456,24 +504,14 @@ class NoteGrid extends StatelessWidget {
   static const double rowGap = 14;
 
   @override
-  Widget build(BuildContext context) {
-    Widget cell(Widget? c) => c == null
-        ? const SizedBox.shrink()
-        : Padding(padding: const EdgeInsets.symmetric(horizontal: 2), child: c);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < children.length; i += 2)
-          Padding(
-            padding: EdgeInsets.only(top: i == 0 ? 0 : rowGap),
-            child: EqualHeightRow(gap: gap, children: [
-              cell(children[i]),
-              cell(i + 1 < children.length ? children[i + 1] : null),
-            ]),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 묶음 78 #309: 한 줄에 넓은 카드 하나
+          for (final (i, c) in children.indexed)
+            Padding(padding: EdgeInsets.only(top: i == 0 ? 0 : 4), child: c),
+        ],
+      );
 }
 
 /// 쪽지 이름: 단어 중간에서 끊지 않는다. 한 줄에 조금 넘치면 글씨를 줄이고,
@@ -542,7 +580,19 @@ class SmallNote extends StatelessWidget {
     this.onTap,
     this.npc,
     this.ribbon,
+    this.icon,
+    this.reward,
+    this.button,
+    this.onButton,
+    this.buttonGold = false,
   });
+
+  /// 묶음 78 #309: 넓은 카드의 아이콘 · 보상 칩 · 버튼
+  final Widget? icon;
+  final String? reward;
+  final String? button;
+  final VoidCallback? onButton;
+  final bool buttonGold;
 
   /// 묶음 69 #286: 쪽지 오른쪽 위 리본 (「새 부탁」)
   final String? ribbon;
@@ -562,95 +612,30 @@ class SmallNote extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final note = ParchmentNote(
-      seed: seed,
-      small: true,
-      edge: edge,
-      faded: done,
-      stamp: done
-          ? const DoneStamp(small: true)
-          : sealed
-              ? WaxSeal(size: 34, stampIn: sealIn)
-              : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (npc != null)
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              NpcFace(key: Key('noteFace_${npc!.name}'), npc: npc!, size: 26),
-              const SizedBox(width: 5),
-              Expanded(child: NoteTitle(title)),
-            ])
-          else
-            NoteTitle(title),
-          if (ratio != null) ...[
-            const SizedBox(height: 6),
-            InkBar(ratio: ratio!.clamp(0.0, 1.0)),
-          ],
-          if (progress != null)
-            Padding(
-              // 도장 자리만큼 비우고, 숫자는 줄여서라도 다 보이게
-              padding: EdgeInsets.only(top: 3, right: sealed ? 34 : 0),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(progress!,
-                    maxLines: 1,
-                    style: const TextStyle(
-                        color: kInkSoft,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
-              ),
-            ),
-        ],
-      ),
-    );
-    Widget out = note;
-    if (glow) {
-      out = Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                  color: AppColors.goldBright.withValues(alpha: 0.75),
-                  blurRadius: 16,
-                  spreadRadius: 1),
-            ],
-          ),
-          child: note,
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: QuestCard(
+          title: title,
+          seed: seed,
+          icon: icon ?? (npc != null ? NpcFace(key: Key('noteFace_${npc!.name}'), npc: npc!, size: 44) : null),
+          ratio: ratio,
+          progress: progress,
+          reward: reward,
+          button: button ?? (glow ? '받기' : null),
+          onButton: onButton ?? onTap,
+          buttonGold: buttonGold || glow,
+          glow: glow,
+          done: done,
+          sealed: sealed,
+          sealIn: sealIn,
+          edge: edge,
+          ribbon: ribbon,
         ),
-        const Positioned(right: -2, bottom: 2, child: _TakeRibbon()),
-      ]);
-    }
-    if (ribbon != null) {
-      out = Stack(clipBehavior: Clip.none, fit: StackFit.passthrough, children: [
-        out,
-        Positioned(
-          right: -4,
-          top: -6,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFB3261E),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 4, offset: Offset(0, 2))],
-            ),
-            child: Text(ribbon!, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w900)),
-          ),
-        ),
-      ]);
-    }
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: out,
-    );
-  }
+      );
 }
 
+// ignore: unused_element
 class _TakeRibbon extends StatelessWidget {
   const _TakeRibbon();
 
@@ -723,12 +708,14 @@ class _VanishingNoteState extends State<VanishingNote>
 /// 오늘의 의뢰: 끝낸 것은 사라지고, 다 끝내면 보너스 쪽지만 → 접힘
 class _DailyPanel extends StatelessWidget {
   const _DailyPanel({
+    this.controller,
     required this.quests,
     required this.allDone,
     required this.streak,
     required this.day,
   });
 
+  final AppController? controller;
   final List<QuestProgress> quests;
   final bool allDone;
   final int streak;
@@ -739,7 +726,7 @@ class _DailyPanel extends StatelessWidget {
     final total =
         quests.length * QuestRules.rewardExp + QuestRules.allDoneBonusExp;
     final done = quests.where((q) => q.completed).length;
-    final notes = _questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp);
+    final notes = _questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp, controller: controller);
     // 묶음 39 #216: 보너스 쪽지 대신 이름판 바로 아래 금빛 띠 한 줄
     // (보상은 지금처럼 다 끝내는 순간 저절로 들어온다)
     return Column(
@@ -763,30 +750,56 @@ class _DailyPanel extends StatelessWidget {
   }
 }
 
-/// 오늘의·주간 의뢰 쪽지 (끝낸 것은 한 번 사라지는 연출 뒤 빠짐)
+/// 묶음 78 #309: 오늘의·주간 의뢰 카드 — 진행 중 먼저, 받은 의뢰(보상은 저절로)는 맨 아래 흐리게 「완료」 도장
 List<Widget> _questNotes(List<QuestProgress> qs, String scope, int seed,
-    {required int rewardExp, int gold = 0}) {
-  final out = <Widget>[];
-  for (final (i, q) in qs.indexed) {
-    final id = '$scope|${q.title}';
-    if (q.completed && _vanished.contains(id)) continue;
-    final current = q.unit == '보' ? comma(q.current) : '${q.current}';
-    final target = q.unit == '보' ? comma(q.target) : '${q.target}';
-    final note = Builder(
-      builder: (context) => SmallNote(
-        key: Key('questNote_$id'),
-        title: q.title,
-        seed: seed + i + q.title.length,
-        ratio: q.completed ? null : (q.target == 0 ? 0 : q.current / q.target),
-        progress: q.completed ? null : '$current / $target${q.unit}',
-        done: q.completed,
-        onTap: () => _showQuestDetail(context, q,
-            rewardExp: rewardExp, gold: gold, weekly: gold > 0),
-      ),
-    );
-    out.add(q.completed ? VanishingNote(key: Key('vanish_$id'), id: id, child: note) : note);
-  }
-  return out;
+    {required int rewardExp, int gold = 0, AppController? controller}) {
+  final order = [
+    for (final (i, q) in qs.indexed) if (!q.completed) (i, q),
+    for (final (i, q) in qs.indexed) if (q.completed) (i, q),
+  ];
+  return [
+    for (final (i, q) in order)
+      Builder(builder: (context) {
+        final id = '$scope|${q.title}';
+        final current = q.unit == '보' ? comma(q.current) : '${q.current}';
+        final target = q.unit == '보' ? comma(q.target) : '${q.target}';
+        final dungeon = q.title.contains('던전');
+        final map = !dungeon && (q.unit == '보' || q.unit == '마리');
+        final icon = dungeon
+            ? 'key'
+            : q.unit == '보'
+                ? 'steps'
+                : q.unit == '마리'
+                    ? 'quest'
+                    : 'gold';
+        return SmallNote(
+          key: Key('questNote_$id'),
+          title: q.title,
+          seed: seed + i,
+          icon: GameIcon(icon, size: 36),
+          ratio: q.completed ? null : (q.target == 0 ? 0 : q.current / q.target),
+          progress: q.completed ? '받았어요' : '$current / $target${q.unit}',
+          reward: gold > 0 ? 'EXP +$rewardExp · 금화 +$gold' : 'EXP +$rewardExp',
+          done: q.completed,
+          button: q.completed || controller == null
+              ? null
+              : dungeon
+                  ? '던전으로'
+                  : map
+                      ? '지도로'
+                      : null,
+          onButton: () {
+            if (dungeon && controller != null) {
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => DungeonScreen(controller: controller)));
+            } else {
+              tourBridge.popToRoot();
+              tourBridge.openTab?.call(FeatureTourLayer.tMap);
+            }
+          },
+          onTap: () => _showQuestDetail(context, q, rewardExp: rewardExp, gold: gold, weekly: gold > 0),
+        );
+      }),
+  ];
 }
 
 /// 주간 의뢰 3개 (월요일 시작, 자동)
@@ -805,7 +818,7 @@ class _WeeklyPanel extends StatelessWidget {
     final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
     final week = DailyRecord.dayKeyOf(monday);
     final notes = _questNotes(quests, 'w$week', 3,
-        rewardExp: BoardRules.weeklyExp, gold: BoardRules.weeklyGold);
+        rewardExp: BoardRules.weeklyExp, gold: BoardRules.weeklyGold, controller: controller);
     return FoldingQuestPanel(
       done: done == n && notes.isEmpty,
       foldedText: '주간 의뢰 모두 완료 · EXP +${n * BoardRules.weeklyExp} · '
@@ -842,8 +855,9 @@ class _ErrandPanel extends StatelessWidget {
               note: '오늘 ${b.doneToday} / ${controller.errandsPerDay}'),
           const _BoardNote('수락하면 시작 · 끝내면 2시간 뒤 새 의뢰 · 자정에 모두 바뀌어요'),
           const SizedBox(height: 4),
+          // 묶음 78 #309: 다 한 의뢰(받기)가 맨 위
           NoteGrid(children: [
-            for (var i = 0; i < b.slots.length; i++)
+            for (final i in _errandOrder(controller, [for (var i = 0; i < b.slots.length; i++) i]))
               _ErrandNote(controller: controller, slot: i),
           ]),
         ],
@@ -889,7 +903,8 @@ class _NpcAskPanel extends StatelessWidget {
               title: title(f.npc, f.kind),
               seed: i + 31,
               ribbon: '새 부탁',
-              progress: '눌러서 부탁 듣기',
+              progress: '새로 온 부탁이에요',
+              button: '부탁 듣기',
               onTap: () => showNpcRequestSheet(context, controller, f.npc, kind: f.kind),
             ),
           for (final (i, a) in going.indexed) _ask(context, a, i + doneList.length, done(a)),
@@ -900,7 +915,7 @@ class _NpcAskPanel extends StatelessWidget {
           const BoardPlaque('마을 사람 쪽지'),
           const SizedBox(height: 4),
           NoteGrid(children: [
-            for (final i in notes) _ErrandNote(controller: controller, slot: i),
+            for (final i in _errandOrder(controller, notes)) _ErrandNote(controller: controller, slot: i),
           ]),
         ],
       ]),
@@ -987,25 +1002,13 @@ class _ErrandNoteState extends State<_ErrandNote> {
       } else {
         text = '오늘은 더 붙지 않아요';
       }
-      // 묶음 39 #219: 다른 쪽지와 같은 종이 모양 그대로 흐리게 (잘리지 않게 바깥 Opacity 없이)
-      return ParchmentNote(
+      // 묶음 78 #309: 「새 의뢰가 붙기까지」 빈칸 (흐린 넓은 카드)
+      return QuestCard(
         key: Key('errandEmpty_$slot'),
         seed: slot + 7,
-        small: true,
-        faded: true,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 16),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(keepAll(text),
-                softWrap: true,
-                style: const TextStyle(
-                    color: kInkSoft, fontSize: 12, height: 1.3)),
-          ),
-        ]),
+        title: text,
+        done: false,
+        icon: const Icon(Icons.hourglass_bottom_rounded, color: kInkSoft, size: 30),
       );
     }
     final progress = c.errandProgress(slot);
@@ -1021,6 +1024,9 @@ class _ErrandNoteState extends State<_ErrandNote> {
           : '수락 전',
       glow: done,
       sealed: s.accepted && !done,
+      reward: t.rewardLabel,
+      icon: _npcOf(t) == null ? const GameIcon('board', size: 36) : null,
+      button: done ? '받기' : (!s.accepted ? '수락하기' : null),
       onTap: done
           ? () => _claim(t)
           : () => showErrandDetail(context, c, slot),

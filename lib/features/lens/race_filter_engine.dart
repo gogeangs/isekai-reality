@@ -45,7 +45,7 @@ abstract class RaceFilterEngine {
   /// 지금 화면을 장식까지 입힌 사진으로 찍는다 (휴대폰 안에서만 만든다)
   Future<ui.Image?> capture(List<Race> races);
 
-  /// 다른 카메라(Snap 렌즈)를 여는 동안 카메라를 잠깐 놓는다 / 다시 켠다
+  /// 다른 카메라를 여는 동안 카메라를 잠깐 놓는다 / 다시 켠다 (AR 필터 다시 할 때 여기: 예전 Snap 렌즈가 썼음)
   Future<void> pause();
   Future<void> resume();
 

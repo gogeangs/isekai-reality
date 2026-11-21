@@ -4,7 +4,6 @@ import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
-import 'package:isekai_reality/features/lens/snap_lens.dart';
 import 'package:isekai_reality/features/town/inn_screen.dart';
 import 'package:isekai_reality/features/village/board_parchment.dart';
 import 'package:isekai_reality/features/village/board_screen.dart';
@@ -108,12 +107,4 @@ void main() {
     });
   });
 
-  group('묶음 37 확인 답: 섞인 종족 렌즈 사진', () {
-    test('이름판엔 렌즈 종족 이름만, 렌즈 종족이 없으면 모두', () {
-      expect(SnapLens.lensRaces(const [Race.elf, Race.dwarf]), [Race.elf]);
-      expect(SnapLens.lensRaces(const [Race.dwarf, Race.elf, Race.elf]), [Race.elf]);
-      expect(SnapLens.lensRaces(const [Race.dwarf, Race.fairy]),
-          [Race.dwarf, Race.fairy]);
-    });
-  });
 }

@@ -186,7 +186,14 @@ extension PetsOps on AppController {
 
   /// 확률로 알 하나 (Lv.11 전에는 한 번만, 정령이 떠난 뒤에는 [chance])
   Future<bool> _maybeEgg(double chance, String source) async {
+    // 묶음 78 #361: 정령이 떠난 뒤 사냥 · 던전 알은 하루 1개까지 — 한도에 닿으면 굴리지 않음
+    final hunt = _pets.farewellDone && (source == 'field' || source == 'dungeon');
+    if (hunt && (player.today?.counters[PetRules.huntEggKey] ?? 0) >= PetRules.huntEggsPerDay) return false;
     if (_random.nextDouble() >= chance) return false;
+    if (hunt) {
+      final t = await _todayRecord();
+      await _save(t.copyWith(counters: DailyRecord.addCounts(t.counters, {PetRules.huntEggKey: 1})));
+    }
     final (grade, rolled) = _rollEgg(_pets);
     _battleEgg = grade;
     // 묶음 75 #327: 정령이 떠난 뒤 가방이 가득하면 다른 아이템처럼 「가방이 가득 찼어요」 창으로

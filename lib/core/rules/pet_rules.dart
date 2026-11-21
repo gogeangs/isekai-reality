@@ -251,14 +251,18 @@ class PetRules {
 
   /// Lv.11 이후 필드 사냥 (수식어 등급별)
   static double fieldEggChance(ModGrade grade) => switch (grade) {
-        // 묶음 32 #186: 보통 몬스터 1% → 2%
-        ModGrade.none || ModGrade.common => 0.02,
-        ModGrade.rare => 0.05,
-        ModGrade.legend => 0.20,
+        // 묶음 78 #361: 보통 0.5% · 희귀 2% · 전설 8%
+        ModGrade.none || ModGrade.common => 0.005,
+        ModGrade.rare => 0.02,
+        ModGrade.legend => 0.08,
       };
 
   /// 던전 보스를 쓰러뜨렸을 때
-  static const double dungeonEggChance = 0.10; // 묶음 32 #186: 5% → 10%
+  static const double dungeonEggChance = 0.04; // 묶음 78 #361: 10% → 4%
+
+  /// 묶음 78 #361: 사냥 · 던전에서 얻는 알은 하루 이만큼까지 (자정에 다시)
+  static const int huntEggsPerDay = 1;
+  static const String huntEggKey = 'huntEgg';
 
   /// 주간 의뢰를 모두 끝낸 주: 2주에 한 번 알
   static const int boardEggEveryWeeks = 2;

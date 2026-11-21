@@ -714,7 +714,7 @@ class ExpeditionStrip extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 4,
+            flex: 3,
             child: GlowBar(
                 ratio: total <= 0 ? 1 : (done / total).clamp(0.0, 1.0),
                 colors: BarColors.mana,
@@ -724,7 +724,7 @@ class ExpeditionStrip extends StatelessWidget {
           Text(
             actives.length == 1
                 ? _minutes(left.isNegative ? Duration.zero : left)
-                : '가장 빠른 도착 ${_minutes(left.isNegative ? Duration.zero : left)}',
+                : '빠른 도착 ${_minutes(left.isNegative ? Duration.zero : left)}',
             style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
           // 묶음 78 #360: 여럿이면 펼칠 수 있다는 ⌃

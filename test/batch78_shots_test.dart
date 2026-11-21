@@ -333,7 +333,9 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
       // 게시판
-      await tester.runAsync(() async => c = await startNpc(level: 14));
+      await tester.runAsync(() async => c = await startNpc(level: 14, todaySteps: {
+            for (var d = 10; d <= 20; d++) '2026-11-${d.toString().padLeft(2, '0')}': 12000,
+          }));
       await _page(tester, BoardScreen(key: ObjectKey('bd$n'), controller: c));
       await tester.tap(find.byKey(const Key('boardTab_today')));
       await _settle(tester, 5);

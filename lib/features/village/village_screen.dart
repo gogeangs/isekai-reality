@@ -68,6 +68,19 @@ class FacilityInfo {
 class VillageScreen extends StatefulWidget {
   const VillageScreen({super.key, required this.controller, this.visits});
 
+  /// 묶음 80 #368: 안 열린 건물을 누를 때 위쪽 띠 글. 빈 「에 열려요」가 나오는 일이 없게
+  static String lockNotice(Facility f,
+      {required String label, required bool kingBeaten, bool building = false}) {
+    // 주점 · 거래소는 잿빛 군주(본체)를 쓰러뜨린 뒤에 생긴다
+    if ((f == Facility.tavern || f == Facility.market) && !kingBeaten) {
+      return '잿빛 군주를 쓰러뜨리면 열려요';
+    }
+    if (f == Facility.market) return '아직 짓는 중이에요 · 완공은 조금 더 기다려 주세요';
+    if (f == Facility.shelter) return building ? '첫 펫과 함께 완공돼요' : '첫 펫과 함께 열려요';
+    if (label.trim().isEmpty) return building ? '조금 더 지나면 완공돼요' : '조금 더 지나면 열려요';
+    return building ? '$label에 완공돼요' : '$label에 열려요';
+  }
+
   final AppController controller;
 
   /// 마을 탭을 열 때마다 바뀌는 수 (앱에서는 [villageVisits]). 없으면 화면을 만들 때 한 번 들른 것으로
@@ -233,7 +246,8 @@ class _VillageScreenState extends State<VillageScreen> {
   /// 마을 그림에 그리는 건물 (주점은 열린 뒤에만 — 그 전엔 빈 공터)
   List<FacilityInfo> get _shown => [
         for (final f in VillageScreen.facilities)
-          if ((f.facility != Facility.tavern || controller.tavernOpen) &&
+          // 묶음 80 #368: 주점 자리는 열리기 전에도 「건설 중」 이름표만 (빈 공터 그대로, 누르면 언제 열리는지)
+          if ((f.facility != Facility.tavern || controller.tavernOpen || controller.villageAct >= 2) &&
               (f.facility != Facility.guildhall || controller.guildHallOpen))
             f,
       ];
@@ -314,22 +328,13 @@ class _VillageScreenState extends State<VillageScreen> {
 
   void _enter(FacilityInfo f) {
     // 묶음 75 #321: 안 열린 건물은 무슨 건물인지 감추고 「언제」만
-    if (f.facility == Facility.market && !_open(f.facility)) {
-      showTopNotice(context, '아직 짓는 중이에요 · 완공은 조금 더 기다려 주세요', icon: Icons.construction_rounded);
-      return;
-    }
     if (!_open(f.facility)) {
-      if (_stage(f.facility) != null) {
-        showTopNotice(
-            context,
-            f.facility == Facility.shelter ? '첫 펫과 함께 완공돼요' : '${_lockLabel(f.facility)}에 완공돼요',
-            icon: Icons.construction_rounded);
-        return;
-      }
+      final building = f.facility != Facility.market && _stage(f.facility) != null;
       showTopNotice(
           context,
-          f.facility == Facility.shelter ? '첫 펫과 함께 열려요' : '${_lockLabel(f.facility)}에 열려요',
-          icon: Icons.lock_rounded);
+          VillageScreen.lockNotice(f.facility,
+              label: _lockLabel(f.facility), kingBeaten: controller.ashKingBeaten, building: building),
+          icon: building || f.facility == Facility.market ? Icons.construction_rounded : Icons.lock_rounded);
       return;
     }
     final Widget page = switch (f.facility) {
@@ -782,6 +787,8 @@ class _VillageArtState extends State<_VillageArt> {
   Widget _building(
       FacilityInfo f, Rect Function(double, double, double, double) r) {
     final open = widget.open(f.facility);
+    // 묶음 80 #368: 열리기 전 주점은 빈 공터 (그림 없이 이름표만)
+    if (f.facility == Facility.tavern && !open) return const SizedBox.shrink();
     final sp = f.spot;
     // 건물 그림은 정사각형, 아래 3% 는 여백
     final rect = r(sp.x - sp.w / 2, sp.y - sp.w * 0.97, sp.w, sp.w);

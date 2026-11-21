@@ -641,7 +641,7 @@ class _FirstPotionPanelState extends State<_FirstPotionPanel> {
                   : () async {
                       setState(() => _busy = true);
                       final ok = await c.brewFirstPotion();
-                      if (!mounted) return;
+                      if (!mounted || !context.mounted) return;
                       setState(() => _busy = false);
                       if (ok) {
                         firstPotionPicked.value = false;

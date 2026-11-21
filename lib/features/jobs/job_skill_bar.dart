@@ -212,7 +212,9 @@ Future<void> _runeCarve(BuildContext context, AppController c) async {
     for (final x in Element.values) (x, x.label),
   ]);
   if (e == null || !context.mounted) return;
-  _result(context, await c.runeCarve(uid, e), '룬을 새겼어요 · ${e.label} 속성');
+  final r = await c.runeCarve(uid, e);
+  if (!context.mounted) return;
+  _result(context, r, '룬을 새겼어요 · ${e.label} 속성');
 }
 
 Future<void> _polish(BuildContext context, AppController c) async {
@@ -253,7 +255,9 @@ Future<void> _quickRepair(BuildContext context, AppController c) async {
       if (i.durability < EquipmentRules.maxDurability) (i.uid, i.name),
   ]);
   if (uid == null || !context.mounted) return;
-  _result(context, await c.quickRepair(uid), '장비를 고쳤어요');
+  final r = await c.quickRepair(uid);
+  if (!context.mounted) return;
+  _result(context, r, '장비를 고쳤어요');
 }
 
 Future<void> _snack(BuildContext context, AppController c) async {
@@ -262,7 +266,9 @@ Future<void> _snack(BuildContext context, AppController c) async {
       if (p.bond < PetRules.maxBond) (p.uid, p.name),
   ]);
   if (uid == null || !context.mounted) return;
-  _result(context, await c.snackPouch(uid), '펫과 한층 친해졌어요');
+  final r = await c.snackPouch(uid);
+  if (!context.mounted) return;
+  _result(context, r, '펫과 한층 친해졌어요');
 }
 
 Future<void> _track(BuildContext context, AppController c) async {
@@ -274,7 +280,9 @@ Future<void> _track(BuildContext context, AppController c) async {
         (x, Monsters.info(x).name),
   ]);
   if (m == null || !context.mounted) return;
-  _result(context, await c.trackMonster(m), '${Monsters.info(m).name}의 흔적을 찾았어요');
+  final r = await c.trackMonster(m);
+  if (!context.mounted) return;
+  _result(context, r, '${Monsters.info(m).name}의 흔적을 찾았어요');
 }
 
 Future<void> _negotiate(BuildContext context, AppController c) async {
@@ -284,7 +292,9 @@ Future<void> _negotiate(BuildContext context, AppController c) async {
       if (BoardRules.template(b.slots[i].templateId, level: c.player.level.level) case final t?) (i, t.title),
   ]);
   if (slot == null || !context.mounted) return;
-  _result(context, await c.negotiateErrand(slot), '의뢰를 바꿨어요');
+  final r = await c.negotiateErrand(slot);
+  if (!context.mounted) return;
+  _result(context, r, '의뢰를 바꿨어요');
 }
 
 /// MP 막대 (상태·길드·지도)

@@ -74,7 +74,8 @@ void main() {
     await tester.tap(find.byKey(const Key('expeditionStrip')));
     await tester.pump();
     expect(find.byKey(const Key('expeditionOpen')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('expeditionOpen')));
+    // 묶음 78 #360: 펼치면 맨 위 머리줄 「접기」
+    await tester.tap(find.byKey(const Key('expeditionClose')));
     await tester.pump();
     expect(find.byKey(const Key('expeditionStrip')), findsOneWidget);
   });

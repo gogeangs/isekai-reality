@@ -223,7 +223,7 @@ class _AlchemyScreenState extends State<AlchemyScreen> {
             crossAxisCount: 3,
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
-            mainAxisExtent: 156,
+            mainAxisExtent: 166,
           ),
           children: [
             for (final id in [
@@ -350,9 +350,9 @@ class _RecipeTile extends StatelessWidget {
         ),
         child: Stack(fit: StackFit.expand, clipBehavior: Clip.none, children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
             child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.center, children: [
-              PotionIcon(potion: id, size: 50),
+              PotionIcon(potion: id, size: 48),
               const SizedBox(height: 3),
               Text(keepAll(info.name),
                   textAlign: TextAlign.center,

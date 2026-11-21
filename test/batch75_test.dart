@@ -162,8 +162,13 @@ void main() {
           home: SkillScreen(controller: c)));
       await tester.pump();
       expect(find.byKey(const Key('skillMaster_bash')), findsOneWidget);
-      expect(find.text('장인'), findsWidgets);
-      expect(find.text('익숙한'), findsWidgets);
+      // 묶음 78 #363: 단계 말은 버튼을 누르면 아래 설명에
+      await tester.tap(find.byKey(const Key('battleFixed_strike')));
+      await tester.pump();
+      expect(find.textContaining('장인'), findsWidgets);
+      await tester.tap(find.byKey(const Key('battleFixed_guard')));
+      await tester.pump();
+      expect(find.textContaining('익숙한'), findsWidgets);
       expect(find.byKey(const Key('skillMaster_stance')), findsNothing);
     });
   });

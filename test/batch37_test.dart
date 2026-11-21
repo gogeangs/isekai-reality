@@ -105,7 +105,7 @@ void main() {
       expect(long, (14.0, 2));
     });
 
-    testWidgets('두 칸 쪽지: 같은 폭, 같은 줄은 같은 높이, 줄끼리 겹치지 않음',
+    testWidgets('두 칸 쪽지: 같은 폭, 같은 줄은 같은 높이, 줄끼리 겹치지 않음', skip: true, // 묶음 78 #309: 한 줄 넓은 카드로 바뀜
         (tester) async {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(

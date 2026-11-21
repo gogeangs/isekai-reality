@@ -62,12 +62,13 @@ void main() {
   });
 
   group('#186 #187 알', () {
-    test('확률: 보통 2% · 던전 보스 10% · 희귀 5% · 전설 20%', () {
-      expect(PetRules.fieldEggChance(ModGrade.none), 0.02);
-      expect(PetRules.fieldEggChance(ModGrade.common), 0.02);
-      expect(PetRules.fieldEggChance(ModGrade.rare), 0.05);
-      expect(PetRules.fieldEggChance(ModGrade.legend), 0.20);
-      expect(PetRules.dungeonEggChance, 0.10);
+    // 묶음 78 #361: 보통 0.5% · 희귀 2% · 전설 8% · 던전 보스 4%
+    test('확률: 보통 0.5% · 던전 보스 4% · 희귀 2% · 전설 8%', () {
+      expect(PetRules.fieldEggChance(ModGrade.none), 0.005);
+      expect(PetRules.fieldEggChance(ModGrade.common), 0.005);
+      expect(PetRules.fieldEggChance(ModGrade.rare), 0.02);
+      expect(PetRules.fieldEggChance(ModGrade.legend), 0.08);
+      expect(PetRules.dungeonEggChance, 0.04);
     });
 
     test('광고 보고 남은 시간 절반, 알 하나에 한 번', () async {

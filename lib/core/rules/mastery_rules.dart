@@ -61,6 +61,28 @@ class MasteryRules {
     return MasteryStage.values[i];
   }
 
+  /// 묶음 78 #364: 숙련 스킬 탭 4칸 막대 — [k] 번째 구간(0 익숙한 · 1 능숙한 · 2 숙련된 · 3 장인)이 찬 비율 (숫자는 안 보임)
+  static double segmentFill(double v, int k) {
+    if (k < 0 || k + 1 >= bigSteps.length) return 0;
+    final a = bigSteps[k], b = bigSteps[k + 1];
+    return ((v - a) / (b - a)).clamp(0.0, 1.0);
+  }
+
+  /// 단계 말 (서툰 포함)
+  static String stageLabel(MasteryStage s) => skillStageWord(s) ?? '서툰';
+
+  /// 묶음 78 #364: 숙련도가 오르는 행동 (실제 쌓이는 곳과 같게)
+  static String howUp(Mastery m) => switch (m) {
+        Mastery.combat => '사냥 · 던전에서 이기기 · 훈련장',
+        Mastery.walk => '걷기 · 처음 가는 곳 · 다시 가는 곳',
+        Mastery.harvest => '채집 자리 캐기 · 텃밭 거두기',
+        Mastery.trade => '사고팔기 · 의뢰 끝내기',
+        Mastery.smith => '장비 만들기 · 강화 · 수리',
+        Mastery.alchemy => '물약 끓이기',
+        Mastery.appraise => '감정 렌즈로 살피기',
+        Mastery.spirit => '펫 원정 보내기 (이기면 더)',
+      };
+
   /// 효과 비율: 서툰 0 · 익숙한 ¼ · 능숙한 ½ · 숙련된 ¾ · 장인 1
   static double fraction(double v, {bool detail = false}) =>
       stageOf(v, detail: detail).index / (MasteryStage.values.length - 1);

@@ -276,6 +276,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     tutorialMonsterRect.removeListener(_changed);
     firstPotionMadeTick.removeListener(_potionDone);
     _retry?.cancel();
+    _waitTimer?.cancel();
     super.dispose();
   }
 
@@ -902,19 +903,27 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     }));
   }
 
-  /// 묶음 82 #383: 누를 곳을 기다리기 시작한 때 (3초 넘게 못 찾으면 안내 끝 = 봤음)
+  /// 묶음 82 #383: 누를 곳을 기다리기 시작하면 3초 타이머 (끝내 못 찾으면 안내 끝 = 봤음)
   String? _waitSig;
-  DateTime? _waitSince;
+  Timer? _waitTimer;
+  bool _waitExpired = false;
+
+  /// 이미 그만둔 기다림 (한 번만 끝내기 · 매 프레임 다시 부르지 않게)
+  final Set<String> _gaveUp = {};
   static const Duration _waitLimit = Duration(seconds: 3);
 
   bool _waitedTooLong(String sig) {
-    final now = DateTime.now();
     if (_waitSig != sig) {
       _waitSig = sig;
-      _waitSince = now;
+      _waitExpired = false;
+      _waitTimer?.cancel();
+      _waitTimer = Timer(_waitLimit, () {
+        _waitExpired = true;
+        if (mounted) _queue();
+      });
       return false;
     }
-    return now.difference(_waitSince!) > _waitLimit;
+    return _waitExpired;
   }
 
   void _compute() {
@@ -932,7 +941,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = _skillIntro();
       if (step != null && step.wait) {
         if (_waitedTooLong('skills:${step.line}')) {
-          unawaited(_finishSkill());
+          if (_gaveUp.add('skills:${step.line}')) unawaited(_finishSkill());
           step = null;
         } else {
           _scheduleRetry('skills:${step.line}');
@@ -1011,8 +1020,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       }
       if (step != null && step.wait) {
         if (_waitedTooLong('${f.name}:${step.line}')) {
-          // 누를 곳을 끝내 못 찾음 → 그 안내는 끝(봤음)
-          unawaited(_finish(f));
+          // 누를 곳을 끝내 못 찾음 → 그 안내는 끝(봤음). 한 번만
+          if (_gaveUp.add('${f.name}:${step.line}')) unawaited(_finish(f));
           step = null;
         } else {
           _scheduleRetry('${f.name}:${step.line}');
@@ -1022,8 +1031,9 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       if (step != null && step.line.isEmpty) step = null;
       if (step != null) kind = 'f:${f.name}';
     }
-    if (step == null || !(step.wait)) {
-      if (step != null) _waitSig = null;
+    if (step != null && !step.wait && _waitSig != null) {
+      _waitSig = null;
+      _waitTimer?.cancel();
     }
     // 묶음 82 #383: 첫 카드를 보여 주는 순간 「봤음」 저장 (이번 실행에서는 끝까지 이어 감)
     if (step != null && kind != null && !c.tourHeld(kind)) unawaited(c.beginTour(kind));

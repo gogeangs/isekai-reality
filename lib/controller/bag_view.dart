@@ -33,7 +33,7 @@ extension BagViewOps on AppController {
 
   Future<void> setBagSort(BagSort s) async {
     _bagView = {...?_bagView, 'sort': s.index};
-    await store.saveJson('bagView', _bagView!);
+    await _saveJson('bagView', _bagView!);
     _notify();
   }
 
@@ -70,7 +70,7 @@ extension BagViewOps on AppController {
       'order': order,
       'new': fresh.toList(),
     };
-    unawaited(store.saveJson('bagView', _bagView!));
+    unawaited(_saveJson('bagView', _bagView!));
   }
 
   /// 한 번 보면 새것 표시가 사라진다
@@ -78,7 +78,7 @@ extension BagViewOps on AppController {
     final fresh = _bagNew;
     if (!fresh.remove(key)) return;
     _bagView = {...?_bagView, 'new': fresh.toList()};
-    await store.saveJson('bagView', _bagView!);
+    await _saveJson('bagView', _bagView!);
     _notify();
   }
 }

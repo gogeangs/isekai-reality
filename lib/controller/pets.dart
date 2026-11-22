@@ -32,7 +32,7 @@ extension PetsOps on AppController {
 
   Future<void> _savePets(PetState p) async {
     _pets = p;
-    await store.saveJson(AppController._petsKey, p.toJson());
+    await _saveJson(AppController._petsKey, p.toJson());
     _notify();
   }
 

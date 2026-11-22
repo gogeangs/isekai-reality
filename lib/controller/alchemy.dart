@@ -7,7 +7,7 @@ extension AlchemyOps on AppController {
 
   Future<void> _saveAlc(AlchemyState a) async {
     _alc = a;
-    await store.saveJson(AppController._alchemyKey, a.toJson());
+    await _saveJson(AppController._alchemyKey, a.toJson());
     _notify();
   }
 

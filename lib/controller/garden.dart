@@ -224,7 +224,7 @@ extension GardenOps on AppController {
 
   Future<void> _saveGarden(GardenState g) async {
     _garden = g;
-    await store.saveJson(AppController._gardenKey, g.toJson());
+    await _saveJson(AppController._gardenKey, g.toJson());
     _notify();
   }
 }

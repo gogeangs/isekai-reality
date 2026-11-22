@@ -11,7 +11,7 @@ extension SmithyOps on AppController {
 
   Future<void> _saveArmory(Armory a) async {
     _armory = a;
-    await store.saveJson(AppController._armoryKey, a.toJson());
+    await _saveJson(AppController._armoryKey, a.toJson());
     // 최대 HP가 바뀌었을 수 있다
     await refreshVitals();
     _notify();
@@ -20,8 +20,9 @@ extension SmithyOps on AppController {
   /// 묶음 59: 예전 계정 — 공짜 첫 무기를 받았는데 「받은 선물」 표시가 없으면, 재료를 안 쓰고 만든
   /// 가장 오래된 무기 하나에 표시 (한 번)
   Future<void> _markFirstWeaponGift() async {
-    if (!gotGift(Gift.firstWeapon) || _armory.items.any((i) => i.gift)) return;
+    // 묶음 82 #396: 마을 기록을 읽은 뒤에 돈다. 한 번 표시했으면(무기가 없었어도) 다시 보지 않음
     if (_village.contains('giftMarked')) return;
+    if (!gotGift(Gift.firstWeapon) || _armory.items.any((i) => i.gift)) return;
     int no(EquipItem i) => int.tryParse(i.uid.replaceFirst('eq', '')) ?? 1 << 30;
     final cands = [
       for (final i in _armory.items)
@@ -446,7 +447,7 @@ extension SmithyOps on AppController {
       a = a.replace(item.copyWith(durability: d));
     }
     _armory = a;
-    await store.saveJson(AppController._armoryKey, a.toJson());
+    await _saveJson(AppController._armoryKey, a.toJson());
     // 묶음 45 #231: 도르군 — 장비 내구도가 0이 됐을 때
     if (broke) await _smallTrigger(Npc.dorgun);
   }

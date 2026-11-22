@@ -92,6 +92,7 @@ extension VillageOps on AppController {
       _markVillage([for (final f in fs) 'built:$f']);
 
   /// 예전 기록: 이미 열린 건물은 완공 그림 그대로 (연출 없음)
+  // 「되살리기」로 다시 채운 표시 (시험 · 보고)
   Future<void> _migrateBuilt44() async {
     if (_village.contains('v44')) return;
     await _markVillage([
@@ -287,6 +288,11 @@ extension VillageOps on AppController {
   // ───────────── 저장
 
   Future<void> _markVillage(List<String> keys) async {
+    // 묶음 82 #396: 마을 기록을 읽기 전이면 모아 두었다가 읽은 뒤 합친다 (빈 기록으로 덮어쓰지 않게)
+    if (_saveBlocked(AppController._villageKey)) {
+      _villagePending.addAll(keys);
+      return;
+    }
     final add = {...keys.where((k) => !_village.contains(k))};
     if (add.isEmpty) return;
     _village = {..._village, ...add};
@@ -294,7 +300,52 @@ extension VillageOps on AppController {
     _notify();
   }
 
-  Future<void> _saveVillage() => store.saveJson(AppController._villageKey, {
+  /// 묶음 82 #396: 이미 지워진 마을 기록을 지금 상태로 다시 채움 (앱을 켤 때 한 번).
+  /// 쓴 기록이 있는 기능의 「새로 열렸어요」 카드 · 안내 · 첫 만남은 봤음으로.
+  Future<void> _reviveVillage82() async {
+    if (_village.contains('v82')) return;
+    // 예전 오류로 지워진 기록에는 언제나 'giftMarked' 가 남아 있다 (지울 때 그것만 저장했으므로).
+    // 그 표시가 없으면 지워진 적이 없는 기록 → 표시만 남기고 끝
+    if (!_village.contains('giftMarked')) {
+      await _markVillage(['v82']);
+      return;
+    }
+    final lv = player.level.level;
+    final today = DailyRecord.dayKeyOf(_clock());
+    final usedTraining = _training.dailyDay != null || _training.trialEver > 0 || _training.petDay != null ||
+        _training.practiceBest.isNotEmpty;
+    final usedGarden = _garden.harvested > 0 || _garden.plots.isNotEmpty;
+    final usedTavern = _tavern.meals > 0 || _tavern.mealDay != null || _tavern.rumorDay != null || _tavern.walkDay != null;
+    final usedVillage = _npcVisits.isNotEmpty ||
+        _npc.points.values.any((v) => v > 0) ||
+        _buildings.stars.isNotEmpty ||
+        _history.any((d) => d.restsCompleted > 0) ||
+        _armory.items.isNotEmpty;
+    final shelter = shelterOpen && _pets.pets.isNotEmpty;
+    revivedVillage = [
+      if (shelter) 'shelterCard',
+      if (shelter && lv >= ChatRules.serverLevel) 'chatTour',
+      if (lv >= 9) 'friendScene',
+      if (trainingOpen && usedTraining) 'trainingCard',
+      if (subJobsOpen && (_jobs.subs.isNotEmpty || lv >= 20)) 'subJobCard',
+      if (gardenOpen && usedGarden) 'gardenCard',
+      if (usedTavern) ...['meet', 'tavernCard', 'market', 'marketIntro', 'walletIntro', 'minaBarkan'],
+      if (usedVillage) ...[
+        'intro',
+        if (farewellDone) 'farewell',
+        if (villageWide) 'wide',
+        if (villageAct == 3) 'lit',
+      ],
+      for (final e in _npc.points.entries)
+        if (e.value > 0) 'met:${e.key}',
+      for (final f in VillageRules.buildLevels.keys)
+        if (facilityOpen(f)) 'built:$f',
+      if (usedVillage) 'walk8k:$today',
+    ].where((k) => !_village.contains(k)).toList();
+    await _markVillage(['v82', ...revivedVillage]);
+  }
+
+  Future<void> _saveVillage() => _saveJson(AppController._villageKey, {
         'seen': _village.toList(),
         'visits': _npcVisits,
       });

@@ -331,5 +331,5 @@ extension Act2Ops on AppController {
   }
 
   Future<void> _saveAct2() =>
-      store.saveJson(AppController._act2Key, _act2.toJson());
+      _saveJson(AppController._act2Key, _act2.toJson());
 }

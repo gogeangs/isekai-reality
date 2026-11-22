@@ -20,7 +20,7 @@ extension JobOps on AppController {
 
   Future<void> _saveJobs(JobState j) async {
     _jobs = j;
-    await store.saveJson(AppController._jobsKey, j.toJson());
+    await _saveJson(AppController._jobsKey, j.toJson());
     _notify();
   }
 
@@ -288,7 +288,7 @@ extension JobOps on AppController {
     if (i < 0) i = 0;
     final first = _jobs.newJobs[i];
     _jobs = _jobs.copyWith(newJobs: [..._jobs.newJobs]..removeAt(i));
-    unawaited(store.saveJson(AppController._jobsKey, _jobs.toJson()));
+    unawaited(_saveJson(AppController._jobsKey, _jobs.toJson()));
     if (first.startsWith('ms:')) {
       // 'ms:<개수>:<이름>'
       final parts = first.split(':');

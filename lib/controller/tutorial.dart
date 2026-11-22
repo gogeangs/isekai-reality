@@ -34,7 +34,7 @@ extension TutorialOps on AppController {
     return p;
   }
 
-  Future<void> _savePins() => store.saveJson(AppController._pinsKey, {
+  Future<void> _savePins() => _saveJson(AppController._pinsKey, {
         'day': _pinsDay,
         'spots': {
           for (final e in _pins.entries) e.key: [e.value.lat, e.value.lng],
@@ -285,7 +285,7 @@ extension TutorialOps on AppController {
   }
 
   Future<void> _saveGifts() =>
-      store.saveJson(AppController._giftsKey, {'got': _gifts.toList()});
+      _saveJson(AppController._giftsKey, {'got': _gifts.toList()});
 
   /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])
   TutorialStep get tutorialStep => TutorialStep.values[
@@ -295,7 +295,7 @@ extension TutorialOps on AppController {
 
   Future<void> _setTutorial(TutorialStep step) async {
     _tutorial = step.index;
-    await store.saveJson(AppController._tutorialKey, {'step': _tutorial});
+    await _saveJson(AppController._tutorialKey, {'step': _tutorial});
     _notify();
   }
 
@@ -378,7 +378,7 @@ extension TutorialOps on AppController {
     _notify();
   }
 
-  Future<void> _saveGates() => store.saveJson(AppController._gatesKey, {
+  Future<void> _saveGates() => _saveJson(AppController._gatesKey, {
         'legacy': _legacyGates,
         'seen': _introsSeen.toList(),
         'hpTip': _hpTipShown,

@@ -214,5 +214,5 @@ extension TavernOps on AppController {
   bool get hasBarkanSeal => _npc.perks.contains('barkanSeal');
 
   Future<void> _saveTavern() =>
-      store.saveJson(AppController._tavernKey, _tavern.toJson());
+      _saveJson(AppController._tavernKey, _tavern.toJson());
 }

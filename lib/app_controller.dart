@@ -371,7 +371,7 @@ class AppController extends ChangeNotifier {
     if (!on) Future<void>.microtask(notifyListeners);
   }
 
-  Future<void> _saveSeenTitles() => store.saveJson(_titlesKey, {
+  Future<void> _saveSeenTitles() => _saveJson(_titlesKey, {
         'seen': [for (final t in _seenTitles) t.name],
         'listed': [for (final t in _listedTitles) t.name],
       });
@@ -416,7 +416,7 @@ class AppController extends ChangeNotifier {
 
   Future<void> blockForAge() async {
     _ageBlocked = true;
-    await store.saveJson(_ageKey, {'blocked': true});
+    await _saveJson(_ageKey, {'blocked': true});
     notifyListeners();
   }
 
@@ -455,16 +455,56 @@ class AppController extends ChangeNotifier {
       while (list.length > 5) {
         list.removeAt(0);
       }
-      await store.saveJson(_startErrorsKey, {'list': list});
+      await _saveJson(_startErrorsKey, {'list': list});
     } catch (_) {}
   }
 
   static const _startErrorsKey = 'startErrors';
 
   /// 저장 기록 하나를 읽는다. 틀린 기록이면 원본을 따로 남기고(지우지 않음) 기본값으로
+  // ───────────── 묶음 82 #396: 켜는 중 「읽기 전 저장」 막이
+  // 켜는 중(_startPlaying)에 아직 읽지 않은 기록을 저장하면 빈 기록으로 덮어써진다
+  // (예: 첫 무기 표시가 마을 기록을 읽기 전에 돌아 마을 기록이 통째로 지워짐).
+  // 아래 기록은 읽은 뒤에만 저장한다. 읽기 전 마을 표시는 모아 두었다가 읽은 뒤 합친다.
+  bool _starting = false;
+  final Set<String> _startLoaded = {};
+  final List<String> _villagePending = [];
+
+  /// 묶음 82: 되살리기로 다시 채운 마을 표시 (보고 · 시험)
+  List<String> revivedVillage = const [];
+  static const Set<String> _lateKeys = {
+    _masteryKey, _act2Key, _villageKey, _npcKey, _trainingKey, _gardenKey, _highlandKey,
+    _tavernKey, _act3Key, _act4Key, _act5Key, _buildingsKey, _partyKey, _auraKey,
+    _titlesKey, 'bagView', 'talkTurns',
+  };
+
+  /// 켜는 중인데 아직 읽지 않은 기록이면 true (저장하지 않음)
+  bool _saveBlocked(String key) =>
+      _starting && _lateKeys.contains(key) && !_startLoaded.contains(key);
+
+  /// 막힌 저장 (시험에서 확인)
+  final List<String> blockedSaves = [];
+
+  Future<void> _saveJson(String key, Map<String, dynamic> json) async {
+    if (_saveBlocked(key)) {
+      blockedSaves.add(key);
+      return;
+    }
+    await store.saveJson(key, json);
+  }
+
+  Future<Map<String, dynamic>?> _loadRaw(String key) async {
+    try {
+      return await store.loadJson(key);
+    } finally {
+      _startLoaded.add(key);
+    }
+  }
+
   Future<T> _load<T>(String key, T Function(Map<String, dynamic>) parse,
       T fallback) async {
     Map<String, dynamic>? raw;
+    _startLoaded.add(key);
     try {
       raw = await store.loadJson(key);
       if (raw == null) return fallback;
@@ -472,7 +512,7 @@ class AppController extends ChangeNotifier {
     } catch (e) {
       _loadIssues.add(key);
       try {
-        if (raw != null) await store.saveJson('$key.broken', raw);
+        if (raw != null) await store.saveJson('$key.broken', raw); // 망가진 기록 따로 (막지 않음)
       } catch (_) {}
       return fallback;
     }
@@ -522,7 +562,7 @@ class AppController extends ChangeNotifier {
       await _setTutorial(TutorialStep.intro);
       _justAwakened = true;
       // 묶음 16 #141~#144: 새로 시작하는 사람만 레벨에 따라 기능이 열린다
-      await store.saveJson(_gatesKey, {'legacy': false, 'seen': <String>[]});
+      await _saveJson(_gatesKey, {'legacy': false, 'seen': <String>[]});
     }
     _needsAwakening = false;
     await _startPlaying();
@@ -567,6 +607,16 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _startPlaying() async {
+    _starting = true;
+    _startLoaded.clear();
+    try {
+      await _startPlayingInner();
+    } finally {
+      _starting = false;
+    }
+  }
+
+  Future<void> _startPlayingInner() async {
     // 건강 데이터 권한·위치는 늦으면 기다리지 않는다 (화면 먼저, 뒤에서 채운다)
     final perm = health.requestPermission().catchError((_) => false);
     _healthGranted =
@@ -606,7 +656,7 @@ class AppController extends ChangeNotifier {
     // 묶음 18 #150: 연출 단계에서 앱을 껐다 켜면 첫 전투부터 이어서
     if (_tutorial == TutorialStep.intro.index && !_justAwakened) {
       _tutorial = TutorialStep.hunt.index;
-      await store.saveJson(_tutorialKey, {'step': _tutorial});
+      await _saveJson(_tutorialKey, {'step': _tutorial});
     }
     _tiredUntil = await _load(_tiredKey,
         (j) => DateTime.tryParse('${j['until'] ?? ''}'), null);
@@ -686,7 +736,6 @@ class AppController extends ChangeNotifier {
     // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
     await _migrateSkills31();
     await _migrateJobs57(); // 묶음 57 #249 직업 개편
-    await _markFirstWeaponGift(); // 묶음 59: 예전 공짜 첫 무기에 「받은 선물」 표시
     // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
     // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)
@@ -701,6 +750,13 @@ class AppController extends ChangeNotifier {
       for (final e in ((village?['visits'] as Map?) ?? const {}).entries)
         if (e.value is num) renamed('${e.key}'): (e.value as num).toInt(),
     };
+    // 묶음 82 #396: 읽기 전에 모아 둔 마을 표시를 합쳐 저장
+    if (_villagePending.isNotEmpty) {
+      final pend = [..._villagePending];
+      _villagePending.clear();
+      await _markVillage(pend);
+    }
+    await _markFirstWeaponGift(); // 묶음 59: 예전 공짜 첫 무기에 「받은 선물」 표시 (82: 마을 기록을 읽은 뒤로)
     _act2Ready = true;
     // 묶음 44 #225: 이미 열린 건물은 완공 그림 그대로 (연출 없음)
     await _migrateBuilt44();
@@ -723,13 +779,13 @@ class AppController extends ChangeNotifier {
     // 묶음 59: 이미 3막을 끝낸 계정은 4막이 열림 (4막 기록이 없어도 그대로, #124)
     if (_act3.has('act3End') && !_act4.opened) {
       _act4 = _act4.copyWith(opened: true, chapter: 1, chapterSteps: _history.fold<int>(0, (t, r) => t + r.steps));
-      await store.saveJson(_act4Key, _act4.toJson());
+      await _saveJson(_act4Key, _act4.toJson());
     }
     // 묶음 60: 5막 (4막을 끝낸 계정은 열림, 기록이 없어도 그대로 #124)
     _act5 = await _load(_act5Key, Act5State.fromJson, const Act5State());
     if (_act4.done && !_act5.opened) {
       _act5 = _act5.copyWith(opened: true, chapter: 1, chapterSteps: _history.fold<int>(0, (t, r) => t + r.steps));
-      await store.saveJson(_act5Key, _act5.toJson());
+      await _saveJson(_act5Key, _act5.toJson());
     }
     // 묶음 54: 건물 레벨업 (없으면 모두 ★1)
     _buildings = await _load(_buildingsKey, BuildingState.fromJson, const BuildingState());
@@ -750,14 +806,14 @@ class AppController extends ChangeNotifier {
       };
     }
     // 묶음 81 #378: 가방 — 새로 얻은 것 · 최근 얻은 차례 · 정렬
-    _bagView = await store.loadJson('bagView');
+    _bagView = await _loadRaw('bagView');
     // 묶음 75 #320: 정령 · 마을 사람 대사 차례 번호
-    final turns = await store.loadJson('talkTurns');
+    final turns = await _loadRaw('talkTurns');
     _talkTurns = {
       for (final e in (turns ?? const {}).entries)
         if (e.value is num) e.key: (e.value as num).toInt(),
     };
-    final titles = await store.loadJson(_titlesKey);
+    final titles = await _loadRaw(_titlesKey);
     _seenTitles = titles == null
         ? {...player.titles}
         : {
@@ -776,7 +832,7 @@ class AppController extends ChangeNotifier {
     if (_alloc.seenLife == null) {
       // 예전 저장본·처음 각성: 지금 생활 보너스까지는 이미 알려 준 것으로 친다
       _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
-      await store.saveJson(_statsKey, _alloc.toJson());
+      await _saveJson(_statsKey, _alloc.toJson());
     }
     // 위치 권한은 오래 기다리지 않는다 (늦으면 화면 먼저, 뒤에서 마저 채운다)
     try {
@@ -789,6 +845,8 @@ class AppController extends ChangeNotifier {
       _profile = _profile.copyWith(lastSeenLevel: player.level.level);
       await store.saveProfile(_profile);
     }
+    // 묶음 82 #396: 지워진 마을 기록 되살리기 (한 번) · #383 지난 기능 안내는 봤음으로
+    await _reviveVillage82();
     _ready = true;
     // 묶음 56: 기록을 다 읽은 뒤 한 번 더 (걸음으로 쌓이는 것들 — 켜는 중에는 건너뜀)
     await refreshVitals();
@@ -1110,7 +1168,7 @@ class AppController extends ChangeNotifier {
   Map<String, int> get talkTurns => _talkTurns;
   Future<void> saveTalkTurns(Map<String, int> t) async {
     _talkTurns = {...t};
-    await store.saveJson('talkTurns', _talkTurns);
+    await _saveJson('talkTurns', _talkTurns);
   }
 
   /// 묶음 75 #327: 방금 전투에서 얻은 알 등급 (결과 창에서 보여 줌)

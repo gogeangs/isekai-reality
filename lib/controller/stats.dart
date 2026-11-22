@@ -29,7 +29,7 @@ extension StatsOps on AppController {
       if (add.of(k) < 0) return false;
     }
     _alloc = _alloc.copyWith(allocated: _alloc.allocated + add);
-    await store.saveJson(AppController._statsKey, _alloc.toJson());
+    await _saveJson(AppController._statsKey, _alloc.toJson());
     await refreshVitals();
     _notify();
     return true;
@@ -47,7 +47,7 @@ extension StatsOps on AppController {
           spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
     }
     _alloc = _alloc.copyWith(allocated: Stats.zero, resets: _alloc.resets + 1);
-    await store.saveJson(AppController._statsKey, _alloc.toJson());
+    await _saveJson(AppController._statsKey, _alloc.toJson());
     await refreshVitals();
     _notify();
     return true;
@@ -78,7 +78,7 @@ extension StatsOps on AppController {
   /// 정령 한 줄을 보여 줬을 때
   Future<void> acknowledgeLifeBonus() async {
     _alloc = _alloc.copyWith(seenLife: StatRules.lifeBonus(_history));
-    await store.saveJson(AppController._statsKey, _alloc.toJson());
+    await _saveJson(AppController._statsKey, _alloc.toJson());
     _notify();
   }
 
@@ -126,7 +126,7 @@ extension StatsOps on AppController {
     _notify();
   }
 
-  Future<void> _saveAura() => store.saveJson(AppController._auraKey, {
+  Future<void> _saveAura() => _saveJson(AppController._auraKey, {
         'v32': true,
         if (_auraAnnounced != null) 'main': _auraAnnounced,
         'seed': {for (final e in _elementSeed.entries) e.key.name: e.value},

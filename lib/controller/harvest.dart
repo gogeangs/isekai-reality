@@ -7,7 +7,7 @@ extension HarvestOps on AppController {
 
   Future<void> _saveHarvest(HarvestState h) async {
     _harvest = h;
-    await store.saveJson(AppController._harvestKey, h.toJson());
+    await _saveJson(AppController._harvestKey, h.toJson());
     _notify();
   }
 
@@ -445,7 +445,7 @@ extension HarvestOps on AppController {
     if (relic && _prophecy < HarvestRules.prophecy.length) {
       _lastProphecy = _prophecy;
       _prophecy++;
-      await store.saveJson(AppController._prophecyKey, {'got': _prophecy});
+      await _saveJson(AppController._prophecyKey, {'got': _prophecy});
     }
     await _saveHarvest(h);
     await _grant(0, 0, mats);

@@ -319,7 +319,7 @@ extension MasteryOps on AppController {
   }
 
   Future<void> _saveMastery() =>
-      store.saveJson(AppController._masteryKey, _mastery.toJson());
+      _saveJson(AppController._masteryKey, _mastery.toJson());
 
   /// 축하 창 대신 위쪽 띠로만 알릴 칭호인지 (예전 기록 시작 값으로 얻은 것)
   bool titleIsQuiet(TitleId t) =>
@@ -395,7 +395,7 @@ extension MasteryOps on AppController {
   // ───────────── 처음 열 때 (예전 기록 시작 값)
 
   Future<void> _loadMastery() async {
-    final j = await store.loadJson(AppController._masteryKey);
+    final j = await _loadRaw(AppController._masteryKey);
     if (j != null) {
       _mastery = MasteryState.fromJson(j);
       _masteryReady = true;

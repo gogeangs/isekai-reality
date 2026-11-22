@@ -184,7 +184,7 @@ extension ShopBagOps on AppController {
           spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
     }
     _bag = _bag.copyWith(singleSlots: _bag.singleSlots + 1);
-    await store.saveJson(AppController._bagKey, _bag.toJson());
+    await _saveJson(AppController._bagKey, _bag.toJson());
     _notify();
     return true;
   });

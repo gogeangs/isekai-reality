@@ -112,7 +112,7 @@ extension LensOps on AppController {
       rewardedToday:
           (_lens.day == day ? _lens.rewardedToday : 0) + (rewarded ? 1 : 0),
     );
-    await store.saveJson(AppController._lensKey, _lens.toJson());
+    await _saveJson(AppController._lensKey, _lens.toJson());
     if (mat != null) {
       await _grant(0, 0, {mat: 1});
       await _seeSeeds([mat]);
@@ -137,7 +137,7 @@ extension LensOps on AppController {
     _lens = _lens.copyWith(album: [
       for (final p in _lens.album) p.id == id ? p.withFile(file) : p,
     ]);
-    await store.saveJson(AppController._lensKey, _lens.toJson());
+    await _saveJson(AppController._lensKey, _lens.toJson());
     _notify();
   }
 
@@ -151,7 +151,7 @@ extension LensOps on AppController {
       for (final p in _lens.album)
         if (p.id != id) p,
     ]);
-    await store.saveJson(AppController._lensKey, _lens.toJson());
+    await _saveJson(AppController._lensKey, _lens.toJson());
     _notify();
     return file;
   }

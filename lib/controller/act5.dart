@@ -302,7 +302,7 @@ extension Act5Ops on AppController {
   String? get erbardError => _erbardError;
   bool get erbardBusy => _erbardBusy;
 
-  Future<void> _saveAct5() => store.saveJson(AppController._act5Key, _act5.toJson());
+  Future<void> _saveAct5() => _saveJson(AppController._act5Key, _act5.toJson());
 
   /// 4막 5장 뒤
   bool get act5Available => _act4.done;

@@ -160,7 +160,7 @@ extension BuildingOps on AppController {
 
   Future<void> _saveBuildings(BuildingState s) async {
     _buildings = s;
-    await store.saveJson(AppController._buildingsKey, s.toJson());
+    await _saveJson(AppController._buildingsKey, s.toJson());
     _notify();
   }
 }

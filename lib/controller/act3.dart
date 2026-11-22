@@ -753,5 +753,5 @@ extension Act3Ops on AppController {
   int allyExpToNext(AllyData a) => Act3Rules.allyExpToNext(a.level);
 
   Future<void> _saveAct3() =>
-      store.saveJson(AppController._act3Key, _act3.toJson());
+      _saveJson(AppController._act3Key, _act3.toJson());
 }

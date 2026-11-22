@@ -319,7 +319,7 @@ extension TrainingOps on AppController {
 
   Future<void> _saveTraining(TrainingState s) async {
     _training = s;
-    await store.saveJson(AppController._trainingKey, s.toJson());
+    await _saveJson(AppController._trainingKey, s.toJson());
     _notify();
   }
 }

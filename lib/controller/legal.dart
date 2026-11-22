@@ -12,7 +12,7 @@ extension LegalOps on AppController {
 
   Future<void> _saveConsent(ConsentState s) async {
     _consent = s;
-    await store.saveJson(_consentKey, s.toJson());
+    await _saveJson(_consentKey, s.toJson());
     _notify();
   }
 

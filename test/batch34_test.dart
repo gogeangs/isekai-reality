@@ -12,7 +12,6 @@ import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/features/act2/ash_battle_screen.dart';
-import 'package:isekai_reality/features/battle/battle_view.dart';
 import 'package:isekai_reality/features/map/ansan_area.dart';
 
 void main() {

@@ -236,6 +236,7 @@ void main() {
         await c.restAtInn();
         now = now.add(const Duration(hours: 5));
         await c.refreshVitals();
+        await c.stopResting();
       }
       final p = c.requestProgress(Npc.marta);
       expect(p[1].have, 3);

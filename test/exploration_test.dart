@@ -80,18 +80,6 @@ void main() {
       return controller;
     }
 
-    test('처음 간 장소는 새 장소, 같은 날 다시 가도 한 번만 센다', () async {
-      final controller = await start(FakeLocationSource());
-      await controller.handleFix(walk(jungang));
-      await controller.handleFix(walk(jungang));
-
-      final today = controller.history.last;
-      expect(today.newPlacesVisited, 1);
-      expect(today.placesRevisited, 0);
-      expect(today.visitedPlaceIds, ['gate_jungang']);
-      expect(controller.lastDiscovery?.id, 'gate_jungang');
-    });
-
     test('차로 지나가면 장소를 기록하지 않는다', () async {
       final controller = await start(FakeLocationSource());
       await controller.handleFix(

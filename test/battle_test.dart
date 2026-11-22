@@ -324,13 +324,13 @@ void main() {
       expect(c.player.materialCount(MaterialId.wardenShard), 1);
     });
 
-    test('미궁 입구에서는 보너스, 열쇠가 없으면 열 수 없다', () async {
+    test('미궁 입구에서도 보너스 없음 (묶음 81), 열쇠가 없으면 열 수 없다', () async {
       // 장소는 11-10 전국 확대 때 뺐지만, 장소가 있는 지역에서는 그대로 동작한다
       final c = await start(steps: 2600, area: AnsanArea.area);
       await c.handleFix(const LocationFix(point: jungang, speedMps: 0.5));
       expect(c.atGate, isTrue);
       final b = c.startDungeon()!..runToEnd(useSkills: true);
-      expect(await c.finishDungeon(b, atGate: c.atGate), 75);
+      expect(await c.finishDungeon(b, atGate: c.atGate), 50);
       expect(c.startDungeon(), isNull);
     });
 

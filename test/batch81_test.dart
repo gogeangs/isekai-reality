@@ -153,11 +153,11 @@ void main() {
     test('원정 중이면 멈춤 · 광고 바로 회복은 두 번까지', () async {
       var now = DateTime(2026, 11, 16, 10);
       final c = await startVillage(13, farewell: true, more: _pets(_three), clock: () => now,
-          vitals: const Vitals(hp: 1, mp: 0));
+          vitals: const Vitals(hp: 1, mp: 999));
       c.watchAd = (_) async => true;
       await c.handleFix(const LocationFix(point: _home));
       expect(await c.restAtInn(), isTrue);
-      await c.sendTrip('rift', 'p3');
+      expect(await c.sendTrip('rift', 'p3'), ExpeditionCheck.ok);
       expect(c.innPaused, isTrue);
       expect(c.canInnAd, isFalse);
       final hp = c.hp;

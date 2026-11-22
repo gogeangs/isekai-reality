@@ -134,7 +134,7 @@ void main() {
       expect(again.masteryOf(Mastery.combat), c.masteryOf(Mastery.combat));
     });
 
-    test('걷기·탐험은 기록에서: 1,000보마다 1, 새 장소 3, 다시 찾기 1', () {
+    test('걷기·탐험은 기록에서: 1,000보마다 1 (묶음 81: 장소는 세지 않음)', () {
       final v = MasteryRules.walkFrom([
         DailyRecord(
             date: DateTime(2026, 11, 13),
@@ -142,7 +142,7 @@ void main() {
             newPlacesVisited: 2,
             placesRevisited: 3),
       ]);
-      expect(v, 12 + 6 + 3);
+      expect(v, 12);
     });
   });
 

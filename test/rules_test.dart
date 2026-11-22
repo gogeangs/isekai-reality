@@ -50,9 +50,9 @@ void main() {
   });
 
   group('경험치', () {
-    test('미궁 입구에서 클리어하면 75, 실패하면 15', () {
-      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true, atGate: true)), 75);
-      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: false, atGate: true)), 15);
+    test('미궁 입구여도 같은 값: 클리어 50, 실패 10 (묶음 81)', () {
+      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true, atGate: true)), 50);
+      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: false, atGate: true)), ExpRules.dungeonRunExp(const DungeonRun(cleared: false)));
       expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true)), 50);
     });
 

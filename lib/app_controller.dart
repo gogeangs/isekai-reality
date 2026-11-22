@@ -1379,7 +1379,7 @@ class BrewResult {
 
 /// 정령 원정을 보낼 수 있는지
 /// 묶음 35: tired = 원정에서 져서 쉬는 중인 펫
-enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy, tired, training }
+enum ExpeditionCheck { ok, needsLocation, notEnoughMp, busy, tired, training, noHp }
 
 /// Lv.1~2 튜토리얼 단계 (묶음 15 #104). 저장 값 순서이므로 바꾸지 않는다.
 /// done: 끝났거나 기존 사용자 · hunt: 바로 옆 몬스터와 첫 전투 ·

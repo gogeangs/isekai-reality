@@ -492,6 +492,9 @@ extension ExpeditionOps on AppController {
       check = ExpeditionCheck.training;
     } else if (activeExpeditions.any((e) => e.spawnId == spawn.id)) {
       check = ExpeditionCheck.busy;
+    } else if (hp <= 0) {
+      // 묶음 82 #381: 주인공도 따라가 싸우므로 HP가 없으면 못 보냄
+      check = ExpeditionCheck.noHp;
     } else if (mp < cost) {
       // 안개 대신 MP로만 거리를 막는다 (11-10, 최대 MP 60 = 약 3km)
       check = ExpeditionCheck.notEnoughMp;
@@ -596,8 +599,8 @@ extension ExpeditionOps on AppController {
   }
   int get lastExpeditionExp => _lastExpeditionExp;
 
-  /// 돌아온 정령의 전투 결과를 정한다. 정령은 각성자의 전투력으로 싸우고
-  /// 각성자의 HP는 쓰지 않는다. 지면 MP만 잃고, 몬스터는 그대로 남는다.
+  /// 돌아온 정령의 전투 결과를 정한다. 묶음 82 #381: 주인공도 따라가 지금 HP · 직업 MP로 싸우고
+  /// 줄어든 만큼 그대로. 지면 기력을 쓰고 지쳐서 돌아온다 (몬스터는 그대로 남는다).
   Future<void> _resolveExpedition(Expedition ex) async {
     _resolving = true;
     try {
@@ -607,31 +610,46 @@ extension ExpeditionOps on AppController {
     }
   }
 
-  Future<void> _resolveExpeditionInner(Expedition ex) async {
-    final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
-    final mods = [
-      for (final n in ex.mods)
-        if (ModifierRules.byName(n) case final m?) m,
-    ];
+  /// 묶음 82 #381: 따라간 주인공 — 전투 칸 직업 스킬을 MP로 자동 (모자라면 보통 공격 · 정령 일격만)
+  void _runExpeditionBattle(Battle b,
+      {required bool awake, required int Function() mp, required void Function(int cost) spend}) {
+    final slots = awake ? battleJobSlots : const <(JobSkill, int, double)>[];
+    var guard = 0;
+    while (!b.isOver && guard++ < 1000) {
+      if (slots.isNotEmpty && guard % 2 == 0) {
+        for (final (s, cost, power) in slots) {
+          if (mp() >= cost && b.useJobSkill(s, power: power)) {
+            spend(cost);
+            break;
+          }
+        }
+        if (b.isOver) break;
+      }
+      if (b.skillReady) {
+        b.useSkill();
+      } else {
+        b.tick();
+      }
+    }
+  }
+
+  /// 원정 한 판 (도착 때 · 원정 창 어려움 셈이 같이 씀)
+  Battle _expeditionBattle(String spawnId, MonsterId monster, List<ModifierId> mods, Pet? pet, DateTime at,
+      {int? startHp, math.Random? rng}) {
     final p = player;
-    final pet = ex.petUid == null ? null : _pets.byUid(ex.petUid!);
     final power = pet == null
         ? 1.0
         : PetRules.powerFactor(pet.species,
             adult: pet.adult,
             bond: pet.bond,
-            night: FieldMonsterRules.isNight(ex.arriveAt),
+            night: FieldMonsterRules.isNight(at),
             resonant: petResonant(pet));
     final homun = pet?.species == PetSpecies.homunculus;
-    final battle = (Battle.forPlayer(
+    return _withJob(Battle.forPlayer(
       level: p.level.level,
       stats: combatStats,
-      floors: BattleRules.fieldFoes(
-          level: p.level.level,
-          monster: monster,
-          mods: mods,
-          spawnId: ex.spawnId),
-      rng: math.Random(ex.spawnId.hashCode),
+      floors: BattleRules.fieldFoes(level: p.level.level, monster: monster, mods: mods, spawnId: spawnId),
+      rng: rng ?? math.Random(spawnId.hashCode),
       gear: gear,
       power: power,
       petSkill: pet?.info.skill,
@@ -644,13 +662,74 @@ extension ExpeditionOps on AppController {
       mainElement: mainElement,
       weaponPotion: weaponPotionElement,
       petResonant: pet != null && petResonant(pet),
-    )
-          // 묶음 32 #190: 호문쿨루스 원정은 상성 약점 없음 + 속성 몬스터 피해 덜
-          ..noWeakness = homun
-          ..elementGuard =
-              homun ? PetRules.homunculusGuard(adult: pet?.adult ?? false) : 0)
-        .runToEnd(useSkills: true);
+      startHp: startHp,
+    ))
+      // 묶음 32 #190: 호문쿨루스 원정은 상성 약점 없음 + 속성 몬스터 피해 덜
+      ..noWeakness = homun
+      ..elementGuard = homun ? PetRules.homunculusGuard(adult: pet?.adult ?? false) : 0;
+  }
+
+  /// 묶음 82 #381: 원정 창 「상대 어려움」 — 지금 HP · MP로 몇 번 미리 싸워 본 숨은 셈.
+  /// 0 쉬워요 · 1 해볼 만해요 · 2 어려워요 (튜토리얼 · 위치 없음이면 null)
+  int? expeditionOdds(FieldSpawn spawn, {String? petUid}) {
+    if (AppController.isTutorialSpawn(spawn.id) || hp <= 0) return hp <= 0 ? 2 : null;
+    final pet = farewellDone ? (petUid == null ? companionPet : _pets.byUid(petUid)) : null;
+    const tries = 6;
+    var wins = 0;
+    final awake = _jobs.awakened;
+    for (var i = 0; i < tries; i++) {
+      var jm = awake ? jobMp : 0;
+      final b = _expeditionBattle(spawn.id, spawn.monster, spawn.modifiers, pet, _clock(),
+          startHp: hp, rng: math.Random(spawn.id.hashCode + i * 7919));
+      if (awake) {
+        b
+          ..jobMpNow = (() => jm)
+          ..onJobMp = ((g) => jm = math.min(jobMpMax, jm + g));
+      }
+      _runExpeditionBattle(b, awake: awake, mp: () => jm, spend: (c) => jm -= c);
+      if (b.phase == BattlePhase.cleared) wins++;
+    }
+    if (wins >= tries - 1) return 0;
+    if (wins * 2 >= tries) return 1;
+    return 2;
+  }
+
+  Future<void> _resolveExpeditionInner(Expedition ex) async {
+    final monster = Monsters.byName(ex.monster) ?? MonsterId.ashSlime;
+    final mods = [
+      for (final n in ex.mods)
+        if (ModifierRules.byName(n) case final m?) m,
+    ];
+    final pet = ex.petUid == null ? null : _pets.byUid(ex.petUid!);
+    final homun = pet?.species == PetSpecies.homunculus;
+    // 묶음 82 #381: 주인공도 따라가 싸움 — 도착 때의 지금 HP · 직업 MP로 시작, 줄어든 만큼 그대로
+    final tut = AppController.isTutorialSpawn(ex.spawnId);
+    final hp0 = hp;
+    final awake = _jobs.awakened;
+    final jm0 = awake ? jobMp : 0;
+    var jm = jm0;
+    final battle = _expeditionBattle(ex.spawnId, monster, mods, pet, ex.arriveAt, startHp: tut ? null : hp0);
+    if (awake) {
+      // 원정 안의 직업 MP (자동 마시기 MP 기준 · 마나 물약도 이 값에)
+      battle
+        ..jobMpNow = (() => jm)
+        ..onJobMp = ((g) => jm = math.min(jobMpMax, jm + g));
+    }
+    _runExpeditionBattle(battle, awake: awake && !tut, mp: () => jm, spend: (c) => jm -= c);
     await _consumeBattlePotions(battle);
+    if (battle.ticks > 0) {
+      await _wear(EquipmentRules.fieldWear);
+      await _spendBattleBuffs();
+    }
+    final hpLost = tut ? 0 : math.max(0, hp0 - battle.playerHp);
+    final mpLost = math.max(0, jm0 - jm);
+    if (!tut) {
+      _vitals = _vitals.copyWith(hp: battle.playerHp, lastMaxHp: maxHp);
+      await store.saveVitals(_vitals);
+    }
+    if (awake && jm != jm0) await _setJobMp(jm);
+    // 지면 직접 졌을 때와 같은 벌 (지친 상태 · 장비 더 닳음)
+    if (battle.phase == BattlePhase.failed && !tut) await _defeated();
     // 튜토리얼 원정은 실패하지 않는다
     final cleared =
         battle.phase == BattlePhase.cleared || AppController.isTutorialSpawn(ex.spawnId);
@@ -768,6 +847,8 @@ extension ExpeditionOps on AppController {
     }
     final done = ex.withResult(cleared,
             escaped: escaped,
+            hpLost: hpLost,
+            mpLost: mpLost,
             newSpecies: cleared && isNew,
             reward: cleared
                 ? {

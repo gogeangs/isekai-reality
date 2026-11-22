@@ -25,8 +25,14 @@ class Expedition {
     this.baseReward = const {},
     this.adUsed = const {},
     this.sky = false,
+    this.hpLost = 0,
+    this.mpLost = 0,
     bool? back,
   }) : back = back ?? cleared != null;
+
+  /// 묶음 82 #381: 따라간 주인공이 이 원정에서 줄어든 HP · 직업 MP
+  final int hpLost;
+  final int mpLost;
 
   /// 돌아왔는지 (묶음 23 #172: 싸움 결과는 도착할 때 정하고, 결과 카드는 돌아온 뒤).
   /// 예전 기록은 결과가 있으면 돌아온 것으로 본다
@@ -83,6 +89,8 @@ class Expedition {
         baseReward: baseReward,
         adUsed: adUsed ?? this.adUsed,
         sky: sky,
+        hpLost: hpLost,
+        mpLost: mpLost,
         back: back ?? this.back,
       );
 
@@ -244,7 +252,9 @@ class Expedition {
           {bool escaped = false,
           Map<String, int> reward = const {},
           Map<String, int>? baseReward,
-          bool newSpecies = false}) =>
+          bool newSpecies = false,
+          int hpLost = 0,
+          int mpLost = 0}) =>
       Expedition(
         spawnId: spawnId,
         monster: monster,
@@ -268,6 +278,8 @@ class Expedition {
         baseReward: baseReward ?? reward,
         adUsed: adUsed,
         sky: sky,
+        hpLost: hpLost,
+        mpLost: mpLost,
         back: false,
       );
 
@@ -294,6 +306,8 @@ class Expedition {
         if (baseReward.isNotEmpty) 'baseReward': baseReward,
         if (adUsed.isNotEmpty) 'adUsed': adUsed.toList(),
         if (sky) 'sky': true,
+        if (hpLost > 0) 'hpLost': hpLost,
+        if (mpLost > 0) 'mpLost': mpLost,
         'back': back,
       };
 
@@ -320,6 +334,8 @@ class Expedition {
         petUid: j['petUid'] as String?,
         petName: j['petName'] as String?,
         sky: j['sky'] == true,
+        hpLost: (j['hpLost'] as num?)?.toInt() ?? 0,
+        mpLost: (j['mpLost'] as num?)?.toInt() ?? 0,
         baseReward: {
           for (final e in ((j['baseReward'] as Map?) ?? const {}).entries)
             e.key as String: (e.value as num).toInt(),

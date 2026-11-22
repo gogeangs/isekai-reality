@@ -179,6 +179,7 @@ class AlchemyState {
     this.calledDays = const {},
     this.autoHp = 0,
     this.autoCure = false,
+    this.autoMp = 0,
     this.saved = const [],
     this.convert,
     this.mastery = 0,
@@ -229,6 +230,9 @@ class AlchemyState {
   /// 자동 마시기: 중독·화상·눈부심이면 해독제·연고·맑은 눈 물약
   final bool autoCure;
 
+  /// 묶음 82 #392: 직업 MP가 이만큼(%) 아래면 마나 물약 (0 = 안 마심)
+  final int autoMp;
+
   /// 연금술사 전용: 이름 붙여 저장한 조합 (직업 각성 전에는 쓰지 않는다)
   final List<Map<String, dynamic>> saved;
 
@@ -247,6 +251,7 @@ class AlchemyState {
     Map<String, String>? calledDays,
     int? autoHp,
     bool? autoCure,
+    int? autoMp,
     ConvertJob? convert,
     bool clearConvert = false,
     int? mastery,
@@ -265,6 +270,7 @@ class AlchemyState {
         calledDays: calledDays ?? this.calledDays,
         autoHp: autoHp ?? this.autoHp,
         autoCure: autoCure ?? this.autoCure,
+        autoMp: autoMp ?? this.autoMp,
         saved: saved,
         convert: clearConvert ? null : (convert ?? this.convert),
         mastery: mastery ?? this.mastery,
@@ -296,6 +302,7 @@ class AlchemyState {
         'calledDays': calledDays,
         'autoHp': autoHp,
         'autoCure': autoCure,
+        'autoMp': autoMp,
         'saved': saved,
         if (convert != null) 'convert': convert!.toJson(),
         'mastery': mastery,
@@ -334,6 +341,7 @@ class AlchemyState {
       },
       autoHp: (j['autoHp'] as num?)?.toInt() ?? 0,
       autoCure: j['autoCure'] as bool? ?? false,
+      autoMp: (j['autoMp'] as num?)?.toInt() ?? 0,
       luckNoteDay: j['luckNoteDay'] as String?,
       saved: [
         for (final s in (j['saved'] as List?) ?? const [])

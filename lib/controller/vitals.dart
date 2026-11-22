@@ -303,7 +303,8 @@ extension VitalsOps on AppController {
 
     // 묶음 23 #172: 도착하면 싸움 결과를 정하고(기록·보상 저장), 돌아오면 결과 카드.
     // 바로 돌아오기 등으로 둘이 한꺼번에 지나도 결과는 한 번만 정한다
-    for (final ex in [...v.expeditions]) {
+    // 묶음 82 #381: 도착 순서대로 (하나의 HP · MP를 나눠 씀)
+    for (final ex in [...v.expeditions]..sort((a, b) => a.arriveAt.compareTo(b.arriveAt))) {
       if (!ex.decided && !now.isBefore(ex.arriveAt)) {
         await _resolveExpedition(ex);
       }

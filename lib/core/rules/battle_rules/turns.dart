@@ -25,6 +25,11 @@ extension BattleTurns on Battle {
         frozen = false;
         petrified = false;
         freezeImmune = 3;
+      case null when p.jobMpRatio > 0:
+        // 묶음 82 #392: 직업 MP 마나 물약
+        final now = jobMpNow?.call();
+        if (now == null || jobMpMax <= 0 || now >= jobMpMax) return false;
+        onJobMp?.call(math.min(jobMpMax - now, math.max(1, (jobMpMax * p.jobMpRatio).round())));
       case null:
         if (p.hpRatio <= 0 || playerHp >= playerMaxHp) return false;
         final before = playerHp;
@@ -47,6 +52,7 @@ extension BattleTurns on Battle {
   void _autoDrink() {
     autoHealed = false;
     autoCured = false;
+    autoManaed = false;
     if (isOver) return;
     final before = potionsDrunk;
     if (autoCure && poisonTurns > 0) {
@@ -67,15 +73,31 @@ extension BattleTurns on Battle {
         if (p.cure == CureKind.dazzle && drink(p.key)) break;
       }
     }
+    // 묶음 82 #392: 한 턴에 하나 — 상태 이상 → HP → MP
+    if (potionsDrunk > before) {
+      autoCured = true;
+      return;
+    }
     if (autoHp > 0 && playerHp * 100 < playerMaxHp * autoHp) {
       // 작은 것부터
       final heals = [
         for (final p in potions.values)
           if (p.cure == null && p.hpRatio > 0 && potionLeft(p.key) > 0) p,
       ]..sort((a, b) => a.hpRatio.compareTo(b.hpRatio));
-      if (heals.isNotEmpty && drink(heals.first.key)) autoHealed = true;
+      if (heals.isNotEmpty && drink(heals.first.key)) {
+        autoHealed = true;
+        return;
+      }
     }
-    if (!autoHealed && potionsDrunk > before) autoCured = true;
+    final jm = jobMpNow?.call();
+    if (autoMp > 0 && jm != null && jobMpMax > 0 && jm * 100 < jobMpMax * autoMp) {
+      final manas = [
+        for (final p in potions.values)
+          if (p.jobMpRatio > 0 && potionLeft(p.key) > 0) p,
+      ]..sort((a, b) => a.jobMpRatio.compareTo(b.jobMpRatio));
+      // 마나 물약이 없으면 그냥 건너뜀
+      if (manas.isNotEmpty && drink(manas.first.key)) autoManaed = true;
+    }
   }
 
   bool get skillDisabled => skillChargeTicks >= Battle.skillUnavailable;

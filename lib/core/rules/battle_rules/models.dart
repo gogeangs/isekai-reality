@@ -274,7 +274,11 @@ class BattlePotion {
     required this.count,
     this.hpRatio = 0,
     this.cure,
+    this.jobMpRatio = 0,
   });
+
+  /// 묶음 82 #392: 직업 MP 마나 물약 (최대의 이만큼)
+  final double jobMpRatio;
 
   /// 'shop:healSmall' · 'alc:healBig*' 처럼 가방에서 뺄 때 쓰는 키
   final String key;

@@ -389,6 +389,18 @@ extension AlchemyOps on AppController {
         PotionId.thaw => CureKind.freeze,
         _ => null,
       };
+      // 묶음 82 #392: 직업 마나 물약 (각성 뒤) — 전투 자동 마시기 MP 기준
+      final jobMana = switch (info.id) {
+        PotionId.jobManaSmall => 0.2,
+        PotionId.jobMana => 0.4,
+        _ => 0.0,
+      };
+      if (jobMana > 0) {
+        if (_jobs.awakened) {
+          out.add(BattlePotion(key: 'alc:${e.key}', name: potionName(e.key), count: e.value, jobMpRatio: jobMana * m));
+        }
+        continue;
+      }
       if (cure == null && info.hpRatio <= 0) continue;
       out.add(BattlePotion(
           key: 'alc:${e.key}',
@@ -396,6 +408,18 @@ extension AlchemyOps on AppController {
           count: e.value,
           hpRatio: info.hpRatio * m,
           cure: cure));
+    }
+    if (_jobs.awakened) {
+      for (final item in const [ShopItem.jobManaSmall, ShopItem.jobMana]) {
+        final n = bagCount(item);
+        if (n > 0) {
+          out.add(BattlePotion(
+              key: 'shop:${item.name}',
+              name: TownRules.info(item).name,
+              count: n,
+              jobMpRatio: TownRules.info(item).jobMpRatio));
+        }
+      }
     }
     return out;
   }
@@ -807,6 +831,6 @@ extension AlchemyOps on AppController {
   }
 
   /// 자동 마시기 설정
-  Future<void> setAutoUse({int? hpPercent, bool? cure}) async =>
-      _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure));
+  Future<void> setAutoUse({int? hpPercent, bool? cure, int? mpPercent}) async =>
+      _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure, autoMp: mpPercent));
 }

@@ -10,26 +10,36 @@ Future<void> showAutoUseWindow(
   required int hp,
   required bool cure,
   required void Function(int hp, bool cure) onChanged,
+  int? mp,
+  void Function(int mp)? onMpChanged,
 }) =>
     showDialog<void>(
       context: context,
-      builder: (d) => _AutoUseWindow(hp: hp, cure: cure, onChanged: onChanged),
+      builder: (d) => _AutoUseWindow(hp: hp, cure: cure, onChanged: onChanged, mp: mp, onMpChanged: onMpChanged),
     );
 
-/// 전투 물약 줄 끝 작은 표시: 「자동 50%」(+✚) / 「자동 끔」
-String autoUseLabel(int hp, bool cure) {
-  if (hp <= 0 && !cure) return '자동 끔';
-  if (hp <= 0) return '자동 해독';
-  return cure ? '자동 $hp% · 해독' : '자동 $hp%';
+/// 전투 물약 줄 끝 작은 표시: 「자동 HP 50% · MP 30% · 해독」 / 「자동 끔」
+/// 묶음 82 #392: [short] 면 「자동 50·30·✚」처럼 줄임
+String autoUseLabel(int hp, bool cure, {int mp = 0, bool short = false}) {
+  if (hp <= 0 && !cure && mp <= 0) return '자동 끔';
+  final full = '자동 ${[if (hp > 0) 'HP $hp%', if (mp > 0) 'MP $mp%', if (cure) '해독'].join(' · ')}';
+  if (short && full.length > 14) {
+    return '자동 ${[if (hp > 0) 'HP$hp', if (mp > 0) 'MP$mp', if (cure) '✚'].join('·')}';
+  }
+  return full;
 }
 
 class _AutoUseWindow extends StatefulWidget {
   const _AutoUseWindow(
-      {required this.hp, required this.cure, required this.onChanged});
+      {required this.hp, required this.cure, required this.onChanged, this.mp, this.onMpChanged});
 
   final int hp;
   final bool cure;
   final void Function(int hp, bool cure) onChanged;
+
+  /// null 이면 MP 줄 숨김 (직업 각성 전)
+  final int? mp;
+  final void Function(int mp)? onMpChanged;
 
   @override
   State<_AutoUseWindow> createState() => _AutoUseWindowState();
@@ -38,6 +48,7 @@ class _AutoUseWindow extends StatefulWidget {
 class _AutoUseWindowState extends State<_AutoUseWindow> {
   late int _hp = widget.hp;
   late bool _cure = widget.cure;
+  late int _mp = widget.mp ?? 0;
 
   void _set({int? hp, bool? cure}) {
     setState(() {
@@ -77,6 +88,30 @@ class _AutoUseWindowState extends State<_AutoUseWindow> {
                 showCheckmark: false,
               ),
           ]),
+          if (widget.mp != null) ...[
+            const SizedBox(height: 10),
+            const Text('MP가 이만큼 아래면 마나 물약',
+                style: TextStyle(color: AppColors.text, fontSize: 14)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, children: [
+              for (final v in const [0, 30, 50])
+                ChoiceChip(
+                  key: Key('autoMp_$v'),
+                  label: Text(v == 0 ? '안 마심' : '$v%'),
+                  selected: _mp == v,
+                  onSelected: (_) {
+                    setState(() => _mp = v);
+                    widget.onMpChanged?.call(v);
+                  },
+                  selectedColor: AppColors.gold,
+                  backgroundColor: AppColors.chipBg,
+                  labelStyle: TextStyle(
+                      color: _mp == v ? AppColors.night : AppColors.text,
+                      fontWeight: FontWeight.w700),
+                  showCheckmark: false,
+                ),
+            ]),
+          ],
           const SizedBox(height: 6),
           SwitchListTile(
             key: const Key('autoCure'),

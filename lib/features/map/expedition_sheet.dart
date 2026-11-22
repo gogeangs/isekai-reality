@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
+import 'expedition_result.dart' show expeditionLossLine;
 import '../../core/format.dart';
 import '../../core/models/pet_state.dart' show Pet;
 import '../../core/models/vitals.dart';
@@ -30,7 +31,50 @@ String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.busy => '이미 원정 중이에요',
       ExpeditionCheck.tired => '지쳐서 쉬는 중이에요',
       ExpeditionCheck.training => '훈련장에서 훈련 중이에요',
+      ExpeditionCheck.noHp => 'HP가 없어 따라갈 수 없어요 · 걷거나 여관에서 쉬어요',
     };
+
+/// 묶음 82 #381: 「주인공도 함께 가요 · HP ○ / ○ · MP ○ / ○」 + 상대 어려움 · HP 낮음
+class _HeroGoes extends StatelessWidget {
+  const _HeroGoes({required this.controller, required this.odds});
+  final AppController controller;
+  final int? odds;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final low = c.maxHp > 0 && c.hp * 100 < c.maxHp * 30;
+    final (label, color) = switch (odds) {
+      0 => ('쉬워요', const Color(0xFF7FD98F)),
+      1 => ('해볼 만해요', AppColors.goldBright),
+      2 => ('어려워요', const Color(0xFFFF8A7A)),
+      _ => ('', AppColors.textMuted),
+    };
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const GameIcon('vitality', size: 16),
+        const SizedBox(width: 4),
+        Flexible(
+          child: KText(
+              '주인공도 함께 가요 · HP ${comma(c.hp)} / ${comma(c.maxHp)}'
+              '${c.jobsOpen ? ' · MP ${comma(c.jobMp)} / ${comma(c.jobMpMax)}' : ''}',
+              key: const Key('expHeroLine'),
+              style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ),
+      ]),
+      if (label.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text('상대 · $label', key: Key('expOdds_$odds'), style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w800)),
+        ),
+      if (low && c.hp > 0)
+        const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Text('HP가 낮아요', key: Key('expHpLow'), style: TextStyle(color: Color(0xFFFFD25A), fontSize: 12.5, fontWeight: FontWeight.w800)),
+        ),
+    ]);
+  }
+}
 
 String _minutes(Duration d) {
   final m = d.inMinutes;
@@ -192,6 +236,18 @@ class _SpawnSheetState extends State<SpawnSheet> {
         listenable: controller, builder: (context, _) => _build(context));
   }
 
+  // 묶음 82 #381: 상대 어려움 (숨은 셈은 같은 조건이면 다시 하지 않음)
+  String? _oddsKey;
+  int? _oddsVal;
+  int? _odds(AppController c, String? petUid) {
+    final key = '${spawn.id}|$petUid|${c.hp}|${c.jobMp}';
+    if (key != _oddsKey) {
+      _oddsKey = key;
+      _oddsVal = c.expeditionOdds(spawn, petUid: petUid);
+    }
+    return _oddsVal;
+  }
+
   Widget _build(BuildContext context) {
     final c = controller;
     final info = spawn.info;
@@ -328,10 +384,18 @@ class _SpawnSheetState extends State<SpawnSheet> {
                               '돌아오기까지 ${_minutes(plan.oneWay * 2)}'
                               '${c.compassReady ? ' (나침반으로 절반)' : ''}'),
                     ],
+                    // 묶음 82 #381: 주인공도 따라가 싸움 (튜토리얼 원정은 그대로)
+                    if (!AppController.isTutorialSpawn(spawn.id)) ...[
+                      const SizedBox(height: 4),
+                      _HeroGoes(controller: c, odds: _odds(c, chosen)),
+                    ],
                     const SizedBox(height: 6),
                     KText(
-                      '${c.farewellDone ? '펫' : '정령'}은 내 전투력으로 싸우고, 내 HP는 쓰지 않아요. '
-                      '지면 기력만 쓰고 무사히 돌아와요.',
+                      AppController.isTutorialSpawn(spawn.id)
+                          ? '${c.farewellDone ? '펫' : '정령'}이 싸우고 무사히 돌아와요.'
+                          : '주인공도 따라가 함께 싸워요. 지금 HP · MP로 싸우고 줄어든 만큼 그대로예요. '
+                              '지면 기력을 쓰고 지쳐서 돌아와요.',
+                      key: const Key('expHeroText'),
                       style: const TextStyle(
                           color: AppColors.textMuted, fontSize: 12, height: 1.35),
                     ),
@@ -501,7 +565,8 @@ class ExpeditionCard extends StatelessWidget {
               Flexible(
                 child: Text(
                     '${ex.petName ?? controller.firstSpiritName} · ${going ? '가는 중' : '돌아오는 중'}'
-                    '${others > 0 ? ' (외 $others마리)' : ''}',
+                    '${others > 0 ? ' (외 $others마리)' : ''}'
+                    '${ex.decided && (ex.hpLost > 0 || ex.mpLost > 0) ? ' · ${expeditionLossLine(ex)}' : ''}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),

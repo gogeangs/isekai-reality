@@ -235,12 +235,24 @@ class Battle {
   /// 자동 마시기: HP 이 % 아래면 회복 물약 (0이면 끔). 전투 중에도 바꿀 수 있다 (11-11 #93)
   int autoHp;
 
+  /// 묶음 82 #392: 직업 MP가 이만큼(%) 아래면 마나 물약 · 직업 MP는 앱이 가지고 있어 함수로 묻고 알린다
+  int autoMp = 0;
+  int jobMpMax = 0;
+  int Function()? jobMpNow;
+  void Function(int gain)? onJobMp;
+
+  /// 전투 안 자동 마시기 창에서 MP 기준을 바꿨을 때 (앱이 저장)
+  void Function(int mp)? onAutoMpChanged;
+
   /// 자동 마시기: 중독·화상·눈부심 풀기
   bool autoCure;
 
   /// 이번 틱에 자동으로 마신 물약 (전투 기록 한 줄, 11-11 #93)
   bool autoHealed = false;
   bool autoCured = false;
+
+  /// 이번 차례 자동으로 마나 물약을 마셨는지
+  bool autoManaed = false;
 
   /// 속성 저항 (그 속성 몬스터에게 받는 피해 감소)
   final Map<Element, double> resist;

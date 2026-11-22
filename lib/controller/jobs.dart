@@ -1163,6 +1163,13 @@ extension JobOps on AppController {
     b.lanternBurst = gear.sets.lanternBurst;
     b.lanternBurstMult = GuildRules.set6BurstMult;
     if (!_jobs.awakened) return b;
+    // 묶음 82 #392: 자동 마시기 MP 기준 (직업 MP는 앱이 가짐)
+    b
+      ..autoMp = _alc.autoMp
+      ..jobMpMax = jobMpMax
+      ..jobMpNow = (() => jobMp)
+      ..onJobMp = ((g) => unawaited(_setJobMp(math.min(jobMpMax, jobMp + g))))
+      ..onAutoMpChanged = ((v) => unawaited(setAutoUse(mpPercent: v)));
     b.weaponEnhance = _armory.wornIn(EquipSlot.weapon)?.enhance ?? 0;
     b.artisanSubs = subJobs.length;
     b.nightTime = JobRules.isNight(_clock());

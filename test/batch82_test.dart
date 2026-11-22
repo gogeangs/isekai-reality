@@ -8,7 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
+import 'package:isekai_reality/features/battle/auto_use_window.dart';
+import 'package:isekai_reality/features/map/expedition_result.dart' show expeditionLossLine;
+import 'package:isekai_reality/features/map/expedition_sheet.dart' show expeditionReason;
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
 import 'package:isekai_reality/data/location/location_source.dart';
@@ -358,6 +362,94 @@ void main() {
       expect(c.act2.memoriesOf(0), 1);
       expect(c.hp, 0);
       expect(c.kingStories, isEmpty);
+    });
+  });
+
+  group('#381 원정에 주인공도', () {
+    test('도착 때 지금 HP로 싸우고 줄어든 만큼 그대로 · 결과에 HP −○', () async {
+      var now = DateTime(2026, 11, 16, 10);
+      final s = _store(14, {'pets': _petsJson()});
+      final c = AppController(store: s, health: FakeHealthSource(stepsByDay: const {}), clock: () => now)
+        ..mailSources = const [];
+      await c.init();
+      await c.handleFix(const LocationFix(point: GeoPoint(37.3219, 126.8309)));
+      final spawn = ([...c.todaySpawns]..sort((a, b) => const GeoPoint(37.3219, 126.8309)
+              .distanceTo(a.point)
+              .compareTo(const GeoPoint(37.3219, 126.8309).distanceTo(b.point))))
+          .first;
+      final hp0 = c.hp;
+      expect(c.expeditionOdds(spawn), isNotNull);
+      expect(await c.sendSpirit(spawn, petUid: 'p1'), ExpeditionCheck.ok);
+      now = now.add(const Duration(hours: 3));
+      await c.refreshVitals();
+      final ex = [...c.activeExpeditions, ...c.finishedExpeditions].firstWhere((e) => e.spawnId == spawn.id);
+      expect(ex.decided, isTrue);
+      expect(c.hp, hp0 - ex.hpLost);
+      if (ex.hpLost > 0) expect(expeditionLossLine(ex), startsWith('HP −'));
+    });
+
+    test('HP 0이면 보낼 수 없음', () async {
+      final s = _store(14, {'pets': _petsJson()});
+      await s.saveVitals(const Vitals(hp: 0));
+      final c = await _open(s);
+      await c.handleFix(const LocationFix(point: GeoPoint(37.3219, 126.8309)));
+      expect(c.hp, 0);
+      final plan = c.planExpedition(c.todaySpawns.first, petUid: 'p1');
+      expect(plan.check, ExpeditionCheck.noHp);
+      expect(expeditionReason(plan.check), 'HP가 없어 따라갈 수 없어요 · 걷거나 여관에서 쉬어요');
+    });
+  });
+
+  group('#392 자동 마시기 MP', () {
+    Battle mk({int jm = 10}) {
+      var mp = jm;
+      final b = Battle(
+        playerMaxHp: 100,
+        playerAttack: 1,
+        floors: const [Foe(monster: MonsterId.slime, maxHp: 99999, attack: 1)],
+        rng: math.Random(1),
+        startHp: 100,
+        potions: const [
+          BattlePotion(key: 'shop:jobMana', name: '마나 물약', count: 2, jobMpRatio: 0.4),
+          BattlePotion(key: 'shop:jobManaSmall', name: '작은 마나 물약', count: 2, jobMpRatio: 0.2),
+          BattlePotion(key: 'shop:heal', name: '회복 물약', count: 5, hpRatio: 0.4),
+        ],
+        autoHp: 50,
+      )
+        ..autoMp = 30
+        ..jobMpMax = 100;
+      b
+        ..jobMpNow = (() => mp)
+        ..onJobMp = ((g) => mp += g);
+      return b;
+    }
+
+    test('MP가 기준 아래면 작은 것부터 · HP를 마신 턴엔 MP는 다음 턴 · 3개까지', () {
+      final b = mk();
+      b.tick();
+      expect(b.potionsUsed, {'shop:jobManaSmall': 1});
+      expect(b.jobMpNow!(), 30);
+      final c = mk()
+        ..playerHp = 10
+        ..autoHp = 30;
+      c.tick();
+      expect(c.potionsUsed.keys, ['shop:heal']);
+      c.tick();
+      expect(c.potionsUsed.containsKey('shop:jobManaSmall'), isTrue);
+      final d = mk(jm: 0);
+      for (var i = 0; i < 20; i++) {
+        d.tick();
+      }
+      expect(d.potionsDrunk, lessThanOrEqualTo(3));
+    });
+
+    test('표시 · 기준 저장', () async {
+      expect(autoUseLabel(50, true, mp: 30), '자동 HP 50% · MP 30% · 해독');
+      expect(autoUseLabel(0, false), '자동 끔');
+      expect(autoUseLabel(50, true, mp: 30, short: true), '자동 HP50·MP30·✚');
+      final c = await _open(_store(18, {}));
+      await c.setAutoUse(mpPercent: 30);
+      expect(c.alchemy.autoMp, 30);
     });
   });
 

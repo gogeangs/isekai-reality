@@ -1527,6 +1527,8 @@ Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
     showAutoUseWindow(context,
         hp: c.alchemy.autoHp,
         cure: c.alchemy.autoCure,
+        mp: c.jobsOpen ? c.alchemy.autoMp : null,
+        onMpChanged: (v) => c.setAutoUse(mpPercent: v),
         onChanged: (hp, cure) => c.setAutoUse(hpPercent: hp, cure: cure));
 
 /// 주머니·길가에서 나온 것 한 줄

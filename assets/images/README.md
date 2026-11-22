@@ -604,3 +604,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | hero_tamer_attack_female | 주인공 조련사 공격 · 여(호루라기 → 매가 날아올라 덮치며 초록 발톱 자국 → 공중에서 돌아와 내려앉음), 6칸 3840×800 — 생산 직업 주인공 24장 완료 |
 | 2026-11-20 | title_pairSpellblade, title_pairSage | 새 특별 짝 칭호 배지 — 마검사(불꽃·번개 검, 붉은 리본) · 현자(책·돋보기·4속성 별, 보라 리본), 512 |
 | 2026-11-20 | skill_spellbladeSlash, skill_sageStrike | 새 특별 짝 전용 스킬 — 마검 베기(불·물·잎 베기 궤적) · 현자의 일섬(돋보기 빛줄기·과녁), 512, 넓은 빛 번짐 제거 |
+| 2026-11-22 | title_pair_spellblade, title_pair_sage | 숨은 이명 배지 마검사 · 현자 — 다른 배지처럼 위 고리 두 개 더한 편집본, 512 (같은 이름 덮어쓰기, 옛 title_pairSpellblade · title_pairSage는 안 쓰임) |

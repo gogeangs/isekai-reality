@@ -17,7 +17,13 @@ class Act2State {
     this.riftAnchorLng,
     this.lossDay,
     this.losses = 0,
+    this.memories = const [0, 0, 0, 0, 0],
   });
+
+  /// 묶음 82 #394: 분신마다 본 왕의 기억 조각 수 (0~3)
+  final List<int> memories;
+
+  int memoriesOf(int avatar) => avatar >= 0 && avatar < memories.length ? memories[avatar] : 0;
 
   /// 쓰러뜨린 분신 수 (0~5, 차례대로)
   final int beaten;
@@ -72,6 +78,7 @@ class Act2State {
     double? riftAnchorLng,
     String? lossDay,
     int? losses,
+    List<int>? memories,
   }) =>
       Act2State(
         beaten: beaten ?? this.beaten,
@@ -89,6 +96,7 @@ class Act2State {
         riftAnchorLng: riftAnchorLng ?? this.riftAnchorLng,
         lossDay: lossDay ?? this.lossDay,
         losses: losses ?? this.losses,
+        memories: memories ?? this.memories,
       );
 
   Map<String, dynamic> toJson() => {
@@ -107,6 +115,7 @@ class Act2State {
         if (riftAnchorLng != null) 'riftAnchorLng': riftAnchorLng,
         if (lossDay != null) 'lossDay': lossDay,
         'losses': losses,
+        'mem': memories,
       };
 
   static int _i(Object? v) => v is num ? v.toInt() : 0;
@@ -127,5 +136,9 @@ class Act2State {
         riftAnchorLng: (j['riftAnchorLng'] as num?)?.toDouble(),
         lossDay: j['lossDay'] as String?,
         losses: _i(j['losses']),
+        memories: [
+          for (var i = 0; i < 5; i++)
+            j['mem'] is List && (j['mem'] as List).length > i ? _i((j['mem'] as List)[i]).clamp(0, 3) : 0,
+        ],
       );
 }

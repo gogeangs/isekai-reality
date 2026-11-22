@@ -19,6 +19,7 @@ import '../battle/hero_rig.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart' show SpiritMood;
 import '../smithy/equipment_view.dart';
+import 'ash_turn_view.dart';
 
 enum _Stage { entry, battle, result }
 
@@ -45,7 +46,13 @@ class AshBattleScreen extends StatefulWidget {
 class _AshBattleScreenState extends State<AshBattleScreen> {
   _Stage _stage = _Stage.entry;
   Battle? _battle;
+
+  /// 묶음 82 #394: 분신은 턴제 (본체는 자동 전투 그대로)
+  AshTurn? _turn;
   AshResult? _result;
+
+  /// 이번 판에 본 기억으로 왕의 기억을 다 봤는지 (끝 장면 「○○이 잠잠해졌어」)
+  bool _calm = false;
 
   /// 묶음 75 #327: 이 싸움에서 얻은 알 등급
   EggGrade? _egg;
@@ -71,7 +78,16 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
       final ok = await confirmStopResting(context);
       if (!ok || !mounted) return;
     }
-    final b = _king ? _c.startKingBattle() : _c.startAshBattle();
+    if (!_king) {
+      final t = _c.startAshTurn();
+      if (t == null) return;
+      setState(() {
+        _turn = t;
+        _stage = _Stage.battle;
+      });
+      return;
+    }
+    final b = _c.startKingBattle();
     if (b == null) return;
     setState(() {
       _battle = b;
@@ -80,8 +96,15 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
   }
 
   Future<void> _finish() async {
-    final b = _battle!;
-    final r = _king ? await _c.finishKingBattle(b) : await _c.finishAshBattle(b);
+    final t = _turn;
+    final AshResult r;
+    if (t != null) {
+      r = await _c.finishAshTurn(t);
+      _calm = r.won && t.allMemories;
+    } else {
+      final b = _battle!;
+      r = _king ? await _c.finishKingBattle(b) : await _c.finishAshBattle(b);
+    }
     if (!mounted) return;
     if (_king && r.won) {
       // 결말 「문을 다리로」: 본체를 쓰러뜨린 직후, 건너뛰기 없이 한 번
@@ -95,10 +118,11 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
       _stage = _Stage.result;
       _egg = r.egg ? (_c.takeBattleEgg() ?? EggGrade.common) : null;
     });
-    if (r.won && r.story != null) {
+    // 묶음 82: 턴제는 마주하기로 본 기억이 사연 (따로 창을 띄우지 않음)
+    if (t == null && r.won && r.story != null) {
       final i = Act2Rules.avatars.indexWhere((a) => a.story == r.story);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && i >= 0) showKingStory(context, i);
+        if (mounted && i >= 0) showKingStory(context, i, seen: _c.act2.memoriesOf(i));
       });
     }
   }
@@ -143,7 +167,17 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
                   children: [
                     OrnateTopBar(title: _title, onBack: null),
                     const SizedBox(height: 10),
-                    Expanded(child: _battleView()),
+                    Expanded(
+                        child: _turn != null
+                            ? AshTurnView(
+                                key: const Key('ashTurnView'),
+                                controller: _c,
+                                turn: _turn!,
+                                background: _bg,
+                                fast: _c.fastBattle,
+                                onFinished: _finish,
+                              )
+                            : _battleView()),
                   ],
                 ),
               )
@@ -341,7 +375,11 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
           asset: 'assets/images/banner_clear.webp',
           width: 280,
           aspect: 760 / 302,
-          text: r.won ? '잠재웠어요!' : '이번엔 물러났어요',
+          text: !r.won
+              ? '이번엔 물러났어요'
+              : _calm && a != null
+                  ? '${josa(AshTurnRules.info(a).emotion, '이/가')} 잠잠해졌어'
+                  : '잠재웠어요!',
           textOffset: -0.12,
           fontSize: 22,
         ),
@@ -353,6 +391,22 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
               ? PurifiedMonster(monster: info.monster, size: 150)
               : MonsterPicture(monster: info.monster, size: 150),
         ),
+      // 묶음 82 #394: 왕의 기억을 다 보고 이기면 왕의 마지막 한마디, 덜 봤으면 몇 조각 봤는지
+      if (r.won && _turn != null && a != null) ...[
+        const SizedBox(height: 8),
+        OrnatePanel(
+          child: _calm
+              ? KText(AshTurnRules.info(a).lastWord,
+                  key: const Key('ashLastWord'),
+                  textAlign: TextAlign.center,
+                  style: AppText.title(16, color: AppColors.text).copyWith(height: 1.6))
+              : KText(
+                  '왕의 기억 ${_c.act2.memoriesOf(a.index)} / 3 · 못 본 기억은 「왕의 사연 다시 보기」에서 빈칸으로 남아요',
+                  key: const Key('ashMemoryCount'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        ),
+      ],
       if (r.exp > 0) ...[
         const SizedBox(height: 10),
         AshExpPanel(controller: _c, exp: r.exp),
@@ -410,7 +464,7 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
                 onPressed: () {
                   final i =
                       Act2Rules.avatars.indexWhere((x) => x.story == r.story);
-                  if (i >= 0) showKingStory(context, i);
+                  if (i >= 0) showKingStory(context, i, seen: _c.act2.memoriesOf(i));
                 },
                 icon: const Icon(Icons.menu_book_rounded,
                     color: AppColors.goldBright),
@@ -458,16 +512,18 @@ Future<void> openRift(BuildContext context, AppController c) async {
 }
 
 /// 왕의 사연 한 조각 (묶음 34): 양피지가 펼쳐지고 → 글귀 → 「기록에 남겨 두기」
-Future<void> showKingStory(BuildContext context, int index) => showDialog<void>(
+/// 묶음 82 #394: 사연은 왕의 기억 세 조각 — 못 본 조각은 빈칸 「아직 보지 못한 기억」
+Future<void> showKingStory(BuildContext context, int index, {int seen = 3}) => showDialog<void>(
       context: context,
       barrierColor: const Color(0xCC05060F),
-      builder: (d) => _KingStoryView(index: index),
+      builder: (d) => _KingStoryView(index: index, seen: seen),
     );
 
 class _KingStoryView extends StatefulWidget {
-  const _KingStoryView({required this.index});
+  const _KingStoryView({required this.index, this.seen = 3});
 
   final int index;
+  final int seen;
 
   @override
   State<_KingStoryView> createState() => _KingStoryViewState();
@@ -487,7 +543,7 @@ class _KingStoryViewState extends State<_KingStoryView>
 
   @override
   Widget build(BuildContext context) {
-    final text = Act2Rules.avatars[widget.index].story;
+    final mem = AshTurnRules.info(AshAvatar.values[widget.index.clamp(0, 4)]).memories;
     final w = math.min(340.0, MediaQuery.sizeOf(context).width - 32);
     return Center(
       child: Material(
@@ -512,10 +568,20 @@ class _KingStoryViewState extends State<_KingStoryView>
                     tint: const Color(0xFFB9B2C9), fallback: const Color(0xFFD9D3E2),
                     child: Opacity(
                       opacity: textIn,
-                      child: Text(text,
-                          key: const Key('kingStoryText'),
-                          textAlign: TextAlign.center,
-                          style: AppText.title(17, color: const Color(0xFF2A2433)).copyWith(height: 1.6)),
+                      child: Column(key: const Key('kingStoryText'), mainAxisSize: MainAxisSize.min, children: [
+                        for (var i = 0; i < mem.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 8),
+                          i < widget.seen
+                              ? Text(mem[i],
+                                  key: Key('kingMemory_$i'),
+                                  textAlign: TextAlign.center,
+                                  style: AppText.title(16, color: const Color(0xFF2A2433)).copyWith(height: 1.55))
+                              : Text('아직 보지 못한 기억',
+                                  key: Key('kingMemoryBlank_$i'),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Color(0x992A2433), fontSize: 13, fontStyle: FontStyle.italic)),
+                        ],
+                      ]),
                     ),
                   ),
                 ),

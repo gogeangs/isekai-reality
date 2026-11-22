@@ -404,9 +404,15 @@ extension AlchemyOps on AppController {
   Future<void> _consumeBattlePotions(Battle battle) async {
     if (battle.potionsUsed.isEmpty || _consumed[battle] == true) return;
     _consumed[battle] = true;
+    await _consumePotionKeys(battle.potionsUsed);
+  }
+
+  /// 마신 물약을 가방에서 뺀다 (키 → 개수). 묶음 82: 턴제 잿빛 틈도 같이 씀
+  Future<void> _consumePotionKeys(Map<String, int> potionsUsed) async {
+    if (potionsUsed.isEmpty) return;
     var a = _alc;
     final used = <String>[];
-    battle.potionsUsed.forEach((key, n) {
+    potionsUsed.forEach((key, n) {
       // 묶음 45 #232: 엘리엘의 별빛 플라스크 → 가끔 병이 남음 (한 병마다)
       var spent = 0;
       for (var i = 0; i < n; i++) {

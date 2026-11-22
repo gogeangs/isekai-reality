@@ -159,6 +159,7 @@ void main() {
                 'ratHide': 10,
                 'batWing': 4,
                 'slimeCore': 1,
+                'tannedLeather': 2, // 묶음 82 #395: 방어구 강화 재료
               },
             ),
           ],

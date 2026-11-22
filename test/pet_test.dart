@@ -100,7 +100,7 @@ void main() {
       expect(c.player.level.level, lessThan(11));
       expect(c.farewellPending, isFalse);
       expect(c.farewellDone, isFalse);
-      expect(c.bagUsed, 1); // 알은 가방 한 칸
+      expect(c.bagUsed, 0); // 묶음 82 #386: 이별 전 숨은 알은 칸에 넣지 않음
       expect(await c.incubateEgg('e1'), isFalse);
       expect(c.itemName(ShopItem.bulssiPotion), '정령 물약');
     });

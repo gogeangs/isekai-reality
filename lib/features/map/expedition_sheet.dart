@@ -207,7 +207,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        child: Column(
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -385,7 +385,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
             ),
             ),
           ],
-        ),
+        )),
       ),
     );
   }

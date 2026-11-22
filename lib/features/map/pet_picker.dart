@@ -147,10 +147,12 @@ class _Cell extends StatelessWidget {
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700)),
         if (status != null)
+          // 「원정 중 1시간 5분」처럼 길면 두 줄로 (잘리지 않게)
           Text(status!,
-              maxLines: 1,
+              maxLines: 2,
+              textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 10, height: 1.2)),
       ]),
     );
     return GestureDetector(

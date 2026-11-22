@@ -59,13 +59,13 @@ class HatcheryPanel extends StatelessWidget {
               ),
               // 묶음 81 #372: 펫이 가득이면 알은 깨울 수 없음 (품기 · 팔기는 그대로)
               if (c.petsFull && c.pets.eggs.isNotEmpty)
-                Positioned(
+                const Positioned(
                   right: 10,
                   top: 12,
                   child: _Pill(
                     child: Text(PetsOps.petsFullLine,
-                        key: const Key('hatcheryPetsFull'),
-                        style: const TextStyle(color: AppColors.goldBright, fontSize: 11, fontWeight: FontWeight.w800)),
+                        key: Key('hatcheryPetsFull'),
+                        style: TextStyle(color: AppColors.goldBright, fontSize: 11, fontWeight: FontWeight.w800)),
                   ),
                 ),
               Positioned(

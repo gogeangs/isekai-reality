@@ -464,11 +464,11 @@ Future<void> showHatchSheet(
                     style: AppText.title(19, color: AppColors.goldBright)),
                 const SizedBox(height: 10),
                 if (c.pets.pets.length >= PetRules.maxPets)
-                  KText(
+                  const KText(
                       '펫이 ${PetRules.maxPets}마리라 더 함께할 수 없어요. 펫 하나를 자연으로 돌려보내면 '
                       '이 알이 깨어나요. 알은 가방에 그대로 있어요.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textMuted))
+                      style: TextStyle(color: AppColors.textMuted))
                 else ...[
                   TextField(
                     controller: name,

@@ -217,7 +217,7 @@ void main() {
       await tester.pumpWidget(scene('정령', const SceneWho.name()));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('dialogSpeaker')), findsOneWidget);
-      expect(find.byWidgetPredicate((w) => w.key is ValueKey<String> && '${(w.key as ValueKey<String>).value}'.startsWith('dialogFace_')),
+      expect(find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key as ValueKey<String>).value.startsWith('dialogFace_')),
           findsNothing);
       await tester.pumpWidget(scene(null, null));
       await tester.pump(const Duration(milliseconds: 300));

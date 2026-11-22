@@ -402,27 +402,23 @@ class _BagTabState extends State<BagTab> {
                       children: [
                         // ⑤ 가방 35 / 35칸 + 칸 막대 + 골라서 버리기
                         Row(children: [
-                          const GameIcon('bag', size: 26),
-                          const SizedBox(width: 5),
-                          Text('가방', style: AppText.title(17)),
-                          const SizedBox(width: 6),
-                          Text('$used / $cap칸',
-                              key: const Key('bagCap'),
-                              style: TextStyle(
-                                  color: used >= cap ? AppColors.danger : AppColors.text,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800)),
-                          const SizedBox(width: 6),
+                          // 작은 화면에서는 왼쪽 묶음만 살짝 줄여 한 줄에 둔다
                           Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                key: const Key('bagCapBar'),
-                                value: ratio,
-                                minHeight: 6,
-                                backgroundColor: const Color(0xFF0E0C22),
-                                valueColor: AlwaysStoppedAnimation(capColor),
-                              ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const GameIcon('bag', size: 26),
+                                const SizedBox(width: 5),
+                                Text('가방', style: AppText.title(17)),
+                                const SizedBox(width: 6),
+                                Text('$used / $cap칸',
+                                    key: const Key('bagCap'),
+                                    style: TextStyle(
+                                        color: used >= cap ? AppColors.danger : AppColors.text,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800)),
+                              ]),
                             ),
                           ),
                           // 전투 자동 마시기 (11-11 #93): 작은 물약 아이콘
@@ -447,6 +443,18 @@ class _BagTabState extends State<BagTab> {
                             }),
                           ),
                         ]),
+                        // 칸 막대는 아래 줄에 꽉 차게 (작은 화면에서도 넘치지 않게)
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            key: const Key('bagCapBar'),
+                            value: ratio,
+                            minHeight: 6,
+                            backgroundColor: const Color(0xFF0E0C22),
+                            valueColor: AlwaysStoppedAnimation(capColor),
+                          ),
+                        ),
                         if (used > cap)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),

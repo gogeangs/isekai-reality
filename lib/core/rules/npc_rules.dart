@@ -832,7 +832,7 @@ class NpcRules {
       index: 3,
       stage: FavorStage.best,
       level: 1,
-      say: '새 교역로를 그리세. 길을 넉넉히 걷고, 하루 10,000보일세.',
+      say: '새 교역로를 그리세. 부탁 받은 뒤로 넉넉히 1만 보는 걸어 주게.',
       steps: [
         NpcRequestStep(RequestStepKind.stepsSince, 10000, '부탁 받은 뒤 1만 보 걷기'),
         NpcRequestStep(RequestStepKind.daySteps, 10000, '하루 10,000보 걷기'),

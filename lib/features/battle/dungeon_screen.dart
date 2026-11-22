@@ -369,9 +369,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ),
             Text('???', style: AppText.title(22, color: AppColors.text)),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               '보상: 클리어 $reward · 실패 ${RuleConstants.dungeonFailExp} 경험치',
-              style: const TextStyle(color: AppColors.goldBright, fontSize: 14),
+              style: TextStyle(color: AppColors.goldBright, fontSize: 14),
             ),
             // 묶음 70 #296: 하루 상한 없음 — 열쇠 수만
             Text(

@@ -230,12 +230,17 @@ class _Fill extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
+        // 큰 숫자(1,117 / 2,175)도 잘리지 않게: 자리를 넓히고 넘치면 살짝 줄임
         SizedBox(
-          width: 78,
-          child: Text('${comma(value)} / ${comma(max)}',
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+          width: 96,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text('${comma(value)} / ${comma(max)}',
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
         ),
       ]),
     );

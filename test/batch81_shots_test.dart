@@ -176,19 +176,23 @@ void main() {
       final now = DateTime(2026, 11, 16, 10);
       late AppController c;
       late AppController all;
+      // 가까운 몬스터부터 (기력이 모자라지 않게)
+      List<FieldSpawn> near(AppController x) =>
+          [...x.todaySpawns]..sort((a, b) => _home.distanceTo(a.point).compareTo(_home.distanceTo(b.point)));
       await tester.runAsync(() async {
-        c = await startVillage(16, farewell: true, clock: () => now,
+        c = await startVillage(16, farewell: true, clock: () => now, vitals: Vitals(mp: 999, mpAt: now),
             more: _pets(_three, tired: {'p3': now.add(const Duration(minutes: 40))}));
         await c.handleFix(const LocationFix(point: _home));
-        await c.sendSpirit(c.todaySpawns.last, petUid: 'p2');
-        all = await startVillage(16, farewell: true, clock: () => now, more: _pets(_three.take(2).toList()));
+        await c.sendSpirit(near(c)[1], petUid: 'p2');
+        all = await startVillage(16, farewell: true, clock: () => now, vitals: Vitals(mp: 999, mpAt: now),
+            more: _pets(_three.take(2).toList()));
         await all.handleFix(const LocationFix(point: _home));
-        await all.sendSpirit(all.todaySpawns.last, petUid: 'p1');
-        await all.sendSpirit(all.todaySpawns[all.todaySpawns.length - 2], petUid: 'p2');
+        await all.sendSpirit(near(all)[1], petUid: 'p1');
+        await all.sendSpirit(near(all)[2], petUid: 'p2');
       });
-      await _openTap(tester, _opener((ctx) => showSpawnSheet(ctx, c, c.todaySpawns.first)));
+      await _openTap(tester, _opener((ctx) => showSpawnSheet(ctx, c, near(c).first)));
       await _shot(tester, '${n}_10_원정창_얼굴칸_원정중_쉬는중');
-      await _openTap(tester, _opener((ctx) => showSpawnSheet(ctx, all, all.todaySpawns.first)));
+      await _openTap(tester, _opener((ctx) => showSpawnSheet(ctx, all, near(all).first)));
       await _shot(tester, '${n}_11_원정창_모두원정중');
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 9));
@@ -286,13 +290,13 @@ void main() {
       await _settle(tester, 8);
       await _shot(tester, '${n}_41_하이랜드_첫장면_펫');
       await _page(tester, MeetScreen(controller: c));
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 2; i++) {
         await tester.tapAt(const Offset(200, 300));
         await _settle(tester, 6);
       }
       await _shot(tester, '${n}_42_주점_만남_리안');
-      Widget scene(String? sp, SceneWho? who, String line, String img) => IllustratedScene(
-          image: img, line: line, lineKey: line, onNext: () {}, speaker: sp, who: who);
+      Widget scene(String? sp, SceneWho? who, String line, String img) => Scaffold(
+          body: IllustratedScene(image: img, line: line, lineKey: line, onNext: () {}, speaker: sp, who: who));
       await _page(tester, scene('불씨', const SceneWho.name(), '여기야. 내가 처음 떨어졌던 곳.', 'assets/images/farewell_01_gate.webp'));
       await _settle(tester, 12);
       await _shot(tester, '${n}_43_정령이별_정령_이름만');
@@ -328,9 +332,10 @@ void main() {
           'armory': armory,
           ..._pets(_three, eggs: [const PetEgg(id: 'e1', source: 'field')]),
           'npc': {'v': 1, 'relics': ['mina', 'dorgun']},
+          'harvest': {'granted': true},
         });
       });
-      await _page(tester, BagTab(controller: c));
+      await _page(tester, Scaffold(body: BagTab(controller: c)));
       // 새로 얻은 것 표시가 보이게: 기억한 개수를 조금 적게 두고 다시 그림
       c.noteBagContents({...bagCounts(bagEntries(c)), 'm:herb': 10, 'e:b1': 0});
       await tester.runAsync(() => c.setBagSort(BagSort.recent));
@@ -381,7 +386,7 @@ void main() {
       await tester.runAsync(() async => full = await startVillage(19, farewell: true, gains: {
             for (final m in Materials.displayOrder.take(40)) m.name: 2,
           }));
-      await _page(tester, BagTab(controller: full));
+      await _page(tester, Scaffold(body: BagTab(controller: full)));
       await _shot(tester, '${n}_58_가방_가득_빨간막대');
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 9));

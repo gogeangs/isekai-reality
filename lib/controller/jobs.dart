@@ -929,6 +929,7 @@ extension JobOps on AppController {
 
   /// 「새로 열렸어요」 카드·손가락 안내를 보여 줄 때인지
   bool get skillIntroPending =>
+      _tourHold.contains('skill') ||
       _jobs.pageOpen &&
       !_jobs.pageIntro &&
       !inTutorial &&
@@ -937,6 +938,7 @@ extension JobOps on AppController {
       !jobAwakenPending;
 
   Future<void> markSkillIntro() async {
+    endTour('skill');
     if (_jobs.pageIntro) return;
     await _saveJobs(_jobs.copyWith(pageIntro: true));
   }

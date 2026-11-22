@@ -1,5 +1,7 @@
 // 묶음 82: #396 마을 기록 지워짐 · #383 안내 · #390 · #394 잿빛 틈 턴제 · #381 원정 동행 · #392 · #393 · #395 · 화면 정리
 
+import 'dart:io';
+
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
@@ -116,6 +118,79 @@ void main() {
       final c = await _open(s);
       expect(c.revivedVillage, isEmpty);
       expect(c.shelterIntroPending, isTrue);
+    });
+  });
+
+  group('#383 안내', () {
+    test('첫 카드를 보여 준 순간 봤음 · 이번 실행에서는 끝까지 · 다시 켜면 안 뜸', () async {
+      final s = _store(12, {'pets': _petsJson(), 'village': {'seen': ['intro'], 'visits': {}}});
+      final a = await _open(s);
+      expect(a.shelterIntroPending, isTrue);
+      await a.beginTour('shelter');
+      expect(a.shelterIntroPending, isTrue); // 보여 주는 중
+      expect(await _seen(s), contains('shelterCard'));
+      final b = await _open(s); // 중간에 앱을 끔
+      expect(b.shelterIntroPending, isFalse);
+      await a.markShelterIntro();
+      expect(a.shelterIntroPending, isFalse);
+    });
+
+    test('기능 안내도 같음 (f:smithy)', () async {
+      final s = _store(4, {
+        'gates': {'legacy': false, 'v28': true, 'seen': [for (final f in Feature.values) if (f != Feature.smithy) f.name]},
+      });
+      final a = await _open(s);
+      expect(a.pendingFeatureIntro, Feature.smithy);
+      await a.beginTour('f:smithy');
+      expect(a.pendingFeatureIntro, Feature.smithy);
+      final b = await _open(s);
+      expect(b.pendingFeatureIntro, isNull);
+      await a.markFeatureIntro(Feature.smithy);
+      expect(a.pendingFeatureIntro, isNull);
+    });
+
+    test('앱이 열릴 때: 이미 써 본 기능의 안내는 봤음 (장비가 있으면 대장간)', () async {
+      final s = _store(5, {
+        'gates': {'legacy': false, 'v28': true, 'seen': [for (final f in Feature.values) if (f != Feature.smithy) f.name]},
+        'armory': const {
+          'items': [
+            {'uid': 'eq1', 'base': 'dagger', 'grade': 'white'},
+          ],
+          'equipped': {},
+          'nextId': 2,
+        },
+      });
+      final c = await _open(s);
+      expect(c.armory.items, isNotEmpty);
+      expect(c.pendingFeatureIntro, isNull);
+    });
+
+    test('안내가 가리키는 Key는 모두 화면 어딘가에 있다 (Key를 바꾸면 안내도 같이)', () {
+      final tour = [
+        File('lib/features/tutorial/feature_tour.dart').readAsStringSync(),
+        File('lib/features/chat/chat_tour.dart').readAsStringSync(),
+      ].join('\n');
+      final keys = {
+        for (final m in RegExp(r"rectOfKey\(const Key\('([A-Za-z0-9_]+)'\)").allMatches(tour)) m.group(1)!,
+        for (final m in RegExp(r"_homeTarget\([^,]+,\s*const Key\('([A-Za-z0-9_]+)'\)").allMatches(tour)) m.group(1)!,
+      };
+      expect(keys, isNotEmpty);
+      final others = [
+        for (final f in Directory('lib').listSync(recursive: true))
+          if (f is File &&
+              f.path.endsWith('.dart') &&
+              !f.path.endsWith('feature_tour.dart') &&
+              !f.path.endsWith('chat_tour.dart'))
+            f.readAsStringSync(),
+      ].join('\n');
+      final missing = [
+        for (final k in keys)
+          // 이름 그대로, 또는 「앞부분_${…}」처럼 만들어 다는 Key
+          if (!others.contains("'$k'") &&
+              !others.contains("Key('${k.split('_').first}_\${") &&
+              !others.contains("Key('${k.replaceAll(RegExp(r'[0-9]+$'), '')}\$")) k,
+      ];
+      expect(missing, isEmpty, reason: '안내가 찾는데 화면에 없는 Key: $missing');
     });
   });
 

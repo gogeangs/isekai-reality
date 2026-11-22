@@ -470,6 +470,9 @@ class AppController extends ChangeNotifier {
   final Set<String> _startLoaded = {};
   final List<String> _villagePending = [];
 
+  /// 묶음 82 #383: 이번 실행에서 보여 주는 중인 안내 (저장은 이미 「봤음」)
+  final Set<String> _tourHold = {};
+
   /// 묶음 82: 되살리기로 다시 채운 마을 표시 (보고 · 시험)
   List<String> revivedVillage = const [];
   static const Set<String> _lateKeys = {
@@ -847,6 +850,7 @@ class AppController extends ChangeNotifier {
     }
     // 묶음 82 #396: 지워진 마을 기록 되살리기 (한 번) · #383 지난 기능 안내는 봤음으로
     await _reviveVillage82();
+    await _seenUsedFeatures82();
     _ready = true;
     // 묶음 56: 기록을 다 읽은 뒤 한 번 더 (걸음으로 쌓이는 것들 — 켜는 중에는 건너뜀)
     await refreshVitals();

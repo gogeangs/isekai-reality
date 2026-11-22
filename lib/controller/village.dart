@@ -214,6 +214,7 @@ extension VillageOps on AppController {
 
   /// 「새로 열렸어요」 쉼터 카드 (한 번만, 예전 Lv.11 이상 계정도)
   bool get shelterIntroPending =>
+      _tourHold.contains('shelter') ||
       shelterOpen &&
       !_village.contains('shelterCard') &&
       !inTutorial &&
@@ -221,10 +222,14 @@ extension VillageOps on AppController {
       !skillIntroPending &&
       !farewellPending;
 
-  Future<void> markShelterIntro() => _markVillage(['shelterCard']);
+  Future<void> markShelterIntro() async {
+    endTour('shelter');
+    await _markVillage(['shelterCard']);
+  }
 
   /// 묶음 77 #357: Lv.20 「새로 열렸어요 · 보조 직업」 카드 (한 번)
   bool get subJobIntroPending =>
+      _tourHold.contains('subJob') ||
       subJobsOpen &&
       _jobs.awakened &&
       mainJob != null &&
@@ -234,10 +239,14 @@ extension VillageOps on AppController {
       !skillIntroPending &&
       !farewellPending;
 
-  Future<void> markSubJobIntro() => _markVillage(['subJobCard']);
+  Future<void> markSubJobIntro() async {
+    endTour('subJob');
+    await _markVillage(['subJobCard']);
+  }
 
   /// 묶음 43 #228: 「새로 열렸어요」 훈련장 카드 (한 번만, 예전 Lv.13 이상 계정도)
   bool get trainingIntroPending =>
+      _tourHold.contains('training') ||
       trainingOpen &&
       !_village.contains('trainingCard') &&
       !inTutorial &&
@@ -246,7 +255,10 @@ extension VillageOps on AppController {
       !farewellPending &&
       !shelterIntroPending;
 
-  Future<void> markTrainingIntro() => _markVillage(['trainingCard']);
+  Future<void> markTrainingIntro() async {
+    endTour('training');
+    await _markVillage(['trainingCard']);
+  }
 
   /// 지친 펫의 남은 시간 (지치지 않았으면 null)
   Duration? petTiredLeft(String uid) {

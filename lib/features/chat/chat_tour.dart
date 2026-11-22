@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -74,6 +76,8 @@ class _ChatTourLayerState extends State<ChatTourLayer> {
 
   void _compute() {
     final s = c.chatTourPending ? _step() : null;
+    // 묶음 82 #383: 첫 단계를 보여 주는 순간 「봤음」 (이번 실행에서는 끝까지)
+    if (s != null && !c.tourHeld('chatTour')) unawaited(c.beginTour('chatTour'));
     final old = _shown;
     if (s?.$1 != old?.$1 || s?.$2 != old?.$2 || (s?.$3 == null) != (old?.$3 == null)) {
       setState(() => _shown = s);

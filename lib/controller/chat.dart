@@ -368,6 +368,7 @@ extension ChatOps on AppController {
 
   /// 묶음 70 #292: 「세계」 안내 (정령과 이별 → 이름 → 쉼터 안내 뒤, 상태 화면에 들어오면 한 번)
   bool get chatTourPending =>
+      _tourHold.contains('chatTour') ||
       player.level.level >= ChatRules.serverLevel &&
       _pets.farewellDone &&
       _pets.firstPet != null &&
@@ -378,7 +379,10 @@ extension ChatOps on AppController {
       !farewellPending &&
       !shelterIntroPending;
 
-  Future<void> markChatTour() => _markVillage(['chatTour']);
+  Future<void> markChatTour() async {
+    endTour('chatTour');
+    await _markVillage(['chatTour']);
+  }
 
   /// 첫 펫 (「세계」 안내에서 말하는 펫)
   Pet? get chatTourPet => _pets.firstPet == null ? null : _pets.byUid(_pets.firstPet!);

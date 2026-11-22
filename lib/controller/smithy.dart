@@ -253,12 +253,13 @@ extension SmithyOps on AppController {
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
     if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
-    final cost = EquipmentRules.enhanceCost(item.enhance + 1);
+    final need = EquipmentRules.enhanceNeeds(item, item.enhance + 1);
     final p = player;
-    if (p.manaStones < cost.manaStones) return CraftCheck.manaStones;
-    if (p.gold < cost.gold) return CraftCheck.gold;
-    final sp = EquipmentRules.enhanceSpecial(item.slot, item.enhance + 1);
-    if (sp != null && p.materialCount(sp.mat) < sp.n) return CraftCheck.materials;
+    if (p.manaStones < need.manaStones) return CraftCheck.manaStones;
+    if (p.gold < need.gold) return CraftCheck.gold;
+    for (final e in need.materials.entries) {
+      if (p.materialExact(e.key) < e.value) return CraftCheck.materials;
+    }
     return CraftCheck.ok;
   }
 
@@ -271,12 +272,14 @@ extension SmithyOps on AppController {
     final sure = whetstone && whetstones > 0;
     if (sure) await _useWhetstone();
     final to = item.enhance + 1;
-    final cost = EquipmentRules.enhanceCost(to);
-    final sp = EquipmentRules.enhanceSpecial(item.slot, to);
+    // 묶음 82 #395: 부위 · 등급마다 재료
+    final need = EquipmentRules.enhanceNeeds(item, to);
+    final cost = (manaStones: need.manaStones, gold: need.gold);
+    final spend = {for (final e in need.materials.entries) e.key.name: e.value};
     final today = await _todayRecord();
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends,
-          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
+          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, ...spend}),
     ));
     // 묶음 31 #193: 집중 단조 → 성공률이 오르고(화면 %에도), 실패해도 무사 (쓴 마석·금화를 돌려받음)
     final focus = await _consumeSkill(JobSkill.focusForge);
@@ -291,13 +294,14 @@ extension SmithyOps on AppController {
       final t = await _todayRecord();
       await _save(t.copyWith(
         gains: DailyRecord.addCounts(t.gains,
-            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
+            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, ...spend}),
       ));
     }
     _lastEnhanceSafe = safe;
     await _saveArmory(_armory.replace(item.copyWith(
       enhance: ok ? to : item.enhance,
       enhanceManaSpent: item.enhanceManaSpent + (safe ? 0 : cost.manaStones),
+      enhanceMats: safe ? item.enhanceMats : DailyRecord.addCounts(item.enhanceMats, spend),
     )));
     // 숙련도는 쌓이지만 강화 성공률에는 넣지 않는다 (화면 「성공 ○○%」와 같게)
     await gainMastery(Mastery.smith, MasteryRules.enhance,
@@ -421,6 +425,15 @@ extension SmithyOps on AppController {
     await _saveArmory(
         _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
   });
+
+  /// 묶음 82 #393: 「바로 입기」 — 못 입으면 이유 (입으면 null)
+  Future<String?> tryEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return '가방에서 찾을 수 없어요';
+    if (_armory.isWorn(item)) return null;
+    await equip(uid);
+    return _armory.isWorn(item) ? null : '지금은 입을 수 없어요';
+  }
 
   /// 벗는다. 묶음 72 #305: 벗은 장비는 가방 한 칸을 쓰므로, 가방이 가득하면 벗지 않는다 (false)
   Future<bool> unequip(EquipSlot slot) =>

@@ -145,7 +145,7 @@ class _Empty extends StatelessWidget {
 
 /// 모자란 것 한 줄: 아이콘 + 「마석 1개 모자라요」
 class _Short extends StatelessWidget {
-  const _Short({super.key, required this.lines});
+  const _Short({required this.lines});
 
   /// (아이콘, 「마석 1개」)
   final List<(Widget, String)> lines;

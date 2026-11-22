@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/armory.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/pet_state.dart';
 import 'package:isekai_reality/core/models/vitals.dart';
@@ -450,6 +451,51 @@ void main() {
       final c = await _open(_store(18, {}));
       await c.setAutoUse(mpPercent: 30);
       expect(c.alchemy.autoMp, 30);
+    });
+  });
+
+  group('#395 강화 재료', () {
+    test('부위 · 등급마다', () {
+      final w = EquipmentRules.enhanceNeeds(const EquipItem(uid: 'a', base: EquipBase.dagger, grade: EquipGrade.orange), 3);
+      expect(w.manaStones, 9);
+      expect(w.gold, 180);
+      expect(w.materials[MaterialId.ironIngot], 6);
+      expect(w.materials[MaterialId.glowLightCore], 1);
+      expect(w.materials[MaterialId.bossShard], 1);
+      final a = EquipmentRules.enhanceNeeds(const EquipItem(uid: 'b', base: EquipBase.armor, grade: EquipGrade.white), 1);
+      expect((a.manaStones, a.gold), (1, 20));
+      expect(a.materials, {MaterialId.tannedLeather: 1});
+      final r = EquipmentRules.enhanceNeeds(
+          const EquipItem(uid: 'c', base: EquipBase.fangNecklace, grade: EquipGrade.purple, element: Element.fire), 8);
+      expect(r.manaStones, 16);
+      expect(r.materials[MaterialId.runeStone], 8);
+      expect(r.materials[MaterialId.glowFireCore], 2);
+      expect(r.materials[MaterialId.darkCrystal], 1);
+      expect(r.materials.containsKey(MaterialId.bossShard), isFalse);
+      final blue = EquipmentRules.enhanceNeeds(const EquipItem(uid: 'd', base: EquipBase.armor, grade: EquipGrade.blue), 1);
+      expect((blue.manaStones, blue.gold, blue.materials[MaterialId.tannedLeather]), (2, 30, 2));
+    });
+
+    test('룬석은 대장간 재료 가공에서 · 분해하면 강화 재료 절반', () {
+      expect(ProcessRules.all.any((r) => r.smithy && r.output == MaterialId.runeStone), isTrue);
+      const item = EquipItem(uid: 'a', base: EquipBase.dagger, grade: EquipGrade.white, enhanceMats: {'ironIngot': 5, 'bossShard': 1});
+      expect(EquipmentRules.salvage(item).materials[MaterialId.ironIngot], 2);
+    });
+
+    test('강화하면 재료를 쓰고 기록', () async {
+      final s = _store(12, {
+        'armory': const {
+          'items': [
+            {'uid': 'eq1', 'base': 'dagger', 'grade': 'white'},
+          ],
+          'equipped': {},
+          'nextId': 2,
+        },
+      });
+      final c = AppController(store: s, health: FakeHealthSource(stepsByDay: const {}), clock: () => _t0)..mailSources = const [];
+      await c.init();
+      final item = c.armory.byUid('eq1')!;
+      expect(c.canEnhance(item), isNot(CraftCheck.ok)); // 철 주괴 없음
     });
   });
 

@@ -9,6 +9,7 @@ import '../alchemy/convert_panel.dart' show LockedJobPanel;
 import '../battle/element_view.dart';
 import '../town/material_view.dart';
 import 'equipment_view.dart';
+import 'equip_now_button.dart';
 
 /// 대장간 「보스 장비」 탭 (11-11 #82): 세트마다 만든 부위 / 못 만든 부위.
 /// 아직 못 잡은 보스의 세트는 그림자로 숨긴다.
@@ -313,14 +314,7 @@ class _PartRow extends StatelessWidget {
               ])
             : KText(r.line ?? '', style: const TextStyle(color: AppColors.text)),
         actions: [
-          if (r.ok)
-            TextButton(
-              onPressed: () async {
-                await controller.equip(r.item!.uid);
-                if (d.mounted) Navigator.of(d).pop();
-              },
-              child: const Text('바로 입기'),
-            ),
+          if (r.ok) EquipNowButton(key: const Key('bossEquipNow'), controller: controller, item: r.item!),
           TextButton(
               onPressed: () => Navigator.of(d).pop(), child: const Text('확인')),
         ],

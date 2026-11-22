@@ -130,6 +130,14 @@ class ProcessRules {
         inputs: {MaterialId.shadowCore: 3},
         gold: 50,
         label: '그림자 코어 3 + 금화 50'),
+    // 묶음 82 #395: 장신구 강화 재료 — 미궁 석재로 빛바랜 룬석
+    ProcessRecipe(
+        id: 'runeStone',
+        output: MaterialId.runeStone,
+        inputs: {MaterialId.labyrinthStone: 4},
+        gold: 40,
+        smithy: true,
+        label: '미궁 석재 4 + 금화 40'),
     // 11-11 #56 채집 귀한 재료 → 가공 재료 2개
     ProcessRecipe(
         id: 'manaOre',

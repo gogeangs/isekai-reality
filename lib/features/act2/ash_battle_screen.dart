@@ -20,6 +20,7 @@ import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart' show SpiritMood;
 import '../smithy/equipment_view.dart';
 import 'ash_turn_view.dart';
+import '../smithy/equip_now_button.dart';
 
 enum _Stage { entry, battle, result }
 
@@ -436,13 +437,11 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
                     ],
                   ),
                 ),
-                TextButton(
+                EquipNowButton(
                   key: const Key('ashEquip'),
-                  onPressed: () async {
-                    await _c.equip(item.uid);
-                    if (mounted) setState(() {});
-                  },
-                  child: const Text('바로 입기'),
+                  controller: _c,
+                  item: item,
+                  onEquipped: () => setState(() {}),
                 ),
               ]),
             ],

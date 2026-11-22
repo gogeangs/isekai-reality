@@ -979,6 +979,15 @@ class EggSheet extends StatelessWidget {
             ],
           ]);
         }
+        // 묶음 81 #372: 펫이 가득이면 깨울 수 없음 (그대로 두거나 팔 수 있음)
+        if (e != null && c.farewellDone && c.petsFull) {
+          children.addAll([
+            const SizedBox(height: 10),
+            const KText(PetsOps.petsFullLine,
+                key: Key('eggSheetPetsFull'),
+                style: TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ]);
+        }
         // 묶음 80 #365: 잡화상에서 팔기 (정령이 떠난 뒤 · 품지 않은 알만)
         if (e != null) {
           const muted = TextStyle(color: AppColors.textMuted, fontSize: 12);

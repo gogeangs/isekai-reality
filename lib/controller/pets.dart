@@ -359,7 +359,13 @@ extension PetsOps on AppController {
     });
   }
 
-  /// 다 된 알에서 펫이 태어난다. 펫이 6마리면 null.
+  /// 묶음 81 #372: 펫이 가득(3마리, 넘쳐 있어도) — 알을 깨울 수 없음
+  bool get petsFull => _pets.pets.length >= PetRules.maxPets;
+
+  /// 펫이 가득일 때 알 부화장 · 가방 알 창 한 줄
+  static const String petsFullLine = '펫이 가득해요 · 돌려보내면 깨울 수 있어요';
+
+  /// 다 된 알에서 펫이 태어난다. 펫이 가득(maxPets, 넘쳐 있어도)이면 null.
   Future<Pet?> hatch(String eggId, String name, {PetSpecies? species}) async {
     final p = _pets;
     if (p.pets.length >= PetRules.maxPets) return null;

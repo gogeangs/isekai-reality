@@ -393,9 +393,8 @@ class NpcSmallRules {
       text: '잡화상에 팔 때 금화가 조금 더 나와요',
       say: '할머니 주판을 고치고 싶어요! 같이 해 주실래요?',
       stages: [
-        NpcRelicStage('주판알 재료를 파는 곳을 찾아야 해요. 새 곳 두 군데요!', [
-          NpcRequestStep(RequestStepKind.tally, 2, '새 장소 2곳 다녀오기',
-              key: NpcTally.newPlace),
+        NpcRelicStage('주판알 재료를 파는 곳을 찾아야 해요. 좀 걸어 봐요!', [
+          NpcRequestStep(RequestStepKind.stepsSince, 5000, '부탁 받은 뒤 5,000보 걷기'),
         ]),
         NpcRelicStage('알을 꿰려면 발품이 들어요. 4,000보만요!', [
           NpcRequestStep(RequestStepKind.stepsSince, 4000, '4,000보 걷기'),
@@ -456,9 +455,8 @@ class NpcSmallRules {
       text: '조합 의뢰가 조금 더 빨리 새로 붙어요',
       say: '내 옛 지도에 빈칸이 많네. 함께 채워 주겠나?',
       stages: [
-        NpcRelicStage('새 곳 두 군데를 다녀와 주게.', [
-          NpcRequestStep(RequestStepKind.tally, 2, '새 장소 2곳 다녀오기',
-              key: NpcTally.newPlace),
+        NpcRelicStage('먼저 길을 좀 걸어 주게.', [
+          NpcRequestStep(RequestStepKind.stepsSince, 5000, '부탁 받은 뒤 5,000보 걷기'),
         ]),
         NpcRelicStage('길은 몸으로 익혀야 그려지네. 5,000보일세.', [
           NpcRequestStep(RequestStepKind.stepsSince, 5000, '5,000보 걷기'),
@@ -554,9 +552,8 @@ class NpcSmallRules {
       text: '주점 한 끼가 조금 싸져요',
       say: '혼자 걸을 때 쓰던 나침반이 있어요. 바늘이 좀 이상한데… 같이 고쳐 볼래요?',
       stages: [
-        NpcRelicStage('바늘이 길을 잊었나 봐요. 새 곳 두 군데를 같이 찾아봐요.', [
-          NpcRequestStep(RequestStepKind.tally, 2, '새 장소 2곳 다녀오기',
-              key: NpcTally.newPlace),
+        NpcRelicStage('바늘이 길을 잊었나 봐요. 같이 좀 걸어 봐요.', [
+          NpcRequestStep(RequestStepKind.stepsSince, 5000, '부탁 받은 뒤 5,000보 걷기'),
         ]),
         NpcRelicStage('바늘이 떨려요. 4,000보 걸으면서 맞춰 봐요.', [
           NpcRequestStep(RequestStepKind.stepsSince, 4000, '4,000보 걷기'),

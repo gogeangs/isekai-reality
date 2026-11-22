@@ -378,10 +378,10 @@ class NpcRules {
       index: 2,
       stage: FavorStage.close,
       level: 10,
-      say: '새 교역로를 그리고 있어요. 안 가 본 곳 세 군데만 다녀와 주세요!',
+      say: '새 교역로를 그리고 있어요. 길을 좀 걸어 봐 주세요!',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 3, '새 장소 3곳 다녀오기',
-            key: NpcTally.newPlace),
+        // 묶음 81 #380: 「새 장소」 대신 걸음
+        NpcRequestStep(RequestStepKind.stepsSince, 7000, '부탁 받은 뒤 7,000보 걷기'),
       ],
       gifts: {'gold': 200},
       story: '문이 깨지고 길이 끊겼어요. 수레는 저쪽에 두고 왔죠. 지금 가게는… 남은 짐으로 차린 거예요.',
@@ -759,9 +759,9 @@ class NpcRules {
       index: 1,
       stage: FavorStage.close,
       level: 1,
-      say: '제 틈의 길도 이어졌을까요? 안 가 본 곳 세 군데만 같이 확인해 줘요.',
+      say: '제 틈의 길도 이어졌을까요? 같이 좀 걸으며 확인해 줘요.',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 3, '안 가 본 곳 3곳 다녀오기', key: NpcTally.newPlace),
+        NpcRequestStep(RequestStepKind.stepsSince, 7000, '부탁 받은 뒤 7,000보 걷기'),
       ],
       gifts: {'item:heal': 2},
       story: '분노 분신까지는 어떻게든 쓰러뜨렸어요. 그런데 슬픔 분신 앞에서 몇 달을 멈춰 있었어요.',
@@ -832,9 +832,9 @@ class NpcRules {
       index: 3,
       stage: FavorStage.best,
       level: 1,
-      say: '새 교역로를 그리세. 안 가 본 곳 다섯 군데, 그리고 하루 10,000보일세.',
+      say: '새 교역로를 그리세. 길을 넉넉히 걷고, 하루 10,000보일세.',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 5, '안 가 본 곳 5곳 다녀오기', key: NpcTally.newPlace),
+        NpcRequestStep(RequestStepKind.stepsSince, 10000, '부탁 받은 뒤 1만 보 걷기'),
         NpcRequestStep(RequestStepKind.daySteps, 10000, '하루 10,000보 걷기'),
       ],
       story: '빛을 빼앗던 시절엔 장사도 숨이 막혔지. 이제는 나눠서 사고팔면 되네. 그게 장사꾼이 바라던 다리일세.',

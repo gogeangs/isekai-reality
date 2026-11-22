@@ -70,7 +70,6 @@ void main() {
       ));
       expect(b.dungeon, 300); // 묶음 70 #296: 하루 상한 없음 (6회)
       expect(b.fieldMonster, 105); // 5마리 + 4마리 절반 (11-11 #69)
-      expect(b.exploration, 90); // 3곳
       expect(b.quest, 60); // 3개
     });
 

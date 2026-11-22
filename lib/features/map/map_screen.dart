@@ -146,7 +146,7 @@ class _MapScreenState extends State<MapScreen> {
     final expOpen = _expOpen && actives.isNotEmpty && returned.isEmpty;
     const expBottom = MapScreen.stripH + 2;
     final cardBottom = expBottom + (away ? expH + 6 : 0);
-    final card = controller.lastDiscovery != null || spawn != null;
+    final card = spawn != null;
     final coverBottom = cardBottom + (card ? 150 : 0) + 4;
     // 위쪽: 프로필·설정 버튼 줄 (+ 걸린 물약이 있으면 작은 줄)
     // 묶음 20 #158: 프로필·정령 배지·우편·설정 아래까지 (그 뒤에 몬스터·채집이 숨지 않게)
@@ -229,17 +229,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         // 묶음 18 #148: 튜토리얼 중에는 아래 몬스터 카드·발견 카드·던전 띠를 숨긴다
-        if (!tut && controller.lastDiscovery != null)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: cardBottom,
-            child: _DiscoveryCard(
-              place: controller.lastDiscovery!,
-              onClose: controller.clearDiscovery,
-            ),
-          )
-        else if (!tut && spawn != null)
+        if (!tut && spawn != null)
           Positioned(
             left: 16,
             right: 16,

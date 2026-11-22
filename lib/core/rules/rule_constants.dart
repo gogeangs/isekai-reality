@@ -34,7 +34,6 @@ class RuleConstants {
   // ---------------------------------------------------------------- 경험치
   static const int dungeonClearExp = 50;
   static const int dungeonFailExp = 10;
-  static const double gateBonusMultiplier = 1.5;
 
   static const int fieldMonsterExp = 15;
   /// 하루 사냥 보상이 그대로인 마리 수 (11-11 #69: 그 뒤에도 사냥은 되고 보상만 줄어든다)
@@ -61,9 +60,7 @@ class RuleConstants {
     return u;
   }
 
-  static const int newPlaceExp = 30;
-  static const int maxNewPlacesPerDay = 3;
-  static const int revisitPlaceExp = 5; // 같은 장소는 하루 한 번만
+  // 묶음 81 #380: 새 장소 · 다시 찾기 경험치 · 미궁 입구 1.5배 없음 (「새 장소」 기능은 진행하지 않음)
 
   static const int questExp = 20;
   static const int questsPerDay = 3;

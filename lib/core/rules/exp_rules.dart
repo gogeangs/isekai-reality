@@ -10,7 +10,6 @@ class DailyExpBreakdown {
   const DailyExpBreakdown({
     required this.dungeon,
     required this.fieldMonster,
-    required this.exploration,
     required this.quest,
     this.questAll = 0,
     this.weekly = 0,
@@ -19,7 +18,6 @@ class DailyExpBreakdown {
 
   final int dungeon;
   final int fieldMonster;
-  final int exploration;
   final int quest;
 
   /// 일일 퀘스트 3개를 모두 마친 날의 추가 보상
@@ -37,7 +35,6 @@ class DailyExpBreakdown {
       : DailyExpBreakdown(
           dungeon: (dungeon * m).round(),
           fieldMonster: (fieldMonster * m).round(),
-          exploration: (exploration * m).round(),
           quest: (quest * m).round(),
           questAll: (questAll * m).round(),
           weekly: (weekly * m).round(),
@@ -47,7 +44,6 @@ class DailyExpBreakdown {
   int get total =>
       dungeon +
       fieldMonster +
-      exploration +
       quest +
       questAll +
       weekly +
@@ -57,13 +53,12 @@ class DailyExpBreakdown {
 class ExpRules {
   ExpRules._();
 
-  /// 던전 한 번의 경험치 (미궁 입구 보너스 포함, 반올림)
+  /// 던전 한 번의 경험치
   static int dungeonRunExp(DungeonRun run) {
     final base = run.cleared
         ? RuleConstants.dungeonClearExp
         : RuleConstants.dungeonFailExp;
-    if (!run.atGate) return base;
-    return (base * RuleConstants.gateBonusMultiplier).round();
+    return base; // 묶음 81 #380: 미궁 입구 1.5배 없음
   }
 
   /// 하루 기록으로 경험치 내역을 계산한다.
@@ -81,11 +76,6 @@ class ExpRules {
     // 11-11 #69: 5마리 뒤로는 보상이 줄어든다 (숨은 규칙)
     final monsters = RuleConstants.fieldUnits(record.fieldMonstersPurified);
 
-    final newPlaces =
-        record.newPlacesVisited > RuleConstants.maxNewPlacesPerDay
-            ? RuleConstants.maxNewPlacesPerDay
-            : record.newPlacesVisited;
-
     final perDay = QuestRules.perDay(record);
     final quests = record.questsCompleted > perDay
         ? perDay
@@ -101,8 +91,6 @@ class ExpRules {
               .round() +
           (record.gains['exp'] ?? 0) -
           (record.counters[TownRules.tiredExpKey] ?? 0),
-      exploration: newPlaces * RuleConstants.newPlaceExp +
-          record.placesRevisited * RuleConstants.revisitPlaceExp,
       quest: quests * RuleConstants.questExp,
       questAll: quests >= perDay
           ? RuleConstants.questAllBonusExp

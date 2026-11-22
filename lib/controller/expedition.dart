@@ -392,6 +392,31 @@ extension ExpeditionOps on AppController {
     }();
   }
 
+  /// 묶음 81 #374: 원정 나간 펫이 돌아오기까지 (나가 있지 않으면 null)
+  Duration? petAwayLeft(String uid) {
+    Duration? best;
+    for (final e in _vitals.expeditions) {
+      if (e.petUid != uid) continue;
+      final left = e.returnAt.difference(_clock());
+      final l = left.isNegative ? Duration.zero : left;
+      if (best == null || l < best) best = l;
+    }
+    return best;
+  }
+
+  /// 지금 원정을 보낼 수 있는 펫인지 (원정 중 · 지쳐 쉬는 중 · 훈련 중이 아님)
+  bool petCanSend(String uid) => !isAway(uid) && petTiredLeft(uid) == null && !petInTraining(uid);
+
+  /// 가장 먼저 돌아오는 펫까지 남은 시간 (나간 펫이 없으면 null)
+  Duration? get firstPetBack {
+    Duration? best;
+    for (final p in _pets.pets) {
+      final l = petAwayLeft(p.uid);
+      if (l != null && (best == null || l < best)) best = l;
+    }
+    return best;
+  }
+
   /// 원정을 보낼 수 있는 펫 (정령이 떠나기 전에는 비어 있다: 정령이 간다)
   List<Pet> get idlePets => [
         for (final p in _pets.pets)

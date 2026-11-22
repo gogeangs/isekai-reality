@@ -82,8 +82,7 @@ void main() {
       final c = await open(tester);
       expect(find.byKey(const Key('shopChip_all')), findsOneWidget);
       expect(find.byKey(const Key('shopGroup_potion')), findsOneWidget);
-      expect(find.byKey(const Key('shopVitals')), findsOneWidget);
-      expect(find.byKey(const Key('bar_jobMp')), findsNothing); // Lv.15 전
+      expect(find.byKey(const Key('shopVitals')), findsNothing); // 묶음 82 #382: 막대 뺌
       // 작은 회복 물약: 가진 것 2 · 오늘 1개 남음
       expect(c.shopLeft(ShopItem.healSmall), 1);
       expect(allText(tester), contains('오늘 1개 남음'));

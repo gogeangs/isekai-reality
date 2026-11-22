@@ -415,7 +415,6 @@ extension TutorialOps on AppController {
     if (_legacyGates) return;
     final used = <Feature>{
       if (_armory.items.isNotEmpty) Feature.smithy,
-      if (_history.any((d) => d.questsCompleted > 0)) Feature.board,
       if (_harvest.total > 0) Feature.harvest,
       if (_alc.discovered.isNotEmpty || _alc.brews.isNotEmpty || _alc.potions.isNotEmpty) Feature.alchemy,
       if (_alloc.allocated.toJson().values.whereType<num>().any((v) => v > 0)) Feature.stats,

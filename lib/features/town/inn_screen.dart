@@ -78,8 +78,8 @@ class InnScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 if (resting) ...[
-                  GoldButton(
-                    key: const Key('innResting'),
+                  const GoldButton(
+                    key: Key('innResting'),
                     // 묶음 82 #391: 띠는 「쉬는 중」만 (차오름은 아래 막대로)
                     label: '쉬는 중',
                     onPressed: null,

@@ -535,7 +535,14 @@ Future<void> showEquipMade(BuildContext context, AppController c, EquipItem item
           ]),
           actions: [
             // 묶음 82 #393: 작은 금테 버튼 → 「입었어요 ✓」
-            EquipNowButton(key: const Key('smithyEquipNow'), controller: c, item: item),
+            EquipNowButton(
+                key: const Key('smithyEquipNow'),
+                controller: c,
+                item: item,
+                // 대장간 안내 중이면 입은 뒤 창을 닫아 다음 단계(무기 칸 빛남)로
+                onEquipped: () {
+                  if (c.pendingFeatureIntro == Feature.smithy && d.mounted) Navigator.of(d).pop();
+                }),
             TextButton(
               onPressed: () => Navigator.of(d).pop(),
               child: const Text('닫기'),

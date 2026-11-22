@@ -91,6 +91,7 @@ part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
 part 'controller/tavern.dart';
 part 'controller/smithy.dart';
+part 'controller/spot_trips.dart';
 part 'controller/stats.dart';
 part 'controller/training.dart';
 part 'controller/tutorial.dart';

@@ -179,7 +179,7 @@ class Act2Rules {
   static const EquipBase kingGear = EquipBase.ashCrown;
 
   /// 잿빛 틈이 처음 생길 때 첫 펫 한마디
-  static const String riftFirstLine = '저기… 잿빛 틈이 열렸어. 왕의 기운이 느껴져.';
+  static const String riftFirstLine = '저기… 잿빛 틈이 열렸어. 왕의 기운이 느껴져. 걸어가도 되고, 나를 보내도 돼.';
 
   /// 분신 다섯을 모두 쓰러뜨렸을 때 첫 펫 한마디 (본체가 열림)
   static const String gateOpenLine = '던전 끝 「문 앞」이 다시 열렸어. 이제 왕을 만나러 가자.';

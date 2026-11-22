@@ -6,6 +6,7 @@ import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../map/trip_sheet.dart';
 import '../act2/ash_battle_screen.dart' show AshExpPanel;
 import '../awakening/awakening_screen.dart' show IllustratedScene;
 import '../battle/battle_view.dart';
@@ -596,35 +597,29 @@ class _HighlandScreenState extends State<HighlandScreen> {
   }
 }
 
-/// 섬 띄우기 (지도에서 누를 때): 걸어서 닿았으면 들어가고, 아니면 거리·남은 시간을 알린다
+/// 섬 띄우기 (지도에서 누를 때): 걸어서 닿았으면 들어가고, 아니면 「걸어서 가기 · 원정 보내기」 창 (묶음 81 #375)
 Future<void> openSkyIsland(BuildContext context, AppController c) async {
   final s = c.skyIsland;
   if (s == null) return;
+  Future<void> enter() => Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => HighlandScreen(controller: c)));
   if (c.atSkyIsland && !s.cleared) {
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => HighlandScreen(controller: c)));
+    await enter();
     return;
   }
-  final d = c.skyDistance;
-  final far = d == null
-      ? ''
-      : ' · ${d < 1000 ? '${d.round()}m' : '${(d / 1000).toStringAsFixed(1)}km'}';
-  await showDialog<void>(
-    context: context,
-    builder: (d2) => GameAlert(
-      key: const Key('skyFar'),
-      title: Text(s.info.place, style: AppText.title(19)),
-      content: KText(
-          s.cleared
-              ? '수호자가 우리를 인정해 줬어요. 이 섬은 문을 닫았어요.'
-              : '하늘에 섬이 떠 있어요. 걸어서 섬 아래까지 가야 오를 수 있어요$far · '
-                  '${c.skyMinutesLeft}분 뒤 사라져요',
-          style: const TextStyle(color: AppColors.text, height: 1.45)),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(d2), child: const Text('알겠어요')),
-      ],
-    ),
+  await showTripSheet(
+    context,
+    c,
+    kind: 'sky',
+    title: s.info.place,
+    about: s.cleared
+        ? '수호자가 우리를 인정해 줬어요. 이 섬은 문을 닫았어요.'
+        : '하늘에 섬이 떠 있어요. 걸어서 섬 아래까지 가거나 펫을 보내면 오를 수 있어요 · '
+            '${c.skyMinutesLeft}분 뒤 사라져요',
+    distanceM: s.cleared ? null : c.skyDistance,
+    onEnter: () async {
+      if (context.mounted) await enter();
+    },
   );
 }
 

@@ -73,7 +73,7 @@ extension VitalsOps on AppController {
 
   /// 원정 중인 펫 uid (정령은 null)
   bool isAway(String? petUid) =>
-      _vitals.expeditions.any((e) => e.petUid == petUid);
+      _vitals.expeditions.any((e) => e.petUid == petUid) || _onTrip(petUid);
 
   /// 다음 HP 회복까지 남은 걸음
   int get stepsToNextHeal => VitalRules.stepsToNextHeal(
@@ -222,7 +222,9 @@ extension VitalsOps on AppController {
     }
 
     _vitals = v;
-    if (changed) await store.saveVitals(v);
+    // 묶음 81 #375: 잿빛 틈 · 섬에서 돌아온 펫
+    if (_settleTrips()) changed = true;
+    if (changed) await store.saveVitals(_vitals);
 
     // 묶음 23 #172: 도착하면 싸움 결과를 정하고(기록·보상 저장), 돌아오면 결과 카드.
     // 바로 돌아오기 등으로 둘이 한꺼번에 지나도 결과는 한 번만 정한다

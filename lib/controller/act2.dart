@@ -164,6 +164,7 @@ extension Act2Ops on AppController {
   Future<AshResult> finishAshBattle(Battle battle) => _serial(() async {
         final a = Act2Rules.ofMonster(battle.floors.first.monster);
         if (a == null || !battle.isOver) return const AshResult(won: false);
+        await _tripFought('rift'); // 묶음 81 #375: 펫은 돌아오는 길
         await keepBattleHp(battle);
         await _spendBattleBuffs();
         final won = battle.phase == BattlePhase.cleared;

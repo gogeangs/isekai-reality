@@ -394,7 +394,7 @@ extension ExpeditionOps on AppController {
 
   /// 묶음 81 #374: 원정 나간 펫이 돌아오기까지 (나가 있지 않으면 null)
   Duration? petAwayLeft(String uid) {
-    Duration? best;
+    Duration? best = _tripLeft(uid);
     for (final e in _vitals.expeditions) {
       if (e.petUid != uid) continue;
       final left = e.returnAt.difference(_clock());
@@ -435,29 +435,8 @@ extension ExpeditionOps on AppController {
   /// [spawn] 으로 원정을 보낼 수 있는지 (거리·MP·시간 포함).
   /// 길을 찾아 두었으면 길 거리로, 아니면 직선 거리로 계산한다.
   /// [petUid] 는 보낼 펫 (정령이 떠난 뒤, 없으면 동행 펫).
-  ExpeditionPlan planExpedition(FieldSpawn spawn, {String? petUid}) {
-    // 튜토리얼 원정: 짧게, MP 걱정 없이 (묶음 15 #104)
-    if (AppController.isTutorialSpawn(spawn.id)) {
-      return ExpeditionPlan(
-          activeExpeditions.any((e) => e.spawnId == spawn.id)
-              ? ExpeditionCheck.busy
-              : ExpeditionCheck.ok,
-          distanceM: 250,
-          mpCost: 0,
-          oneWay: const Duration(minutes: 2), // 묶음 19 4-1: 서두르기를 보여 주려고 2분
-          followsRoads: false,
-          routeReady: true);
-    }
-    final from = _lastFix?.point;
-    if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
-    final pet = farewellDone
-        ? (petUid == null ? companionPet : _pets.byUid(petUid))
-        : null;
-    // 묶음 70 #294: 나는 펫은 곧장 직선 (길·물가 특기 없음)
-    final flying = pet != null && PetRules.info(pet.species).flies;
-    final route = flying ? ExpeditionRoute.straight(from, spawn.point) : routeFor(spawn);
-    final dist = route?.lengthM ?? from.distanceTo(spawn.point);
-    final water = _waterside(route);
+  /// 묶음 81 #375: 거리 · 펫으로 기력 · 가는 시간 (보통 원정 · 잿빛 틈 · 섬 원정이 같은 계산, 나침반 전)
+  (int, Duration) _expeditionCostTime(double dist, Pet? pet, {bool water = false}) {
     var cost = VitalRules.expeditionCost(dist);
     var base = VitalRules.expeditionOneWay(dist);
     if (pet != null) {
@@ -495,6 +474,33 @@ extension ExpeditionOps on AppController {
     if (skillPending(JobSkill.longRoad)) {
       cost = math.max(1, (cost / (1 + JobRules.longRoad)).round());
     }
+    return (cost, base);
+  }
+
+  ExpeditionPlan planExpedition(FieldSpawn spawn, {String? petUid}) {
+    // 튜토리얼 원정: 짧게, MP 걱정 없이 (묶음 15 #104)
+    if (AppController.isTutorialSpawn(spawn.id)) {
+      return ExpeditionPlan(
+          activeExpeditions.any((e) => e.spawnId == spawn.id)
+              ? ExpeditionCheck.busy
+              : ExpeditionCheck.ok,
+          distanceM: 250,
+          mpCost: 0,
+          oneWay: const Duration(minutes: 2), // 묶음 19 4-1: 서두르기를 보여 주려고 2분
+          followsRoads: false,
+          routeReady: true);
+    }
+    final from = _lastFix?.point;
+    if (from == null) return const ExpeditionPlan(ExpeditionCheck.needsLocation);
+    final pet = farewellDone
+        ? (petUid == null ? companionPet : _pets.byUid(petUid))
+        : null;
+    // 묶음 70 #294: 나는 펫은 곧장 직선 (길·물가 특기 없음)
+    final flying = pet != null && PetRules.info(pet.species).flies;
+    final route = flying ? ExpeditionRoute.straight(from, spawn.point) : routeFor(spawn);
+    final dist = route?.lengthM ?? from.distanceTo(spawn.point);
+    final water = _waterside(route);
+    final (cost, base) = _expeditionCostTime(dist, pet, water: water);
     // 원정 나침반을 써 두었으면 이동 시간 절반
     final oneWay = _vitals.compassReady ? base ~/ 2 : base;
     ExpeditionCheck check;

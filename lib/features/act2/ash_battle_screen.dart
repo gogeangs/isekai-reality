@@ -10,6 +10,7 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart' show HeroLook;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../map/trip_sheet.dart';
 import '../awakening/awakening_screen.dart' show IllustratedScene;
 import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
@@ -430,33 +431,29 @@ class _AshBattleScreenState extends State<AshBattleScreen> {
   }
 }
 
-/// 잿빛 틈 띄우기 (지도에서 누를 때): 걸어서 닿았으면 들어가고, 아니면 거리만 알린다
+/// 잿빛 틈 띄우기 (지도에서 누를 때): 걸어서 닿았으면 들어가고, 아니면 「걸어서 가기 · 원정 보내기」 창 (묶음 81 #375)
 Future<void> openRift(BuildContext context, AppController c) async {
+  Future<void> enter() => Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AshBattleScreen(controller: c)));
   if (c.atRift) {
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => AshBattleScreen(controller: c)));
+    await enter();
     return;
   }
   final a = c.nextAvatar;
   if (a == null) return;
-  final d = c.riftDistance;
-  await showDialog<void>(
-    context: context,
-    builder: (d2) => GameAlert(
-      key: const Key('riftFar'),
-      title: Text('잿빛 틈', style: AppText.title(19)),
-      content: KText(
-          c.riftClosedToday
-              ? '${Act2Rules.info(a).name}의 기운이 잦아들었어요. ${Act2Rules.closedLine}.'
-              : '${Act2Rules.info(a).name}의 기운이 새어 나와요. '
-                  '걸어서 가까이 가야 들어갈 수 있어요'
-                  '${d == null ? '' : ' · ${d < 1000 ? '${d.round()}m' : '${(d / 1000).toStringAsFixed(1)}km'}'}',
-          style: const TextStyle(color: AppColors.text, height: 1.45)),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.pop(d2), child: const Text('알겠어요')),
-      ],
-    ),
+  final waiting = c.tripWaiting('rift');
+  await showTripSheet(
+    context,
+    c,
+    kind: 'rift',
+    title: '잿빛 틈',
+    about: c.riftClosedToday && !waiting
+        ? '${Act2Rules.info(a).name}의 기운이 잦아들었어요. ${Act2Rules.closedLine}.'
+        : '${Act2Rules.info(a).name}의 기운이 새어 나와요. 걸어서 가까이 가거나 펫을 보내면 들어갈 수 있어요.',
+    distanceM: c.riftDistance,
+    onEnter: () async {
+      if (context.mounted) await enter();
+    },
   );
 }
 

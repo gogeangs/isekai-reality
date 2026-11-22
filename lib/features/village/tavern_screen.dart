@@ -7,7 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import '../act3/ally_screens.dart' show AllyTab;
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../tutorial/feature_tour.dart' show TourScreenMark;
 import '../party/party_tab.dart';
 import 'npc_header.dart';
@@ -301,8 +301,8 @@ class _MeetScreenState extends State<MeetScreen> {
               : c.firstPet?.name ?? c.voicePet?.name ?? '펫',
           // 리안이 손을 내민 그림은 손이 아래쪽이라 대사창을 위에
           dialogTop: lianArt,
-          tailUp: false,
-          tailX: lian ? 0.55 : 0.3,
+          // 묶음 81 #376: 리안 얼굴 · 펫 얼굴
+          who: lian ? const SceneWho.face('assets/images/npc_lian.webp') : SceneWho.petOr(c.firstPet ?? c.voicePet),
           line: line,
           lineKey: 'meet-$_line',
           onNext: _next,

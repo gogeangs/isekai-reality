@@ -309,58 +309,6 @@ String placeIconAsset(PlaceKind kind) => switch (kind) {
       PlaceKind.spiritLake => 'assets/images/map_lake.webp',
     };
 
-class _DiscoveryCard extends StatelessWidget {
-  const _DiscoveryCard({required this.place, required this.onClose});
-
-  final GamePlace place;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.night,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.gold, width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            KText('새 장소 발견! · ${place.name}',
-                style: const TextStyle(
-                    color: AppColors.goldBright,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            KText('현실: ${place.realName} · 경험치 +${RuleConstants.newPlaceExp}',
-                style: const TextStyle(color: AppColors.textMuted)),
-            const SizedBox(height: 12),
-            BulssiLine(line: _discoveryLine(place.kind)),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onClose,
-                style: TextButton.styleFrom(
-                    foregroundColor: AppColors.gold,
-                    minimumSize: const Size(64, 44)),
-                child: const Text('좋아'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _discoveryLine(PlaceKind kind) => switch (kind) {
-        PlaceKind.labyrinthGate => '여기가 미궁 입구야! 여기서 던전을 열면 보상이 1.5배야.',
-        PlaceKind.spiritLake => '물의 정령들이 반짝이고 있어. 비 오는 날엔 더 많아진대!',
-      };
-}
-
 class _MonsterCard extends StatelessWidget {
   const _MonsterCard({required this.spawn, required this.onPurify});
 

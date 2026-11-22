@@ -151,7 +151,8 @@ enum EggGrade {
 class PetRules {
   PetRules._();
 
-  static const int maxPets = 6;
+  /// 묶음 81 #372: 3마리까지 (원정은 가진 펫 모두 한 번에)
+  static const int maxPets = 3;
 
   /// 묶음 70 #294: 하늘을 나는 펫
   static const Set<PetSpecies> flyers = {
@@ -483,9 +484,9 @@ class PetRules {
 
   // ───────────────────────── 공용 MP
 
-  /// 두 번째 펫부터 한 마리마다 최대 MP +10, 시간당 회복 +2
-  static int mpMaxBonus(int pets) => math.max(0, pets - 1) * 10;
-  static int mpRegenBonus(int pets) => math.max(0, pets - 1) * 2;
+  /// 묶음 81 #372: 기력은 레벨로만 (펫 수 보너스 없음)
+  static int mpMaxBonus(int pets) => 0;
+  static int mpRegenBonus(int pets) => 0;
 
   // ───────────────────────── 성장
 

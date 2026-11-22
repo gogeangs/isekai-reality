@@ -11,7 +11,7 @@ import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import 'farewell_talk.dart';
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import 'pet_art.dart';
 
 /// 컷신 한 줄: 그림 · 말하는 이(null 이면 내레이션) · 대사
@@ -213,9 +213,8 @@ class _FarewellScreenState extends State<FarewellScreen>
       key: ValueKey('farewell$_line'),
       image: l.image,
       speaker: l.speaker,
-      // #164: 꼬리는 말하는 쪽. 정령은 그림 속(위), 각성자는 화면 아래(보는 나)
-      tailUp: l.speaker != null && !l.hero,
-      tailX: l.hero ? 0.25 : 0.5,
+      // 묶음 81 #376: 주인공은 오른쪽 얼굴, 정령은 이름 칩만
+      who: l.hero ? SceneWho.hero(c.profile.look) : const SceneWho.name(),
       line: l.line,
       lineKey: 'farewell-$_line',
       onNext: _next,
@@ -437,7 +436,7 @@ class _Bubble extends StatelessWidget {
       );
 }
 
-/// 다 품은 알에서 펫이 태어난다 (이름 짓기). 펫이 6마리면 안내만.
+/// 다 품은 알에서 펫이 태어난다 (이름 짓기). 펫이 가득(PetRules.maxPets)이면 안내만.
 Future<void> showHatchSheet(
     BuildContext context, AppController c, PetEgg egg) async {
   final name = TextEditingController();
@@ -466,7 +465,7 @@ Future<void> showHatchSheet(
                 const SizedBox(height: 10),
                 if (c.pets.pets.length >= PetRules.maxPets)
                   const KText(
-                      '펫이 6마리라 더 함께할 수 없어요. 펫 하나를 자연으로 돌려보내면 '
+                      '펫이 ${PetRules.maxPets}마리라 더 함께할 수 없어요. 펫 하나를 자연으로 돌려보내면 '
                       '이 알이 깨어나요. 알은 가방에 그대로 있어요.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textMuted))

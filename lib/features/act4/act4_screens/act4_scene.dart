@@ -97,7 +97,7 @@ class _Act4SceneScreenState extends State<Act4SceneScreen> {
               key: ValueKey('act${widget.act}${s.id}$_i'),
               image: s.image,
               speaker: sp.name,
-              tailX: 0.5,
+              who: sp.face != null ? SceneWho.face(sp.face!) : SceneWho.petOr(c.firstPet ?? c.voicePet),
               line: line,
               lineKey: 'act${widget.act}-${s.id}-$_i',
               onNext: _next,

@@ -1025,10 +1025,10 @@ class JobRules {
     MasterySkillInfo(Mastery.combat, MasteryStage.expert, '연속 베기', '여러 번 빠르게 베어요', active: true),
     MasterySkillInfo(Mastery.combat, MasteryStage.master, '역전의 용사', '익숙한 상대에게 아주 세고 재료를 자주 더 얻어요'),
     // 걷기·탐험
-    MasterySkillInfo(Mastery.walk, MasteryStage.familiar, '가벼운 발', '걸음 게이지와 새 장소 보상이 조금 늘어요'),
-    MasterySkillInfo(Mastery.walk, MasteryStage.skilled, '먼 길의 발', '걸음 게이지와 새 장소 보상이 더 늘어요'),
+    MasterySkillInfo(Mastery.walk, MasteryStage.familiar, '가벼운 발', '걸음 게이지가 조금 늘어요'),
+    MasterySkillInfo(Mastery.walk, MasteryStage.skilled, '먼 길의 발', '걸음 게이지가 더 늘어요'),
     MasterySkillInfo(Mastery.walk, MasteryStage.expert, '도약 차기', '뛰어올라 차고 먼저 움직여요', active: true),
-    MasterySkillInfo(Mastery.walk, MasteryStage.master, '방랑자의 발걸음', '걸음 게이지와 새 장소 보상이 많이 늘어요'),
+    MasterySkillInfo(Mastery.walk, MasteryStage.master, '방랑자의 발걸음', '걸음 게이지가 많이 늘어요'),
     // 감정
     MasterySkillInfo(Mastery.appraise, MasteryStage.familiar, '살피는 눈', '감정에서 재료·쪽지가 조금 더 잘 나와요'),
     MasterySkillInfo(Mastery.appraise, MasteryStage.skilled, '꿰뚫는 눈', '감정에서 재료·쪽지가 더 잘 나와요'),

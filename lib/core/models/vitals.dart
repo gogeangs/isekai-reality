@@ -337,6 +337,119 @@ class Expedition {
 
 /// 시간에 따라 바뀌는 상태: HP, 정령 MP, 여관 휴식, 정령 원정.
 ///
+/// 묶음 81 #375: 잿빛 틈 · 하이랜드 섬으로 보낸 펫 (가서 기다리다가, 싸우거나 기다림이 끝나면 돌아옴)
+class SpotTrip {
+  const SpotTrip({
+    required this.kind,
+    required this.key,
+    required this.petUid,
+    required this.petName,
+    required this.lat,
+    required this.lng,
+    required this.distanceM,
+    required this.mpCost,
+    required this.startedAt,
+    required this.arriveAt,
+    required this.oneWaySec,
+    required this.waitUntil,
+    this.foughtAt,
+    this.arrivalSeen = false,
+  });
+
+  /// 'rift' 잿빛 틈 · 'sky' 하이랜드 섬
+  final String kind;
+
+  /// 그 자리 (잿빛 틈: 날짜:분신, 섬: 날짜:섬) — 자리가 바뀌면 그 펫은 돌아옴
+  final String key;
+  final String petUid;
+  final String petName;
+  final double lat;
+  final double lng;
+  final double distanceM;
+  final int mpCost;
+  final DateTime startedAt;
+  final DateTime arriveAt;
+  final int oneWaySec;
+
+  /// 그 자리에서 기다리는 끝 (잿빛 틈 30분 · 섬은 섬이 질 때까지 중 짧은 쪽)
+  final DateTime waitUntil;
+
+  /// 싸운 때 (이기든 지든). 그때부터 돌아오는 길
+  final DateTime? foughtAt;
+
+  /// 「닿았어!」 위쪽 띠를 보였는지
+  final bool arrivalSeen;
+
+  Duration get oneWay => Duration(seconds: oneWaySec);
+
+  /// 돌아오는 때 (싸웠으면 싸운 뒤, 아니면 기다림이 끝난 뒤 + 가는 시간)
+  DateTime get returnAt => (foughtAt ?? waitUntil).add(oneWay);
+
+  /// 그 자리에서 기다리는 중 (싸울 수 있음)
+  bool waiting(DateTime now) =>
+      foughtAt == null && !now.isBefore(arriveAt) && now.isBefore(waitUntil);
+
+  bool going(DateTime now) => now.isBefore(arriveAt);
+  bool done(DateTime now) => !now.isBefore(returnAt);
+
+  SpotTrip copy({DateTime? foughtAt, bool? arrivalSeen}) => SpotTrip(
+        kind: kind,
+        key: key,
+        petUid: petUid,
+        petName: petName,
+        lat: lat,
+        lng: lng,
+        distanceM: distanceM,
+        mpCost: mpCost,
+        startedAt: startedAt,
+        arriveAt: arriveAt,
+        oneWaySec: oneWaySec,
+        waitUntil: waitUntil,
+        foughtAt: foughtAt ?? this.foughtAt,
+        arrivalSeen: arrivalSeen ?? this.arrivalSeen,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'key': key,
+        'petUid': petUid,
+        'petName': petName,
+        'lat': lat,
+        'lng': lng,
+        'distanceM': distanceM,
+        'mpCost': mpCost,
+        'startedAt': startedAt.toIso8601String(),
+        'arriveAt': arriveAt.toIso8601String(),
+        'oneWaySec': oneWaySec,
+        'waitUntil': waitUntil.toIso8601String(),
+        'foughtAt': foughtAt?.toIso8601String(),
+        'arrivalSeen': arrivalSeen,
+      };
+
+  static SpotTrip? fromJson(Map<String, dynamic> j) {
+    try {
+      return SpotTrip(
+        kind: j['kind'] as String,
+        key: j['key'] as String,
+        petUid: j['petUid'] as String,
+        petName: j['petName'] as String? ?? '',
+        lat: (j['lat'] as num).toDouble(),
+        lng: (j['lng'] as num).toDouble(),
+        distanceM: (j['distanceM'] as num?)?.toDouble() ?? 0,
+        mpCost: (j['mpCost'] as num?)?.toInt() ?? 0,
+        startedAt: DateTime.parse(j['startedAt'] as String),
+        arriveAt: DateTime.parse(j['arriveAt'] as String),
+        oneWaySec: (j['oneWaySec'] as num).toInt(),
+        waitUntil: DateTime.parse(j['waitUntil'] as String),
+        foughtAt: j['foughtAt'] == null ? null : DateTime.parse(j['foughtAt'] as String),
+        arrivalSeen: j['arrivalSeen'] as bool? ?? false,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 /// 하루 기록과 달리 '지금 값'을 그대로 저장한다.
 class Vitals {
   const Vitals({
@@ -347,19 +460,37 @@ class Vitals {
     this.stepsDay,
     this.stepsCounted = 0,
     this.restStartedAt,
-    this.restHp0,
-    this.restMp0,
-    this.restJobMp0,
+    this.restAt,
+    this.restCarry = const [0, 0, 0],
+    this.restAds = 0,
+    this.restSec = 0,
+    this.restCounted,
+    this.restFullSeen = false,
     this.expeditions = const [],
     this.compassReady = false,
+    this.trips = const [],
   });
 
-  /// 휴식을 시작할 때의 HP·MP (묶음 15 #107: 쉬는 동안 여기서부터 고르게 차오른다)
-  final int? restHp0;
-  final int? restMp0;
+  /// 묶음 81 #375: 잿빛 틈 · 섬으로 보낸 펫 (자리마다 하나)
+  final List<SpotTrip> trips;
 
-  /// 묶음 80 #367: 체크인 때 직업 MP (각성 뒤만, 4시간에 가득까지 고르게)
-  final int? restJobMp0;
+  /// 묶음 81 #373: 여관 회복을 마지막으로 셈한 때 (체크인 뒤)
+  final DateTime? restAt;
+
+  /// 여관 회복 소수 (HP · 기력 · 직업 MP)
+  final List<double> restCarry;
+
+  /// 이번 체크인에 본 「광고 보고 바로 회복」 수
+  final int restAds;
+
+  /// 이번 체크인에 실제로 회복한 시간(초, 원정으로 멈춘 시간 뺌)
+  final int restSec;
+
+  /// 「쉬었다」로 센 날 (같은 체크인에 하루 한 번)
+  final String? restCounted;
+
+  /// 이번 체크인에 「가득 찼어요」를 알렸는지
+  final bool restFullSeen;
 
   /// 지금 HP. null 이면 가득.
   final int? hp;
@@ -397,14 +528,18 @@ class Vitals {
     String? stepsDay,
     int? stepsCounted,
     DateTime? restStartedAt,
-    int? restHp0,
-    int? restMp0,
-    int? restJobMp0,
+    DateTime? restAt,
+    List<double>? restCarry,
+    int? restAds,
+    int? restSec,
+    String? restCounted,
+    bool? restFullSeen,
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
     List<Expedition>? expeditions,
     bool? compassReady,
+    List<SpotTrip>? trips,
   }) =>
       Vitals(
         hp: hp ?? this.hp,
@@ -414,9 +549,12 @@ class Vitals {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
-        restHp0: clearRest ? null : (restHp0 ?? this.restHp0),
-        restMp0: clearRest ? null : (restMp0 ?? this.restMp0),
-        restJobMp0: clearRest ? null : (restJobMp0 ?? this.restJobMp0),
+        restAt: clearRest ? null : (restAt ?? this.restAt),
+        restCarry: clearRest ? const [0, 0, 0] : (restCarry ?? this.restCarry),
+        restAds: clearRest ? 0 : (restAds ?? this.restAds),
+        restSec: clearRest ? 0 : (restSec ?? this.restSec),
+        restCounted: clearRest ? null : (restCounted ?? this.restCounted),
+        restFullSeen: clearRest ? false : (restFullSeen ?? this.restFullSeen),
         expeditions: expeditions ??
             (clearExpedition
                 ? const []
@@ -424,6 +562,7 @@ class Vitals {
                     ? [expedition]
                     : this.expeditions),
         compassReady: compassReady ?? this.compassReady,
+        trips: trips ?? this.trips,
       );
 
   Map<String, dynamic> toJson() => {
@@ -434,11 +573,15 @@ class Vitals {
         'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
-        'restHp0': restHp0,
-        'restMp0': restMp0,
-        'restJobMp0': restJobMp0,
+        'restAt': restAt?.toIso8601String(),
+        'restCarry': restCarry,
+        'restAds': restAds,
+        'restSec': restSec,
+        'restCounted': restCounted,
+        'restFullSeen': restFullSeen,
         'expeditions': [for (final e in expeditions) e.toJson()],
         'compassReady': compassReady,
+        'trips': [for (final t in trips) t.toJson()],
       };
 
   factory Vitals.fromJson(Map<String, dynamic> j) => Vitals(
@@ -451,9 +594,14 @@ class Vitals {
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
-        restHp0: (j['restHp0'] as num?)?.toInt(),
-        restMp0: (j['restMp0'] as num?)?.toInt(),
-        restJobMp0: (j['restJobMp0'] as num?)?.toInt(),
+        restAt: j['restAt'] is String ? DateTime.tryParse(j['restAt'] as String) : null,
+        restCarry: [
+          for (final x in (j['restCarry'] as List?) ?? const [0, 0, 0]) (x as num).toDouble(),
+        ],
+        restAds: (j['restAds'] as num?)?.toInt() ?? 0,
+        restSec: (j['restSec'] as num?)?.toInt() ?? 0,
+        restCounted: j['restCounted'] as String?,
+        restFullSeen: j['restFullSeen'] as bool? ?? false,
         // 예전 저장본은 원정 하나 ('expedition')
         expeditions: [
           for (final e in (j['expeditions'] as List?) ??
@@ -461,5 +609,10 @@ class Vitals {
             Expedition.fromJson(Map<String, dynamic>.from(e as Map)),
         ],
         compassReady: j['compassReady'] as bool? ?? false,
+        trips: [
+          for (final t in (j['trips'] as List?) ?? const [])
+            if (t is Map)
+              if (SpotTrip.fromJson(Map<String, dynamic>.from(t)) case final x?) x,
+        ],
       );
 }

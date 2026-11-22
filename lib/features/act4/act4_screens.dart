@@ -11,7 +11,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
 import '../act3/act3_town.dart' show speakerOf;
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../battle/battle_view.dart';
 import '../battle/hero_rig.dart' show weaponKindOf;
 import '../party/party_flag.dart';

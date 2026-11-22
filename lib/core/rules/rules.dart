@@ -13,6 +13,7 @@ export 'exp_rules.dart';
 export 'expedition_talk_rules.dart';
 export 'exploration_rules.dart';
 export 'field_monster_rules.dart';
+export 'inn_rules.dart';
 export 'job_rules.dart';
 export 'job_pair_rules.dart';
 export 'gather_rules.dart';

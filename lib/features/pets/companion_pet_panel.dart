@@ -9,7 +9,7 @@ import 'pet_screen.dart';
 
 /// 묶음 75 #328: 상태 화면 스탯 줄 아래 「내 펫 ○마리」 3칸 격자.
 /// 함께하는 펫이 맨 앞(금테 + 「함께」 리본), 원정 중 · 훈련 중은 흐리게 + 작은 띠.
-/// 칸을 누르면 그 펫 자세히. 6마리까지 보이고 넘으면 「모두 보기 (○마리)」. 정령이 떠나기 전엔 칸 없음
+/// 칸을 누르면 그 펫 자세히. 6칸까지 보이고 넘으면 「모두 보기 (○마리)」. 정령이 떠나기 전엔 칸 없음
 class CompanionPetPanel extends StatelessWidget {
   const CompanionPetPanel({super.key, required this.controller});
 

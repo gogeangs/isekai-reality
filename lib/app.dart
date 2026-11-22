@@ -38,8 +38,8 @@ import 'features/map/map_screen.dart';
 import 'features/tutorial/targets.dart';
 import 'features/tutorial/tutorial_layer.dart';
 import 'features/pets/farewell_screen.dart';
-import 'features/act2/ash_battle_screen.dart' show EndingScreen;
-import 'features/highland/highland_screen.dart' show HighlandSceneScreen;
+import 'features/act2/ash_battle_screen.dart' show EndingScreen, openRift;
+import 'features/highland/highland_screen.dart' show HighlandSceneScreen, openSkyIsland;
 import 'features/jobs/guild_screen.dart';
 import 'features/jobs/skill_screen.dart';
 import 'features/alchemy/convert_panel.dart' show LockedJobPanel;
@@ -47,6 +47,7 @@ import 'features/smithy/equip_picker.dart';
 import 'features/village/board_screen.dart';
 import 'features/status/stat_screen.dart';
 import 'features/status/step_chest_row.dart';
+import 'features/status/buff_chips.dart';
 import 'features/status/status_screen.dart';
 import 'features/town/inn_screen.dart';
 import 'theme/app_colors.dart';
@@ -466,7 +467,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 controller.statusLifeLine,
             armory: controller.armory,
             onSlot: (slot) => showEquipPicker(context, controller, slot),
-            restLeft: controller.resting ? controller.restLeft : null,
+            restLeft: controller.resting ? Duration.zero : null,
+            innPaused: controller.innPaused,
+            buffRow: buffChips(controller), // 묶음 81 #378
             spiritAway: _spiritAway(controller),
             equippedTitle: controller.equippedTitle,
             onOpenInn: () => push(InnScreen(controller: controller)),

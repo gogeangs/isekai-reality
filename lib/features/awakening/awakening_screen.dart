@@ -9,6 +9,9 @@ import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../status/status_screen.dart' show heroBaseAsset;
 import '../../theme/ornaments.dart';
+import '../../core/models/pet_state.dart' show Pet;
+import '../pets/pet_art.dart';
+import '../profile/profile_screen.dart' show PortraitFace;
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../bulssi/spirit_art.dart';
@@ -213,9 +216,8 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
       key: ValueKey('scene$_scene'),
       image: scene.image,
       speaker: speaker,
-      // 묶음 25 #164: 꼬리는 말하는 쪽으로. 주인공(그림을 보는 나)은 화면 아래,
-      // 정령들은 그림 가운데 (대사창이 위면 아래쪽, 아래면 위쪽)
-      tailUp: speaker != null && !scene.dialogTop,
+      // 묶음 81 #376: 정령들은 이름 칩만, 주인공 혼잣말은 나레이션
+      who: speaker == null ? null : const SceneWho.name(),
       line: scene.lines[_line],
       lineKey: '$_scene-$_line',
       dialogTop: scene.dialogTop,
@@ -438,10 +440,7 @@ class _AwakeningScreenState extends State<AwakeningScreen> {
           onNext: _awaken,
           // 그림 위에 사람을 세우므로 당겨 보이지 않는다 (자리가 어긋나지 않게)
           zoom: false,
-          // 꼬리는 위의 정령 쪽으로
-          tailUp: true,
-          tailX: ((g.spirit.center.dx - 14) / (box.maxWidth - 28))
-              .clamp(0.1, 0.9),
+          who: const SceneWho.name(), // 묶음 81 #376: 정령은 이름 칩만
           // 마법진 한가운데 각성자, 어깨 옆에 고른 정령
           decoration: Stack(children: [
             Positioned.fromRect(
@@ -888,16 +887,12 @@ class IllustratedScene extends StatelessWidget {
     this.onSkip,
     this.decoration,
     this.nextLabel,
-    this.tailUp = false,
-    this.tailX = 0.5,
+    this.who,
     this.zoom = true,
   });
 
-  /// 말풍선 꼬리: true 면 위쪽(말하는 이가 대사창 위), false 면 아래쪽
-  final bool tailUp;
-
-  /// 꼬리 자리 (대사창 너비 비율, 0 왼쪽 ~ 1 오른쪽). 이름표도 그쪽에
-  final double tailX;
+  /// 묶음 81 #376: 말하는 이 (얼굴 동그라미 · 이름 칩). null 이고 [speaker] 도 없으면 나레이션
+  final SceneWho? who;
 
   /// 그림을 천천히 당겨 보이기 (각성 장면처럼 그림 위에 사람을 올릴 때는 끈다)
   final bool zoom;
@@ -923,11 +918,10 @@ class IllustratedScene extends StatelessWidget {
     final pad = MediaQuery.paddingOf(context);
     final dialog = _DialogBox(
       speaker: speaker,
+      who: who,
       line: line,
       lineKey: lineKey,
       showTapHint: nextLabel == null,
-      tailUp: tailUp,
-      tailX: tailX,
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -991,28 +985,93 @@ class IllustratedScene extends StatelessWidget {
   }
 }
 
+/// 묶음 81 #376: 이야기 장면에서 말하는 이 — 얼굴 그림(주인공 · 펫 · 마을 사람 · 동료) 또는 이름만
+class SceneWho {
+  /// 주인공 (얼굴은 오른쪽)
+  const SceneWho.hero(HeroLook this.look)
+      : pet = null,
+        face = null;
+
+  /// 펫
+  const SceneWho.pet(Pet this.pet)
+      : look = null,
+        face = null;
+
+  /// 마을 사람 · 동료 얼굴 그림
+  const SceneWho.face(String this.face)
+      : look = null,
+        pet = null;
+
+  /// 얼굴 그림이 없는 이 (정령 · 왕 등) — 이름 칩만
+  const SceneWho.name()
+      : look = null,
+        pet = null,
+        face = null;
+
+  final HeroLook? look;
+  final Pet? pet;
+  final String? face;
+
+  bool get hero => look != null;
+  bool get hasFace => look != null || pet != null || face != null;
+
+  /// 바뀔 때 얼굴을 바꾸는 열쇠
+  String get id => look != null ? 'hero' : pet != null ? 'pet:${pet!.uid}' : face ?? 'name';
+
+  /// 펫 · 사람 이름으로 (펫이 없으면 이름만)
+  static SceneWho petOr(Pet? p) => p == null ? const SceneWho.name() : SceneWho.pet(p);
+}
+
 class _DialogBox extends StatelessWidget {
   const _DialogBox({
     required this.speaker,
     required this.line,
     required this.lineKey,
     required this.showTapHint,
-    this.tailUp = false,
-    this.tailX = 0.5,
+    this.who,
   });
 
   final String? speaker;
+  final SceneWho? who;
   final String line;
   final String lineKey;
   final bool showTapHint;
-  final bool tailUp;
-  final double tailX;
 
   static const _fill = Color(0xF0121541);
+  static const double faceSize = 56;
+
+  Widget _faceOf(SceneWho w) {
+    final Widget pic;
+    if (w.look != null) {
+      pic = PortraitFace(look: w.look!, fallback: const Icon(Icons.person_rounded, color: AppColors.textMuted));
+    } else if (w.pet != null) {
+      pic = Padding(padding: const EdgeInsets.all(5), child: PetArt.of(w.pet!, size: faceSize - 10));
+    } else {
+      pic = Image.asset(w.face!,
+          fit: BoxFit.cover,
+          alignment: const Alignment(0, -0.5),
+          errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, color: AppColors.goldBright));
+    }
+    return Container(
+      key: Key('dialogFace_${w.id}'),
+      width: faceSize,
+      height: faceSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF1A1D4A),
+        border: Border.all(color: AppColors.goldBright, width: 2),
+        boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 8)],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: pic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final monologue = speaker == null;
+    final w = monologue ? null : (who ?? const SceneWho.name());
+    final right = w?.hero ?? false;
     final box = Container(
       key: const Key('dialogBox'),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
@@ -1025,18 +1084,9 @@ class _DialogBox extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: tailX > 0.6
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!monologue) ...[
-            // 이름표는 말하는 쪽 위에
-            Text(speaker!,
-                key: const Key('dialogSpeaker'),
-                style: AppText.title(14, color: AppColors.goldBright)),
-            const SizedBox(height: 4),
-          ],
           // 한 글자씩
           SizedBox(
             width: double.infinity,
@@ -1065,56 +1115,46 @@ class _DialogBox extends StatelessWidget {
         ],
       ),
     );
-    // 묶음 25 #164: 꼬리가 말하는 쪽을 가리킨다
-    return Stack(clipBehavior: Clip.none, children: [
-      box,
-      Positioned.fill(
-        child: IgnorePointer(
-          child: CustomPaint(
-            key: Key(tailUp ? 'dialogTailUp' : 'dialogTailDown'),
-            painter: _TailPainter(up: tailUp, x: tailX, fill: _fill),
-          ),
-        ),
+    if (w == null) return box;
+    // 묶음 81 #376: 대사창 위에 말하는 이 얼굴 + 이름 칩 (주인공은 오른쪽, 다른 이는 왼쪽) · 꼬리 없음
+    final chip = Container(
+      padding: const EdgeInsets.fromLTRB(10, 3, 10, 3),
+      decoration: BoxDecoration(
+        color: _fill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.8), width: 1.2),
       ),
-    ]);
+      child: Text(speaker!,
+          key: const Key('dialogSpeaker'),
+          style: AppText.title(14, color: AppColors.goldBright)),
+    );
+    final head = Row(
+      key: Key('dialogHead_${right ? 'right' : 'left'}'),
+      mainAxisAlignment: right ? MainAxisAlignment.end : MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (!right && w.hasFace) ...[_faceOf(w), const SizedBox(width: 6)],
+        Padding(padding: const EdgeInsets.only(bottom: 4), child: chip),
+        if (right && w.hasFace) ...[const SizedBox(width: 6), _faceOf(w)],
+      ],
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, a) => FadeTransition(
+            opacity: a,
+            child: ScaleTransition(scale: Tween(begin: 0.85, end: 1.0).animate(a), child: child),
+          ),
+          child: KeyedSubtree(key: ValueKey('${w.id}:$speaker'), child: head),
+        ),
+        const SizedBox(height: 6),
+        box,
+      ],
+    );
   }
-}
-
-/// 대사창 위나 아래로 튀어나온 작은 꼬리
-class _TailPainter extends CustomPainter {
-  _TailPainter({required this.up, required this.x, required this.fill});
-
-  final bool up;
-  final double x;
-  final Color fill;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const w = 18.0, h = 11.0;
-    final cx = (size.width * x).clamp(28.0, size.width - 28);
-    final edge = up ? 0.8 : size.height - 0.8;
-    final tip = up ? -h : size.height + h;
-    final path = Path()
-      ..moveTo(cx - w / 2, edge)
-      ..lineTo(cx, tip)
-      ..lineTo(cx + w / 2, edge)
-      ..close();
-    canvas.drawPath(path, Paint()..color = fill);
-    canvas.drawPath(
-        Path()
-          ..moveTo(cx - w / 2, edge)
-          ..lineTo(cx, tip)
-          ..lineTo(cx + w / 2, edge),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..strokeJoin = StrokeJoin.round
-          ..color = AppColors.goldBright);
-  }
-
-  @override
-  bool shouldRepaint(_TailPainter old) =>
-      old.up != up || old.x != x || old.fill != fill;
 }
 
 /// 각성 장면에서 어깨 옆에 둥실 떠 있는 정령

@@ -147,6 +147,17 @@ extension _ShellPopups on _HomeShellState {
   void _maybeShowNotices() {
     final c = widget.controller;
     if (_popupBusy || _ahead(2)) return;
+    // 묶음 81 #375: 펫이 잿빛 틈 · 섬에 닿음 → 위쪽 띠 (누르면 들어가기)
+    final trip = c.tripArrivedUnseen;
+    if (trip != null && !c.inTutorial) {
+      unawaited(c.markTripArrivalSeen(trip));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showTopNoticeQueued(context, '${SpotTripOps.tripArrivedLine(trip)} 싸우러 가자',
+            icon: Icons.pets_rounded,
+            onTap: () => trip.kind == 'rift' ? openRift(context, c) : openSkyIsland(context, c));
+      });
+    }
     final done = c.finishedExpeditions;
     // 묶음 20 #160: 튜토리얼 중에는 튜토리얼 원정 결과만 (나머지는 끝난 뒤)
     if (c.inTutorial &&
@@ -164,7 +175,7 @@ extension _ShellPopups on _HomeShellState {
       if (c.justRested) {
         // 가벼운 알림은 위쪽 띠로만 (#131)
         showTopNoticeQueued(context,
-            c.jobsOpen ? '푹 쉬었어요 · HP · MP · 기력이 가득 찼어요' : '푹 쉬었어요 · HP · 기력이 가득 찼어요');
+            c.jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요'); // 묶음 81 #373
         c.clearJustRested();
       } else {
         await _showExpeditionResults(done);

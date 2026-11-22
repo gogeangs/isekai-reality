@@ -64,8 +64,8 @@ class BuildingRules {
           MaterialId.tannedLeather: 4,
           MaterialId.sturdyKnot: 1,
         }),
-        text2: '쉬는 시간이 짧아져요',
-        text3: '쉬고 나면 잠시 경험치를 조금 더 받아요'),
+        text2: '여관에서 더 빨리 회복해요',
+        text3: '가득 찬 뒤 일어나면 잠시 HP · 기력 최대가 조금 늘어요'),
     BuildingInfo(Building.shop, '잡화상', Npc.mina,
         to2: BuildingNeed(450, {MaterialId.ironShard: 6, MaterialId.twig: 6}),
         to3: BuildingNeed(950, {
@@ -186,12 +186,7 @@ class BuildingRules {
 
   // ───────────── 효과 (숨은 값, 테스트로 조정)
 
-  /// 여관 ★2: 쉬기 시작할 때 이만큼 이미 쉰 것으로 (휴식 시간이 짧아짐)
-  static const double innHead = 0.2;
-
-  /// 여관 ★3: 쉬고 일어난 뒤 이 시간 동안 사냥 경험치 조금 더
-  static const Duration innExpFor = Duration(hours: 1);
-  static const double innExp = 1.1;
+  // 여관 ★2 · ★3 값은 InnRules (묶음 81 #373: 회복 속도 ×1.25 · 가득 찬 뒤 일어나면 잠시 최대 조금 더)
 
   /// 잡화상 ★3: 하루 살 수 있는 개수 +1 · 특별한 물건이 들어오는 날 (6일 중 3일 꼴)
   static const int shopExtraLimit = 1;

@@ -10,8 +10,8 @@ import '../../theme/ornaments.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../../theme/top_notice.dart';
 
-/// 여관 (앱 안 시설): 체크인하고 쉬면 HP · MP · 기력이 서서히 찬다 (묶음 80 #367).
-/// 언제든 체크인하고 4시간이 지나면 가득. 일어나도 찬 만큼은 그대로.
+/// 여관 (앱 안 시설): 체크인해 있는 동안 HP · MP · 기력이 조금씩 찬다 (묶음 80 #367 · 81 #373).
+/// 시간당 최대치의 20%(숨은 값), 상한 없음 · 「일어나기」 까지. 원정 나간 펫이 있으면 멈춤.
 class InnScreen extends StatelessWidget {
   const InnScreen({super.key, required this.controller});
 
@@ -26,17 +26,13 @@ class InnScreen extends StatelessWidget {
     return null;
   }
 
-  static String left(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h > 0) return m > 0 ? '$h시간 $m분' : '$h시간';
-    return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
-  }
-
-  /// 쉬는 동안 차는 것 한 줄 설명 (각성 전엔 MP 없음)
+  /// 판 설명 한 줄 (각성 전엔 MP 없음)
   static String fillLine({required bool job}) => job
-      ? '쉬는 동안 HP · MP · 기력이 조금씩 차고, 4시간이면 가득 차요'
-      : '쉬는 동안 HP · 기력이 조금씩 차고, 4시간이면 가득 차요';
+      ? '여관에 있는 동안 HP · MP · 기력이 조금씩 차요'
+      : '여관에 있는 동안 HP · 기력이 조금씩 차요';
+
+  /// 원정 중이라 멈춤
+  static const String pausedLine = '원정 중이라 회복이 멈췄어요 · 펫이 돌아오면 다시 차요';
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +49,8 @@ class InnScreen extends StatelessWidget {
             final today = c.player.today;
             final resting = c.resting;
             final job = c.jobsOpen;
-            final full = c.hp >= c.maxHp &&
-                c.mp >= c.mpMax &&
-                (!job || c.jobMp >= c.jobMpMax);
+            final full = c.innFull;
+            final paused = resting && c.innPaused;
 
             return ListView(
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
@@ -86,18 +81,20 @@ class InnScreen extends StatelessWidget {
                   GoldButton(
                     key: const Key('innResting'),
                     label: full
-                        ? '가득 찼어요 · ${left(c.restLeft)} 뒤 다 쉬어요'
-                        : '쉬는 중 · ${left(c.restLeft)} 남음',
+                        ? '가득 찼어요 · 언제든 일어나도 돼요'
+                        : paused
+                            ? '쉬는 중 · 원정 중이라 멈췄어요'
+                            : '쉬는 중 · 시간당 20%씩 차요',
                     onPressed: null,
                   ),
-                  // 묶음 15 #103: 광고 보고 휴식 시간 줄이기 (줄어든 만큼 바로 더 찬다)
-                  if (c.canShortenRest) ...[
+                  // 묶음 81 #373: 광고 보고 바로 회복 (1시간치, 한 번 체크인에 두 번까지)
+                  if (c.canInnAd) ...[
                     const SizedBox(height: 8),
                     AdButton(
-                      key: const Key('adShortenRest'),
-                      label: '광고 보고 1시간 줄이기',
+                      key: const Key('innAd'),
+                      label: '광고 보고 바로 회복',
                       onPressed: () async {
-                        final ok = await c.adShortenRest();
+                        final ok = await c.innAd();
                         if (!ok && context.mounted) {
                           showTopNotice(context, '광고를 불러오지 못했어요.');
                         }
@@ -119,7 +116,7 @@ class InnScreen extends StatelessWidget {
                     onPressed: () async {
                       final ok = await c.restAtInn();
                       if (ok && context.mounted) {
-                        showTopNotice(context, '체크인했어요. 4시간 뒤에 다 쉬어요!');
+                        showTopNotice(context, '체크인했어요. 있는 동안 조금씩 차요!');
                       }
                     },
                   ),
@@ -144,7 +141,7 @@ class InnScreen extends StatelessWidget {
                         if (job)
                           _Fill(
                               key: const Key('innFill_jobMp'),
-                              icon: 'mp',
+                              icon: 'job_mp',
                               label: 'MP',
                               color: kJobMpColor,
                               value: c.jobMp,
@@ -156,6 +153,12 @@ class InnScreen extends StatelessWidget {
                             color: AppColors.mana,
                             value: c.mp,
                             max: c.mpMax),
+                        if (paused) ...[
+                          const SizedBox(height: 4),
+                          const KText(pausedLine,
+                              key: Key('innPaused'),
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                        ],
                         const SizedBox(height: 6),
                         Row(children: [
                           const GameIcon('moon', size: 22),
@@ -227,12 +230,17 @@ class _Fill extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
+        // 큰 숫자(1,117 / 2,175)도 잘리지 않게: 자리를 넓히고 넘치면 살짝 줄임
         SizedBox(
-          width: 78,
-          child: Text('${comma(value)} / ${comma(max)}',
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+          width: 96,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text('${comma(value)} / ${comma(max)}',
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
         ),
       ]),
     );

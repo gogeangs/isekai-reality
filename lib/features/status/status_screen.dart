@@ -47,6 +47,8 @@ class StatusScreen extends StatelessWidget {
     this.armory,
     this.onSlot,
     this.restLeft,
+    this.innPaused = false,
+    this.buffRow,
     this.spiritAway,
     this.onOpenInn,
     this.equippedTitle,
@@ -112,6 +114,12 @@ class StatusScreen extends StatelessWidget {
 
   /// 여관에서 쉬는 중이면 남은 시간
   final Duration? restLeft;
+
+  /// 묶음 81 #373: 원정 중이라 여관 회복이 멈춤
+  final bool innPaused;
+
+  /// 묶음 81 #378: HP · MP · 기력 막대 아래 지금 걸린 물약 칩 줄 (없으면 줄 없음)
+  final Widget? buffRow;
 
   /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
   final String? spiritAway;
@@ -266,7 +274,9 @@ class StatusScreen extends StatelessWidget {
                   _RestLine(
                     text: full
                         ? '여관에서 쉬는 중 · 가득 찼어요'
-                        : '여관에서 쉬는 중 · ${_left(restLeft!)} 남음',
+                        : innPaused
+                            ? '여관에서 쉬는 중 · 원정 중이라 회복이 멈췄어요'
+                            : '여관에서 쉬는 중 · 조금씩 차요',
                     onTap: onOpenInn,
                   ),
                 ],
@@ -282,6 +292,10 @@ class StatusScreen extends StatelessWidget {
                   jobMpBar: jobMp == null ? jobMpBar : null,
                   jobMp: jobMp,
                 ),
+                if (buffRow != null) ...[
+                  const SizedBox(height: 8),
+                  buffRow!,
+                ],
                 const SizedBox(height: 12),
                 if (cards != null) cards! else Row(children: [
                   Expanded(
@@ -651,14 +665,6 @@ class _RestLine extends StatelessWidget {
   }
 }
 
-/// '2시간 10분' / '12분'
-String _left(Duration d) {
-  final h = d.inHours;
-  final m = d.inMinutes.remainder(60);
-  if (h > 0) return m > 0 ? '$h시간 $m분' : '$h시간';
-  return '${d.inMinutes < 1 ? 1 : d.inMinutes}분';
-}
-
 /// 오늘 정보: HP | 정령 MP 나란히 (11-11 #68: 던전 게이지·던전 열기는 지도로 옮겼다)
 class _StatusPanel extends StatelessWidget {
   const _StatusPanel({
@@ -748,7 +754,7 @@ class _StatusPanel extends StatelessWidget {
               duration: Duration(milliseconds: first ? 1100 : 1),
               curve: Curves.easeOutCubic,
               builder: (_, r, __) => _Gauge(
-                icon: 'mp',
+                icon: 'job_mp', // 묶음 81 #373: 기력(파란 구슬)과 다른 보라 MP
                 label: 'MP',
                 ratio: r,
                 colors: const [Color(0xFF8A5BE0), Color(0xFFB27BFF)],

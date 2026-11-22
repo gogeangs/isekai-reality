@@ -15,6 +15,7 @@ import '../battle/field_battle_screen.dart';
 import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_mood.dart';
 import '../pets/pet_art.dart';
+import 'pet_picker.dart';
 import '../battle/element_view.dart';
 import '../../theme/top_notice.dart';
 import '../bulssi/bulssi_bubble.dart';
@@ -30,17 +31,6 @@ String expeditionReason(ExpeditionCheck c) => switch (c) {
       ExpeditionCheck.tired => '지쳐서 쉬는 중이에요',
       ExpeditionCheck.training => '훈련장에서 훈련 중이에요',
     };
-
-/// 원정 펫 칩 이름 (묶음 35: 지친 펫은 남은 시간)
-String _petLabel(AppController c, Pet p) {
-  if (c.isAway(p.uid)) return '${p.name} (원정 중)';
-  final t = c.petTiredLeft(p.uid);
-  if (t != null) return '${p.name} · 지쳐서 쉬는 중 · ${_minutes(t)} 남음';
-  // 묶음 43 #228: 훈련장에 맡긴 펫
-  final tr = c.petTrainingLeft(p.uid);
-  if (tr != null) return '${p.name} · 훈련 중 · ${_minutes(tr)} 남음';
-  return p.name;
-}
 
 String _minutes(Duration d) {
   final m = d.inMinutes;
@@ -167,14 +157,31 @@ class _SpawnSheetState extends State<SpawnSheet> {
   AppController get controller => widget.controller;
   FieldSpawn get spawn => widget.spawn;
 
+  /// 묶음 32 #188 · 81 #374: 잘 맞는 펫을 앞에
+  List<Pet> get _order {
+    final c = controller;
+    return [
+      ...c.pets.pets.where((p) => c.petSuits(p, spawn)),
+      ...c.pets.pets.where((p) => !c.petSuits(p, spawn)),
+    ];
+  }
+
   String? get _chosen {
     final c = controller;
     if (!c.farewellDone) return null;
-    if (_petUid != null && !c.isAway(_petUid)) return _petUid;
-    final comp = c.companionPet;
-    if (comp != null && !c.isAway(comp.uid)) return comp.uid;
-    final idle = c.idlePets;
-    return idle.isEmpty ? null : idle.first.uid;
+    if (_petUid != null && c.petCanSend(_petUid!)) return _petUid;
+    // 펫이 한 마리면 지금처럼 (동행 펫)
+    if (c.pets.pets.length <= 1) {
+      final comp = c.companionPet;
+      if (comp != null && !c.isAway(comp.uid)) return comp.uid;
+      final idle = c.idlePets;
+      return idle.isEmpty ? null : idle.first.uid;
+    }
+    // 묶음 81 #374: 보낼 수 있는 펫 중 맨 앞. 없으면 null (이미 나간 펫을 고른 채 보이지 않게)
+    for (final p in _order) {
+      if (c.petCanSend(p.uid)) return p.uid;
+    }
+    return null;
   }
 
   @override
@@ -193,11 +200,14 @@ class _SpawnSheetState extends State<SpawnSheet> {
     final near = c.nearbySpawn?.id == spawn.id;
     final chosenPet = chosen == null ? null : c.pets.byUid(chosen);
     final spiritName = chosenPet?.name ?? c.companionName;
+    // 묶음 81 #374: 펫이 여럿인데 모두 원정 중 · 쉬는 중 · 훈련 중
+    final noneFree = c.farewellDone && c.pets.pets.length > 1 && chosen == null;
+    final back = c.firstPetBack;
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-        child: Column(
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -260,57 +270,28 @@ class _SpawnSheetState extends State<SpawnSheet> {
                     Row(children: [
                       const GameIcon('expedition', size: 40),
                       const SizedBox(width: 6),
-                      if (chosenPet != null)
-                        PetArt.of(chosenPet, size: 36)
-                      else
+                      if (chosenPet != null) ...[
+                        PetArt.of(chosenPet, size: 36),
+                        const SizedBox(width: 6),
+                      ] else if (!noneFree) ...[
                         const CompanionArt(size: 36),
-                      const SizedBox(width: 6),
+                        const SizedBox(width: 6),
+                      ],
                       Expanded(
-                        child: KText('$spiritName 원정 보내기',
+                        child: KText(noneFree ? '원정 보내기' : '$spiritName 원정 보내기',
+                            key: const Key('expHead'),
                             style: AppText.title(16)),
                       ),
                     ]),
                     if (c.farewellDone && c.pets.pets.length > 1) ...[
                       const SizedBox(height: 6),
-                      Wrap(spacing: 6, runSpacing: 4, children: [
-                        // 묶음 32 #188: 잘 맞는 펫을 맨 위(앞)로, 「잘 맞아요」 표시
-                        for (final p in [
-                          ...c.pets.pets.where((p) => c.petSuits(p, spawn)),
-                          ...c.pets.pets.where((p) => !c.petSuits(p, spawn)),
-                        ])
-                          ChoiceChip(
-                            key: Key('expPet_${p.uid}'),
-                            label: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text(_petLabel(c, p)),
-                              if (c.petSuits(p, spawn)) ...[
-                                const SizedBox(width: 4),
-                                Text('잘 맞아요',
-                                    key: Key('suits_${p.uid}'),
-                                    style: TextStyle(
-                                        color: p.uid == chosen
-                                            ? AppColors.night
-                                            : AppColors.goldBright,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800)),
-                              ],
-                            ]),
-                            selected: p.uid == chosen,
-                            onSelected: c.isAway(p.uid) ||
-                                    c.petTiredLeft(p.uid) != null ||
-                                    c.petInTraining(p.uid)
-                                ? null
-                                : (_) => setState(() => _petUid = p.uid),
-                            selectedColor: AppColors.gold,
-                            backgroundColor: AppColors.chipBg,
-                            labelStyle: TextStyle(
-                                color: p.uid == chosen
-                                    ? AppColors.night
-                                    : AppColors.text,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700),
-                            showCheckmark: false,
-                          ),
-                      ]),
+                      ExpeditionPetPicker(
+                        controller: c,
+                        pets: _order,
+                        chosen: chosen,
+                        suits: (p) => c.petSuits(p, spawn),
+                        onPick: (uid) => setState(() => _petUid = uid),
+                      ),
                       if (chosenPet != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -372,13 +353,24 @@ class _SpawnSheetState extends State<SpawnSheet> {
             const SizedBox(height: 10),
             // 묶음 30 #55: 먼 길 안내 (이번 원정 더 멀리)
             JobSkillBar(controller: c, places: const [SkillPlace.expeditionSend]),
+            // 묶음 81 #373: 쉬는 중이면 여관 회복이 멈춤
+            if (c.resting && !noneFree)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text('보내면 여관 회복이 멈춰요',
+                    key: Key('expInnPause'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.goldBright, fontSize: 12)),
+              ),
             // 11-11 #64: 보낼 수 없으면 흐리게 (눌리지 않음)
             Opacity(
-              opacity: plan.check == ExpeditionCheck.ok ? 1 : 0.4,
+              opacity: plan.check == ExpeditionCheck.ok && !noneFree ? 1 : 0.4,
               child: GoldButton(
               key: const Key('sendSpirit'),
-              label: '${c.farewellDone ? spiritName : '정령'} 보내기',
-              onPressed: plan.check == ExpeditionCheck.ok
+              label: noneFree
+                  ? '모두 원정 중이에요${back == null ? '' : ' · ${_minutes(back)} 뒤 돌아와요'}'
+                  : '${c.farewellDone ? spiritName : '정령'} 보내기',
+              onPressed: plan.check == ExpeditionCheck.ok && !noneFree
                   ? () async {
                       final result =
                           await c.sendSpirit(spawn, petUid: chosen);
@@ -393,7 +385,7 @@ class _SpawnSheetState extends State<SpawnSheet> {
             ),
             ),
           ],
-        ),
+        )),
       ),
     );
   }

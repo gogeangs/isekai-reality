@@ -1328,43 +1328,6 @@ extension JobOps on AppController {
         _jobs.copyWith(gaugeDay: day, gaugeGiven: newGiven, marks: marks));
   }
 
-  /// 새 장소를 찾았을 때 (탐험가 보상)
-  Future<void> _jobNewPlace() async {
-    if (!_jobs.awakened || _history.isEmpty) return;
-    final t = jobTrait(JobId.explorer);
-    final today = _history.last;
-    if (t <= 0) return;
-    final exp = (RuleConstants.newPlaceExp * JobRules.explorerPlace * t).round();
-    if (exp <= 0) return;
-    await _save(today.copyWith(
-        gains: DailyRecord.addCounts(today.gains, {Wallet.exp: exp})));
-  }
-
-  /// 순례자 순례의 길: 일주일에 여러 번 간 곳에 다시 가면 작은 선물 (장소마다 하루 한 번)
-  Future<void> _jobRevisit(String placeId) async {
-    if (!_jobs.awakened || _history.isEmpty) return;
-    final t = jobTrait(JobId.pilgrim);
-    if (t <= 0) return;
-    final today = _history.last;
-    final from = today.date.subtract(const Duration(days: 6));
-    final days = _history
-        .where((r) =>
-            !r.date.isBefore(DateTime(from.year, from.month, from.day)) &&
-            r.visitedPlaceIds.contains(placeId))
-        .length;
-    if (days < JobRules.pilgrimVisits) return;
-    if (t < 1 && _random.nextDouble() >= t) return;
-    const finds = [
-      MaterialId.herb,
-      MaterialId.butterflyDust,
-      MaterialId.waterJelly,
-      MaterialId.essence,
-    ];
-    // 묶음 47 #240: 가방이 가득하면 「가방이 가득 찼어요」 창으로
-    await _admitBag({finds[_random.nextInt(finds.length)].name: 1});
-    _jobFind = true;
-  }
-
   /// 방금 순례자가 작은 선물을 찾았는지 (한 번 알려 주고 false)
   bool takeJobFind() {
     final v = _jobFind;

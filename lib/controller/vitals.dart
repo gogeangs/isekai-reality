@@ -6,8 +6,10 @@ extension VitalsOps on AppController {
   /// 전투용 최대 HP (장비 포함)
   int get maxHp {
     final p = player;
-    return Battle.playerMaxHpWith(
+    final base = Battle.playerMaxHpWith(
         level: p.level.level, stats: combatStats, gear: gear);
+    // 묶음 81 #373: 여관 ★3 — 가득 찬 뒤 일어나면 잠시 최대가 조금 늘어요 (숨김)
+    return innBoostOn ? (base * InnRules.star3Max).round() : base;
   }
 
   /// 지금 HP (전투 사이에 이어진다. 0이면 싸울 수 없다)
@@ -19,7 +21,10 @@ extension VitalsOps on AppController {
   /// 기력 최대치: 기본 60 + 펫 보너스 (지능은 빠짐, #183). 저장된 값이 더 크면
   /// [mp] 가 새 최대치까지만 보여 준다.
   /// 묶음 66 #270: 60 + 2 × (레벨 − 1) + 펫 보너스
-  int get mpMax => VitalRules.levelMp(player.level.level) + PetRules.mpMaxBonus(_pets.pets.length);
+  int get mpMax {
+    final base = VitalRules.levelMp(player.level.level) + PetRules.mpMaxBonus(_pets.pets.length);
+    return innBoostOn ? (base * InnRules.star3Max).round() : base;
+  }
 
   /// 시간당 MP 회복: 레벨 기력의 1/6 + 펫 보너스 (두 번째 펫부터 +2, 11-11 #38). 소수는 분 단위로 셈
   double get mpRegenPerHour =>
@@ -29,15 +34,108 @@ extension VitalsOps on AppController {
   DateTime? get restStartedAt => _vitals.restStartedAt;
   bool get resting => _vitals.restStartedAt != null;
 
-  /// 휴식이 얼마나 지났는지 (0 → 1)
-  double get restProgress => resting
-      ? TownRules.restProgress(_vitals.restStartedAt!, _clock())
-      : 0;
+  // ───────────── 여관 (묶음 81 #373 · #371: 있는 동안 시간당 20%씩, 상한 없음)
 
-  /// 휴식이 끝나기까지 남은 시간
-  Duration get restLeft => resting
-      ? TownRules.restLeft(_vitals.restStartedAt!, _clock())
-      : Duration.zero;
+  /// 원정 나간 펫이 있어 여관 회복이 멈췄는지 (밖의 회복은 그대로)
+  bool get innPaused {
+    final now = _clock();
+    return _vitals.expeditions.any((e) => now.isBefore(e.returnAt)) ||
+        _vitals.trips.any((t) => !t.done(now));
+  }
+
+  /// 여관 회복 속도 (★2 · 마르타 단짝, 숨김)
+  double get innSpeed => InnRules.speed(star2: _star(Building.inn, 2), martaBest: _bestWith(Npc.marta));
+
+  /// HP · 기력 · (각성 뒤) MP가 모두 가득
+  bool get innFull => hp >= maxHp && mp >= mpMax && (!jobsOpen || jobMp >= jobMpMax);
+
+  /// 광고 보고 바로 회복 (가득이거나 원정 중이면 없음, 한 번 체크인에 두 번)
+  bool get canInnAd =>
+      adsReady && resting && !innPaused && !innFull && _vitals.restAds < InnRules.adsPerRest;
+
+  /// 원정 나간 구간 (여관 회복이 멈추는 때)
+  List<(DateTime, DateTime)> get _awaySpans => [
+        for (final e in _vitals.expeditions) (e.startedAt, e.returnAt),
+        for (final t in _vitals.trips) (t.startedAt, t.returnAt),
+      ];
+
+  /// 체크인해 있는 동안 [now] 까지 찬 만큼 (HP · 기력은 [v] 에, 직업 MP는 따로 돌려줌)
+  (Vitals, int?) _innGain(Vitals v, DateTime now, int curHp) {
+    final start = v.restStartedAt;
+    if (start == null) return (v, null);
+    final from = v.restAt ?? start;
+    if (!now.isAfter(from)) return (v, null);
+    final paused = InnRules.pausedWithin(from, now, _awaySpans);
+    final eff = now.difference(from) - paused;
+    final hours = eff.inSeconds / 3600;
+    final sp = innSpeed;
+    final carry = [...v.restCarry, 0.0, 0.0, 0.0];
+    final hpMax = maxHp, mMax = mpMax;
+    final curMp = math.min(mMax, v.mp ?? mMax);
+    final (hAdd, hC) = InnRules.gain(hpMax, hours, carry[0], speed: sp);
+    final (mAdd, mC) = InnRules.gain(mMax, hours, carry[1], speed: sp);
+    final hpNow = math.min(hpMax, curHp + hAdd);
+    final mpNow = math.min(mMax, curMp + mAdd);
+    int? job;
+    var jC = carry[2];
+    if (_jobs.awakened) {
+      final (jAdd, c) = InnRules.gain(jobMpMax, hours, carry[2], speed: sp);
+      jC = c;
+      final j = math.min(jobMpMax, jobMp + jAdd);
+      if (j != jobMp) job = j;
+      if (j >= jobMpMax) jC = 0;
+    }
+    return (
+      v.copyWith(
+        hp: hpNow,
+        mp: mpNow,
+        restAt: now,
+        restCarry: [hpNow >= hpMax ? 0 : hC, mpNow >= mMax ? 0 : mC, jC],
+        restSec: v.restSec + eff.inSeconds,
+      ),
+      job,
+    );
+  }
+
+  /// 광고 보고 바로 회복: 최대치의 20%씩 바로 (HP · 기력 · MP)
+  Future<bool> innAd() async {
+    if (!canInnAd || !await _watchAd('inn_heal')) return false;
+    return _serial(() async {
+      await refreshVitals();
+      if (!resting) return false;
+      final hpMax = maxHp, mMax = mpMax;
+      _vitals = _vitals.copyWith(
+        hp: math.min(hpMax, hp + (hpMax * InnRules.adGain).round()),
+        mp: math.min(mMax, mp + (mMax * InnRules.adGain).round()),
+        restAds: _vitals.restAds + 1,
+      );
+      if (_jobs.awakened) {
+        await _setJobMp(math.min(jobMpMax, jobMp + (jobMpMax * InnRules.adGain).round()));
+      }
+      await store.saveVitals(_vitals);
+      await refreshVitals();
+      _notify();
+      return true;
+    });
+  }
+
+  /// 가득 찰 때 알림 다시 예약 (원정 중이면 취소)
+  void _scheduleInnFull() {
+    if (!resting || innPaused || innFull || _vitals.restFullSeen) {
+      if (_innNotifyAt != null) unawaited(notifier?.cancel(NotifyId.rest));
+      _innNotifyAt = null;
+      return;
+    }
+    final at = _clock().add(InnRules.untilFull([
+      (hp, maxHp),
+      (mp, mpMax),
+      if (jobsOpen) (jobMp, jobMpMax),
+    ], speed: innSpeed));
+    if (_innNotifyAt != null && (at.difference(_innNotifyAt!).inSeconds).abs() < 60) return;
+    _innNotifyAt = at;
+    unawaited(notifier?.schedule(NotifyId.rest, at, '여관',
+        jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요'));
+  }
 
   /// 진행 중이거나 결과를 아직 보지 않은 원정 (펫마다 하나, 11-11 #38)
   List<Expedition> get expeditions => _vitals.expeditions;
@@ -73,7 +171,7 @@ extension VitalsOps on AppController {
 
   /// 원정 중인 펫 uid (정령은 null)
   bool isAway(String? petUid) =>
-      _vitals.expeditions.any((e) => e.petUid == petUid);
+      _vitals.expeditions.any((e) => e.petUid == petUid) || _onTrip(petUid);
 
   /// 다음 HP 회복까지 남은 걸음
   int get stepsToNextHeal => VitalRules.stepsToNextHeal(
@@ -169,60 +267,39 @@ extension VitalsOps on AppController {
       changed = true;
     }
 
-    // 쉬는 동안: 시작할 때 HP·MP에서 가득까지 시간에 맞춰 고르게 (묶음 15 #107)
-    final restAt = v.restStartedAt;
-    if (restAt != null && !TownRules.restDone(restAt, now)) {
-      final f = TownRules.restProgress(restAt, now);
-      final hp0 = v.restHp0 ?? curHp;
-      final mp0 = v.restMp0 ?? (v.mp ?? mpMax);
-      final hpNow = math.max(curHp, TownRules.restFill(hp0, max, f));
-      final mpNow = math.max(v.mp ?? mpMax, TownRules.restFill(mp0, mpMax, f));
-      if (hpNow != curHp ||
-          mpNow != (v.mp ?? mpMax) ||
-          v.restHp0 == null ||
-          v.restMp0 == null) {
-        curHp = hpNow;
-        v = v.copyWith(
-            hp: hpNow, mp: mpNow, mpAt: now, restHp0: hp0, restMp0: mp0);
-        changed = true;
+    // 묶음 81 #373: 여관에 있는 동안 시간당 20%씩 (원정 나간 동안은 멈춤, 상한 없음)
+    if (v.restStartedAt != null) {
+      final (nv, job) = _innGain(v, now, curHp);
+      v = nv;
+      curHp = v.hp ?? curHp;
+      changed = true;
+      if (job != null) await _setJobMp(job);
+      final full = curHp >= max &&
+          (v.mp ?? mpMax) >= mpMax &&
+          (!_jobs.awakened || jobMp >= jobMpMax);
+      // 그날 실제로 1시간 넘게 회복했거나 셋 다 가득 → 「쉬었다」 (체크인마다 하루 한 번)
+      final day = DailyRecord.dayKeyOf(now);
+      if (v.restCounted != day && (v.restSec >= InnRules.restedAfter.inSeconds || full)) {
+        v = v.copyWith(restCounted: day);
+        _vitals = v;
+        await store.saveVitals(v);
+        final rec = await _todayRecord();
+        await store.upsert(_withQuests(rec.copyWith(restsCompleted: rec.restsCompleted + 1)));
+        _history = await store.loadHistory();
+        // 묶음 45 #231: 마르타 — 여관에서 쉬고 나서
+        await _smallTrigger(Npc.marta);
       }
-      // 묶음 80 #367: 직업 MP도 HP · 기력처럼 서서히 (각성 뒤만)
-      if (_jobs.awakened) {
-        final job0 = v.restJobMp0 ?? jobMp;
-        final jobNow = math.max(jobMp, TownRules.restFill(job0, jobMpMax, f));
-        if (v.restJobMp0 == null) {
-          v = v.copyWith(restJobMp0: job0);
-          changed = true;
-        }
-        if (jobNow != jobMp) await _setJobMp(jobNow);
+      if (full && !v.restFullSeen) {
+        v = v.copyWith(restFullSeen: true);
+        _justRested = true;
       }
-    }
-
-    // 여관 휴식이 끝났으면 HP·MP를 모두 채우고 기록한다
-    if (restAt != null && TownRules.restDone(restAt, now)) {
-      v = v.copyWith(
-          hp: max, mp: mpMax, mpAt: now, clearRest: true);
-      _vitals = v;
-      await store.saveVitals(v);
-      await _fillJobMp(); // 묶음 30: 새 MP도 가득
-      _justRested = true;
-      // 묶음 54: 여관 ★3 → 쉬고 나면 잠시 경험치 조금 더
-      await _innRested();
-      // 묶음 45 #231: 마르타 — 여관에서 쉬고 일어날 때
-      await _smallTrigger(Npc.marta);
-      final rec = await _todayRecord();
-      // 묶음 42 #226: 마르타와 단짝이면 휴식 보너스 경험치 조금 더 (숨김)
-      final bonus = martaRestBonus;
-      await store.upsert(_withQuests(rec.copyWith(
-          restsCompleted: rec.restsCompleted + 1,
-          gains: bonus > 0
-              ? DailyRecord.addCounts(rec.gains, {Wallet.exp: bonus})
-              : null)));
-      _history = await store.loadHistory();
     }
 
     _vitals = v;
-    if (changed) await store.saveVitals(v);
+    // 묶음 81 #375: 잿빛 틈 · 섬에서 돌아온 펫
+    if (_settleTrips()) changed = true;
+    if (changed) await store.saveVitals(_vitals);
+    _scheduleInnFull();
 
     // 묶음 23 #172: 도착하면 싸움 결과를 정하고(기록·보상 저장), 돌아오면 결과 카드.
     // 바로 돌아오기 등으로 둘이 한꺼번에 지나도 결과는 한 번만 정한다
@@ -278,43 +355,36 @@ extension VitalsOps on AppController {
   }
 
   /// 여관에 체크인한다. 언제든, 하루 여러 번. 이미 쉬는 중이면 false.
+  /// 묶음 81 #373: 일어나기 전까지 시간당 20%씩 (4시간 상한 없음)
   Future<bool> restAtInn() =>
       _serial(() async {
     if (resting) return false;
     await refreshVitals();
     final now = _clock();
-    // 묶음 54: 여관 ★2 → 쉬는 시간이 짧아짐 (처음부터 조금 쉰 것으로, 숨김)
-    final start = _star(Building.inn, 2)
-        ? now.subtract(const Duration(hours: RuleConstants.restHours) *
-            BuildingRules.innHead)
-        : now;
-    _vitals = _vitals.copyWith(
-        restStartedAt: start, restHp0: hp, restMp0: mp, restJobMp0: jobsOpen ? jobMp : null);
+    _vitals = _vitals.copyWith(restStartedAt: now, restAt: now);
     await store.saveVitals(_vitals);
     // 여관에 들르면 지친 상태가 바로 풀린다 (11-11 #75)
     if (_tiredUntil != null) await _setTired(null);
     // 묶음 42 #226: 마르타 친해지기 · 부탁 (연속 휴식 · 걷고 와서 쉬기)
     await _npcUse(Npc.marta);
     await _npcRested();
-    unawaited(notifier?.schedule(
-      NotifyId.rest,
-      start.add(const Duration(hours: RuleConstants.restHours)),
-      '푹 쉬었어요',
-      // 묶음 80 #367: 휴식 보너스 없음
-      jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요',
-    ));
+    _innNotifyAt = null;
+    _scheduleInnFull();
     _notify();
     return true;
   });
 
-  /// 휴식을 그만둔다 (보상 없이). 그때까지 찬 HP·기력은 그대로 (묶음 15 #107)
+  /// 일어나기. 그때까지 찬 HP·기력은 그대로 (묶음 15 #107).
+  /// 묶음 81 #373: 여관 ★3 — 가득 찬 뒤 일어나면 잠시 HP · 기력 최대가 조금 늘어요
   Future<void> stopResting() =>
       _serial(() async {
     if (!resting) return;
     await refreshVitals();
     if (!resting) return;
+    final full = innFull;
     _stopResting();
     await store.saveVitals(_vitals);
+    if (full) await _innRested();
     _notify();
   });
 }

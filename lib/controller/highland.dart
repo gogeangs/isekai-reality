@@ -139,6 +139,9 @@ extension HighlandOps on AppController {
   bool get atSkyIsland =>
       (skyDistance ?? double.infinity) <= HighlandRules.enterM;
 
+  /// 묶음 81 #375: 걸어서 닿았거나 펫이 섬 아래에서 기다림
+  bool get skyReachable => atSkyIsland || tripWaiting('sky');
+
   /// 남은 시간 (분, 올림)
   int get skyMinutesLeft {
     final s = skyIsland;
@@ -194,7 +197,7 @@ extension HighlandOps on AppController {
     if (_skyNoticeAt == at) return;
     _skyNoticeAt = at;
     unawaited(notifier?.schedule(NotifyId.highland, at, '하늘에 섬이 떠올랐어!',
-        '한 시간 동안만 머물러요. 걸어서 섬 아래까지 가 보자.'));
+        '한 시간 동안만 머물러요. 걸어가거나 펫을 보내 보자.'));
   }
 
   /// 날개 달린 몬스터가 가끔 떨어뜨린다 (필드 전투 보상에 더함)
@@ -209,14 +212,14 @@ extension HighlandOps on AppController {
   /// 섬에 오를 수 있는지 (걸어서 닿았고, 처음이면 깃털이 있어야)
   bool get canClimb {
     final s = skyIsland;
-    if (s == null || s.cleared || !atSkyIsland) return false;
+    if (s == null || s.cleared || !skyReachable) return false;
     return s.climbed || skyFeathers >= 1;
   }
 
   /// 섬에 오른다. 처음 오를 때만 깃털 하나 (떠 있는 동안 다시 도전은 무료)
   Future<bool> climbIsland() => _serial(() async {
         final s = skyIsland;
-        if (s == null || s.cleared || !atSkyIsland) return false;
+        if (s == null || s.cleared || !skyReachable) return false;
         if (!s.climbed) {
           if (skyFeathers < 1) return false;
           final first = !_highland.climbedEver;
@@ -296,6 +299,7 @@ extension HighlandOps on AppController {
         await keepBattleHp(battle);
         await _spendBattleBuffs();
         if (battle.phase != BattlePhase.cleared) {
+          await _tripFought('sky'); // 묶음 81 #375: 지면 펫은 돌아오는 길
           await _defeated();
           _notify();
           return const SkyResult(won: false);
@@ -318,6 +322,7 @@ extension HighlandOps on AppController {
   Future<SkyResult> finishGuardianBattle(Battle battle) => _serial(() async {
         final i = HighlandRules.ofGuardian(battle.floors.first.monster);
         if (i == null || !battle.isOver) return const SkyResult(won: false);
+        await _tripFought('sky'); // 묶음 81 #375: 수호자와 싸우면(이기든 지든) 펫은 돌아오는 길
         await keepBattleHp(battle);
         await _spendBattleBuffs();
         if (battle.phase != BattlePhase.cleared) {

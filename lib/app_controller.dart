@@ -91,6 +91,8 @@ part 'controller/settings.dart';
 part 'controller/shop_bag.dart';
 part 'controller/tavern.dart';
 part 'controller/smithy.dart';
+part 'controller/spot_trips.dart';
+part 'controller/bag_view.dart';
 part 'controller/stats.dart';
 part 'controller/training.dart';
 part 'controller/tutorial.dart';
@@ -747,6 +749,8 @@ class AppController extends ChangeNotifier {
             el: (e.value as num).toDouble(),
       };
     }
+    // 묶음 81 #378: 가방 — 새로 얻은 것 · 최근 얻은 차례 · 정렬
+    _bagView = await store.loadJson('bagView');
     // 묶음 75 #320: 정령 · 마을 사람 대사 차례 번호
     final turns = await store.loadJson('talkTurns');
     _talkTurns = {
@@ -1221,6 +1225,11 @@ class AppController extends ChangeNotifier {
   bool _refreshing = false;
 
   bool _justRested = false;
+
+  /// 묶음 81 #378: 가방 보기 기억 (null 이면 처음 — 지금 든 것은 새것으로 보지 않음)
+  Map<String, dynamic>? _bagView;
+  /// 묶음 81 #373: 여관 「가득 찼어요」 알림을 예약한 때 (자주 다시 예약하지 않게)
+  DateTime? _innNotifyAt;
 
   // ───────────── 전투 손맛 설정 (11-11 #75): 진동 · 효과음 · 2배속 · 첫 중독 안내
 

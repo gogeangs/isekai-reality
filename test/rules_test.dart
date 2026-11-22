@@ -50,9 +50,9 @@ void main() {
   });
 
   group('경험치', () {
-    test('미궁 입구에서 클리어하면 75, 실패하면 15', () {
-      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true, atGate: true)), 75);
-      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: false, atGate: true)), 15);
+    test('미궁 입구여도 같은 값: 클리어 50, 실패 10 (묶음 81)', () {
+      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true, atGate: true)), 50);
+      expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: false, atGate: true)), ExpRules.dungeonRunExp(const DungeonRun(cleared: false)));
       expect(ExpRules.dungeonRunExp(const DungeonRun(cleared: true)), 50);
     });
 
@@ -70,7 +70,6 @@ void main() {
       ));
       expect(b.dungeon, 300); // 묶음 70 #296: 하루 상한 없음 (6회)
       expect(b.fieldMonster, 105); // 5마리 + 4마리 절반 (11-11 #69)
-      expect(b.exploration, 90); // 3곳
       expect(b.quest, 60); // 3개
     });
 

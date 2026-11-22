@@ -195,14 +195,11 @@ class _DungeonScreenState extends State<DungeonScreen> {
     final player = _c.player;
     final gauge = player.gauge;
     final keys = gauge.keysAvailable;
-    final atGate = _c.atGate;
     final canFight = _c.canFightNow;
     final power =
         StatRules.combatPower(level: player.level.level, stats: _c.combatStats);
-    final reward = atGate
-        ? (RuleConstants.dungeonClearExp * RuleConstants.gateBonusMultiplier)
-            .round()
-        : RuleConstants.dungeonClearExp;
+    // 묶음 81 #380: 미궁 입구 1.5배 없음
+    const reward = RuleConstants.dungeonClearExp;
 
     final hp = _c.hp;
     final maxHp = _c.maxHp;
@@ -213,8 +210,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
       line = '움직이는 중엔 위험해! 멈춰 서서 던전을 열자.';
     } else if (keys == 0) {
       line = '열쇠가 없어. ${comma(RuleConstants.stepsPerKey)}보를 걸으면 하나 생겨!';
-    } else if (atGate) {
-      line = '미궁 입구야! 여기서 열면 보상이 1.5배야.';
     } else if (hp < maxHp * 0.3) {
       line = 'HP가 얼마 안 남았어. 들어가면 쓰러질 수도 있어!';
     } else {
@@ -256,8 +251,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) =>
                       const ColoredBox(color: Color(0xFF1B1840))),
-              if (atGate)
-                const Positioned(top: 10, right: 10, child: _GateBonusBadge()),
             ],
           ),
         ),
@@ -376,9 +369,9 @@ class _DungeonScreenState extends State<DungeonScreen> {
             ),
             Text('???', style: AppText.title(22, color: AppColors.text)),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               '보상: 클리어 $reward · 실패 ${RuleConstants.dungeonFailExp} 경험치',
-              style: const TextStyle(color: AppColors.goldBright, fontSize: 14),
+              style: TextStyle(color: AppColors.goldBright, fontSize: 14),
             ),
             // 묶음 70 #296: 하루 상한 없음 — 열쇠 수만
             Text(
@@ -543,10 +536,6 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     style: AppText.title(_exp > 0 ? 24 : 16),
                   ),
                 ),
-                if (_atGate && _exp > 0) ...[
-                  const SizedBox(width: 10),
-                  const _GateBonusBadge(small: true),
-                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -734,24 +723,6 @@ class _FloorTrack extends StatelessWidget {
         link(),
         node('보스', 'floor_boss'),
       ],
-    );
-  }
-}
-
-class _GateBonusBadge extends StatelessWidget {
-  const _GateBonusBadge({this.small = false});
-
-  final bool small;
-
-  @override
-  Widget build(BuildContext context) {
-    return ArtBanner(
-      asset: 'assets/images/badge_gate.webp',
-      width: small ? 56 : 92,
-      aspect: 240 / 225,
-      text: '×1.5',
-      textOffset: -0.1,
-      fontSize: small ? 15 : 22,
     );
   }
 }

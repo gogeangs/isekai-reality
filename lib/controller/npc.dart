@@ -387,8 +387,6 @@ extension NpcOps on AppController {
 
   // ───────────── 단짝 혜택 (숨은 값)
 
-  /// 마르타: 휴식 보너스 경험치 더
-  int get martaRestBonus => _bestWith(Npc.marta) ? NpcRules.martaRestExp : 0;
 
   /// 미나: 산 값 일부를 돌려받음
   int minaRefund(int price) {

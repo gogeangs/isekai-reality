@@ -202,8 +202,7 @@ class NpcRules {
 
   // ───────────── 단짝 혜택 (숨은 값)
 
-  /// 마르타: 휴식 보너스 경험치 더
-  static const int martaRestExp = 5;
+  // 마르타: 여관에서 조금 더 빨리 회복 (묶음 81 #371, InnRules.martaSpeed)
 
   /// 미나: 산 값 일부를 돌려받음
   static const double minaRefund = 0.08;
@@ -379,10 +378,10 @@ class NpcRules {
       index: 2,
       stage: FavorStage.close,
       level: 10,
-      say: '새 교역로를 그리고 있어요. 안 가 본 곳 세 군데만 다녀와 주세요!',
+      say: '새 교역로를 그리고 있어요. 길을 좀 걸어 봐 주세요!',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 3, '새 장소 3곳 다녀오기',
-            key: NpcTally.newPlace),
+        // 묶음 81 #380: 「새 장소」 대신 걸음
+        NpcRequestStep(RequestStepKind.stepsSince, 7000, '부탁 받은 뒤 7,000보 걷기'),
       ],
       gifts: {'gold': 200},
       story: '문이 깨지고 길이 끊겼어요. 수레는 저쪽에 두고 왔죠. 지금 가게는… 남은 짐으로 차린 거예요.',
@@ -760,9 +759,9 @@ class NpcRules {
       index: 1,
       stage: FavorStage.close,
       level: 1,
-      say: '제 틈의 길도 이어졌을까요? 안 가 본 곳 세 군데만 같이 확인해 줘요.',
+      say: '제 틈의 길도 이어졌을까요? 같이 좀 걸으며 확인해 줘요.',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 3, '안 가 본 곳 3곳 다녀오기', key: NpcTally.newPlace),
+        NpcRequestStep(RequestStepKind.stepsSince, 7000, '부탁 받은 뒤 7,000보 걷기'),
       ],
       gifts: {'item:heal': 2},
       story: '분노 분신까지는 어떻게든 쓰러뜨렸어요. 그런데 슬픔 분신 앞에서 몇 달을 멈춰 있었어요.',
@@ -833,14 +832,14 @@ class NpcRules {
       index: 3,
       stage: FavorStage.best,
       level: 1,
-      say: '새 교역로를 그리세. 안 가 본 곳 다섯 군데, 그리고 하루 10,000보일세.',
+      say: '새 교역로를 그리세. 부탁 받은 뒤로 넉넉히 1만 보는 걸어 주게.',
       steps: [
-        NpcRequestStep(RequestStepKind.tally, 5, '안 가 본 곳 5곳 다녀오기', key: NpcTally.newPlace),
+        NpcRequestStep(RequestStepKind.stepsSince, 10000, '부탁 받은 뒤 1만 보 걷기'),
         NpcRequestStep(RequestStepKind.daySteps, 10000, '하루 10,000보 걷기'),
       ],
       story: '빛을 빼앗던 시절엔 장사도 숨이 막혔지. 이제는 나눠서 사고팔면 되네. 그게 장사꾼이 바라던 다리일세.',
       special: NpcSpecial(NpcSpecialKind.seal, TitleId.merchantFriend, '바르칸의 상단 인장',
-          '소중한 물건 · 거래소에 물건을 올릴 때 드는 금화가 줄어요', 'item_barkanSeal'),
+          '보물 · 거래소에 물건을 올릴 때 드는 금화가 줄어요', 'item_barkanSeal'),
     ),
   ];
 
@@ -933,7 +932,7 @@ class NpcRules {
           '요즘 네 얼굴이 밝아 보여서 좋아. 수프는 못 보내니 물약 두 병 보내. 꼭 챙겨 먹어.',
           {'item:healSmall': 2}),
       FavorStage.best: FavorLetter('우리 집 식구에게',
-          '이제 네 방은 늘 비워 둘게. 언제든 와서 쉬어. 작은 선물이야.', {'item:heal': 2}),
+          '이제 네 방은 늘 비워 둘게. 앞으로 여관에서 조금 더 빨리 회복할 거야. 작은 선물이야.', {'item:heal': 2}),
     },
     Npc.mina: {
       FavorStage.known: FavorLetter('단골 후보님께',

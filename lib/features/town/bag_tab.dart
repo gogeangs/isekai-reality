@@ -198,6 +198,91 @@ class _BagTabState extends State<BagTab> {
     if (done) showTopNotice(context, '가방이 ${c.bagCapacity}칸이 됐어요!');
   }
 
+  /// 묶음 81 #378: 위쪽 띠 펼침 ('tool' · 'treasure' · null)
+  String? _open;
+
+  /// 「골라서 버리기」 중 · 고른 칸
+  bool _picking = false;
+  final Set<int> _picked = {};
+
+  Future<void> _discardPicked(List<BagEntry> shown) async {
+    final chosen = [for (final i in _picked) if (i < shown.length) shown[i]];
+    if (chosen.isEmpty) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => GameAlert(
+        key: const Key('bagPickConfirm'),
+        title: const Text('골라서 버리기'),
+        content: KText('${chosen.length}칸을 버릴까요? 버리면 되찾을 수 없어요.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('그만둘래요')),
+          TextButton(key: const Key('bagPickYes'), onPressed: () => Navigator.pop(d, true), child: const Text('버리기')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    var n = 0;
+    for (final e in chosen) {
+      final done = switch (e) {
+        MaterialEntry(:final id, :final count) => await c.discardMaterial(id, count),
+        ItemEntry(:final item, :final count) => await c.discardItem(item, count),
+        EquipEntry(:final item) => await c.discardEquip(item.uid),
+        PotionEntry(:final key, :final count) => await c.discardPotion(key, count),
+        _ => false,
+      };
+      if (done) n++;
+    }
+    if (!mounted) return;
+    setState(() {
+      _picking = false;
+      _picked.clear();
+    });
+    showTopNotice(context, '$n칸을 비웠어요');
+  }
+
+  /// 골라서 버릴 수 있는 칸 (알 · 걸음 주머니는 못 버림)
+  static bool _pickable(BagEntry e) => e is! EggEntry && e is! PouchEntry;
+
+  /// 등급 (정렬 · 테 색)
+  static int _gradeOf(BagEntry e, AppController c) => switch (e) {
+        EquipEntry(:final item) => item.grade.index,
+        MaterialEntry(:final id) => Materials.info(id).rare ? 2 : 0,
+        EggEntry(:final egg) => c.farewellDone ? egg.grade.index : 0,
+        PotionEntry(:final key) => AlchemyRules.parseKey(key)?.quality.index ?? 0,
+        _ => 0,
+      };
+
+  static int _kindOrder(BagEntry e) => switch (e.kind) {
+        BagFilter.equip => 0,
+        BagFilter.consumable => 1,
+        BagFilter.material => 2,
+        BagFilter.other => 3,
+        BagFilter.all => 4,
+      };
+
+  List<BagEntry> _sorted(List<BagEntry> list) {
+    final idx = {for (final (i, e) in list.indexed) e: i};
+    final out = [...list];
+    switch (c.bagSort) {
+      case BagSort.recent:
+        out.sort((a, b) {
+          final d = c.bagOrderOf(bagKey(b)) - c.bagOrderOf(bagKey(a));
+          return d != 0 ? d : idx[a]! - idx[b]!;
+        });
+      case BagSort.grade:
+        out.sort((a, b) {
+          final d = _gradeOf(b, c) - _gradeOf(a, c);
+          return d != 0 ? d : idx[a]! - idx[b]!;
+        });
+      case BagSort.kind:
+        out.sort((a, b) {
+          final d = _kindOrder(a) - _kindOrder(b);
+          return d != 0 ? d : idx[a]! - idx[b]!;
+        });
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
@@ -206,246 +291,301 @@ class _BagTabState extends State<BagTab> {
       builder: (context, _) {
         final p = c.player;
         final all = bagEntries(c);
-        final shown = _filter == BagFilter.all
+        // 묶음 81 #378: 새로 얻은 것 · 최근 차례
+        c.noteBagContents(bagCounts(all));
+        final shown = _sorted(_filter == BagFilter.all
             ? all
-            : [for (final e in all) if (e.kind == _filter) e];
+            : [for (final e in all) if (e.kind == _filter) e]);
         final cap = c.bagCapacity;
         final used = c.bagUsed;
         final cost = c.bagExpandCost;
-        // 전체 보기에서는 빈칸도 그린다
-        final empty = _filter == BagFilter.all && cap > all.length
-            ? cap - all.length
-            : 0;
-        // 11-11 #70: 한 줄 4칸. 마지막 줄이 모자라면 「늘릴 수 있는 칸」으로 채운다
+        // 전체 보기에서는 남은 칸을 점선 빈 칸으로
+        final empty = _filter == BagFilter.all && cap > all.length ? cap - all.length : 0;
+        const cols = 5;
         final cells = (_filter == BagFilter.all ? all.length + empty : 0);
-        // 11-11 #93: 맨 끝에는 언제나 「🔒 +5칸 · 금화 200」 칸 하나
         final locks = _filter == BagFilter.all && cost != null
-            ? (cells % 4 == 0 ? 1 : 4 - cells % 4)
+            ? (cells % cols == 0 ? 1 : cols - cells % cols)
             : 0;
-        // 11-11 #93: 위쪽 버튼 줄·마석·금화 칸은 고정하고 아래만 스크롤한다
-        // (스크롤한 내용이 상태 표시줄 뒤로 비쳐 보이지 않게)
+        final ratio = cap <= 0 ? 1.0 : (used / cap).clamp(0.0, 1.0);
+        final capColor = used >= cap
+            ? AppColors.danger
+            : ratio > 0.8
+                ? const Color(0xFFF2C94C)
+                : const Color(0xFF6BD97A);
+        final tools = c.harvest.granted ? HarvestTool.values : const <HarvestTool>[];
+        final relics = c.ownedRelics;
         return Column(children: [
           Padding(
             padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
             child: Column(children: [
-              OrnateTopBar(title: '가방', onBack: widget.onBack),
-              // 묶음 22: 다른 칸과 같은 정령 배지 (프로필 아래). 뒤로 가기 줄이 있는
-              // 밀어 올린 가방에는 넣지 않는다
-              if (widget.onBack == null && !c.inTutorial) ...[
-              const SizedBox(height: 6),
-              SpiritBadgeRow(
-                  key: const Key('bagSpirit'),
-                  line: c.bagFree <= 0
-                      ? '가방이 가득 찼어! 안 쓰는 건 팔거나 정리하자.'
-                      : '얻은 건 다 여기 있어. 물약은 눌러서 바로 쓸 수 있어.'),
-              const SizedBox(height: 8),
-              ] else
-                const SizedBox(height: 10),
-              // 묶음 18 #148 튜토리얼: 방금 얻은 마석·젤리가 반짝
+              // ① 마석 · 금화는 머리 줄 오른쪽 작은 칩 둘
               TutorialGlow(
                 on: c.tutorialStep == TutorialStep.bag,
-                child: OrnatePanel(
-                  child: WalletRow(manaStones: p.manaStones, gold: p.gold),
+                child: OrnateTopBar(
+                  title: '가방',
+                  onBack: widget.onBack,
+                  trailing: _WalletChips(manaStones: p.manaStones, gold: p.gold),
                 ),
               ),
+              if (widget.onBack == null && !c.inTutorial) ...[
+                const SizedBox(height: 4),
+                SpiritBadgeRow(
+                    key: const Key('bagSpirit'),
+                    line: c.bagFree <= 0
+                        ? '가방이 가득 찼어! 안 쓰는 건 팔거나 정리하자.'
+                        : '얻은 건 다 여기 있어. 물약은 눌러서 바로 쓸 수 있어.'),
+              ],
+              const SizedBox(height: 6),
             ]),
           ),
           Expanded(
             child: ClipRect(
               child: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-          children: [
-            // 묶음 69 #282: 품는 중인 알은 펫 쉼터에서
-            if (c.pets.eggs.any((e) => e.incubatedAt != null))
-              Padding(
-                key: const Key('bagIncubating'),
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                    '품는 중인 알 ${c.pets.eggs.where((e) => e.incubatedAt != null).length}개 · 펫 쉼터에서 볼 수 있어요',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-              ),
-            // 지금 걸린 물약 (11-11 #74): 전투 · 속성 · 탐험 하나씩
-            if (c.activeBuffs.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              OrnatePanel(
-                key: const Key('activePotions'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('지금 걸린 물약', style: AppText.title(14)),
-                    const SizedBox(height: 4),
-                    for (final b in c.activeBuffs)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(children: [
-                          PotionIcon(
-                              potion: AlchemyRules.byName(b.key),
-                              suspicious: b.key.startsWith('?:'),
-                              size: 24),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(c.buffName(b),
-                                style: const TextStyle(
-                                    color: AppColors.text, fontSize: 14)),
-                          ),
-                          Text(c.buffLeftLabel(b),
-                              style: const TextStyle(
-                                  color: AppColors.textMuted, fontSize: 12)),
-                        ]),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            // 채집 도구 (11-11 #56): 가방 칸을 쓰지 않는다
-            if (c.harvest.granted) ...[
-              const SizedBox(height: 8),
-              OrnatePanel(
-                child: Wrap(spacing: 12, runSpacing: 4, children: [
-                  for (final t in HarvestTool.values)
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      // 도구 등급 그림 (묶음 14 E: 가방에도). 없으면 글자만
-                      Image.asset(
-                          'assets/images/tool_${t.name}_${c.toolTier(t).name}.webp',
-                          key: Key('bagTool_${t.name}'),
-                          width: 22,
-                          height: 22,
-                          errorBuilder: (_, __, ___) => const SizedBox()),
-                      const SizedBox(width: 3),
-                      Text(
-                          '${c.toolTier(t).label} ${HarvestRules.toolName(t)} ${c.toolDurability(t)}/${c.toolMaxOf(t)}',
-                          style: TextStyle(
-                              color: c.toolDurability(t) > 0
-                                  ? AppColors.text
-                                  : AppColors.danger,
-                              fontSize: 12)),
-                    ]),
-                ]),
-              ),
-            ],
-            // 묶음 45 #232: 소중한 물건 (마을 사람 전용 아이템, 가방 칸을 쓰지 않음 · 팔기·버리기 없음)
-            if (c.ownedRelics.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              PreciousPanel(controller: c),
-            ],
-            // 묶음 47 #240: 가방이 가득해 받지 못하고 기다리는 것
-            if (c.hasBagHold) ...[
-              const SizedBox(height: 8),
-              BagHoldBanner(controller: c),
-            ],
-            const SizedBox(height: 12),
-            OrnatePanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
                 children: [
-                  Row(children: [
-                    const GameIcon('bag', size: 28),
-                    const SizedBox(width: 6),
-                    Text('가방', style: AppText.title(19)),
-                    const SizedBox(width: 8),
-                    Text('$used / $cap칸',
-                        style: TextStyle(
-                            color: used >= cap
-                                ? AppColors.danger
-                                : AppColors.text,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700)),
-                    const Spacer(),
-                    // 전투 자동 마시기 (11-11 #93): 작은 물약 아이콘
-                    IconButton(
-                      key: const Key('bagAutoUse'),
-                      tooltip: '전투에서 자동으로 마시기',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => showAutoUseSheet(context, c),
-                      icon: Icon(Icons.local_drink_rounded,
-                          size: 22,
-                          color: c.alchemy.autoHp > 0 || c.alchemy.autoCure
-                              ? AppColors.goldBright
-                              : AppColors.textMuted),
-                    ),
-                  ]),
-                  if (used > cap)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      // 묶음 72 #305: 칸이 줄어 넘친 까닭에 맞게
-                      child: KText(
-                          c.bigPackEnded
-                              ? '늘어났던 칸이 끝나서 칸보다 많아요. 정리하면 새로 얻는 것을 받을 수 있어요.'
-                              : '칸보다 많이 들어 있어요. 정리하면 새로 얻는 것을 받을 수 있어요.',
-                          key: const Key('bagOverLine'),
-                          style: const TextStyle(
-                              color: AppColors.textMuted, fontSize: 12)),
-                    ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(children: [
-                      for (final f in BagFilter.values)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(f.label),
-                            selected: _filter == f,
-                            onSelected: (_) => setState(() => _filter = f),
-                            selectedColor: AppColors.gold,
-                            backgroundColor: AppColors.chipBg,
-                            labelStyle: TextStyle(
-                                color: _filter == f
-                                    ? AppColors.night
-                                    : AppColors.text,
-                                fontWeight: FontWeight.w700),
-                            showCheckmark: false,
+                  // ③ 도구 · 보물 — 한 줄 띠 두 칸 (누르면 아래 펼침)
+                  if (tools.isNotEmpty || relics.isNotEmpty)
+                    Row(children: [
+                      if (tools.isNotEmpty)
+                        Expanded(
+                          child: _StripButton(
+                            key: const Key('bagStrip_tool'),
+                            on: _open == 'tool',
+                            icon: 'assets/images/tool_${HarvestTool.values.first.name}_${c.toolTier(HarvestTool.values.first).name}.webp',
+                            title: '도구 ${tools.length}',
+                            dots: [
+                              for (final t in tools)
+                                c.toolMaxOf(t) <= 0 ? 0.0 : c.toolDurability(t) / c.toolMaxOf(t),
+                            ],
+                            onTap: () => setState(() => _open = _open == 'tool' ? null : 'tool'),
+                          ),
+                        ),
+                      if (tools.isNotEmpty && relics.isNotEmpty) const SizedBox(width: 6),
+                      if (relics.isNotEmpty)
+                        Expanded(
+                          child: _StripButton(
+                            key: const Key('bagStrip_treasure'),
+                            on: _open == 'treasure',
+                            icon: 'assets/images/${relics.first.asset}.webp',
+                            title: '보물 ${relics.length}',
+                            onTap: () => setState(() => _open = _open == 'treasure' ? null : 'treasure'),
                           ),
                         ),
                     ]),
-                  ),
-                  const SizedBox(height: 10),
-                  if (shown.isEmpty && empty == 0)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 18),
-                      child: KText('여기에 든 것이 없어요.',
+                  if (_open == 'tool' && tools.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    _ToolList(controller: c),
+                  ],
+                  if (_open == 'treasure' && relics.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    PreciousPanel(controller: c),
+                  ],
+                  // 묶음 69 #282: 품는 중인 알은 펫 쉼터에서
+                  if (c.pets.eggs.any((e) => e.incubatedAt != null))
+                    Padding(
+                      key: const Key('bagIncubating'),
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                          '품는 중인 알 ${c.pets.eggs.where((e) => e.incubatedAt != null).length}개 · 펫 쉼터에서 볼 수 있어요',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted)),
-                    )
-                  else
-                    GridView.count(
-                      crossAxisCount: 4,
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 6,
-                      crossAxisSpacing: 6,
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                    ),
+                  // 묶음 47 #240: 가방이 가득해 받지 못하고 기다리는 것
+                  if (c.hasBagHold) ...[
+                    const SizedBox(height: 8),
+                    BagHoldBanner(controller: c),
+                  ],
+                  const SizedBox(height: 8),
+                  OrnatePanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        for (final e in shown)
-                          TutorialGlow(
-                            on: c.tutorialStep == TutorialStep.bag &&
-                                e is MaterialEntry &&
-                                (e.id == MaterialId.slimeJelly ||
-                                    e.id == MaterialId.slimeCore),
-                            child: BagSlot(
-                              entry: e,
-                              controller: c,
-                              onTap: () => showBagEntry(context, c, e),
+                        // ⑤ 가방 35 / 35칸 + 칸 막대 + 골라서 버리기
+                        Row(children: [
+                          // 작은 화면에서는 왼쪽 묶음만 살짝 줄여 한 줄에 둔다
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                const GameIcon('bag', size: 26),
+                                const SizedBox(width: 5),
+                                Text('가방', style: AppText.title(17)),
+                                const SizedBox(width: 6),
+                                Text('$used / $cap칸',
+                                    key: const Key('bagCap'),
+                                    style: TextStyle(
+                                        color: used >= cap ? AppColors.danger : AppColors.text,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800)),
+                              ]),
                             ),
                           ),
-                        for (var i = 0; i < empty; i++) const BagSlot(),
-                        for (var i = 0; i < locks; i++)
-                          BagSlot(
-                              key: i == 0
-                                  ? const Key('bagExpandSlot')
-                                  : null,
-                              locked: true,
-                              // 묶음 16 #118: 자물쇠만. 바로 다음 칸은 조금 밝게,
-                              // 어느 칸을 눌러도 다음 한 칸 열기 창
-                              nextLock: i == 0,
-                              onTap: _expand),
+                          // 전투 자동 마시기 (11-11 #93): 작은 물약 아이콘
+                          IconButton(
+                            key: const Key('bagAutoUse'),
+                            tooltip: '전투에서 자동으로 마시기',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => showAutoUseSheet(context, c),
+                            icon: Icon(Icons.local_drink_rounded,
+                                size: 20,
+                                color: c.alchemy.autoHp > 0 || c.alchemy.autoCure
+                                    ? AppColors.goldBright
+                                    : AppColors.textMuted),
+                          ),
+                          _MiniButton(
+                            key: const Key('bagPickToggle'),
+                            label: '골라서 버리기',
+                            on: _picking,
+                            onTap: () => setState(() {
+                              _picking = !_picking;
+                              _picked.clear();
+                            }),
+                          ),
+                        ]),
+                        // 칸 막대는 아래 줄에 꽉 차게 (작은 화면에서도 넘치지 않게)
+                        const SizedBox(height: 4),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            key: const Key('bagCapBar'),
+                            value: ratio,
+                            minHeight: 6,
+                            backgroundColor: const Color(0xFF0E0C22),
+                            valueColor: AlwaysStoppedAnimation(capColor),
+                          ),
+                        ),
+                        if (used > cap)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            // 묶음 72 #305: 칸이 줄어 넘친 까닭에 맞게
+                            child: KText(
+                                c.bigPackEnded
+                                    ? '늘어났던 칸이 끝나서 칸보다 많아요. 정리하면 새로 얻는 것을 받을 수 있어요.'
+                                    : '칸보다 많이 들어 있어요. 정리하면 새로 얻는 것을 받을 수 있어요.',
+                                key: const Key('bagOverLine'),
+                                style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                          ),
+                        const SizedBox(height: 8),
+                        // ⑥ 탭 한 줄 + 개수 · 정렬
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(children: [
+                            for (final f in BagFilter.values)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 5),
+                                child: _MiniButton(
+                                  key: Key('bagTab_${f.name}'),
+                                  label: '${f.label} ${f == BagFilter.all ? all.length : all.where((e) => e.kind == f).length}',
+                                  on: _filter == f,
+                                  tab: true,
+                                  onTap: () => setState(() {
+                                    _filter = f;
+                                    _picked.clear();
+                                  }),
+                                ),
+                              ),
+                          ]),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          Expanded(
+                            child: Text(_picking ? '버릴 칸을 골라요' : '칸을 누르면 아래에 자세히',
+                                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                          ),
+                          GestureDetector(
+                            key: const Key('bagSort'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => c.setBagSort(BagSort.values[(c.bagSort.index + 1) % BagSort.values.length]),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Text('${c.bagSort.label} ▾',
+                                  style: const TextStyle(color: AppColors.goldBright, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ]),
+                        if (_picking)
+                          Container(
+                            key: const Key('bagPickBar'),
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0x1FEF6B62),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0x80EF6B62)),
+                            ),
+                            child: Row(children: [
+                              Expanded(
+                                child: Text(_picked.isEmpty ? '버릴 것을 골라요' : '${_picked.length}칸 골랐어요',
+                                    style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+                              ),
+                              _MiniButton(
+                                key: const Key('bagPickGo'),
+                                label: '버리기',
+                                on: _picked.isNotEmpty,
+                                onTap: _picked.isEmpty ? null : () => _discardPicked(shown),
+                              ),
+                            ]),
+                          ),
+                        const SizedBox(height: 4),
+                        if (shown.isEmpty && empty == 0)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: KText('여기에 든 것이 없어요.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.textMuted)),
+                          )
+                        else
+                          // ⑦ 5칸 격자
+                          GridView.count(
+                            key: const Key('bagGrid'),
+                            crossAxisCount: cols,
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 5,
+                            crossAxisSpacing: 5,
+                            children: [
+                              for (final (i, e) in shown.indexed)
+                                TutorialGlow(
+                                  on: c.tutorialStep == TutorialStep.bag &&
+                                      e is MaterialEntry &&
+                                      (e.id == MaterialId.slimeJelly || e.id == MaterialId.slimeCore),
+                                  child: BagSlot(
+                                    key: Key('bagCell_$i'),
+                                    entry: e,
+                                    controller: c,
+                                    mark: e is EquipEntry ? c.equipMark(e.item) : null,
+                                    isNew: c.bagIsNew(bagKey(e)),
+                                    picked: _picked.contains(i),
+                                    dim: _picking && !_pickable(e),
+                                    onTap: _picking
+                                        ? (_pickable(e)
+                                            ? () => setState(() => _picked.contains(i) ? _picked.remove(i) : _picked.add(i))
+                                            : null)
+                                        : () {
+                                            unawaited(c.markBagSeen(bagKey(e)));
+                                            showBagEntry(context, c, e);
+                                          },
+                                  ),
+                                ),
+                              for (var i = 0; i < empty; i++) const BagSlot(dotted: true),
+                              for (var i = 0; i < locks; i++)
+                                BagSlot(
+                                    key: i == 0 ? const Key('bagExpandSlot') : null,
+                                    locked: true,
+                                    // 묶음 16 #118: 자물쇠만. 바로 다음 칸은 조금 밝게
+                                    nextLock: i == 0,
+                                    onTap: _expand),
+                            ],
+                          ),
+                        const SizedBox(height: 6),
+                        // 칸 아래 표시 뜻 한 줄
+                        const _MarkLegend(),
                       ],
                     ),
+                  ),
                 ],
-              ),
-            ),
-          ],
               ),
             ),
           ),
@@ -454,6 +594,238 @@ class _BagTabState extends State<BagTab> {
     );
   }
 }
+
+/// 묶음 81 #378: 가방 칸 열쇠 (새로 얻음 · 최근 차례)
+String bagKey(BagEntry e) => switch (e) {
+      EquipEntry(:final item) => 'e:${item.uid}',
+      MaterialEntry(:final id) => 'm:${id.name}',
+      ItemEntry(:final item) => 'i:${item.name}',
+      PotionEntry(:final key) => 'p:$key',
+      EggEntry(:final egg) => 'g:${egg.id}',
+      PouchEntry() => 'pouch',
+    };
+
+/// 열쇠마다 개수 (99개로 나뉜 칸은 합침)
+Map<String, int> bagCounts(List<BagEntry> all) {
+  final out = <String, int>{};
+  for (final e in all) {
+    final n = switch (e) {
+      MaterialEntry(:final count) || ItemEntry(:final count) || PotionEntry(:final count) || PouchEntry(:final count) =>
+        count,
+      _ => 1,
+    };
+    out[bagKey(e)] = (out[bagKey(e)] ?? 0) + n;
+  }
+  return out;
+}
+
+/// ① 머리 줄 오른쪽 마석 · 금화 작은 칩
+class _WalletChips extends StatelessWidget {
+  const _WalletChips({required this.manaStones, required this.gold});
+
+  final int manaStones;
+  final int gold;
+
+  Widget _chip(Key key, String icon, int n) => Container(
+        key: key,
+        padding: const EdgeInsets.fromLTRB(3, 2, 9, 2),
+        decoration: BoxDecoration(
+          color: const Color(0xE615133A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          GameIcon(icon, size: 20),
+          const SizedBox(width: 3),
+          Text(comma(n), style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w800)),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        _chip(const Key('bagManaChip'), 'mana_stone', manaStones),
+        const SizedBox(width: 5),
+        _chip(const Key('bagGoldChip'), 'gold', gold),
+      ]);
+}
+
+/// ③ 도구 · 보물 띠 버튼
+class _StripButton extends StatelessWidget {
+  const _StripButton({super.key, required this.on, required this.icon, required this.title, required this.onTap, this.dots});
+
+  final bool on;
+  final String icon;
+  final String title;
+  final VoidCallback onTap;
+
+  /// 도구 내구도 (0~1, 거의 닳으면 빨강)
+  final List<double>? dots;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(6, 5, 8, 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1F1C40),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: on ? AppColors.goldBright : const Color(0xFF3A3468), width: 1.5),
+          ),
+          child: Row(children: [
+            Image.asset(icon, width: 26, height: 26, errorBuilder: (_, __, ___) => const SizedBox(width: 26)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(title, style: const TextStyle(color: AppColors.text, fontSize: 12, fontWeight: FontWeight.w800)),
+                if (dots != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(children: [
+                      for (final d in dots!)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(right: 2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: d < 0.25 ? const Color(0xFFEF6B62) : const Color(0xFF6BD97A),
+                          ),
+                        ),
+                    ]),
+                  ),
+              ]),
+            ),
+            Icon(on ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 18, color: AppColors.textMuted),
+          ]),
+        ),
+      );
+}
+
+/// ③ 도구 펼침: 도구마다 막대 · ○/○
+class _ToolList extends StatelessWidget {
+  const _ToolList({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    return Container(
+      key: const Key('bagToolList'),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26224D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF3A3468)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('채집 도구', style: AppText.title(13, color: AppColors.goldBright)),
+        const SizedBox(height: 4),
+        for (final t in HarvestTool.values)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(children: [
+              Image.asset('assets/images/tool_${t.name}_${c.toolTier(t).name}.webp',
+                  key: Key('bagTool_${t.name}'),
+                  width: 24,
+                  height: 24,
+                  errorBuilder: (_, __, ___) => const SizedBox(width: 24)),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 5,
+                child: Text('${c.toolTier(t).label} ${HarvestRules.toolName(t)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.text, fontSize: 12)),
+              ),
+              Expanded(
+                flex: 4,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: c.toolMaxOf(t) <= 0 ? 0 : (c.toolDurability(t) / c.toolMaxOf(t)).clamp(0.0, 1.0),
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFF0E0C22),
+                    valueColor: AlwaysStoppedAnimation(c.toolMaxOf(t) > 0 && c.toolDurability(t) / c.toolMaxOf(t) < 0.25
+                        ? const Color(0xFFEF6B62)
+                        : const Color(0xFF6BD97A)),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                child: Text('${c.toolDurability(t)}/${c.toolMaxOf(t)}',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: c.toolDurability(t) > 0 ? AppColors.textMuted : AppColors.danger, fontSize: 11)),
+              ),
+            ]),
+          ),
+      ]),
+    );
+  }
+}
+
+/// 작은 테 버튼 (탭 · 골라서 버리기)
+class _MiniButton extends StatelessWidget {
+  const _MiniButton({super.key, required this.label, required this.on, this.onTap, this.tab = false});
+
+  final String label;
+  final bool on;
+  final bool tab;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: tab ? 11 : 9, vertical: tab ? 5 : 3),
+          decoration: BoxDecoration(
+            color: on ? AppColors.gold : (tab ? const Color(0xFF1D1A40) : Colors.transparent),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: tab && !on ? const Color(0xFF3A3468) : AppColors.gold, width: 1.2),
+          ),
+          child: Text(label,
+              style: TextStyle(
+                  color: on ? AppColors.night : (tab ? AppColors.text : AppColors.goldBright),
+                  fontSize: tab ? 12.5 : 11.5,
+                  fontWeight: FontWeight.w800)),
+        ),
+      );
+}
+
+/// 칸 아래 표시 뜻 한 줄
+class _MarkLegend extends StatelessWidget {
+  const _MarkLegend();
+
+  Widget _b(String t, Color bg, {Color fg = AppColors.night}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+        child: Text(t, style: TextStyle(color: fg, fontSize: 9.5, fontWeight: FontWeight.w900)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    const st = TextStyle(color: AppColors.textMuted, fontSize: 10.5);
+    return Wrap(key: const Key('bagLegend'), spacing: 8, runSpacing: 2, children: [
+      Row(mainAxisSize: MainAxisSize.min, children: [_b('▲', kMarkUp), const Text(' 입은 것보다 좋음', style: st)]),
+      Row(mainAxisSize: MainAxisSize.min, children: [_b('▼', kMarkDown, fg: Colors.white), const Text(' 나쁨', style: st)]),
+      Row(mainAxisSize: MainAxisSize.min, children: [_b('⇄', kMarkMix), const Text(' 섞임', style: st)]),
+      Row(mainAxisSize: MainAxisSize.min, children: [_b('새', kMarkUp), const Text(' 빈 부위', style: st)]),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 7, height: 7, decoration: const BoxDecoration(shape: BoxShape.circle, color: kNewDot)),
+        const Text(' 새로 얻음', style: st),
+      ]),
+    ]);
+  }
+}
+
+const Color kMarkUp = Color(0xFF6BD97A);
+const Color kMarkDown = Color(0xFFEF6B62);
+const Color kMarkMix = Color(0xFFF2C94C);
+const Color kNewDot = Color(0xFFFF8A3D);
 
 /// 가방을 따로 연다 (던전 입구 등, 11-11 #99): 탭의 20칸 가방과 같은 화면
 Future<void> openBag(BuildContext context, AppController c,
@@ -480,7 +852,27 @@ class BagSlot extends StatelessWidget {
       this.controller,
       this.onTap,
       this.locked = false,
-      this.nextLock = false});
+      this.nextLock = false,
+      this.mark,
+      this.isNew = false,
+      this.picked = false,
+      this.dim = false,
+      this.dotted = false});
+
+  /// 묶음 81 #377: 장비 비교 표시 (▲ ▼ ⇄ 새)
+  final CompareMark? mark;
+
+  /// 묶음 81 #378: 새로 얻은 것 (주황 점)
+  final bool isNew;
+
+  /// 「골라서 버리기」로 고름
+  final bool picked;
+
+  /// 「골라서 버리기」 중 고를 수 없는 칸
+  final bool dim;
+
+  /// 남은 빈 칸 (점선)
+  final bool dotted;
 
   /// 금화로 늘릴 수 있는 칸 (자물쇠)
   final bool locked;
@@ -510,6 +902,12 @@ class BagSlot extends StatelessWidget {
         count,
       _ => 0,
     };
+    if (dotted && e == null) {
+      return CustomPaint(
+        painter: _DashedBox(color: const Color(0xFF3A3468)),
+        child: const SizedBox.expand(),
+      );
+    }
     if (locked) {
       return GestureDetector(
         onTap: onTap,
@@ -527,7 +925,7 @@ class BagSlot extends StatelessWidget {
         ),
       );
     }
-    return GestureDetector(
+    final cell = GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -624,18 +1022,97 @@ class BagSlot extends StatelessWidget {
           if (e case EquipEntry(:final item) when item.enhance > 0)
             Positioned(
               left: 4,
-              top: 2,
+              bottom: 2,
               child: Text('+${item.enhance}',
                   style: const TextStyle(
                       color: AppColors.goldBright,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       shadows: [Shadow(blurRadius: 3)])),
+            ),
+          // 묶음 81 #377: 장비 비교 표시 (오른쪽 위)
+          if (mark != null)
+            Positioned(
+              right: 1,
+              top: 1,
+              child: Container(
+                key: Key('cmp_${mark!.name}'),
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: switch (mark!) {
+                    CompareMark.up || CompareMark.fresh => kMarkUp,
+                    CompareMark.down => kMarkDown,
+                    CompareMark.mix => kMarkMix,
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                    switch (mark!) {
+                      CompareMark.up => '▲',
+                      CompareMark.down => '▼',
+                      CompareMark.mix => '⇄',
+                      CompareMark.fresh => '새',
+                    },
+                    style: TextStyle(
+                        color: mark == CompareMark.down ? Colors.white : AppColors.night,
+                        fontSize: 9.5,
+                        height: 1.4,
+                        fontWeight: FontWeight.w900)),
+              ),
+            ),
+          // 묶음 81 #378: 새로 얻은 것 (주황 점, 왼쪽 위)
+          if (isNew)
+            Positioned(
+              left: 3,
+              top: 3,
+              child: Container(
+                  key: const Key('bagNewDot'),
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: kNewDot)),
+            ),
+          if (picked)
+            Positioned.fill(
+              child: Container(
+                key: const Key('bagPicked'),
+                decoration: BoxDecoration(
+                  color: const Color(0x59EF6B62),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Center(
+                    child: Icon(Icons.check_rounded, color: Colors.white, size: 24)),
+              ),
             ),
         ]),
       ),
     );
+    return dim ? Opacity(opacity: 0.35, child: cell) : cell;
   }
+}
+
+/// 남은 빈 칸 점선 테
+class _DashedBox extends CustomPainter {
+  _DashedBox({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final r = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10)).deflate(0.7);
+    final path = Path()..addRRect(r);
+    for (final m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 7) {
+        canvas.drawPath(m.extractPath(d, d + 4), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBox old) => old.color != color;
 }
 
 String bagEntryName(BagEntry e, [AppController? c]) => switch (e) {
@@ -828,10 +1305,14 @@ class _EntrySheet extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 12),
-            if (e is EquipEntry)
+            if (e is EquipEntry) ...[
               // 묶음 13 A4: 스탯은 메달 + 숫자, 지금 입은 것과 비교
               ItemStats(e.item,
-                  compare: c.armory.wornIn(e.item.slot), fontSize: 14)
+                  compare: c.armory.wornIn(e.item.slot), fontSize: 14),
+              // 묶음 81 #377: 지금 입은 것과 비교 줄 (대장간과 같은 계산)
+              const SizedBox(height: 6),
+              EquipCompareBox(item: e.item, worn: c.armory.wornIn(e.item.slot)),
+            ]
             else if (desc.isNotEmpty)
               KText(desc,
                   style: const TextStyle(color: AppColors.text, fontSize: 14)),
@@ -977,6 +1458,15 @@ class EggSheet extends StatelessWidget {
                 },
               ),
             ],
+          ]);
+        }
+        // 묶음 81 #372: 펫이 가득이면 깨울 수 없음 (그대로 두거나 팔 수 있음)
+        if (e != null && c.farewellDone && c.petsFull) {
+          children.addAll([
+            const SizedBox(height: 10),
+            const KText(PetsOps.petsFullLine,
+                key: Key('eggSheetPetsFull'),
+                style: TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]);
         }
         // 묶음 80 #365: 잡화상에서 팔기 (정령이 떠난 뒤 · 품지 않은 알만)
@@ -1353,7 +1843,7 @@ class _DiscardButton extends StatelessWidget {
 }
 
 
-/// 묶음 45 #232: 가방 「소중한 물건」 칸 — 가지고만 있으면 효과 (팔기·거래·버리기 안 됨)
+/// 묶음 45 #232 · 81 #378: 가방 「보물」 펼침 — 가지고만 있으면 효과 (팔기·거래·버리기 안 됨)
 class PreciousPanel extends StatelessWidget {
   const PreciousPanel({super.key, required this.controller});
 
@@ -1362,98 +1852,87 @@ class PreciousPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = controller.ownedRelics;
-    return OrnatePanel(
+    return Container(
       key: const Key('preciousPanel'),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF26224D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF3A3468)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            const Icon(Icons.auto_awesome_rounded,
-                size: 18, color: Color(0xFFC9A2FF)),
+            Text('보물', style: AppText.title(13, color: AppColors.goldBright)),
             const SizedBox(width: 6),
-            Text('소중한 물건', style: AppText.title(15)),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text('가방 칸을 쓰지 않아요',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-            ),
+            const Text('가지고만 있으면 효과',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
           ]),
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final r in items)
-              GestureDetector(
-                key: Key(r.stages.isEmpty
-                    ? 'precious_${r.asset}'
-                    : 'precious_${r.npc.name}'),
-                behavior: HitTestBehavior.opaque,
-                onTap: () => showDialog<void>(
-                  context: context,
-                  builder: (d) => GameAlert(
-                    title: Text(r.name, style: AppText.title(18)),
-                    content: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Image.asset('assets/images/${r.asset}.webp',
-                          height: 96,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                      const SizedBox(height: 8),
-                      KText(r.text,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: AppColors.text, fontSize: 14, height: 1.4)),
-                      const SizedBox(height: 6),
-                      const KText('가지고 있으면 효과가 있어요. 팔거나 버릴 수 없어요.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: AppColors.textMuted, fontSize: 12)),
-                    ]),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.of(d).pop(),
-                          child: const Text('닫기')),
-                    ],
-                  ),
-                ),
-                child: SizedBox(
-                  width: 66,
-                  child: Column(children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xCC1A1238),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFA06EE6)),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x66C9A2FF), blurRadius: 8),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(4),
-                      child: Image.asset('assets/images/${r.asset}.webp',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                              Icons.card_giftcard_rounded,
-                              color: AppColors.goldBright)),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(r.name,
-                        maxLines: 2,
+          const SizedBox(height: 4),
+          for (final r in items)
+            GestureDetector(
+              key: Key(r.stages.isEmpty ? 'precious_${r.asset}' : 'precious_${r.npc.name}'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (d) => GameAlert(
+                  title: Text(r.name, style: AppText.title(18)),
+                  content: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Image.asset('assets/images/${r.asset}.webp',
+                        height: 96, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    const SizedBox(height: 8),
+                    KText(r.text,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: AppColors.text,
-                            fontSize: 10.5,
-                            height: 1.2,
-                            fontWeight: FontWeight.w700)),
+                        style: const TextStyle(color: AppColors.text, fontSize: 14, height: 1.4)),
+                    const SizedBox(height: 6),
+                    const KText('가지고 있으면 효과가 있어요. 팔거나 버릴 수 없어요.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   ]),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(d).pop(), child: const Text('닫기')),
+                  ],
                 ),
               ),
-          ]),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xCC1A1238),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFA06EE6)),
+                    ),
+                    padding: const EdgeInsets.all(3),
+                    child: Image.asset('assets/images/${r.asset}.webp',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.card_giftcard_rounded, color: AppColors.goldBright, size: 20)),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(r.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                      Text(r.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
         ],
       ),
     );
   }
 }
-
 
 /// 묶음 47 #240: 가방 탭 위 「받지 못한 것」 띠 — 「보기」(창) · 「다시 받기」
 class BagHoldBanner extends StatelessWidget {
@@ -1502,6 +1981,43 @@ class BagHoldBanner extends StatelessWidget {
           },
         ),
         ),
+      ]),
+    );
+  }
+}
+
+/// 묶음 81 #377: 「지금 입은 ○○와 비교」 + 초록 ↑ / 빨강 ↓ (입은 게 없으면 「이 부위는 비어 있어요」)
+class EquipCompareBox extends StatelessWidget {
+  const EquipCompareBox({super.key, required this.item, required this.worn});
+
+  final EquipItem item;
+  final EquipItem? worn;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = worn;
+    if (w != null && w.uid == item.uid) return const SizedBox.shrink();
+    final lines = w == null ? const <(bool, String)>[] : EquipmentRules.compareItems(item, w);
+    return Container(
+      key: const Key('equipCompare'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+      decoration: BoxDecoration(color: const Color(0xFF15133A), borderRadius: BorderRadius.circular(10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (w == null)
+          const Text('이 부위는 비어 있어요 · 입으면 바로 좋아져요',
+              key: Key('equipCompareEmpty'),
+              style: TextStyle(color: kMarkUp, fontSize: 12.5, fontWeight: FontWeight.w700))
+        else ...[
+          Text('지금 입은 ${josa(w.name, '와/과')} 비교',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          if (lines.isEmpty)
+            const Text('같아요', style: TextStyle(color: AppColors.text, fontSize: 12.5))
+          else
+            for (final (up, t) in lines)
+              Text('${up ? '↑' : '↓'} $t',
+                  style: TextStyle(color: up ? kMarkUp : kMarkDown, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ],
       ]),
     );
   }

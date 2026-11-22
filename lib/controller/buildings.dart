@@ -119,16 +119,16 @@ extension BuildingOps on AppController {
 
   bool _star(Building b, int s) => buildingsOpen && buildingStar(b) >= s;
 
-  /// 여관 ★3: 쉬고 일어난 뒤 잠시 경험치 조금 더
-  bool get innExpOn {
-    final u = _buildings.innExpUntil;
+  /// 여관 ★3 (묶음 81 #373): 가득 찬 뒤 일어나면 잠시 HP · 기력 최대가 조금 늘어요 (숨김)
+  bool get innBoostOn {
+    final u = _buildings.innBoostUntil;
     return u != null && _clock().isBefore(u);
   }
 
   Future<void> _innRested() async {
     if (!_star(Building.inn, 3)) return;
     await _saveBuildings(
-        _buildings.copyWith(innExpUntil: _clock().add(BuildingRules.innExpFor)));
+        _buildings.copyWith(innBoostUntil: _clock().add(InnRules.star3For)));
   }
 
   /// 게시판: 의뢰 칸 · 하루 의뢰 수 +1 (★2)

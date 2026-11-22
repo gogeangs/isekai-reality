@@ -240,8 +240,6 @@ String report(List<Result> results) {
       totals.update('던전', (v) => v + e.dungeon, ifAbsent: () => e.dungeon);
       totals.update('필드 몬스터', (v) => v + e.fieldMonster,
           ifAbsent: () => e.fieldMonster);
-      totals.update('탐험', (v) => v + e.exploration,
-          ifAbsent: () => e.exploration);
       totals.update('퀘스트', (v) => v + e.quest + e.questAll,
           ifAbsent: () => e.quest + e.questAll);
       totals.update('주간 의뢰', (v) => v + e.weekly, ifAbsent: () => e.weekly);

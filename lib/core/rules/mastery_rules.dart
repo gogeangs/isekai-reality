@@ -40,7 +40,8 @@ class MasteryRules {
   static const double harvestOnce = 1;
   static const double brew = 2;
   static const double fieldWin = 1, dungeonClear = 3;
-  static const double stepsPerPoint = 1000, newPlace = 3, revisit = 1;
+  // 묶음 81 #380: 걷기·탐험은 1,000보마다만 (새 장소 · 다시 찾기 없음)
+  static const double stepsPerPoint = 1000;
   static const double appraiseOnce = 3;
   static const double expeditionWin = 2, expeditionLoss = 1;
 
@@ -74,7 +75,7 @@ class MasteryRules {
   /// 묶음 78 #364: 숙련도가 오르는 행동 (실제 쌓이는 곳과 같게)
   static String howUp(Mastery m) => switch (m) {
         Mastery.combat => '사냥 · 던전에서 이기기 · 훈련장',
-        Mastery.walk => '걷기 · 처음 가는 곳 · 다시 가는 곳',
+        Mastery.walk => '걷기',
         Mastery.harvest => '채집 자리 캐기 · 텃밭 거두기',
         Mastery.trade => '사고팔기 · 의뢰 끝내기',
         Mastery.smith => '장비 만들기 · 강화 · 수리',
@@ -98,7 +99,6 @@ class MasteryRules {
   static const double brewExtra = 0.15;
   static const double brewSave = 0.10;
   static const double walkGauge = 0.05;
-  static const double walkPlaceExp = 0.20;
   static const double appraiseBonus = 0.5; // 재료·쪽지 확률 ×1.5까지
   static const double spiritMpCut = 0.10;
   static const double spiritTimeCut = 0.10;
@@ -251,15 +251,13 @@ class MasteryRules {
         _ => null,
       };
 
-  /// 걷기·탐험은 기록에서 바로 센다 (줄지 않는다): 1,000보마다 1, 새 장소 3, 다시 찾기 1
+  /// 걷기·탐험은 기록에서 바로 센다 (줄지 않는다): 1,000보마다 1 (묶음 81 #380)
   static double walkFrom(List<DailyRecord> history) {
-    var steps = 0, places = 0, again = 0;
+    var steps = 0;
     for (final d in history) {
       steps += d.steps;
-      places += d.newPlacesVisited;
-      again += d.placesRevisited;
     }
-    return (steps ~/ stepsPerPoint) + places * newPlace + again * revisit;
+    return (steps ~/ stepsPerPoint).toDouble();
   }
 
   // ───────────── 칭호 (큰 숙련도 숙련된·장인)

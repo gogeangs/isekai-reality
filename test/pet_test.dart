@@ -60,10 +60,10 @@ void main() {
       expect(PetRules.hatchGoldCost(start, start.add(const Duration(hours: 12))), 0);
     });
 
-    test('공용 MP: 두 번째 펫부터 +10', () {
+    test('공용 MP: 펫 수와 상관없이 더하지 않음 (묶음 81)', () {
       expect(PetRules.mpMaxBonus(1), 0);
-      expect(PetRules.mpMaxBonus(6), 50);
-      expect(PetRules.mpRegenBonus(6), 10);
+      expect(PetRules.mpMaxBonus(3), 0);
+      expect(PetRules.mpRegenBonus(3), 0);
     });
   });
 

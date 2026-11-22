@@ -120,11 +120,6 @@ extension MasteryOps on AppController {
       ? StatRules.intellectCraftBonus(combatStats)
       : 0;
 
-  /// 새 장소 보너스 경험치 (걷기·탐험)
-  int get placeBonusExp =>
-      (RuleConstants.newPlaceExp * MasteryRules.walkPlaceExp * _bigFrac(Mastery.walk))
-          .round();
-
   /// 오늘 걸음에 붙는 열쇠 게이지 보너스 걸음 (걷기·탐험). 기록 'masteryGauge' 로 한 번씩만
   Future<void> _walkGaugeBonus() async {
     final f = _bigFrac(Mastery.walk);

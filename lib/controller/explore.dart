@@ -38,61 +38,8 @@ extension ExploreOps on AppController {
     await _anchorNear(fix.point);
     await _riftOnFix(fix.point);
     await _watchSpeed(fix);
-    if (ExplorationRules.countsAsExploring(fix)) {
-      for (final place in ExplorationRules.placesInReach(area, fix.point)) {
-        await _visitPlace(place);
-      }
-    }
+    // 묶음 81 #380: 「새 장소」 기능은 진행하지 않음 — 장소 방문 기록 · 경험치 · 숙련 · 부탁 셈 없음
     _notify();
   });
-  }
-
-  void clearDiscovery() {
-    _lastDiscovery = null;
-    _notify();
-  }
-
-  Future<void> _visitPlace(GamePlace place) async {
-    final now = _clock();
-    if (_history.isEmpty ||
-        _history.last.dayKey != DailyRecord.dayKeyOf(now)) {
-      await sync(); // 자정이 지났으면 오늘 기록부터 만든다
-    }
-    final today = _history.last;
-    if (today.visitedPlaceIds.contains(place.id)) return;
-
-    final visitedBefore = _history
-        .sublist(0, _history.length - 1)
-        .any((r) => r.visitedPlaceIds.contains(place.id));
-    final updated = today.copyWith(
-      visitedPlaceIds: [...today.visitedPlaceIds, place.id],
-      newPlacesVisited:
-          visitedBefore ? today.newPlacesVisited : today.newPlacesVisited + 1,
-      placesRevisited:
-          visitedBefore ? today.placesRevisited + 1 : today.placesRevisited,
-    );
-    await store.upsert(updated);
-    _history = await store.loadHistory();
-    if (!visitedBefore) await _npcTally(NpcTally.newPlace); // 묶음 42: 미나 부탁
-    // 묶음 32 #189: 물가 장소(정령의 호수)에 가면 물 점수
-    if (place.kind == PlaceKind.spiritLake) {
-      await _gainElement(Element.water, ElementRules.waterScore);
-    }
-    if (!visitedBefore) {
-      _lastDiscovery = place;
-      // 묶음 27 #176: 걷기·탐험 숙련도가 오르면 새 장소 보상이 조금 더 (숨김)
-      final bonus = placeBonusExp;
-      if (bonus > 0) {
-        await _save(_history.last.copyWith(
-            gains: DailyRecord.addCounts(
-                _history.last.gains, {Wallet.exp: bonus})));
-      }
-      // 묶음 30: 탐험가 → 새 장소 보상 더, 순례자 → 가끔 숨은 물건 (숨김)
-      await _jobNewPlace();
-    } else {
-      // 묶음 31: 순례자 → 자주 가는 곳에 다시 오면 작은 선물 (숨김)
-      await _jobRevisit(place.id);
-    }
-    await _checkWalkMastery();
   }
 }

@@ -178,13 +178,12 @@ void main() {
       final c = await startNpc(
         level: 5,
         mats: const {'ironShard': 3},
-        npc: _npc(tally: {
-          'newPlace': 2,
-        }, extra: {
+        npc: _npc(extra: {
           'relic': {
-            'mina': {'i': 0, 'day': '2026-11-16', 'base': {'newPlace': 0}, 'steps': 0},
+            'mina': {'i': 0, 'day': '2026-11-16', 'base': <String, int>{}, 'steps': 0},
           },
         }),
+        todaySteps: const {'2026-11-16': 5000},
       );
       await c.refreshVitals();
       expect(c.relicStage(Npc.mina), 1);

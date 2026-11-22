@@ -666,10 +666,26 @@ class EquipmentRules {
 
   /// 묶음 40 #221: 새로 만들 장비(흰색 +0)와 지금 그 부위에 입은 장비의 비교 한 줄.
   /// 좋아지면 (true, '공격 +2%'), 나빠지면 (false, '공격 -1%'). 입은 게 없으면 빈 목록.
-  static List<(bool, String)> compareWith(EquipBase base, EquipItem worn) {
-    final a = info(base);
+  /// 묶음 81 #377: 가방 장비 비교와 한 곳 ([compareItems])
+  static List<(bool, String)> compareWith(EquipBase base, EquipItem worn) =>
+      _compare(info(base), gradeMultiplier(EquipGrade.white), const {}, null, 0, worn);
+
+  /// 묶음 81 #377: 가방 장비와 같은 부위에 입은 장비 — 등급 · 강화 · 내구도 · 속성 · 특성(추가 능력치)까지
+  static List<(bool, String)> compareItems(EquipItem item, EquipItem worn) =>
+      _compare(info(item.base), power(item), item.extras, item.element, item.elementLevel, worn);
+
+  /// 비교 표시: 모두 좋아지면 up · 모두 나빠지면 down · 섞이면 mix · 같으면 null
+  static CompareMark? markOf(List<(bool, String)> lines) {
+    if (lines.isEmpty) return null;
+    final ups = lines.where((l) => l.$1).length;
+    if (ups == lines.length) return CompareMark.up;
+    if (ups == 0) return CompareMark.down;
+    return CompareMark.mix;
+  }
+
+  static List<(bool, String)> _compare(EquipBaseInfo a, double pa, Map<String, int> extrasA,
+      Element? elA, int elLvA, EquipItem worn) {
     final b = info(worn.base);
-    final pa = gradeMultiplier(EquipGrade.white);
     final pb = power(worn);
     final out = <(bool, String)>[];
     void num(String label, double mine, double theirs, String unit,
@@ -695,6 +711,21 @@ class EquipmentRules {
     }
     if ((a.speed > 0) != (b.speed > 0)) {
       out.add(a.speed > 0 ? (true, '먼저 침') : (false, '먼저 치기 없음'));
+    }
+    // 특성 (추가 능력치)
+    final keys = {...extrasA.keys, ...worn.extras.keys};
+    for (final k in keys) {
+      final d = (extrasA[k] ?? 0) - (worn.extras[k] ?? 0);
+      if (d == 0) continue;
+      out.add((d > 0, '${statName(k)} ${d > 0 ? '+' : '-'}${d.abs()}'));
+    }
+    // 속성
+    final elB = worn.element;
+    if (elA != elB) {
+      if (elA != null) out.add((true, '${elA.label} 속성'));
+      if (elB != null) out.add((false, '${elB.label} 속성 빠짐'));
+    } else if (elA != null && elLvA != worn.elementLevel) {
+      out.add((elLvA > worn.elementLevel, '${elA.label} 속성 ${elLvA > worn.elementLevel ? '강해짐' : '약해짐'}'));
     }
     return out;
   }
@@ -722,3 +753,6 @@ class EquipmentRules {
     ].join(' · ');
   }
 }
+
+/// 묶음 81 #377: 가방 장비 칸 비교 표시
+enum CompareMark { up, down, mix, fresh }

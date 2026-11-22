@@ -499,6 +499,41 @@ void main() {
     });
   });
 
+  group('화면 정리', () {
+    test('#386 숨은 알은 칸에 안 넣음 · 이별 때 가득이면 우편함', () async {
+      // 가방을 꼭 채운 이별 전 계정 + 숨은 알
+      var c = await _open(_store(12, {
+        'pets': const PetState(eggs: [PetEgg(id: 'e1', source: 'field')]).toJson(),
+      }));
+      final cap = c.bagCapacity;
+      final fill = [
+        for (final m in MaterialId.values)
+          if (!Materials.isHerb(m)) m,
+      ].take(cap - c.bagUsed);
+      final s = InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루', spiritName: '불씨', spiritKind: SpiritKind.water, lastSeenLevel: 99),
+        history: [
+          DailyRecord(date: DateTime(2026, 11, 15), gains: {
+            'exp': LevelRules.totalExpToReach(12),
+            for (final m in fill) m.name: 1,
+          }),
+        ],
+        json: {
+          'tutorial': {'step': TutorialStep.done.index},
+          'gates': {'legacy': false, 'v28': true, 'seen': [for (final f in Feature.values) f.name]},
+          'pets': const PetState(eggs: [PetEgg(id: 'e1', source: 'field')]).toJson(),
+        },
+      );
+      c = await _open(s);
+      expect(c.bagUsed, c.bagCapacity); // 알은 칸에 없음
+      await c.completeFarewell('부엉');
+      expect(c.bagUsed, lessThanOrEqualTo(c.bagCapacity));
+      expect(c.pets.eggs, isEmpty);
+      expect(c.allMails.any((m) => m.gifts.containsKey('egg')), isTrue);
+      expect(c.takeEggMailed(), isTrue);
+    });
+  });
+
   // 아래 묶음 82 시험은 항목을 고칠 때마다 더함
   test('자리', () => expect(const SizedBox(), isNotNull));
 }

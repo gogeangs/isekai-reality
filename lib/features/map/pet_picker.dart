@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app_controller.dart';
@@ -53,23 +55,33 @@ class ExpeditionPetPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SingleChildScrollView(
+        // 묶음 82 #387: 옆으로 밀지 않고 한 줄 — 위 · 오른쪽은 ★ 만큼 비우고, 넘치면 칸을 줄임
+        LayoutBuilder(
           key: const Key('expPetPicker'),
-          scrollDirection: Axis.horizontal,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            for (final p in pets)
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: _Cell(
-                  key: Key('expPet_${p.uid}'),
-                  pet: p,
-                  selected: p.uid == chosen,
-                  suits: suits?.call(p) ?? false,
-                  status: statusOf(c, p),
-                  onTap: c.petCanSend(p.uid) ? () => onPick(p.uid) : null,
-                ),
-              ),
-          ]),
+          builder: (context, box) {
+            const gap = 10.0, starRoom = 6.0;
+            final n = pets.length;
+            final fit = n == 0 ? _Cell.faceSize : (box.maxWidth - starRoom - gap * (n - 1)) / n - 14;
+            final face = math.max(34.0, math.min(_Cell.faceSize, fit));
+            return Padding(
+              padding: const EdgeInsets.only(top: starRoom, right: starRoom),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                for (final (i, p) in pets.indexed)
+                  Padding(
+                    padding: EdgeInsets.only(right: i == n - 1 ? 0 : gap),
+                    child: _Cell(
+                      key: Key('expPet_${p.uid}'),
+                      pet: p,
+                      face: face,
+                      selected: p.uid == chosen,
+                      suits: suits?.call(p) ?? false,
+                      status: statusOf(c, p),
+                      onTap: c.petCanSend(p.uid) ? () => onPick(p.uid) : null,
+                    ),
+                  ),
+              ]),
+            );
+          },
         ),
         if (anySuits)
           const Padding(
@@ -91,6 +103,7 @@ class _Cell extends StatelessWidget {
     required this.suits,
     required this.status,
     required this.onTap,
+    this.face = _Cell.faceSize,
   });
 
   final Pet pet;
@@ -99,7 +112,8 @@ class _Cell extends StatelessWidget {
   final String? status;
   final VoidCallback? onTap;
 
-  static const double face = 56;
+  static const double faceSize = 56;
+  final double face;
 
   @override
   Widget build(BuildContext context) {

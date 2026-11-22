@@ -122,7 +122,25 @@ extension PetsOps on AppController {
       bornAt: now,
     );
     final first = !p.farewellDone;
+    // 묶음 82 #386: 숨은 알이 보이게 되는 순간 — 가방에 자리가 없으면 우편함으로 (「21 / 20」이 되지 않게)
+    var eggs = p.eggs;
+    if (first) {
+      final loose = [for (final e in eggs) if (e.incubatedAt == null) e];
+      final room = math.max(0, bagFree);
+      if (loose.length > room) {
+        final out = loose.sublist(room);
+        final gifts = <String, int>{};
+        for (final e in out) {
+          gifts[e.grade.key] = (gifts[e.grade.key] ?? 0) + 1;
+        }
+        eggs = [for (final e in eggs) if (!out.contains(e)) e];
+        await _mailBagRest(gifts, title: '정령이 남긴 알');
+        _bagMailed = math.max(0, _bagMailed - gifts.length);
+        _eggMailed = true;
+      }
+    }
     await _savePets(p.copyWith(
+      eggs: eggs,
       pets: [...p.pets, pet],
       companion: pet.uid,
       firstPet: pet.uid,

@@ -839,7 +839,7 @@ class NpcRules {
       ],
       story: '빛을 빼앗던 시절엔 장사도 숨이 막혔지. 이제는 나눠서 사고팔면 되네. 그게 장사꾼이 바라던 다리일세.',
       special: NpcSpecial(NpcSpecialKind.seal, TitleId.merchantFriend, '바르칸의 상단 인장',
-          '소중한 물건 · 거래소에 물건을 올릴 때 드는 금화가 줄어요', 'item_barkanSeal'),
+          '보물 · 거래소에 물건을 올릴 때 드는 금화가 줄어요', 'item_barkanSeal'),
     ),
   ];
 

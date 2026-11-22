@@ -48,6 +48,7 @@ class StatusScreen extends StatelessWidget {
     this.onSlot,
     this.restLeft,
     this.innPaused = false,
+    this.buffRow,
     this.spiritAway,
     this.onOpenInn,
     this.equippedTitle,
@@ -116,6 +117,9 @@ class StatusScreen extends StatelessWidget {
 
   /// 묶음 81 #373: 원정 중이라 여관 회복이 멈춤
   final bool innPaused;
+
+  /// 묶음 81 #378: HP · MP · 기력 막대 아래 지금 걸린 물약 칩 줄 (없으면 줄 없음)
+  final Widget? buffRow;
 
   /// 정령이 원정 중이면 한 줄 안내 (예: '원정 중 · 12분 뒤 돌아와요')
   final String? spiritAway;
@@ -288,6 +292,10 @@ class StatusScreen extends StatelessWidget {
                   jobMpBar: jobMp == null ? jobMpBar : null,
                   jobMp: jobMp,
                 ),
+                if (buffRow != null) ...[
+                  const SizedBox(height: 8),
+                  buffRow!,
+                ],
                 const SizedBox(height: 12),
                 if (cards != null) cards! else Row(children: [
                   Expanded(

@@ -685,7 +685,7 @@ Future<void> showNpcRelicDialog(BuildContext context, NpcRelic r) =>
                     height: 1.4,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text('가방 「소중한 물건」에 넣었어요',
+            const Text('가방 「보물」에 넣었어요',
                 style: TextStyle(
                     color: AppColors.textMuted,
                     fontSize: 12,

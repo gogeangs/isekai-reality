@@ -160,6 +160,55 @@ extension Act2Ops on AppController {
     return _ashBattle([Act2Rules.avatarFoe(a, player.level.level)]);
   }
 
+  /// 묶음 82 #394: 잿빛 틈 분신 턴제 한 판 (걸어서 닿았거나 펫이 기다릴 때). 못 들어가면 null
+  AshTurn? startAshTurn() {
+    final a = nextAvatar;
+    if (a == null || riftClosedToday || hp <= 0 || !canFightNow) return null;
+    final lv = player.level.level;
+    // 내 숫자(공격 · 최대 HP · 받는 피해 · 치명 · 회피)는 자동 전투와 같은 계산
+    final b = _ashBattle([Act2Rules.avatarFoe(a, lv)]);
+    final pet = companionPet;
+    return AshTurn(
+      avatar: a,
+      level: lv,
+      heroMaxHp: b.playerMaxHp,
+      heroHp: b.playerHp,
+      heroAttack: b.playerAttack,
+      crit: b.playerCrit,
+      evade: b.playerEvade,
+      damageTaken: b.damageTaken,
+      mp: _jobs.awakened ? jobMp : 0,
+      mpMax: _jobs.awakened ? jobMpMax : 0,
+      skills: [
+        if (_jobs.awakened)
+          for (final (s, cost, power) in battleJobSlots.take(2))
+            AshTurnSkill(key: s.name, name: JobRules.skill(s).name, mp: cost, attack: JobRules.skill(s).attack, power: power),
+      ],
+      hasPet: pet != null,
+      petAdult: pet?.adult ?? false,
+      potions: [for (final p in battlePotions) if (p.hpRatio > 0) p],
+      memoriesSeen: _act2.memoriesOf(a.index),
+      rng: _random,
+    );
+  }
+
+  /// 턴제 한 판이 끝났을 때 (이겨도 · 져도). 본 기억 조각은 이기고 지는 것과 상관없이 남는다
+  Future<AshResult> finishAshTurn(AshTurn t) => _serial(() async {
+        if (!t.isOver) return const AshResult(won: false);
+        final a = Act2Rules.info(t.avatar);
+        await _tripFought('rift');
+        final mem = [..._act2.memories];
+        mem[t.avatar.index] = math.max(mem[t.avatar.index], t.memoriesSeen.clamp(0, 3));
+        _act2 = _act2.copyWith(memories: mem);
+        await _saveAct2();
+        await _consumePotionKeys(t.potionsUsed);
+        _vitals = _vitals.copyWith(hp: t.hp, lastMaxHp: maxHp);
+        await store.saveVitals(_vitals);
+        if (_jobs.awakened) await _setJobMp(t.mp);
+        await _spendBattleBuffs();
+        return _ashOutcome(a, t.won);
+      });
+
   /// 분신 전투가 끝났을 때. 처음 쓰러뜨리면 유품·칭호·알·왕의 사연
   Future<AshResult> finishAshBattle(Battle battle) => _serial(() async {
         final a = Act2Rules.ofMonster(battle.floors.first.monster);
@@ -167,7 +216,10 @@ extension Act2Ops on AppController {
         await _tripFought('rift'); // 묶음 81 #375: 펫은 돌아오는 길
         await keepBattleHp(battle);
         await _spendBattleBuffs();
-        final won = battle.phase == BattlePhase.cleared;
+        return _ashOutcome(a, battle.phase == BattlePhase.cleared);
+      });
+
+  Future<AshResult> _ashOutcome(AshAvatarInfo a, bool won) async {
         final day = _today;
         if (!won) {
           _act2 = _act2.copyWith(
@@ -209,7 +261,7 @@ extension Act2Ops on AppController {
           story: first ? a.story : null,
           exp: exp,
         );
-      });
+  }
 
   /// 유품 장비 한 부위. 묶음 47 #240: 가방이 가득하면 잃지 않게 우편함에 맡긴다
   Future<EquipItem> _giveRelic(EquipBase base, Element? element) async {
@@ -302,9 +354,15 @@ extension Act2Ops on AppController {
   }
 
   /// 기록 탭 「왕의 사연」: 쓰러뜨린 분신 순서대로
+  /// 묶음 82 #394: 본 왕의 기억 조각만 (못 본 조각은 「아직 보지 못한 기억」)
   List<String> get kingStories => [
         for (var i = 0; i < _act2.beaten && i < Act2Rules.avatars.length; i++)
-          Act2Rules.avatars[i].story,
+          [
+            for (var k = 0; k < AshTurnRules.memoryCount; k++)
+              k < _act2.memoriesOf(i)
+                  ? AshTurnRules.info(AshAvatar.values[i]).memories[k]
+                  : '(아직 보지 못한 기억)',
+          ].join('\n'),
       ];
 
   // ───────────── 첫 펫 한마디 · 저장
@@ -317,7 +375,13 @@ extension Act2Ops on AppController {
     final next = nextAvatar;
     if (next != null && announced <= next.index) {
       announced = next.index + 1;
-      lines.add(Act2Rules.riftFirstLine);
+      // 묶음 82 #390: 긴 설명은 첫 잿빛 틈(분노)에만, 두 번째부터는 짧은 소식 띠
+      if (next == AshAvatar.rage) {
+        lines.add(Act2Rules.riftFirstLine);
+      } else {
+        _riftNews = next;
+        _notify();
+      }
     }
     if (_act2.beaten >= 5 && !_act2.kingDone && announced < 6) {
       announced = 6;
@@ -330,6 +394,16 @@ extension Act2Ops on AppController {
     unawaited(_saveAct2());
   }
 
+  /// 묶음 82 #390: 새 잿빛 틈 소식 띠 (한 번 꺼내면 끝)
+  AshAvatar? takeRiftNews() {
+    final n = _riftNews;
+    _riftNews = null;
+    return n;
+  }
+
+  /// 「새 잿빛 틈 · ○○의 기운이 느껴져요」
+  static String riftNewsLine(AshAvatar a) => '새 잿빛 틈 · ${Act2Rules.info(a).name}의 기운이 느껴져요';
+
   Future<void> _saveAct2() =>
-      store.saveJson(AppController._act2Key, _act2.toJson());
+      _saveJson(AppController._act2Key, _act2.toJson());
 }

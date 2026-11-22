@@ -18,7 +18,7 @@ extension BoardOps on AppController {
 
   Future<void> _saveBoard(BoardState b) async {
     _board = b;
-    await store.saveJson(AppController._boardKey, b.toJson());
+    await _saveJson(AppController._boardKey, b.toJson());
     _notify();
   }
 

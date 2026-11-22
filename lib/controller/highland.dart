@@ -387,5 +387,5 @@ extension HighlandOps on AppController {
       ];
 
   Future<void> _saveHighland() =>
-      store.saveJson(AppController._highlandKey, _highland.toJson());
+      _saveJson(AppController._highlandKey, _highland.toJson());
 }

@@ -294,10 +294,6 @@ class _ShopScreenState extends State<ShopScreen> {
               child: Text(g.label,
                   style: AppText.title(15, color: AppColors.goldBright)),
             ),
-          if (g == ShopGroup.potion) ...[
-            _VitalBars(controller: c),
-            const SizedBox(height: 8),
-          ],
           for (var k = 0; k < sorted.length; k += 2) ...[
             EqualHeightRow(gap: 10, children: [
               for (final i in sorted.skip(k).take(2))
@@ -595,48 +591,6 @@ class _ItemCard extends StatelessWidget {
   }
 }
 
-/// 물약 묶음 제목 아래 HP · 기력 (· MP) 막대 (숫자 없이)
-class _VitalBars extends StatelessWidget {
-  const _VitalBars({required this.controller});
-
-  final AppController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    Widget bar(String label, int v, int max, Color color, Key key) => Expanded(
-          child: Row(key: key, children: [
-            Text(label,
-                style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(width: 4),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: max <= 0 ? 0 : (v / max).clamp(0, 1).toDouble(),
-                  minHeight: 7,
-                  color: color,
-                  backgroundColor: const Color(0x55000000),
-                ),
-              ),
-            ),
-          ]),
-        );
-    return Row(key: const Key('shopVitals'), children: [
-      bar('HP', c.hp, c.maxHp, const Color(0xFFE5534B), const Key('bar_hp')),
-      const SizedBox(width: 10),
-      bar('기력', c.mp, c.mpMax, const Color(0xFF5AA9F0), const Key('bar_mp')),
-      if (c.jobsOpen) ...[
-        const SizedBox(width: 10),
-        bar('MP', c.jobMp, c.jobMpMax, const Color(0xFFA27BF0),
-            const Key('bar_jobMp')),
-      ],
-    ]);
-  }
-}
 
 /// 탭 바로 위 오른쪽 작은 한 줄 (마석 · 금화)
 class ShopWalletLine extends StatelessWidget {

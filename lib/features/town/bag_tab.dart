@@ -324,8 +324,13 @@ class _BagTabState extends State<BagTab> {
                 child: OrnateTopBar(
                   title: '가방',
                   onBack: widget.onBack,
-                  trailing: _WalletChips(manaStones: p.manaStones, gold: p.gold),
                 ),
+              ),
+              // 묶음 82 #388: 마석 · 금화는 둥근 버튼 줄 바로 아래 오른쪽 한 줄 (가리지 않게)
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _WalletChips(manaStones: p.manaStones, gold: p.gold),
               ),
               if (widget.onBack == null && !c.inTutorial) ...[
                 const SizedBox(height: 4),
@@ -468,22 +473,29 @@ class _BagTabState extends State<BagTab> {
                           ),
                         const SizedBox(height: 8),
                         // ⑥ 탭 한 줄 + 개수 · 정렬
+                        // 묶음 82 #388: 처음엔 「전체」부터 · 양끝 여백 · 고른 탭이 밖이면 보이게 밀기
                         SingleChildScrollView(
+                          key: const Key('bagTabs'),
                           scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Row(children: [
                             for (final f in BagFilter.values)
                               Padding(
-                                padding: const EdgeInsets.only(right: 5),
-                                child: _MiniButton(
+                                padding: EdgeInsets.only(right: f == BagFilter.values.last ? 0 : 5),
+                                child: Builder(builder: (tabContext) => _MiniButton(
                                   key: Key('bagTab_${f.name}'),
                                   label: '${f.label} ${f == BagFilter.all ? all.length : all.where((e) => e.kind == f).length}',
                                   on: _filter == f,
                                   tab: true,
-                                  onTap: () => setState(() {
-                                    _filter = f;
-                                    _picked.clear();
-                                  }),
-                                ),
+                                  onTap: () {
+                                    setState(() {
+                                      _filter = f;
+                                      _picked.clear();
+                                    });
+                                    Scrollable.ensureVisible(tabContext,
+                                        alignment: 0.5, duration: const Duration(milliseconds: 200));
+                                  },
+                                )),
                               ),
                           ]),
                         ),
@@ -1527,6 +1539,8 @@ Future<void> showAutoUseSheet(BuildContext context, AppController c) =>
     showAutoUseWindow(context,
         hp: c.alchemy.autoHp,
         cure: c.alchemy.autoCure,
+        mp: c.jobsOpen ? c.alchemy.autoMp : null,
+        onMpChanged: (v) => c.setAutoUse(mpPercent: v),
         onChanged: (hp, cure) => c.setAutoUse(hpPercent: hp, cure: cure));
 
 /// 주머니·길가에서 나온 것 한 줄

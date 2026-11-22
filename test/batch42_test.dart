@@ -191,7 +191,7 @@ void main() {
           },
           tally: {'ashKill': 2, 'newRecipe': 1},
         ),
-        mats: const {'gemFire': 2, 'gemLight': 1},
+        mats: const {'gemFire': 2, 'gemLight': 1, 'ironIngot': 20, 'tannedLeather': 20, 'runeStone': 20},
       );
       expect(c.requestReady(Npc.dorgun), isTrue);
       await c.completeRequest(Npc.dorgun);

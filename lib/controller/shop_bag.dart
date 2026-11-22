@@ -149,7 +149,8 @@ extension ShopBagOps on AppController {
         },
         armory: _armory,
         // 묶음 69 #282: 품는 중인 알은 가방 칸에서 뺌
-        eggs: _pets.eggs.where((e) => e.incubatedAt == null).length,
+        // 묶음 82 #386: 정령 이별 전 숨은 알은 칸에 넣지 않음 (보이게 되는 이별부터 한 칸)
+        eggs: _pets.farewellDone ? _pets.eggs.where((e) => e.incubatedAt == null).length : 0,
         extraStacks: [..._alc.potions.values, ..._extraBagCounts()],
       );
 
@@ -184,7 +185,7 @@ extension ShopBagOps on AppController {
           spends: DailyRecord.addCounts(today.spends, {Wallet.gold: cost})));
     }
     _bag = _bag.copyWith(singleSlots: _bag.singleSlots + 1);
-    await store.saveJson(AppController._bagKey, _bag.toJson());
+    await _saveJson(AppController._bagKey, _bag.toJson());
     _notify();
     return true;
   });

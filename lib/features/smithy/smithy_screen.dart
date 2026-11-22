@@ -1,4 +1,5 @@
 import '../village/npc_header.dart';
+import 'equip_now_button.dart';
 import 'package:flutter/material.dart' hide Element;
 
 import '../../core/format.dart';
@@ -40,6 +41,9 @@ class SmithyScreen extends StatefulWidget {
 class _SmithyScreenState extends State<SmithyScreen> {
   int _tab = 0;
 
+  /// 묶음 82 #395: 강화 탭에서 「재료 가공에서 만들기」로 온 재료
+  MaterialId? _processFocus;
+
   /// 탭을 바꾼 뒤 마을 사람 말풍선 (탭 안내)
   String? _tabLine;
 
@@ -53,8 +57,16 @@ class _SmithyScreenState extends State<SmithyScreen> {
 
   static const tabs = ['만들기', '강화', '수리', '속성', '재료 가공', '보스 장비'];
 
+  /// 묶음 82 #395: 재료 가공 탭의 그 재료 줄로
+  void _goProcess(MaterialId m) => setState(() {
+        _tab = 4;
+        _processFocus = m;
+        _tabLine = VillageRules.smithyGuide(4);
+      });
+
   void _select(int i) => setState(() {
         _tab = i;
+        if (i != 4) _processFocus = null;
         _tabLine = i == 0 && c.firstWeaponFree
             ? VillageRules.smithyFree
             : VillageRules.smithyGuide(i);
@@ -141,7 +153,7 @@ class _SmithyScreenState extends State<SmithyScreen> {
                           1 => _enhanceTab(),
                           2 => _repairTab(),
                           3 => _elementTab(),
-                          4 => [ProcessPanel(controller: c, smithy: true)],
+                          4 => [ProcessPanel(controller: c, smithy: true, focus: _processFocus)],
                           _ => [BossGearTab(controller: c)],
                         },
                       ),

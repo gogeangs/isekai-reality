@@ -292,7 +292,13 @@ class _BattleViewState extends State<BattleView> {
     _timer?.cancel();
     _paused = true;
     await showAutoUseWindow(context,
-        hp: _b.autoHp, cure: _b.autoCure, onChanged: (hp, cure) {
+        hp: _b.autoHp,
+        cure: _b.autoCure,
+        mp: _b.jobMpMax > 0 ? _b.autoMp : null,
+        onMpChanged: (v) {
+          _b.autoMp = v;
+          _b.onAutoMpChanged?.call(v);
+        }, onChanged: (hp, cure) {
       _b
         ..autoHp = hp
         ..autoCure = cure;
@@ -560,7 +566,7 @@ class _BattleViewState extends State<BattleView> {
                                       : AppColors.textMuted
                                           .withValues(alpha: 0.5)),
                             ),
-                            child: Text(autoUseLabel(_b.autoHp, _b.autoCure),
+                            child: Text(autoUseLabel(_b.autoHp, _b.autoCure, mp: _b.jobMpMax > 0 ? _b.autoMp : 0, short: true),
                                 style: TextStyle(
                                     color: _autoOn
                                         ? AppColors.goldBright

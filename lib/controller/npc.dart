@@ -437,13 +437,13 @@ extension NpcOps on AppController {
 
   Future<void> _saveNpc(NpcState s) async {
     _npc = s;
-    await store.saveJson(AppController._npcKey, s.toJson());
+    await _saveJson(AppController._npcKey, s.toJson());
     _notify();
   }
 
   /// 처음이면 지금까지 기록으로 시작 점수를 어림잡는다 (선물 우편은 몰아 보내지 않음)
   Future<void> _loadNpc() async {
-    final j = await store.loadJson(AppController._npcKey);
+    final j = await _loadRaw(AppController._npcKey);
     if (j != null) {
       _npc = NpcState.fromJson(j);
       _npcReady = true;
@@ -479,6 +479,6 @@ extension NpcOps on AppController {
       for (final e in pts.entries) e.key: NpcRules.stageOf(e.value).index,
     });
     _npcReady = true;
-    await store.saveJson(AppController._npcKey, _npc.toJson());
+    await _saveJson(AppController._npcKey, _npc.toJson());
   }
 }

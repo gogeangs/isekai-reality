@@ -72,7 +72,9 @@ class SettingsScreen extends StatelessWidget {
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(
                           autoUseLabel(controller.alchemy.autoHp,
-                              controller.alchemy.autoCure),
+                              controller.alchemy.autoCure,
+                              mp: controller.jobsOpen ? controller.alchemy.autoMp : 0,
+                              short: true),
                           style: const TextStyle(
                               color: AppColors.goldBright,
                               fontWeight: FontWeight.w700)),
@@ -82,6 +84,8 @@ class SettingsScreen extends StatelessWidget {
                     onTap: () => showAutoUseWindow(context,
                         hp: controller.alchemy.autoHp,
                         cure: controller.alchemy.autoCure,
+                        mp: controller.jobsOpen ? controller.alchemy.autoMp : null,
+                        onMpChanged: (v) => controller.setAutoUse(mpPercent: v),
                         onChanged: (hp, cure) => controller.setAutoUse(
                             hpPercent: hp, cure: cure)),
                   ),

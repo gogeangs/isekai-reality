@@ -7,7 +7,7 @@ extension AlchemyOps on AppController {
 
   Future<void> _saveAlc(AlchemyState a) async {
     _alc = a;
-    await store.saveJson(AppController._alchemyKey, a.toJson());
+    await _saveJson(AppController._alchemyKey, a.toJson());
     _notify();
   }
 
@@ -389,6 +389,18 @@ extension AlchemyOps on AppController {
         PotionId.thaw => CureKind.freeze,
         _ => null,
       };
+      // 묶음 82 #392: 직업 마나 물약 (각성 뒤) — 전투 자동 마시기 MP 기준
+      final jobMana = switch (info.id) {
+        PotionId.jobManaSmall => 0.2,
+        PotionId.jobMana => 0.4,
+        _ => 0.0,
+      };
+      if (jobMana > 0) {
+        if (_jobs.awakened) {
+          out.add(BattlePotion(key: 'alc:${e.key}', name: potionName(e.key), count: e.value, jobMpRatio: jobMana * m));
+        }
+        continue;
+      }
       if (cure == null && info.hpRatio <= 0) continue;
       out.add(BattlePotion(
           key: 'alc:${e.key}',
@@ -397,6 +409,18 @@ extension AlchemyOps on AppController {
           hpRatio: info.hpRatio * m,
           cure: cure));
     }
+    if (_jobs.awakened) {
+      for (final item in const [ShopItem.jobManaSmall, ShopItem.jobMana]) {
+        final n = bagCount(item);
+        if (n > 0) {
+          out.add(BattlePotion(
+              key: 'shop:${item.name}',
+              name: TownRules.info(item).name,
+              count: n,
+              jobMpRatio: TownRules.info(item).jobMpRatio));
+        }
+      }
+    }
     return out;
   }
 
@@ -404,9 +428,15 @@ extension AlchemyOps on AppController {
   Future<void> _consumeBattlePotions(Battle battle) async {
     if (battle.potionsUsed.isEmpty || _consumed[battle] == true) return;
     _consumed[battle] = true;
+    await _consumePotionKeys(battle.potionsUsed);
+  }
+
+  /// 마신 물약을 가방에서 뺀다 (키 → 개수). 묶음 82: 턴제 잿빛 틈도 같이 씀
+  Future<void> _consumePotionKeys(Map<String, int> potionsUsed) async {
+    if (potionsUsed.isEmpty) return;
     var a = _alc;
     final used = <String>[];
-    battle.potionsUsed.forEach((key, n) {
+    potionsUsed.forEach((key, n) {
       // 묶음 45 #232: 엘리엘의 별빛 플라스크 → 가끔 병이 남음 (한 병마다)
       var spent = 0;
       for (var i = 0; i < n; i++) {
@@ -801,6 +831,6 @@ extension AlchemyOps on AppController {
   }
 
   /// 자동 마시기 설정
-  Future<void> setAutoUse({int? hpPercent, bool? cure}) async =>
-      _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure));
+  Future<void> setAutoUse({int? hpPercent, bool? cure, int? mpPercent}) async =>
+      _saveAlc(_alc.copyWith(autoHp: hpPercent, autoCure: cure, autoMp: mpPercent));
 }

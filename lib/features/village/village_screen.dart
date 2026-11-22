@@ -451,6 +451,8 @@ class _VillageScreenState extends State<VillageScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _intro == null && c.villageIntroPending) {
           setState(() => _intro = 0);
+          // 묶음 82 #383: 첫 줄을 보여 준 순간 「봤음」 (중간에 꺼도 다시 안 나옴)
+          c.markVillageIntro();
         }
       });
     }

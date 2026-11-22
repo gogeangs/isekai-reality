@@ -9,6 +9,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/core/format.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
+import 'package:isekai_reality/core/models/armory.dart';
 import 'package:isekai_reality/core/models/player_state.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 
@@ -268,10 +269,36 @@ String report(List<Result> results) {
   return b.toString();
 }
 
+/// 묶음 82 #395: 강화 +1 → +10 총비용 (부위 · 등급마다)
+String enhanceCostTable() {
+  final b = StringBuffer()
+    ..writeln()
+    ..writeln('## 강화 +1 → +10 총비용 (묶음 82 #395)')
+    ..writeln()
+    ..writeln('| 부위 · 등급 | 마석 | 금화 | 재료 |')
+    ..writeln('| --- | --- | --- | --- |');
+  for (final base in [EquipBase.dagger, EquipBase.armor, EquipBase.fangNecklace]) {
+    for (final g in EquipGrade.values) {
+      final item = EquipItem(uid: 'x', base: base, grade: g);
+      var mana = 0, gold = 0;
+      final mats = <MaterialId, int>{};
+      for (var to = 1; to <= EquipmentRules.maxEnhance; to++) {
+        final n = EquipmentRules.enhanceNeeds(item, to);
+        mana += n.manaStones;
+        gold += n.gold;
+        n.materials.forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);
+      }
+      b.writeln('| ${EquipmentRules.info(base).name} · ${g.name} | $mana | ${comma(gold)} | '
+          '${[for (final e in mats.entries) '${Materials.info(e.key).name} ${e.value}'].join(' · ')} |');
+    }
+  }
+  return b.toString();
+}
+
 void main() {
   test('밸런스 점검 보고서', () {
     final results = [for (final p in personas) simulate(p)];
-    final text = report(results);
+    final text = report(results) + enhanceCostTable();
     File('build/reports/balance.md')
       ..createSync(recursive: true)
       ..writeAsStringSync(text);

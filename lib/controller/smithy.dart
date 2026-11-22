@@ -11,7 +11,7 @@ extension SmithyOps on AppController {
 
   Future<void> _saveArmory(Armory a) async {
     _armory = a;
-    await store.saveJson(AppController._armoryKey, a.toJson());
+    await _saveJson(AppController._armoryKey, a.toJson());
     // 최대 HP가 바뀌었을 수 있다
     await refreshVitals();
     _notify();
@@ -20,8 +20,9 @@ extension SmithyOps on AppController {
   /// 묶음 59: 예전 계정 — 공짜 첫 무기를 받았는데 「받은 선물」 표시가 없으면, 재료를 안 쓰고 만든
   /// 가장 오래된 무기 하나에 표시 (한 번)
   Future<void> _markFirstWeaponGift() async {
-    if (!gotGift(Gift.firstWeapon) || _armory.items.any((i) => i.gift)) return;
+    // 묶음 82 #396: 마을 기록을 읽은 뒤에 돈다. 한 번 표시했으면(무기가 없었어도) 다시 보지 않음
     if (_village.contains('giftMarked')) return;
+    if (!gotGift(Gift.firstWeapon) || _armory.items.any((i) => i.gift)) return;
     int no(EquipItem i) => int.tryParse(i.uid.replaceFirst('eq', '')) ?? 1 << 30;
     final cands = [
       for (final i in _armory.items)
@@ -252,12 +253,13 @@ extension SmithyOps on AppController {
   /// 강화할 수 있는지
   CraftCheck canEnhance(EquipItem item) {
     if (item.enhance >= EquipmentRules.maxEnhance) return CraftCheck.maxed;
-    final cost = EquipmentRules.enhanceCost(item.enhance + 1);
+    final need = EquipmentRules.enhanceNeeds(item, item.enhance + 1);
     final p = player;
-    if (p.manaStones < cost.manaStones) return CraftCheck.manaStones;
-    if (p.gold < cost.gold) return CraftCheck.gold;
-    final sp = EquipmentRules.enhanceSpecial(item.slot, item.enhance + 1);
-    if (sp != null && p.materialCount(sp.mat) < sp.n) return CraftCheck.materials;
+    if (p.manaStones < need.manaStones) return CraftCheck.manaStones;
+    if (p.gold < need.gold) return CraftCheck.gold;
+    for (final e in need.materials.entries) {
+      if (p.materialExact(e.key) < e.value) return CraftCheck.materials;
+    }
     return CraftCheck.ok;
   }
 
@@ -270,12 +272,14 @@ extension SmithyOps on AppController {
     final sure = whetstone && whetstones > 0;
     if (sure) await _useWhetstone();
     final to = item.enhance + 1;
-    final cost = EquipmentRules.enhanceCost(to);
-    final sp = EquipmentRules.enhanceSpecial(item.slot, to);
+    // 묶음 82 #395: 부위 · 등급마다 재료
+    final need = EquipmentRules.enhanceNeeds(item, to);
+    final cost = (manaStones: need.manaStones, gold: need.gold);
+    final spend = {for (final e in need.materials.entries) e.key.name: e.value};
     final today = await _todayRecord();
     await _save(today.copyWith(
       spends: DailyRecord.addCounts(today.spends,
-          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
+          {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, ...spend}),
     ));
     // 묶음 31 #193: 집중 단조 → 성공률이 오르고(화면 %에도), 실패해도 무사 (쓴 마석·금화를 돌려받음)
     final focus = await _consumeSkill(JobSkill.focusForge);
@@ -290,13 +294,14 @@ extension SmithyOps on AppController {
       final t = await _todayRecord();
       await _save(t.copyWith(
         gains: DailyRecord.addCounts(t.gains,
-            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, if (sp != null) sp.mat.name: sp.n}),
+            {Wallet.manaStone: cost.manaStones, Wallet.gold: cost.gold, ...spend}),
       ));
     }
     _lastEnhanceSafe = safe;
     await _saveArmory(_armory.replace(item.copyWith(
       enhance: ok ? to : item.enhance,
       enhanceManaSpent: item.enhanceManaSpent + (safe ? 0 : cost.manaStones),
+      enhanceMats: safe ? item.enhanceMats : DailyRecord.addCounts(item.enhanceMats, spend),
     )));
     // 숙련도는 쌓이지만 강화 성공률에는 넣지 않는다 (화면 「성공 ○○%」와 같게)
     await gainMastery(Mastery.smith, MasteryRules.enhance,
@@ -421,6 +426,15 @@ extension SmithyOps on AppController {
         _armory.copyWith(equipped: {..._armory.equipped, item.slot: uid}));
   });
 
+  /// 묶음 82 #393: 「바로 입기」 — 못 입으면 이유 (입으면 null)
+  Future<String?> tryEquip(String uid) async {
+    final item = _armory.byUid(uid);
+    if (item == null) return '가방에서 찾을 수 없어요';
+    if (_armory.isWorn(item)) return null;
+    await equip(uid);
+    return _armory.isWorn(item) ? null : '지금은 입을 수 없어요';
+  }
+
   /// 벗는다. 묶음 72 #305: 벗은 장비는 가방 한 칸을 쓰므로, 가방이 가득하면 벗지 않는다 (false)
   Future<bool> unequip(EquipSlot slot) =>
       _serial(() async {
@@ -446,7 +460,7 @@ extension SmithyOps on AppController {
       a = a.replace(item.copyWith(durability: d));
     }
     _armory = a;
-    await store.saveJson(AppController._armoryKey, a.toJson());
+    await _saveJson(AppController._armoryKey, a.toJson());
     // 묶음 45 #231: 도르군 — 장비 내구도가 0이 됐을 때
     if (broke) await _smallTrigger(Npc.dorgun);
   }

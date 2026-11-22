@@ -163,38 +163,7 @@ extension _SmithyTabs on _SmithyScreenState {
     await _showMade(item);
   }
 
-  Future<void> _showMade(EquipItem item) => showDialog<void>(
-        context: context,
-        builder: (d) => GameAlert(
-          title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
-              textAlign: TextAlign.center,
-              style: AppText.title(22, color: equipGradeColor(item.grade))),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            EquipIcon(base: item.base, grade: item.grade, size: 96),
-            const SizedBox(height: 10),
-            EquipName(item, size: 18),
-            const SizedBox(height: 4),
-            ItemStats(item, fontSize: 14),
-            const SizedBox(height: 6),
-            const KText('가방에서 입을 수 있어요.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-          actions: [
-            TextButton(
-              key: const Key('equipNow'),
-              onPressed: () async {
-                await c.equip(item.uid);
-                if (d.mounted) Navigator.of(d).pop();
-              },
-              child: const Text('바로 입기'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(d).pop(),
-              child: const Text('닫기'),
-            ),
-          ],
-        ),
-      );
+  Future<void> _showMade(EquipItem item) => showEquipMade(context, c, item);
 
   /// 입는 중 · 가방 두 묶음 (#222)
   List<Widget> _grouped(Widget Function(EquipItem item, bool worn) card) {
@@ -235,18 +204,47 @@ extension _SmithyTabs on _SmithyScreenState {
           style: AppText.title(14, color: AppColors.goldBright));
     }
     final to = item.enhance + 1;
-    final cost = EquipmentRules.enhanceCost(to);
+    // 묶음 82 #395: 부위 · 등급마다 재료 (마석 · 금화 · 가공 재료 · 코어 · 보스 조각 · 특산물)
+    final need = EquipmentRules.enhanceNeeds(item, to);
     final chance = (c.enhanceChanceShown(to) * 100).round();
     final p = c.player;
-    // 묶음 66: +8부터 영지 특산물
-    final sp = EquipmentRules.enhanceSpecial(item.slot, to);
+    final shortMats = [
+      for (final e in need.materials.entries)
+        if (p.materialExact(e.key) < e.value) e.key,
+    ];
+    final makeable = [
+      for (final m in shortMats)
+        if (ProcessRules.all.any((r) => r.smithy && r.output == m)) m,
+    ];
+    final sources = {
+      for (final m in shortMats)
+        if (EquipmentRules.enhanceSourceLine(m) case final line?) m: line,
+    };
+    Widget chip(Widget icon, String text, bool short, Key key) => Row(key: key, mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(width: 18, height: 18, child: icon),
+          const SizedBox(width: 3),
+          Text(text,
+              style: TextStyle(
+                  color: short ? const Color(0xFFFF8A65) : AppColors.text, fontSize: 12, fontWeight: FontWeight.w700)),
+        ]);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Row(children: [
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(
-          child: KText(
-              '+${item.enhance} → +$to · 성공 $chance%\n'
-              '마석 ${cost.manaStones} · 금화 ${cost.gold}',
-              style: const TextStyle(color: AppColors.text, fontSize: 12)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            KText('+${item.enhance} → +$to · 성공 $chance%',
+                style: const TextStyle(color: AppColors.text, fontSize: 12)),
+            const SizedBox(height: 4),
+            Wrap(key: Key('enhanceCost_${item.uid}'), spacing: 8, runSpacing: 4, children: [
+              chip(_ic('mana_stone'), '마석 ${need.manaStones}', p.manaStones < need.manaStones, const Key('costMana')),
+              chip(_ic('gold'), '금화 ${need.gold}', p.gold < need.gold, const Key('costGold')),
+              for (final e in need.materials.entries)
+                chip(
+                    Image.asset(Materials.info(e.key).asset, errorBuilder: (_, __, ___) => const SizedBox()),
+                    '${Materials.info(e.key).name} ${e.value}',
+                    p.materialExact(e.key) < e.value,
+                    Key('costMat_${e.key.name}')),
+            ]),
+          ]),
         ),
         SizedBox(
           width: 96,
@@ -262,36 +260,30 @@ extension _SmithyTabs on _SmithyScreenState {
                     _snack(ok
                         ? '강화 성공! ${item.info.name} +$to'
                         : c.lastEnhanceSafe
-                            ? '강화 실패… 그래도 무사해요! 쓴 마석과 금화를 돌려받았어요.'
+                            ? '강화 실패… 그래도 무사해요! 쓴 재료를 돌려받았어요.'
                             : '강화 실패… 장비는 그대로예요.');
                   }
                 : null,
           ),
         ),
       ]),
-      if (sp != null)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(key: Key('enhanceSpecial_${item.uid}'), children: [
-            Image.asset(Materials.info(sp.mat).asset, width: 22, height: 22, errorBuilder: (_, __, ___) => const SizedBox(width: 22)),
-            const SizedBox(width: 4),
-            Text('${Materials.info(sp.mat).name} ${p.materialCount(sp.mat)}/${sp.n}',
-                style: TextStyle(
-                    color: p.materialCount(sp.mat) >= sp.n ? AppColors.text : const Color(0xFFFF8A65),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700)),
-          ]),
+      // 모자란 가공 재료: 재료 가공 탭으로 (그 재료 줄)
+      if (makeable.isNotEmpty)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            key: Key('enhanceMake_${item.uid}'),
+            onPressed: () => _goProcess(makeable.first),
+            child: Text('재료 가공에서 만들기 · ${Materials.info(makeable.first).name}',
+                style: const TextStyle(color: AppColors.goldBright, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ),
         ),
-      if (check != CraftCheck.ok)
-        _Short(
-          key: Key('short_${item.uid}'),
-          lines: [
-            if (p.manaStones < cost.manaStones)
-              (_ic('mana_stone'), '마석 ${cost.manaStones - p.manaStones}개'),
-            if (p.gold < cost.gold) (_ic('gold'), '금화 ${cost.gold - p.gold}'),
-            if (sp != null && p.materialCount(sp.mat) < sp.n)
-              (Image.asset(Materials.info(sp.mat).asset, width: 18, height: 18), '${Materials.info(sp.mat).name} ${sp.n - p.materialCount(sp.mat)}개'),
-          ],
+      for (final e in sources.entries)
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: KText('${Materials.info(e.key).name} · ${e.value}',
+              key: Key('enhanceSource_${e.key.name}'),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
         ),
       // 묶음 42 #226: 도르군의 숫돌 → 이번 강화는 꼭 성공 (마석·금화는 그대로 듦)
       if (check == CraftCheck.ok && c.whetstones > 0) ...[
@@ -523,3 +515,39 @@ extension _SmithyTabs on _SmithyScreenState {
   /// 속성이 없는 장비: 속성 고르기 + 「입히기」
   Widget _applyBox(EquipItem it) => _pickBox(it, SmithAction.apply);
 }
+
+/// 만든 장비 창 (묶음 82: 캡처에서도 씀)
+Future<void> showEquipMade(BuildContext context, AppController c, EquipItem item) => showDialog<void>(
+        context: context,
+        builder: (d) => GameAlert(
+          title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
+              textAlign: TextAlign.center,
+              style: AppText.title(22, color: equipGradeColor(item.grade))),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            EquipIcon(base: item.base, grade: item.grade, size: 96),
+            const SizedBox(height: 10),
+            EquipName(item, size: 18),
+            const SizedBox(height: 4),
+            ItemStats(item, fontSize: 14),
+            const SizedBox(height: 6),
+            const KText('가방에서 입을 수 있어요.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ]),
+          actions: [
+            // 묶음 82 #393: 작은 금테 버튼 → 「입었어요 ✓」
+            EquipNowButton(
+                key: const Key('smithyEquipNow'),
+                controller: c,
+                item: item,
+                // 대장간 안내 중이면 입은 뒤 창을 닫아 다음 단계(무기 칸 빛남)로
+                onEquipped: () {
+                  if (c.pendingFeatureIntro == Feature.smithy && d.mounted) Navigator.of(d).pop();
+                }),
+            TextButton(
+              onPressed: () => Navigator.of(d).pop(),
+              child: const Text('닫기'),
+            ),
+          ],
+        ),
+      );
+

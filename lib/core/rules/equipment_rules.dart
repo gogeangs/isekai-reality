@@ -537,9 +537,72 @@ class EquipmentRules {
         _ => 0.3,
       };
 
-  /// +[to] 로 올리는 비용 (마석 n, 금화 20n)
+  /// +[to] 로 올리는 비용 (마석 n, 금화 20n) — 등급 배수 전
   static ({int manaStones, int gold}) enhanceCost(int to) =>
       (manaStones: to, gold: 20 * to);
+
+  // ───────────── 묶음 82 #395: 강화 재료 (부위 · 등급마다)
+
+  /// 부위별 가공 재료 (무기 철 주괴 · 방어구 무두질한 가죽 · 장신구 빛바랜 룬석)
+  static MaterialId enhanceMaterial(EquipSlot slot) => switch (slot) {
+        EquipSlot.weapon => MaterialId.ironIngot,
+        EquipSlot.accessory => MaterialId.runeStone,
+        _ => MaterialId.tannedLeather,
+      };
+
+  /// 가공 재료 개수: +1·+2 → 1 / +3·+4 → 2 / +5·+6 → 3 / +7~+10 → 4
+  static int enhanceMaterialCount(int to) => to <= 2
+      ? 1
+      : to <= 4
+          ? 2
+          : to <= 6
+              ? 3
+              : 4;
+
+  /// 등급 배수 (마석 · 금화 · 가공 재료, 올림): 흰 · 초록 ×1 · 파랑 ×1.5 · 보라 ×2 · 주황 ×3
+  static double enhanceGradeMult(EquipGrade g) => switch (g) {
+        EquipGrade.white || EquipGrade.green => 1,
+        EquipGrade.blue => 1.5,
+        EquipGrade.purple => 2,
+        EquipGrade.orange => 3,
+      };
+
+  /// +[to] 로 올릴 때 드는 것 전부 (마석 · 금화 · 재료). 실패하면 모두 사라짐
+  static ({int manaStones, int gold, Map<MaterialId, int> materials}) enhanceNeeds(EquipItem item, int to) {
+    final m = enhanceGradeMult(item.grade);
+    int up(num v) => (v * m - 1e-9).ceil();
+    final base = enhanceCost(to);
+    final mats = <MaterialId, int>{
+      enhanceMaterial(item.slot): up(enhanceMaterialCount(to)),
+    };
+    void add(MaterialId id, int n) => mats[id] = (mats[id] ?? 0) + n;
+    // 보라 · 주황: 장비 속성과 같은 빛나는 코어 (속성 없으면 빛)
+    if (item.grade == EquipGrade.purple || item.grade == EquipGrade.orange) {
+      add(imbueCore(item.element ?? Element.light), to <= 5 ? 1 : 2);
+    }
+    // 주황: 보스 조각
+    if (item.grade == EquipGrade.orange) add(MaterialId.bossShard, to <= 5 ? 1 : 2);
+    // +8 · +9 · +10 영지 특산물
+    if (enhanceSpecial(item.slot, to) case final sp?) add(sp.mat, sp.n);
+    return (manaStones: up(base.manaStones), gold: up(base.gold), materials: mats);
+  }
+
+  /// 빛나는 코어 · 보스 조각 얻는 곳 한 줄
+  static String? enhanceSourceLine(MaterialId id) => switch (id) {
+        MaterialId.bossShard => '던전 보스 · 보스 장비 분해',
+        MaterialId.glowFireCore ||
+        MaterialId.glowWaterCore ||
+        MaterialId.glowWindCore ||
+        MaterialId.glowEarthCore ||
+        MaterialId.glowLightCore ||
+        MaterialId.glowShadowCore ||
+        MaterialId.glowIceCore ||
+        MaterialId.glowThunderCore ||
+        MaterialId.glowMetalCore ||
+        MaterialId.glowPoisonCore =>
+          '속성 코어 3개를 공방에서 가공',
+        _ => null,
+      };
 
   /// 묶음 66: +8 · +9 · +10 으로 올릴 때 마석 · 금화에 더해 영지 특산물 1 · 2 · 3개
   /// (무기 용암석 · 방어구 청동 광석 · 장신구 안개 결정). 실패하면 마석처럼 사라짐
@@ -567,10 +630,13 @@ class EquipmentRules {
   }
 
   /// 분해하면 돌려받는 것: 넣은 재료의 절반(내림)과 마석 1, 강화에 쓴 마석의 절반
+  /// 묶음 82 #395: 강화에 쓴 가공 재료 · 귀한 재료도 절반(내림)
   static ({int manaStones, Map<MaterialId, int> materials}) salvage(
       EquipItem item) {
     final mats = <MaterialId, int>{};
-    item.materialsUsed.forEach((k, v) {
+    final all = <String, int>{...item.materialsUsed};
+    item.enhanceMats.forEach((k, v) => all[k] = (all[k] ?? 0) + v);
+    all.forEach((k, v) {
       final id = Materials.byName(k);
       if (id != null && v ~/ 2 > 0) mats[id] = v ~/ 2;
     });

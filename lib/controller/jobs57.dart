@@ -178,7 +178,7 @@ extension Job57Ops on AppController {
     final from = _dayNum(_clock());
     if (!_jobs.awakened) {
       _jobs = _jobs.copyWith(v57: true, marks: {..._jobs.marks, 'tokenFrom': from});
-      await store.saveJson(AppController._jobsKey, _jobs.toJson());
+      await _saveJson(AppController._jobsKey, _jobs.toJson());
       return;
     }
     final keep = <JobId>{
@@ -205,7 +205,7 @@ extension Job57Ops on AppController {
       masteryShown: _jobs.masteryShown,
       v31: true,
     );
-    await store.saveJson(AppController._jobsKey, _jobs.toJson());
+    await _saveJson(AppController._jobsKey, _jobs.toJson());
   }
 
   /// 「직업이 새로 정리됐어요」 다시 고르기인지

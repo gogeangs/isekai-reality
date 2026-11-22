@@ -242,11 +242,12 @@ void main() {
       await open(tester, stones: 0);
       await tab(tester, 1);
       expect(find.byKey(const Key('group_worn')), findsOneWidget);
+      // 묶음 82: 카드가 길어져 가방 묶음은 아래로 내려야 보임
+      await tester.scrollUntilVisible(find.byKey(const Key('group_bag')), 300,
+          scrollable: find.descendant(of: find.byKey(const Key('smithyList')), matching: find.byType(Scrollable)));
       expect(find.byKey(const Key('group_bag')), findsOneWidget);
-      expect(tester.getTopLeft(find.byKey(const Key('enhanceCard_w'))).dy,
-          lessThan(tester.getTopLeft(find.byKey(const Key('group_bag'))).dy));
-      expect(find.byKey(const Key('short_w')), findsOneWidget);
-      expect(allText(tester), contains('개 모자라요'));
+      // 묶음 82 #395: 모자란 것은 비용 줄에서 붉게 (따로 한 줄 없음)
+      expect(find.byKey(const Key('enhanceCost_w'), skipOffstage: false), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
     });
 

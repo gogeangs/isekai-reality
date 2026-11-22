@@ -20,7 +20,7 @@ extension JobOps on AppController {
 
   Future<void> _saveJobs(JobState j) async {
     _jobs = j;
-    await store.saveJson(AppController._jobsKey, j.toJson());
+    await _saveJson(AppController._jobsKey, j.toJson());
     _notify();
   }
 
@@ -288,7 +288,7 @@ extension JobOps on AppController {
     if (i < 0) i = 0;
     final first = _jobs.newJobs[i];
     _jobs = _jobs.copyWith(newJobs: [..._jobs.newJobs]..removeAt(i));
-    unawaited(store.saveJson(AppController._jobsKey, _jobs.toJson()));
+    unawaited(_saveJson(AppController._jobsKey, _jobs.toJson()));
     if (first.startsWith('ms:')) {
       // 'ms:<개수>:<이름>'
       final parts = first.split(':');
@@ -929,6 +929,7 @@ extension JobOps on AppController {
 
   /// 「새로 열렸어요」 카드·손가락 안내를 보여 줄 때인지
   bool get skillIntroPending =>
+      _tourHold.contains('skill') ||
       _jobs.pageOpen &&
       !_jobs.pageIntro &&
       !inTutorial &&
@@ -937,6 +938,7 @@ extension JobOps on AppController {
       !jobAwakenPending;
 
   Future<void> markSkillIntro() async {
+    endTour('skill');
     if (_jobs.pageIntro) return;
     await _saveJobs(_jobs.copyWith(pageIntro: true));
   }
@@ -1161,6 +1163,13 @@ extension JobOps on AppController {
     b.lanternBurst = gear.sets.lanternBurst;
     b.lanternBurstMult = GuildRules.set6BurstMult;
     if (!_jobs.awakened) return b;
+    // 묶음 82 #392: 자동 마시기 MP 기준 (직업 MP는 앱이 가짐)
+    b
+      ..autoMp = _alc.autoMp
+      ..jobMpMax = jobMpMax
+      ..jobMpNow = (() => jobMp)
+      ..onJobMp = ((g) => unawaited(_setJobMp(math.min(jobMpMax, jobMp + g))))
+      ..onAutoMpChanged = ((v) => unawaited(setAutoUse(mpPercent: v)));
     b.weaponEnhance = _armory.wornIn(EquipSlot.weapon)?.enhance ?? 0;
     b.artisanSubs = subJobs.length;
     b.nightTime = JobRules.isNight(_clock());

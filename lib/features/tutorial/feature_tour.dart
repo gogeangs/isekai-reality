@@ -902,18 +902,42 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
     }));
   }
 
+  /// 묶음 82 #383: 누를 곳을 기다리기 시작한 때 (3초 넘게 못 찾으면 안내 끝 = 봤음)
+  String? _waitSig;
+  DateTime? _waitSince;
+  static const Duration _waitLimit = Duration(seconds: 3);
+
+  bool _waitedTooLong(String sig) {
+    final now = DateTime.now();
+    if (_waitSig != sig) {
+      _waitSig = sig;
+      _waitSince = now;
+      return false;
+    }
+    return now.difference(_waitSince!) > _waitLimit;
+  }
+
   void _compute() {
     final f = c.pendingFeatureIntro;
     TourStep? step;
     var skill = false;
+    String? kind;
     if (f == null &&
         c.skillIntroPending &&
         !b.paused &&
         !c.holdNotices &&
         c.ready) {
       skill = true;
+      kind = 'skill';
       step = _skillIntro();
-      if (step != null && step.wait) _scheduleRetry('skills:${step.line}');
+      if (step != null && step.wait) {
+        if (_waitedTooLong('skills:${step.line}')) {
+          unawaited(_finishSkill());
+          step = null;
+        } else {
+          _scheduleRetry('skills:${step.line}');
+        }
+      }
     } else if (f == null &&
         c.shelterIntroPending &&
         !b.paused &&
@@ -922,6 +946,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         (b.top == null || b.top == 'home')) {
       // 묶음 35: 펫 쉼터 「새로 열렸어요」 카드 (한 번만, 예전 Lv.11 이상 계정도)
       skill = true;
+      kind = 'shelter';
       step = TourStep('펫 쉼터가 열렸어! 알은 둥지에서, 지친 펫은 여기서 쉬어.',
           opened: ('펫 쉼터', 'village_shelter'),
           button: ('알겠어', _finishShelter));
@@ -932,6 +957,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         c.ready &&
         (b.top == null || b.top == 'home')) {
       skill = true;
+      kind = 'subJob';
       step = TourStep('조합에서 보조 직업을 더할 수 있어!',
           opened: ('보조 직업', 'sub_job:${c.mainJob!.name}'),
           button: ('가 보기', () => _finishSubJob(go: true)));
@@ -943,6 +969,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         (b.top == null || b.top == 'home')) {
       // 묶음 43 #228: 훈련장 「새로 열렸어요」 카드 (한 번만, 예전 Lv.13 이상 계정도)
       skill = true;
+      kind = 'training';
       step = TourStep(TrainingRules.openedLine,
           opened: ('훈련장', 'village_training'),
           button: ('알겠어', _finishTraining));
@@ -954,6 +981,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         (b.top == null || b.top == 'home')) {
       // 묶음 48 #230: 약초밭 「새로 열렸어요」 카드 (한 번만, 예전 Lv.9 이상 계정도)
       skill = true;
+      kind = 'garden';
       step = TourStep(GardenRules.openedLine,
           opened: ('약초밭', 'village_garden'),
           button: ('알겠어', _finishGarden));
@@ -965,6 +993,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         (b.top == null || b.top == 'home')) {
       // 묶음 51 #242: 주점 「새로 열렸어요」 카드 (만남 장면 뒤 한 번)
       skill = true;
+      kind = 'tavern';
       step = TourStep(TavernRules.openedLine,
           opened: ('주점', 'village_tavern'),
           button: ('알겠어', _finishTavern));
@@ -981,11 +1010,23 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
         step = _openedStep(f);
       }
       if (step != null && step.wait) {
-        _scheduleRetry('${f.name}:${step.line}');
+        if (_waitedTooLong('${f.name}:${step.line}')) {
+          // 누를 곳을 끝내 못 찾음 → 그 안내는 끝(봤음)
+          unawaited(_finish(f));
+          step = null;
+        } else {
+          _scheduleRetry('${f.name}:${step.line}');
+        }
       }
-      _scrollIntoView(f, step);
+      if (step != null) _scrollIntoView(f, step);
       if (step != null && step.line.isEmpty) step = null;
+      if (step != null) kind = 'f:${f.name}';
     }
+    if (step == null || !(step.wait)) {
+      if (step != null) _waitSig = null;
+    }
+    // 묶음 82 #383: 첫 카드를 보여 주는 순간 「봤음」 저장 (이번 실행에서는 끝까지 이어 감)
+    if (step != null && kind != null && !c.tourHeld(kind)) unawaited(c.beginTour(kind));
     if (!_same(step, _shown) || f != _shownFeature || skill != _skillMode) {
       setState(() {
         _shown = step;

@@ -271,7 +271,7 @@ extension BattleOps on AppController {
     if (_nearDay == day) return;
     _nearDay = day;
     _nearAnchor = p;
-    await store.saveJson(AppController._nearKey,
+    await _saveJson(AppController._nearKey,
         {'day': day, 'lat': p.lat, 'lng': p.lng});
   }
 
@@ -389,7 +389,7 @@ extension BattleOps on AppController {
   bool get poisonTipSeen => _poisonTipSeen;
 
   Future<void> _saveFeel() async {
-    await store.saveJson(AppController._feelKey, {
+    await _saveJson(AppController._feelKey, {
       'vibrate': _vibrate,
       'sound': _sound,
       'fast': _fastBattle,
@@ -441,7 +441,7 @@ extension BattleOps on AppController {
 
   Future<void> _setTired(DateTime? until) async {
     _tiredUntil = until;
-    await store.saveJson(
+    await _saveJson(
         AppController._tiredKey, {if (until != null) 'until': until.toIso8601String()});
   }
 

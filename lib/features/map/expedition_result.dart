@@ -15,6 +15,12 @@ import '../../theme/top_notice.dart';
 /// 원정 결과 (성공·실패·놓쳤어요)
 enum ExpeditionOutcome { success, fail, missed }
 
+/// 묶음 82 #381: 「HP -○ · MP -○」
+String expeditionLossLine(Expedition ex) => [
+      if (ex.hpLost > 0) 'HP -${ex.hpLost}',
+      if (ex.mpLost > 0) 'MP -${ex.mpLost}',
+    ].join(' · ');
+
 ExpeditionOutcome outcomeOf(Expedition ex) => ex.cleared == true
     ? ExpeditionOutcome.success
     : ex.escaped
@@ -273,6 +279,14 @@ class _ExpeditionResultCardState extends State<ExpeditionResultCard> {
               textAlign: TextAlign.center,
               style: const TextStyle(
                   color: AppColors.text, fontSize: 14, height: 1.4)),
+          // 묶음 82 #381: 따라간 주인공이 줄어든 HP · MP
+          if (ex.hpLost > 0 || ex.mpLost > 0) ...[
+            const SizedBox(height: 6),
+            Text(expeditionLossLine(ex),
+                key: const Key('expLoss'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFFF9A9A), fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
           if (!reward.isEmpty) ...[
             const SizedBox(height: 12),
             if (_plus case final plus?)

@@ -187,7 +187,7 @@ void main() {
       await tester.runAsync(() => c.restAtInn());
       await tester.pumpWidget(_host(InnScreen(controller: c)));
       await tester.pump();
-      expect(find.text('가득 찼어요 · 언제든 일어나도 돼요'), findsOneWidget);
+      expect(find.text('쉬는 중'), findsOneWidget); // 묶음 82 #391: 띠는 「쉬는 중」만
       expect(
           find.descendant(
               of: find.byKey(const Key('innFill_jobMp')),

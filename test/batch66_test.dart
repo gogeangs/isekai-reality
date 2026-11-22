@@ -96,7 +96,8 @@ void main() {
       expect(EquipmentRules.enhanceSpecial(EquipSlot.weapon, 8), (mat: MaterialId.fireStone, n: 1));
       expect(EquipmentRules.enhanceSpecial(EquipSlot.body, 9), (mat: MaterialId.metalOre, n: 2));
       expect(EquipmentRules.enhanceSpecial(EquipSlot.accessory, 10), (mat: MaterialId.darkCrystal, n: 3));
-      final c = await _gear(7, const {'metalOre': 1});
+      // 묶음 82 #395: 부위 가공 재료도 있게
+      final c = await _gear(7, const {'metalOre': 1, 'ironIngot': 20, 'tannedLeather': 20});
       final w = c.armory.byUid('w')!, b = c.armory.byUid('b')!;
       expect(c.canEnhance(w), CraftCheck.materials, reason: '용암석이 없음');
       expect(c.canEnhance(b), CraftCheck.ok);

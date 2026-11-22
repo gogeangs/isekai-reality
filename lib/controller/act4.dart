@@ -236,7 +236,7 @@ extension Act4Ops on AppController {
   bool get guildBusy => _guildBusy;
   String? get guildError => _guildError;
 
-  Future<void> _saveAct4() => store.saveJson(AppController._act4Key, _act4.toJson());
+  Future<void> _saveAct4() => _saveJson(AppController._act4Key, _act4.toJson());
 
   /// 지금까지 걸은 걸음 합
   int get _totalSteps => _history.fold<int>(0, (t, r) => t + r.steps);

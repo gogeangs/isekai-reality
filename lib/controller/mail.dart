@@ -7,7 +7,7 @@ extension MailOps on AppController {
 
   Future<void> _saveMail(MailState m) async {
     _mail = m;
-    await store.saveJson(AppController._mailKey, m.toJson());
+    await _saveJson(AppController._mailKey, m.toJson());
     _notify();
   }
 

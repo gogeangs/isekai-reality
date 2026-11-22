@@ -387,6 +387,6 @@ extension PartyOps on AppController {
 
   Future<void> _savePartyLocal(PartyLocal s) async {
     _partyLocal = s;
-    await store.saveJson(AppController._partyKey, s.toJson());
+    await _saveJson(AppController._partyKey, s.toJson());
   }
 }

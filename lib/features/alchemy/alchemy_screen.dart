@@ -699,9 +699,12 @@ Future<void> showBrewResult(BuildContext context, AppController c, BrewResult r)
 
 /// 재료 가공 (11-11 #59): 대장간 · 공방
 class ProcessPanel extends StatelessWidget {
-  const ProcessPanel({super.key, required this.controller, this.smithy = false});
+  const ProcessPanel({super.key, required this.controller, this.smithy = false, this.focus});
 
   final AppController controller;
+
+  /// 묶음 82 #395: 강화 탭 「재료 가공에서 만들기」로 왔을 때 그 재료 줄을 금테로
+  final MaterialId? focus;
 
   /// 대장간 가공(광석·나무·가죽)인지, 공방 가공(젤리·약초·코어)인지
   final bool smithy;
@@ -720,8 +723,15 @@ class ProcessPanel extends StatelessWidget {
           Text(smithy ? '대장간 가공' : '공방 가공', style: AppText.title(19)),
           const SizedBox(height: 6),
           for (final r in list)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+            Container(
+              key: Key('processRow_${r.id}'),
+              padding: EdgeInsets.symmetric(vertical: 6, horizontal: focus == r.output ? 6 : 0),
+              decoration: focus == r.output
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.goldBright, width: 1.6),
+                      color: const Color(0x22E9C46A))
+                  : null,
               child: Row(children: [
                 MaterialIcon(r.output, size: 40),
                 const SizedBox(width: 10),

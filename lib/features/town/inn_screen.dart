@@ -78,13 +78,10 @@ class InnScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 if (resting) ...[
-                  GoldButton(
-                    key: const Key('innResting'),
-                    label: full
-                        ? '가득 찼어요 · 언제든 일어나도 돼요'
-                        : paused
-                            ? '쉬는 중 · 원정 중이라 멈췄어요'
-                            : '쉬는 중 · 시간당 20%씩 차요',
+                  const GoldButton(
+                    key: Key('innResting'),
+                    // 묶음 82 #391: 띠는 「쉬는 중」만 (차오름은 아래 막대로)
+                    label: '쉬는 중',
                     onPressed: null,
                   ),
                   // 묶음 81 #373: 광고 보고 바로 회복 (1시간치, 한 번 체크인에 두 번까지)
@@ -106,7 +103,7 @@ class InnScreen extends StatelessWidget {
                   TextButton(
                     key: const Key('innWake'),
                     onPressed: () => c.stopResting(),
-                    child: const KText('일어나기 (찬 만큼은 그대로)',
+                    child: const KText('일어나기',
                         style: TextStyle(color: AppColors.textMuted)),
                   ),
                 ] else

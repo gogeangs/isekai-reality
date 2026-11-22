@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isekai_reality/features/act2/ash_turn_view.dart';
 import 'package:isekai_reality/app_controller.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/models/act2_state.dart';
@@ -322,7 +323,7 @@ void main() {
       addTearDown(tester.view.reset);
     }
 
-    testWidgets('잿빛 틈: 입장 → 전투 → 이기면 결과와 왕의 사연', (tester) async {
+    testWidgets('잿빛 틈: 입장 → 턴제 전투(묶음 82) → 이기면 결과 · 사연은 다시 보기에서', (tester) async {
       phone(tester);
       late AppController c;
       await tester.runAsync(() async => c = await start(account(12)));
@@ -334,24 +335,17 @@ void main() {
       expect(find.text('오늘 남은 도전 3번'), findsOneWidget);
       await tester.tap(find.byKey(const Key('ashEnter')));
       await tester.pump();
-      expect(find.byType(BattleView), findsOneWidget);
-      final b = tester.widget<BattleView>(find.byType(BattleView)).battle;
-      b.foeHp = 1;
-      for (var i = 0; i < 60 && !b.isOver; i++) {
-        b.foeHp = math.min(b.foeHp, 1);
-        await tester.pump(const Duration(milliseconds: 40));
+      expect(find.byType(AshTurnView), findsOneWidget);
+      final t = tester.widget<AshTurnView>(find.byType(AshTurnView)).turn;
+      t.foeHp = 1;
+      await tester.tap(find.byKey(const Key('ashCmd_attack')));
+      for (var i = 0; i < 30; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
       }
-      expect(b.isOver, isTrue);
-      await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 200)));
-      for (var i = 0; i < 10; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-      }
-      expect(find.byKey(const Key('kingStoryText')), findsOneWidget);
-      await tester.pump(const Duration(seconds: 2));
-      await tester.tap(find.byKey(const Key('kingStoryClose')));
-      await tester.pump(const Duration(milliseconds: 400));
+      expect(t.won, isTrue);
       expect(find.byKey(const Key('ashBack')), findsOneWidget);
+      expect(find.byKey(const Key('ashStoryAgain')), findsOneWidget);
       expect(c.act2.beaten, 1);
     });
 

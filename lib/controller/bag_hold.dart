@@ -220,7 +220,7 @@ extension BagHoldOps on AppController {
       final h = {..._bag.hold};
       toHold.forEach((k, v) => h[k] = (h[k] ?? 0) + v);
       _bag = _bag.copyWith(hold: h);
-      await store.saveJson(AppController._bagKey, _bag.toJson());
+      await _saveJson(AppController._bagKey, _bag.toJson());
       _bagHoldNew = true;
     }
     if (toMail.isNotEmpty || equips.isNotEmpty) {
@@ -308,7 +308,7 @@ extension BagHoldOps on AppController {
       h.remove(k);
     }
     _bag = _bag.copyWith(hold: h);
-    await store.saveJson(AppController._bagKey, _bag.toJson());
+    await _saveJson(AppController._bagKey, _bag.toJson());
     _notify();
   }
 
@@ -318,7 +318,7 @@ extension BagHoldOps on AppController {
         final s = _splitBag(_bag.hold);
         await _giveBag(s.fit);
         _bag = _bag.copyWith(hold: s.rest);
-        await store.saveJson(AppController._bagKey, _bag.toJson());
+        await _saveJson(AppController._bagKey, _bag.toJson());
         _notify();
         return s.rest.length;
       });

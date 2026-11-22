@@ -39,6 +39,7 @@ extension TavernOps on AppController {
 
   /// 「새로 열렸어요」 주점 카드 (한 번)
   bool get tavernIntroPending =>
+      _tourHold.contains('tavern') ||
       tavernOpen &&
       !_village.contains('tavernCard') &&
       !inTutorial &&
@@ -46,7 +47,10 @@ extension TavernOps on AppController {
       !skillIntroPending &&
       !farewellPending;
 
-  Future<void> markTavernIntro() => _markVillage(['tavernCard']);
+  Future<void> markTavernIntro() async {
+    endTour('tavern');
+    await _markVillage(['tavernCard']);
+  }
 
   // ───────────── 한 끼 식사 (하루 한 번, 그날 자정까지 걸을 때만)
 
@@ -214,5 +218,5 @@ extension TavernOps on AppController {
   bool get hasBarkanSeal => _npc.perks.contains('barkanSeal');
 
   Future<void> _saveTavern() =>
-      store.saveJson(AppController._tavernKey, _tavern.toJson());
+      _saveJson(AppController._tavernKey, _tavern.toJson());
 }

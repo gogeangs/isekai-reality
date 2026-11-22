@@ -12,6 +12,7 @@ class EquipItem {
     this.extras = const {},
     this.materialsUsed = const {},
     this.enhanceManaSpent = 0,
+    this.enhanceMats = const {},
     this.appearance,
     this.element,
     this.elementLevel = 0,
@@ -47,6 +48,9 @@ class EquipItem {
   /// 강화에 쓴 마석 (분해할 때 절반을 돌려준다)
   final int enhanceManaSpent;
 
+  /// 묶음 82 #395: 강화에 쓴 재료 (성공 · 실패 모두, 분해하면 절반)
+  final Map<String, int> enhanceMats;
+
   /// 입은 모습 (2차: 캐릭터에 보이기. 지금은 비워 둔다)
   final String? appearance;
 
@@ -60,6 +64,7 @@ class EquipItem {
     int? enhance,
     int? durability,
     int? enhanceManaSpent,
+    Map<String, int>? enhanceMats,
     Element? element,
     int? elementLevel,
     bool clearElement = false,
@@ -75,6 +80,7 @@ class EquipItem {
         extras: extras ?? this.extras,
         materialsUsed: materialsUsed,
         enhanceManaSpent: enhanceManaSpent ?? this.enhanceManaSpent,
+        enhanceMats: enhanceMats ?? this.enhanceMats,
         appearance: appearance,
         element: clearElement ? null : (element ?? this.element),
         elementLevel: clearElement ? 0 : (elementLevel ?? this.elementLevel),
@@ -90,6 +96,7 @@ class EquipItem {
         'extras': extras,
         'materialsUsed': materialsUsed,
         'enhanceManaSpent': enhanceManaSpent,
+        if (enhanceMats.isNotEmpty) 'enhanceMats': enhanceMats,
         'appearance': appearance,
         if (element != null) 'element': element!.name,
         if (elementLevel > 0) 'elementLevel': elementLevel,
@@ -114,6 +121,10 @@ class EquipItem {
       extras: counts(j['extras']),
       materialsUsed: counts(j['materialsUsed']),
       enhanceManaSpent: (j['enhanceManaSpent'] as num?)?.toInt() ?? 0,
+      enhanceMats: {
+        for (final e in ((j['enhanceMats'] as Map?) ?? const {}).entries)
+          if (e.value is num) '${e.key}': (e.value as num).toInt(),
+      },
       appearance: j['appearance'] as String?,
       element: ElementRules.parse(j['element'] as String?),
       elementLevel: (j['elementLevel'] as num?)?.toInt() ?? 0,

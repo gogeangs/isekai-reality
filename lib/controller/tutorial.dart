@@ -34,7 +34,7 @@ extension TutorialOps on AppController {
     return p;
   }
 
-  Future<void> _savePins() => store.saveJson(AppController._pinsKey, {
+  Future<void> _savePins() => _saveJson(AppController._pinsKey, {
         'day': _pinsDay,
         'spots': {
           for (final e in _pins.entries) e.key: [e.value.lat, e.value.lng],
@@ -285,7 +285,7 @@ extension TutorialOps on AppController {
   }
 
   Future<void> _saveGifts() =>
-      store.saveJson(AppController._giftsKey, {'got': _gifts.toList()});
+      _saveJson(AppController._giftsKey, {'got': _gifts.toList()});
 
   /// 지금 튜토리얼 단계 (끝났거나 기존 사용자면 [TutorialStep.done])
   TutorialStep get tutorialStep => TutorialStep.values[
@@ -295,7 +295,7 @@ extension TutorialOps on AppController {
 
   Future<void> _setTutorial(TutorialStep step) async {
     _tutorial = step.index;
-    await store.saveJson(AppController._tutorialKey, {'step': _tutorial});
+    await _saveJson(AppController._tutorialKey, {'step': _tutorial});
     _notify();
   }
 
@@ -359,6 +359,10 @@ extension TutorialOps on AppController {
   /// 막 열린 기능의 안내 (레벨업 창 등을 닫은 뒤 한 번)
   Feature? get pendingFeatureIntro {
     if (_legacyGates || inTutorial || pendingLevelUp != null) return null;
+    // 묶음 82 #383: 보여 주기 시작한 안내는 「봤음」으로 저장해도 끝날 때까지 이어 감
+    for (final f in Feature.values) {
+      if (_tourHold.contains('f:${f.name}')) return f;
+    }
     for (final f in Feature.values) {
       // 묶음 25 #165: 능력치 안내는 Lv.2 에서만 시작한다 (이미 Lv.3 이상이면 넘김)
       if (f == Feature.stats && player.level.level >= 3) continue;
@@ -367,7 +371,65 @@ extension TutorialOps on AppController {
     return null;
   }
 
+  // ───────────── 묶음 82 #383: 안내 첫 카드를 보여 준 순간 「봤음」
+
+  /// 지금 보여 주는 안내인지 (봤음으로 저장했어도 이번 실행에서는 끝까지)
+  bool tourHeld(String kind) => _tourHold.contains(kind);
+
+  /// 안내 첫 카드를 보여 줄 때: 바로 「봤음」 저장 (앱을 꺼도 다시 안 띄움) · 이번 실행에서는 이어 감.
+  /// kind: f:<기능> · skill · shelter · training · garden · tavern · subJob · chatTour
+  Future<void> beginTour(String kind) async {
+    if (!_tourHold.add(kind)) return;
+    if (kind.startsWith('f:')) {
+      final f = Feature.values.firstWhere((x) => x.name == kind.substring(2));
+      _introsSeen = {..._introsSeen, f.name};
+      await _saveGates();
+      return;
+    }
+    switch (kind) {
+      case 'skill':
+        if (!_jobs.pageIntro) await _saveJobs(_jobs.copyWith(pageIntro: true));
+      case 'shelter':
+        await _markVillage(['shelterCard']);
+      case 'training':
+        await _markVillage(['trainingCard']);
+      case 'garden':
+        await _markVillage(['gardenCard']);
+        await _gardenStarter();
+      case 'tavern':
+        await _markVillage(['tavernCard']);
+      case 'subJob':
+        await _markVillage(['subJobCard']);
+      case 'chatTour':
+        await _markVillage(['chatTour']);
+    }
+  }
+
+  /// 안내가 끝났을 때 (끝 · 건너뛰기 · 대상을 못 찾음)
+  void endTour(String kind) {
+    if (_tourHold.remove(kind)) _notify();
+  }
+
+  /// 묶음 82 #383: 앱이 열릴 때 — 이미 써 본 기능의 안내는 「봤음」으로
+  Future<void> _seenUsedFeatures82() async {
+    if (_legacyGates) return;
+    final used = <Feature>{
+      if (_armory.items.isNotEmpty) Feature.smithy,
+      if (_harvest.total > 0) Feature.harvest,
+      if (_alc.discovered.isNotEmpty || _alc.brews.isNotEmpty || _alc.potions.isNotEmpty) Feature.alchemy,
+      if (_alloc.allocated.toJson().values.whereType<num>().any((v) => v > 0)) Feature.stats,
+    };
+    final add = {
+      for (final f in used)
+        if (featureOpen(f) && !_introsSeen.contains(f.name)) f.name,
+    };
+    if (add.isEmpty) return;
+    _introsSeen = {..._introsSeen, ...add};
+    await _saveGates();
+  }
+
   Future<void> markFeatureIntro(Feature f) async {
+    endTour('f:${f.name}');
     _introsSeen = {..._introsSeen, f.name};
     _unpin(AppController.guideHuntId);
     _unpin('tutorial-harvest');
@@ -378,7 +440,7 @@ extension TutorialOps on AppController {
     _notify();
   }
 
-  Future<void> _saveGates() => store.saveJson(AppController._gatesKey, {
+  Future<void> _saveGates() => _saveJson(AppController._gatesKey, {
         'legacy': _legacyGates,
         'seen': _introsSeen.toList(),
         'hpTip': _hpTipShown,

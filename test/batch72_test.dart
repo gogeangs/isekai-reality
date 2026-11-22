@@ -61,8 +61,8 @@ void main() {
       final spawn = c.todaySpawns.first;
       final b = c.startFieldBattle(spawn)!..runToEnd();
       await c.finishFieldBattle(spawn, b);
-      // 정령이 떠나기 전 처음 알(4%)은 숨은 채로 들어온다 (묶음 75 #327) → 그 칸은 빼고 본다
-      expect(c.bagUsed - c.pets.eggs.length, lessThanOrEqualTo(c.bagCapacity));
+      // 묶음 82 #386: 정령 이별 전 숨은 알은 칸에 넣지 않음
+      expect(c.bagUsed, lessThanOrEqualTo(c.bagCapacity));
     });
 
     test('칸이 줄어 넘친 까닭: 어제 큰 짐 보따리 → 「늘어났던 칸이 끝나서」', () async {

@@ -165,6 +165,7 @@ extension GardenOps on AppController {
 
   /// 「새로 열렸어요」 약초밭 카드 (한 번만, 예전 Lv.9 이상 계정도)
   bool get gardenIntroPending =>
+      _tourHold.contains('garden') ||
       gardenOpen &&
       !_village.contains('gardenCard') &&
       !inTutorial &&
@@ -176,6 +177,7 @@ extension GardenOps on AppController {
 
   /// 카드를 넘기면 포포가 씨앗을 나눠 준다 (한 번만)
   Future<void> markGardenIntro() async {
+    endTour('garden');
     await _markVillage(['gardenCard']);
     await _gardenStarter();
   }
@@ -224,7 +226,7 @@ extension GardenOps on AppController {
 
   Future<void> _saveGarden(GardenState g) async {
     _garden = g;
-    await store.saveJson(AppController._gardenKey, g.toJson());
+    await _saveJson(AppController._gardenKey, g.toJson());
     _notify();
   }
 }

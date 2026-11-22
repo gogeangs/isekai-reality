@@ -7,7 +7,7 @@ extension GatherOps on AppController {
 
   Future<void> _saveGather(GatherState g) async {
     _gather = g;
-    await store.saveJson(AppController._gatherKey, g.toJson());
+    await _saveJson(AppController._gatherKey, g.toJson());
     _notify();
   }
 

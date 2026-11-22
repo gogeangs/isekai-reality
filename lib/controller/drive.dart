@@ -15,7 +15,7 @@ extension DriveOps on AppController {
 
   Future<void> _saveDrive(DriveState d) async {
     _drive = d;
-    await store.saveJson(AppController._driveKey, d.toJson());
+    await _saveJson(AppController._driveKey, d.toJson());
     _notify();
   }
 

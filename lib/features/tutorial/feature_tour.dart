@@ -907,6 +907,9 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
   String? _waitSig;
   Timer? _waitTimer;
   bool _waitExpired = false;
+
+  /// 이미 그만둔 기다림 (한 번만 끝내기 · 매 프레임 다시 부르지 않게)
+  final Set<String> _gaveUp = {};
   static const Duration _waitLimit = Duration(seconds: 3);
 
   bool _waitedTooLong(String sig) {
@@ -938,7 +941,7 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       step = _skillIntro();
       if (step != null && step.wait) {
         if (_waitedTooLong('skills:${step.line}')) {
-          unawaited(_finishSkill());
+          if (_gaveUp.add('skills:${step.line}')) unawaited(_finishSkill());
           step = null;
         } else {
           _scheduleRetry('skills:${step.line}');
@@ -1017,8 +1020,8 @@ class _FeatureTourLayerState extends State<FeatureTourLayer> {
       }
       if (step != null && step.wait) {
         if (_waitedTooLong('${f.name}:${step.line}')) {
-          // 누를 곳을 끝내 못 찾음 → 그 안내는 끝(봤음)
-          unawaited(_finish(f));
+          // 누를 곳을 끝내 못 찾음 → 그 안내는 끝(봤음). 한 번만
+          if (_gaveUp.add('${f.name}:${step.line}')) unawaited(_finish(f));
           step = null;
         } else {
           _scheduleRetry('${f.name}:${step.line}');

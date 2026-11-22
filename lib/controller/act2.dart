@@ -317,7 +317,13 @@ extension Act2Ops on AppController {
     final next = nextAvatar;
     if (next != null && announced <= next.index) {
       announced = next.index + 1;
-      lines.add(Act2Rules.riftFirstLine);
+      // 묶음 82 #390: 긴 설명은 첫 잿빛 틈(분노)에만, 두 번째부터는 짧은 소식 띠
+      if (next == AshAvatar.rage) {
+        lines.add(Act2Rules.riftFirstLine);
+      } else {
+        _riftNews = next;
+        _notify();
+      }
     }
     if (_act2.beaten >= 5 && !_act2.kingDone && announced < 6) {
       announced = 6;
@@ -329,6 +335,16 @@ extension Act2Ops on AppController {
     unawaited(_saveMastery());
     unawaited(_saveAct2());
   }
+
+  /// 묶음 82 #390: 새 잿빛 틈 소식 띠 (한 번 꺼내면 끝)
+  AshAvatar? takeRiftNews() {
+    final n = _riftNews;
+    _riftNews = null;
+    return n;
+  }
+
+  /// 「새 잿빛 틈 · ○○의 기운이 느껴져요」
+  static String riftNewsLine(AshAvatar a) => '새 잿빛 틈 · ${Act2Rules.info(a).name}의 기운이 느껴져요';
 
   Future<void> _saveAct2() =>
       _saveJson(AppController._act2Key, _act2.toJson());

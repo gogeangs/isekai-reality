@@ -194,6 +194,23 @@ void main() {
     });
   });
 
+  group('#390 잿빛 틈 열림', () {
+    test('첫 틈(분노)은 긴 설명 · 두 번째부터는 소식 띠 한 줄', () async {
+      final first = await _open(_store(12, {'pets': _petsJson()}));
+      expect(first.takeRiftNews(), isNull);
+      expect(first.masteryTalk, Act2Rules.riftFirstLine);
+      final second = await _open(_store(14, {
+        'pets': _petsJson(),
+        'act2': {'beaten': 1, 'announced': 1},
+      }));
+      expect(second.masteryTalk, isNot(Act2Rules.riftFirstLine));
+      final n = second.takeRiftNews();
+      expect(n, AshAvatar.sorrow);
+      expect(Act2Ops.riftNewsLine(n!), '새 잿빛 틈 · ${Act2Rules.info(AshAvatar.sorrow).name}의 기운이 느껴져요');
+      expect(second.takeRiftNews(), isNull); // 한 번만
+    });
+  });
+
   // 아래 묶음 82 시험은 항목을 고칠 때마다 더함
   test('자리', () => expect(const SizedBox(), isNotNull));
 }

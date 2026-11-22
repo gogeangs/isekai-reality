@@ -646,6 +646,20 @@ extension _ShellPopups on _HomeShellState {
         _codexNoticing = false;
       });
     }
+    // 묶음 82 #390: 두 번째부터의 잿빛 틈은 짧은 소식 띠 (누르면 지도에서 틈으로)
+    if (!c.inTutorial) {
+      final rift = c.takeRiftNews();
+      if (rift != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showTopNoticeQueued(context, Act2Ops.riftNewsLine(rift), image: 'assets/images/map_rift.webp', onTap: () {
+            final at = c.riftPoint;
+            _set(() => _openTab(_HomeShellState.tMap));
+            if (at != null) c.requestMapFocus(at);
+          });
+        });
+      }
+    }
     // 떠돌이 상인 (11-11 #84): 창을 저절로 띄우지 않고 위쪽 띠만.
     // 누르면 지도로 가서 상인 자리를 보여 준다.
     if (merchant != null && merchant != _shownMerchant) {

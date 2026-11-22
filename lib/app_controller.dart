@@ -473,6 +473,9 @@ class AppController extends ChangeNotifier {
   /// 묶음 82 #383: 이번 실행에서 보여 주는 중인 안내 (저장은 이미 「봤음」)
   final Set<String> _tourHold = {};
 
+  /// 묶음 82 #390: 두 번째부터의 새 잿빛 틈 소식 (띠로 한 번)
+  AshAvatar? _riftNews;
+
   /// 묶음 82: 되살리기로 다시 채운 마을 표시 (보고 · 시험)
   List<String> revivedVillage = const [];
   static const Set<String> _lateKeys = {

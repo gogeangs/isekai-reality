@@ -104,28 +104,6 @@ extension ExpeditionOps on AppController {
     ]);
   }
 
-  /// 여관 휴식 시간 줄이기: 광고 한 번에 1시간 (줄어든 만큼 HP·기력이 바로 더 찬다)
-  bool get canShortenRest => adsReady && resting && restLeft > Duration.zero;
-
-  Future<bool> adShortenRest() async {
-    if (!canShortenRest || !await _watchAd('rest_shorten')) return false;
-    return _serial(() async {
-    final at = _vitals.restStartedAt;
-    if (at == null) return false;
-    _vitals = _vitals.copyWith(
-        restStartedAt: at.subtract(const Duration(hours: 1)));
-    await store.saveVitals(_vitals);
-    unawaited(notifier?.schedule(
-      NotifyId.rest,
-      _vitals.restStartedAt!.add(const Duration(hours: RuleConstants.restHours)),
-      '푹 쉬었어요',
-      jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요',
-    ));
-    await refreshVitals();
-    return true;
-  });
-  }
-
   /// 새로 얻은 재료 중 가방에 들어가는 만큼을 돌려준다 (넣는 건 부르는 쪽).
   /// 묶음 47 #240: 남는 것은 금화로 바꾸지 않고 [over] 대로 — 「가방이 가득 찼어요」 창 또는 우편함
   Future<Map<MaterialId, int>> _fitBag(Map<MaterialId, int> incoming,

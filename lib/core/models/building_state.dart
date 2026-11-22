@@ -4,7 +4,7 @@ class BuildingState {
     this.stars = const {},
     this.fixing = const {},
     this.reveal = const [],
-    this.innExpUntil,
+    this.innBoostUntil,
     this.trainExtraDay,
   });
 
@@ -17,8 +17,8 @@ class BuildingState {
   /// 다 고쳤지만 마을에서 레벨업 연출을 아직 안 본 건물
   final List<String> reveal;
 
-  /// 여관 ★3: 쉬고 일어난 뒤 경험치를 조금 더 받는 때까지
-  final DateTime? innExpUntil;
+  /// 여관 ★3 (묶음 81 #373): 가득 찬 뒤 일어나 HP · 기력 최대가 조금 늘어난 때까지
+  final DateTime? innBoostUntil;
 
   /// 훈련장 ★2: 하루 훈련을 한 번 더 한 날 ('yyyy-mm-dd')
   final String? trainExtraDay;
@@ -29,14 +29,14 @@ class BuildingState {
     Map<String, int>? stars,
     Map<String, DateTime>? fixing,
     List<String>? reveal,
-    DateTime? innExpUntil,
+    DateTime? innBoostUntil,
     String? trainExtraDay,
   }) =>
       BuildingState(
         stars: stars ?? this.stars,
         fixing: fixing ?? this.fixing,
         reveal: reveal ?? this.reveal,
-        innExpUntil: innExpUntil ?? this.innExpUntil,
+        innBoostUntil: innBoostUntil ?? this.innBoostUntil,
         trainExtraDay: trainExtraDay ?? this.trainExtraDay,
       );
 
@@ -46,7 +46,7 @@ class BuildingState {
         if (fixing.isNotEmpty)
           'fixing': {for (final e in fixing.entries) e.key: e.value.toIso8601String()},
         if (reveal.isNotEmpty) 'reveal': reveal,
-        if (innExpUntil != null) 'innExpUntil': innExpUntil!.toIso8601String(),
+        if (innBoostUntil != null) 'innBoostUntil': innBoostUntil!.toIso8601String(),
         if (trainExtraDay != null) 'trainExtraDay': trainExtraDay,
       };
 
@@ -64,8 +64,8 @@ class BuildingState {
           for (final x in (j['reveal'] as List?) ?? const [])
             if (x is String) x,
         ],
-        innExpUntil: j['innExpUntil'] is String
-            ? DateTime.tryParse(j['innExpUntil'] as String)
+        innBoostUntil: j['innBoostUntil'] is String
+            ? DateTime.tryParse(j['innBoostUntil'] as String)
             : null,
         trainExtraDay: j['trainExtraDay'] as String?,
       );

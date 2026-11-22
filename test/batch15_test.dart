@@ -43,13 +43,11 @@ void main() {
   });
 
   group('#107 쉬는 동안 차오름', () {
-    test('시간에 맞춰 고르게, 끝나면 가득', () {
-      final t0 = DateTime(2026, 11, 12, 10);
-      expect(TownRules.restProgress(t0, t0), 0);
-      expect(TownRules.restProgress(t0, t0.add(const Duration(hours: 2))),
-          closeTo(0.5, 1e-9));
-      expect(TownRules.restFill(100, 300, 0.5), 200);
-      expect(TownRules.restFill(100, 300, 1), 300);
+    test('묶음 81 #373: 시간당 최대치의 20%씩 (소수는 넘김)', () {
+      expect(InnRules.gain(300, 1, 0), (60, 0.0));
+      final (a, c) = InnRules.gain(100, 0.5, 0.7);
+      expect(a, 10);
+      expect(c, closeTo(0.7, 1e-9));
     });
 
     test('일어나면 찬 만큼은 그대로, 광고로 줄이면 바로 더 참', () async {
@@ -70,9 +68,9 @@ void main() {
       final mid = c.hp;
       expect(mid, greaterThan(1));
       expect(mid, lessThan(max));
-      // 광고로 1시간 줄이기 → 바로 더 찬다
+      // 묶음 81 #373: 광고 보고 바로 회복 → 바로 더 찬다
       c.watchAd = (_) async => true;
-      expect(await c.adShortenRest(), isTrue);
+      expect(await c.innAd(), isTrue);
       expect(c.hp, greaterThan(mid));
       final before = c.hp;
       await c.stopResting();

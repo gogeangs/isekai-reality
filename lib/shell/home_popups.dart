@@ -175,7 +175,7 @@ extension _ShellPopups on _HomeShellState {
       if (c.justRested) {
         // 가벼운 알림은 위쪽 띠로만 (#131)
         showTopNoticeQueued(context,
-            c.jobsOpen ? '푹 쉬었어요 · HP · MP · 기력이 가득 찼어요' : '푹 쉬었어요 · HP · 기력이 가득 찼어요');
+            c.jobsOpen ? 'HP · MP · 기력이 가득 찼어요' : 'HP · 기력이 가득 찼어요'); // 묶음 81 #373
         c.clearJustRested();
       } else {
         await _showExpeditionResults(done);

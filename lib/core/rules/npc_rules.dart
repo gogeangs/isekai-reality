@@ -202,8 +202,7 @@ class NpcRules {
 
   // ───────────── 단짝 혜택 (숨은 값)
 
-  /// 마르타: 휴식 보너스 경험치 더
-  static const int martaRestExp = 5;
+  // 마르타: 여관에서 조금 더 빨리 회복 (묶음 81 #371, InnRules.martaSpeed)
 
   /// 미나: 산 값 일부를 돌려받음
   static const double minaRefund = 0.08;
@@ -933,7 +932,7 @@ class NpcRules {
           '요즘 네 얼굴이 밝아 보여서 좋아. 수프는 못 보내니 물약 두 병 보내. 꼭 챙겨 먹어.',
           {'item:healSmall': 2}),
       FavorStage.best: FavorLetter('우리 집 식구에게',
-          '이제 네 방은 늘 비워 둘게. 언제든 와서 쉬어. 작은 선물이야.', {'item:heal': 2}),
+          '이제 네 방은 늘 비워 둘게. 앞으로 여관에서 조금 더 빨리 회복할 거야. 작은 선물이야.', {'item:heal': 2}),
     },
     Npc.mina: {
       FavorStage.known: FavorLetter('단골 후보님께',

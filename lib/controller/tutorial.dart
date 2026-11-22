@@ -625,8 +625,6 @@ extension TutorialOps on AppController {
     }
     // 묶음 51 #242: 주점 매운 꼬치 → 그날 사냥 경험치 조금 더 (숨김)
     if (_skewerExp != 1) exp = (exp * _skewerExp).round();
-    // 묶음 54: 여관 ★3 → 쉬고 일어난 뒤 잠시 사냥 경험치 조금 더 (숨김)
-    if (innExpOn) exp = (exp * BuildingRules.innExp).round();
     // 묶음 59: 길드 회관 ★3 훈련소 → 사냥 경험치 조금 더 (숨김)
     if (guildExpBonus > 0) exp = (exp * (1 + guildExpBonus)).round();
     // 묶음 56 #236: 파티원이 가까이 있으면(함께 있어요) 경험치 · 재료 조금 더 + 「함께 잡은 몬스터」

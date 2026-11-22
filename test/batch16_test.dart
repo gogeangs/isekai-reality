@@ -48,11 +48,10 @@ void main() {
       )..mailSources = const [];
 
   group('#124 예전 기록으로 시작해도 켜진다', () {
-    test('쉬기 시작 값이 지금 최대보다 커도 (예전 버전 기록)', () {
-      expect(TownRules.restFill(9999, 300, 0.5), 300);
-      expect(TownRules.restFill(-5, 300, 0), 0);
-      expect(TownRules.restFill(100, 0, 0.5), 0);
-      expect(TownRules.restFill(100, 300, double.nan), 100);
+    test('여관 회복 값이 이상해도 멈추지 않음 (묶음 81 #373)', () {
+      expect(InnRules.gain(0, 1, 0).$1, 0);
+      expect(InnRules.gain(300, double.nan, 0).$1, 0);
+      expect(InnRules.gain(300, -1, 0).$1, 0);
     });
 
     test('묶음 12~14 시절 쉬는 중 기록 → 켜지고 HP는 최대 안', () async {

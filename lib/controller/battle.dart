@@ -453,19 +453,15 @@ extension BattleOps on AppController {
   }
 
   void _stopResting() {
-    final restAt = _vitals.restStartedAt;
-    if (restAt != null) {
-      // 그때까지 찬 만큼은 그대로 가지고 간다 (묶음 15 #107)
-      final f = TownRules.restProgress(restAt, _clock());
-      final hp0 = _vitals.restHp0 ?? hp;
-      final mp0 = _vitals.restMp0 ?? mp;
-      _vitals = _vitals.copyWith(
-          hp: math.max(hp, TownRules.restFill(hp0, maxHp, f)),
-          mp: math.max(mp, TownRules.restFill(mp0, mpMax, f)),
-          mpAt: _clock());
-      _vitals = _vitals.copyWith(clearRest: true);
+    if (_vitals.restStartedAt != null) {
+      // 그때까지 찬 만큼은 그대로 가지고 간다 (묶음 15 #107 · 81 #373)
+      final (v, job) = _innGain(_vitals, _clock(), hp);
+      if (job != null) unawaited(_setJobMp(job));
+      _vitals = v.copyWith(clearRest: true);
       unawaited(store.saveVitals(_vitals));
       unawaited(notifier?.cancel(NotifyId.rest));
+      _innNotifyAt = null;
     }
   }
+
 }

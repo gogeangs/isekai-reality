@@ -353,6 +353,15 @@ class _SpawnSheetState extends State<SpawnSheet> {
             const SizedBox(height: 10),
             // 묶음 30 #55: 먼 길 안내 (이번 원정 더 멀리)
             JobSkillBar(controller: c, places: const [SkillPlace.expeditionSend]),
+            // 묶음 81 #373: 쉬는 중이면 여관 회복이 멈춤
+            if (c.resting && !noneFree)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text('보내면 여관 회복이 멈춰요',
+                    key: Key('expInnPause'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.goldBright, fontSize: 12)),
+              ),
             // 11-11 #64: 보낼 수 없으면 흐리게 (눌리지 않음)
             Opacity(
               opacity: plan.check == ExpeditionCheck.ok && !noneFree ? 1 : 0.4,

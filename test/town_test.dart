@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app.dart';
 import 'package:isekai_reality/app_controller.dart';
+import 'package:isekai_reality/core/models/vitals.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/models/daily_record.dart';
 import 'package:isekai_reality/core/models/player_state.dart';
@@ -164,13 +165,6 @@ void main() {
       expect(TownRules.crystals(h), 0);
     });
 
-    test('4시간이 지나야 휴식이 끝난다', () {
-      final at = DateTime(2026, 11, 8, 14);
-      expect(TownRules.restDone(at, DateTime(2026, 11, 8, 17, 59)), isFalse);
-      expect(TownRules.restDone(at, DateTime(2026, 11, 8, 18)), isTrue);
-      expect(TownRules.restLeft(at, DateTime(2026, 11, 8, 16)),
-          const Duration(hours: 2));
-    });
   });
 
   group('HP · MP 계산', () {
@@ -319,53 +313,43 @@ void main() {
       expect(TownRules.info(ShopItem.magicLens).price, greaterThan(0));
     });
 
-    test('여관: 언제든 체크인, 4시간 뒤 HP·MP 가득과 휴식 보너스', () async {
+    test('여관 (묶음 81 #373): 있는 동안 시간당 20% · 가득 차도 계속 쉬는 중 · 1시간 넘으면 쉰 날', () async {
       var now = DateTime(2026, 11, 8, 14);
-      final c = AppController(
-        store: InMemoryRecordStore(
-          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
-        ),
-        health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
-        clock: () => now,
+      final store = InMemoryRecordStore(
+        profile: const PlayerProfile(name: '하루', stepGoal: 8000),
       );
-      await c.init();
-      expect(await c.restAtInn(), isTrue);
-      expect(c.resting, isTrue);
-      expect(await c.restAtInn(), isFalse); // 이미 쉬는 중
-
-      now = DateTime(2026, 11, 8, 17);
-      await c.refreshVitals();
-      expect(c.resting, isTrue);
-      expect(c.restLeft, const Duration(hours: 1));
-
-      now = DateTime(2026, 11, 8, 18, 1);
-      await c.refreshVitals();
-      expect(c.resting, isFalse);
-      expect(c.justRested, isTrue);
-      expect(c.history.last.restsCompleted, 1);
-
-      // 같은 날 또 쉬어도 된다
-      expect(await c.restAtInn(), isTrue);
-      now = DateTime(2026, 11, 8, 22, 30);
-      await c.refreshVitals();
-      expect(c.history.last.restsCompleted, 2);
-    });
-
-    test('알림: 여관 체크인 4시간 뒤 예약, 그만 쉬면 취소', () async {
-      final now = DateTime(2026, 11, 8, 14);
+      await store.saveVitals(const Vitals(hp: 1, mp: 0));
       final n = FakeNotifier();
       final c = AppController(
-        store: InMemoryRecordStore(
-          profile: const PlayerProfile(name: '하루', stepGoal: 8000),
-        ),
+        store: store,
         health: FakeHealthSource(stepsByDay: {'2026-11-08': 2600}),
         notifier: n,
         clock: () => now,
       );
       await c.init();
-      await c.restAtInn();
-      expect(n.scheduled[NotifyId.rest]?.$1, DateTime(2026, 11, 8, 18));
+      final hp0 = c.hp;
+      expect(await c.restAtInn(), isTrue);
+      expect(await c.restAtInn(), isFalse); // 이미 쉬는 중
+      expect(n.scheduled.containsKey(NotifyId.rest), isTrue);
+
+      now = DateTime(2026, 11, 8, 14, 30);
+      await c.refreshVitals();
+      expect(c.hp - hp0, closeTo(c.maxHp * 0.1, 2));
+      expect(c.history.last.restsCompleted, 0);
+
+      now = DateTime(2026, 11, 8, 15, 1);
+      await c.refreshVitals();
+      expect(c.history.last.restsCompleted, 1); // 1시간 넘게 회복 → 쉰 날
+
+      now = DateTime(2026, 11, 8, 21);
+      await c.refreshVitals();
+      expect(c.resting, isTrue); // 가득 차도 저절로 일어나지 않음
+      expect(c.hp, c.maxHp);
+      expect(c.justRested, isTrue); // 가득 찼어요 (한 번)
+      expect(c.history.last.restsCompleted, 1); // 같은 날 · 같은 체크인은 한 번
+
       await c.stopResting();
+      expect(c.resting, isFalse);
       expect(n.scheduled.containsKey(NotifyId.rest), isFalse);
     });
 

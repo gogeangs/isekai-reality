@@ -156,31 +156,25 @@ void main() {
       expect(ExpRules.forDay(rested).total, 0);
     });
 
-    test('직업 MP도 서서히 · 일어나면 찬 만큼 · 4시간에 가득', () async {
+    test('직업 MP도 서서히 · 일어나면 찬 만큼 · (묶음 81) 시간당 20%', () async {
       var now = DateTime(2026, 11, 16, 10);
       final c = await startVillage(18, farewell: true, more: _jobs('mage', mp: 0), clock: () => now);
       expect(c.jobMp, 0);
       expect(await c.restAtInn(), isTrue);
       now = now.add(const Duration(hours: 2));
       await c.refreshVitals();
-      expect(c.jobMp, closeTo(c.jobMpMax / 2, 2));
+      expect(c.jobMp, closeTo(c.jobMpMax * 0.4, 2));
       final half = c.jobMp;
       await c.stopResting();
       now = now.add(const Duration(minutes: 30));
       await c.refreshVitals();
       expect(c.jobMp, greaterThanOrEqualTo(half)); // 일어나도 찬 만큼 그대로
       expect(await c.restAtInn(), isTrue);
-      now = now.add(const Duration(hours: 4, minutes: 1));
+      now = now.add(const Duration(hours: 5, minutes: 1));
       await c.refreshVitals();
       expect(c.jobMp, c.jobMpMax);
     });
 
-    test('광고로 1시간 줄이면 그만큼 바로 더 참 (시간 계산)', () {
-      final at = DateTime(2026, 11, 16, 10);
-      final f1 = TownRules.restProgress(at, at.add(const Duration(hours: 1)));
-      final f2 = TownRules.restProgress(at.subtract(const Duration(hours: 1)), at.add(const Duration(hours: 1)));
-      expect(f2, greaterThan(f1));
-    });
 
     testWidgets('「쉬는 동안 차는 것」 판: 각성 뒤 MP 줄 · 각성 전엔 없음 · 옛 판 없음', (tester) async {
       _phone(tester);
@@ -194,14 +188,14 @@ void main() {
       await tester.pump();
       expect(find.byKey(const Key('innFillPanel')), findsOneWidget);
       expect(find.byKey(const Key('innFill_jobMp')), findsOneWidget);
-      expect(_txt('쉬는 동안 HP · MP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
+      expect(_txt('여관에 있는 동안 HP · MP · 기력이 조금씩 차요'), findsOneWidget);
       expect(find.text('오늘 하루'), findsNothing);
       expect(find.textContaining('연속 휴식'), findsNothing);
       expect(find.textContaining('보너스'), findsNothing);
       await tester.pumpWidget(_host(InnScreen(key: const ValueKey(2), controller: b)));
       await tester.pump();
       expect(find.byKey(const Key('innFill_jobMp')), findsNothing);
-      expect(_txt('쉬는 동안 HP · 기력이 조금씩 차고, 4시간이면 가득 차요'), findsOneWidget);
+      expect(_txt('여관에 있는 동안 HP · 기력이 조금씩 차요'), findsOneWidget);
       await tester.pump(const Duration(seconds: 6));
     });
   });

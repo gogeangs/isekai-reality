@@ -1222,6 +1222,8 @@ class AppController extends ChangeNotifier {
   bool _refreshing = false;
 
   bool _justRested = false;
+  /// 묶음 81 #373: 여관 「가득 찼어요」 알림을 예약한 때 (자주 다시 예약하지 않게)
+  DateTime? _innNotifyAt;
 
   // ───────────── 전투 손맛 설정 (11-11 #75): 진동 · 효과음 · 2배속 · 첫 중독 안내
 

@@ -161,7 +161,7 @@ void main() {
       final c = await start(rich(stars: all(2)));
       // 여관
       await c.restAtInn();
-      expect(c.restProgress, closeTo(BuildingRules.innHead, 0.01));
+      expect(c.innSpeed, InnRules.star2Speed); // 묶음 81 #373: 회복 속도
       // 게시판
       expect(c.board.slots.length, base.board.slots.length + 1);
       expect(c.errandsPerDay, BoardRules.errandsPerDay + 1);
@@ -223,15 +223,18 @@ void main() {
       expect(days.where((x) => x == null), isNotEmpty);
     });
 
-    test('여관 ★3: 쉬고 일어나면 잠시 경험치 조금 더', () async {
+    test('여관 ★3 (묶음 81 #373): 가득 찬 뒤 일어나면 잠시 HP · 기력 최대가 조금 늘어요', () async {
       final c = await start(rich(stars: all(3)));
-      expect(c.innExpOn, isFalse);
+      expect(c.innBoostOn, isFalse);
+      final hp0 = c.maxHp;
       await c.restAtInn();
-      now = now.add(const Duration(hours: RuleConstants.restHours));
+      now = now.add(const Duration(hours: 6));
       await c.refreshVitals();
-      expect(c.innExpOn, isTrue);
-      now = now.add(BuildingRules.innExpFor + const Duration(minutes: 1));
-      expect(c.innExpOn, isFalse);
+      await c.stopResting();
+      expect(c.innBoostOn, isTrue);
+      expect(c.maxHp, greaterThan(hp0));
+      now = now.add(InnRules.star3For + const Duration(minutes: 1));
+      expect(c.innBoostOn, isFalse);
     });
 
     test('조합 ★2 힌트: 숙련도마다 얼마나 왔는지 문장으로 (숫자 없음)', () {

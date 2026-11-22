@@ -460,9 +460,12 @@ class Vitals {
     this.stepsDay,
     this.stepsCounted = 0,
     this.restStartedAt,
-    this.restHp0,
-    this.restMp0,
-    this.restJobMp0,
+    this.restAt,
+    this.restCarry = const [0, 0, 0],
+    this.restAds = 0,
+    this.restSec = 0,
+    this.restCounted,
+    this.restFullSeen = false,
     this.expeditions = const [],
     this.compassReady = false,
     this.trips = const [],
@@ -471,12 +474,23 @@ class Vitals {
   /// 묶음 81 #375: 잿빛 틈 · 섬으로 보낸 펫 (자리마다 하나)
   final List<SpotTrip> trips;
 
-  /// 휴식을 시작할 때의 HP·MP (묶음 15 #107: 쉬는 동안 여기서부터 고르게 차오른다)
-  final int? restHp0;
-  final int? restMp0;
+  /// 묶음 81 #373: 여관 회복을 마지막으로 셈한 때 (체크인 뒤)
+  final DateTime? restAt;
 
-  /// 묶음 80 #367: 체크인 때 직업 MP (각성 뒤만, 4시간에 가득까지 고르게)
-  final int? restJobMp0;
+  /// 여관 회복 소수 (HP · 기력 · 직업 MP)
+  final List<double> restCarry;
+
+  /// 이번 체크인에 본 「광고 보고 바로 회복」 수
+  final int restAds;
+
+  /// 이번 체크인에 실제로 회복한 시간(초, 원정으로 멈춘 시간 뺌)
+  final int restSec;
+
+  /// 「쉬었다」로 센 날 (같은 체크인에 하루 한 번)
+  final String? restCounted;
+
+  /// 이번 체크인에 「가득 찼어요」를 알렸는지
+  final bool restFullSeen;
 
   /// 지금 HP. null 이면 가득.
   final int? hp;
@@ -514,9 +528,12 @@ class Vitals {
     String? stepsDay,
     int? stepsCounted,
     DateTime? restStartedAt,
-    int? restHp0,
-    int? restMp0,
-    int? restJobMp0,
+    DateTime? restAt,
+    List<double>? restCarry,
+    int? restAds,
+    int? restSec,
+    String? restCounted,
+    bool? restFullSeen,
     bool clearRest = false,
     Expedition? expedition,
     bool clearExpedition = false,
@@ -532,9 +549,12 @@ class Vitals {
         stepsDay: stepsDay ?? this.stepsDay,
         stepsCounted: stepsCounted ?? this.stepsCounted,
         restStartedAt: clearRest ? null : (restStartedAt ?? this.restStartedAt),
-        restHp0: clearRest ? null : (restHp0 ?? this.restHp0),
-        restMp0: clearRest ? null : (restMp0 ?? this.restMp0),
-        restJobMp0: clearRest ? null : (restJobMp0 ?? this.restJobMp0),
+        restAt: clearRest ? null : (restAt ?? this.restAt),
+        restCarry: clearRest ? const [0, 0, 0] : (restCarry ?? this.restCarry),
+        restAds: clearRest ? 0 : (restAds ?? this.restAds),
+        restSec: clearRest ? 0 : (restSec ?? this.restSec),
+        restCounted: clearRest ? null : (restCounted ?? this.restCounted),
+        restFullSeen: clearRest ? false : (restFullSeen ?? this.restFullSeen),
         expeditions: expeditions ??
             (clearExpedition
                 ? const []
@@ -553,9 +573,12 @@ class Vitals {
         'stepsDay': stepsDay,
         'stepsCounted': stepsCounted,
         'restStartedAt': restStartedAt?.toIso8601String(),
-        'restHp0': restHp0,
-        'restMp0': restMp0,
-        'restJobMp0': restJobMp0,
+        'restAt': restAt?.toIso8601String(),
+        'restCarry': restCarry,
+        'restAds': restAds,
+        'restSec': restSec,
+        'restCounted': restCounted,
+        'restFullSeen': restFullSeen,
         'expeditions': [for (final e in expeditions) e.toJson()],
         'compassReady': compassReady,
         'trips': [for (final t in trips) t.toJson()],
@@ -571,9 +594,14 @@ class Vitals {
         restStartedAt: j['restStartedAt'] == null
             ? null
             : DateTime.parse(j['restStartedAt'] as String),
-        restHp0: (j['restHp0'] as num?)?.toInt(),
-        restMp0: (j['restMp0'] as num?)?.toInt(),
-        restJobMp0: (j['restJobMp0'] as num?)?.toInt(),
+        restAt: j['restAt'] is String ? DateTime.tryParse(j['restAt'] as String) : null,
+        restCarry: [
+          for (final x in (j['restCarry'] as List?) ?? const [0, 0, 0]) (x as num).toDouble(),
+        ],
+        restAds: (j['restAds'] as num?)?.toInt() ?? 0,
+        restSec: (j['restSec'] as num?)?.toInt() ?? 0,
+        restCounted: j['restCounted'] as String?,
+        restFullSeen: j['restFullSeen'] as bool? ?? false,
         // 예전 저장본은 원정 하나 ('expedition')
         expeditions: [
           for (final e in (j['expeditions'] as List?) ??

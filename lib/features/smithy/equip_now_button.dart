@@ -62,13 +62,19 @@ class _EquipNowButtonState extends State<EquipNowButton> {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: worn ? AppColors.textMuted : AppColors.goldBright, width: 1.4),
           ),
-          child: Text(worn ? '입었어요 ✓' : '바로 입기',
-              maxLines: 1,
-              softWrap: false,
-              style: TextStyle(
-                  color: worn ? AppColors.textMuted : AppColors.goldBright,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(worn ? '입었어요' : '바로 입기',
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                    color: worn ? AppColors.textMuted : AppColors.goldBright,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800)),
+            if (worn) ...[
+              const SizedBox(width: 3),
+              const Icon(Icons.check_rounded, size: 16, color: AppColors.textMuted),
+            ],
+          ]),
         ),
       ),
     );

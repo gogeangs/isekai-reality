@@ -15,10 +15,10 @@ import '../../theme/top_notice.dart';
 /// 원정 결과 (성공·실패·놓쳤어요)
 enum ExpeditionOutcome { success, fail, missed }
 
-/// 묶음 82 #381: 「HP −○ · MP −○」
+/// 묶음 82 #381: 「HP -○ · MP -○」
 String expeditionLossLine(Expedition ex) => [
-      if (ex.hpLost > 0) 'HP −${ex.hpLost}',
-      if (ex.mpLost > 0) 'MP −${ex.mpLost}',
+      if (ex.hpLost > 0) 'HP -${ex.hpLost}',
+      if (ex.mpLost > 0) 'MP -${ex.mpLost}',
     ].join(' · ');
 
 ExpeditionOutcome outcomeOf(Expedition ex) => ex.cleared == true

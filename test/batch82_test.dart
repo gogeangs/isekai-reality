@@ -16,7 +16,6 @@ import 'package:isekai_reality/features/map/expedition_result.dart' show expedit
 import 'package:isekai_reality/features/map/expedition_sheet.dart' show expeditionReason;
 import 'package:isekai_reality/data/health/health_source.dart';
 import 'package:isekai_reality/data/storage/record_store.dart';
-import 'package:isekai_reality/data/location/location_source.dart';
 import 'package:isekai_reality/core/geo/geo.dart';
 
 final _t0 = DateTime(2026, 11, 16, 10);
@@ -386,7 +385,7 @@ void main() {
       final ex = [...c.activeExpeditions, ...c.finishedExpeditions].firstWhere((e) => e.spawnId == spawn.id);
       expect(ex.decided, isTrue);
       expect(c.hp, hp0 - ex.hpLost);
-      if (ex.hpLost > 0) expect(expeditionLossLine(ex), startsWith('HP −'));
+      if (ex.hpLost > 0) expect(expeditionLossLine(ex), startsWith('HP -'));
     });
 
     test('HP 0이면 보낼 수 없음', () async {

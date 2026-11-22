@@ -213,6 +213,14 @@ class _AshTurnViewState extends State<AshTurnView> {
         _top(info, gaugeColor),
         const SizedBox(height: 6),
         Expanded(child: _stage(info)),
+        // 정령 힌트는 무대 밖 한 줄 (주인공 · 펫을 가리지 않게)
+        if (_hint != null) ...[
+          const SizedBox(height: 4),
+          BulssiLine(
+              key: const Key('ashHint'),
+              line: _hint!,
+              mood: t.specialNext ? SpiritMood.worried : SpiritMood.normal),
+        ],
         const SizedBox(height: 4),
         Container(
           key: const Key('ashTurnLog'),
@@ -408,21 +416,6 @@ class _AshTurnViewState extends State<AshTurnView> {
               ),
             if (_redFlash)
               const Positioned.fill(child: IgnorePointer(child: ColoredBox(color: Color(0x55FF3A1F)))),
-            if (_hint != null)
-              Positioned(
-                left: 8,
-                right: 8,
-                bottom: 6,
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.95,
-                    child: BulssiLine(
-                        key: const Key('ashHint'),
-                        line: _hint!,
-                        mood: t.specialNext ? SpiritMood.worried : SpiritMood.normal),
-                  ),
-                ),
-              ),
           ]),
         ),
       );
@@ -539,8 +532,8 @@ class _AshTurnViewState extends State<AshTurnView> {
             sub: !t.faceOpen
                 ? '아직 마음이 닫혀 있어'
                 : t.allMemories
-                    ? '${info.gauge} −2칸'
-                    : '${info.gauge} −2칸 · 기억',
+                    ? '${info.gauge} -2칸'
+                    : '${info.gauge} -2칸 · 기억',
             glow: t.faceOpen),
         cell(AshCmd.potion,
             icon: const GameIcon('potion', size: 30),

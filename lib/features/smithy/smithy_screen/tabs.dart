@@ -163,32 +163,7 @@ extension _SmithyTabs on _SmithyScreenState {
     await _showMade(item);
   }
 
-  Future<void> _showMade(EquipItem item) => showDialog<void>(
-        context: context,
-        builder: (d) => GameAlert(
-          title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
-              textAlign: TextAlign.center,
-              style: AppText.title(22, color: equipGradeColor(item.grade))),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            EquipIcon(base: item.base, grade: item.grade, size: 96),
-            const SizedBox(height: 10),
-            EquipName(item, size: 18),
-            const SizedBox(height: 4),
-            ItemStats(item, fontSize: 14),
-            const SizedBox(height: 6),
-            const KText('가방에서 입을 수 있어요.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ]),
-          actions: [
-            // 묶음 82 #393: 작은 금테 버튼 → 「입었어요 ✓」
-            EquipNowButton(key: const Key('smithyEquipNow'), controller: c, item: item),
-            TextButton(
-              onPressed: () => Navigator.of(d).pop(),
-              child: const Text('닫기'),
-            ),
-          ],
-        ),
-      );
+  Future<void> _showMade(EquipItem item) => showEquipMade(context, c, item);
 
   /// 입는 중 · 가방 두 묶음 (#222)
   List<Widget> _grouped(Widget Function(EquipItem item, bool worn) card) {
@@ -540,3 +515,32 @@ extension _SmithyTabs on _SmithyScreenState {
   /// 속성이 없는 장비: 속성 고르기 + 「입히기」
   Widget _applyBox(EquipItem it) => _pickBox(it, SmithAction.apply);
 }
+
+/// 만든 장비 창 (묶음 82: 캡처에서도 씀)
+Future<void> showEquipMade(BuildContext context, AppController c, EquipItem item) => showDialog<void>(
+        context: context,
+        builder: (d) => GameAlert(
+          title: KText('${EquipmentRules.gradeLabel(item.grade)} 등급!',
+              textAlign: TextAlign.center,
+              style: AppText.title(22, color: equipGradeColor(item.grade))),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            EquipIcon(base: item.base, grade: item.grade, size: 96),
+            const SizedBox(height: 10),
+            EquipName(item, size: 18),
+            const SizedBox(height: 4),
+            ItemStats(item, fontSize: 14),
+            const SizedBox(height: 6),
+            const KText('가방에서 입을 수 있어요.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          ]),
+          actions: [
+            // 묶음 82 #393: 작은 금테 버튼 → 「입었어요 ✓」
+            EquipNowButton(key: const Key('smithyEquipNow'), controller: c, item: item),
+            TextButton(
+              onPressed: () => Navigator.of(d).pop(),
+              child: const Text('닫기'),
+            ),
+          ],
+        ),
+      );
+

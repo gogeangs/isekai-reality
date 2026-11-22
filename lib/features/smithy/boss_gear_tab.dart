@@ -294,32 +294,7 @@ class _PartRow extends StatelessWidget {
   Future<void> _craft(BuildContext context) async {
     final r = await controller.craftBoss(base);
     if (r == null || !context.mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (d) => GameAlert(
-        title: KText(
-            r.ok
-                ? '${EquipmentRules.gradeLabel(r.item!.grade)} 등급!'
-                : '만들지 못했어요',
-            textAlign: TextAlign.center,
-            style: AppText.title(19,
-                color: r.ok ? equipGradeColor(r.item!.grade) : AppColors.text)),
-        content: r.ok
-            ? Column(mainAxisSize: MainAxisSize.min, children: [
-                EquipIcon(base: base, grade: r.item!.grade, size: 88),
-                const SizedBox(height: 8),
-                EquipName(r.item!, size: 17),
-                const SizedBox(height: 4),
-                ItemStats(r.item!, fontSize: 14),
-              ])
-            : KText(r.line ?? '', style: const TextStyle(color: AppColors.text)),
-        actions: [
-          if (r.ok) EquipNowButton(key: const Key('bossEquipNow'), controller: controller, item: r.item!),
-          TextButton(
-              onPressed: () => Navigator.of(d).pop(), child: const Text('확인')),
-        ],
-      ),
-    );
+    await showBossMade(context, controller, base, r);
   }
 
   @override
@@ -470,3 +445,34 @@ class _RegionWeapon extends StatelessWidget {
     );
   }
 }
+
+
+/// 왕의 장비 · 보스 장비 만든 결과 창 (묶음 82: 캡처에서도 씀)
+Future<void> showBossMade(BuildContext context, AppController controller, EquipBase base, BossCraftResult r) async {
+    await showDialog<void>(
+      context: context,
+      builder: (d) => GameAlert(
+        title: KText(
+            r.ok
+                ? '${EquipmentRules.gradeLabel(r.item!.grade)} 등급!'
+                : '만들지 못했어요',
+            textAlign: TextAlign.center,
+            style: AppText.title(19,
+                color: r.ok ? equipGradeColor(r.item!.grade) : AppColors.text)),
+        content: r.ok
+            ? Column(mainAxisSize: MainAxisSize.min, children: [
+                EquipIcon(base: base, grade: r.item!.grade, size: 88),
+                const SizedBox(height: 8),
+                EquipName(r.item!, size: 17),
+                const SizedBox(height: 4),
+                ItemStats(r.item!, fontSize: 14),
+              ])
+            : KText(r.line ?? '', style: const TextStyle(color: AppColors.text)),
+        actions: [
+          if (r.ok) EquipNowButton(key: const Key('bossEquipNow'), controller: controller, item: r.item!),
+          TextButton(
+              onPressed: () => Navigator.of(d).pop(), child: const Text('확인')),
+        ],
+      ),
+    );
+  }

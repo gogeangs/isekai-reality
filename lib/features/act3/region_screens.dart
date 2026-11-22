@@ -6,7 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../town/shop_screen.dart' show ShopItemIcon, ShopScreen;
 import '../smithy/equipment_view.dart';
 import 'act3_town.dart';
@@ -606,7 +606,7 @@ class _Act3EndScreenState extends State<Act3EndScreen> {
           key: ValueKey('act3End$_i'),
           image: img,
           speaker: sp.name,
-          tailX: 0.5,
+          who: sp.face != null ? SceneWho.face(sp.face!) : SceneWho.petOr(c.firstPet ?? c.voicePet),
           line: line,
           lineKey: 'act3End-$_i',
           onNext: _next,

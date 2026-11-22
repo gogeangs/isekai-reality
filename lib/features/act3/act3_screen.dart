@@ -6,7 +6,7 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../../theme/top_notice.dart';
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/hero_rig.dart';
@@ -92,7 +92,11 @@ class _BridgeSceneScreenState extends State<BridgeSceneScreen> {
           key: ValueKey('bridge$_line'),
           image: Act3Rules.bridgeImage,
           speaker: speaker,
-          tailX: switch (who) { 'lian' => 0.3, 'garen' => 0.7, _ => 0.5 },
+          who: switch (who) {
+            'lian' => const SceneWho.face('assets/images/npc_lian.webp'),
+            'garen' => const SceneWho.face('assets/images/npc_garen.webp'),
+            _ => SceneWho.petOr(c.firstPet ?? c.voicePet),
+          },
           line: line,
           lineKey: 'bridge-$_line',
           onNext: _next,

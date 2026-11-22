@@ -8,7 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../map/trip_sheet.dart';
 import '../act2/ash_battle_screen.dart' show AshExpPanel;
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/element_view.dart';
@@ -775,8 +775,8 @@ class _HighlandSceneScreenState extends State<HighlandSceneScreen> {
           key: ValueKey('skyScene$_line'),
           image: HighlandRules.scene,
           speaker: l.speaker,
-          tailUp: !l.hero,
-          tailX: l.hero ? 0.25 : 0.6,
+          // 묶음 81 #376: 주인공은 오른쪽 얼굴, 펫은 왼쪽 얼굴 (꼬리 없음)
+          who: l.hero ? SceneWho.hero(c.profile.look) : SceneWho.petOr(c.firstPet ?? c.voicePet),
           line: l.line,
           lineKey: 'skyScene-$_line',
           onNext: _next,

@@ -327,8 +327,8 @@ class Act2Rules {
 
   // ───────────── 결말 컷신 「문을 다리로」
 
-  /// (그림, 말하는 이(null 이면 내레이션), 각성자인지, 대사, 대사창 위)
-  static List<({String image, String? speaker, bool hero, String line, bool top})>
+  /// (그림, 말하는 이(null 이면 내레이션), 각성자인지, 대사, 대사창 위, 펫인지(묶음 81 #376 얼굴))
+  static List<({String image, String? speaker, bool hero, String line, bool top, bool pet})>
       ending({
     required String hero,
     required String spirit,
@@ -344,6 +344,7 @@ class Act2Rules {
         hero: false,
         line: '…나를 멈춰 주었구나.',
         top: false,
+        pet: false,
       ),
       (
         image: img('ending_02_face_to_face${female ? '_female' : ''}'),
@@ -351,6 +352,7 @@ class Act2Rules {
         hero: false,
         line: '내 나라는 아직 어둠 속에 있다. 빛을 빼앗지 않으면, 무엇으로 살리겠느냐.',
         top: false,
+        pet: false,
       ),
       (
         image: img('ending_02_face_to_face${female ? '_female' : ''}'),
@@ -358,6 +360,7 @@ class Act2Rules {
         hero: true,
         line: '빼앗지 말고 나눠요. 우리 빛을 조금씩.',
         top: false,
+        pet: false,
       ),
       (
         image: img('ending_03_promise'),
@@ -365,6 +368,7 @@ class Act2Rules {
         hero: false,
         line: '…그래. 이번엔 문을 두드리지 않고, 함께 열겠다.',
         top: false,
+        pet: false,
       ),
       (
         image: img('ending_04_bridge'),
@@ -372,6 +376,7 @@ class Act2Rules {
         hero: false,
         line: '깨진 문은 다리가 되었다. 두 세계는 더 이상 서로를 삼키지 않는다.',
         top: true,
+        pet: false,
       ),
       (
         image: img('ending_05_dawn'),
@@ -380,6 +385,7 @@ class Act2Rules {
         line: '저 빛… ${josa(spirit, '이야/야')}. 문이 다리가 됐어도, '
             '${josa(spirit, '은/는')} 여기 있었구나.',
         top: false,
+        pet: true,
       ),
       (
         image: img('ending_05_dawn'),
@@ -387,6 +393,7 @@ class Act2Rules {
         hero: false,
         line: '여명의 탑 아르카에 다시 불꽃이 켜졌다.',
         top: false,
+        pet: false,
       ),
     ];
   }

@@ -11,7 +11,7 @@ import '../../data/storage/record_store.dart' show HeroLook;
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../map/trip_sheet.dart';
-import '../awakening/awakening_screen.dart' show IllustratedScene;
+import '../awakening/awakening_screen.dart' show IllustratedScene, SceneWho;
 import '../battle/battle_view.dart';
 import '../battle/dungeon_screen.dart' show confirmStopResting;
 import '../battle/element_view.dart';
@@ -604,8 +604,12 @@ class _EndingScreenState extends State<EndingScreen> {
       key: ValueKey('ending$_line'),
       image: l.image,
       speaker: l.speaker,
-      tailUp: l.speaker != null && !l.hero,
-      tailX: l.hero ? 0.25 : 0.5,
+      // 묶음 81 #376: 주인공 · 펫 얼굴, 왕은 이름 칩만
+      who: l.hero
+          ? SceneWho.hero(c.profile.look)
+          : l.pet
+              ? SceneWho.petOr(c.firstPet ?? c.voicePet)
+              : const SceneWho.name(),
       dialogTop: l.top,
       line: l.line,
       lineKey: 'ending-$_line',

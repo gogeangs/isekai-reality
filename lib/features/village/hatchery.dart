@@ -28,8 +28,8 @@ class HatcheryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = controller;
-    final warm = [for (final e in c.pets.eggs) if (e.incubatedAt != null) e];
-    final inBag = [for (final e in c.pets.eggs) if (e.incubatedAt == null) e];
+    final warm = [for (final e in c.bagEggs) if (e.incubatedAt != null) e];
+    final inBag = [for (final e in c.bagEggs) if (e.incubatedAt == null) e];
     final empty = c.canIncubateMore;
     // 묶음 73 #308: 판 높이는 바탕 그림 비율(1024:640), 둥지는 아래쪽 바닥 위(둥지 바닥이 판 높이 약 88%)
     return OrnatePanel(
@@ -58,7 +58,7 @@ class HatcheryPanel extends StatelessWidget {
                 child: _Pill(child: Text('알 부화장', key: const Key('hatcheryTitle'), style: AppText.title(15))),
               ),
               // 묶음 81 #372: 펫이 가득이면 알은 깨울 수 없음 (품기 · 팔기는 그대로)
-              if (c.petsFull && c.pets.eggs.isNotEmpty)
+              if (c.petsFull && c.bagEggs.isNotEmpty)
                 const Positioned(
                   right: 10,
                   top: 12,

@@ -91,6 +91,7 @@ class SkyWalkRules {
   static const String altarArt = 'assets/images/sky_altar.webp';
   static const String springArt = 'assets/images/sky_windSpring.webp';
   static const String columnArt = 'assets/images/sky_column_broken.webp';
+  static const String stairArt = 'assets/images/sky_stair.webp';
 
   static int hash(String s) {
     var h = 0x811c9dc5;

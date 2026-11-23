@@ -21,7 +21,11 @@ class _DailyPanel extends StatelessWidget {
     final total =
         quests.length * QuestRules.rewardExp + QuestRules.allDoneBonusExp;
     final done = quests.where((q) => q.completed).length;
-    final notes = _questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp, controller: controller);
+    final notes = [
+      // 묶음 84 #404: 긴급 의뢰가 있는 날은 「오늘」 맨 앞 쪽지 (일일 개수에는 안 셈)
+      if (controller case final c? when c.boardFull && c.urgent != null && !c.board.urgentDone) _UrgentNote(controller: c),
+      ..._questNotes(quests, 'd$day', 0, rewardExp: QuestRules.rewardExp, controller: controller),
+    ];
     // 묶음 39 #216: 보너스 쪽지 대신 이름판 바로 아래 금빛 띠 한 줄
     // (보상은 지금처럼 다 끝내는 순간 저절로 들어온다)
     return Column(
@@ -143,7 +147,6 @@ class _DetailSheet extends StatelessWidget {
     this.progress,
     this.timeLeft,
     this.stamp,
-    this.edge,
   });
 
   final int seed;
@@ -155,7 +158,6 @@ class _DetailSheet extends StatelessWidget {
   final String? timeLeft;
   final List<Widget> actions;
   final Widget? stamp;
-  final Color? edge;
 
   @override
   Widget build(BuildContext context) => SafeArea(
@@ -169,7 +171,6 @@ class _DetailSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: ParchmentNote(
               seed: 0,
-              edge: edge,
               // 묶음 47 #239: 상세 창에서는 인장을 이름 옆(오른쪽 위)에 — 아래 버튼을 가리지 않게
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -262,7 +263,47 @@ Future<void> _showQuestDetail(BuildContext context, QuestProgress q,
       },
     );
 
-/// 긴급 의뢰 쪽지 (빨간 테두리)
+/// 묶음 84 #404: 「오늘」 탭 맨 앞 긴급 쪽지 (작은 빨간 「긴급」 리본 · 자정까지 · 받은 뒤엔 진행)
+class _UrgentNote extends StatelessWidget {
+  const _UrgentNote({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final u = c.urgent!;
+    final b = c.board;
+    final progress = c.urgentProgress;
+    final ready = b.urgentAccepted && progress >= u.quest.target;
+    return SmallNote(
+      key: const Key('urgentNote'),
+      title: u.quest.title,
+      seed: 7,
+      ribbon: '긴급',
+      icon: u.prize == UrgentPrize.key
+          ? const GameIcon('key', size: 36)
+          : MaterialIcon(u.rare, size: 36),
+      ratio: b.urgentAccepted && !ready ? progress / u.quest.target : null,
+      progress: b.urgentAccepted
+          ? '${comma(progress)} / ${comma(u.quest.target)}${u.quest.unit}'
+          : '자정까지 ${_untilMidnight(c.now)}',
+      reward: '${u.prize == UrgentPrize.key ? '던전 열쇠 1' : Materials.info(u.rare).name} · 금화 ${u.quest.gold}',
+      glow: ready,
+      button: ready ? '받기' : (b.urgentAccepted ? null : '수락'),
+      buttonGold: ready,
+      onButton: ready
+          ? () async {
+              await c.claimUrgent();
+              if (context.mounted) showTopNotice(context, '긴급 의뢰 완료!');
+            }
+          : () => _showUrgentDetail(context, c),
+      onTap: () => _showUrgentDetail(context, c),
+    );
+  }
+}
+
+/// 긴급 의뢰 양피지 (묶음 84 #403: 다른 의뢰 양피지와 같은 모양, 빨간 테두리 없음)
 Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
     showModalBottomSheet<void>(
       context: context,
@@ -281,7 +322,6 @@ Future<void> _showUrgentDetail(BuildContext context, AppController c) =>
               : Materials.info(u.rare).name;
           return _DetailSheet(
             seed: 2,
-            edge: const Color(0xFFB8322A),
             stamp: b.urgentAccepted && !ready ? const WaxSeal(size: 42) : null,
             title: u.quest.title,
             line: '긴급 의뢰예요. 오늘 자정까지만 붙어 있어요.',

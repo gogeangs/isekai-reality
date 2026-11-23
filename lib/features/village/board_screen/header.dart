@@ -104,58 +104,6 @@ class _BoardTabChip extends StatelessWidget {
       );
 }
 
-/// 묶음 70 #301: 탭 위 긴급 띠 「긴급 · ○○ · 오늘 자정까지」 — 누르면 쪽지 창 (다 하면 받기)
-class _UrgentBand extends StatelessWidget {
-  const _UrgentBand({required this.controller});
-
-  final AppController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = controller;
-    final u = c.urgent!;
-    final b = c.board;
-    final ready = b.urgentAccepted && c.urgentProgress >= u.quest.target;
-    return GestureDetector(
-      key: const Key('urgentBand'),
-      onTap: ready
-          ? () async {
-              await c.claimUrgent();
-              if (context.mounted) showTopNotice(context, '긴급 의뢰 완료!');
-            }
-          : () => _showUrgentDetail(context, c),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: ready
-              ? const [Color(0xFFE2B354), Color(0xFFB8862B)]
-              : const [Color(0xFF9E2A22), Color(0xFF6E1A15)]),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: ready ? const Color(0xFFFFF2C4) : const Color(0xFFE5826F)),
-        ),
-        child: Row(children: [
-          Icon(ready ? Icons.redeem_rounded : Icons.priority_high_rounded,
-              size: 16, color: Colors.white),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              ready
-                  ? '긴급 · ${u.quest.title} · 받기!'
-                  : '긴급 · ${u.quest.title} · 오늘 자정까지',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
-            ),
-          ),
-          if (b.urgentAccepted && !ready)
-            Text('${comma(c.urgentProgress)}/${comma(u.quest.target)}',
-                style: const TextStyle(color: Color(0xFFFFD9CF), fontSize: 12, fontWeight: FontWeight.w700)),
-        ]),
-      ),
-    );
-  }
-}
-
 /// 자식 크기가 정해지면 알려 준다 (그린 뒤)
 class _SizeReporter extends SingleChildRenderObjectWidget {
   const _SizeReporter({required this.onSize, required super.child});

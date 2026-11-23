@@ -422,10 +422,8 @@ extension _ShellPopups on _HomeShellState {
     if (egg) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        if (!c.farewellDone || newest == null) {
-          showTopNoticeQueued(context, '반짝이는 신비한 알을 주웠어요. 가방에 넣어 둘게요.');
-          return;
-        }
+        // 묶음 84 #397: 이별 전 숨은 알은 알리지 않음
+        if (!c.farewellDone || newest == null) return;
         // 전투 밖(주간 의뢰 · 우편): 알 그림 작은 창 「알을 얻었어요!」
         _petNewsShowing = true;
         await showEggGotDialog(context, c, newest.grade);

@@ -142,7 +142,7 @@ extension MarketOps on AppController {
                 MarketOwn(k, e.uid, EquipmentRules.info(e.base).name, 1, equip: e),
           ],
         MarketKind.egg => [
-            for (final e in _pets.eggs)
+            for (final e in bagEggs)
               if (e.incubatedAt == null) MarketOwn(k, e.id, e.grade.label, 1),
           ],
         // 묶음 59: 공방 물약

@@ -8,6 +8,9 @@ extension PetsOps on AppController {
   /// 정령이 떠났는지 (Lv.11)
   bool get farewellDone => _pets.farewellDone;
 
+  /// 묶음 84 #397: 가방 · 부화장 · 거래소에 보이는 알 (정령과 이별하기 전 숨은 알은 아무 데도 안 보임)
+  List<PetEgg> get bagEggs => _pets.farewellDone ? _pets.eggs : const [];
+
   /// 데리고 다니는 펫 (정령이 떠나기 전에는 null)
   /// 묶음 43 #228: 훈련장에서 훈련 중인 펫은 동행·던전에 안 나온다
   Pet? get companionPet => _pets.farewellDone &&
@@ -213,7 +216,8 @@ extension PetsOps on AppController {
       await _save(t.copyWith(counters: DailyRecord.addCounts(t.counters, {PetRules.huntEggKey: 1})));
     }
     final (grade, rolled) = _rollEgg(_pets);
-    _battleEgg = grade;
+    // 묶음 84 #397: 이별 전 숨은 알은 결과 창 · 띠에도 안 보임 (이별 장면에서 처음)
+    if (_pets.farewellDone) _battleEgg = grade;
     // 묶음 75 #327: 정령이 떠난 뒤 가방이 가득하면 다른 아이템처럼 「가방이 가득 찼어요」 창으로
     // (버리기 · 바로 판매). 떠나기 전 숨은 알은 그대로 (보이지 않아서)
     if (_pets.farewellDone && bagFree <= 0) {
@@ -227,7 +231,7 @@ extension PetsOps on AppController {
       firstEggFound: true,
       nextId: p.nextId + 1,
     ));
-    _newEgg = true;
+    _newEgg = _pets.farewellDone;
     return true;
   }
 
@@ -522,7 +526,7 @@ extension PetsOps on AppController {
       _eggMailed = true;
     }
     // 가방에 들어간 알이 있을 때만 「알을 얻었어요!」
-    if (bagged > 0) _newEgg = true;
+    if (bagged > 0) _newEgg = _pets.farewellDone;
     _notify();
   }
 

@@ -70,12 +70,6 @@ void main() {
       expect(ModifierRules.displayName(MonsterId.ashSlime, mods),
           '고대의 분노한 슬라임');
       expect(ModifierRules.gradeOf(mods), ModGrade.legend);
-      expect(ModifierRules.recordInCodex(const [ModifierId.hungry]), isFalse);
-      expect(ModifierRules.recordInCodex(mods), isTrue);
-      final key = ModifierRules.codexKey(MonsterId.ashSlime, mods);
-      final parsed = ModifierRules.parseCodexKey(key)!;
-      expect(parsed.$1, MonsterId.ashSlime);
-      expect(parsed.$2, mods);
     });
   });
 
@@ -201,8 +195,6 @@ void main() {
       expect(c.player.manaStones, stones + n);
       expect(c.history.last.fieldMonstersPurified, 1); // 하루 제한에는 1마리
       expect(c.huntTotals[MonsterId.giantRat], n);
-      expect(c.modHuntTotals,
-          {ModifierRules.codexKey(MonsterId.giantRat, spawn.modifiers): 1});
     });
 
     test('황금빛이 도망치면 오늘은 다시 나오지 않는다', () async {

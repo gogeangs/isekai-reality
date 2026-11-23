@@ -187,7 +187,7 @@ extension BagHoldOps on AppController {
         nextId: p.nextId + eggs.length,
         firstEggFound: true,
       ));
-      _newEgg = true;
+      _newEgg = _pets.farewellDone;
     }
   }
 

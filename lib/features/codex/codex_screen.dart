@@ -4,7 +4,6 @@ import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
 import '../battle/battle_view.dart';
-import '../battle/modifier_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import '../battle/element_view.dart';
@@ -18,7 +17,6 @@ class CodexScreen extends StatefulWidget {
     required this.purifiedMonsters,
     this.highlandOpen = false,
     this.huntCounts = const {},
-    this.modHunts = const {},
     this.monGearFound = const {},
     this.petsSeen = const {},
     this.onOpenPets,
@@ -67,7 +65,6 @@ class CodexScreen extends StatefulWidget {
   final Map<MonsterId, int> huntCounts;
 
   /// 희귀·전설 수식어 몬스터 사냥 기록 ([ModifierRules.codexKey] → 마릿수)
-  final Map<String, int> modHunts;
 
   @override
   State<CodexScreen> createState() => _CodexScreenState();
@@ -101,7 +98,6 @@ class _CodexScreenState extends State<CodexScreen> {
 
   Set<MonsterId> get purifiedMonsters => widget.purifiedMonsters;
   Map<MonsterId, int> get huntCounts => widget.huntCounts;
-  Map<String, int> get modHunts => widget.modHunts;
 
   Future<void> _showMonster(BuildContext context, MonsterInfo m) =>
       showModalBottomSheet<void>(
@@ -194,13 +190,6 @@ class _CodexScreenState extends State<CodexScreen> {
       if (!list.any((x) => x.id == m.id)) list.add(m);
     }
     final foundCount = found.values.fold<int>(0, (t, l) => t + l.length);
-    final records = [
-      for (final e in modHunts.entries)
-        if (ModifierRules.parseCodexKey(e.key) case (final monster, final mods))
-          (monster, mods, e.value),
-    ]..sort((a, b) => ModifierRules.gradeOf(b.$2)
-        .index
-        .compareTo(ModifierRules.gradeOf(a.$2).index));
 
     return Padding(
       padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
@@ -303,46 +292,6 @@ class _CodexScreenState extends State<CodexScreen> {
                             ],
                           ),
                         ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OrnatePanel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text('희귀·전설 사냥 기록', style: AppText.title(19)),
-                      const SizedBox(height: 8),
-                      if (records.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: KText(
-                              '아직 없어요. 지도에서 파란 이름이나 주황 이름의 몬스터를 찾아보세요.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: AppColors.textMuted, fontSize: 14)),
-                        ),
-                      for (final (monster, mods, n) in records)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(children: [
-                            MonsterPicture(monster: monster, size: 40),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                  ModifierRules.displayName(monster, mods),
-                                  style: TextStyle(
-                                      color: modGradeColor(
-                                          ModifierRules.gradeOf(mods)),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800)),
-                            ),
-                            Text('$n마리',
-                                style: const TextStyle(
-                                    color: AppColors.text,
-                                    fontWeight: FontWeight.w700)),
-                          ]),
-                        ),
                     ],
                   ),
                 ),

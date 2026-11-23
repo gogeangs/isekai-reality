@@ -410,32 +410,33 @@ class HighlandRules {
     Element.water,
   };
 
+  /// 묶음 84 #398: 하늘 돌 조각은 1.5배 (구름 걷기로 더 많이 모여서) — 무기 12 · 머리 6 · 몸 9 · 손 5 · 발 5 · 장신구 6 = 43
   /// 세트 부위 → 그 부위 결정 (장신구는 결정 다섯 하나씩) · 하늘 돌 조각 · 금화
   static ({Map<MaterialId, int> mats, int gold}) partCost(EquipSlot s) =>
       switch (s) {
         EquipSlot.weapon => (
-            mats: {MaterialId.skyStone: 8, MaterialId.stormCore: 2},
+            mats: {MaterialId.skyStone: 12, MaterialId.stormCore: 2},
             gold: 800
           ),
         EquipSlot.head => (
-            mats: {MaterialId.skyStone: 4, MaterialId.sunDew: 1},
+            mats: {MaterialId.skyStone: 6, MaterialId.sunDew: 1},
             gold: 400
           ),
         EquipSlot.body => (
-            mats: {MaterialId.skyStone: 6, MaterialId.frostCrystal: 2},
+            mats: {MaterialId.skyStone: 9, MaterialId.frostCrystal: 2},
             gold: 600
           ),
         EquipSlot.hands => (
-            mats: {MaterialId.skyStone: 3, MaterialId.fallsPearl: 1},
+            mats: {MaterialId.skyStone: 5, MaterialId.fallsPearl: 1},
             gold: 300
           ),
         EquipSlot.feet => (
-            mats: {MaterialId.skyStone: 3, MaterialId.cloudCrystal: 1},
+            mats: {MaterialId.skyStone: 5, MaterialId.cloudCrystal: 1},
             gold: 300
           ),
         EquipSlot.accessory => (
             mats: {
-              MaterialId.skyStone: 4,
+              MaterialId.skyStone: 6,
               for (final c in crystals) c: 1,
             },
             gold: 400

@@ -605,3 +605,12 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-20 | title_pairSpellblade, title_pairSage | 새 특별 짝 칭호 배지 — 마검사(불꽃·번개 검, 붉은 리본) · 현자(책·돋보기·4속성 별, 보라 리본), 512 |
 | 2026-11-20 | skill_spellbladeSlash, skill_sageStrike | 새 특별 짝 전용 스킬 — 마검 베기(불·물·잎 베기 궤적) · 현자의 일섬(돋보기 빛줄기·과녁), 512, 넓은 빛 번짐 제거 |
 | 2026-11-22 | title_pair_spellblade, title_pair_sage | 숨은 이명 배지 마검사 · 현자 — 다른 배지처럼 위 고리 두 개 더한 편집본, 512 (같은 이름 덮어쓰기, 옛 title_pairSpellblade · title_pairSage는 안 쓰임) |
+| 2026-11-23 | tile_sky_wind_1, tile_sky_wind_2, tile_sky_wind_3 | 하이랜드 쿼터뷰 땅 칸 · 구름 초원(바람) 1층 풀밭 / 2층 무너진 회랑 / 3층 대리석 제단, 512×384, 세 장 같은 크기 · 바닥선 |
+| 2026-11-23 | tile_sky_thunder_1, tile_sky_thunder_2, tile_sky_thunder_3 | 하이랜드 쿼터뷰 땅 칸 · 뇌운 봉우리(번개) 1층 보랏빛 바위 / 2층 무너진 회랑 / 3층 대리석 제단, 512×384, 같은 크기 · 바닥선 |
+| 2026-11-23 | tile_sky_light_1, tile_sky_light_2, tile_sky_light_3 | 하이랜드 쿼터뷰 땅 칸 · 햇살 정원(빛) 1층 꽃밭 돌길 / 2층 무너진 회랑 / 3층 대리석 제단, 512×384, 같은 크기 · 바닥선 |
+| 2026-11-23 | tile_sky_ice_1, tile_sky_ice_2, tile_sky_ice_3 | 하이랜드 쿼터뷰 땅 칸 · 서리 성채(얼음) 1층 눈 · 얼음 · 고드름 / 2층 눈 덮인 회랑 / 3층 대리석 제단, 512×384, 같은 크기 · 바닥선 |
+| 2026-11-23 | tile_sky_water_1, tile_sky_water_2, tile_sky_water_3 | 하이랜드 쿼터뷰 땅 칸 · 물의 섬(물) 1층 젖은 돌 · 웅덩이 · 흐르는 물 / 2층 무너진 회랑 / 3층 대리석 제단, 512×384, 같은 크기 · 바닥선 — 땅 칸 15장 완료 |
+| 2026-11-23 | cloud_sky_a, cloud_sky_b | 하이랜드 쿼터뷰 구름 덩어리 A(봉긋) · B(넓고 낮게), 512×384, 넓은 빛 번짐 · 파란 테 지우고 연보라 테두리만 |
+| 2026-11-23 | sky_island_under | 하이랜드 쿼터뷰 섬 밑동(위 평평한 돌판 + 아래 바위 뿔 + 덩굴 · 폭포 셋), 1024×768, 위 가장자리 붉은 번짐 지움 |
+| 2026-11-23 | item_skyRelicShard, sky_altar, sky_windSpring | 하이랜드 쿼터뷰 물건 — 하늘 유물 조각(앞모습) · 수호자 제단(45도, 조각 홈 셋 · 날개 문장) · 바람 샘(45도, 민트 소용돌이 · 깃털), 512 — 하이랜드 쿼터뷰 21장 완료 |
+| 2026-11-23 | tile_sky_wind_2, tile_sky_thunder_2, tile_sky_light_2, tile_sky_ice_2, tile_sky_water_2, sky_column_broken | 하이랜드 2층 땅 칸 다시 — 기둥 없이 평평한 회랑 돌바닥(덮어씀, 각 섬 1층 칸과 같은 너비 · 바닥 꼭짓점), 부서진 기둥 따로 512×512(아래 가운데, 땅 칸과 같은 비율) |

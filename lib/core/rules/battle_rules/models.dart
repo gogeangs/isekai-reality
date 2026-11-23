@@ -13,16 +13,12 @@ class Foe {
     this.forceElement,
     this.move,
     this.reveal,
-    this.sky,
     this.tint,
     this.label,
   });
 
   /// 묶음 60: 화면에 보이는 이름을 바꿈 (공성전 수비대 = 길드원 이름)
   final String? label;
-
-  /// 묶음 50 #146: 하이랜드 수호자의 특별한 공격
-  final SkyMove? sky;
 
   /// 묶음 50 #146: 그림에 살짝 입히는 색 (석상 병사는 섬 속성 색, ARGB)
   final int? tint;

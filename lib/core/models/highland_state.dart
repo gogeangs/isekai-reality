@@ -1,3 +1,109 @@
+/// 묶음 83 #389: 구름 걷기 한 번 (오를 때마다 새 판). 앱을 다시 켜도 판 · 바람 · 조각이 이어진다.
+class SkyClimb {
+  const SkyClimb({
+    required this.slot,
+    required this.seed,
+    this.floor = 1,
+    this.wind = 0,
+    this.opened = const [],
+    this.hero = 0,
+    this.shards = 0,
+    this.crystals = 0,
+    this.stones = 0,
+    this.soldier,
+    this.awake = false,
+  });
+
+  /// 어느 섬(칸)에서 올랐는지 · 판 씨앗
+  final String slot;
+  final int seed;
+
+  /// 1 · 2 · 3층
+  final int floor;
+  final int wind;
+
+  /// 이 층에서 밝힌 칸 (판 번호)
+  final List<int> opened;
+
+  /// 주인공이 선 칸
+  final int hero;
+
+  /// 모은 유물 조각 (층마다 하나, 가방에 들지 않음)
+  final int shards;
+
+  /// 이번에 주운 하늘 결정 · 하늘 돌 조각 (주울 때 바로 가방에, 결과 창에 합계)
+  final int crystals;
+  final int stones;
+
+  /// 밝혔는데 아직 싸우지 않은 석상 병사 칸
+  final int? soldier;
+
+  /// 수호자를 깨웠는지 (싸우다 나가면 진 것으로)
+  final bool awake;
+
+  SkyClimb copyWith({
+    int? floor,
+    int? wind,
+    List<int>? opened,
+    int? hero,
+    int? shards,
+    int? crystals,
+    int? stones,
+    int? Function()? soldier,
+    bool? awake,
+  }) =>
+      SkyClimb(
+        slot: slot,
+        seed: seed,
+        floor: floor ?? this.floor,
+        wind: wind ?? this.wind,
+        opened: opened ?? this.opened,
+        hero: hero ?? this.hero,
+        shards: shards ?? this.shards,
+        crystals: crystals ?? this.crystals,
+        stones: stones ?? this.stones,
+        soldier: soldier != null ? soldier() : this.soldier,
+        awake: awake ?? this.awake,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'slot': slot,
+        'seed': seed,
+        'floor': floor,
+        'wind': wind,
+        'opened': opened,
+        'hero': hero,
+        if (shards > 0) 'shards': shards,
+        if (crystals > 0) 'crystals': crystals,
+        if (stones > 0) 'stones': stones,
+        if (soldier != null) 'soldier': soldier,
+        if (awake) 'awake': true,
+      };
+
+  static SkyClimb? fromJson(Object? o) {
+    if (o is! Map) return null;
+    final slot = o['slot'], seed = o['seed'];
+    if (slot is! String || seed is! num) return null;
+    int i(String k) => ((o[k] as num?) ?? 0).toInt();
+    return SkyClimb(
+      slot: slot,
+      seed: seed.toInt(),
+      floor: i('floor').clamp(1, 3),
+      wind: i('wind').clamp(0, 999),
+      opened: [
+        for (final x in (o['opened'] as List?) ?? const [])
+          if (x is num) x.toInt(),
+      ],
+      hero: i('hero'),
+      shards: i('shards').clamp(0, 3),
+      crystals: i('crystals'),
+      stones: i('stones'),
+      soldier: (o['soldier'] as num?)?.toInt(),
+      awake: o['awake'] == true,
+    );
+  }
+}
+
 /// 하이랜드 기록 (묶음 50 #146). 따로 저장한다 ('highland').
 /// 예전 기록에는 없으니 없으면 처음부터 (#124: 저장 칸만 더함).
 class HighlandState {
@@ -17,7 +123,19 @@ class HighlandState {
     this.amIsle,
     this.featherDay,
     this.featherGot = 0,
+    this.climb,
+    this.guideSeen = false,
+    this.fought = const [],
   });
+
+  /// 묶음 83: 지금 하고 있는 구름 걷기 (없으면 null)
+  final SkyClimb? climb;
+
+  /// 처음 오를 때 안내를 봤는지 (첫 카드에서 저장, #383)
+  final bool guideSeen;
+
+  /// 수호자와 한 번이라도 싸운 섬 (처음 싸울 때만 초록 힌트)
+  final List<int> fought;
 
   /// 처음 섬이 뜰 때 짧은 장면을 봤는지
   final bool sceneSeen;
@@ -71,6 +189,9 @@ class HighlandState {
     int? amIsle,
     String? featherDay,
     int? featherGot,
+    SkyClimb? Function()? climb,
+    bool? guideSeen,
+    List<int>? fought,
   }) =>
       HighlandState(
         sceneSeen: sceneSeen ?? this.sceneSeen,
@@ -88,6 +209,9 @@ class HighlandState {
         amIsle: amIsle ?? this.amIsle,
         featherDay: featherDay ?? this.featherDay,
         featherGot: featherGot ?? this.featherGot,
+        climb: climb != null ? climb() : this.climb,
+        guideSeen: guideSeen ?? this.guideSeen,
+        fought: fought ?? this.fought,
       );
 
   Map<String, dynamic> toJson() => {
@@ -107,6 +231,9 @@ class HighlandState {
         if (amIsle != null) 'amIsle': amIsle,
         if (featherDay != null) 'featherDay': featherDay,
         if (featherGot > 0) 'featherGot': featherGot,
+        if (climb != null) 'climb': climb!.toJson(),
+        if (guideSeen) 'guide': true,
+        if (fought.isNotEmpty) 'fought': fought,
       };
 
   static HighlandState fromJson(Map<String, dynamic> j) => HighlandState(
@@ -128,5 +255,11 @@ class HighlandState {
         amIsle: (j['amIsle'] as num?)?.toInt(),
         featherDay: j['featherDay'] as String?,
         featherGot: ((j['featherGot'] as num?) ?? 0).toInt(),
+        climb: SkyClimb.fromJson(j['climb']),
+        guideSeen: j['guide'] == true,
+        fought: [
+          for (final x in (j['fought'] as List?) ?? const [])
+            if (x is num && x >= 0 && x < 5) x.toInt(),
+        ],
       );
 }

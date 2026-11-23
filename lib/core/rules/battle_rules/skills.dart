@@ -11,11 +11,6 @@ extension BattleSkills on Battle {
     bashCharge = 0;
     lastWasSkill = false;
     lastEvent = '강타!';
-    // 묶음 50: 강타로 서리 갑옷을 깬다
-    if (frostTurns > 0) {
-      frostTurns = 0;
-      lastEvent = '강타! 서리 갑옷이 깨졌어요!';
-    }
     var dmg = (_vary(playerAttack) * Battle.bashMultiplier * (1 + bashBoost) * dealMult).round();
     if (foe.defense != 1) dmg = math.max(1, (dmg / foe.defense).round());
     // 묶음 77 #346 마검사: 강타에 내 공격 속성이 실리고, 그 속성에 약하면 더

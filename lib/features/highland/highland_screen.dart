@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart' hide Element;
@@ -16,24 +17,25 @@ import '../battle/hero_rig.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../bulssi/spirit_art.dart' show SpiritMood;
 import '../town/material_view.dart';
+import 'sky_turn_view.dart';
+import 'sky_walk_view.dart';
 
-enum _Stage { entry, path, battle, result }
+enum _Stage { entry, walk, soldier, guardian, result }
 
-/// 섬 안 칸: 입구 → 첫 갈림길 → 둘째 갈림길 → 수호자 앞
-const List<String> _steps = ['입구', '첫 갈림길', '둘째 갈림길', '수호자 앞'];
-
-/// 하이랜드 (묶음 50 #146): 하늘에 뜬 섬 하나.
-/// 오르기(하늘 깃털) → 갈림길 둘(석상의 길 · 폐허의 길) → 수호자 → 결과.
-/// 지면 입구로 돌아가 섬이 떠 있는 동안 몇 번이든 다시 (깃털은 처음 한 번만).
+/// 하이랜드 (묶음 50 #146 · 묶음 83 #389): 하늘에 뜬 섬 하나.
+/// 오르기(하늘 깃털 1) → 쿼터뷰 구름 걷기 3층(석상 병사 · 유물 조각 · 계단) →
+/// 꼭대기 제단에서 수호자 턴제 → 결과. 오르는 중에 나가면 그대로 이어서 (앱을 다시 켜도).
 class HighlandScreen extends StatefulWidget {
   const HighlandScreen({
     super.key,
     required this.controller,
     this.tickInterval = const Duration(milliseconds: 900),
+    this.turnStep = const Duration(milliseconds: 520),
   });
 
   final AppController controller;
   final Duration tickInterval;
+  final Duration turnStep;
 
   @override
   State<HighlandScreen> createState() => _HighlandScreenState();
@@ -41,19 +43,19 @@ class HighlandScreen extends StatefulWidget {
 
 class _HighlandScreenState extends State<HighlandScreen> {
   _Stage _stage = _Stage.entry;
-
-  /// 지금 칸 (1 첫 갈림길 · 2 둘째 갈림길 · 3 수호자 앞)
-  int _step = 1;
   Battle? _battle;
-  bool _guardianFight = false;
+  SkyTurn? _turn;
 
-  /// 갈림길에서 방금 일어난 일 (다음 칸으로 넘어가기 전 한 줄)
-  String? _forkLine;
-  Map<MaterialId, int> _forkMats = const {};
-  int _forkGold = 0;
-
+  /// 결과 창: 구름 걷기가 끝남 (까닭 · 합계) 또는 수호자 결과
+  SkyEnd? _end;
+  SkyClimbSummary? _summary;
   SkyResult? _result;
+
   String? _line;
+  String? _walkNews;
+  int _walkNo = 0;
+  Timer? _watch;
+
   /// 들어올 때 섬 (그사이 섬이 사라져도 그림·이름은 그대로)
   late final IsleInfo? _info = widget.controller.skyIsland?.info;
 
@@ -64,10 +66,25 @@ class _HighlandScreenState extends State<HighlandScreen> {
   void initState() {
     super.initState();
     _c.holdNoticesWhile(true);
+    if (_c.skyGuardianAbandoned) {
+      // 수호자를 깨운 채 나갔으면 진 것으로
+      WidgetsBinding.instance.addPostFrameCallback((_) => _guardianDone());
+    } else if (_c.skyClimb case final cl?) {
+      if (cl.soldier != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _soldier());
+      } else {
+        _stage = _Stage.walk;
+      }
+    }
+    _watch = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _stage != _Stage.walk) return;
+      if (_c.skyIsland == null) _endClimb(SkyEnd.islandGone);
+    });
   }
 
   @override
   void dispose() {
+    _watch?.cancel();
     _c.holdNoticesWhile(false);
     super.dispose();
   }
@@ -82,66 +99,86 @@ class _HighlandScreenState extends State<HighlandScreen> {
     final ok = await _c.climbIsland();
     if (!ok || !mounted) return;
     setState(() {
-      _stage = _Stage.path;
-      _step = 1;
-      _forkLine = null;
-      _line = _c.takeFirstClimbLine();
+      _stage = _Stage.walk;
+      _walkNews = _c.takeFirstClimbLine();
+      _walkNo++;
     });
   }
 
-  // ───────────── 갈림길
+  // ───────────── 석상 병사 (밝히면 바로)
 
-  Future<void> _ruins() async {
-    final r = await _c.searchRuins();
-    if (r == null || !mounted) return;
-    setState(() {
-      _line = null;
-      _forkMats = r.mats;
-      _forkGold = r.gold;
-      _forkLine = switch (r.find) {
-        RuinsFind.chest => '무너진 기둥 사이에서 낡은 상자를 찾았어!',
-        RuinsFind.feather => '바람에 실려 온 하늘 깃털이 걸려 있었어!',
-        RuinsFind.empty => '조용한 폐허야. 이번엔 아무것도 없었어.',
-      };
-    });
-  }
-
-  void _fight({required bool guardian}) {
-    final b = guardian ? _c.startGuardianBattle() : _c.startSoldierBattle();
-    if (b == null) return;
+  void _soldier() {
+    final b = _c.startSoldierBattle();
+    if (b == null) {
+      setState(() => _stage = _Stage.walk);
+      return;
+    }
     setState(() {
       _battle = b;
-      _guardianFight = guardian;
-      _stage = _Stage.battle;
+      _stage = _Stage.soldier;
     });
   }
 
-  Future<void> _finish() async {
-    final b = _battle!;
-    final r = _guardianFight
-        ? await _c.finishGuardianBattle(b)
-        : await _c.finishSoldierBattle(b);
+  Future<void> _soldierDone() async {
+    final r = await _c.finishSoldierBattle(_battle!);
     if (!mounted) return;
     if (!r.won) {
-      // 지면 입구로 (섬이 떠 있는 동안 깃털 없이 다시)
       setState(() {
-        _stage = _Stage.entry;
-        _line = '이번엔 물러났어. 쉬고 다시 오르자. 갈림길도 다시 고를 수 있어.';
+        _end = SkyEnd.hpZero;
+        _summary = r.climb;
+        _result = null;
+        _battle = null;
+        _stage = _Stage.result;
       });
       return;
     }
-    if (!_guardianFight) {
-      setState(() {
-        _stage = _Stage.path;
-        _line = null;
-        _forkMats = r.mats;
-        _forkGold = 0;
-        _forkLine = '석상 병사가 길을 비켜 줬어!';
-      });
+    if (_c.hp <= 0) {
+      await _endClimb(SkyEnd.hpZero);
       return;
     }
+    final n = r.mats[MaterialId.skyStone] ?? 0;
+    setState(() {
+      _battle = null;
+      _stage = _Stage.walk;
+      _walkNews = '석상 병사가 길을 비켜 줬어요 · 하늘 돌 조각 $n';
+      _walkNo++;
+    });
+    if (_c.skyStuck) await _endClimb(SkyEnd.noWind);
+  }
+
+  // ───────────── 끝
+
+  Future<void> _endClimb(SkyEnd why) async {
+    if (_stage == _Stage.result) return;
+    final sum = await _c.endSkyClimb();
+    if (!mounted) return;
+    setState(() {
+      _end = why;
+      _summary = sum;
+      _result = null;
+      _stage = _Stage.result;
+    });
+  }
+
+  // ───────────── 수호자 (턴제)
+
+  Future<void> _wake() async {
+    final t = await _c.startGuardianTurn();
+    if (t == null || !mounted) return;
+    setState(() {
+      _turn = t;
+      _stage = _Stage.guardian;
+    });
+  }
+
+  Future<void> _guardianDone() async {
+    final t = _turn;
+    final r = await _c.finishGuardianTurn(t != null && t.isOver ? t : null);
+    if (!mounted) return;
     setState(() {
       _result = r;
+      _summary = r.climb;
+      _end = null;
       _stage = _Stage.result;
     });
     if (r.inscription case final i?) {
@@ -151,13 +188,6 @@ class _HighlandScreenState extends State<HighlandScreen> {
     }
   }
 
-  void _next() => setState(() {
-        _step++;
-        _forkLine = null;
-        _forkMats = const {};
-        _forkGold = 0;
-      });
-
   // ───────────── 화면
 
   String get _bg => _info?.background ?? 'assets/images/bg_highland_wind.webp';
@@ -166,48 +196,68 @@ class _HighlandScreenState extends State<HighlandScreen> {
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
     final title = _info?.place ?? '하이랜드';
-    return Scaffold(
-      key: const Key('highlandScreen'),
-      backgroundColor: AppColors.deepNight,
-      bottomNavigationBar: switch (_stage) {
-        _Stage.entry => _bottom(_entryButton()),
-        _Stage.result => _bottom(FrameButton(
-            key: const Key('skyBack'),
-            label: '내려가기',
-            onPressed: () => Navigator.of(context).pop())),
-        _Stage.path => _forkLine != null || _step >= 3
-            ? _bottom(_pathButton())
-            : null,
-        _Stage.battle => null,
+    final fight = _stage == _Stage.soldier || _stage == _Stage.guardian;
+    return PopScope(
+      // 수호자와 싸우다 나가면 진 것으로
+      canPop: _stage != _Stage.guardian,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _stage == _Stage.guardian) _guardianDone();
       },
-      body: NightBackground(
-        child: _stage == _Stage.battle
-            ? Padding(
-                padding:
-                    EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Scaffold(
+        key: const Key('highlandScreen'),
+        backgroundColor: AppColors.deepNight,
+        bottomNavigationBar: switch (_stage) {
+          _Stage.entry => _bottom(_entryButton()),
+          _Stage.result => _bottom(FrameButton(
+              key: const Key('skyBack'),
+              label: '내려가기',
+              onPressed: () => Navigator.of(context).pop())),
+          _ => null,
+        },
+        body: NightBackground(
+          child: _stage == _Stage.entry || _stage == _Stage.result
+              ? ListView(
+                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 28),
                   children: [
-                    OrnateTopBar(title: title, onBack: null),
+                    OrnateTopBar(title: title, onBack: () => Navigator.of(context).maybePop()),
                     const SizedBox(height: 10),
-                    Expanded(child: _battleView()),
+                    ...(_stage == _Stage.entry ? _entry() : _resultView()),
                   ],
+                )
+              : Padding(
+                  padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, pad.bottom + 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      OrnateTopBar(
+                          title: title,
+                          onBack: fight ? null : () => Navigator.of(context).maybePop()),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: switch (_stage) {
+                          _Stage.soldier => _battleView(),
+                          _Stage.guardian => SkyTurnView(
+                              key: const Key('skyTurnView'),
+                              controller: _c,
+                              turn: _turn!,
+                              fast: _c.fastBattle,
+                              stepDelay: widget.turnStep,
+                              onFinished: _guardianDone,
+                            ),
+                          _ => SkyWalkView(
+                              key: ValueKey('skyWalk$_walkNo'),
+                              controller: _c,
+                              firstLine: _walkNews,
+                              onSoldier: _soldier,
+                              onWake: _wake,
+                              onEnd: _endClimb,
+                            ),
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            : ListView(
-                padding: EdgeInsets.fromLTRB(14, pad.top + 6, 14, 28),
-                children: [
-                  OrnateTopBar(
-                      title: title,
-                      onBack: () => Navigator.of(context).maybePop()),
-                  const SizedBox(height: 10),
-                  ...switch (_stage) {
-                    _Stage.entry => _entry(),
-                    _Stage.path => _path(),
-                    _ => _resultView(),
-                  },
-                ],
-              ),
+        ),
       ),
     );
   }
@@ -234,7 +284,7 @@ class _HighlandScreenState extends State<HighlandScreen> {
         onJobSkill: _c.payBattleSkill,
         onMasterySkill: _c.payMasterySkill,
         background: _bg,
-        onFinished: _finish,
+        onFinished: _soldierDone,
         tickInterval: widget.tickInterval,
         playerName: _c.profile.name,
         look: _c.profile.look,
@@ -282,9 +332,8 @@ class _HighlandScreenState extends State<HighlandScreen> {
     if (s.cleared) return '수호자가 우리를 인정해 줬어. 이 섬은 문을 닫았어.';
     if (_c.hp <= 0) return '많이 지쳤어. 여관에서 쉬거나 물약을 마시고 오자.';
     if (!_c.canFightNow) return '움직이는 중엔 위험해! 멈춰 서서 오르자.';
-    if (s.climbed) return '아직 섬이 떠 있어. 다시 올라가 보자!';
     if (_c.skyFeathers < 1) return '하늘 깃털이 없어. 걷다 보면 바람에 실려 올 거야.';
-    return '하늘 깃털이 있으면 올라갈 수 있어. 가 볼까?';
+    return '구름 위 세 층을 지나면 꼭대기 제단에 수호자가 있어. 가 볼까?';
   }
 
   List<Widget> _entry() {
@@ -347,187 +396,59 @@ class _HighlandScreenState extends State<HighlandScreen> {
               ? '수호자가 인정해 줬어요'
               : _c.hp <= 0
                   ? 'HP가 없어요 · 쉬고 오세요'
-                  : s.climbed
-                      ? '다시 오르기'
-                      : '하늘 깃털 1개로 오르기',
+                  : '하늘 깃털 1개로 오르기',
       onPressed: ok ? _climb : null,
-    );
-  }
-
-  // ───────────── 길
-
-  Widget _progress() => Row(children: [
-        for (var k = 0; k < _steps.length; k++) ...[
-          if (k > 0)
-            Expanded(
-              child: Container(
-                height: 2,
-                color: k <= _step
-                    ? AppColors.goldBright
-                    : AppColors.textMuted.withValues(alpha: 0.4),
-              ),
-            ),
-          Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-              key: Key('skyStep_$k'),
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: k < _step
-                    ? AppColors.goldBright
-                    : k == _step
-                        ? Color(_info?.color ?? 0xFFFFFFFF)
-                        : AppColors.abyss,
-                border: Border.all(color: AppColors.goldBright),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(_steps[k],
-                style: TextStyle(
-                    color: k == _step ? AppColors.text : AppColors.textMuted,
-                    fontSize: 11)),
-          ]),
-        ],
-      ]);
-
-  List<Widget> _path() {
-    final i = _info;
-    final atGuardian = _step >= 3;
-    return [
-      BulssiLine(
-          line: _line ??
-              (atGuardian
-                  ? '수호자가 기다리고 있어. 우리를 시험하려는 거야.'
-                  : _forkLine ?? '길이 둘로 갈라져. 어느 쪽으로 갈까?'),
-          mood: SpiritMood.normal),
-      const SizedBox(height: 10),
-      OrnatePanel(child: _progress()),
-      const SizedBox(height: 10),
-      if (atGuardian)
-        _picture(
-          child: i == null
-              ? null
-              : MonsterPicture(
-                  key: const Key('skyGuardianArt'),
-                  monster: i.guardian,
-                  size: 200),
-        )
-      else if (_forkLine != null)
-        OrnatePanel(
-          key: const Key('skyForkResult'),
-          child: Column(children: [
-            KText(_forkLine!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.text, fontSize: 15)),
-            if (_forkGold > 0 || _forkMats.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 6,
-                children: [
-                  if (_forkGold > 0)
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      const GameIcon('gold', size: 22),
-                      const SizedBox(width: 4),
-                      Text('금화 $_forkGold',
-                          style: const TextStyle(color: AppColors.goldBright)),
-                    ]),
-                  for (final e in _forkMats.entries)
-                    Row(mainAxisSize: MainAxisSize.min, children: [
-                      MaterialIcon(e.key, size: 26),
-                      const SizedBox(width: 4),
-                      Text('${Materials.info(e.key).name} ${e.value}',
-                          style: const TextStyle(color: AppColors.text)),
-                    ]),
-                ],
-              ),
-            ],
-          ]),
-        )
-      else ...[
-        _forkCard(
-          key: const Key('skyForkStone'),
-          title: '석상의 길',
-          line: '작은 석상 병사가 길을 지켜요. 이기면 하늘 재료를 조금 얻어요.',
-          art: MonsterPicture(
-              monster: MonsterId.stoneSoldier, size: 72, tint: i?.color),
-          onTap: _c.hp > 0 && _c.canFightNow
-              ? () => _fight(guardian: false)
-              : null,
-        ),
-        const SizedBox(height: 10),
-        _forkCard(
-          key: const Key('skyForkRuins'),
-          title: '폐허의 길',
-          line: '싸움 없이 폐허를 살펴요. 운이 좋으면 무언가 남아 있어요.',
-          art: const Icon(Icons.account_balance_rounded,
-              size: 52, color: Color(0xFFDDE7F0)),
-          onTap: _ruins,
-        ),
-      ],
-    ];
-  }
-
-  Widget _forkCard({
-    required Key key,
-    required String title,
-    required String line,
-    required Widget art,
-    required VoidCallback? onTap,
-  }) =>
-      Opacity(
-        opacity: onTap == null ? 0.5 : 1,
-        child: GestureDetector(
-          key: key,
-          onTap: onTap,
-          child: OrnatePanel(
-            child: Row(children: [
-              SizedBox(width: 76, height: 76, child: Center(child: art)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: AppText.title(17, color: AppColors.text)),
-                    const SizedBox(height: 4),
-                    KText(line,
-                        style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 13, height: 1.4)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.goldBright),
-            ]),
-          ),
-        ),
-      );
-
-  Widget _pathButton() {
-    if (_step >= 3) {
-      final ok = _c.hp > 0 && _c.canFightNow;
-      return GoldButton(
-        key: const Key('skyGuardian'),
-        label: _c.hp <= 0 ? 'HP가 없어요 · 쉬고 오세요' : '수호자에게 도전하기',
-        onPressed: ok ? () => _fight(guardian: true) : null,
-      );
-    }
-    return GoldButton(
-      key: const Key('skyNext'),
-      label: _step == 2 ? '수호자 앞으로' : '다음 갈림길로',
-      onPressed: () {
-        _line = null;
-        _next();
-      },
     );
   }
 
   // ───────────── 결과
 
-  List<Widget> _resultView() {
-    final r = _result!;
+  Widget _sumPanel(SkyClimbSummary s) {
     final i = _info;
+    Widget item(Widget icon, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
+          icon,
+          const SizedBox(width: 4),
+          Text(text, style: const TextStyle(color: AppColors.text, fontSize: 14)),
+        ]);
+    return OrnatePanel(
+      key: const Key('skyClimbSum'),
+      child: Column(children: [
+        Text('${s.floor}층까지 올랐어요', style: AppText.title(16, color: AppColors.goldBright)),
+        const SizedBox(height: 8),
+        Wrap(alignment: WrapAlignment.center, spacing: 14, runSpacing: 6, children: [
+          item(MaterialIcon(i?.crystal ?? MaterialId.cloudCrystal, size: 28), '하늘 결정 ${s.crystals}'),
+          item(const MaterialIcon(MaterialId.skyStone, size: 28), '하늘 돌 ${s.stones}'),
+          item(Image.asset(SkyWalkRules.shardArt, width: 26, height: 26, errorBuilder: (_, __, ___) => const SizedBox()),
+              '유물 조각 ${s.shards}'),
+        ]),
+      ]),
+    );
+  }
+
+  List<Widget> _resultView() {
+    final r = _result;
+    final i = _info;
+    final sum = _summary;
+    if (r == null || !r.won) {
+      final line = r != null
+          ? '수호자에게 밀려났어. 쉬고 다시 오르자. 얻은 것은 그대로야.'
+          : switch (_end) {
+              SkyEnd.noWind => '바람이 다했어. 오늘은 여기까지 걸었어.',
+              SkyEnd.hpZero => '힘이 다했어. 쉬고 다시 오르자. 얻은 것은 그대로야.',
+              SkyEnd.islandGone => '섬이 구름 속으로 떠나. 얼른 내려가자!',
+              _ => '구름 아래로 내려왔어. 얻은 것은 그대로야.',
+            };
+      return [
+        BulssiLine(
+            key: Key('skyEnd_${r != null ? 'guardian' : _end?.name}'),
+            line: line,
+            mood: r != null || _end == SkyEnd.hpZero ? SpiritMood.worried : SpiritMood.normal),
+        const SizedBox(height: 10),
+        _picture(height: 180),
+        const SizedBox(height: 10),
+        if (sum != null) _sumPanel(sum),
+      ];
+    }
     return [
       BulssiLine(
           line: i == null ? '해냈어!' : Monsters.info(i.guardian).huntLine,
@@ -593,6 +514,10 @@ class _HighlandScreenState extends State<HighlandScreen> {
           ],
         ]),
       ),
+      if (sum != null) ...[
+        const SizedBox(height: 10),
+        _sumPanel(sum),
+      ],
     ];
   }
 }

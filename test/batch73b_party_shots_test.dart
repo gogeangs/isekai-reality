@@ -9,19 +9,16 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isekai_reality/app_controller.dart';
-import 'package:isekai_reality/core/geo/geo.dart';
 import 'package:isekai_reality/core/rules/rules.dart';
 import 'package:isekai_reality/data/cloud/cloud_auth.dart';
 import 'package:isekai_reality/data/storage/record_store.dart' show HeroLook;
 import 'package:isekai_reality/features/act3/act3_screen.dart';
 import 'package:isekai_reality/features/act4/act4_screens.dart';
-import 'package:isekai_reality/features/highland/highland_screen.dart';
 import 'package:isekai_reality/features/party/party_boss_screen.dart';
 import 'package:isekai_reality/features/village/tavern_screen.dart';
 import 'package:isekai_reality/features/village/training_screen.dart';
 import 'package:isekai_reality/theme/top_notice.dart';
 
-import 'batch50_test.dart' as b50;
 import 'batch52_test.dart' as b52;
 import 'batch56_test.dart' as b56;
 import 'batch59_test.dart' as b59;
@@ -124,11 +121,6 @@ Future<void> _page(WidgetTester tester, Widget home) async {
 
 
 
-Future<void> _tap(WidgetTester tester, String key) async {
-  await tester.tap(find.byKey(Key(key)));
-  await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 60)));
-  await _settle(tester, 3);
-}
 
 /// 각성자가 4칸(주먹이 닿는 순간)일 때까지
 Future<void> _punch(WidgetTester tester) async {
@@ -250,28 +242,6 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 9));
     });
-
-    testWidgets('b73p $n: 하이랜드 수호자', (tester) async {
-      _device(tester, d);
-      b50.now = b50.am.add(const Duration(minutes: 5));
-      late AppController c;
-      await tester.runAsync(() async {
-        c = await b50.start(b50.account(18, mats: {'skyFeather': 2}));
-        await c.handleFix(const LocationFix(point: b50.home));
-        await c.handleFix(LocationFix(point: c.skyIsland!.point));
-        c.debugLook(look);
-      });
-      await _page(tester, HighlandScreen(key: ObjectKey('h$n'), controller: c));
-      await _tap(tester, 'skyClimb');
-      await _tap(tester, 'skyForkRuins');
-      await _tap(tester, 'skyNext');
-      await _tap(tester, 'skyForkRuins');
-      await _tap(tester, 'skyNext');
-      await _tap(tester, 'skyGuardian');
-      await _punch(tester);
-      await _shot(tester, '${n}_13_하이랜드수호자');
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(seconds: 9));
-    });
+    // 묶음 83 #389: 하이랜드 수호자는 턴제로 (batch83_shots)
   }
 }

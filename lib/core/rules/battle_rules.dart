@@ -370,20 +370,6 @@ class Battle {
   /// 이번 틱에 동료가 쓴 스킬 이름 (화면 띠)
   String? lastAllySkill;
 
-  // ───────────── 하이랜드 수호자 (묶음 50 #146, 숨은 규칙)
-
-  /// 회오리: 두 번씩 움직이는 남은 턴
-  int whirlTurns = 0;
-
-  /// 낙뢰: 떨어지기까지 남은 턴 (0이면 예고 없음)
-  int boltIn = 0;
-
-  /// 햇살 치유를 썼는지 (한 번만)
-  bool sunHealed = false;
-
-  /// 서리 갑옷 남은 턴 (받는 피해가 크게 줄어든다, 강타로 깬다)
-  int frostTurns = 0;
-
   /// 이번 틱에 분신이 쓴 특별한 공격 문장 (없으면 null)
   String? lastMove;
 

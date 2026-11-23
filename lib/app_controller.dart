@@ -1068,6 +1068,9 @@ class AppController extends ChangeNotifier {
 
   /// 마지막으로 예약한 섬 알림 때 (같으면 다시 예약하지 않음)
   DateTime? _skyNoticeAt;
+  /// 묶음 83: 지금 층 판 (씨앗 · 층이 같으면 다시 만들지 않음)
+  SkyBoard? _skyBoardMemo;
+  String? _skyBoardKey;
 
   /// 방금 훈련을 마친 펫 이름 (위쪽 띠 한 번)
   String? _petTrainedNotice;

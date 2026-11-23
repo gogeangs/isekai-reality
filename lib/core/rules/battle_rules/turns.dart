@@ -156,7 +156,6 @@ extension BattleTurns on Battle {
       lastWasSkill = false;
       lastEvent = null;
       _clearAshMoves();
-      _clearSkyMoves();
       // 묶음 34: 잿빛 군주는 감정 단계가 바뀔 때 한 줄
       lastMove = foe.move == null ? null : Act2Rules.ofMove(foe.move!)?.kingLine;
       _prepareStrong();
@@ -205,8 +204,6 @@ extension BattleTurns on Battle {
       if (isOver) return;
     }
     lastTaken = 0;
-    _skyMove();
-    if (isOver) return;
     // 이번 틱의 몬스터 첫 공격이 예고된 강한 공격인지
     _strongNow = _strongNext;
     _strongNowMult = _strongNextMult;
@@ -296,13 +293,6 @@ extension BattleTurns on Battle {
       }
     }
 
-    // 묶음 50 회오리: 그동안 한 번 더 움직인다
-    if (whirlTurns > 0) {
-      whirlTurns--;
-      _foeTurn();
-      if (isOver) return;
-    }
-
     // 작은 불씨: 몬스터 화상 (최대 체력 2%)
     if (foeBurnTurns > 0) {
       foeBurnTurns--;
@@ -357,7 +347,6 @@ extension BattleTurns on Battle {
     if (wardTurns > 0) wardTurns--;
     if (stoneWallTurns > 0) stoneWallTurns--;
     if (tauntTurns > 0) tauntTurns--;
-    if (frostTurns > 0) frostTurns--;
     if (foeBreakTurns > 0) foeBreakTurns--;
     if (regenTurns > 0 && playerHp < playerMaxHp) {
       regenTurns--;
@@ -804,12 +793,6 @@ extension BattleTurns on Battle {
     // 묶음 59 레이드: 망자의 방패 · 등껍질 숨기 (받는 피해가 크게 줄어요)
     if (raidShieldTurns > 0 || raidShellTurns > 0) {
       final cut = math.max(1, (damage * (raidShellTurns > 0 ? 0.25 : 0.4)).round());
-      if (lastDealt >= damage) lastDealt -= damage - cut;
-      damage = cut;
-    }
-    // 묶음 50 서리 갑옷: 받는 피해를 크게 줄인다 (화면 숫자도 줄인 값)
-    if (frostTurns > 0) {
-      final cut = math.max(1, (damage * HighlandRules.frostTaken).round());
       if (lastDealt >= damage) lastDealt -= damage - cut;
       damage = cut;
     }

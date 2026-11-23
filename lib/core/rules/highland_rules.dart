@@ -16,7 +16,7 @@ import 'title_rules.dart';
 /// 하이랜드 (묶음 50 #146): 하늘에 떠오르는 섬 다섯. 순서는 바람·번개·빛·얼음·물 (비문 자리 순서)
 enum Isle { wind, thunder, light, ice, water }
 
-/// 수호자의 특별한 공격 (숨은 규칙, 화면에는 문장만). 2막 분신 공격과 겹치지 않는다
+/// 수호자의 특별한 공격 (숨은 규칙, 화면에는 문장만). 묶음 83: 턴제에서 예고 → 다음 턴
 enum SkyMove {
   /// 회오리: 몇 턴 동안 두 번씩 움직인다
   whirl,
@@ -325,15 +325,7 @@ class HighlandRules {
   static int feathersFor(int steps, {bool set2 = false}) =>
       math.min(featherDayCap, steps ~/ (set2 ? featherStepsSet2 : featherSteps));
 
-  // ───────────── 섬 안 길 (입구 → 갈림길 둘 → 수호자 앞)
-
-  /// 폐허의 길: 상자 · 빈손 · 하늘 깃털 (운)
-  static const double ruinsChest = 0.50;
-  static const double ruinsFeather = 0.15;
-
-  /// 폐허 상자: 금화 · 하늘 돌 조각 1
-  static const int chestGoldMin = 30;
-  static const int chestGoldMax = 80;
+  // ───────────── 구름 걷기 석상 병사 (묶음 83 #389, 판은 sky_walk_rules)
 
   /// 석상 병사: 그 레벨 필드 몬스터 대비 체력·공격 · 이기면 하늘 돌 조각 1~2
   static const double soldierHp = 1.3;
@@ -380,19 +372,17 @@ class HighlandRules {
       maxHp: math.max(1, (atk * RuleConstants.bossHitsToClear * guardianHp).round()),
       attack: math.max(1,
           (floorAttack * RuleConstants.bossAttackMultiplier * guardianAttack).round()),
-      sky: i.move,
     );
   }
 
-  // ───────────── 특별한 공격 세기 (숨김)
+  // ───────────── 특별한 공격 세기 (숨김 · 묶음 83 부터 턴제 sky_turn_rules 에서 씀)
 
-  /// 회오리: 몇 턴마다 · 몇 턴 동안 두 번씩
+  /// 회오리: 몇 턴마다 · 그 턴 몇 번 움직임
   static const int whirlEvery = 6;
   static const int whirlLength = 2;
 
-  /// 낙뢰: 몇 턴마다 예고 · 예고 뒤 몇 턴에 떨어짐 · 공격 배율 · 방어 태세로 막으면 남는 피해
+  /// 낙뢰: 몇 턴마다 먹구름(1턴) → 다음 턴 낙뢰 · 공격 배율 · 방어로 막으면 남는 피해
   static const int boltEvery = 8;
-  static const int boltDelay = 2;
   static const double boltPower = 3.0;
   static const double boltBlocked = 0.2;
 

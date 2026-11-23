@@ -91,6 +91,13 @@ Future<AppController> start(Acc a, {int steps = 0}) async {
   return c;
 }
 
+/// 묶음 83: 꼭대기 층 · 제단을 찾았고 조각 셋
+SkyClimb topClimb(String slot, {int seed = 7}) {
+  final b = SkyBoard.generate(seed, 3);
+  return SkyClimb(
+      slot: slot, seed: seed, floor: 3, wind: 3, opened: [b.entrance, b.goal], hero: b.goal, shards: 3);
+}
+
 void win(Battle b) {
   b.foeHp = 0;
   b.phase = BattlePhase.cleared;
@@ -101,14 +108,6 @@ void lose(Battle b) {
   b.phase = BattlePhase.failed;
 }
 
-Battle duel(Foe f) => Battle(
-      playerMaxHp: 1000000,
-      playerAttack: 1,
-      floors: [f],
-      rng: math.Random(5),
-      telegraphs: true,
-      heroSkills: true,
-    );
 
 void main() {
   setUp(() => now = am.add(const Duration(minutes: 5)));
@@ -241,75 +240,8 @@ void main() {
     });
   });
 
-  group('수호자 특별한 공격', () {
-    Foe g(Isle i) => HighlandRules.guardianFoe(i, 20);
-
-    test('회오리: 몇 턴 동안 두 번씩 움직인다', () {
-      final b = duel(g(Isle.wind));
-      b.tick();
-      expect(b.whirlTurns, 0);
-      b.tick();
-      expect(b.lastMove, HighlandRules.info(Isle.wind).moveLine);
-      expect(b.whirlTurns, HighlandRules.whirlLength - 1);
-    });
-
-    test('낙뢰: 예고 뒤 떨어진다 · 방어 태세면 거의 막는다', () {
-      int strike({required bool stance}) {
-        final b = duel(g(Isle.thunder));
-        for (var t = 1; t <= 4; t++) {
-          b.tick();
-        }
-        expect(b.boltComing, isTrue);
-        expect(b.lastMove, HighlandRules.info(Isle.thunder).moveLine);
-        b.tick();
-        if (stance) b.stanceTurns = 3;
-        final hp = b.playerHp;
-        b.tick();
-        expect(b.boltComing, isFalse);
-        expect(b.lastMove,
-            stance ? '방어 태세로 낙뢰를 막아 냈어요!' : '낙뢰가 떨어졌어요!');
-        return hp - b.playerHp;
-      }
-
-      expect(strike(stance: true), lessThan(strike(stance: false)));
-    });
-
-    test('햇살 치유: 체력이 절반 아래면 한 번 크게 회복', () {
-      final b = duel(g(Isle.light));
-      b.foeHp = b.foe.maxHp ~/ 3;
-      b.tick();
-      expect(b.sunHealed, isTrue);
-      expect(b.foeHp, greaterThan(b.foe.maxHp ~/ 3));
-      expect(b.lastMove, HighlandRules.info(Isle.light).moveLine);
-      final hp = b.foeHp;
-      b.tick();
-      expect(b.foeHp, lessThanOrEqualTo(hp));
-    });
-
-    test('서리 갑옷: 받는 피해가 줄고 · 강타로 깬다', () {
-      final b = duel(g(Isle.ice));
-      b.tick();
-      expect(b.frosted, isTrue);
-      b.bashCharge = Battle.bashTicks;
-      expect(b.useBash(), isTrue);
-      expect(b.frosted, isFalse);
-      expect(b.lastEvent, contains('서리 갑옷이 깨졌어요'));
-    });
-
-    test('물살: 나에게 걸린 좋은 효과를 모두 씻어 낸다', () {
-      final b = duel(g(Isle.water));
-      b.tick();
-      b.tick();
-      b.rallyTurns = 3;
-      b.wallTurns = 3;
-      b.dodgeNext = true;
-      b.tick();
-      expect(b.rallyTurns, 0);
-      expect(b.wallTurns, 0);
-      expect(b.dodgeNext, isFalse);
-      expect(b.lastMove, HighlandRules.info(Isle.water).moveLine);
-    });
-
+  // 묶음 83 #389: 수호자 특별한 공격은 턴제로 옮김 (batch83_test)
+  group('세트 4개', () {
     test('세트 4개: 하늘 속성 공격에 받는 피해가 줄어든다', () {
       Battle fight(double t) => Battle(
           playerMaxHp: 100000,
@@ -364,7 +296,7 @@ void main() {
       expect(c.highland.featherGot, 2);
     });
 
-    test('섬 아래까지 걸어가야 오름 · 깃털 하나 · 다시 도전은 무료 · 첫 한마디 · 칭호', () async {
+    test('섬 아래까지 걸어가야 오름 · 깃털 하나 · 첫 한마디 · 칭호', () async {
       final c = await start(account(17, mats: {'skyFeather': 1}));
       await c.handleFix(const LocationFix(point: home));
       final s = c.skyIsland!;
@@ -380,46 +312,9 @@ void main() {
       expect(c.takeFirstClimbLine(), HighlandRules.firstClimbLine);
       expect(c.takeFirstClimbLine(), isNull);
 
-      // 석상의 길: 이기면 하늘 돌 조각
-      final sb = c.startSoldierBattle()!;
-      expect(sb.foe.monster, MonsterId.stoneSoldier);
-      expect(sb.foe.element, Element.wind);
-      expect(sb.foe.tint, HighlandRules.info(Isle.wind).color);
-      win(sb);
-      final sr = await c.finishSoldierBattle(sb);
-      expect(sr.won, isTrue);
-      expect(c.player.materialCount(MaterialId.skyStone), inInclusiveRange(1, 2));
-      expect(c.purifiedEver, contains(MonsterId.stoneSoldier));
-
-      // 폐허의 길: 상자 · 빈손 · 깃털
-      final r = (await c.searchRuins())!;
-      expect(RuinsFind.values, contains(r.find));
-
-      // 수호자에게 지면 입구로 · 다시 오르기는 깃털 없이
-      await c.levelUpHeal();
-      final lostB = c.startGuardianBattle()!;
-      lose(lostB);
-      expect((await c.finishGuardianBattle(lostB)).won, isFalse);
-      expect(c.skyIsland!.cleared, isFalse);
-      expect(await c.climbIsland(), isTrue);
-
-      // 이기면 결정 둘 · 비문 1번 · 경험치 · 섬은 문을 닫는다
-      await c.levelUpHeal();
-      final gb = c.startGuardianBattle()!;
-      expect(gb.foe.monster, MonsterId.guardWind);
-      expect(gb.foe.sky, SkyMove.whirl);
-      win(gb);
-      final gr = await c.finishGuardianBattle(gb);
-      expect(gr.won, isTrue);
-      expect(gr.firstKill, isTrue);
-      expect(gr.inscription, 0);
-      expect(gr.exp, HighlandRules.guardianExp);
-      expect(c.player.materialCount(MaterialId.cloudCrystal), 2);
-      expect(c.skyIsland!.cleared, isTrue);
-      expect(c.canClimb, isFalse);
-      expect(c.skyInscriptions.first, HighlandRules.isles[0].inscription);
-      expect(c.skyInscriptions.skip(1), everyElement(isNull));
-      expect(c.bossSetOpen(BossSet.sky), isTrue);
+      // 묶음 83 #389: 구름 걷기 · 석상 병사 · 수호자 턴제는 batch83_test
+      expect(c.skyClimb, isNotNull);
+      expect(c.skyClimb!.wind, SkyWalkRules.floor(1).wind);
     });
 
     test('저녁 섬은 아침과 다른 섬', () async {
@@ -446,12 +341,13 @@ void main() {
             lat: home.lat,
             lng: home.lng,
             climbed: true,
+            climb: topClimb(slot),
           ).toJson()));
       await c.handleFix(const LocationFix(point: home));
       expect(c.skyIsland!.isle, Isle.water);
-      final b = c.startGuardianBattle()!;
-      win(b);
-      final r = await c.finishGuardianBattle(b);
+      final t = (await c.startGuardianTurn())!;
+      t.foeHp = 0;
+      final r = await c.finishGuardianTurn(t);
       expect(r.titles, [TitleId.guardianTrust, TitleId.kingdomWitness]);
       expect(c.player.titles,
           containsAll([TitleId.guardianTrust, TitleId.kingdomWitness]));
@@ -484,7 +380,7 @@ void main() {
     });
   });
 
-  testWidgets('섬 화면: 오르기 → 갈림길 둘 → 폐허 → 다음 · 기록 탭 비문', (tester) async {
+  testWidgets('섬 화면: 오르기 → 구름 걷기 · 기록 탭 비문', (tester) async {
     tester.view.physicalSize = const Size(750, 1334);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -506,17 +402,9 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump(const Duration(milliseconds: 200));
     expect(c.highland.firstLine, isTrue);
-    expect(find.byKey(const Key('skyStep_1')), findsOneWidget);
-    expect(find.byKey(const Key('skyForkStone')), findsOneWidget);
-    expect(find.byKey(const Key('skyForkRuins')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('skyForkRuins')));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(find.byKey(const Key('skyForkResult')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('skyNext')));
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(find.byKey(const Key('skyForkRuins')), findsOneWidget);
-    expect(c.skyFeathers, inInclusiveRange(1, 2));
+    // 묶음 83 #389: 오르면 바로 구름 걷기
+    expect(find.byKey(const Key('skyMiniMap')), findsOneWidget);
+    expect(c.skyFeathers, 1);
 
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(

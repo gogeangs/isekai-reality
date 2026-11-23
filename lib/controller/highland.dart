@@ -25,15 +25,29 @@ class SkyIsland {
   IsleInfo get info => HighlandRules.info(isle);
 }
 
-/// 폐허의 길에서 찾은 것
-enum RuinsFind { chest, empty, feather }
+/// 묶음 83: 구름 한 칸을 걷었을 때
+class SkyStep {
+  const SkyStep({required this.cell, required this.kind, this.mats = const {}, this.hint = 0});
 
-class RuinsResult {
-  const RuinsResult(this.find, {this.gold = 0, this.mats = const {}});
-
-  final RuinsFind find;
-  final int gold;
+  final int cell;
+  final SkyCell kind;
   final Map<MaterialId, int> mats;
+
+  /// 빈 칸이면 둘레에 숨은 유물 조각 수
+  final int hint;
+}
+
+/// 묶음 83: 이번 오르기 결과 (「○층까지 올랐어요 · 하늘 결정 ○ · 하늘 돌 ○ · 유물 조각 ○」)
+class SkyClimbSummary {
+  const SkyClimbSummary({required this.floor, this.crystals = 0, this.stones = 0, this.shards = 0});
+
+  factory SkyClimbSummary.of(SkyClimb c) => SkyClimbSummary(
+      floor: c.floor, crystals: c.crystals, stones: c.stones, shards: c.shards);
+
+  final int floor;
+  final int crystals;
+  final int stones;
+  final int shards;
 }
 
 /// 수호자 · 석상 병사를 쓰러뜨렸을 때 (결과 화면)
@@ -45,7 +59,11 @@ class SkyResult {
     this.mats = const {},
     this.exp = 0,
     this.titles = const [],
+    this.climb,
   });
+
+  /// 묶음 83: 수호자 전 오르기에서 얻은 것 (결과 창 합계)
+  final SkyClimbSummary? climb;
 
   final bool won;
   final bool firstKill;
@@ -58,7 +76,7 @@ class SkyResult {
   final List<TitleId> titles;
 }
 
-/// 하이랜드 (묶음 50 #146): 하루 두 번 하늘에 떠오르는 섬 · 하늘 깃털 · 갈림길 · 수호자 다섯 · 비문
+/// 하이랜드 (묶음 50 #146): 하루 두 번 하늘에 떠오르는 섬 · 하늘 깃털 · 구름 걷기(묶음 83) · 수호자 다섯 · 비문
 extension HighlandOps on AppController {
   HighlandState get highland => _highland;
 
@@ -207,34 +225,70 @@ extension HighlandOps on AppController {
     mats[MaterialId.skyFeather] = (mats[MaterialId.skyFeather] ?? 0) + 1;
   }
 
-  // ───────────── 오르기
+  // ───────────── 오르기 (묶음 83 #389: 쿼터뷰 구름 걷기)
 
-  /// 섬에 오를 수 있는지 (걸어서 닿았고, 처음이면 깃털이 있어야)
+  /// 섬에 오를 수 있는지 (걸어서 닿았거나 펫이 기다림 · 깃털 하나 · 이미 오르는 중이면 이어서)
   bool get canClimb {
     final s = skyIsland;
     if (s == null || s.cleared || !skyReachable) return false;
-    return s.climbed || skyFeathers >= 1;
+    return skyClimb != null || skyFeathers >= 1;
   }
 
-  /// 섬에 오른다. 처음 오를 때만 깃털 하나 (떠 있는 동안 다시 도전은 무료)
+  /// 지금 하고 있는 구름 걷기 (이 섬에서 오른 것만. 섬이 바뀌었으면 null)
+  SkyClimb? get skyClimb {
+    final c = _highland.climb;
+    final s = skyIsland;
+    if (c == null || s == null || s.cleared || c.slot != _highland.slot) return null;
+    return c;
+  }
+
+  /// 지금 층의 판
+  SkyBoard? get skyBoard {
+    final c = skyClimb;
+    if (c == null) return null;
+    return _boardCache(c.seed, c.floor);
+  }
+
+  SkyBoard _boardCache(int seed, int floor) {
+    final k = '$seed|$floor';
+    if (_skyBoardKey != k || _skyBoardMemo == null) {
+      _skyBoardMemo = SkyBoard.generate(seed, floor);
+      _skyBoardKey = k;
+    }
+    return _skyBoardMemo!;
+  }
+
+  /// 섬에 오른다: 깃털 하나로 새 판 (오를 때마다 섞임). 오르는 중이면 그대로 이어서
   Future<bool> climbIsland() => _serial(() async {
         final s = skyIsland;
         if (s == null || s.cleared || !skyReachable) return false;
-        if (!s.climbed) {
-          if (skyFeathers < 1) return false;
-          final first = !_highland.climbedEver;
-          final today = await _todayRecord();
-          await _save(today.copyWith(
-            spends: DailyRecord.addCounts(
-                today.spends, {MaterialId.skyFeather.name: 1}),
-            counters: first
-                ? DailyRecord.addCounts(today.counters,
-                    {TitleRules.skyCounter(HighlandRules.climbTitle): 1})
-                : today.counters,
-          ));
-          _highland = _highland.copyWith(climbed: true, climbedEver: true);
-          await _saveHighland();
-        }
+        if (skyClimb != null) return true;
+        if (skyFeathers < 1) return false;
+        final first = !_highland.climbedEver;
+        final today = await _todayRecord();
+        await _save(today.copyWith(
+          spends: DailyRecord.addCounts(
+              today.spends, {MaterialId.skyFeather.name: 1}),
+          counters: first
+              ? DailyRecord.addCounts(today.counters,
+                  {TitleRules.skyCounter(HighlandRules.climbTitle): 1})
+              : today.counters,
+        ));
+        final seed = _random.nextInt(0x7fffffff);
+        final board = _boardCache(seed, 1);
+        _highland = _highland.copyWith(
+          climbed: true,
+          climbedEver: true,
+          climb: () => SkyClimb(
+            slot: _highland.slot!,
+            seed: seed,
+            floor: 1,
+            wind: SkyWalkRules.floor(1).wind,
+            opened: [board.entrance],
+            hero: board.entrance,
+          ),
+        );
+        await _saveHighland();
         _notify();
         return true;
       });
@@ -247,62 +301,146 @@ extension HighlandOps on AppController {
     return HighlandRules.firstClimbLine;
   }
 
-  bool get _onIsland {
-    final s = skyIsland;
-    return s != null && s.climbed && !s.cleared;
+  /// 처음 오를 때 안내: 첫 카드를 보여 줄 때 본 것으로 저장 (#383)
+  bool get skyGuideSeen => _highland.guideSeen;
+  Future<void> markSkyGuide() async {
+    if (_highland.guideSeen) return;
+    _highland = _highland.copyWith(guideSeen: true);
+    await _saveHighland();
   }
 
-  // ───────────── 갈림길: 폐허의 길
-
-  Future<RuinsResult?> searchRuins() => _serial(() async {
-        if (!_onIsland) return null;
-        final r = _random.nextDouble();
-        final RuinsResult res;
-        if (r < HighlandRules.ruinsChest) {
-          final gold = HighlandRules.chestGoldMin +
-              _random.nextInt(
-                  HighlandRules.chestGoldMax - HighlandRules.chestGoldMin + 1);
-          res = RuinsResult(RuinsFind.chest,
-              gold: gold, mats: const {MaterialId.skyStone: 1});
-        } else if (r < HighlandRules.ruinsChest + HighlandRules.ruinsFeather) {
-          res = const RuinsResult(RuinsFind.feather,
-              mats: {MaterialId.skyFeather: 1});
-        } else {
-          res = const RuinsResult(RuinsFind.empty);
+  /// 구름 한 칸을 걷는다 (바람 1). 걷을 수 없으면 null
+  Future<SkyStep?> revealSkyCell(int cell) => _serial(() async {
+        final c = skyClimb;
+        final b = skyBoard;
+        if (c == null || b == null || c.soldier != null || c.awake) return null;
+        final opened = c.opened.toSet();
+        if (!b.canReveal(cell, opened) || c.wind < SkyWalkRules.windPerCell) {
+          return null;
         }
-        if (res.gold > 0 || res.mats.isNotEmpty) {
-          await _grant(res.gold, 0, res.mats);
+        final kind = b.at(cell)!;
+        var wind = c.wind - SkyWalkRules.windPerCell;
+        var shards = c.shards, crystals = c.crystals, stones = c.stones;
+        final mats = <MaterialId, int>{};
+        final isle = skyIsland!.isle;
+        switch (kind) {
+          case SkyCell.crystal:
+            mats[SkyWalkRules.crystalOf(isle)] = 1;
+            crystals++;
+          case SkyCell.stone:
+            mats[MaterialId.skyStone] = 1;
+            stones++;
+          case SkyCell.spring:
+            wind += SkyWalkRules.springWind;
+          case SkyCell.shard:
+            shards = math.min(SkyWalkRules.floorCount, shards + 1);
+          default:
         }
+        _highland = _highland.copyWith(
+          climb: () => c.copyWith(
+            wind: wind,
+            opened: [...c.opened, cell],
+            hero: cell,
+            shards: shards,
+            crystals: crystals,
+            stones: stones,
+            soldier: kind == SkyCell.soldier ? () => cell : null,
+          ),
+        );
+        await _saveHighland();
+        if (mats.isNotEmpty) await _grant(0, 0, mats);
         _notify();
-        return res;
+        return SkyStep(cell: cell, kind: kind, mats: mats,
+            hint: kind == SkyCell.empty ? b.hint(cell, {...opened, cell}) : 0);
       });
 
-  // ───────────── 갈림길: 석상의 길 · 수호자
+  /// 계단(제단)을 찾았는지
+  bool get skyGoalFound {
+    final c = skyClimb, b = skyBoard;
+    return c != null && b != null && c.opened.contains(b.goal);
+  }
+
+  /// 「위층으로」 (계단을 찾았고 1 · 2층)
+  bool get canClimbUp {
+    final c = skyClimb;
+    return c != null && c.floor < SkyWalkRules.floorCount && skyGoalFound && c.soldier == null;
+  }
+
+  /// 「제단에서 수호자 깨우기」 (꼭대기 · 제단 · 조각 셋)
+  bool get canWakeGuardian {
+    final c = skyClimb;
+    return c != null &&
+        c.floor == SkyWalkRules.floorCount &&
+        skyGoalFound &&
+        c.shards >= SkyWalkRules.floorCount &&
+        c.soldier == null &&
+        hp > 0;
+  }
+
+  /// 바람이 다했고 갈 곳(계단 · 제단)이 없으면 끝
+  bool get skyStuck {
+    final c = skyClimb;
+    if (c == null || c.soldier != null || c.awake) return false;
+    if (c.wind >= SkyWalkRules.windPerCell) return false;
+    if (c.floor < SkyWalkRules.floorCount) return !skyGoalFound;
+    return !canWakeGuardian;
+  }
+
+  /// 위층으로 (남은 바람은 그대로 + 그 층 바람)
+  Future<bool> climbUp() => _serial(() async {
+        final c = skyClimb;
+        if (c == null || !canClimbUp) return false;
+        final f = c.floor + 1;
+        final b = _boardCache(c.seed, f);
+        _highland = _highland.copyWith(
+          climb: () => c.copyWith(
+            floor: f,
+            wind: c.wind + SkyWalkRules.floor(f).wind,
+            opened: [b.entrance],
+            hero: b.entrance,
+          ),
+        );
+        await _saveHighland();
+        _notify();
+        return true;
+      });
+
+  /// 구름 걷기를 끝낸다 (내려가기 · 바람 · HP · 섬이 떠남). 얻은 것은 그대로. 결과 창 숫자
+  Future<SkyClimbSummary> endSkyClimb() => _serial(() async {
+        final c = _highland.climb;
+        if (c == null) return const SkyClimbSummary(floor: 0);
+        _highland = _highland.copyWith(climb: () => null);
+        await _saveHighland();
+        await _tripFought('sky');
+        _notify();
+        return SkyClimbSummary.of(c);
+      });
+
+  // ───────────── 석상 병사 (밝히면 바로 짧게 싸움 · 지금 HP)
 
   Battle? startSoldierBattle() {
     final s = skyIsland;
-    if (!_onIsland || s == null || hp <= 0 || !canFightNow) return null;
+    final c = skyClimb;
+    if (s == null || c?.soldier == null || hp <= 0) return null;
     return _ashBattle(
         [HighlandRules.soldierFoe(s.isle, player.level.level)]);
   }
 
-  Battle? startGuardianBattle() {
-    final s = skyIsland;
-    if (!_onIsland || s == null || hp <= 0 || !canFightNow) return null;
-    return _ashBattle(
-        [HighlandRules.guardianFoe(s.isle, player.level.level)]);
-  }
-
-  /// 석상 병사와 싸운 뒤: 이기면 하늘 돌 조각 조금
+  /// 석상 병사와 싸운 뒤: 이기면 하늘 돌 조각 조금 · 판으로. 지면 이번 오르기 끝 (얻은 것은 그대로)
   Future<SkyResult> finishSoldierBattle(Battle battle) => _serial(() async {
+        final c = skyClimb;
         if (!battle.isOver) return const SkyResult(won: false);
         await keepBattleHp(battle);
         await _spendBattleBuffs();
         if (battle.phase != BattlePhase.cleared) {
-          await _tripFought('sky'); // 묶음 81 #375: 지면 펫은 돌아오는 길
+          // 지면 이번 오르기는 끝 (얻은 것은 그대로)
+          final sum = c == null ? null : SkyClimbSummary.of(c);
+          _highland = _highland.copyWith(climb: () => null);
+          await _saveHighland();
+          await _tripFought('sky');
           await _defeated();
           _notify();
-          return const SkyResult(won: false);
+          return SkyResult(won: false, climb: sum);
         }
         final n = HighlandRules.soldierStoneMin +
             _random.nextInt(
@@ -313,24 +451,89 @@ extension HighlandOps on AppController {
           counters: DailyRecord.addCounts(today.counters, {'skySoldier': 1}),
         ));
         final mats = {MaterialId.skyStone: n};
+        if (c != null) {
+          _highland = _highland.copyWith(
+              climb: () => c.copyWith(soldier: () => null, stones: c.stones + n));
+          await _saveHighland();
+        }
         await _grant(0, 0, mats);
         _notify();
         return SkyResult(won: true, isle: skyIsland?.isle, mats: mats);
       });
 
-  /// 수호자와 싸운 뒤: 이기면 하늘 돌 조각 · 그 섬 결정, 처음이면 비문 · 경험치. 섬은 문을 닫는다
-  Future<SkyResult> finishGuardianBattle(Battle battle) => _serial(() async {
-        final i = HighlandRules.ofGuardian(battle.floors.first.monster);
-        if (i == null || !battle.isOver) return const SkyResult(won: false);
-        await _tripFought('sky'); // 묶음 81 #375: 수호자와 싸우면(이기든 지든) 펫은 돌아오는 길
-        await keepBattleHp(battle);
+  // ───────────── 수호자 (턴제)
+
+  /// 제단에서 수호자를 깨운다. 깨운 뒤 나가면 진 것으로 본다
+  Future<SkyTurn?> startGuardianTurn() => _serial(() async {
+        final s = skyIsland;
+        final c = skyClimb;
+        if (s == null || c == null || !canWakeGuardian) return null;
+        final lv = player.level.level;
+        final b = _ashBattle([HighlandRules.guardianFoe(s.isle, lv)]);
+        final pet = companionPet;
+        final first = !_highland.fought.contains(s.isle.index);
+        _highland = _highland.copyWith(
+          climb: () => c.copyWith(awake: true),
+          fought: first ? [..._highland.fought, s.isle.index] : null,
+        );
+        await _saveHighland();
+        return SkyTurn(
+          isle: s.isle,
+          level: lv,
+          heroMaxHp: b.playerMaxHp,
+          heroHp: b.playerHp,
+          heroAttack: b.playerAttack,
+          crit: b.playerCrit,
+          evade: b.playerEvade,
+          damageTaken: b.damageTaken,
+          skyTaken: gear.sets.skyTaken,
+          mp: _jobs.awakened ? jobMp : 0,
+          mpMax: _jobs.awakened ? jobMpMax : 0,
+          skills: [
+            if (_jobs.awakened)
+              for (final (sk, cost, power) in battleJobSlots.take(2))
+                AshTurnSkill(
+                    key: sk.name,
+                    name: JobRules.skill(sk).name,
+                    mp: cost,
+                    attack: JobRules.skill(sk).attack,
+                    power: power),
+          ],
+          hasPet: pet != null,
+          petAdult: pet?.adult ?? false,
+          potions: [for (final p in battlePotions) if (p.hpRatio > 0) p],
+          hints: first,
+          rng: _random,
+        );
+      });
+
+  /// 깨운 수호자를 두고 나갔을 때 (앱을 다시 켬 · 뒤로): 진 것으로
+  bool get skyGuardianAbandoned => skyClimb?.awake ?? false;
+
+  /// 수호자 턴제가 끝났을 때 (이겨도 · 져도 · 나가도). 이번 오르기도 끝난다
+  Future<SkyResult> finishGuardianTurn(SkyTurn? t) => _serial(() async {
+        final c = _highland.climb;
+        final s = skyIsland;
+        final isle = t?.isle ?? s?.isle;
+        if (isle == null) return const SkyResult(won: false);
+        final i = HighlandRules.info(isle);
+        await _tripFought('sky');
+        final summary = c == null ? null : SkyClimbSummary.of(c);
+        _highland = _highland.copyWith(climb: () => null);
+        await _saveHighland();
+        if (t != null) {
+          await _consumePotionKeys(t.potionsUsed);
+          _vitals = _vitals.copyWith(hp: t.hp, lastMaxHp: maxHp);
+          await store.saveVitals(_vitals);
+          if (_jobs.awakened) await _setJobMp(t.mp);
+        }
         await _spendBattleBuffs();
-        if (battle.phase != BattlePhase.cleared) {
+        if (t == null || !t.won) {
           await _defeated();
           _notify();
-          return SkyResult(won: false, isle: i.id);
+          return SkyResult(won: false, isle: isle, climb: summary);
         }
-        final first = !_highland.beaten.contains(i.id.index);
+        final first = !_highland.beaten.contains(isle.index);
         final stones = HighlandRules.guardianStoneMin +
             _random.nextInt(HighlandRules.guardianStoneMax -
                 HighlandRules.guardianStoneMin +
@@ -342,9 +545,7 @@ extension HighlandOps on AppController {
           MaterialId.skyStone: stones,
           if (crystals > 0) i.crystal: crystals,
         };
-        final beaten = first
-            ? [..._highland.beaten, i.id.index]
-            : _highland.beaten;
+        final beaten = first ? [..._highland.beaten, isle.index] : _highland.beaten;
         final titles = <TitleId>[
           if (first && beaten.length >= 5) ...[
             HighlandRules.guardiansTitle,
@@ -357,7 +558,7 @@ extension HighlandOps on AppController {
           purifiedMonsterIds: _addMonsters(today, [i.guardian]),
           counters: DailyRecord.addCounts(today.counters, {
             'skyGuardian': 1,
-            for (final t in titles) TitleRules.skyCounter(t): 1,
+            for (final x in titles) TitleRules.skyCounter(x): 1,
           }),
           gains: exp > 0
               ? DailyRecord.addCounts(today.gains, {'exp': exp})
@@ -371,10 +572,11 @@ extension HighlandOps on AppController {
         return SkyResult(
           won: true,
           firstKill: first,
-          isle: i.id,
+          isle: isle,
           mats: mats,
           exp: exp,
           titles: titles,
+          climb: summary,
         );
       });
 

@@ -108,12 +108,6 @@ Future<void> _page(WidgetTester tester, Widget home) async {
 }
 
 
-Future<void> _tap(WidgetTester tester, String key) async {
-  await tester.tap(find.byKey(Key(key)));
-  await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 60)));
-  await _settle(tester, 3);
-}
 
 void main() {
   setUpAll(_loadFonts);
@@ -141,24 +135,12 @@ void main() {
           () async => c.handleFix(LocationFix(point: c.skyIsland!.point)));
       await _page(tester, HighlandScreen(key: ObjectKey('h$n'), controller: c));
       await _shot(tester, '${n}_03_섬_입구');
-      await _tap(tester, 'skyClimb');
-      await _shot(tester, '${n}_04_첫_갈림길');
-      await _tap(tester, 'skyForkRuins');
-      await _shot(tester, '${n}_05_폐허');
-      await _tap(tester, 'skyNext');
-      await _tap(tester, 'skyForkRuins');
-      await _tap(tester, 'skyNext');
-      await _shot(tester, '${n}_06_수호자_앞');
-      await _tap(tester, 'skyGuardian');
-      for (var i = 0; i < 4; i++) {
-        await tester.pump(const Duration(milliseconds: 950));
-      }
-      await _shot(tester, '${n}_07_수호자_전투');
+      // 묶음 83 #389: 갈림길 · 수호자 자동 전투는 구름 걷기 · 턴제로 (batch83_shots)
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 9));
     });
 
-    testWidgets('b50 $n: 석상 병사 · 비문 · 대장간 세트 · 기록 탭', (tester) async {
+    testWidgets('b50 $n: 비문 · 대장간 세트 · 기록 탭', (tester) async {
       _device(tester, d);
       b50.now = b50.am.add(const Duration(minutes: 5));
       final slot = HighlandRules.slotAt(b50.now)!.slot;
@@ -180,13 +162,6 @@ void main() {
             ).toJson()));
         await c.handleFix(const LocationFix(point: b50.home));
       });
-      await _page(tester, HighlandScreen(key: ObjectKey('h$n'), controller: c));
-      await _tap(tester, 'skyClimb');
-      await _tap(tester, 'skyForkStone');
-      for (var i = 0; i < 3; i++) {
-        await tester.pump(const Duration(milliseconds: 950));
-      }
-      await _shot(tester, '${n}_08_석상병사_얼음');
       await _page(
           tester,
           Builder(

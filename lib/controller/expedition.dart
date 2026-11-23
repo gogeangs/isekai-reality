@@ -907,15 +907,6 @@ extension ExpeditionOps on AppController {
     return totals;
   }
 
-  /// 도감 '수식어' 칸: 희귀·전설 수식어 몬스터별 사냥 수
-  Map<String, int> get modHuntTotals {
-    final m = <String, int>{};
-    for (final r in _history) {
-      r.modHunts.forEach((k, v) => m[k] = (m[k] ?? 0) + v);
-    }
-    return m;
-  }
-
   List<String> _addMonsters(DailyRecord today, List<MonsterId> ids) => {
         ...today.purifiedMonsterIds,
         for (final id in ids) id.name,

@@ -771,9 +771,6 @@ extension TutorialOps on AppController {
     // 묶음 57: 그날 5번째 필드 몬스터에서 한 번만 (던전으로 이끄는 한마디)
     final fifth = (n - tutorialToday) + 1 == RuleConstants.maxFieldMonstersPerDay &&
         !_history.any((d) => (d.counters[fifthLineKey] ?? 0) > 0);
-    final modKey = ModifierRules.recordInCodex(mods)
-        ? ModifierRules.codexKey(monster, mods)
-        : null;
     await _save(today.copyWith(
       fieldMonstersPurified: today.fieldMonstersPurified + 1,
       purifiedSpawnIds: [...today.purifiedSpawnIds, spawnId],
@@ -784,9 +781,6 @@ extension TutorialOps on AppController {
             extraManaStones: extraMana, gold: gold, materials: mats),
         if (exp + tiredExp != baseExp) Wallet.exp: exp + tiredExp - baseExp,
       }),
-      modHunts: modKey == null
-          ? null
-          : DailyRecord.addCounts(today.modHunts, {modKey: 1}),
       counters: DailyRecord.addCounts(today.counters, {
         if (mods.isNotEmpty) 'modded': 1,
         if (ModifierRules.gradeOf(mods).index >= ModGrade.rare.index)

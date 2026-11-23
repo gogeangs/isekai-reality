@@ -77,8 +77,15 @@ class _BoardScreenState extends State<BoardScreen> {
                 if (controller.board.slots[i].accepted && controller.errandProgress(i) >= tp.target) i
           ].isNotEmpty,
         BoardTab.npc => controller.activeAsks.any(_askDone),
+        // 묶음 84 #404: 긴급 의뢰를 아직 안 받았거나 다 해서 보상을 받을 수 있을 때
+        BoardTab.today => _urgentOpen && (!controller.board.urgentAccepted || _urgentReady),
         _ => false,
       };
+
+  bool get _urgentOpen =>
+      controller.boardFull && controller.urgent != null && !controller.board.urgentDone;
+  bool get _urgentReady =>
+      controller.board.urgentAccepted && controller.urgentProgress >= controller.urgent!.quest.target;
 
   /// 묶음 78 #309: 탭의 받을 것 수 (빨간 숫자)
   int _claimCount(BoardTab t) => switch (t) {
@@ -203,7 +210,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 children: [for (final t in tabs) _page(t, headerH, screenH, pad.bottom)],
               ),
             ),
-            // 위에 얹은 머리 (뒤로 가기 · 하르트 · 긴급 띠 · 탭)
+            // 위에 얹은 머리 (뒤로 가기 · 하르트 · 탭)
             Positioned(
               left: 0,
               right: 0,
@@ -241,11 +248,6 @@ class _BoardScreenState extends State<BoardScreen> {
                           ? VillageRules.boardUrgent
                           : null,
                     ),
-                    // 묶음 70 #301: 긴급 의뢰는 탭 위 붉은 띠
-                    if (urgent != null && !controller.board.urgentDone) ...[
-                      const SizedBox(height: 8),
-                      _UrgentBand(controller: controller),
-                    ],
                     const SizedBox(height: 8),
                     // 묶음 70 #300: 쪽지 모양 탭
                     Row(children: [

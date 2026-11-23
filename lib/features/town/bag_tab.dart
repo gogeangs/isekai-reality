@@ -109,7 +109,8 @@ List<BagEntry> bagEntries(AppController c) {
     for (final e in c.armory.items)
       if (!c.armory.isWorn(e)) EquipEntry(e),
     // 묶음 69 #282: 품는 중인 알은 가방이 아니라 펫 쉼터 「알 부화장」에
-    for (final e in c.pets.eggs)
+    // 묶음 84 #397: 이별 전 숨은 알은 가방에 안 보임
+    for (final e in c.bagEggs)
       if (e.incubatedAt == null) EggEntry(e),
     for (final n in split(c.gather.pouches)) PouchEntry(n),
     for (final e in c.alchemy.potions.entries)
@@ -386,12 +387,12 @@ class _BagTabState extends State<BagTab> {
                     PreciousPanel(controller: c),
                   ],
                   // 묶음 69 #282: 품는 중인 알은 펫 쉼터에서
-                  if (c.pets.eggs.any((e) => e.incubatedAt != null))
+                  if (c.bagEggs.any((e) => e.incubatedAt != null))
                     Padding(
                       key: const Key('bagIncubating'),
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                          '품는 중인 알 ${c.pets.eggs.where((e) => e.incubatedAt != null).length}개 · 펫 쉼터에서 볼 수 있어요',
+                          '품는 중인 알 ${c.bagEggs.where((e) => e.incubatedAt != null).length}개 · 펫 쉼터에서 볼 수 있어요',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
                     ),

@@ -26,7 +26,6 @@ import 'features/mail/mail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/village/village_screen.dart';
 import 'features/village/tavern_screen.dart' show TavernScreen;
-import 'features/village/training_screen.dart' show TrainingStatusRow;
 import 'features/town/bag_hold_sheet.dart';
 import 'features/town/bag_tab.dart';
 import 'features/settings/settings_screen.dart';
@@ -482,8 +481,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               children: [
                 // 묶음 73 #313: 함께하는 펫 · 내 펫 보기 (정령이 떠난 뒤)
                 CompanionPetPanel(controller: controller),
-                // 묶음 43 #228: 오늘 하루 훈련 전이면 은은한 점 한 줄
-                TrainingStatusRow(controller: controller),
                 // 묶음 65 #252: 걸음 상자
                 StepChestRow(controller: controller),
                 // 묶음 70 #301: 마을 사람 부탁은 의뢰 게시판 탭으로
@@ -518,7 +515,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               active: _tab == tCodex,
               highlandOpen: controller.highlandOpen,
               huntCounts: controller.huntTotals,
-              modHunts: controller.modHuntTotals,
               monGearFound: {
                 for (final b in MonGearRules.byMonster.values)
                   if (controller.monGearFound(b)) b,

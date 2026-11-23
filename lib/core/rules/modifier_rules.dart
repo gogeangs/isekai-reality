@@ -270,27 +270,6 @@ class ModifierRules {
         ModGrade.legend => '전설',
       };
 
-  /// 도감 '수식어' 칸에 따로 남기는지 (희귀·전설)
-  static bool recordInCodex(List<ModifierId> mods) =>
-      gradeOf(mods).index >= ModGrade.rare.index;
-
-  /// 도감 기록 키 ('슬라임|ancient,enraged')
-  static String codexKey(MonsterId monster, List<ModifierId> mods) =>
-      '${monster.name}|${mods.map((m) => m.name).join(',')}';
-
-  static (MonsterId, List<ModifierId>)? parseCodexKey(String key) {
-    final parts = key.split('|');
-    if (parts.length != 2) return null;
-    final monster = Monsters.byName(parts[0]);
-    if (monster == null) return null;
-    final mods = <ModifierId>[];
-    for (final n in parts[1].split(',')) {
-      final id = byName(n);
-      if (id != null) mods.add(id);
-    }
-    return (monster, mods);
-  }
-
   // ───────────────────────── 전투
 
   /// 함께 싸우는 몬스터 수 (무리 지은 2~3, 분열하는·찍찍거리는 2)

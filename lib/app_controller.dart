@@ -316,14 +316,45 @@ class AppController extends ChangeNotifier {
   PlayerProfile get profile => _profile;
   List<DailyRecord> get history => List.unmodifiable(_history);
 
-  PlayerState get player => PlayerState.fromHistory(
-      name: _profile.name,
-      history: _history,
-      expCap: inTutorial ? LevelRules.totalExpToReach(2) - 1 : null);
+  /// 묶음 84 #400: 기록(history)으로 셈한 내 상태는 기록 목록이 바뀔 때만 다시 셈한다.
+  /// 예전엔 부를 때마다 모든 날을 처음부터 다시 셈해서(날마다 주간 의뢰까지), 기록이 쌓일수록
+  /// 화면 한 번 그릴 때 수십 ~ 수백 번 부르는 지도 · 탭이 점점 느려졌다.
+  /// _history 는 언제나 통째로 바꿔 끼우므로(안을 고치지 않음) 같은 목록이면 같은 값.
+  PlayerState get player {
+    final cap = inTutorial ? LevelRules.totalExpToReach(2) - 1 : null;
+    final m = _playerMemo;
+    if (m != null &&
+        identical(_playerMemoHistory, _history) &&
+        _playerMemoCap == cap &&
+        m.name == _profile.name) {
+      return m;
+    }
+    playerBuilds++;
+    final p = PlayerState.fromHistory(name: _profile.name, history: _history, expCap: cap);
+    _playerMemo = p;
+    _playerMemoHistory = _history;
+    _playerMemoCap = cap;
+    return p;
+  }
+
+  PlayerState? _playerMemo;
+  List<DailyRecord>? _playerMemoHistory;
+  int? _playerMemoCap;
+
+  /// 내 상태를 새로 셈한 횟수 (시험 · 느려짐 확인)
+  @visibleForTesting
+  int playerBuilds = 0;
 
   /// 튜토리얼에서 모아 둔 경험치까지 센 값
-  int get _fullExp =>
-      PlayerState.fromHistory(name: _profile.name, history: _history).totalExp;
+  int get _fullExp {
+    if (!inTutorial) return player.totalExp;
+    if (identical(_fullExpHistory, _history) && _fullExpMemo != null) return _fullExpMemo!;
+    _fullExpHistory = _history;
+    return _fullExpMemo = PlayerState.fromHistory(name: _profile.name, history: _history).totalExp;
+  }
+
+  List<DailyRecord>? _fullExpHistory;
+  int? _fullExpMemo;
 
   /// 대표 칭호 (고른 것이 없으면 자동)
   TitleId? get equippedTitle => TitleRules.equipped(player.titles,

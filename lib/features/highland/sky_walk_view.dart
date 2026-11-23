@@ -682,7 +682,13 @@ class _SkyWalkViewState extends State<SkyWalkView> with TickerProviderStateMixin
             ),
             key: Key('skySoldier_$i')));
       case SkyCell.stair:
-        out.add(obj(CustomPaint(painter: _StairPainter()), size: 0.62, lift: 0.08, key: const Key('skyStair')));
+        // 묶음 84 #399: 하늘 계단 그림 (그림이 없으면 코드 돌계단)
+        out.add(obj(
+            Image.asset(SkyWalkRules.stairArt,
+                fit: BoxFit.contain, errorBuilder: (_, __, ___) => CustomPaint(painter: _StairPainter())),
+            size: 1.0,
+            lift: 0.1,
+            key: const Key('skyStair')));
       case SkyCell.altar:
         out.add(obj(
             Stack(fit: StackFit.expand, children: [
@@ -861,7 +867,7 @@ class _DiamondPainter extends CustomPainter {
   bool shouldRepaint(covariant _DiamondPainter old) => old.color != color;
 }
 
-/// 하늘 계단 (그림 없이 코드로: 위로 좁아지는 흰 돌계단)
+/// 하늘 계단 그림이 없을 때 (코드로: 위로 좁아지는 흰 돌계단)
 class _StairPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

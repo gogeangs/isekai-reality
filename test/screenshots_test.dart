@@ -578,13 +578,10 @@ void main() {
     nav.pop();
     await tester.pumpAndSettle();
 
-    // 도감 아래 희귀·전설 사냥 기록
+    // 묶음 84 #401: 도감 아래 희귀·전설 사냥 기록 판은 뺐다
     await tester.tap(find.text('도감'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('희귀·전설 사냥 기록'), 300,
-        scrollable: find.byType(Scrollable).first);
-    await tester.pumpAndSettle();
-    await _shot(tester, '29c_도감_수식어');
+    expect(find.text('희귀·전설 사냥 기록'), findsNothing);
 
     // 장비를 만들고 입는다
     final armor = await c.craft(EquipBase.armor);

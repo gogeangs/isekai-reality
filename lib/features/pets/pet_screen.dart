@@ -62,12 +62,12 @@ class _PetScreenState extends State<PetScreen> {
                   child: KText(
                     '펫 ${pets.length} / ${PetRules.maxPets} · '
                     '기력 ${c.mp} / ${c.mpMax} (시간당 +${c.mpRegenPerHour.round()})'
-                    '${c.pets.eggs.isEmpty ? '' : ' · 가방에 알 ${c.pets.eggs.length}개'}',
+                    '${c.bagEggs.isEmpty ? '' : ' · 가방에 알 ${c.bagEggs.length}개'}',
                     style: const TextStyle(color: AppColors.text, fontSize: 14),
                   ),
                 ),
                 // 묶음 35: 알은 펫 쉼터 둥지에서도 (부화 규칙은 그대로)
-                if (c.shelterOpen && c.pets.eggs.isNotEmpty) ...[
+                if (c.shelterOpen && c.bagEggs.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   FrameButton(
                     key: const Key('petToShelter'),

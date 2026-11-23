@@ -110,9 +110,8 @@ void main() {
       await tester.pump();
       // 묶음 70 #293: 발견한 것만 셈
       expect(find.byKey(const Key('codexFound')), findsOneWidget);
-      await tester.scrollUntilVisible(find.textContaining('희귀·전설'), 300,
-          scrollable: find.byType(Scrollable).first);
-      expect(find.textContaining('희귀·전설'), findsWidgets);
+      // 묶음 84 #401: 희귀·전설 사냥 기록 판은 뺐다
+      expect(find.textContaining('희귀·전설 사냥 기록'), findsNothing);
       await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
       // 묶음 26 #177: 전체 개수 없이 「얻은 칭호 ○개」만

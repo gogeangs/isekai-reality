@@ -156,6 +156,11 @@ class _PetCard extends StatelessWidget {
           ),
         ) ==
         true;
+    // 묶음 85 #409: 보낼 수 없으면 까닭만
+    if (c.releaseBlock(pet.uid) case final why?) {
+      showTopNotice(context, why, icon: Icons.info_outline_rounded);
+      return;
+    }
     final mana = PetRules.releaseMana(pet.level);
     final fav = Materials.info(pet.info.favorite).name;
     if (!await ask(
@@ -166,15 +171,19 @@ class _PetCard extends StatelessWidget {
       return;
     }
     if (!context.mounted) return;
-    if (!await ask('정말 보낼까요?',
-        '돌려보낸 펫은 다시 돌아오지 않아요. 레벨과 친밀도도 사라져요.', '보내기')) {
+    if (!await ask(
+        '정말 보낼까요?',
+        c.isFirstPet(pet.uid)
+            ? '${josa(pet.name, '은/는')} 정령이 남긴 첫 친구예요. 보내면 이야기에서 말하는 펫이 데리고 다니는 펫으로 바뀌어요. 정말 보낼까요?'
+            : '돌려보낸 펫은 다시 돌아오지 않아요. 레벨과 친밀도도 사라져요.',
+        '보내기')) {
       return;
     }
     final ok = await c.releasePet(pet.uid);
     if (!context.mounted) return;
     showTopNotice(context, ok
           ? '${josa(pet.name, '이/가')} 자연으로 돌아갔어요. 마석 +$mana, $fav +${PetRules.releaseMaterials}'
-          : '지금은 돌려보낼 수 없어요 (마지막 한 마리이거나 원정 중이에요).');
+          : c.releaseBlock(pet.uid) ?? '지금은 보낼 수 없어요');
   }
 
   @override
@@ -290,9 +299,8 @@ class _PetCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: c.pets.pets.length > 1 && !away
-                  ? () => _release(context)
-                  : null,
+              key: Key('petRelease_${pet.uid}'),
+              onPressed: () => _release(context),
               child: const Text('자연으로 돌려보내기',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ),

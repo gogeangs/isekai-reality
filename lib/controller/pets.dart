@@ -582,21 +582,28 @@ extension PetsOps on AppController {
 
   /// 자연으로 돌려보낸다: 마석 (5 + 레벨 × 2) + 좋아하던 재료 3개.
   /// 마지막 한 마리와 원정 중인 펫은 돌려보낼 수 없다.
+  /// 묶음 85 #409: 보낼 수 없는 까닭 (보낼 수 있으면 null). 첫 펫도 보낼 수 있다
+  String? releaseBlock(String uid) {
+    if (_pets.pets.length <= 1) return '마지막 한 마리는 보낼 수 없어요';
+    if (isAway(uid) || petInTraining(uid)) return '원정(훈련) 중이라 지금은 보낼 수 없어요';
+    return null;
+  }
+
+  /// 묶음 85 #409: 정령이 남긴 첫 펫인지 (보내면 말하는 펫이 데리고 다니는 펫으로 바뀜)
+  bool isFirstPet(String uid) => uid == _pets.firstPet;
+
   Future<bool> releasePet(String uid) =>
       _serial(() async {
     final pet = _pets.byUid(uid);
-    if (pet == null || _pets.pets.length <= 1 || isAway(uid)) return false;
-    // 묶음 29 #182: 빛 조각에서 태어난 첫 펫은 돌려보낼 수 없다
-    if (uid == _pets.firstPet) return false;
+    if (pet == null || releaseBlock(uid) != null) return false;
+    // 묶음 85 #409: 첫 펫도 보낼 수 있음 — 저장된 첫 펫 uid는 그대로 (이별 장면이 다시 나오지 않게)
     await _grant(0, PetRules.releaseMana(pet.level),
         {pet.info.favorite: PetRules.releaseMaterials});
     final rest = [for (final p in _pets.pets) if (p.uid != uid) p];
     await _savePets(PetState.fromJson({
       ..._pets.toJson(),
       'pets': [for (final p in rest) p.toJson()],
-      'companion': _pets.companion == uid
-          ? (_pets.firstPet ?? rest.first.uid)
-          : _pets.companion,
+      'companion': _pets.companion == uid ? rest.first.uid : _pets.companion,
     }));
     return true;
   });

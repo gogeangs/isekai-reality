@@ -64,7 +64,7 @@ class SkyTurnRules {
   // ───────────── 숫자 (숨김)
 
   /// 수호자 HP = 그 레벨 기준 공격 × 이 값 × guardianHp
-  static const double foeHpBase = 9.0;
+  static const double foeHpBase = 7.5;
 
   /// 수호자 보통 공격 = 그 레벨 기준 최대 HP × 이 값 × guardianAttack (±10%)
   static const double foeHitBase = 0.10;
@@ -88,8 +88,9 @@ class SkyTurnRules {
   static const double wallCut = 0.4;
   static const int wallTurns = 2;
 
+  /// 묶음 85 #408: 새 기준 각성자 공격으로 (레벨 배수 없이 — 평균 턴 10~14 그대로)
   static int foeMaxHp(int level) => math.max(1,
-      (BattleRules.expectedAttack(level) * foeHpBase * HighlandRules.guardianHp).round());
+      (BattleRules.baselineAttack(level) * foeHpBase * HighlandRules.guardianHp).round());
   static int foeHit(int level) => math.max(1,
       (BattleRules.expectedMaxHp(level) * foeHitBase * HighlandRules.guardianAttack).round());
 

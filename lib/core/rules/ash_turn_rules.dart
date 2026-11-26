@@ -112,7 +112,7 @@ class AshTurnRules {
   // ───────────── 숫자 (숨김)
 
   /// 분신 HP = 그 레벨 기준 공격 × 이 값
-  static const double foeHpMul = 13.5;
+  static const double foeHpMul = 9.5;
 
   /// 분신 보통 공격 = 그 레벨 기준 최대 HP × 이 값 (±10%)
   static const double foeHitMul = 0.115;
@@ -156,7 +156,8 @@ class AshTurnRules {
   /// 탐욕 · 두려움 · 외로움 특별 공격 턴의 공격 × (방어로 막을 만큼 세게)
   static const double specialHit = 1.6;
 
-  static int foeMaxHp(int level) => math.max(1, (BattleRules.expectedAttack(level) * foeHpMul).round());
+  /// 묶음 85 #408: 턴제는 새 기준 각성자 공격으로 HP를 정함 (레벨 배수 없이 — 평균 턴 10~14 그대로)
+  static int foeMaxHp(int level) => math.max(1, (BattleRules.baselineAttack(level) * foeHpMul).round());
   static int foeHit(int level) => math.max(1, (BattleRules.expectedMaxHp(level) * foeHitMul).round());
   static int foeBurst(int level) => math.max(1, (BattleRules.expectedMaxHp(level) * rageBurst).round());
 

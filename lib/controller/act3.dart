@@ -424,10 +424,10 @@ extension Act3Ops on AppController {
     return BattleAlly(
       id: a.id,
       name: a.name,
-      maxHp: math.max(1, (BattleRules.expectedMaxHp(lv) * Act3Rules.allyHp * hpStat *
+      maxHp: math.max(1, (BattleRules.baselineMaxHp(lv) * Act3Rules.allyHp * hpStat *
               (1 + g.maxHp + sum((t) => t.hp)))
           .round()),
-      attack: math.max(1, (BattleRules.expectedAttack(lv) * Act3Rules.allyAttack * atkStat *
+      attack: math.max(1, (BattleRules.baselineAttack(lv) * Act3Rules.allyAttack * atkStat *
               (1 + g.attack + sum((t) => t.attack) + (allyWeaponFits(a) ? Act3Rules.fitBonus : 0)))
           .round()),
       skill: skill,

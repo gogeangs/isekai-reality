@@ -120,16 +120,92 @@ class BattleRules {
   BattleRules._();
 
   /// 이 레벨에서 '포인트를 고르게 나눈 각성자'의 스탯 (11-11 #50).
-  /// 레벨마다 포인트 5를 다섯 스탯에 하나씩 나눈 것으로 본다. 몬스터는 이 기준으로 강해진다.
+  /// 레벨마다 포인트 5를 다섯 스탯에 하나씩 나눈 것으로 본다.
+  /// 묶음 85 #408: 몬스터 세기는 아래 [baselineStats] (주 스탯 몰아주기 + 보통 장비) 기준. 이 값은
+  /// 「처음 사람 보호」와 속도 비교에만 쓴다.
   static Stats expectedStats(int level) =>
       Stats.all(StatRules.start + math.max(0, level - 1));
 
-  /// 기준 각성자의 공격
-  static int expectedAttack(int level) =>
-      StatRules.attack(level: level, stats: expectedStats(level));
+  // ───────────── 묶음 85 #408: 새 기준 각성자 · 레벨 배수 (숨은 값)
 
-  static int expectedMaxHp(int level) =>
-      StatRules.battleMaxHp(level: level, stats: expectedStats(level));
+  /// 레벨마다 포인트 5 중 주 스탯(힘)에 이만큼, 나머지는 네 스탯에 고르게
+  static const int baselineMain = 3;
+
+  /// 새 기준 각성자 스탯 (힘에 몰아줌)
+  static Stats baselineStats(int level) {
+    final pts = math.max(0, level - 1);
+    final rest = StatRules.start + pts * (StatRules.pointsPerLevel - baselineMain) ~/ 4;
+    return Stats(
+      strength: StatRules.start + pts * baselineMain,
+      agility: rest,
+      intellect: rest,
+      vitality: rest,
+      luck: rest,
+    );
+  }
+
+  /// 보통 갖출 장비: 만들 수 있는 기본 장비 중 부위마다 가장 좋은 것 · 파랑 등급 · +3 강화.
+  /// Lv.1 은 장비 없음 → Lv.10 까지 조금씩 갖춘다
+  static const int baselineEnhance = 3;
+  static double get _gearPower =>
+      EquipmentRules.gradeMultiplier(EquipGrade.blue) * (1 + EquipmentRules.enhanceStep * baselineEnhance);
+  static double _bestOf(EquipSlot s, double Function(EquipBaseInfo) f) {
+    var best = 0.0;
+    for (final e in EquipmentRules.all) {
+      if (e.slot == s && f(e) > best) best = f(e);
+    }
+    return best;
+  }
+
+  static final double baselineGearAttack = _bestOf(EquipSlot.weapon, (e) => e.attack) * _gearPower;
+  static final double baselineGearReduce = [EquipSlot.head, EquipSlot.body, EquipSlot.hands, EquipSlot.feet]
+          .fold<double>(0, (t, s) => t + _bestOf(s, (e) => e.reduce)) *
+      _gearPower;
+  static final double baselineGearHp = _bestOf(EquipSlot.accessory, (e) => e.maxHp) * _gearPower;
+  static double gearRamp(int level) => ((level - 1) / 9).clamp(0.0, 1.0);
+
+  /// 새 기준 각성자의 공격 · 최대 HP · 받는 피해 배율 (펫 · 직업 · 세트 없이)
+  static int baselineAttack(int level) => math.max(1,
+      (StatRules.attack(level: level, stats: baselineStats(level)) * (1 + baselineGearAttack * gearRamp(level))).round());
+  static int baselineMaxHp(int level) =>
+      (StatRules.battleMaxHp(level: level, stats: baselineStats(level)) * (1 + baselineGearHp * gearRamp(level))).round();
+  static double baselineTaken(int level) =>
+      (1 - baselineGearReduce * gearRamp(level)) * (1 - StatRules.vitalityReduce(baselineStats(level)));
+
+  /// 레벨 배수: Lv.11부터 몬스터 HP · 공격 × (1 + 0.015 × (레벨 − 10))
+  static const double levelStep = 0.015;
+  static double levelMult(int level) => level <= 10 ? 1 : 1 + levelStep * (level - 10);
+
+  /// 새 기준 각성자가 필드 몬스터(보통)를 쓰러뜨리는 공격 수 (레벨 배수 전)
+  static const double baselineHits = 4.7;
+
+  /// 처음 사람 보호: 고르게 나누고 장비 없는 사람이 필드 몬스터를 이만큼 안쪽에 (Lv.10까지, 그 뒤 풀림)
+  static double protectHits(int level) => level <= 10 ? 7.5 : 7.5 + 0.6 * (level - 10);
+
+  /// 처음 사람 보호: 고르게 · 장비 없는 사람이 받는 피해가 예전보다 이만큼까지만 (Lv.10까지 그대로)
+  static double protectTaken(int level) => level <= 10 ? 1.0 : 1.0 + 0.04 * (level - 10);
+
+  /// 고르게 나눈 · 장비 없는 각성자의 공격 · 최대 HP (예전 기준, 보호에만)
+  static int evenAttack(int level) => StatRules.attack(level: level, stats: expectedStats(level));
+  static int evenMaxHp(int level) => StatRules.battleMaxHp(level: level, stats: expectedStats(level));
+
+  /// 몬스터 세기 기준값 (필드 몬스터 HP = 이 값 × [RuleConstants.fieldHitsToClear] × 몬스터 배수).
+  /// 묶음 85 #408: 새 기준 각성자 · 레벨 배수 · 처음 사람 보호. 튜토리얼(Lv.1~2)은 예전 그대로
+  static int expectedAttack(int level) {
+    if (level <= 2) return evenAttack(level);
+    final want = baselineAttack(level) * levelMult(level) * baselineHits / RuleConstants.fieldHitsToClear;
+    final cap = evenAttack(level) * protectHits(level) / RuleConstants.fieldHitsToClear;
+    return math.max(1, math.min(want, cap).round());
+  }
+
+  /// 몬스터 공격 기준값 (필드 몬스터 공격 = 이 값 ÷ [RuleConstants.fieldHpBudgetTicks] × 몬스터 배수).
+  /// 새 기준 각성자의 「버티는 HP」(최대 HP ÷ 받는 피해 배율) × 레벨 배수, 처음 사람 보호
+  static int expectedMaxHp(int level) {
+    if (level <= 2) return evenMaxHp(level);
+    final want = baselineMaxHp(level) / baselineTaken(level) * levelMult(level);
+    final cap = evenMaxHp(level) * protectTaken(level);
+    return math.max(1, math.min(want, cap).round());
+  }
 
   /// 던전 4층: 일반 3층 + 마지막 보스(미궁 문지기).
   /// 미궁 입구에서 열면 일반 층이 모두 미궁 박쥐(장소 전용 몬스터).
@@ -141,8 +217,9 @@ class BattleRules {
   }) {
     final atk = expectedAttack(level);
     final hp = expectedMaxHp(level);
-    final floorAttack =
-        math.max(1, (hp / RuleConstants.dungeonHpBudgetTicks).round());
+    // 묶음 85 #408: 던전은 층이 길어 레벨 배수가 HP · 공격 둘 다에 붙으면 두 번 세진다 → 공격 쪽은 한 번만
+    final floorAttack = math.max(
+        1, (hp / RuleConstants.dungeonHpBudgetTicks / levelMult(level)).round());
     // 11-10: 던전의 일반 층은 미궁 박쥐 (돌정령은 정령계라 뺐다)
     const commons = [MonsterId.labyrinthBat];
 

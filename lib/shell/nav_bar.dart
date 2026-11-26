@@ -41,7 +41,6 @@ class OrnateNavBar extends StatelessWidget {
     ('nav_bag', '가방'),
     ('nav_map', '지도'),
     ('nav_village', '마을'),
-    ('nav_codex', '도감'),
   ];
 
   static const _fallback = {
@@ -75,8 +74,8 @@ class OrnateNavBar extends StatelessWidget {
               children: [
                 for (var i = 0; i < items.length; i++)
                   Expanded(
-                    // 가운데 지도는 조금 넓고 그림도 조금 크게
-                    flex: i == mapIndex ? 6 : 5,
+                    // 묶음 85 #419: 네 칸 고르게
+                    flex: 1,
                     child: KeyedSubtree(
                      key: tutorialNavKeys[i],
                      child: Semantics(

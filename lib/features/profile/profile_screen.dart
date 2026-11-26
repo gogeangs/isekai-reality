@@ -8,6 +8,7 @@ import '../../core/rules/rules.dart';
 import '../../data/storage/record_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../codex/codex_page.dart';
 import '../codex/codex_screen.dart' show titleIcon;
 import '../records/records_screen.dart';
 import '../jobs/skill_icon.dart' show JobEmblem;
@@ -286,7 +287,11 @@ class ProfileButton extends StatelessWidget {
       required this.look,
       required this.level,
       this.onTap,
+      this.dot = false,
       this.face = ''});
+
+  /// 묶음 85 #419: 도감에 새 칸 (빨간 점)
+  final bool dot;
 
   final HeroLook look;
   final int level;
@@ -336,6 +341,21 @@ class ProfileButton extends StatelessWidget {
                     style: AppText.level(12, color: AppColors.goldBright)),
               ),
             ),
+            if (dot)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  key: const Key('profileDot'),
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5484D),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.abyss, width: 1.5),
+                  ),
+                ),
+              ),
           ]),
         ),
       ),
@@ -537,6 +557,9 @@ class _InfoTab extends StatelessWidget {
       children: [
         // 묶음 75 #330: 「내 펫 ○마리」 버튼은 뺌 (상태 화면 「내 펫」 격자로)
         // 묶음 26 #177: 얻은 칭호만, 새로 얻은 것이 맨 위. 전체 개수·얻는 방법은 숨김
+        // 묶음 85 #419: 도감은 여기서 (몬스터 ○ · 펫 ○)
+        _CodexButton(controller: c),
+        const SizedBox(height: 10),
         _Section(title: '칭호', children: [
           KText(
               key: const Key('titleCount'),
@@ -955,3 +978,60 @@ Future<void> _showLetters(BuildContext context, AppController c) =>
         ),
       ),
     );
+
+
+/// 묶음 85 #419: 프로필 「도감」 버튼 — 몬스터 ○ · 펫 ○, 새 칸이 있으면 빨간 점
+class _CodexButton extends StatelessWidget {
+  const _CodexButton({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final mons = c.purifiedEver.where((m) => Monsters.codexGroup(m) != null).length;
+    final pets = c.petCodexOpen ? c.pets.seen.length : 0;
+    return InkWell(
+      key: const Key('profileCodex'),
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => CodexPage.open(context, c),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F1C40),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF8A6A2A), width: 1.5),
+        ),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            Image.asset('assets/images/nav_codex.webp',
+                width: 36,
+                height: 36,
+                errorBuilder: (_, __, ___) => const Icon(Icons.menu_book_rounded, color: AppColors.goldBright, size: 30)),
+            if (c.codexHasNew)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  key: const Key('profileCodexDot'),
+                  width: 11,
+                  height: 11,
+                  decoration: const BoxDecoration(color: Color(0xFFE5484D), shape: BoxShape.circle),
+                ),
+              ),
+          ]),
+          const SizedBox(width: 10),
+          Text('도감', style: AppText.title(16, color: AppColors.goldBright)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(c.petCodexOpen ? '몬스터 $mons · 펫 $pets' : '몬스터 $mons',
+                key: const Key('profileCodexCount'),
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.gold),
+        ]),
+      ),
+    );
+  }
+}

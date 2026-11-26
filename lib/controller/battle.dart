@@ -351,6 +351,9 @@ extension BattleOps on AppController {
     return {for (final k in codexEntries.keys) if (!seen.contains(k)) k};
   }
 
+  /// 묶음 85 #419: 프로필 얼굴 · 도감 버튼 빨간 점
+  bool get codexHasNew => codexFresh.isNotEmpty || petCodexNew;
+
   /// 아직 위쪽 띠로 알리지 않은 새 칸의 이름 (처음 발견)
   List<String> get codexToAnnounce {
     final done = _codexAnnounced;

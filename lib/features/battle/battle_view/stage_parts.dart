@@ -155,72 +155,41 @@ class _HpColumn extends StatelessWidget {
     required this.maxHp,
     required this.colors,
     this.note,
-    this.alignEnd = false,
-    this.nameColor = AppColors.text,
-    this.element,
-    this.showElement = false,
-    this.hideNumbers = false,
   });
 
-  final bool hideNumbers;
-
-  /// 몬스터 속성 아이콘 (11-11 #63)
-  final Element? element;
-  final bool showElement;
-
   final String name;
-  final Color nameColor;
   final int hp;
   final int maxHp;
   final List<Color> colors;
   final String? note;
-  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment:
-              alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
-            if (showElement) ...[
-              ElementIcon(element, size: 16),
-              const SizedBox(width: 4),
-            ],
             Flexible(
               child: Text(name,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: nameColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
+                  style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
             ),
             if (note != null) ...[
               const SizedBox(width: 6),
-              Text(note!,
-                  style:
-                      const TextStyle(color: AppColors.danger, fontSize: 12)),
+              Text(note!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
-          ],
-        ),
-        const SizedBox(height: 4),
-        GlowBar(
-            ratio: maxHp == 0 ? 0 : hp / maxHp, colors: colors, height: 11),
-        if (!hideNumbers) ...[
-          const SizedBox(height: 3),
-          // 묶음 76 #338: 큰 숫자도 한 줄에 (넘치면 글자를 줄임)
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text('HP ${comma(hp)} / ${comma(maxHp)}',
+            const Spacer(),
+            // 묶음 85 #415: 가로 가득 막대 · 숫자는 이름 줄 오른쪽
+            Text('HP ${comma(hp)} / ${comma(maxHp)}',
+                key: const Key('heroHpNumber'),
                 maxLines: 1,
                 softWrap: false,
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-          ),
-        ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        GlowBar(ratio: maxHp == 0 ? 0 : hp / maxHp, colors: colors, height: 11),
       ],
     );
   }
@@ -510,6 +479,181 @@ class _AllyCard extends StatelessWidget {
           ],
         ]),
       ),
+    );
+  }
+}
+
+/// 묶음 85 #415: 몬스터 머리 위 이름(수식어 색) · 속성 · HP 막대 · 작은 숫자.
+/// 맞으면 막대가 하얗게 번쩍이고, 줄어든 만큼 흰 자국이 남았다가 따라 줄어든다. 보스는 막대가 더 큼
+class _FoeHud extends StatefulWidget {
+  const _FoeHud({
+    required this.name,
+    required this.nameColor,
+    required this.element,
+    required this.hp,
+    required this.maxHp,
+    this.boss = false,
+    this.hideNumbers = false,
+    this.status = const [],
+    this.weak,
+  });
+
+  final String name;
+  final Color nameColor;
+  final Element? element;
+  final int hp;
+  final int maxHp;
+  final bool boss;
+  final bool hideNumbers;
+  final List<_Status> status;
+  final Element? weak;
+
+  @override
+  State<_FoeHud> createState() => _FoeHudState();
+}
+
+class _FoeHudState extends State<_FoeHud> with SingleTickerProviderStateMixin {
+  late final AnimationController _hit =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+  double _from = 1;
+
+  double get _ratio => widget.maxHp <= 0 ? 0 : (widget.hp / widget.maxHp).clamp(0.0, 1.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _from = _ratio;
+  }
+
+  @override
+  void didUpdateWidget(covariant _FoeHud old) {
+    super.didUpdateWidget(old);
+    final was = old.maxHp <= 0 ? 0.0 : (old.hp / old.maxHp).clamp(0.0, 1.0);
+    if (old.name != widget.name || old.maxHp != widget.maxHp) {
+      _from = _ratio;
+      _hit.value = 1;
+    } else if (_ratio < was) {
+      // 흰 자국은 맞기 전 자리에서 시작해 따라 줄어듦
+      _from = was;
+      _hit.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _hit.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final barH = widget.boss ? 12.0 : 8.0;
+    return Column(
+      key: const Key('foeHud'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          ElementIcon(widget.element, size: 14),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(widget.name,
+                key: const Key('foeHudName'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: widget.nameColor,
+                    fontSize: widget.boss ? 13.5 : 12.5,
+                    fontWeight: FontWeight.w800,
+                    shadows: const [Shadow(blurRadius: 3), Shadow(blurRadius: 2)])),
+          ),
+          if (widget.weak case final wk?) ...[
+            const SizedBox(width: 4),
+            Container(
+              key: const Key('foeWeakChip'),
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                color: elementColor(wk).withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: elementColor(wk)),
+              ),
+              child: Text('약점 · ${wk.label}',
+                  style: const TextStyle(color: AppColors.text, fontSize: 10, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ]),
+        const SizedBox(height: 2),
+        AnimatedBuilder(
+          animation: _hit,
+          builder: (context, _) {
+            final v = _hit.value;
+            // 0~0.25 하얗게 번쩍 · 0.3~1 흰 자국이 따라 줄어듦
+            final flash = _hit.isAnimating ? (1 - (v / 0.25)).clamp(0.0, 1.0) : 0.0;
+            final ghost = _from + (_ratio - _from) * Curves.easeOut.transform(((v - 0.3) / 0.7).clamp(0.0, 1.0));
+            return Container(
+              key: const Key('foeHudBar'),
+              height: barH,
+              decoration: BoxDecoration(
+                color: const Color(0xE60E1130),
+                borderRadius: BorderRadius.circular(barH),
+                border: Border.all(color: widget.boss ? const Color(0xFFFF8A65) : AppColors.gold.withValues(alpha: 0.6)),
+              ),
+              child: LayoutBuilder(builder: (context, c) {
+                final full = c.maxWidth;
+                return Stack(children: [
+                  Container(
+                    width: full * ghost.clamp(0.0, 1.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(barH),
+                    ),
+                  ),
+                  Container(
+                    width: math.max(_ratio > 0 ? 2 : 0, full * _ratio),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(barH),
+                      gradient: LinearGradient(colors: BarColors.foe),
+                    ),
+                  ),
+                  if (flash > 0)
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: flash * 0.8),
+                          borderRadius: BorderRadius.circular(barH),
+                        ),
+                      ),
+                    ),
+                ]);
+              }),
+            );
+          },
+        ),
+        if (!widget.hideNumbers || widget.status.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              if (!widget.hideNumbers)
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('${comma(widget.hp)} / ${comma(widget.maxHp)}',
+                        key: const Key('foeHudNumber'),
+                        maxLines: 1,
+                        style: const TextStyle(
+                            color: Color(0xFFE8E4FF),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            shadows: [Shadow(blurRadius: 3), Shadow(blurRadius: 2)])),
+                  ),
+                ),
+              if (widget.status.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Transform.scale(scale: 0.8, child: _StatusIcons(widget.status)),
+              ],
+            ]),
+          ),
+      ],
     );
   }
 }

@@ -38,7 +38,13 @@ class _Scene extends StatefulWidget {
     this.allies = const [],
     this.resisted = false,
     this.elementHints = false,
+    this.foeHud,
+    this.bossHud = false,
   });
+
+  /// 묶음 85 #415: 몬스터 머리 위 HP (이름 · 속성 · 막대 · 숫자). 보스는 더 넓게
+  final Widget? foeHud;
+  final bool bossHud;
 
   /// 묶음 75 #324: 잘 안 들었는지 · 숫자 위 「효과 좋음 / 잘 안 들어요」를 보일지
   final bool resisted;
@@ -198,6 +204,11 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
     );
   }
 
+  /// 묶음 85 #415: 머리 위 HP 칸 높이 · 몬스터가 내려앉는 맨 위 자리 · 칸 너비
+  static const double _hudH = 44;
+  static const double _hudBelow = 42 + 30 + _hudH;
+  double hudW(double w, double monSize) => math.min(w * 0.6, monSize * (widget.bossHud ? 1.35 : 1.1));
+
   // t 구간 [a, b] 안에서 0 → 1
   static double _seg(double t, double a, double b) =>
       ((t - a) / (b - a)).clamp(0.0, 1.0);
@@ -293,7 +304,10 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
               }
               final monSize = w * (party ? 0.34 : 0.38);
               final monLeft = w - monSize - w * 0.02 + shake + allyShake - counter * w * 0.07;
-              final monTop = h * 0.24;
+              // 묶음 85 #415: 머리 위 HP 칸 자리를 남김 (층 표 · 경고 띠 아래)
+              final monTop = widget.foeHud == null
+                  ? h * 0.24
+                  : math.max(h * 0.24, math.min(_hudBelow, h - monSize * 0.95));
               final hitX = monLeft + monSize * 0.45;
               final hitY = monTop + monSize * 0.45;
               // 묶음 76 #315: 방패 자리 — 주인공 그림의 실제 머리 · 발 위치로 (768×1024 칸, 발 바닥 1004)
@@ -777,14 +791,23 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                             child: Image.asset('assets/images/fx_guardBreak.webp', errorBuilder: (_, __, ___) => const SizedBox()),
                           ),
                           scale: 1.15),
+                    // 묶음 85 #415: 몬스터 머리 위 HP (지금 싸우는 한 마리만)
+                    if (widget.foeHud case final hud? when !cleared)
+                      Positioned(
+                        key: const Key('foeHudAt'),
+                        left: (monLeft + monSize / 2 - hudW(w, monSize) / 2).clamp(4.0, w - hudW(w, monSize) - 4),
+                        width: hudW(w, monSize),
+                        top: monTop - _hudH,
+                        child: IgnorePointer(child: hud),
+                      ),
                     // 강한 공격 예고: 화면을 누르면 막기
                     if (widget.warning != null)
                       Positioned(
                         key: const Key('guardWarning'),
                         left: 0,
                         right: 0,
-                        // 묶음 65: 위 「BOSS」 · 층 표 아래로 (겹치지 않게)
-                        top: math.max(monTop - 46, 50.0),
+                        // 묶음 65: 위 「BOSS」 · 층 표 아래로 (겹치지 않게) · 묶음 85 #415: 머리 위 HP 칸 위로
+                        top: widget.foeHud == null ? math.max(monTop - 46, 50.0) : math.max(monTop - _hudH - 32, 42.0),
                         child: IgnorePointer(
                           child: Column(children: [
                             Container(

@@ -172,7 +172,7 @@ class _PetCard extends StatelessWidget {
     }
     if (!context.mounted) return;
     if (!await ask(
-        '정말 보낼까요?',
+        c.isFirstPet(pet.uid) ? '첫 친구와 헤어지기' : '정말 보낼까요?',
         c.isFirstPet(pet.uid)
             ? '${josa(pet.name, '은/는')} 정령이 남긴 첫 친구예요. 보내면 이야기에서 말하는 펫이 데리고 다니는 펫으로 바뀌어요. 정말 보낼까요?'
             : '돌려보낸 펫은 다시 돌아오지 않아요. 레벨과 친밀도도 사라져요.',

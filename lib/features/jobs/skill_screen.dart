@@ -1110,8 +1110,8 @@ class _SkillRow extends StatelessWidget {
                           ),
                           child: Text(
                               i > lv && !JobRules.levelOpen(i, c.player.level.level)
-                                  ? 'Lv.${JobRules.levelOpensAt(i)}에 열려요'
-                                  : 'Lv.$i · ${i == 1 ? '배우기' : up}',
+                                  ? 'Lv.${JobRules.levelOpensAt(i)}에\n열려요'
+                                  : 'Lv.$i\n${i == 1 ? '배우기' : up}',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: i <= lv

@@ -28,7 +28,10 @@ import 'package:isekai_reality/features/town/bag_tab.dart';
 import 'package:isekai_reality/features/village/garden_screen.dart';
 import 'package:isekai_reality/theme/top_notice.dart';
 
+import 'package:isekai_reality/app.dart' show OrnateNavBar;
+
 import 'batch83_test.dart' as t83;
+import 'batch84_test.dart' as t84;
 import 'batch85_test.dart' as t85;
 import 'support/village_seed.dart';
 
@@ -190,7 +193,7 @@ void main() {
       await _shot(tester, '${n}_02_전투_맞은뒤_흰자국');
       await _done(tester);
       // 던전 보스
-      await _page(tester, _battle(_b([Foe(monster: MonsterId.ashKing, maxHp: 52000, attack: 1)])));
+      await _page(tester, _battle(_b([Foe(monster: MonsterId.labyrinthWarden, maxHp: 52000, attack: 1)])));
       for (var i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -214,6 +217,8 @@ void main() {
           'jobs': {'pageOpen': true, 'pageIntro': true},
         });
         c = await startVillage(20, farewell: true, more: t85.awakened());
+        await c.raiseSkill(JobRules.info(JobId.warrior).skills[1]);
+        await c.setLoadout(1, null);
         lv25 = await startVillage(50, farewell: true, more: t85.awakened());
         for (final k in JobRules.info(JobId.warrior).skills) {
           while (lv25.canRaiseSkill(k)) {
@@ -230,7 +235,7 @@ void main() {
       // 칸 3(강타)을 고르고 다른 스킬로 바꿈 → 알림
       await tester.tap(find.byKey(const Key('skillSlot_2')));
       await _settle(tester, 2);
-      final pick = find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('battlePick_job:'));
+      final pick = find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('battlePick_job:${JobRules.info(JobId.warrior).skills[1].name}'));
       if (pick.evaluate().isNotEmpty) {
         await tester.tap(pick.first);
         await _settle(tester, 2);
@@ -249,15 +254,11 @@ void main() {
         await l20.raiseSkill(s);
         await l20.raiseSkill(s);
       });
-      await _page(tester, SkillScreen(key: ObjectKey('j$n'), controller: l20));
-      await tester.tap(find.text('직업 스킬').first, warnIfMissed: false);
-      await _settle(tester, 3);
+      await _page(tester, SkillScreen(key: ObjectKey('j$n'), controller: l20, tab: 1));
       await tester.tap(find.byKey(Key('jobSkillTile_${JobRules.info(JobId.warrior).skills.first.name}')));
       await _settle(tester, 3);
       await _shot(tester, '${n}_08_스킬_4단계_Lv25에열려요');
-      await _page(tester, SkillScreen(key: ObjectKey('m$n'), controller: lv25));
-      await tester.tap(find.text('직업 스킬').first, warnIfMissed: false);
-      await _settle(tester, 3);
+      await _page(tester, SkillScreen(key: ObjectKey('m$n'), controller: lv25, tab: 1));
       await _shot(tester, '${n}_09_스킬_5단계_직업숙련');
       await _done(tester);
     });
@@ -327,7 +328,7 @@ void main() {
       _device(tester, d);
       late AppController c;
       await tester.runAsync(() async {
-        c = await startVillage(12, farewell: true, gains: {'hunt:goblin': 0});
+        c = await t84.longAccount(5, () => DateTime(2026, 11, 23, 10));
       });
       await _page(tester, ProfileScreen(key: ObjectKey('pr$n'), controller: c));
       await _shot(tester, '${n}_14_프로필_도감버튼');
@@ -336,9 +337,10 @@ void main() {
       await _shot(tester, '${n}_15_도감_뒤로가기');
       await _done(tester);
       await _page(tester, Scaffold(
-          body: const SizedBox.expand(),
-          bottomNavigationBar: Builder(builder: (ctx) => const SizedBox()),
-          floatingActionButton: ProfileButton(look: HeroLook.male, level: 12, dot: true, onTap: () {})));
+          body: Stack(children: [
+            Positioned(top: d.$4 / d.$3 + 6, left: 12, child: ProfileButton(look: HeroLook.male, level: 12, dot: true, onTap: () {})),
+          ]),
+          bottomNavigationBar: OrnateNavBar(index: 2, onTap: (_) {})));
       await _shot(tester, '${n}_16_얼굴_빨간점');
       await _done(tester);
     });
@@ -364,16 +366,28 @@ void main() {
             0: at('herbSeed', const Duration(days: 2)),
             1: at('flowerSeed', const Duration(days: 2)),
             2: at('sporeSeed', const Duration(days: 2)),
-            3: at('glowSeed', const Duration(days: 3)),
-            4: at('sporeSeed', const Duration(hours: 5)),
           }, starter: true).toJson(),
         });
       });
       await _page(tester, GardenScreen(key: ObjectKey('g$n'), controller: g));
       await _shot(tester, '${n}_18_약초밭_씨앗마다그림');
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
-      await _settle(tester, 3);
-      await _shot(tester, '${n}_19_약초밭_씨앗없어요');
+      await _done(tester);
+      late AppController g2;
+      await tester.runAsync(() async {
+        GardenPlot at(String seed, Duration ago) =>
+            GardenPlot(seed: seed, day: '2026-11-14', steps: 0, at: t0.subtract(ago).millisecondsSinceEpoch);
+        g2 = await startVillage(12, clock: () => t0, village: {
+          'seen': ['gardenCard'],
+        }, more: {
+          'garden': GardenState(plots: {
+            0: at('glowSeed', const Duration(days: 3)),
+            1: at('sporeSeed', const Duration(hours: 5)),
+            2: at('herbSeed', const Duration(minutes: 10)),
+          }, starter: true).toJson(),
+        });
+      });
+      await _page(tester, GardenScreen(key: ObjectKey('g2$n'), controller: g2));
+      await _shot(tester, '${n}_19_약초밭_빛씨앗_버섯자람');
       await _done(tester);
     });
 
@@ -389,9 +403,14 @@ void main() {
       await tester.tap(find.byKey(const Key('skyClimb')));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 60)));
       await _settle(tester, 4);
-      for (var k = 0; k < 2; k++) {
-        await tester.tapAt(const Offset(200, 400));
-        await _settle(tester, 3);
+      final b1 = c1.skyBoard!;
+      final near = b1.neighbors4(b1.entrance).toList();
+      for (var k = 0; k < 2 && k < near.length; k++) {
+        final r = tester.getRect(find.byKey(Key('skyTile_${near[k]}')));
+        await tester.tapAt(r.topCenter + Offset(0, r.height / 3));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 60)));
+        await _settle(tester, 2);
+        if (find.text('어딘가에 위층으로 가는 하늘 계단이 숨어 있어요').evaluate().isNotEmpty) break;
       }
       await _shot(tester, '${n}_20_하이랜드_1층_기둥없음_안내');
       await _done(tester);
@@ -424,7 +443,7 @@ void main() {
       await _page(tester, Scaffold(body: MapScreen(key: ObjectKey('mp$n'), controller: c)));
       await _shot(tester, '${n}_23_지도_돋보기버튼없음');
       await _done(tester);
-      await _page(tester, JobPicker(key: ObjectKey('jp$n'), controller: c, onPick: (_) {}));
+      await _page(tester, Scaffold(body: SafeArea(child: JobPicker(key: ObjectKey('jp$n'), controller: c, onPick: (_) {}))));
       final craft = find.textContaining('생산');
       if (craft.evaluate().isNotEmpty) {
         await tester.tap(craft.first);

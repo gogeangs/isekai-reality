@@ -656,7 +656,9 @@ class _SceneState extends State<_Scene> with TickerProviderStateMixin {
                       Positioned(
                         left: monLeft,
                         width: monSize,
-                        top: monTop - 10 - (cleared ? 0 : _seg(t, 0.22, 0.8) * 40),
+                        // 묶음 85 #415: 머리 위 HP 칸이 있으면 피해 숫자는 몸 위
+                        top: (widget.foeHud != null ? monTop + monSize * 0.32 : monTop - 10) -
+                            (cleared ? 0 : _seg(t, 0.22, 0.8) * 40),
                         child: Opacity(
                           opacity: cleared
                               ? (widget.guard != null && !idle ? _seg(t, 0.42, 0.55) : 1)

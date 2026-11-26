@@ -17,7 +17,6 @@ class CodexPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
       key: const Key('codexPage'),
       backgroundColor: AppColors.deepNight,
@@ -25,40 +24,26 @@ class CodexPage extends StatelessWidget {
         header: true,
         child: ListenableBuilder(
           listenable: controller,
-          builder: (context, _) => Padding(
-            padding: EdgeInsets.only(top: top + 6),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: OrnateTopBar(title: '도감', onBack: () => Navigator.of(context).maybePop()),
-              ),
-              Expanded(
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: CodexScreen(
-                    // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
-                    // 묶음 70 #293: 발견한 것만 (갈래가 있는 몬스터)
-                    purifiedMonsters: {
-                      for (final m in controller.purifiedEver)
-                        if (Monsters.codexGroup(m) != null) m,
-                    },
-                    fresh: controller.codexFresh,
-                    onSeen: controller.markCodexSeen,
-                    highlandOpen: controller.highlandOpen,
-                    huntCounts: controller.huntTotals,
-                    monGearFound: {
-                      for (final b in MonGearRules.byMonster.values)
-                        if (controller.monGearFound(b)) b,
-                    },
-                    petsSeen: controller.pets.seen,
-                    petsOpen: controller.petCodexOpen,
-                    petsNew: controller.petCodexNew,
-                    onPetsTab: controller.markPetCodexSeen,
-                  ),
-                ),
-              ),
-            ]),
+          builder: (context, _) => CodexScreen(
+            onBack: () => Navigator.of(context).maybePop(),
+            // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
+            // 묶음 70 #293: 발견한 것만 (갈래가 있는 몬스터)
+            purifiedMonsters: {
+              for (final m in controller.purifiedEver)
+                if (Monsters.codexGroup(m) != null) m,
+            },
+            fresh: controller.codexFresh,
+            onSeen: controller.markCodexSeen,
+            highlandOpen: controller.highlandOpen,
+            huntCounts: controller.huntTotals,
+            monGearFound: {
+              for (final b in MonGearRules.byMonster.values)
+                if (controller.monGearFound(b)) b,
+            },
+            petsSeen: controller.pets.seen,
+            petsOpen: controller.petCodexOpen,
+            petsNew: controller.petCodexNew,
+            onPetsTab: controller.markPetCodexSeen,
           ),
         ),
       ),

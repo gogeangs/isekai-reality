@@ -112,7 +112,7 @@ void main() {
               joinSteps: -200000,
               // 리안과 동료들이 며칠 동안 깎아 둔 거인 (한 판이면 쓰러짐)
               lianRaid: {
-                'giant': {'dmg': 7990}
+                'giant': {'dmg': 7999}
               }));
       expect(c.guild!.lian, isTrue);
       expect(c.guild!.giant!.tickets, 3, reason: '오늘 걸음으로 도전권');

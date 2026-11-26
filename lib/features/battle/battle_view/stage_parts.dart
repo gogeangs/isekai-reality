@@ -179,13 +179,21 @@ class _HpColumn extends StatelessWidget {
               const SizedBox(width: 6),
               Text(note!, style: const TextStyle(color: AppColors.danger, fontSize: 12)),
             ],
-            const Spacer(),
-            // 묶음 85 #415: 가로 가득 막대 · 숫자는 이름 줄 오른쪽
-            Text('HP ${comma(hp)} / ${comma(maxHp)}',
-                key: const Key('heroHpNumber'),
-                maxLines: 1,
-                softWrap: false,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            const SizedBox(width: 8),
+            // 묶음 85 #415: 가로 가득 막대 · 숫자는 이름 줄 오른쪽 (넘치면 글자를 줄임)
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('HP ${comma(hp)} / ${comma(maxHp)}',
+                      key: const Key('heroHpNumber'),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 4),

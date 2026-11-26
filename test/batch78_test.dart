@@ -44,7 +44,8 @@ void main() {
       await tester.runAsync(() async => c = await _job('warrior', learned: {'cleave': 1}));
       await tester.pumpWidget(_host(SkillScreen(controller: c)));
       await tester.pump();
-      for (final k in ['battleFixed_strike', 'battleFixed_guard', 'skillSlot_0', 'skillSlot_1', 'battleFixed_pet']) {
+      // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세 자리가 칸 3 · 4
+      for (final k in ['skillSlot_2', 'skillSlot_3', 'skillSlot_0', 'skillSlot_1', 'battleFixed_pet']) {
         expect(find.byKey(Key(k)), findsOneWidget, reason: k);
       }
       expect(find.byKey(const Key('battleSlotHint')), findsOneWidget);
@@ -53,7 +54,7 @@ void main() {
       expect(find.text('칸 2에 넣을 스킬'), findsOneWidget);
       // 안 배운 스킬은 「포인트로 열기」
       expect(find.text('포인트로 열기'), findsWidgets);
-      await tester.tap(find.byKey(const Key('battleFixed_strike')));
+      await tester.tap(find.byKey(const Key('battleFixed_pet')));
       await tester.pump();
       expect(find.byKey(const Key('battleFixedChip')), findsOneWidget);
       // 칸 1에 내려베기 넣기 (칸 2와 바꿈)
@@ -79,11 +80,13 @@ void main() {
     testWidgets('남은 포인트 배지 · 바로 강화 한 줄 · 펼침 Lv 칸 · MAX', (tester) async {
       _phone(tester);
       late AppController c;
+      // 묶음 85 #414: 5단계까지 (Lv.18이면 3단계에서 「Lv.25에 열려요」)
       await tester.runAsync(() async => c = await _job('warrior', learned: {'cleave': 3, 'ironWall': 1}));
       await tester.pumpWidget(_host(SkillScreen(controller: c, tab: 1)));
       await tester.pump();
       expect(find.byKey(const Key('skillPointsLeft')), findsOneWidget);
-      expect(find.byKey(const Key('skillMax_cleave')), findsOneWidget);
+      expect(find.byKey(const Key('skillLocked_cleave')), findsOneWidget);
+      expect(find.text('Lv.25에\n열려요'), findsWidgets);
       final before = c.skillPointsLeftOn(JobId.warrior);
       await tester.ensureVisible(find.byKey(const Key('skillRaise_ironWall')));
       await tester.tap(find.byKey(const Key('skillRaise_ironWall')));
@@ -139,8 +142,10 @@ void main() {
           }));
       await tester.pumpWidget(_host(SkillScreen(controller: c, tab: 2)));
       await tester.pump();
+      // 묶음 85 #416: 돋보기를 끄면 「감정」 숙련은 숨김
       for (final m in Mastery.values) {
-        expect(find.byKey(Key('masteryRow_${m.name}')), findsOneWidget, reason: m.name);
+        expect(find.byKey(Key('masteryRow_${m.name}')), m == Mastery.appraise && !LensRules.lensOn ? findsNothing : findsOneWidget,
+            reason: m.name);
       }
       expect(find.byKey(const Key('masteryBadge_smith')), findsOneWidget);
       expect(find.byKey(const Key('masteryDetail_smith')), findsOneWidget);

@@ -74,8 +74,9 @@ void main() {
   });
 
   group('수식어 전투', () {
-    Battle fight(List<ModifierId> mods, {int seed = 1, int level = 5}) {
-      final stats = BattleRules.expectedStats(level);
+    Battle fight(List<ModifierId> mods, {int seed = 1, int level = 5, bool baseline = false}) {
+      // 묶음 85 #408: 「보통 각성자」는 새 기준 (주 스탯 3/5)
+      final stats = baseline ? BattleRules.baselineStats(level) : BattleRules.expectedStats(level);
       return Battle.forPlayer(
         level: level,
         stats: stats,
@@ -133,7 +134,7 @@ void main() {
       // 보통 각성자는 3턴 안에 잡을 수 있다
       var caught = 0;
       for (var i = 0; i < 20; i++) {
-        if (fight(const [ModifierId.golden], seed: i).runToEnd().phase ==
+        if (fight(const [ModifierId.golden], seed: i, baseline: true).runToEnd().phase ==
             BattlePhase.cleared) {
           caught++;
         }

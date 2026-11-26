@@ -330,18 +330,18 @@ void main() {
     test('같은 레벨 기준 각성자: 대략 8~14턴', () {
       for (final a in AshAvatar.values) {
         final lv = Act2Rules.info(a).level;
-        final b = Battle.forPlayer(level: lv, stats: BattleRules.expectedStats(lv), floors: [Act2Rules.avatarFoe(a, lv)]);
+        // 묶음 85 #408: 새 기준 각성자 (주 스탯 3/5 · 보통 장비)
         var turns = 0;
         for (var i = 0; i < 40; i++) {
-          final t = AshTurn(avatar: a, level: lv, heroMaxHp: b.playerMaxHp, heroHp: b.playerMaxHp, heroAttack: b.playerAttack,
-              damageTaken: b.damageTaken, mp: 0, mpMax: 0, hasPet: true,
+          final t = AshTurn(avatar: a, level: lv, heroMaxHp: BattleRules.baselineMaxHp(lv), heroHp: BattleRules.baselineMaxHp(lv), heroAttack: BattleRules.baselineAttack(lv),
+              damageTaken: BattleRules.baselineTaken(lv), mp: 0, mpMax: 0, hasPet: true,
               potions: const [BattlePotion(key: 'shop:heal', name: '물약', count: 5, hpRatio: 0.4)], rng: math.Random(i));
           while (!t.isOver && t.turn < 40) {
             t.act(t.specialNext ? AshCmd.guard : (t.hp < t.heroMaxHp * 0.35 && t.can(AshCmd.potion) ? AshCmd.potion : AshCmd.attack));
           }
           turns += t.turn;
         }
-        expect(turns / 40, inInclusiveRange(8, 16), reason: '$a');
+        expect(turns / 40, inInclusiveRange(9, 15), reason: '$a');
       }
     });
 

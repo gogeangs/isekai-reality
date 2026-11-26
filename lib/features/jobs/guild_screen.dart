@@ -190,7 +190,7 @@ class _GuildScreenState extends State<GuildScreen> {
             final hidden = [for (final j in JobPairRules.visibleHidden) if (owned.contains(j)) j];
             final tab = _tab ?? (main == null ? JobGroup.combat : JobPairRules.groupOf(main));
             final list = switch (tab) {
-              JobGroup.craft => JobPairRules.craft,
+              JobGroup.craft => JobPairRules.craftShown(owned),
               JobGroup.hidden => hidden,
               _ => JobPairRules.combat,
             };
@@ -251,7 +251,7 @@ class _GuildScreenState extends State<GuildScreen> {
                     Row(children: [
                       for (final (g, n) in [
                         (JobGroup.combat, JobPairRules.combat.length),
-                        (JobGroup.craft, JobPairRules.craft.length),
+                        (JobGroup.craft, JobPairRules.craftShown(owned).length),
                         if (hidden.isNotEmpty) (JobGroup.hidden, hidden.length),
                       ]) ...[
                         Expanded(

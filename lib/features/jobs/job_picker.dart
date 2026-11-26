@@ -234,13 +234,13 @@ class _JobPickerState extends State<JobPicker> {
     return Row(children: [
       tab(true, '전투 ${JobPairRules.combat.length}'),
       const SizedBox(width: 8),
-      tab(false, '생산 ${JobPairRules.craft.length}'),
+      tab(false, '생산 ${JobPairRules.craftShown(c.ownedJobs.toSet()).length}'),
     ]);
   }
 
   // 5. 3칸 격자
   Widget _grid() {
-    final list = _combatTab ? JobPairRules.combat : JobPairRules.craft;
+    final list = _combatTab ? JobPairRules.combat : JobPairRules.craftShown(c.ownedJobs.toSet());
     return GridView.count(
       key: const Key('jobGrid'),
       crossAxisCount: 3,

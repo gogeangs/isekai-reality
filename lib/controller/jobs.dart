@@ -86,11 +86,13 @@ extension JobOps on AppController {
   List<JobId> get nearJobs => JobRules.nearJobs(masteryOf, _jobs.ownedJobs);
 
   /// 지금 조건을 채운 직업
+  /// 묶음 85 #416: 돋보기를 끄면 감정 직업은 이미 가진 사람만
   Set<JobId> get unlockedJobs => {
         ...JobPairRules.combat,
-        ...JobPairRules.craft,
+        for (final j in JobPairRules.craft)
+          if (!JobPairRules.lensHidden(j) || _jobs.ownedJobs.contains(j)) j,
         for (final j in _hiddenJobs)
-          if (JobPairRules.hidden.contains(j)) j,
+          if (JobPairRules.hidden.contains(j) && (!JobPairRules.lensHidden(j) || _jobs.ownedJobs.contains(j))) j,
         // 예전 기록에서 열려 있던 히든은 열린 채로
         for (final j in _jobs.ownedJobs)
           if (JobPairRules.hidden.contains(j) && !JobPairRules.placeJobs.contains(j)) j,
@@ -116,6 +118,7 @@ extension JobOps on AppController {
         case Mastery.alchemy:
           return '지금까지 물약을 가장 많이 했어요';
         case Mastery.appraise:
+          if (!LensRules.lensOn) continue;
           return '지금까지 감정을 가장 많이 했어요';
         case Mastery.trade:
           return '지금까지 장사와 의뢰를 가장 많이 했어요';

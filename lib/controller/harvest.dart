@@ -410,8 +410,27 @@ extension HarvestOps on AppController {
         mats[k] = mats[k]! + 1;
       }
     }
-    final seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
+    var seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
     if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
+    // 묶음 85 #416: 돋보기를 끄면 감정에서만 나오던 것(감정 재료 · 빛나는 씨앗 · 쪽지)을 채집에서 같은 확률로
+    // (감정 보상처럼 하루 [LensRules.rewardedPerDay] 번까지)
+    var lensNote = false;
+    if (!LensRules.lensOn && mats.isNotEmpty) {
+      final today = await _todayRecord();
+      final used = today.counters[LensRules.movedCounter] ?? 0;
+      if (used < LensRules.rewardedPerDay) {
+        MaterialId? extra;
+        if (_random.nextDouble() < LensRules.materialChance) {
+          extra = LensRules.all[_random.nextInt(LensRules.all.length)].material;
+        } else if (seed == null && gardenOpen && _random.nextDouble() < GardenRules.appraiseGlow) {
+          extra = MaterialId.glowSeed;
+          seed = extra;
+        }
+        if (extra != null) mats[extra] = (mats[extra] ?? 0) + 1;
+        lensNote = _random.nextDouble() < LensRules.noteChance;
+        await _save(today.copyWith(counters: DailyRecord.addCounts(today.counters, {LensRules.movedCounter: 1})));
+      }
+    }
     final keepCharge = await _consumeSkill(JobSkill.rootPull);
     h = h.copyWith(
       spots: keepCharge
@@ -460,6 +479,7 @@ extension HarvestOps on AppController {
       await _npcTally(NpcTally.seedFound);
       await _seeSeeds([seed]);
     }
+    if (lensNote) await _maybeNote(1);
     await gainMastery(Mastery.harvest, MasteryRules.harvestOnce,
         details: [if (hk != null) MasteryRules.harvestKey(hk)]);
     if (relic) {

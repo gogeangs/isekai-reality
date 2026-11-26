@@ -967,7 +967,7 @@ class JobRules {
 
     final list = [
       for (final j in jobs)
-        if (j.kind != JobKind.hidden && !owned.contains(j.id)) j,
+        if (j.kind != JobKind.hidden && !owned.contains(j.id) && !JobPairRules.lensHidden(j.id)) j,
     ]..sort((a, b) => need(a).compareTo(need(b)));
     return [for (final j in list.take(3)) j.id];
   }

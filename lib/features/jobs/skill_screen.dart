@@ -622,8 +622,11 @@ class _SkillScreenState extends State<SkillScreen> {
   // ───────────── 숙련 스킬 (#364)
 
   List<Widget> _masteryTab() {
-    final order = [...Mastery.values]
-      ..sort((a, b) => c.masteryStage(b).index.compareTo(c.masteryStage(a).index));
+    // 묶음 85 #416: 돋보기를 끄면 「감정」 숙련은 숨김 (조금이라도 쌓인 사람은 그대로)
+    final order = [
+      for (final m in Mastery.values)
+        if (m != Mastery.appraise || LensRules.lensOn || c.masteryOf(m) > 0) m
+    ]..sort((a, b) => c.masteryStage(b).index.compareTo(c.masteryStage(a).index));
     final sel = _mSel ?? order.first;
     final growth = !c.jobsOpen
         ? null
@@ -631,7 +634,7 @@ class _SkillScreenState extends State<SkillScreen> {
             ? '주 직업 숙련 1.5배 · 보조 1.2배'
             : '주 직업 숙련 1.5배';
     return [
-      const _SecHead('숙련도 8가지', '같은 일을 되풀이하면 오르고, 단계마다 스킬이 생겨요'),
+      _SecHead('숙련도 ${order.length}가지', '같은 일을 되풀이하면 오르고, 단계마다 스킬이 생겨요'),
       if (growth != null)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),

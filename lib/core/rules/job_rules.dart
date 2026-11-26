@@ -367,13 +367,20 @@ class JobRules {
       level >= awakenLevel ? 2 * (level - awakenLevel + 1) : 0;
   static const int pointsPerLevel = 2;
 
-  static const int maxSkillLevel = 3;
+  /// 묶음 85 #414: 스킬 단계 5까지 (4단계는 Lv.25, 5단계는 Lv.35에 열림)
+  static const int maxSkillLevel = 5;
+  static int levelOpensAt(int skillLv) => switch (skillLv) { 4 => 25, 5 => 35, _ => 0 };
+  static bool levelOpen(int skillLv, int playerLevel) => playerLevel >= levelOpensAt(skillLv);
 
-  /// 공격·전투 스킬은 단계마다 더 세짐 (Lv.2 ×1.25 · Lv.3 ×1.5)
-  static double levelPower(int lv) => 1 + 0.25 * (lv - 1).clamp(0, 2);
+  /// 공격·전투 스킬은 단계마다 더 세짐 (Lv.2 ×1.25 · Lv.3 ×1.5 · Lv.4 ×1.75 · Lv.5 ×2.0)
+  static double levelPower(int lv) => 1 + 0.25 * (lv - 1).clamp(0, 4);
 
-  /// 생활 스킬은 단계마다 MP 덜 듦 (Lv.2 -15% · Lv.3 -30%)
-  static double levelMpCut(int lv) => 1 - 0.15 * (lv - 1).clamp(0, 2);
+  /// 생활 스킬은 단계마다 MP 덜 듦 (Lv.2 -15% · Lv.3 -30% · Lv.4 -40% · Lv.5 -50%)
+  static double levelMpCut(int lv) => switch (lv) { <= 1 => 1.0, 2 => 0.85, 3 => 0.70, 4 => 0.60, _ => 0.50 };
+
+  /// 묶음 85 #414: 직업 숙련 — 스킬을 모두 끝까지 올린 뒤 남는 포인트. 1점 = 그 직업 스킬 세기 +1%, 최대 +30%
+  static const double drillPer = 0.01;
+  static const int drillMax = 30;
 
   /// 트리에서 [s] 를 배우려면 먼저 무엇이 있어야 하는지
   /// 기본: ① → ②·③, ② 또는 ③이 Lv.2 → ④ / 복합·숨은: ① → ②

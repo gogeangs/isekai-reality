@@ -457,7 +457,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onOpenSkills: controller.skillPageOpen
                 ? () => push(SkillScreen(controller: controller))
                 : null,
-            skillDot: controller.skillPointsLeft > 0,
+            skillDot: controller.skillRaisable,
             // 묶음 25 #166: 원정 중이면 원정 대사 먼저 (HP 30% 아래만 그보다 앞)
             lifeLine: (controller.maxHp > 0 &&
                         controller.hp / controller.maxHp < 0.3
@@ -628,7 +628,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               if (_tab != tStatus &&
                   ((controller.unspentPoints > 0 &&
                           controller.unspentPoints != _seenPoints) ||
-                      (controller.skillPointsLeft > 0 &&
+                      (controller.skillRaisable &&
                           controller.skillPointsLeft != _seenSkillPoints)))
                 tStatus,
               if (_tab != tVillage &&

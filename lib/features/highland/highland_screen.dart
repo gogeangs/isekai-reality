@@ -278,7 +278,8 @@ class _HighlandScreenState extends State<HighlandScreen> {
   Widget _battleView() => BattleView(
         battle: _battle!,
         fit: true,
-        jobSkills: _c.battleJobSlots,
+        jobSkills: _c.battleBarJobSlots,
+        bar: _c.battleBar,
         emptySlots: _c.skillPageOpen,
         jobMp: () => _c.jobMp,
         onJobSkill: _c.payBattleSkill,

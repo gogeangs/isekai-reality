@@ -70,6 +70,7 @@ class BattleView extends StatefulWidget {
     this.weapon,
     this.onFloor,
     this.jobSkills = const [],
+    this.bar,
     this.emptySlots = false,
     this.jobMp,
     this.onJobSkill,
@@ -103,6 +104,10 @@ class BattleView extends StatefulWidget {
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
   final List<(JobSkill, int, double)> jobSkills;
+
+  /// 묶음 85 #420: 각성 뒤 버튼 줄 4칸 (왼쪽부터 칸 3 · 칸 4 · 칸 1 · 칸 2). 'base:bash' · 'base:stance' ·
+  /// 'job:<스킬>' · 'mastery:<숙련도>' · '' (빈 칸). null 이면 예전 줄 (강타 · 방어 태세 · 칸 2 · 펫)
+  final List<String>? bar;
 
   /// 묶음 35: 스킬 페이지가 열렸으면 빈 스킬 칸을 btn_skill_empty 로 보여 준다
   final bool emptySlots;
@@ -371,6 +376,83 @@ class _BattleViewState extends State<BattleView> {
     });
     if (widget.vibrate) HapticFeedback.mediumImpact();
     _checkEnd();
+  }
+
+  /// 묶음 85 #420: 각성 뒤 칸 하나 (강타 · 방어 태세 · 직업 스킬 · 숙련 스킬 · 빈 칸)
+  Widget _barCell(List<String> bar, int i) {
+    final e = bar[i];
+    Widget guard() => _GuardButton(
+          key: const Key('guardButton'),
+          clock: _warnClock,
+          window: Battle.guardWindow * _b.guardEase,
+          perfect: Battle.guardWindow - Battle.perfectFrom,
+          done: _tapped,
+        );
+    // 강한 공격 경고 동안 「막기!」 자리: 방어 태세 칸 → 없으면 첫 칸
+    if (_guardTime && (e == 'base:stance' || (!bar.contains('base:stance') && i == 0))) return guard();
+    if (e == 'base:bash') {
+      return _MiniSkill(
+        key: const Key('bashButton'),
+        label: '강타',
+        icon: Icons.gavel_rounded,
+        art: 'btn_strike',
+        ratio: _b.bashRatio,
+        ready: _b.bashReady && !_guardTime,
+        onPressed: _bash,
+      );
+    }
+    if (e == 'base:stance') {
+      return _MiniSkill(
+        key: const Key('stanceButton'),
+        label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
+        icon: Icons.shield_rounded,
+        art: 'btn_guard',
+        ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
+        ready: _b.stanceReady,
+        active: _b.stanceTurns > 0,
+        onPressed: _stance,
+      );
+    }
+    if (e.startsWith('job:')) {
+      for (final (sk, cost, power) in widget.jobSkills) {
+        if ('job:${sk.name}' != e) continue;
+        final mp = widget.jobMp?.call() ?? 0;
+        return _MiniSkill(
+          key: Key('battleJob_${sk.name}'),
+          label: JobRules.skill(sk).name,
+          sub: 'MP $cost',
+          icon: Icons.bolt_rounded,
+          artFrame: SkillArt.jobIcon(sk, dim: !(mp >= cost && !_b.isOver && !_b.skillsLocked)),
+          ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
+          ready: mp >= cost && !_b.isOver && !_b.skillsLocked && !_guardTime,
+          ringColor: const Color(0xFFB27BFF),
+          onPressed: () => _jobSkill(sk, cost, power),
+        );
+      }
+    }
+    if (e.startsWith('mastery:')) {
+      for (final m in _b.masteryActives) {
+        if ('mastery:${m.name}' != e) continue;
+        return _MiniSkill(
+          key: Key('battleMastery_${m.name}'),
+          label: JobRules.masteryActive(m).name,
+          icon: Icons.auto_awesome,
+          artFrame: SkillArt.masteryIcon(m, active: true, dim: !_b.masteryReady(m)),
+          ratio: _b.masteryRatio(m),
+          ready: _b.masteryReady(m) && !_guardTime,
+          onPressed: () => _masterySkill(m),
+        );
+      }
+    }
+    return _MiniSkill(
+      key: Key('battleEmpty_$i'),
+      label: '빈 칸',
+      icon: Icons.add_rounded,
+      art: 'btn_skill_empty',
+      ratio: 0,
+      ready: false,
+      onPressed: () {},
+    );
   }
 
   void _bash() {
@@ -709,6 +791,9 @@ class _BattleViewState extends State<BattleView> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.bar case final bar?)
+                      for (var i = 0; i < bar.length; i++) Expanded(child: _barCell(bar, i))
+                    else ...[
                     Expanded(
                       child: _MiniSkill(
                         key: const Key('bashButton'),
@@ -802,6 +887,7 @@ class _BattleViewState extends State<BattleView> {
                           onPressed: () {},
                         ),
                       ),
+                    ],
                     Expanded(
                       child: _SkillOrb(
                         ratio: _b.skillRatio,

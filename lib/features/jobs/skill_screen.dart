@@ -78,7 +78,7 @@ class _SkillScreenState extends State<SkillScreen> {
                             key: Key('skillTab_$i'),
                             label: label,
                             on: _tab == i,
-                            dot: i == 1 && c.skillPointsLeft > 0,
+                            dot: i == 1 && c.skillRaisable,
                             onTap: () => setState(() => _tab = i),
                           ),
                         ),
@@ -102,6 +102,8 @@ class _SkillScreenState extends State<SkillScreen> {
   // ───────────── 전투 칸 (#363)
 
   String _entryId(String e) {
+    if (e == 'base:bash') return 'bash';
+    if (e == 'base:stance') return 'stance';
     if (e.startsWith('job:')) return e.substring(4);
     if (e.startsWith('mastery:')) return 'm_${e.substring(8)}';
     return e;
@@ -115,17 +117,22 @@ class _SkillScreenState extends State<SkillScreen> {
   String _entryName(String e) {
     if (_jobOf(e) case final s?) return JobRules.skill(s).name;
     if (_masteryOf(e) case final m?) return JobRules.masteryActive(m).name;
+    if (e == 'base:bash') return '강타';
+    if (e == 'base:stance') return '방어 태세';
     return '';
   }
 
   String _entryMp(String e) {
     if (_jobOf(e) case final s?) return 'MP ${c.skillCost(s)}';
+    if (e.startsWith('base:')) return 'MP 없음';
     return '숙련 · MP 없음';
   }
 
   Widget _entryIcon(String e, {double size = 44, bool dim = false}) {
     if (_jobOf(e) case final s?) return SkillArt.jobIcon(s, size: size, dim: dim);
     if (_masteryOf(e) case final m?) return SkillArt.masteryIcon(m, active: true, size: size, dim: dim);
+    if (e == 'base:bash') return _btnArt('btn_strike', size);
+    if (e == 'base:stance') return _btnArt('btn_guard', size);
     return _btnArt('btn_skill_empty', size);
   }
 
@@ -139,6 +146,12 @@ class _SkillScreenState extends State<SkillScreen> {
     final out = <(String, bool)>[];
     void add(String e, bool locked) {
       if (!out.any((x) => x.$1 == e)) out.add((e, locked));
+    }
+
+    // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세도 칸에 넣는 스킬
+    if (c.fourSlots) {
+      add('base:bash', false);
+      add('base:stance', false);
     }
 
     if (c.jobsOpen) {
@@ -180,7 +193,8 @@ class _SkillScreenState extends State<SkillScreen> {
       });
 
   List<Widget> _battleTab(BuildContext context) {
-    final slots = c.battleLoadout;
+    final four = c.fourSlots;
+    final slots = four ? c.battleSlots : c.battleLoadout;
     final entries = _gridEntries;
     String? slotAt(int i) => i < slots.length && slots[i].isNotEmpty ? slots[i] : null;
 
@@ -204,7 +218,9 @@ class _SkillScreenState extends State<SkillScreen> {
 
     Widget slot(int i) {
       final e = slotAt(i);
-      return _BarCell(
+      final id = e == null ? null : _entryId(e);
+      final base = e != null && e.startsWith('base:');
+      final cell = _BarCell(
         key: Key('skillSlot_$i'),
         icon: e == null ? _btnArt('btn_skill_empty', 44) : _entryIcon(e),
         name: e == null ? '비어 있음' : _entryName(e),
@@ -218,6 +234,7 @@ class _SkillScreenState extends State<SkillScreen> {
           _slotToast = null;
         }),
       );
+      return base ? SkillMasterFrame(id: id!, stage: c.skillStageOf(id), child: cell) : cell;
     }
 
     return [
@@ -236,8 +253,9 @@ class _SkillScreenState extends State<SkillScreen> {
               style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(child: fixed(_Fixed.strike)),
-            Expanded(child: fixed(_Fixed.guard)),
+            // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세 자리가 칸 3 · 4
+            Expanded(child: four ? slot(2) : fixed(_Fixed.strike)),
+            Expanded(child: four ? slot(3) : fixed(_Fixed.guard)),
             Expanded(child: slot(0)),
             Expanded(child: slot(1)),
             Expanded(child: fixed(_Fixed.pet)),
@@ -253,9 +271,9 @@ class _SkillScreenState extends State<SkillScreen> {
       Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Text('칸 ${_sel + 1}에 넣을 스킬', key: const Key('battlePickTitle'), style: AppText.title(16, color: AppColors.goldBright)),
         const SizedBox(width: 6),
-        const Flexible(
-            child: Text('MP를 써요 · 2칸에 하나씩',
-                overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textMuted, fontSize: 11.5))),
+        Flexible(
+            child: Text(four ? '한 스킬은 한 칸에만' : 'MP를 써요 · 2칸에 하나씩',
+                overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5))),
       ]),
       const SizedBox(height: 6),
       if (entries.isEmpty)
@@ -319,9 +337,12 @@ class _SkillScreenState extends State<SkillScreen> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
         );
     if (f == null) {
-      return panel(const [
-        KText('스킬을 누르면 여기에 설명이 나와요. 늘 있는 버튼(강타 · 방어 태세 · 펫)을 눌러도 설명이 나와요.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      return panel([
+        KText(
+            c.fourSlots
+                ? '스킬을 누르면 여기에 설명이 나와요. 펫 버튼은 늘 있어요.'
+                : '스킬을 누르면 여기에 설명이 나와요. 늘 있는 버튼(강타 · 방어 태세 · 펫)을 눌러도 설명이 나와요.',
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
       ]);
     }
     if (f.startsWith('fixed:')) {
@@ -344,7 +365,15 @@ class _SkillScreenState extends State<SkillScreen> {
     final name = _entryName(f);
     final js = _jobOf(f);
     final ms = _masteryOf(f);
-    final text = js != null ? JobRules.skill(js).text : ms != null ? JobRules.masteryActive(ms).text : '';
+    final text = js != null
+        ? JobRules.skill(js).text
+        : ms != null
+            ? JobRules.masteryActive(ms).text
+            : f == 'base:bash'
+                ? _fixedInfo(_Fixed.strike).$2
+                : f == 'base:stance'
+                    ? _fixedInfo(_Fixed.guard).$2
+                    : '';
     final stageWord = MasteryRules.skillStageWord(c.skillStageOf(_entryId(f)));
     final kind = js != null
         ? '${JobRules.info(JobRules.jobOf(js)).name} 스킬${c.skillLevel(js) > 0 ? ' · Lv.${c.skillLevel(js)}' : ''}'
@@ -379,9 +408,14 @@ class _SkillScreenState extends State<SkillScreen> {
                   }
                 : () async {
                     final i = _sel;
+                    final hadBash = c.fourSlots && c.battleSlots.contains('base:bash');
                     await c.setLoadout(i, f);
                     if (!mounted) return;
-                    setState(() => _slotToast = '칸 ${i + 1}에 「$name」${_obj(name)} 넣었어요');
+                    // 묶음 85 #420: 강타를 빼면 한 줄 알림
+                    final lostBash = hadBash && !c.battleSlots.contains('base:bash');
+                    setState(() => _slotToast = lostBash
+                        ? '강타를 빼면 MP가 없을 때 쓸 버튼이 줄어요'
+                        : '칸 ${i + 1}에 「$name」${_obj(name)} 넣었어요');
                   },
         child: Text(label, maxLines: 1),
       ),
@@ -426,9 +460,18 @@ class _SkillScreenState extends State<SkillScreen> {
         : '「$name」 Lv.${was + 1}로 올렸어요 · 남은 포인트 $left');
   }
 
-  void _putInSlot(JobSkill s) {
+  /// 비어 있는 첫 칸 (없으면 칸 1)
+  int _emptySlot() {
+    if (c.fourSlots) {
+      final i = c.battleSlots.indexOf('');
+      return i < 0 ? 0 : i;
+    }
     final slots = c.battleLoadout;
-    final empty = slots.length < 2 ? slots.length : 0;
+    return slots.length < 2 ? slots.length : 0;
+  }
+
+  void _putInSlot(JobSkill s) {
+    final empty = _emptySlot();
     setState(() {
       _tab = 0;
       _sel = empty;
@@ -479,7 +522,7 @@ class _SkillScreenState extends State<SkillScreen> {
                   key: Key('skillJobView_$i'),
                   label: '${i == 0 ? '주 직업' : '보조 직업'} · ${JobRules.info(j).name}',
                   on: _jobView == i,
-                  dot: c.skillPointsLeftOn(j) > 0,
+                  dot: c.skillRaisableOn(j),
                   onTap: () => setState(() {
                     _jobView = i;
                     _open = null;
@@ -526,6 +569,7 @@ class _SkillScreenState extends State<SkillScreen> {
           ),
         ]),
       ),
+      _DrillRow(controller: c, job: job, onRaise: () => setState(() {})),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton(
@@ -668,8 +712,7 @@ class _SkillScreenState extends State<SkillScreen> {
                             onPressed: st.index >= MasteryStage.expert.index
                                 ? () => setState(() {
                                       _tab = 0;
-                                      final slots = c.battleLoadout;
-                                      _sel = slots.length < 2 ? slots.length : 0;
+                                      _sel = _emptySlot();
                                       _focus = 'mastery:${m.name}';
                                       _slotToast = null;
                                     })
@@ -920,6 +963,22 @@ class _SkillRow extends StatelessWidget {
 
     Widget button() {
       if (pair) return const _Chip('이명', color: AppColors.goldBright);
+      if (c.skillLockedAt(skill) case final at?) {
+        return Container(
+          key: Key('skillLocked_${skill.name}'),
+          constraints: const BoxConstraints(minWidth: 64, minHeight: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFF2A2650),
+            border: Border.all(color: const Color(0xFF3A3468), width: 2),
+          ),
+          child: Text('Lv.$at에\n열려요',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 10.5, fontWeight: FontWeight.w800, height: 1.15)),
+        );
+      }
       if (lv >= max) {
         return Container(
           key: Key('skillMax_${skill.name}'),
@@ -1046,7 +1105,10 @@ class _SkillRow extends StatelessWidget {
                                     ? null
                                     : Border.all(color: const Color(0xFF3A3468)),
                           ),
-                          child: Text('Lv.$i · ${i == 1 ? '배우기' : up}',
+                          child: Text(
+                              i > lv && !JobRules.levelOpen(i, c.player.level.level)
+                                  ? 'Lv.${JobRules.levelOpensAt(i)}에 열려요'
+                                  : 'Lv.$i · ${i == 1 ? '배우기' : up}',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   color: i <= lv
@@ -1319,4 +1381,69 @@ class _TabChip extends StatelessWidget {
           ]),
         ),
       );
+}
+
+
+/// 묶음 85 #414: 직업 숙련 — 스킬을 모두 끝까지 올린 뒤 남는 포인트 (1점 = 스킬 +1%)
+class _DrillRow extends StatelessWidget {
+  const _DrillRow({required this.controller, required this.job, required this.onRaise});
+
+  final AppController controller;
+  final JobId job;
+  final VoidCallback onRaise;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final n = c.jobDrill(job);
+    final can = c.canRaiseDrill(job);
+    final open = c.jobSkillsMaxed(job);
+    return Container(
+      key: Key('jobDrill_${job.name}'),
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+      decoration: BoxDecoration(color: const Color(0xFF26224D), borderRadius: BorderRadius.circular(12)),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('직업 숙련 $n점 · 스킬 +$n%',
+                key: const Key('jobDrillText'),
+                style: TextStyle(
+                    color: open ? AppColors.goldBright : AppColors.textMuted, fontSize: 12.5, fontWeight: FontWeight.w800)),
+            KText(
+                n >= JobRules.drillMax
+                    ? '끝까지 올렸어요'
+                    : open
+                        ? '남은 포인트를 넣을 수 있어요'
+                        : '스킬을 모두 Lv.${JobRules.maxSkillLevel}까지 올리면 열려요',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          ]),
+        ),
+        GestureDetector(
+          key: Key('jobDrillRaise_${job.name}'),
+          onTap: can
+              ? () async {
+                  await c.raiseDrill(job);
+                  onRaise();
+                }
+              : null,
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: can ? const Color(0xFF2F8A3C) : const Color(0xFF3A3468), width: 2),
+              gradient: can
+                  ? const LinearGradient(
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8DE59A), Color(0xFF4FBF61)])
+                  : null,
+              color: can ? null : const Color(0xFF2A2650),
+            ),
+            child: Icon(Icons.add_rounded, size: 22, color: can ? const Color(0xFF0D2412) : AppColors.textMuted),
+          ),
+        ),
+      ]),
+    );
+  }
 }

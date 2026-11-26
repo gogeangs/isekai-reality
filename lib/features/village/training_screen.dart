@@ -643,7 +643,8 @@ class _TrainingBattleScreenState extends State<TrainingBattleScreen> {
   Widget _battleView(Battle b) => BattleView(
         battle: b,
         fit: true,
-        jobSkills: _c.battleJobSlots,
+        jobSkills: _c.battleBarJobSlots,
+        bar: _c.battleBar,
         emptySlots: _c.skillPageOpen,
         // 연습은 MP를 쓰지 않는다
         jobMp: _practice ? () => 9999 : () => _c.jobMp,

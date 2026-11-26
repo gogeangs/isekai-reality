@@ -18,7 +18,7 @@ import 'features/legal/consent_screen.dart';
 import 'features/awakening/awakening_screen.dart';
 import 'features/battle/dungeon_screen.dart';
 import 'features/bulssi/bulssi_mood.dart';
-import 'features/codex/codex_screen.dart';
+import 'features/codex/codex_page.dart';
 import 'features/drive/drive_overlay.dart';
 import 'features/chat/chat_screens.dart';
 import 'features/chat/chat_tour.dart';
@@ -169,8 +169,8 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  // 묶음 16 #126: 아래 메뉴 상태 · 가방 · 지도(가운데) · 마을 · 도감, 켜면 지도
-  static const tStatus = 0, tBag = 1, tMap = 2, tVillage = 3, tCodex = 4;
+  // 묶음 16 #126: 아래 메뉴 상태 · 가방 · 지도 · 마을, 켜면 지도 (묶음 85 #419: 도감은 프로필에서)
+  static const tStatus = 0, tBag = 1, tMap = 2, tVillage = 3;
   int _tab = tMap;
 
   // #130 빨간 점: 탭을 열면 사라지고, 새로 생기면 다시
@@ -457,7 +457,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             onOpenSkills: controller.skillPageOpen
                 ? () => push(SkillScreen(controller: controller))
                 : null,
-            skillDot: controller.skillPointsLeft > 0,
+            skillDot: controller.skillRaisable,
             // 묶음 25 #166: 원정 중이면 원정 대사 먼저 (HP 30% 아래만 그보다 앞)
             lifeLine: (controller.maxHp > 0 &&
                         controller.hp / controller.maxHp < 0.3
@@ -501,31 +501,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               }),
           // 묶음 38 #211: 마을 그림이 화면 전체 (위쪽 탑 그림 띠·카드 테두리 없음)
           VillageScreen(controller: controller, visits: villageVisits),
-          NightBackground(
-            header: true,
-            child: CodexScreen(
-              // 더 나오지 않는 정령계 몬스터는 도감에서 숨긴다 (하늘 슬라임은 보임, #168)
-              // 묶음 70 #293: 발견한 것만 (갈래가 있는 몬스터)
-              purifiedMonsters: {
-                for (final m in controller.purifiedEver)
-                  if (Monsters.codexGroup(m) != null) m,
-              },
-              fresh: controller.codexFresh,
-              onSeen: controller.markCodexSeen,
-              active: _tab == tCodex,
-              highlandOpen: controller.highlandOpen,
-              huntCounts: controller.huntTotals,
-              monGearFound: {
-                for (final b in MonGearRules.byMonster.values)
-                  if (controller.monGearFound(b)) b,
-              },
-              petsSeen: controller.pets.seen,
-              petsOpen: controller.petCodexOpen,
-              petsNew: controller.petCodexNew,
-              onPetsTab: controller.markPetCodexSeen,
-              // 묶음 73 #313: 「내 펫 보기」는 상태 화면으로 (도감 버튼은 뺌)
-            ),
-          ),
         ];
 
         final topInset = MediaQuery.paddingOf(context).top;
@@ -565,6 +540,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 look: controller.profile.look,
                 face: controller.avatarFace,
                 level: controller.player.level.level,
+                // 묶음 85 #419: 도감에 새로 오른 칸이 있으면 얼굴에 빨간 점
+                dot: controller.codexHasNew,
                 onTap: () => push(ProfileScreen(controller: controller)),
               ),
             ),
@@ -628,7 +605,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               if (_tab != tStatus &&
                   ((controller.unspentPoints > 0 &&
                           controller.unspentPoints != _seenPoints) ||
-                      (controller.skillPointsLeft > 0 &&
+                      (controller.skillRaisable &&
                           controller.skillPointsLeft != _seenSkillPoints)))
                 tStatus,
               if (_tab != tVillage &&

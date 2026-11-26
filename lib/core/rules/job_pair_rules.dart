@@ -2,6 +2,7 @@
 // 전직의 증표, 직업마다 따로 쌓이는 스킬 포인트. 수치는 모두 숨은 규칙 (화면엔 문장만).
 
 import 'job_rules.dart';
+import 'lens_rules.dart';
 import 'mastery_rules.dart';
 
 /// 새 갈래
@@ -147,7 +148,18 @@ abstract final class JobPairRules {
   static const Set<JobId> placeJobs = {JobId.explorer, JobId.pilgrim};
 
   /// 게임에 보이는 숨은 이명 (장소 관련은 빼고)
-  static List<SpecialPair> get visibleSpecials => [for (final p in specials) if (!p.place) p];
+  static List<SpecialPair> get visibleSpecials =>
+      [for (final p in specials) if (!p.place && !lensHiddenPair(p)) p];
+
+  /// 묶음 85 #416: 돋보기를 끄면 숨는 직업 (감정사 · 감정 숙련이 필요한 직업). 이미 가진 사람은 그대로
+  static const Set<JobId> lensJobs = {JobId.appraiser, JobId.archaeologist, JobId.pilgrim, JobId.jeweler};
+  static bool lensHidden(JobId j) => !LensRules.lensOn && lensJobs.contains(j);
+
+  /// 감정사가 끼는 숨은 이명 (보석 세공사 · 현자)
+  static bool lensHiddenPair(SpecialPair p) => lensHidden(p.main) || lensHidden(p.sub);
+
+  /// 생산 탭에 보이는 직업 (돋보기를 끄면 감정사는 가진 사람에게만)
+  static List<JobId> craftShown(Set<JobId> owned) => [for (final j in craft) if (!lensHidden(j) || owned.contains(j)) j];
 
   /// 게임에 보이는 히든 직업
   static List<JobId> get visibleHidden => [for (final j in hidden) if (!placeJobs.contains(j)) j];
@@ -238,6 +250,7 @@ abstract final class JobPairRules {
         case Mastery.alchemy:
           return JobId.alchemist;
         case Mastery.appraise:
+          if (!LensRules.lensOn) continue;
           return JobId.appraiser;
         case Mastery.trade:
           return JobId.merchant;

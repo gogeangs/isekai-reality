@@ -346,9 +346,11 @@ extension TutorialOps on AppController {
   bool get newGates => !_legacyGates;
 
   bool featureOpen(Feature f) =>
-      _legacyGates ||
+      // 묶음 85 #416: 돋보기를 끄면 Lv.6에 열리지 않음 (지도 버튼 · 안내 · 잡화상 종족 렌즈 모두)
+      (f != Feature.lens || LensRules.lensOn) &&
+          (_legacyGates ||
       player.level.level >= AppController.featureLevel[f]! ||
-      (f == Feature.alchemy && _alchemyKept);
+          (f == Feature.alchemy && _alchemyKept));
 
   /// 초반 재료만 떨어뜨리는지 (새로 시작한 사람 Lv.5까지, #129)
   bool get earlyLoot => !_legacyGates && player.level.level <= 5;
@@ -702,6 +704,7 @@ extension TutorialOps on AppController {
       for (var i = 0; i < count; i++) {
         LootRules.field(monster, _random,
                 early: earlyLoot,
+                land: lands?.kindAt(point),
                 rareBonus: StatRules.rareDropBonus(combatStats) +
                     (plentyActive ? LootRules.dropsOf(monster).chance * 0.5 : 0))
             .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);

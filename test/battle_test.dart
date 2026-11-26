@@ -47,8 +47,9 @@ void main() {
   });
 
   group('밸런스', () {
+    // 묶음 85 #408: 고르게 나눈 · 장비 없는 사람은 Lv.10까지 지켜 줌 (그 뒤는 새 기준 각성자에 맞춤)
     test('보통으로 생활한 사람은 스킬 없이도 대부분 클리어한다', () {
-      for (final level in [1, 5, 10, 15, 20]) {
+      for (final level in [1, 5, 10]) {
         var wins = 0;
         for (var seed = 0; seed < 20; seed++) {
           final b = dungeonFor(level, BattleRules.expectedStats(level),

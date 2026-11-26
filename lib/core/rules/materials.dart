@@ -1,7 +1,9 @@
 import 'element_rules.dart';
 import 'dart:math' as math;
 
+import 'field_monster_rules.dart';
 import 'monsters.dart';
+import 'place_grid.dart';
 
 /// 몬스터가 떨어뜨리거나 잡화상에서 사는 재료 (11-10 #20, 대장간 제작에 쓴다).
 /// 이름은 저장된 기록의 키라 바꾸지 않는다.
@@ -751,17 +753,83 @@ class LootRules {
     MaterialId.boarMeat: MaterialId.toughHide,
   };
 
+  // ───────────── 묶음 85 #413: 단계 몬스터도 물약 재료 (숨김)
+
+  /// 단계 몬스터(2~5단계 · 밤 몬스터)가 물약 재료(슬라임 젤리 · 물 젤리 · 나비 가루)를 줄 확률
+  static const double potionMatChance = 0.4;
+
+  /// 단계 몬스터가 그 장소 속성 젤리(진흙 · 빛 · 번개 등, 1단계 속성 슬라임만 주던 것)를 줄 확률
+  static const double elementJellyChance = 0.2;
+
+  static bool nightTier(MonsterId m) {
+    for (var t = 2; t <= 5; t++) {
+      if (FieldMonsterRules.tierNight(t).contains(m)) return true;
+    }
+    return false;
+  }
+
+  /// 숲 · 공원 · 도시 · 그 밖 → 슬라임 젤리 · 물가 · 바다 → 물 젤리 · 산 → 반반 · 밤 몬스터 → 나비 가루
+  static MaterialId potionMatFor(MonsterId m, LandKind? land, math.Random rng) {
+    if (nightTier(m)) return MaterialId.butterflyDust;
+    return switch (land) {
+      LandKind.water || LandKind.sea => MaterialId.waterJelly,
+      LandKind.mountain => rng.nextBool() ? MaterialId.slimeJelly : MaterialId.waterJelly,
+      _ => MaterialId.slimeJelly,
+    };
+  }
+
+  static const Map<Element, MaterialId> elementJelly = {
+    Element.fire: MaterialId.fireJelly,
+    Element.water: MaterialId.waterJelly,
+    Element.wind: MaterialId.windJelly,
+    Element.earth: MaterialId.mudJelly,
+    Element.light: MaterialId.lightJelly,
+    Element.dark: MaterialId.darkJelly,
+    Element.ice: MaterialId.iceJelly,
+    Element.thunder: MaterialId.thunderJelly,
+    Element.metal: MaterialId.metalJelly,
+    Element.poison: MaterialId.poisonJelly,
+  };
+
+  /// 그 장소 속성 젤리 (밤은 어둠 · 장소 속성이 없으면 빛 · 진흙 중 하나)
+  static MaterialId elementJellyFor(MonsterId m, LandKind? land, math.Random rng) {
+    if (nightTier(m)) return MaterialId.darkJelly;
+    final els = FieldMonsterRules.landElements(land).toList();
+    if (els.isEmpty) return rng.nextBool() ? MaterialId.lightJelly : MaterialId.mudJelly;
+    return elementJelly[els[rng.nextInt(els.length)]]!;
+  }
+
+  /// 도감 「떨어뜨리는 것」: 단계 몬스터의 물약 재료 (장소마다 다름)
+  static List<MaterialId> codexPotionMats(MonsterId m) {
+    if (!FieldMonsterRules.isTierMonster(m)) return const [];
+    return nightTier(m)
+        ? const [MaterialId.butterflyDust]
+        : const [MaterialId.slimeJelly, MaterialId.waterJelly];
+  }
+
   /// 필드 몬스터 한 마리: 그 몬스터 재료 1 (+귀한 재료). [rareBonus] 는 행운 보너스.
+  /// 묶음 85 #413: 단계 몬스터는 물약 재료 · 장소 속성 젤리도 가끔 ([land] 는 잡은 자리 장소)
   static Map<MaterialId, int> field(MonsterId m, math.Random rng,
-      {double rareBonus = 0, bool early = false}) {
+      {double rareBonus = 0, bool early = false, LandKind? land}) {
     final d = dropsOf(m);
     var common = d.common[rng.nextInt(d.common.length)];
     // 묶음 16 #129: 처음(Lv.5까지)엔 바로 쓰는 재료만. 속성 젤리 → 슬라임 젤리
     if (early) common = earlyCommon[common] ?? common;
-    return {
+    final out = <MaterialId, int>{
       common: 1,
       if (rng.nextDouble() < d.chance + rareBonus) d.rare: 1,
     };
+    if (FieldMonsterRules.isTierMonster(m)) {
+      if (rng.nextDouble() < potionMatChance) {
+        final p = potionMatFor(m, land, rng);
+        out[p] = (out[p] ?? 0) + 1;
+      }
+      if (rng.nextDouble() < elementJellyChance) {
+        final j = elementJellyFor(m, land, rng);
+        out[j] = (out[j] ?? 0) + 1;
+      }
+    }
+    return out;
   }
 
   /// 던전 한 번: 클리어 박쥐 날개 2 + 문지기의 돌조각 1 (+미궁 핵 10%, 박쥐 송곳니 10%),

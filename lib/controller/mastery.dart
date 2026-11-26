@@ -27,7 +27,7 @@ extension MasteryOps on AppController {
   String get masteryVoice => companionName;
 
   /// 첫 펫이 말할 때 떠난 정령 이름 (정령술 대사만 첫 펫용 문구로, 묶음 29 #182)
-  String? get _departed => firstPet != null ? firstSpiritName : null;
+  String? get _departed => _pets.firstPet != null ? firstSpiritName : null; // 묶음 85 #409: 첫 펫을 보내도 정령은 떠난 그대로
 
   // ───────────── 효과 (숨은 규칙, 단계마다 조금씩)
 

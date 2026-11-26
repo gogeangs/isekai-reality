@@ -46,7 +46,9 @@ void main() {
         expect(File('assets/images/$a').existsSync(), isTrue, reason: a);
       }
       expect(src, contains("if (widget.warning != null && !(widget.guard != null && !idle))"));
-      expect(src, contains('top: math.max(monTop - 46, 50.0)'), reason: 'BOSS 표 아래로');
+      expect(src, contains('math.max(monTop - 46, 50.0)'), reason: 'BOSS 표 아래로');
+      // 묶음 85 #415: 머리 위 HP 칸이 있으면 그 위로
+      expect(src, contains('math.max(monTop - _hudH - 32, 42.0)'));
     });
 
     test('#258 약초밭 · 훈련장은 말뚝 공터 가운데 (길 위에서 옮김) · #259 게시판 장식 고정 높이', () {

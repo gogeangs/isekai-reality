@@ -329,12 +329,9 @@ void main() {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)));
       await settle(tester);
-      expect(c.pendingFeatureIntro, Feature.lens);
-      await opened(tester);
-      // Lv.6 돋보기: 지도에서 돋보기 버튼을 비춘다
-      expect(line(tester), contains('눌러 봐'));
-      expect(find.byKey(const Key('mapLens')), findsOneWidget);
-      expect(find.byKey(const Key('tourFinger')), findsOneWidget);
+      // 묶음 85 #416: 돋보기는 꺼 둠 — 다음 안내로 넘어가지 않음
+      expect(c.pendingFeatureIntro, isNot(Feature.lens));
+      expect(find.byKey(const Key('mapLens')), findsNothing);
     });
 
     testWidgets('6-1 확인 창: 버리기는 붉은 테, 취소는 작게', (tester) async {

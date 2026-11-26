@@ -162,7 +162,8 @@ class _FieldBattleScreenState extends State<FieldBattleScreen> {
                 fit: true,
                 onFinished: _finish,
                 // 묶음 31 #198: 전투 칸 2개
-                jobSkills: widget.controller.battleJobSlots,
+                jobSkills: widget.controller.battleBarJobSlots,
+                bar: widget.controller.battleBar,
                 emptySlots: widget.controller.skillPageOpen,
                 jobMp: () => widget.controller.jobMp,
                 onJobSkill: widget.controller.payBattleSkill,

@@ -625,7 +625,7 @@ extension _ShellPopups on _HomeShellState {
         c.markPetCodexAnnounced();
         showTopNoticeQueued(context, '새 도감이 열렸어요',
             icon: Icons.menu_book_rounded,
-            onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
+            onTap: () => CodexPage.open(context, c));
       });
     }
     // 묶음 70 #293: 처음 발견하면 위쪽 띠 「도감에 새로 올랐어요 · ○○」
@@ -639,7 +639,7 @@ extension _ShellPopups on _HomeShellState {
           if (!mounted) break;
           showTopNoticeQueued(context, '도감에 새로 올랐어요 · $n',
               icon: Icons.menu_book_rounded,
-              onTap: () => _set(() => _openTab(_HomeShellState.tCodex)));
+              onTap: () => CodexPage.open(context, c));
         }
         _codexNoticing = false;
       });

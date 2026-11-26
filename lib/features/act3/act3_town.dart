@@ -39,7 +39,7 @@ import 'region_screens.dart';
       if (p.id == who) return (name: p.name, face: p.faceAsset);
     }
   }
-  return (name: c.firstPet?.name ?? '펫', face: null);
+  return (name: c.voicePet?.name ?? '펫', face: null);
 }
 
 /// 지금 지역의 마을 화면 (발드린은 피난민 야영지)

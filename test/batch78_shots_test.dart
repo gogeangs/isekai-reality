@@ -151,9 +151,9 @@ void main() {
         await _settle(tester, 3);
         await _shot(tester, '${n}_03_전투칸_넣음한줄');
       }
-      await tester.tap(find.byKey(const Key('battleFixed_strike')));
+      await tester.tap(find.byKey(const Key('battleFixed_pet')));
       await _settle(tester, 2);
-      await _shot(tester, '${n}_05_전투칸_강타누름_늘있음');
+      await _shot(tester, '${n}_05_전투칸_펫누름_늘있음');
       final lockedKey = find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key as ValueKey<String>).value.startsWith('battlePick_job:') );
       for (final e in lockedKey.evaluate()) {
         final k = ((e.widget.key) as ValueKey<String>).value;

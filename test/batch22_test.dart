@@ -136,7 +136,8 @@ void main() {
               body: CodexScreen(purifiedMonsters: {}, huntCounts: {}))));
       await tester.pump();
       expect(find.byType(BulssiLine), findsNothing);
-      expect(find.byType(SpiritBadgeRow), findsOneWidget);
+      // 묶음 85 #406: 도감 정령 줄은 뺌
+      expect(find.byType(SpiritBadgeRow), findsNothing);
       await tester.pump(const Duration(seconds: 9));
     });
   });

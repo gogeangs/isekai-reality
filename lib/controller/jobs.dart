@@ -86,11 +86,13 @@ extension JobOps on AppController {
   List<JobId> get nearJobs => JobRules.nearJobs(masteryOf, _jobs.ownedJobs);
 
   /// 지금 조건을 채운 직업
+  /// 묶음 85 #416: 돋보기를 끄면 감정 직업은 이미 가진 사람만
   Set<JobId> get unlockedJobs => {
         ...JobPairRules.combat,
-        ...JobPairRules.craft,
+        for (final j in JobPairRules.craft)
+          if (!JobPairRules.lensHidden(j) || _jobs.ownedJobs.contains(j)) j,
         for (final j in _hiddenJobs)
-          if (JobPairRules.hidden.contains(j)) j,
+          if (JobPairRules.hidden.contains(j) && (!JobPairRules.lensHidden(j) || _jobs.ownedJobs.contains(j))) j,
         // 예전 기록에서 열려 있던 히든은 열린 채로
         for (final j in _jobs.ownedJobs)
           if (JobPairRules.hidden.contains(j) && !JobPairRules.placeJobs.contains(j)) j,
@@ -116,6 +118,7 @@ extension JobOps on AppController {
         case Mastery.alchemy:
           return '지금까지 물약을 가장 많이 했어요';
         case Mastery.appraise:
+          if (!LensRules.lensOn) continue;
           return '지금까지 감정을 가장 많이 했어요';
         case Mastery.trade:
           return '지금까지 장사와 의뢰를 가장 많이 했어요';
@@ -441,7 +444,7 @@ extension JobOps on AppController {
       final freeFirst = JobRules.firstOf(job) == s || _jobs.free.contains(k);
       n += freeFirst ? lv - 1 : lv;
     });
-    return n;
+    return n + _jobs.drillOf(job);
   }
 
   int skillPointsLeftOn(JobId job) => math.max(0, skillPointsTotal - skillPointsSpentOn(job));
@@ -461,8 +464,45 @@ extension JobOps on AppController {
     final job = JobRules.jobOf(s);
     if (!_jobs.ownedJobs.contains(job)) return false;
     final lv = skillLevel(s);
-    return lv < JobRules.maxSkillLevel && skillPointsLeftOn(job) > 0;
+    return lv < JobRules.maxSkillLevel &&
+        JobRules.levelOpen(lv + 1, player.level.level) &&
+        skillPointsLeftOn(job) > 0;
   }
+
+  /// 묶음 85 #414: 다음 단계가 레벨로 잠겨 있으면 열리는 레벨 (아니면 null)
+  int? skillLockedAt(JobSkill s) {
+    final lv = skillLevel(s);
+    if (lv >= JobRules.maxSkillLevel) return null;
+    return JobRules.levelOpen(lv + 1, player.level.level) ? null : JobRules.levelOpensAt(lv + 1);
+  }
+
+  /// 묶음 85 #414: 직업 숙련 (넣은 포인트 · 스킬 세기 배율)
+  int jobDrill(JobId j) => _jobs.drillOf(j);
+  double jobDrillPower(JobId j) => 1 + JobRules.drillPer * jobDrill(j);
+
+  /// 그 직업 스킬을 모두 5단계까지 올렸는지 (직업 숙련이 열림)
+  bool jobSkillsMaxed(JobId j) {
+    final skills = JobRules.info(j).skills;
+    return skills.isNotEmpty && skills.every((s) => skillLevel(s) >= JobRules.maxSkillLevel);
+  }
+
+  bool canRaiseDrill(JobId j) =>
+      _jobs.awakened &&
+      _jobs.ownedJobs.contains(j) &&
+      jobSkillsMaxed(j) &&
+      jobDrill(j) < JobRules.drillMax &&
+      skillPointsLeftOn(j) > 0;
+
+  Future<bool> raiseDrill(JobId j) async {
+    if (!canRaiseDrill(j)) return false;
+    await _saveJobs(_jobs.copyWith(drill: {..._jobs.drill, j.name: jobDrill(j) + 1}));
+    return true;
+  }
+
+  /// 묶음 85 #414: 빨간 점 — 스킬을 아직 올릴 수 있을 때만 (직업 숙련 줄은 점을 띄우지 않음)
+  bool skillRaisableOn(JobId j) =>
+      _jobs.awakened && JobRules.info(j).skills.any(canRaiseSkill);
+  bool get skillRaisable => [if (mainJob != null) mainJob!, ...subJobs].any(skillRaisableOn);
 
   /// 포인트 1점으로 배우기·강화
   Future<bool> raiseSkill(JobSkill s) async {
@@ -486,7 +526,7 @@ extension JobOps on AppController {
       for (final p in _jobs.pending)
         if (keep.containsKey(p) || JobRules.parseSkill(p) == null) p,
     ];
-    await _saveJobs(_jobs.copyWith(learned: keep, pending: pending));
+    await _saveJobs(_jobs.copyWith(learned: keep, pending: pending, drill: const {}));
   }
 
   /// 지금 쓸 수 있는 스킬 (주·보조 직업에서 배운 것). (스킬, 보조인지)
@@ -534,9 +574,11 @@ extension JobOps on AppController {
   }
 
   /// 공격·전투 스킬 세기 (단계마다 더 세짐). 묶음 75 #325: 장인이면 +10%
+  /// 묶음 85 #414: 직업 숙련 1점마다 +1%
   double skillPower(JobSkill s) =>
       JobRules.levelPower(math.max(1, skillLevel(s))) *
-      (1 + MasteryRules.skillPowerMax * skillFrac(s.name));
+      (1 + MasteryRules.skillPowerMax * skillFrac(s.name)) *
+      jobDrillPower(JobRules.jobOf(s));
 
   bool skillPending(JobSkill s) => _jobs.hasPending(s);
   bool skillTimedOn(JobSkill s) => _jobs.timedOn(s, _clock());
@@ -863,11 +905,53 @@ extension JobOps on AppController {
     final ok = loadoutChoices;
     if (_jobs.loadout.isEmpty) return ok.take(2).toList();
     final set = ok.toSet();
+    if (fourSlots) {
+      // 묶음 85 #420: 칸 자리를 지킴 (빈 칸 '') · 강타 · 방어 태세도 넣을 수 있음
+      set.addAll(const [baseBash, baseStance]);
+      return [for (var i = 0; i < 2; i++) i < _jobs.loadout.length && set.contains(_jobs.loadout[i]) ? _jobs.loadout[i] : ''];
+    }
     return [
       for (final x in _jobs.loadout)
         if (set.contains(x)) x,
     ].take(2).toList();
   }
+
+  // ───────────── 묶음 85 #420: 각성 뒤 칸 4개 (칸 1 · 2 + 강타 · 방어 태세 자리였던 칸 3 · 4) + 펫
+
+  static const String baseBash = 'base:bash';
+  static const String baseStance = 'base:stance';
+
+  /// 각성 뒤에만 칸 4개
+  bool get fourSlots => _jobs.awakened;
+
+  /// 칸 3 · 4 ('' = 비어 있음)
+  List<String> get battleExtra {
+    if (!fourSlots) return const [];
+    if (_jobs.extra.isEmpty) return const [baseBash, baseStance];
+    final ok = {...loadoutChoices, baseBash, baseStance};
+    return [for (var i = 0; i < 2; i++) i < _jobs.extra.length && ok.contains(_jobs.extra[i]) ? _jobs.extra[i] : ''];
+  }
+
+  /// 칸 1~4 (각성 뒤 · 빈 칸은 '')
+  List<String> get battleSlots {
+    final a = battleLoadout;
+    return [a.isNotEmpty ? a[0] : '', a.length > 1 ? a[1] : '', ...battleExtra];
+  }
+
+  /// 전투 화면 버튼 줄 (각성 뒤): 칸 3 · 칸 4 (예전 강타 · 방어 태세 자리) · 칸 1 · 칸 2. 각성 전 null
+  List<String>? get battleBar {
+    if (!fourSlots) return null;
+    final s = battleSlots;
+    return [s[2], s[3], s[0], s[1]];
+  }
+
+  /// 전투 화면(실시간)의 직업 스킬 — 각성 뒤엔 칸 4개 모두
+  List<(JobSkill, int, double)> get battleBarJobSlots => [
+        for (final e in fourSlots ? battleSlots : battleLoadout)
+          if (e.startsWith('job:'))
+            if (JobRules.parseSkill(e.substring(4)) case final s?)
+              (s, skillCost(s), skillPower(s) * jobStatRatio(s)),
+      ];
 
   /// 전투 화면의 직업 스킬 칸: (스킬, MP, 단계 세기)
   List<(JobSkill, int, double)> get battleJobSlots => [
@@ -901,6 +985,17 @@ extension JobOps on AppController {
 
   /// 스킬 페이지에서 칸 [i] 에 [entry] 를 끼운다 (null 이면 비움)
   Future<void> setLoadout(int i, String? entry) async {
+    if (fourSlots) {
+      // 묶음 85 #420: 칸 4개 — 같은 스킬은 두 칸에 못 넣음 (이미 있으면 서로 바꿈)
+      final all = [...battleSlots];
+      if (entry != null) {
+        final other = all.indexOf(entry);
+        if (other >= 0 && other != i) all[other] = all[i];
+      }
+      all[i] = entry ?? '';
+      await _saveJobs(_jobs.copyWith(loadout: all.sublist(0, 2), extra: all.sublist(2, 4)));
+      return;
+    }
     final cur = [...battleLoadout];
     while (cur.length < 2) {
       cur.add('');
@@ -916,6 +1011,14 @@ extension JobOps on AppController {
   /// 새로 얻은 전투 스킬 [entry] 를 빈 칸에 (고른 적이 없으면 저절로 채워짐)
   Future<void> _fillLoadout([String? entry]) async {
     if (entry == null || _jobs.loadout.isEmpty) return;
+    if (fourSlots) {
+      final all = [...battleSlots];
+      final at = all.indexOf('');
+      if (all.contains(entry) || at < 0) return;
+      all[at] = entry;
+      await _saveJobs(_jobs.copyWith(loadout: all.sublist(0, 2), extra: all.sublist(2, 4)));
+      return;
+    }
     final cur = [...battleLoadout];
     if (cur.contains(entry) || cur.length >= 2) return;
     cur.add(entry);
@@ -1141,7 +1244,7 @@ extension JobOps on AppController {
     if (hasRelic(Npc.sera)) b.guardEase = NpcSmallRules.crestGuard;
     // 묶음 31 #198: 전투 칸에 낀 숙련 스킬 (스킬 페이지가 열린 뒤)
     if (_jobs.pageOpen) {
-      for (final e in battleLoadout) {
+      for (final e in fourSlots ? battleSlots : battleLoadout) {
         if (e.startsWith('mastery:')) {
           final m = Mastery.values.where((x) => 'mastery:${x.name}' == e);
           b.masteryActives.addAll(m);

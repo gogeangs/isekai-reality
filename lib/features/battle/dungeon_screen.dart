@@ -128,7 +128,8 @@ class _DungeonScreenState extends State<DungeonScreen> {
                     battle: _battle!,
                     fit: true,
                     // 묶음 31 #198: 전투 칸 2개
-                    jobSkills: _c.battleJobSlots,
+                    jobSkills: _c.battleBarJobSlots,
+                    bar: _c.battleBar,
                     emptySlots: _c.skillPageOpen,
                     jobMp: () => _c.jobMp,
                     onJobSkill: _c.payBattleSkill,

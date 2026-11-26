@@ -22,7 +22,6 @@ import 'sell_sheet.dart' show SellGroup;
 import 'shop_screen.dart' show ShopScreen;
 import 'material_view.dart';
 import '../../theme/top_notice.dart';
-import '../bulssi/bulssi_bubble.dart';
 
 /// 가방 칸 거르기
 enum BagFilter {
@@ -307,12 +306,6 @@ class _BagTabState extends State<BagTab> {
         final locks = _filter == BagFilter.all && cost != null
             ? (cells % cols == 0 ? 1 : cols - cells % cols)
             : 0;
-        final ratio = cap <= 0 ? 1.0 : (used / cap).clamp(0.0, 1.0);
-        final capColor = used >= cap
-            ? AppColors.danger
-            : ratio > 0.8
-                ? const Color(0xFFF2C94C)
-                : const Color(0xFF6BD97A);
         final tools = c.harvest.granted ? HarvestTool.values : const <HarvestTool>[];
         final relics = c.ownedRelics;
         return Column(children: [
@@ -333,14 +326,6 @@ class _BagTabState extends State<BagTab> {
                 alignment: Alignment.centerRight,
                 child: _WalletChips(manaStones: p.manaStones, gold: p.gold),
               ),
-              if (widget.onBack == null && !c.inTutorial) ...[
-                const SizedBox(height: 4),
-                SpiritBadgeRow(
-                    key: const Key('bagSpirit'),
-                    line: c.bagFree <= 0
-                        ? '가방이 가득 찼어! 안 쓰는 건 팔거나 정리하자.'
-                        : '얻은 건 다 여기 있어. 물약은 눌러서 바로 쓸 수 있어.'),
-              ],
               const SizedBox(height: 6),
             ]),
           ),
@@ -449,18 +434,6 @@ class _BagTabState extends State<BagTab> {
                             }),
                           ),
                         ]),
-                        // 칸 막대는 아래 줄에 꽉 차게 (작은 화면에서도 넘치지 않게)
-                        const SizedBox(height: 4),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            key: const Key('bagCapBar'),
-                            value: ratio,
-                            minHeight: 6,
-                            backgroundColor: const Color(0xFF0E0C22),
-                            valueColor: AlwaysStoppedAnimation(capColor),
-                          ),
-                        ),
                         if (used > cap)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),

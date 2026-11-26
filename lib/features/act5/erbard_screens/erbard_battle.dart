@@ -83,7 +83,8 @@ class _ErbardBattleScreenState extends State<ErbardBattleScreen> {
                       child: BattleView(
                         battle: b,
                         fit: true,
-                        jobSkills: c.battleJobSlots,
+                        jobSkills: c.battleBarJobSlots,
+                        bar: c.battleBar,
                         emptySlots: c.skillPageOpen,
                         jobMp: () => c.jobMp,
                         onJobSkill: c.payBattleSkill,

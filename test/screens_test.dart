@@ -106,16 +106,19 @@ void main() {
 
     testWidgets('도감은 몬스터 한 화면, 칭호는 프로필에서', (tester) async {
       await openDemo(tester);
-      await tester.tap(find.text('도감'));
-      await tester.pump();
-      // 묶음 70 #293: 발견한 것만 셈
-      expect(find.byKey(const Key('codexFound')), findsOneWidget);
-      // 묶음 84 #401: 희귀·전설 사냥 기록 판은 뺐다
-      expect(find.textContaining('희귀·전설 사냥 기록'), findsNothing);
+      // 묶음 85 #419: 도감은 아래 탭에서 빠지고 프로필 「도감」 버튼으로
+      expect(find.byKey(const Key('nav_4')), findsNothing);
       await tester.tap(find.byType(ProfileButton));
       await tester.pumpAndSettle();
       // 묶음 26 #177: 전체 개수 없이 「얻은 칭호 ○개」만
       expect(find.byKey(const Key('titleCount')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('profileCodex')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      // 묶음 70 #293: 발견한 것만 셈
+      expect(find.byKey(const Key('codexFound')), findsOneWidget);
+      // 묶음 84 #401: 희귀·전설 사냥 기록 판은 뺐다
+      expect(find.textContaining('희귀·전설 사냥 기록'), findsNothing);
     });
 
     testWidgets('설정(오른쪽 위 톱니바퀴): 기록 지우기', (tester) async {

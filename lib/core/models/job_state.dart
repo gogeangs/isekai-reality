@@ -30,6 +30,8 @@ class JobState {
     this.repick = false,
     this.changes = 0,
     this.pairs = const [],
+    this.drill = const {},
+    this.extra = const [],
   });
 
   // ───────────── 묶음 57 #249 직업 개편
@@ -45,6 +47,13 @@ class JobState {
 
   /// 찾은 특별 짝 (id)
   final List<String> pairs;
+
+  /// 묶음 85 #414: 직업 숙련 (직업 → 넣은 포인트)
+  final Map<String, int> drill;
+  int drillOf(JobId j) => drill[j.name] ?? 0;
+
+  /// 묶음 85 #420: 각성 뒤 칸 3 · 4 (강타 · 방어 태세 자리). 비어 있으면 기본값 ('base:bash' · 'base:stance')
+  final List<String> extra;
 
   // ───────────── 묶음 31 #195~#198
 
@@ -156,6 +165,8 @@ class JobState {
     bool? repick,
     int? changes,
     List<String>? pairs,
+    Map<String, int>? drill,
+    List<String>? extra,
   }) =>
       JobState(
         awakened: awakened ?? this.awakened,
@@ -185,6 +196,8 @@ class JobState {
         repick: repick ?? this.repick,
         changes: changes ?? this.changes,
         pairs: pairs ?? this.pairs,
+        drill: drill ?? this.drill,
+        extra: extra ?? this.extra,
       );
 
   Map<String, dynamic> toJson() => {
@@ -217,6 +230,8 @@ class JobState {
         if (repick) 'repick': true,
         'changes': changes,
         'pairs': pairs,
+        'drill': drill,
+        'extra': extra,
       };
 
   factory JobState.fromJson(Map<String, dynamic> j) {
@@ -258,6 +273,8 @@ class JobState {
       repick: j['repick'] == true,
       changes: (j['changes'] as num?)?.toInt() ?? 0,
       pairs: strings(j['pairs']),
+      drill: ints(j['drill']),
+      extra: strings(j['extra']),
     );
   }
 }

@@ -115,6 +115,21 @@ void _phone(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
+/// 묶음 85 #419: 도감은 프로필 「도감」 버튼에서
+Future<void> _openCodex(WidgetTester tester) async {
+  await tester.tap(find.byType(ProfileButton));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('profileCodex')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _closeCodex(WidgetTester tester) async {
+  Navigator.of(tester.element(find.byKey(const Key('codexPage')))).pop();
+  await tester.pumpAndSettle();
+  Navigator.of(tester.element(find.byType(ProfileScreen))).pop();
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(_loadFonts);
 
@@ -232,8 +247,7 @@ void main() {
     Navigator.of(tester.element(find.byType(ProfileScreen))).pop();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('도감'));
-    await tester.pumpAndSettle();
+    await _openCodex(tester);
     await _shot(tester, '09_도감');
     final tile = find.textContaining('마리');
     if (tile.evaluate().isNotEmpty) {
@@ -248,6 +262,7 @@ void main() {
       }
     }
 
+    await _closeCodex(tester);
     // 묶음 70: 위쪽 띠(「도감에 새로 올랐어요」 등)가 설정 버튼을 덮지 않게 지나간 뒤
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(seconds: 3));
@@ -308,9 +323,9 @@ void main() {
     await tester.pumpAndSettle();
     await _shot(tester, '17_여성_상태창');
 
-    await tester.tap(find.text('도감'));
-    await tester.pumpAndSettle();
+    await _openCodex(tester);
     await _shot(tester, '18_여성_도감');
+    await _closeCodex(tester);
 
     final spawn = c.todaySpawns.first;
     Navigator.of(tester.element(find.byType(OrnateNavBar))).push(
@@ -579,9 +594,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // 묶음 84 #401: 도감 아래 희귀·전설 사냥 기록 판은 뺐다
-    await tester.tap(find.text('도감'));
-    await tester.pumpAndSettle();
+    await _openCodex(tester);
     expect(find.text('희귀·전설 사냥 기록'), findsNothing);
+    await _closeCodex(tester);
 
     // 장비를 만들고 입는다
     final armor = await c.craft(EquipBase.armor);
@@ -850,8 +865,7 @@ void main() {
         RepaintBoundary(key: _root, child: IsekaiRealityApp(controller: c)));
     await c.init();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('도감'));
-    await tester.pumpAndSettle();
+    await _openCodex(tester);
     // 묶음 15 #116: 펫 탭은 정령과 이별한 뒤에만
     if (c.farewellDone) {
       await tester.tap(find.text('펫'));
@@ -860,6 +874,7 @@ void main() {
       expect(find.byKey(const Key('codexTab_1')), findsNothing);
     }
     await _shot(tester, '45_도감_펫');
+    await _closeCodex(tester);
     await tester.tap(find.text('가방'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(BagSlot).first);

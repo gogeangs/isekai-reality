@@ -184,10 +184,14 @@ class AlchemyState {
     this.convert,
     this.mastery = 0,
     this.luckNoteDay,
+    this.luckNoteWeek,
   });
 
   /// 묶음 75 #326: 「우연」 레시피 쪽지를 받은 날 (하루 1장까지)
   final String? luckNoteDay;
+
+  /// 묶음 85 #418: 연금술사가 아니면 「우연」 쪽지는 일주일에 1장 (그 주 월요일)
+  final String? luckNoteWeek;
 
   /// 변환대 (11-11 #74, 1칸)
   final ConvertJob? convert;
@@ -256,6 +260,7 @@ class AlchemyState {
     bool clearConvert = false,
     int? mastery,
     String? luckNoteDay,
+    String? luckNoteWeek,
   }) =>
       AlchemyState(
         potions: potions ?? this.potions,
@@ -275,6 +280,7 @@ class AlchemyState {
         convert: clearConvert ? null : (convert ?? this.convert),
         mastery: mastery ?? this.mastery,
         luckNoteDay: luckNoteDay ?? this.luckNoteDay,
+        luckNoteWeek: luckNoteWeek ?? this.luckNoteWeek,
       );
 
   /// [key] 를 [n] 개 더한다 (빼면 0개는 지운다)
@@ -307,6 +313,7 @@ class AlchemyState {
         if (convert != null) 'convert': convert!.toJson(),
         'mastery': mastery,
         if (luckNoteDay != null) 'luckNoteDay': luckNoteDay,
+        if (luckNoteWeek != null) 'luckNoteWeek': luckNoteWeek,
       };
 
   factory AlchemyState.fromJson(Map<String, dynamic> j) {
@@ -343,6 +350,7 @@ class AlchemyState {
       autoCure: j['autoCure'] as bool? ?? false,
       autoMp: (j['autoMp'] as num?)?.toInt() ?? 0,
       luckNoteDay: j['luckNoteDay'] as String?,
+      luckNoteWeek: j['luckNoteWeek'] as String?,
       saved: [
         for (final s in (j['saved'] as List?) ?? const [])
           Map<String, dynamic>.from(s as Map),

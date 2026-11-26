@@ -28,6 +28,12 @@ class RaceInfo {
 class LensRules {
   LensRules._();
 
+  /// 묶음 85 #416: 마법 돋보기 · 감정 켜기/끄기 (코드는 그대로 두고 화면 · 열림 · 안내 · 직업을 모두 숨김)
+  static const bool lensOn = false;
+
+  /// 묶음 85 #416: 감정 대신 채집에서 나온 횟수 (오늘 기록 counters)
+  static const String movedCounter = 'lensMoved';
+
   /// 잡화상 값과 하루 개수
   static const int price = 40;
   static const int perDay = 3;

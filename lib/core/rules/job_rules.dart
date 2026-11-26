@@ -367,13 +367,20 @@ class JobRules {
       level >= awakenLevel ? 2 * (level - awakenLevel + 1) : 0;
   static const int pointsPerLevel = 2;
 
-  static const int maxSkillLevel = 3;
+  /// 묶음 85 #414: 스킬 단계 5까지 (4단계는 Lv.25, 5단계는 Lv.35에 열림)
+  static const int maxSkillLevel = 5;
+  static int levelOpensAt(int skillLv) => switch (skillLv) { 4 => 25, 5 => 35, _ => 0 };
+  static bool levelOpen(int skillLv, int playerLevel) => playerLevel >= levelOpensAt(skillLv);
 
-  /// 공격·전투 스킬은 단계마다 더 세짐 (Lv.2 ×1.25 · Lv.3 ×1.5)
-  static double levelPower(int lv) => 1 + 0.25 * (lv - 1).clamp(0, 2);
+  /// 공격·전투 스킬은 단계마다 더 세짐 (Lv.2 ×1.25 · Lv.3 ×1.5 · Lv.4 ×1.75 · Lv.5 ×2.0)
+  static double levelPower(int lv) => 1 + 0.25 * (lv - 1).clamp(0, 4);
 
-  /// 생활 스킬은 단계마다 MP 덜 듦 (Lv.2 -15% · Lv.3 -30%)
-  static double levelMpCut(int lv) => 1 - 0.15 * (lv - 1).clamp(0, 2);
+  /// 생활 스킬은 단계마다 MP 덜 듦 (Lv.2 -15% · Lv.3 -30% · Lv.4 -40% · Lv.5 -50%)
+  static double levelMpCut(int lv) => switch (lv) { <= 1 => 1.0, 2 => 0.85, 3 => 0.70, 4 => 0.60, _ => 0.50 };
+
+  /// 묶음 85 #414: 직업 숙련 — 스킬을 모두 끝까지 올린 뒤 남는 포인트. 1점 = 그 직업 스킬 세기 +1%, 최대 +30%
+  static const double drillPer = 0.01;
+  static const int drillMax = 30;
 
   /// 트리에서 [s] 를 배우려면 먼저 무엇이 있어야 하는지
   /// 기본: ① → ②·③, ② 또는 ③이 Lv.2 → ④ / 복합·숨은: ① → ②
@@ -491,7 +498,7 @@ class JobRules {
         '채집 자리가 더 멀리서 보여요',
         [JobSkill.thornVine, JobSkill.pollenCloud, JobSkill.bountyTouch, JobSkill.harvestSense, JobSkill.rootPull, JobSkill.sproutCare]),
     JobInfo(JobId.alchemist, '연금술사', JobKind.basic, [Mastery.alchemy],
-        '가마솥이 더 빨리 끓어요',
+        '가마솥이 더 빨리 끓고, 레시피 쪽지를 더 자주 찾아요',
         [JobSkill.potionThrow, JobSkill.acidFlask, JobSkill.quickBrew, JobSkill.recipeHunch, JobSkill.instantBrew, JobSkill.specialSale]),
     JobInfo(JobId.warrior, '전사', JobKind.basic, [Mastery.combat],
         '강타가 더 세고 더 빨리 차요',
@@ -960,7 +967,7 @@ class JobRules {
 
     final list = [
       for (final j in jobs)
-        if (j.kind != JobKind.hidden && !owned.contains(j.id)) j,
+        if (j.kind != JobKind.hidden && !owned.contains(j.id) && !JobPairRules.lensHidden(j.id)) j,
     ]..sort((a, b) => need(a).compareTo(need(b)));
     return [for (final j in list.take(3)) j.id];
   }
@@ -968,6 +975,8 @@ class JobRules {
   /// 힌트 문구: 「대장일과 전투를 더 해 보세요」
   static String hintLine(JobId j) {
     final ms = info(j).masteries.map((m) => m.label).toList();
+    // 묶음 85 #418: 연금술사는 레시피 쪽지도 더 자주
+    if (j == JobId.alchemist) return '${josaOf(ms.first, '을/를')} 더 해 보세요 · 레시피 쪽지를 더 자주 찾아요';
     if (ms.length == 1) return '${josaOf(ms.first, '을/를')} 더 해 보세요';
     return '${josaOf(ms.first, '와/과')} ${josaOf(ms.last, '을/를')} 더 해 보세요';
   }

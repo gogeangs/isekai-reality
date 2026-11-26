@@ -197,7 +197,8 @@ void main() {
       final c = make(store);
       await c.init();
       for (final f in Feature.values) {
-        expect(c.featureOpen(f), isTrue, reason: f.name);
+        // 묶음 85 #416: 돋보기는 꺼 둠
+        expect(c.featureOpen(f), f != Feature.lens || LensRules.lensOn, reason: f.name);
       }
       expect(c.pendingFeatureIntro, isNull);
       expect(c.firstWeaponFree, isFalse);

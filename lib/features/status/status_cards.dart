@@ -156,10 +156,13 @@ class _SkillCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final open = c.skillPageOpen;
     final points = c.skillPointsLeft;
-    final slots = open ? c.battleLoadout : const <String>[];
+    final slots = open ? (c.fourSlots ? c.battleSlots : c.battleLoadout) : const <String>[];
     Widget slot(int i) {
       if (i >= slots.length) return _cell(_btn('btn_skill_empty'), '빈 칸');
       final e = slots[i];
+      // 묶음 85 #420: 각성 뒤 강타 · 방어 태세도 칸에
+      if (e == 'base:bash') return _cell(_btn('btn_strike'), '강타', id: 'bash');
+      if (e == 'base:stance') return _cell(_btn('btn_guard'), '방어 태세', id: 'stance');
       if (e.startsWith('job:')) {
         final s = JobRules.parseSkill(e.substring(4));
         if (s != null) return _cell(SkillArt.jobIcon(s, size: 38), JobRules.skill(s).name, id: _id(e));
@@ -174,9 +177,9 @@ class _SkillCard extends StatelessWidget {
     return _Card(
       key: const Key('skillsOpen'),
       title: '스킬',
-      busy: open && points > 0,
+      busy: open && c.skillRaisable,
       onTap: open ? onTap : null,
-      badge: open && points > 0
+      badge: open && c.skillRaisable
           ? Container(
               key: const Key('skillsDot'),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -187,8 +190,8 @@ class _SkillCard extends StatelessWidget {
           : null,
       child: Column(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Row(children: [
-          Expanded(child: _cell(_btn('btn_strike'), '강타', id: 'bash')),
-          Expanded(child: _cell(_btn('btn_guard'), '방어 태세', id: 'stance')),
+          Expanded(child: c.fourSlots ? slot(2) : _cell(_btn('btn_strike'), '강타', id: 'bash')),
+          Expanded(child: c.fourSlots ? slot(3) : _cell(_btn('btn_guard'), '방어 태세', id: 'stance')),
         ]),
         if (open)
           Row(children: [

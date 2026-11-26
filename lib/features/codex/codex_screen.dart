@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../town/material_view.dart';
 import '../battle/battle_view.dart';
-import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
 import '../battle/element_view.dart';
 import '../smithy/equipment_view.dart' show EquipIcon;
@@ -26,7 +26,11 @@ class CodexScreen extends StatefulWidget {
     this.fresh = const {},
     this.onSeen,
     this.active = true,
+    this.onBack,
   });
+
+  /// 묶음 85 #419: 프로필에서 연 도감 — 뒤로 가기
+  final VoidCallback? onBack;
 
   /// 묶음 77 #337: 얻은 적 있는 몬스터 전용 장비 (얻기 전엔 「???」)
   final Set<EquipBase> monGearFound;
@@ -167,6 +171,36 @@ class _CodexScreenState extends State<CodexScreen> {
                             style: TextStyle(color: AppColors.textMuted, fontSize: 14, fontWeight: FontWeight.w700)),
                     ]),
                   ),
+                // 묶음 85 #413: 단계 몬스터는 물약 재료도 가끔
+                if (LootRules.codexPotionMats(m.id) case final pm when pm.isNotEmpty)
+                  Padding(
+                    key: const Key('codexPotionMats'),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(children: [
+                      const SizedBox(
+                        width: 72,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('물약 재료',
+                              maxLines: 1,
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                      for (final x in pm) ...[
+                        MaterialIcon(x, size: 28),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(Materials.info(x).name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      const Text('(가끔)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    ]),
+                  ),
                 const SizedBox(height: 12),
                 FrameButton(
                     label: '닫기', onPressed: () => Navigator.of(sheet).pop()),
@@ -196,12 +230,7 @@ class _CodexScreenState extends State<CodexScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const OrnateTopBar(title: '도감'),
-          const SizedBox(height: 6),
-          SpiritBadgeRow(
-              line: tab == 1 && widget.petsOpen
-                  ? '함께한 펫은 여기 기록돼. 언젠가 귀한 펫도 만날 거야!'
-                  : '사냥한 몬스터는 여기 기록돼. 새로운 몬스터를 찾아보자!'),
+          OrnateTopBar(title: '도감', onBack: widget.onBack),
           const SizedBox(height: 8),
           // 11-11 #96·#97: 종족은 돋보기 「감정 앨범」으로 옮겼고, 펫 탭은 첫 알 뒤에만
           if (widget.petsOpen)

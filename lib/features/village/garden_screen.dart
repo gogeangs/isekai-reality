@@ -18,11 +18,21 @@ class GardenScreen extends StatelessWidget {
 
   final AppController controller;
 
-  static String plotAsset(GardenPlotView p) => 'assets/images/garden_plot_${p.empty ? 'empty' : switch (p.stage) {
-        0 => 'sprout',
-        1 => 'grow',
-        _ => 'ready',
-      }}.webp';
+  /// 묶음 85 #411: 씨앗마다 그림 (자람: 버섯 포자만 따로 · 다 자람: 약초 · 꽃 · 버섯 · 빛 씨앗)
+  static String plotAsset(GardenPlotView p) {
+    if (p.empty) return 'assets/images/garden_plot_empty.webp';
+    final name = switch (p.stage) {
+      0 => 'sprout',
+      1 => p.seed == MaterialId.sporeSeed ? 'grow_mushroom' : 'grow',
+      _ => switch (p.seed) {
+          MaterialId.herbSeed => 'ready_herb',
+          MaterialId.sporeSeed => 'ready_mushroom',
+          MaterialId.glowSeed => 'ready_glow',
+          _ => 'ready',
+        },
+    };
+    return 'assets/images/garden_plot_$name.webp';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +77,6 @@ class GardenScreen extends StatelessWidget {
                         Row(children: [
                           Expanded(child: Text('밭', style: AppText.title(17))),
                         ]),
-                        const SizedBox(height: 4),
-                        const KText('심어 두면 시간이 지나며 자라요. 앱을 꺼 둬도 자라고, 다 자란 건 거둘 때까지 시들지 않아요.',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         const SizedBox(height: 10),
                         LayoutBuilder(builder: (context, box) {
                           const gap = 8.0;
@@ -97,12 +104,9 @@ class GardenScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text('씨앗 주머니', style: AppText.title(17)),
-                        const SizedBox(height: 4),
-                        const KText('씨앗은 약초·꽃·버섯을 채집하다 가끔 주워요. 약초 씨앗은 잡화상에서도 팔아요.',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         const SizedBox(height: 8),
                         if (pouch.isEmpty)
-                          const KText('지금은 씨앗이 없어요.',
+                          const KText('씨앗이 없어요',
                               style: TextStyle(color: AppColors.textMuted, fontSize: 13))
                         else
                           for (final e in pouch.entries) _SeedRow(seed: e.key, count: e.value),

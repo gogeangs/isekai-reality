@@ -70,6 +70,7 @@ class BattleView extends StatefulWidget {
     this.weapon,
     this.onFloor,
     this.jobSkills = const [],
+    this.bar,
     this.emptySlots = false,
     this.jobMp,
     this.onJobSkill,
@@ -103,6 +104,10 @@ class BattleView extends StatefulWidget {
   /// 전투 칸의 직업 스킬 (묶음 31 #198): 스킬·MP 비용·단계 세기.
   /// 버튼을 누르면 [onJobSkill] 이 MP를 쓴다. 숙련 스킬 칸은 전투([Battle.masteryActives])에서
   final List<(JobSkill, int, double)> jobSkills;
+
+  /// 묶음 85 #420: 각성 뒤 버튼 줄 4칸 (왼쪽부터 칸 3 · 칸 4 · 칸 1 · 칸 2). 'base:bash' · 'base:stance' ·
+  /// 'job:<스킬>' · 'mastery:<숙련도>' · '' (빈 칸). null 이면 예전 줄 (강타 · 방어 태세 · 칸 2 · 펫)
+  final List<String>? bar;
 
   /// 묶음 35: 스킬 페이지가 열렸으면 빈 스킬 칸을 btn_skill_empty 로 보여 준다
   final bool emptySlots;
@@ -373,6 +378,83 @@ class _BattleViewState extends State<BattleView> {
     _checkEnd();
   }
 
+  /// 묶음 85 #420: 각성 뒤 칸 하나 (강타 · 방어 태세 · 직업 스킬 · 숙련 스킬 · 빈 칸)
+  Widget _barCell(List<String> bar, int i) {
+    final e = bar[i];
+    Widget guard() => _GuardButton(
+          key: const Key('guardButton'),
+          clock: _warnClock,
+          window: Battle.guardWindow * _b.guardEase,
+          perfect: Battle.guardWindow - Battle.perfectFrom,
+          done: _tapped,
+        );
+    // 강한 공격 경고 동안 「막기!」 자리: 방어 태세 칸 → 없으면 첫 칸
+    if (_guardTime && (e == 'base:stance' || (!bar.contains('base:stance') && i == 0))) return guard();
+    if (e == 'base:bash') {
+      return _MiniSkill(
+        key: const Key('bashButton'),
+        label: '강타',
+        icon: Icons.gavel_rounded,
+        art: 'btn_strike',
+        ratio: _b.bashRatio,
+        ready: _b.bashReady && !_guardTime,
+        onPressed: _bash,
+      );
+    }
+    if (e == 'base:stance') {
+      return _MiniSkill(
+        key: const Key('stanceButton'),
+        label: _b.stanceTurns > 0 ? '방어 중' : '방어 태세',
+        icon: Icons.shield_rounded,
+        art: 'btn_guard',
+        ratio: _b.stanceTurns > 0 ? 1 : _b.stanceRatio,
+        ready: _b.stanceReady,
+        active: _b.stanceTurns > 0,
+        onPressed: _stance,
+      );
+    }
+    if (e.startsWith('job:')) {
+      for (final (sk, cost, power) in widget.jobSkills) {
+        if ('job:${sk.name}' != e) continue;
+        final mp = widget.jobMp?.call() ?? 0;
+        return _MiniSkill(
+          key: Key('battleJob_${sk.name}'),
+          label: JobRules.skill(sk).name,
+          sub: 'MP $cost',
+          icon: Icons.bolt_rounded,
+          artFrame: SkillArt.jobIcon(sk, dim: !(mp >= cost && !_b.isOver && !_b.skillsLocked)),
+          ratio: cost <= 0 ? 1 : (mp / cost).clamp(0.0, 1.0),
+          ready: mp >= cost && !_b.isOver && !_b.skillsLocked && !_guardTime,
+          ringColor: const Color(0xFFB27BFF),
+          onPressed: () => _jobSkill(sk, cost, power),
+        );
+      }
+    }
+    if (e.startsWith('mastery:')) {
+      for (final m in _b.masteryActives) {
+        if ('mastery:${m.name}' != e) continue;
+        return _MiniSkill(
+          key: Key('battleMastery_${m.name}'),
+          label: JobRules.masteryActive(m).name,
+          icon: Icons.auto_awesome,
+          artFrame: SkillArt.masteryIcon(m, active: true, dim: !_b.masteryReady(m)),
+          ratio: _b.masteryRatio(m),
+          ready: _b.masteryReady(m) && !_guardTime,
+          onPressed: () => _masterySkill(m),
+        );
+      }
+    }
+    return _MiniSkill(
+      key: Key('battleEmpty_$i'),
+      label: '빈 칸',
+      icon: Icons.add_rounded,
+      art: 'btn_skill_empty',
+      ratio: 0,
+      ready: false,
+      onPressed: () {},
+    );
+  }
+
   void _bash() {
     setState(() {
       if (_b.useBash()) {
@@ -494,6 +576,23 @@ class _BattleViewState extends State<BattleView> {
                 superHit: _b.lastSuper,
                 resisted: _b.lastResist,
                 elementHints: widget.elementHints,
+                // 묶음 85 #415: 몬스터 HP는 머리 위로
+                bossHud: foe.isBoss,
+                foeHud: widget.practiceHud
+                    ? _EndlessDummy(beat: _beat, element: foe.element)
+                    : _FoeHud(
+                        name: foe.name,
+                        nameColor: modGradeColor(foe.grade),
+                        element: foe.element,
+                        hp: _b.foeHp,
+                        maxHp: foe.maxHp,
+                        boss: foe.isBoss,
+                        // 묶음 59: 레이드 보스 체력은 숫자 없이 (숨은 값)
+                        hideNumbers: _b.raidBoss != null || _b.hideFoeNumbers,
+                        status: _foeStatus,
+                        // 묶음 77 #346 현자: 몬스터 약점 속성이 늘 보임
+                        weak: _b.shownWeakness,
+                      ),
                 heals: _b.heals,
                 healed: _b.lastHealed,
                 defeated: _b.phase == BattlePhase.failed,
@@ -523,6 +622,7 @@ class _BattleViewState extends State<BattleView> {
               OrnatePanel(
                 padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
                 child: Column(children: [
+                  // 묶음 85 #415: 아래 칸은 내 얼굴 · 이름 · HP를 가로 가득 (몬스터 HP는 머리 위로)
                   Row(children: [
                     _Avatar(look: widget.look),
                     const SizedBox(width: 8),
@@ -537,95 +637,51 @@ class _BattleViewState extends State<BattleView> {
                             : null,
                       ),
                     ),
-                    if (_b.potions.isNotEmpty && !_b.isOver)
-                      Column(mainAxisSize: MainAxisSize.min, children: [
-                        IconButton(
-                          key: const Key('battlePotion'),
-                          tooltip: '물약 마시기',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: _potionSheet,
-                          icon: Image.asset('assets/images/btn_potion.webp',
-                              width: 30,
-                              height: 30,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.local_drink_rounded,
-                                  color: AppColors.goldBright)),
-                        ),
-                        // 물약 줄 끝 작은 「자동」 표시 (11-11 #93)
-                        GestureDetector(
-                          key: const Key('battleAuto'),
-                          onTap: _autoWindow,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: _autoOn
-                                      ? AppColors.goldBright
-                                      : AppColors.textMuted
-                                          .withValues(alpha: 0.5)),
-                            ),
-                            child: Text(autoUseLabel(_b.autoHp, _b.autoCure, mp: _b.jobMpMax > 0 ? _b.autoMp : 0, short: true),
-                                style: TextStyle(
-                                    color: _autoOn
-                                        ? AppColors.goldBright
-                                        : AppColors.textMuted,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ),
-                      ]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: widget.practiceHud
-                          ? _EndlessDummy(beat: _beat, element: foe.element)
-                          : _HpColumn(
-                              name: foe.name,
-                              nameColor: modGradeColor(foe.grade),
-                              element: foe.element,
-                              showElement: true,
-                              hp: _b.foeHp,
-                              maxHp: foe.maxHp,
-                              // 묶음 59: 레이드 보스 체력은 숫자 없이 (숨은 값)
-                              hideNumbers: _b.raidBoss != null || _b.hideFoeNumbers,
-                              colors: BarColors.foe,
-                              note: _b.lastEvent,
-                              alignEnd: true,
-                            ),
-                    ),
                   ]),
-                  // 묶음 77 #346 현자: 몬스터 약점 속성이 늘 보임
-                  if (_b.shownWeakness case final wk?)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: Container(
-                          key: const Key('foeWeakChip'),
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: elementColor(wk).withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(color: elementColor(wk)),
-                          ),
-                          child: Text('약점 · ${wk.label}',
-                              style: const TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w800)),
-                        ),
-                      ),
-                    ),
-                  // 상태 이상 (11-11 #81): 체력 막대 아래 아이콘
-                  if (_heroStatus.isNotEmpty || _foeStatus.isNotEmpty)
+                  // 다음 줄: 내 상태 이상 · 물약 · 자동 마시기 (HP 숫자를 가리지 않게)
+                  if (_heroStatus.isNotEmpty || (_b.potions.isNotEmpty && !_b.isOver))
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Row(children: [
                         const SizedBox(width: 52),
                         Expanded(child: _StatusIcons(_heroStatus)),
-                        Expanded(
-                          child: Align(
-                              alignment: Alignment.centerRight,
-                              child: _StatusIcons(_foeStatus)),
-                        ),
+                        if (_b.potions.isNotEmpty && !_b.isOver) ...[
+                          GestureDetector(
+                            key: const Key('battlePotion'),
+                            onTap: _potionSheet,
+                            child: Image.asset('assets/images/btn_potion.webp',
+                                width: 30,
+                                height: 30,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.local_drink_rounded,
+                                    color: AppColors.goldBright)),
+                          ),
+                          const SizedBox(width: 6),
+                          // 물약 줄 끝 작은 「자동」 표시 (11-11 #93)
+                          GestureDetector(
+                            key: const Key('battleAuto'),
+                            onTap: _autoWindow,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(
+                                    color: _autoOn
+                                        ? AppColors.goldBright
+                                        : AppColors.textMuted
+                                            .withValues(alpha: 0.5)),
+                              ),
+                              child: Text(autoUseLabel(_b.autoHp, _b.autoCure, mp: _b.jobMpMax > 0 ? _b.autoMp : 0, short: true),
+                                  style: TextStyle(
+                                      color: _autoOn
+                                          ? AppColors.goldBright
+                                          : AppColors.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
                       ]),
                     ),
                   // 묶음 75 #324: 연습 기록 한 줄 (지난 시간 · 1초당 피해 · 합계, 전투 시간 기준)
@@ -709,6 +765,9 @@ class _BattleViewState extends State<BattleView> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.bar case final bar?)
+                      for (var i = 0; i < bar.length; i++) Expanded(child: _barCell(bar, i))
+                    else ...[
                     Expanded(
                       child: _MiniSkill(
                         key: const Key('bashButton'),
@@ -802,6 +861,7 @@ class _BattleViewState extends State<BattleView> {
                           onPressed: () {},
                         ),
                       ),
+                    ],
                     Expanded(
                       child: _SkillOrb(
                         ratio: _b.skillRatio,

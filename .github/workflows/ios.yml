@@ -147,6 +147,19 @@ jobs:
             $(cat build/firebase_defines.txt 2>/dev/null) 2>&1 | tee build-output.txt
           exit ${PIPESTATUS[0]}
 
+      - name: 실패 까닭 (오류 줄만)
+        if: failure() && steps.check.outputs.ready == 'true'
+        shell: bash
+        run: |
+          # 키 · 설정 값은 찍지 않고, Xcode 기록에서 오류 줄만
+          for f in $(find "$HOME/Library/Developer/Xcode/DerivedData" build/ios -name '*.xcactivitylog' 2>/dev/null); do
+            gunzip -c "$f" 2>/dev/null | tr '\r' '\n' | grep -E "error:|Error \(|Undefined symbol|Command .* failed" | grep -viE "key|secret|token" | head -40
+          done
+          grep -nE "error:|Error \(" build-output.txt | head -40 || true
+          for r in $(find build/ios -name '*.xcresult' -maxdepth 3 2>/dev/null); do
+            xcrun xcresulttool get build-results --path "$r" 2>/dev/null | grep -E '"message"' | grep -viE "key|secret|token" | head -40 || true
+          done
+
       - name: 서명하고 TestFlight 로 올리기
         if: steps.check.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.upload)
         shell: bash

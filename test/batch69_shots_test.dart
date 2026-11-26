@@ -290,7 +290,7 @@ void main() {
       late AppController c;
       await tester.runAsync(() async => c = await startVillage(11, farewell: true));
       await _page(tester, Scaffold(body: NightBackground(child: BagTab(key: ObjectKey('bg$n'), controller: c))));
-      await _tapShot(tester, const Key('spiritBadge'), '${n}_24_가방_정령누르면');
+      // 묶음 85 #406: 가방 정령 줄은 뺌
       await _page(tester, Scaffold(body: MapScreen(key: ObjectKey('mp$n'), controller: c)));
       await _settle(tester, 3);
       await _tapShot(tester, const Key('spiritBadge'), '${n}_25_지도_정령누르면');

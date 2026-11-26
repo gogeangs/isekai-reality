@@ -617,3 +617,4 @@ ChatGPT로 만든 묶음 그림을 잘라 넣었습니다. 목록과 프롬프�
 | 2026-11-23 | sky_stair | 하이랜드 하늘 계단(떠 있는 대리석 5단 · 금 테 · 아래 금빛 · 깃털 · 반짝임), 512×512 아래 가운데, 노랑 · 빨강 번짐 지움 — 맨 아래 단은 그림 가운데보다 왼쪽(약 −120px) |
 | 2026-11-23 | sky_stair | 하늘 계단 줄임 — 구름 덩어리 높이(약 290px) 안에 들어가게, 512×512 아래 가운데 (덮어씀) |
 | 2026-11-26 | garden_plot_ready_herb, garden_plot_ready_mushroom, garden_plot_grow_mushroom, garden_plot_ready_glow | 약초밭 씨앗별 밭 그림(#411) 512×512 투명 — 약초·버섯 다 자람, 버섯 자라는 중, 빛 씨앗 다 자람. 나무 틀 크기·바닥선을 garden_plot_ready에 맞춤 |
+| 2026-11-26 | garden_plot_ready_herb, garden_plot_ready_mushroom, garden_plot_ready_glow | 약초밭 다 자람 3장 다시 그림(#411) — 빛 번짐 없이 또렷한 반짝임, 틀 크기·바닥선은 garden_plot_ready에 맞춤 |

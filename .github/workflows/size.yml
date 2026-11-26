@@ -86,6 +86,10 @@ jobs:
       - name: 앱 만들기 (서명 없이)
         shell: bash
         run: |
+          # 네이버 지도 SPM 3.24부터 iOS 15 필요 → 3.23.x 로 묶음 (ios.yml 과 같게)
+          for f in "${PUB_CACHE:-$HOME/.pub-cache}"/hosted/pub.dev/flutter_naver_map-*/ios/flutter_naver_map/Package.swift; do
+            [ -f "$f" ] && sed -i '' 's#from: "3.23.0"#.upToNextMinor(from: "3.23.0")#' "$f"
+          done
           flutter build ios --release --no-codesign \
             --dart-define=NAVER_MAP_CLIENT_ID="${NAVER_MAP_CLIENT_ID}" \
             --dart-define=ADS_ON=1

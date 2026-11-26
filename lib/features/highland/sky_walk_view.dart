@@ -224,7 +224,7 @@ class _SkyWalkViewState extends State<SkyWalkView> with TickerProviderStateMixin
           _guide = (text: '숫자는 둘레 8칸에 숨은 유물 조각 수예요', cell: i);
         } else if (!_guideStair) {
           _guideStair = true;
-          _guide = (text: b.info.top ? '금빛 기둥 아래가 수호자 제단이에요' : '금빛 기둥 아래가 하늘 계단이에요. 바람이 다하기 전에 닿아 봐요', cell: b.goal);
+          _guide = (text: b.info.top ? '어딘가에 수호자 제단이 숨어 있어요' : '어딘가에 위층으로 가는 하늘 계단이 숨어 있어요', cell: b.goal);
         }
       }
     });
@@ -485,7 +485,6 @@ class _SkyWalkViewState extends State<SkyWalkView> with TickerProviderStateMixin
                   top: 10,
                   child: IgnorePointer(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.keyboard_double_arrow_up_rounded, color: AppColors.goldBright, size: 22),
                       _GuideCard(text: gd.text, tail: false),
                     ]),
                   ),
@@ -582,18 +581,16 @@ class _SkyWalkViewState extends State<SkyWalkView> with TickerProviderStateMixin
         ),
       ));
     }
-    // 계단 · 제단 빛기둥 (구름 위로도 보임)
+    // 계단 · 제단 빛기둥 — 묶음 85 #417: 구름을 걷은 뒤에만 (그전엔 아무 표시 없음)
     final g = _center(b, b.goal);
-    kids.add(Positioned(
+    if (opened.contains(b.goal)) kids.add(Positioned(
       left: g.dx - w * 0.14,
       top: g.dy - w * 2.3,
       width: w * 0.28,
       height: w * 2.3,
       child: IgnorePointer(
         child: FadeTransition(
-          opacity: opened.contains(b.goal)
-              ? Tween<double>(begin: 0.2, end: 0.4).animate(_breath)
-              : Tween<double>(begin: 0.55, end: 1).animate(_breath),
+          opacity: Tween<double>(begin: 0.2, end: 0.4).animate(_breath),
           child: DecoratedBox(
             key: const Key('skyPillar'),
             decoration: BoxDecoration(
@@ -933,8 +930,9 @@ class _MiniPainter extends CustomPainter {
       if (!b.inside(i)) continue;
       dia(at(i), opened.contains(i) ? const Color(0xFF6BD97A) : const Color(0x55B9B0D4), 0.9);
     }
+    // 묶음 85 #417: 계단 · 제단은 찾은 뒤에만 빛 점
     final g = at(b.goal);
-    canvas.drawCircle(g, 3 + _breath.value * 1.5,
+    if (opened.contains(b.goal)) canvas.drawCircle(g, 3 + _breath.value * 1.5,
         Paint()
           ..color = const Color(0xFFFFE9A8)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));

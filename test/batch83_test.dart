@@ -454,7 +454,7 @@ void main() {
     expect(find.byKey(const Key('skyGuide')), findsOneWidget);
     expect(c.highland.guideSeen, isTrue);
     expect(find.byKey(const Key('skyFloorDot_1_now')), findsOneWidget);
-    expect(find.byKey(const Key('skyPillar')), findsOneWidget);
+    expect(find.byKey(const Key('skyPillar')), findsNothing);
     final can = find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.endsWith('_can'));
     expect(can, findsWidgets);
     final wind = c.skyClimb!.wind;

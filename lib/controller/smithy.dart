@@ -195,7 +195,7 @@ extension SmithyOps on AppController {
     final failed = _random.nextDouble() < BossGearRules.failChance(blacksmith: blacksmith);
     final today = await _todayRecord();
     if (failed) {
-      final loss = BossGearRules.failLoss(slot, blacksmith: blacksmith);
+      final loss = BossGearRules.failLossOf(base, blacksmith: blacksmith);
       await _save(today.copyWith(
         spends: DailyRecord.addCounts(today.spends, {
           BossGearRules.shardOf(base).name: loss.shards,
@@ -203,7 +203,8 @@ extension SmithyOps on AppController {
         }),
       ));
       return BossCraftResult(
-          line: BossGearRules.failLines[_random.nextInt(BossGearRules.failLines.length)]);
+          line: '${BossGearRules.failLines[_random.nextInt(BossGearRules.failLines.length)]} '
+              '(${Materials.info(BossGearRules.shardOf(base)).name} ${loss.shards}개 · 금화 ${loss.gold}을 잃었어요)');
     }
     final used = <String, int>{
       for (final e in c.mats.entries) e.key.name: e.value,

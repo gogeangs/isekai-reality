@@ -337,6 +337,9 @@ class AlchemyRules {
   static const double noteFromRoadside = 0.03;
   static const double noteFromPouch = 0.01;
 
+  /// 묶음 85 #418: 연금술사가 아니면 「우연」 쪽지 확률 × 이만큼 · 일주일에 1장까지
+  static const double noteOtherShare = 1 / 3;
+
   static PotionInfo info(PotionId id) => _byId[id]!;
   static final Map<PotionId, PotionInfo> _byId = {
     for (final p in all) p.id: p,

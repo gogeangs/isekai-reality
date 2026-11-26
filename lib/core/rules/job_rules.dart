@@ -491,7 +491,7 @@ class JobRules {
         '채집 자리가 더 멀리서 보여요',
         [JobSkill.thornVine, JobSkill.pollenCloud, JobSkill.bountyTouch, JobSkill.harvestSense, JobSkill.rootPull, JobSkill.sproutCare]),
     JobInfo(JobId.alchemist, '연금술사', JobKind.basic, [Mastery.alchemy],
-        '가마솥이 더 빨리 끓어요',
+        '가마솥이 더 빨리 끓고, 레시피 쪽지를 더 자주 찾아요',
         [JobSkill.potionThrow, JobSkill.acidFlask, JobSkill.quickBrew, JobSkill.recipeHunch, JobSkill.instantBrew, JobSkill.specialSale]),
     JobInfo(JobId.warrior, '전사', JobKind.basic, [Mastery.combat],
         '강타가 더 세고 더 빨리 차요',
@@ -968,6 +968,8 @@ class JobRules {
   /// 힌트 문구: 「대장일과 전투를 더 해 보세요」
   static String hintLine(JobId j) {
     final ms = info(j).masteries.map((m) => m.label).toList();
+    // 묶음 85 #418: 연금술사는 레시피 쪽지도 더 자주
+    if (j == JobId.alchemist) return '${josaOf(ms.first, '을/를')} 더 해 보세요 · 레시피 쪽지를 더 자주 찾아요';
     if (ms.length == 1) return '${josaOf(ms.first, '을/를')} 더 해 보세요';
     return '${josaOf(ms.first, '와/과')} ${josaOf(ms.last, '을/를')} 더 해 보세요';
   }

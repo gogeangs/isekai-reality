@@ -702,6 +702,7 @@ extension TutorialOps on AppController {
       for (var i = 0; i < count; i++) {
         LootRules.field(monster, _random,
                 early: earlyLoot,
+                land: lands?.kindAt(point),
                 rareBonus: StatRules.rareDropBonus(combatStats) +
                     (plentyActive ? LootRules.dropsOf(monster).chance * 0.5 : 0))
             .forEach((k, v) => mats[k] = (mats[k] ?? 0) + v);

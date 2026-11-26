@@ -408,8 +408,18 @@ class BossGearRules {
     return (shards: math.max(1, c.shards ~/ 3), gold: c.gold ~/ 2);
   }
 
+  /// 묶음 85 #405: 부위마다 실패 손실 — 하이랜드 세트는 그 부위 하늘 돌 값의 1/3
+  /// (무기 4 · 몸 3 · 머리 2 · 장신구 2 · 손 1 · 발 1), 그 밖은 [failLoss]
+  static ({int shards, int gold}) failLossOf(EquipBase base, {bool blacksmith = false}) {
+    final slot = EquipmentRules.info(base).slot;
+    final l = failLoss(slot, blacksmith: blacksmith);
+    if (setOf(base) != BossSet.sky) return l;
+    final stones = HighlandRules.partCost(slot).mats[MaterialId.skyStone] ?? 3;
+    return (shards: math.max(1, stones ~/ 3), gold: l.gold);
+  }
+
   static const List<String> failLines = [
-    '불길이 고르지 못했어요. 조각 하나가 녹아 버렸어요.',
+    '불길이 고르지 못했어요. 조각이 조금 녹아 버렸어요.',
     '망치질이 어긋났어요. 조각 몇 개가 부서졌어요. 보스 재료는 돌려드릴게요.',
     '담금질이 빨랐어요. 조각이 갈라져 버렸어요. 보스 재료는 무사해요.',
   ];

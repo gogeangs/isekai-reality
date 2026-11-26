@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/rules/rules.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/ornaments.dart';
+import '../town/material_view.dart';
 import '../battle/battle_view.dart';
 import '../bulssi/bulssi_bubble.dart';
 import '../pets/pet_art.dart';
@@ -165,6 +166,36 @@ class _CodexScreenState extends State<CodexScreen> {
                         const Text('???',
                             key: Key('codexDropUnknown'),
                             style: TextStyle(color: AppColors.textMuted, fontSize: 14, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                // 묶음 85 #413: 단계 몬스터는 물약 재료도 가끔
+                if (LootRules.codexPotionMats(m.id) case final pm when pm.isNotEmpty)
+                  Padding(
+                    key: const Key('codexPotionMats'),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(children: [
+                      const SizedBox(
+                        width: 72,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('물약 재료',
+                              maxLines: 1,
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                      for (final x in pm) ...[
+                        MaterialIcon(x, size: 28),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(Materials.info(x).name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: AppColors.text, fontSize: 13)),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      const Text('(가끔)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     ]),
                   ),
                 const SizedBox(height: 12),

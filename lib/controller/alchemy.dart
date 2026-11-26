@@ -20,13 +20,22 @@ extension AlchemyOps on AppController {
   /// 묶음 75 #326: 「우연」 레시피 쪽지 (의뢰 · 길가 발견 · 던전 · 희귀/전설 몬스터 · 걸음 주머니 · 감정 렌즈).
   /// 하루 1장까지 — 받은 날이면 굴리지 않는다. 받았으면 true
   Future<bool> _maybeNote(double chance) async {
-    final day = DailyRecord.dayKeyOf(_clock());
+    final now = _clock();
+    final day = DailyRecord.dayKeyOf(now);
     if (_alc.luckNoteDay == day) return false;
-    if (_random.nextDouble() >= chance) return false;
-    await _saveAlc(_alc.copyWith(luckNoteDay: day));
+    // 묶음 85 #418: 연금술사(주 · 보조)나 직업 각성 전이 아니면 확률 1/3 · 일주일에 1장 (월요일 새로)
+    final often = notesOften;
+    final week = DailyRecord.dayKeyOf(DateTime(now.year, now.month, now.day - (now.weekday - 1)));
+    if (!often && _alc.luckNoteWeek == week) return false;
+    if (_random.nextDouble() >= (often ? chance : chance * AlchemyRules.noteOtherShare)) return false;
+    await _saveAlc(_alc.copyWith(luckNoteDay: day, luckNoteWeek: week));
     await _savePets(_pets.copyWith(recipeNotes: _pets.recipeNotes + 1));
     return true;
   }
+
+  /// 묶음 85 #418: 레시피 쪽지를 자주 찾는 사람 (연금술사 주 · 보조 · 직업 각성 전)
+  bool get notesOften =>
+      !_jobs.awakened || mainJob == JobId.alchemist || subJobs.contains(JobId.alchemist);
 
   /// 레시피 책에 보이는 물약 (처음부터 공개 + 발견 + 쪽지)
   List<PotionId> get knownRecipes => [

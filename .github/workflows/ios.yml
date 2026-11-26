@@ -135,6 +135,10 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         shell: bash
         run: |
+          # 네이버 지도 SPM 3.24부터 iOS 15가 필요해 빌드가 깨짐 → 3.23.x 로 묶음 (플러그인이 고쳐지면 지움)
+          for f in "${PUB_CACHE:-$HOME/.pub-cache}"/hosted/pub.dev/flutter_naver_map-*/ios/flutter_naver_map/Package.swift; do
+            [ -f "$f" ] && sed -i '' 's#from: "3.23.0"#.upToNextMinor(from: "3.23.0")#' "$f" && grep -n "SPM-NMapsMap" "$f"
+          done
           flutter build ios --release --no-codesign \
             --build-number=${{ github.run_number }} \
             --dart-define=APP_BUILD=${{ github.run_number }} \

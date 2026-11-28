@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'skill_icon.dart';
 import 'package:flutter/material.dart' hide Element;
+import 'package:flutter/rendering.dart' show RenderAbstractViewport;
 
 import '../../app_controller.dart';
 import '../../core/format.dart';
@@ -28,22 +29,55 @@ class SkillScreen extends StatefulWidget {
 /// 전투 버튼 줄의 늘 있는 버튼
 enum _Fixed { strike, guard, pet }
 
+/// 묶음 86 #433: 탭 없이 한 화면 — 포인트 · 전투 칸(위에 붙음) · 주 직업 · 보조 직업 · 공용 · 숙련
 class _SkillScreenState extends State<SkillScreen> {
   AppController get c => widget.controller;
-  late int _tab = widget.tab;
 
-  // 전투 칸
-  int _sel = 0;
-  String? _focus; // 'job:…' · 'mastery:…' · 'fixed:strike' …
-  String? _slotToast;
-
-  // 고유 스킬
-  int _jobView = 0; // 0 주 직업 · 1 보조 직업
+  /// 「칸에」로 고른 스킬 (위 전투 칸을 누르면 끼움)
+  String? _pick;
+  String? _toast;
   JobSkill? _open;
-  String? _jobToast;
 
-  // 숙련 스킬
-  Mastery? _mSel;
+  final _scroll = ScrollController();
+  final _secMain = GlobalKey();
+  final _secSub = GlobalKey();
+  final _secCommon = GlobalKey();
+  final _secMastery = GlobalKey();
+
+  static const double _stickyH = 164;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.tab != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _goTo(widget.tab == 2 ? _secMastery : _secMain, animate: false));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final n = c.takeDrillNotice();
+      if (n != null && mounted) showTopNotice(context, n);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _goTo(GlobalKey k, {bool animate = true}) {
+    final ctx = k.currentContext;
+    if (ctx == null || !_scroll.hasClients) return;
+    final box = ctx.findRenderObject();
+    if (box == null) return;
+    final vp = RenderAbstractViewport.of(box);
+    final target = (vp.getOffsetToReveal(box, 0).offset - _stickyH - 6)
+        .clamp(0.0, _scroll.position.maxScrollExtent);
+    if (animate) {
+      _scroll.animateTo(target, duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+    } else {
+      _scroll.jumpTo(target);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,38 +92,51 @@ class _SkillScreenState extends State<SkillScreen> {
           child: ListenableBuilder(
             listenable: c,
             builder: (context, _) {
-              final tabs = <(int, String)>[
-                (0, '전투 칸'),
-                if (c.jobsOpen) (1, '고유 스킬'),
-                (2, '숙련 스킬'),
-              ];
-              if (!tabs.any((t) => t.$1 == _tab)) _tab = 0;
-              return ListView(
-                padding: EdgeInsets.fromLTRB(14, top + 6, 14, 30),
-                children: [
-                  OrnateTopBar(title: '스킬', onBack: () => Navigator.of(context).maybePop()),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    for (final (i, label) in tabs)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: _TabChip(
-                            key: Key('skillTab_$i'),
-                            label: label,
-                            on: _tab == i,
-                            dot: i == 1 && c.skillRaisable,
-                            onTap: () => setState(() => _tab = i),
+              final main = c.jobsOpen ? c.mainJob : null;
+              final sub = c.subJobsOpen ? c.subJob : null;
+              return CustomScrollView(
+                key: const Key('skillScroll'),
+                controller: _scroll,
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        OrnateTopBar(title: '스킬', onBack: () => Navigator.of(context).maybePop()),
+                        const SizedBox(height: 8),
+                        if (c.jobsOpen) ...[
+                          _poolCard(),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              key: const Key('skillReset'),
+                              style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 6)),
+                              onPressed: () => _reset(context),
+                              child: const Text('포인트 다시 나누기',
+                                  style: TextStyle(
+                                      color: AppColors.textMuted, fontSize: 12, decoration: TextDecoration.underline)),
+                            ),
                           ),
-                        ),
-                      ),
-                  ]),
-                  const SizedBox(height: 12),
-                  ...switch (_tab) {
-                    1 => _jobTab(context),
-                    2 => _masteryTab(),
-                    _ => _battleTab(context),
-                  },
+                        ],
+                      ]),
+                    ),
+                  ),
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _Sticky(height: _stickyH, child: _stickyBar(main, sub)),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 40),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        if (main != null) ..._mainSection(main),
+                        if (sub != null) ..._subSection(sub),
+                        if (c.jobsOpen) ..._commonSection(),
+                        ..._masterySection(),
+                      ]),
+                    ),
+                  ),
                 ],
               );
             },
@@ -99,7 +146,185 @@ class _SkillScreenState extends State<SkillScreen> {
     );
   }
 
-  // ───────────── 전투 칸 (#363)
+  // ───────────── 맨 위: 스킬 포인트
+
+  Widget _poolCard() => Container(
+        key: const Key('skillHead'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F1C40),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF8A6A2A), width: 1.5),
+        ),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('스킬 포인트', style: AppText.title(17, color: AppColors.goldBright)),
+              const KText('레벨이 오를 때마다 3 · 직업 · 공용 스킬에 나눠 써요',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+            ]),
+          ),
+          Container(
+            key: const Key('skillPointsLeft'),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF6D88A), Color(0xFFD9A94A)]),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('${c.skillPointsLeft}',
+                  style: const TextStyle(color: Color(0xFF2A1D08), fontSize: 20, fontWeight: FontWeight.w900, height: 1.1)),
+              const Text('남은 포인트',
+                  style: TextStyle(color: Color(0xFF2A1D08), fontSize: 10, fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ]),
+      );
+
+  // ───────────── 위에 붙은 전투 칸 · 바로가기 칩
+
+  Widget _stickyBar(JobId? main, JobId? sub) {
+    final four = c.fourSlots;
+    final slots = four ? c.battleSlots : c.battleLoadout;
+    String? slotAt(int i) => i < slots.length && slots[i].isNotEmpty ? slots[i] : null;
+
+    Widget fixed(_Fixed f) {
+      final (name, _, art) = _fixedInfo(f);
+      final id = _fixedId(f);
+      final cell = _BarCell(
+        key: Key('battleFixed_${f.name}'),
+        icon: _btnArt(art, 40),
+        name: name,
+        sub: '늘 있음',
+        dim: true,
+        onTap: () => setState(() => _toast = f == _Fixed.pet ? '펫 버튼은 늘 있어요 · 함께 있는 펫을 바꾸면 바뀌어요' : '$name은 늘 있어요'),
+      );
+      return id == null ? cell : SkillMasterFrame(id: id, stage: c.skillStageOf(id), child: cell);
+    }
+
+    Widget slot(int i) {
+      final e = slotAt(i);
+      final id = e == null ? null : _entryId(e);
+      final cell = _BarCell(
+        key: Key('skillSlot_$i'),
+        icon: e == null ? _btnArt('btn_skill_empty', 40) : _entryIcon(e, size: 40),
+        name: e == null ? '비어 있음' : _entryName(e),
+        sub: e == null ? '「칸에」로 끼워요' : _entryMp(e),
+        ribbon: '칸 ${i + 1}',
+        dashed: true,
+        on: _pick != null,
+        onTap: () => _tapSlot(i),
+      );
+      return e != null && e.startsWith('base:') ? SkillMasterFrame(id: id!, stage: c.skillStageOf(id), child: cell) : cell;
+    }
+
+    return Container(
+      key: const Key('battleBar'),
+      color: AppColors.deepNight,
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Text('전투 칸', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w900)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+                _pick != null ? '「${_entryName(_pick!)}」${josa(_entryName(_pick!), '을/를').substring(_entryName(_pick!).length)} 끼울 칸을 눌러요' : '전투 화면 아래 버튼',
+                key: const Key('battleSlotHint'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: _pick != null ? AppColors.goldBright : AppColors.textMuted, fontSize: 11.5)),
+          ),
+          if (_pick != null)
+            GestureDetector(
+              key: const Key('battlePickCancel'),
+              onTap: () => setState(() => _pick = null),
+              child: const Text('그만두기', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            ),
+        ]),
+        const SizedBox(height: 10),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세 자리가 칸 3 · 4
+          Expanded(child: four ? slot(2) : fixed(_Fixed.strike)),
+          Expanded(child: four ? slot(3) : fixed(_Fixed.guard)),
+          Expanded(child: slot(0)),
+          Expanded(child: slot(1)),
+          Expanded(child: fixed(_Fixed.pet)),
+        ]),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 30,
+          child: ListView(
+            key: const Key('skillChips'),
+            scrollDirection: Axis.horizontal,
+            children: [
+              if (main != null) _jump('주 직업 · ${JobRules.info(main).name}', _secMain, const Key('skillChip_main')),
+              if (sub != null) _jump('보조 직업 · ${JobRules.info(sub).name}', _secSub, const Key('skillChip_sub')),
+              if (c.jobsOpen) _jump('공용', _secCommon, const Key('skillChip_common')),
+              _jump('숙련', _secMastery, const Key('skillChip_mastery')),
+            ],
+          ),
+        ),
+        if (_toast case final t?)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(t,
+                key: const Key('battleSlotToast'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFBFF0C6), fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+      ]),
+    );
+  }
+
+  Widget _jump(String label, GlobalKey k, Key key) => Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: GestureDetector(
+          key: key,
+          onTap: () => _goTo(k),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1F1C40),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF3A3468)),
+            ),
+            child: Text(label, style: const TextStyle(color: AppColors.text, fontSize: 12)),
+          ),
+        ),
+      );
+
+  /// 「칸에」 → 위 칸 누르기
+  void _pickEntry(String e) => setState(() {
+        _pick = e;
+        _toast = null;
+      });
+
+  Future<void> _tapSlot(int i) async {
+    final e = _pick;
+    if (e == null) {
+      setState(() => _toast = '아래 스킬의 「칸에」를 누르고 이 칸을 누르면 끼워져요');
+      return;
+    }
+    final hadBash = c.fourSlots && c.battleSlots.contains('base:bash');
+    final cur = c.fourSlots ? c.battleSlots : c.battleLoadout;
+    final other = cur.indexOf(e);
+    // 이미 다른 칸에 있으면 옮김 (그 칸은 비움)
+    if (other >= 0 && other != i) await c.setLoadout(other, null);
+    await c.setLoadout(i, e);
+    if (!mounted) return;
+    final name = _entryName(e);
+    final lostBash = hadBash && !c.battleSlots.contains('base:bash');
+    setState(() {
+      _pick = null;
+      _toast = lostBash ? '강타를 빼면 MP가 없을 때 쓸 버튼이 줄어요' : '칸 ${i + 1}에 「$name」${_obj(name)} 끼웠어요';
+    });
+  }
+
+  // ───────────── 전투 칸 그림 · 이름
 
   String _entryId(String e) {
     if (e == 'base:bash') return 'bash';
@@ -141,33 +366,6 @@ class _SkillScreenState extends State<SkillScreen> {
       height: size,
       errorBuilder: (_, __, ___) => Icon(Icons.bolt_rounded, size: size * 0.5, color: AppColors.goldBright));
 
-  /// 아래 격자: 직업 전투 스킬(주 · 보조, 안 배운 것은 잠김) + 숨은 이명 스킬 + 숙련된 단계 숙련 액티브
-  List<(String, bool)> get _gridEntries {
-    final out = <(String, bool)>[];
-    void add(String e, bool locked) {
-      if (!out.any((x) => x.$1 == e)) out.add((e, locked));
-    }
-
-    // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세도 칸에 넣는 스킬
-    if (c.fourSlots) {
-      add('base:bash', false);
-      add('base:stance', false);
-    }
-
-    if (c.jobsOpen) {
-      for (final j in [if (c.mainJob case final m?) m, ...c.subJobs]) {
-        for (final s in JobRules.info(j).skills) {
-          if (JobRules.skill(s).isBattle) add('job:${s.name}', c.skillLevel(s) == 0);
-        }
-      }
-      if (c.activePair?.skill case final s? when JobRules.skill(s).isBattle) add('job:${s.name}', false);
-    }
-    for (final m in Mastery.values) {
-      if (c.masteryStage(m).index >= MasteryStage.expert.index) add('mastery:${m.name}', false);
-    }
-    return out;
-  }
-
   (String, String, String) _fixedInfo(_Fixed f) {
     final pet = c.companionPet;
     return switch (f) {
@@ -185,247 +383,115 @@ class _SkillScreenState extends State<SkillScreen> {
         _Fixed.pet => null,
       };
 
-  void _goLearn(JobSkill s) => setState(() {
-        _tab = 1;
-        _open = s;
-        _jobToast = null;
-        _jobView = c.mainJob != null && JobRules.jobOf(s) != c.mainJob && c.subJobs.contains(JobRules.jobOf(s)) ? 1 : 0;
-      });
+  /// 「이름」 뒤 을/를
+  static String _obj(String name) => josa(name, '을/를').substring(name.length);
 
-  List<Widget> _battleTab(BuildContext context) {
-    final four = c.fourSlots;
-    final slots = four ? c.battleSlots : c.battleLoadout;
-    final entries = _gridEntries;
-    String? slotAt(int i) => i < slots.length && slots[i].isNotEmpty ? slots[i] : null;
+  // ───────────── 칸들
 
-    Widget fixed(_Fixed f) {
-      final (name, _, art) = _fixedInfo(f);
-      final id = _fixedId(f);
-      final cell = _BarCell(
-        key: Key('battleFixed_${f.name}'),
-        icon: _btnArt(art, 44),
-        name: name,
-        sub: '늘 있음',
-        dim: true,
-        on: _focus == 'fixed:${f.name}',
-        onTap: () => setState(() {
-          _focus = 'fixed:${f.name}';
-          _slotToast = null;
-        }),
-      );
-      return id == null ? cell : SkillMasterFrame(id: id, stage: c.skillStageOf(id), child: cell);
-    }
-
-    Widget slot(int i) {
-      final e = slotAt(i);
-      final id = e == null ? null : _entryId(e);
-      final base = e != null && e.startsWith('base:');
-      final cell = _BarCell(
-        key: Key('skillSlot_$i'),
-        icon: e == null ? _btnArt('btn_skill_empty', 44) : _entryIcon(e),
-        name: e == null ? '비어 있음' : _entryName(e),
-        sub: e == null ? '눌러서 고르기' : _entryMp(e),
-        ribbon: '칸 ${i + 1}',
-        dashed: true,
-        on: _sel == i,
-        onTap: () => setState(() {
-          _sel = i;
-          _focus = e;
-          _slotToast = null;
-        }),
-      );
-      return base ? SkillMasterFrame(id: id!, stage: c.skillStageOf(id), child: cell) : cell;
-    }
-
-    return [
-      Container(
-        key: const Key('battleBar'),
-        padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const RadialGradient(
-              center: Alignment.topCenter, radius: 1.4, colors: [Color(0xFF3A2F6A), Color(0xFF191636)]),
-          border: Border.all(color: const Color(0xFF8A6A2A), width: 1.5),
-        ),
-        child: Column(children: [
-          const Text('전투 화면 아래 버튼이 이렇게 놓여요',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세 자리가 칸 3 · 4
-            Expanded(child: four ? slot(2) : fixed(_Fixed.strike)),
-            Expanded(child: four ? slot(3) : fixed(_Fixed.guard)),
-            Expanded(child: slot(0)),
-            Expanded(child: slot(1)),
-            Expanded(child: fixed(_Fixed.pet)),
-          ]),
-          const SizedBox(height: 8),
-          KText('아래에서 칸 ${_sel + 1}에 넣을 스킬을 고르세요',
-              key: const Key('battleSlotHint'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+  Widget _head(String title, String sub, {Key? key}) => Padding(
+        key: key,
+        padding: const EdgeInsets.only(top: 14, bottom: 6),
+        child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.end, children: [
+          Text(title, style: AppText.title(16, color: AppColors.goldBright)),
+          Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ]),
-      ),
-      const SizedBox(height: 12),
-      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        Text('칸 ${_sel + 1}에 넣을 스킬', key: const Key('battlePickTitle'), style: AppText.title(16, color: AppColors.goldBright)),
-        const SizedBox(width: 6),
-        Flexible(
-            child: Text(four ? '한 스킬은 한 칸에만' : 'MP를 써요 · 2칸에 하나씩',
-                overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5))),
-      ]),
-      const SizedBox(height: 6),
-      if (entries.isEmpty)
+      );
+
+  Widget _traitCard(JobId job, {bool half = false}) => Container(
+        key: Key('skillTrait_${job.name}'),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        decoration: BoxDecoration(color: const Color(0xFF26224D), borderRadius: BorderRadius.circular(14)),
+        child: Row(children: [
+          FramedArt(frame: SkillFrame.passive, art: 'job_${job.name}', size: 40),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                const Text('고유 기술', style: TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                const KindTag(active: false),
+                if (half) const _Chip('절반 세기', key: Key('skillTraitHalf')),
+              ]),
+              const SizedBox(height: 2),
+              KText(JobRules.info(job).trait, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+            ]),
+          ),
+        ]),
+      );
+
+  Widget _row(JobSkill s, {bool sub = false, bool pair = false}) => _SkillRow(
+        controller: c,
+        skill: s,
+        sub: sub,
+        pair: pair,
+        open: _open == s,
+        onToggle: () => setState(() => _open = _open == s ? null : s),
+        onRaise: () => _raise(s),
+        onPutSlot: () => _pickEntry('job:${s.name}'),
+      );
+
+  List<Widget> _mainSection(JobId main) {
+    final info = JobRules.info(main);
+    final pair = c.activePair?.skill;
+    return [
+      _head('주 직업 · ${info.name}', '포인트로 올려요', key: _secMain),
+      _traitCard(main),
+      for (final s in info.skills) _row(s),
+      if (pair != null && !info.skills.contains(pair)) _row(pair, pair: true),
+      _DrillRow(controller: c, job: main, onRaise: () => setState(() {})),
+    ];
+  }
+
+  List<Widget> _subSection(JobId sub) => [
+        _head('보조 직업 · ${JobRules.info(sub).name}', 'MP 1.5배', key: _secSub),
+        _traitCard(sub, half: true),
+        for (final s in JobRules.info(sub).skills) _row(s, sub: true),
+      ];
+
+  List<Widget> _commonSection() {
+    final list = c.commonSkills;
+    return [
+      _head('공용 스킬', '조합에서 산 스킬북', key: _secCommon),
+      if (list.isEmpty)
         const Padding(
-          key: Key('battleGridEmpty'),
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: KText('아직 넣을 스킬이 없어요. Lv.15 직업 각성이나 숙련 「숙련된」 단계에서 생겨요.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          key: Key('skillCommonEmpty'),
+          padding: EdgeInsets.symmetric(vertical: 6),
+          child: KText('조합에서 스킬북을 살 수 있어요', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
         )
       else
-        GridView.count(
-          key: const Key('battleGrid'),
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
-          childAspectRatio: 0.74,
-          children: [
-            for (final (e, locked) in entries)
-              _GridCell(
-                key: Key('battlePick_$e'),
-                icon: _entryIcon(e, size: 42, dim: locked),
-                name: _entryName(e),
-                mp: _entryMp(e),
-                tag: slots.contains(e) ? '칸 ${slots.indexOf(e) + 1}' : locked ? '포인트로 열기' : null,
-                locked: locked,
-                inSlot: slots.contains(e),
-                focus: _focus == e,
-                onTap: () => setState(() {
-                  _focus = e;
-                  _slotToast = null;
-                }),
-              ),
-          ],
-        ),
-      const SizedBox(height: 10),
-      _battleDetail(context, entries, slots),
-      if (_slotToast case final t?)
+        for (final s in list) _row(s),
+    ];
+  }
+
+  List<Widget> _masterySection() {
+    // 묶음 85 #416: 돋보기를 끄면 「감정」 숙련은 숨김 (조금이라도 쌓인 사람은 그대로)
+    final order = [
+      for (final m in Mastery.values)
+        if (m != Mastery.appraise || LensRules.lensOn || c.masteryOf(m) > 0) m
+    ]..sort((a, b) => c.masteryStage(b).index.compareTo(c.masteryStage(a).index));
+    final growth = !c.jobsOpen
+        ? null
+        : c.subJobsOpen && c.subJobs.isNotEmpty
+            ? '주 직업 숙련 1.5배 · 보조 1.2배'
+            : '주 직업 숙련 1.5배';
+    return [
+      _head('숙련 스킬', '포인트 없이 숙련도로 올라요', key: _secMastery),
+      if (growth != null)
         Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: KText(t,
-              key: const Key('battleSlotToast'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFBFF0C6), fontSize: 13, fontWeight: FontWeight.w700)),
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(growth, key: const Key('masteryGrowth'), style: const TextStyle(color: AppColors.gold, fontSize: 12)),
+        ),
+      for (final m in order)
+        _MasteryCard(
+          key: Key('masteryRow_${m.name}'),
+          controller: c,
+          mastery: m,
+          onPut: () => _pickEntry('mastery:${m.name}'),
         ),
     ];
   }
 
-  Widget _battleDetail(BuildContext context, List<(String, bool)> entries, List<String> slots) {
-    final f = _focus;
-    Widget panel(List<Widget> children) => Container(
-          key: const Key('battleDetail'),
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF26224D),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF3A3468)),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-        );
-    if (f == null) {
-      return panel([
-        KText(
-            c.fourSlots
-                ? '스킬을 누르면 여기에 설명이 나와요. 펫 버튼은 늘 있어요.'
-                : '스킬을 누르면 여기에 설명이 나와요. 늘 있는 버튼(강타 · 방어 태세 · 펫)을 눌러도 설명이 나와요.',
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-      ]);
-    }
-    if (f.startsWith('fixed:')) {
-      final fx = _Fixed.values.where((x) => 'fixed:${x.name}' == f).firstOrNull ?? _Fixed.strike;
-      final (name, text, _) = _fixedInfo(fx);
-      final id = _fixedId(fx);
-      return panel([
-        Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          Text(name, style: AppText.title(16, color: AppColors.goldBright)),
-          const _Chip('늘 있음 · 바꿀 수 없어요', key: Key('battleFixedChip')),
-          if (id != null && MasteryRules.skillStageWord(c.skillStageOf(id)) != null)
-            _Chip('스킬 숙련 · ${MasteryRules.skillStageWord(c.skillStageOf(id))}'),
-        ]),
-        const SizedBox(height: 4),
-        KText(text, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-      ]);
-    }
-    final locked = entries.firstWhere((x) => x.$1 == f, orElse: () => (f, false)).$2;
-    final where = slots.indexOf(f);
-    final name = _entryName(f);
-    final js = _jobOf(f);
-    final ms = _masteryOf(f);
-    final text = js != null
-        ? JobRules.skill(js).text
-        : ms != null
-            ? JobRules.masteryActive(ms).text
-            : f == 'base:bash'
-                ? _fixedInfo(_Fixed.strike).$2
-                : f == 'base:stance'
-                    ? _fixedInfo(_Fixed.guard).$2
-                    : '';
-    final stageWord = MasteryRules.skillStageWord(c.skillStageOf(_entryId(f)));
-    final kind = js != null
-        ? '${JobRules.info(JobRules.jobOf(js)).name} 스킬${c.skillLevel(js) > 0 ? ' · Lv.${c.skillLevel(js)}' : ''}'
-        : ms != null
-            ? '${ms.label} 숙련 · ${MasteryRules.stageLabel(c.masteryStage(ms))}'
-            : '';
-    final label = locked
-        ? '포인트로 열기'
-        : where == _sel
-            ? '이미 칸 ${_sel + 1}에 있어요'
-            : where >= 0
-                ? '칸 ${_sel + 1}에 넣기 (칸 ${where + 1}과 바꿈)'
-                : '칸 ${_sel + 1}에 넣기';
-    return panel([
-      Wrap(spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-        Text(name, style: AppText.title(16, color: AppColors.goldBright)),
-        _Chip(_entryMp(f), color: kJobMpColor),
-        if (kind.isNotEmpty) _Chip(kind),
-        if (stageWord != null) _Chip('스킬 숙련 · $stageWord'),
-      ]),
-      const SizedBox(height: 4),
-      KText(text, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-      const SizedBox(height: 8),
-      TextButton(
-        key: const Key('battlePut'),
-        style: gameButtonStyle(gold: !locked),
-        onPressed: where == _sel
-            ? null
-            : locked
-                ? () {
-                    if (js != null) _goLearn(js);
-                  }
-                : () async {
-                    final i = _sel;
-                    final hadBash = c.fourSlots && c.battleSlots.contains('base:bash');
-                    await c.setLoadout(i, f);
-                    if (!mounted) return;
-                    // 묶음 85 #420: 강타를 빼면 한 줄 알림
-                    final lostBash = hadBash && !c.battleSlots.contains('base:bash');
-                    setState(() => _slotToast = lostBash
-                        ? '강타를 빼면 MP가 없을 때 쓸 버튼이 줄어요'
-                        : '칸 ${i + 1}에 「$name」${_obj(name)} 넣었어요');
-                  },
-        child: Text(label, maxLines: 1),
-      ),
-    ]);
-  }
-
-  /// 「이름」 뒤 을/를
-  static String _obj(String name) => josa(name, '을/를').substring(name.length);
-
-  // ───────────── 고유 스킬 (#364)
+  // ───────────── 포인트
 
   Future<void> _reset(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -433,7 +499,7 @@ class _SkillScreenState extends State<SkillScreen> {
       builder: (d) => AlertDialog(
         backgroundColor: AppColors.night,
         title: const Text('포인트 다시 나누기', style: TextStyle(color: AppColors.text)),
-        content: const Text('쓴 포인트를 모두 돌려받아요. 직업마다 첫 스킬은 그대로 남아요.',
+        content: const Text('모든 직업 · 직업 숙련 · 공용 스킬에 쓴 포인트를 한꺼번에 돌려받아요. 직업마다 첫 스킬과 산 스킬북은 Lv.1로 남아요.',
             style: TextStyle(color: AppColors.textMuted)),
         actions: [
           TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('그만두기')),
@@ -445,292 +511,187 @@ class _SkillScreenState extends State<SkillScreen> {
     if (ok != true) return;
     await c.resetSkills();
     if (!mounted) return;
-    setState(() => _jobToast = null);
     if (context.mounted) showTopNotice(context, '포인트를 돌려받았어요. 다시 나눠 보세요!');
   }
 
-  Future<void> _raise(JobSkill s, JobId job) async {
+  Future<void> _raise(JobSkill s) async {
     final was = c.skillLevel(s);
     if (!await c.raiseSkill(s)) return;
     if (!mounted) return;
     final name = JobRules.skill(s).name;
-    final left = c.skillPointsLeftOn(job);
-    setState(() => _jobToast = was == 0
-        ? '「$name」${_obj(name)} 배웠어요 · 남은 포인트 $left'
-        : '「$name」 Lv.${was + 1}로 올렸어요 · 남은 포인트 $left');
+    final left = c.skillPointsLeft;
+    showTopNotice(context,
+        was == 0 ? '「$name」${_obj(name)} 배웠어요 · 남은 포인트 $left' : '「$name」 Lv.${was + 1}로 올렸어요 · 남은 포인트 $left');
   }
+}
 
-  /// 비어 있는 첫 칸 (없으면 칸 1)
-  int _emptySlot() {
-    if (c.fourSlots) {
-      final i = c.battleSlots.indexOf('');
-      return i < 0 ? 0 : i;
-    }
-    final slots = c.battleLoadout;
-    return slots.length < 2 ? slots.length : 0;
-  }
+/// 위에 붙는 전투 칸
+class _Sticky extends SliverPersistentHeaderDelegate {
+  _Sticky({required this.height, required this.child});
+  final double height;
+  final Widget child;
 
-  void _putInSlot(JobSkill s) {
-    final empty = _emptySlot();
-    setState(() {
-      _tab = 0;
-      _sel = empty;
-      _focus = 'job:${s.name}';
-      _slotToast = null;
-    });
-  }
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
 
-  List<Widget> _jobTab(BuildContext context) {
-    final main = c.mainJob;
-    if (main == null) {
-      return const [
-        KText('아직 직업이 없어요. Lv.15에 직업을 고르면 고유 스킬이 생겨요.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
-      ];
-    }
-    // #357: Lv.20부터 보조 직업이 있으면 주 · 보조 두 칸
-    final subs = c.subJobsOpen ? c.subJobs : const <JobId>[];
-    if (subs.isEmpty) _jobView = 0;
-    final job = _jobView == 1 && subs.isNotEmpty ? subs.first : main;
-    final sub = job != main;
-    final info = JobRules.info(job);
-    final skills = info.skills;
-    final battle = [for (final s in skills) if (JobRules.skill(s).isBattle) s];
-    final life = [for (final s in skills) if (!JobRules.skill(s).isBattle) s];
-    final pair = !sub ? c.activePair?.skill : null;
-    final left = c.skillPointsLeftOn(job);
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      SizedBox(height: height, child: OverflowBox(alignment: Alignment.topCenter, maxHeight: height + 40, child: child));
 
-    Widget row(JobSkill s, {bool pairSkill = false}) => _SkillRow(
-          controller: c,
-          skill: s,
-          sub: sub,
-          pair: pairSkill,
-          open: _open == s,
-          onToggle: () => setState(() => _open = _open == s ? null : s),
-          onRaise: () => _raise(s, job),
-          onPutSlot: () => _putInSlot(s),
-        );
+  @override
+  bool shouldRebuild(covariant _Sticky old) => true;
+}
 
-    return [
-      if (subs.isNotEmpty) ...[
-        Row(children: [
-          for (final (i, j) in [(0, main), (1, subs.first)])
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: _TabChip(
-                  key: Key('skillJobView_$i'),
-                  label: '${i == 0 ? '주 직업' : '보조 직업'} · ${JobRules.info(j).name}',
-                  on: _jobView == i,
-                  dot: c.skillRaisableOn(j),
-                  onTap: () => setState(() {
-                    _jobView = i;
-                    _open = null;
-                    _jobToast = null;
-                  }),
-                ),
-              ),
-            ),
-        ]),
-        const SizedBox(height: 8),
-      ],
-      Container(
-        key: const Key('skillHead'),
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+/// 묶음 86 #433: 액티브(금색) · 패시브(초록) 표시
+class KindTag extends StatelessWidget {
+  const KindTag({super.key, required this.active});
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFE3B95A) : const Color(0xFF2E7A62),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(active ? '액티브' : '패시브',
+            style: TextStyle(
+                color: active ? const Color(0xFF2A1D05) : const Color(0xFFE6FFF3), fontSize: 10, fontWeight: FontWeight.w800)),
+      );
+}
+
+/// 숙련 한 장: 지금 단계 패시브 · 다음 단계까지 막대 · 공격 스킬(숙련된부터 · 「칸에」)
+class _MasteryCard extends StatelessWidget {
+  const _MasteryCard({super.key, required this.controller, required this.mastery, required this.onPut});
+
+  final AppController controller;
+  final Mastery mastery;
+  final VoidCallback onPut;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final m = mastery;
+    final st = c.masteryStage(m);
+    final v = c.masteryOf(m);
+    final steps = MasteryRules.bigSteps;
+    final next = st.index + 1 < MasteryStage.values.length ? MasteryStage.values[st.index + 1] : null;
+    final lo = steps[st.index];
+    final hi = next == null ? lo : steps[next.index];
+    final frac = next == null ? 1.0 : ((v - lo) / math.max(1, hi - lo)).clamp(0.0, 1.0);
+    MasterySkillInfo? at(MasteryStage s) =>
+        JobRules.masterySkills.where((x) => x.mastery == m && x.stage == s).firstOrNull;
+    final passive = [
+      for (final s in [MasteryStage.master, MasteryStage.skilled, MasteryStage.familiar])
+        if (st.index >= s.index && at(s) != null && !at(s)!.active) at(s)!,
+    ].firstOrNull;
+    final active = at(MasteryStage.expert);
+    final hasActive = active != null && st.index >= MasteryStage.expert.index;
+    return SkillMasterFrame(
+      id: 'm_${m.name}',
+      stage: st == MasteryStage.master ? st : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1F1C40),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF8A6A2A), width: 1.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF3A3468)),
         ),
-        child: Row(children: [
-          JobEmblem(job, size: 42),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${info.name} 스킬', style: AppText.title(17, color: AppColors.goldBright)),
-              const KText('레벨이 오를 때마다 포인트 2 · 원하는 순서로',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-            ]),
-          ),
-          Container(
-            key: Key(sub ? 'skillPointsLeft_${job.name}' : 'skillPointsLeft'),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFF6D88A), Color(0xFFD9A94A)]),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('$left',
-                  style: const TextStyle(color: Color(0xFF2A1D08), fontSize: 20, fontWeight: FontWeight.w900, height: 1.1)),
-              const Text('남은 포인트',
-                  style: TextStyle(color: Color(0xFF2A1D08), fontSize: 10, fontWeight: FontWeight.w800)),
-            ]),
-          ),
-        ]),
-      ),
-      _DrillRow(controller: c, job: job, onRaise: () => setState(() {})),
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          key: const Key('skillReset'),
-          style: TextButton.styleFrom(
-              minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 6)),
-          onPressed: () => _reset(context),
-          child: const Text('포인트 다시 나누기',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12, decoration: TextDecoration.underline)),
-        ),
-      ),
-      Container(
-        key: const Key('skillTrait'),
-        padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
-        decoration: BoxDecoration(color: const Color(0xFF26224D), borderRadius: BorderRadius.circular(12)),
-        child: Row(children: [
-          FramedArt(frame: SkillFrame.passive, art: 'job_${job.name}', size: 36),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('고유 기술 · 늘 켜짐',
-                  style: TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w800)),
-              KText(info.trait, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-            ]),
-          ),
-        ]),
-      ),
-      const SizedBox(height: 12),
-      if (battle.isNotEmpty || pair != null) ...[
-        const _SecHead('전투 스킬', '전투 칸에 넣어 MP로 써요'),
-        for (final s in battle) row(s),
-        if (pair != null && !skills.contains(pair)) row(pair, pairSkill: true),
-        const SizedBox(height: 6),
-      ],
-      if (life.isNotEmpty) ...[
-        const _SecHead('생활 스킬', '지도 · 시설에서 MP로 써요'),
-        for (final s in life) row(s),
-      ],
-      if (_jobToast case final t?)
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: KText(t,
-              key: const Key('skillToast'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFBFF0C6), fontSize: 13, fontWeight: FontWeight.w700)),
-        ),
-    ];
-  }
-
-  // ───────────── 숙련 스킬 (#364)
-
-  List<Widget> _masteryTab() {
-    // 묶음 85 #416: 돋보기를 끄면 「감정」 숙련은 숨김 (조금이라도 쌓인 사람은 그대로)
-    final order = [
-      for (final m in Mastery.values)
-        if (m != Mastery.appraise || LensRules.lensOn || c.masteryOf(m) > 0) m
-    ]..sort((a, b) => c.masteryStage(b).index.compareTo(c.masteryStage(a).index));
-    final sel = _mSel ?? order.first;
-    final growth = !c.jobsOpen
-        ? null
-        : c.subJobsOpen && c.subJobs.isNotEmpty
-            ? '주 직업 숙련 1.5배 · 보조 1.2배'
-            : '주 직업 숙련 1.5배';
-    return [
-      _SecHead('숙련도 ${order.length}가지', '같은 일을 되풀이하면 오르고, 단계마다 스킬이 생겨요'),
-      if (growth != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(growth, key: const Key('masteryGrowth'), style: const TextStyle(color: AppColors.gold, fontSize: 12)),
-        ),
-      for (final m in order)
-        _MasteryRow(
-          key: Key('masteryRow_${m.name}'),
-          mastery: m,
-          stage: c.masteryStage(m),
-          value: c.masteryOf(m),
-          selected: m == sel,
-          onTap: () => setState(() => _mSel = m),
-        ),
-      const SizedBox(height: 6),
-      _masteryDetail(sel),
-    ];
-  }
-
-  Widget _masteryDetail(Mastery m) {
-    final st = c.masteryStage(m);
-    return Container(
-      key: Key('masteryDetail_${m.name}'),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF26224D),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF3A3468)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('${m.label} · ${MasteryRules.stageLabel(st)}', style: AppText.title(16, color: AppColors.goldBright)),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(color: const Color(0xFF15133A), borderRadius: BorderRadius.circular(10)),
-          child: KText('이렇게 올라요 · ${MasteryRules.howUp(m)}',
-              key: const Key('masteryHow'), style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-        ),
-        const SizedBox(height: 6),
-        for (final s in MasteryStage.values.skip(1))
-          if (JobRules.masterySkills.where((x) => x.mastery == m && x.stage == s).firstOrNull case final x?)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Opacity(
-                opacity: st.index >= s.index ? 1 : 0.5,
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: st.index >= s.index ? AppColors.gold : const Color(0xFF15133A),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(MasteryRules.stageLabel(s),
-                        style: TextStyle(
-                            color: st.index >= s.index ? const Color(0xFF2A1D08) : AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Wrap(spacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
-                        Text(x.name,
-                            style: TextStyle(
-                                color: st.index >= s.index ? AppColors.text : AppColors.textMuted,
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700)),
-                        if (x.active) const _Chip('전투', color: Color(0xFFF2C3BD)),
-                      ]),
-                      KText(x.text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                      if (x.active)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            key: Key('masteryToSlot_${m.name}'),
-                            style: TextButton.styleFrom(
-                                minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 4)),
-                            onPressed: st.index >= MasteryStage.expert.index
-                                ? () => setState(() {
-                                      _tab = 0;
-                                      _sel = _emptySlot();
-                                      _focus = 'mastery:${m.name}';
-                                      _slotToast = null;
-                                    })
-                                : null,
-                            child: const Text('전투 · 전투 칸에 넣기', style: TextStyle(fontSize: 12.5)),
-                          ),
-                        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Image.asset('assets/images/mastery_${m.name}.webp',
+                width: 36,
+                height: 36,
+                errorBuilder: (_, __, ___) =>
+                    const SizedBox(width: 36, height: 36, child: Icon(Icons.auto_awesome, color: AppColors.goldBright))),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                  Text('${m.label} 숙련', style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Text(MasteryRules.stageLabel(st),
+                      key: Key('masteryStage_${m.name}'),
+                      style: const TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w900)),
+                  if (passive != null) ...[
+                    Text(passive.name, style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+                    const KindTag(active: false),
+                  ],
+                ]),
+                if (passive != null)
+                  KText(passive.text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: SizedBox(
+                    height: 5,
+                    child: Stack(children: [
+                      Container(color: const Color(0xFF0E1030)),
+                      FractionallySizedBox(
+                        key: Key('masteryBar_${m.name}'),
+                        widthFactor: frac,
+                        child: Container(color: const Color(0xFF7FD6A4)),
+                      ),
                     ]),
                   ),
-                ]),
-              ),
+                ),
+              ]),
             ),
-      ]),
+            const SizedBox(width: 6),
+            Text(next == null ? '끝까지' : '숙련도로\n${MasteryRules.stageLabel(next)}까지',
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: Color(0xFF7FD6A4), fontSize: 10.5, height: 1.25)),
+          ]),
+          if (active != null) ...[
+            const SizedBox(height: 6),
+            Opacity(
+              opacity: hasActive ? 1 : 0.5,
+              child: Row(children: [
+                SkillArt.masteryIcon(m, active: true, size: 32, dim: !hasActive),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      Text(active.name, style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
+                      const KindTag(active: true),
+                      const _Chip('전투 · MP 없음', color: Color(0xFFF2C3BD)),
+                    ]),
+                    KText(hasActive ? active.text : '${m.label} 숙련 「${MasteryRules.stageLabel(MasteryStage.expert)}」에 생겨요',
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+                  ]),
+                ),
+                if (hasActive)
+                  _PutButton(key: Key('masteryToSlot_${m.name}'), onTap: onPut),
+              ]),
+            ),
+          ],
+        ]),
+      ),
     );
   }
+}
+
+/// 「칸에」 작은 버튼
+class _PutButton extends StatelessWidget {
+  const _PutButton({super.key, required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF272A58),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF3B3F7A)),
+          ),
+          child: const Text('칸에', style: TextStyle(color: AppColors.text, fontSize: 11.5, fontWeight: FontWeight.w700)),
+        ),
+      );
 }
 
 /// 전투 버튼 줄의 한 칸
@@ -850,88 +811,6 @@ class _DashedBox extends CustomPainter {
   bool shouldRepaint(covariant _DashedBox old) => old.color != color || old.solid != solid;
 }
 
-/// 「칸 ○에 넣을 스킬」 격자의 한 칸
-class _GridCell extends StatelessWidget {
-  const _GridCell({
-    super.key,
-    required this.icon,
-    required this.name,
-    required this.mp,
-    required this.onTap,
-    this.tag,
-    this.locked = false,
-    this.inSlot = false,
-    this.focus = false,
-  });
-
-  final Widget icon;
-  final String name;
-  final String mp;
-  final String? tag;
-  final bool locked;
-  final bool inSlot;
-  final bool focus;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Opacity(
-          opacity: locked ? 0.55 : 1,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1F1C40),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: focus
-                      ? AppColors.goldBright
-                      : inSlot
-                          ? AppColors.gold
-                          : const Color(0xFF3A3468),
-                  width: focus ? 2 : 1.5),
-            ),
-            child: Stack(clipBehavior: Clip.none, children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(2, 8, 2, 4),
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  icon,
-                  const SizedBox(height: 2),
-                  Text(name,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.text, fontSize: 10.5, height: 1.2)),
-                  Text(mp,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: kJobMpColor, fontSize: 9.5, fontWeight: FontWeight.w700)),
-                ]),
-              ),
-              if (tag != null)
-                Positioned(
-                  top: -1,
-                  right: -1,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: locked ? const Color(0xFF4A4478) : AppColors.gold,
-                      borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(11), bottomLeft: Radius.circular(8)),
-                    ),
-                    child: Text(tag!,
-                        style: TextStyle(
-                            color: locked ? const Color(0xFFD8CFEE) : const Color(0xFF2A1D08),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900)),
-                  ),
-                ),
-            ]),
-          ),
-        ),
-      );
-}
-
 /// 고유 스킬 한 줄 (누르면 그 자리에서 펼침)
 class _SkillRow extends StatelessWidget {
   const _SkillRow({
@@ -1047,13 +926,16 @@ class _SkillRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Wrap(spacing: 6, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: [
                       Text(info.name, style: const TextStyle(color: AppColors.text, fontSize: 13.5, fontWeight: FontWeight.w700)),
                       Text(lv > 0 ? 'Lv.$lv' : '아직',
                           style: TextStyle(
                               color: lv > 0 ? AppColors.goldBright : AppColors.textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w900)),
+                      // 묶음 86 #433: 액티브(금색) · 패시브(초록) + 전투 / 생활
+                      KindTag(key: Key('skillKind_${skill.name}'), active: info.mode != SkillMode.passive),
+                      _Chip(info.isBattle ? '전투' : '생활', color: info.isBattle ? const Color(0xFFF2C3BD) : const Color(0xFFBFF0C6)),
                     ]),
                     const SizedBox(height: 3),
                     Row(children: [
@@ -1069,7 +951,7 @@ class _SkillRow extends StatelessWidget {
                           ),
                         ),
                       const SizedBox(width: 4),
-                      _Chip('MP ${c.skillCost(skill, sub: sub)}', color: kJobMpColor),
+                      if (info.mode != SkillMode.passive) _Chip('MP ${c.skillCost(skill, sub: sub)}', color: kJobMpColor),
                       if (stage != null && MasteryRules.skillStageWord(stage) != null) ...[
                         const SizedBox(width: 4),
                         Flexible(child: _Chip(MasteryRules.skillStageWord(stage)!, key: Key('skillStage_${skill.name}'))),
@@ -1083,7 +965,11 @@ class _SkillRow extends StatelessWidget {
                   ]),
                 ),
                 const SizedBox(width: 8),
-                button(),
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  button(),
+                  // 묶음 86 #433: 전투 스킬은 「칸에」 → 위 전투 칸을 누르면 끼움
+                  if (info.isBattle && lv > 0) _PutButton(key: Key('skillToSlot_${skill.name}'), onTap: onPutSlot),
+                ]),
               ]),
               if (open) ...[
                 const SizedBox(height: 8),
@@ -1125,15 +1011,6 @@ class _SkillRow extends StatelessWidget {
                     ),
                   ],
                 ]),
-                if (info.isBattle && lv > 0) ...[
-                  const SizedBox(height: 8),
-                  TextButton(
-                    key: Key('skillToSlot_${skill.name}'),
-                    style: gameButtonStyle(gold: false),
-                    onPressed: onPutSlot,
-                    child: const Text('전투 칸에 넣기', maxLines: 1),
-                  ),
-                ],
               ],
             ]),
           ),
@@ -1141,141 +1018,6 @@ class _SkillRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 숙련도 한 줄: 그림 · 이름 · 단계 · 4칸 막대 · 단계 스킬 동그라미 4개 · 장인 배지
-class _MasteryRow extends StatelessWidget {
-  const _MasteryRow({
-    super.key,
-    required this.mastery,
-    required this.stage,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Mastery mastery;
-  final MasteryStage stage;
-  final double value;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final master = stage == MasteryStage.master;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1F1C40),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: selected ? AppColors.goldBright : const Color(0xFF3A3468), width: selected ? 1.6 : 1),
-          ),
-          child: Row(children: [
-            Image.asset('assets/images/mastery_${mastery.name}.webp',
-                width: 40,
-                height: 40,
-                errorBuilder: (_, __, ___) => const SizedBox(
-                    width: 40, height: 40, child: Icon(Icons.auto_awesome, color: AppColors.goldBright))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Flexible(
-                    child: Text(mastery.label,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.text, fontSize: 13, fontWeight: FontWeight.w700)),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    key: Key('masteryStage_${mastery.name}'),
-                    padding: const EdgeInsets.symmetric(horizontal: 7),
-                    decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(8)),
-                    child: Text(MasteryRules.stageLabel(stage),
-                        style: const TextStyle(color: AppColors.goldBright, fontSize: 10.5, fontWeight: FontWeight.w900)),
-                  ),
-                ]),
-                const SizedBox(height: 4),
-                Row(children: [
-                  for (var k = 0; k < 4; k++) ...[
-                    if (k > 0) const SizedBox(width: 3),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: SizedBox(
-                          height: 6,
-                          child: Stack(children: [
-                            Container(color: const Color(0xFF0E0C22)),
-                            FractionallySizedBox(
-                              widthFactor: MasteryRules.segmentFill(value, k),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                    gradient: LinearGradient(colors: [Color(0xFFD9A94A), Color(0xFFF6D88A)])),
-                              ),
-                            ),
-                          ]),
-                        ),
-                      ),
-                    ),
-                  ],
-                ]),
-                const SizedBox(height: 5),
-                Row(children: [
-                  for (final (i, s) in MasteryStage.values.skip(1).indexed) ...[
-                    if (i > 0) const SizedBox(width: 4),
-                    Container(
-                      width: 24,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(s == MasteryStage.expert ? 7 : 12),
-                        color: stage.index >= s.index ? AppColors.gold.withValues(alpha: 0.18) : const Color(0xFF15133A),
-                        border: Border.all(color: stage.index >= s.index ? AppColors.gold : const Color(0xFF3A3468)),
-                      ),
-                      child: Text(s == MasteryStage.expert ? '⚔' : '${i + 1}',
-                          style: TextStyle(
-                              color: stage.index >= s.index ? AppColors.goldBright : AppColors.textMuted, fontSize: 10)),
-                    ),
-                  ],
-                ]),
-              ]),
-            ),
-            if (master)
-              Padding(
-                padding: const EdgeInsets.only(left: 6),
-                child: Image.asset(
-                    'assets/images/${TitleRules.asset(MasteryRules.titles[mastery]!.$2)}.webp',
-                    key: Key('masteryBadge_${mastery.name}'),
-                    width: 32,
-                    height: 32,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.military_tech_rounded, color: AppColors.goldBright, size: 26)),
-              ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _SecHead extends StatelessWidget {
-  const _SecHead(this.title, this.sub);
-  final String title;
-  final String sub;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.end, children: [
-          Text(title, style: const TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w900)),
-          Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
-        ]),
-      );
 }
 
 class _Chip extends StatelessWidget {
@@ -1346,46 +1088,6 @@ class SkillMasterFrame extends StatelessWidget {
           child: child,
         );
 }
-
-class _TabChip extends StatelessWidget {
-  const _TabChip({super.key, required this.label, required this.on, required this.onTap, this.dot = false});
-
-  final String label;
-  final bool on;
-  final bool dot;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: on ? const Color(0x33F2C14E) : const Color(0xCC14163A),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: on ? AppColors.goldBright : AppColors.gold, width: on ? 1.6 : 1),
-          ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Flexible(
-              child: Text(label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: on ? AppColors.goldBright : AppColors.text, fontSize: 14, fontWeight: FontWeight.w700)),
-            ),
-            if (dot) ...[
-              const SizedBox(width: 4),
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(color: AppColors.alert, shape: BoxShape.circle),
-              ),
-            ],
-          ]),
-        ),
-      );
-}
-
 
 /// 묶음 85 #414: 직업 숙련 — 스킬을 모두 끝까지 올린 뒤 남는 포인트 (1점 = 스킬 +1%)
 class _DrillRow extends StatelessWidget {

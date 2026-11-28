@@ -518,7 +518,7 @@ extension JobOps on AppController {
   bool canRaiseDrill(JobId j) =>
       _jobs.awakened &&
       _jobs.ownedJobs.contains(j) &&
-      (j == mainJob || subJobs.contains(j)) &&
+      j == mainJob && // 묶음 86 #433: 직업 숙련은 주 직업 칸에만
       jobSkillsMaxed(j) &&
       jobDrill(j) < JobRules.drillMax &&
       skillPointsLeft > 0;

@@ -148,6 +148,9 @@ class _GuildScreenState extends State<GuildScreen> {
   JobId? _sel;
   JobGroup? _tab;
 
+  /// 묶음 86 #425: 「스킬북」 탭
+  bool _books = false;
+
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
@@ -211,19 +214,22 @@ class _GuildScreenState extends State<GuildScreen> {
                         Expanded(
                           child: GestureDetector(
                             key: Key('guildTab_${g.name}'),
-                            onTap: () => setState(() => _tab = g),
+                            onTap: () => setState(() {
+                              _tab = g;
+                              _books = false;
+                            }),
                             child: Container(
                               height: 44,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                gradient: tab == g ? kGoldGradient : null,
-                                color: tab == g ? null : const Color(0xCC14163A),
+                                gradient: tab == g && !_books ? kGoldGradient : null,
+                                color: tab == g && !_books ? null : const Color(0xCC14163A),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.gold.withValues(alpha: tab == g ? 1 : 0.4)),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: tab == g && !_books ? 1 : 0.4)),
                               ),
                               child: Text('${g.label} $n',
                                   style: TextStyle(
-                                      color: tab == g ? AppColors.goldInk : AppColors.text,
+                                      color: tab == g && !_books ? AppColors.goldInk : AppColors.text,
                                       fontSize: 14.5,
                                       fontWeight: FontWeight.w800)),
                             ),
@@ -231,8 +237,34 @@ class _GuildScreenState extends State<GuildScreen> {
                         ),
                         const SizedBox(width: 6),
                       ],
+                      // 묶음 86 #425: 스킬북 (Lv.15 각성 뒤)
+                      if (c.jobsOpen)
+                        Expanded(
+                          child: GestureDetector(
+                            key: const Key('guildTab_books'),
+                            onTap: () => setState(() => _books = true),
+                            child: Container(
+                              height: 44,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                gradient: _books ? kGoldGradient : null,
+                                color: _books ? null : const Color(0xCC14163A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: _books ? 1 : 0.4)),
+                              ),
+                              child: Text('스킬북',
+                                  style: TextStyle(
+                                      color: _books ? AppColors.goldInk : AppColors.text,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                        ),
                     ]),
                     const SizedBox(height: 8),
+                    if (_books)
+                      _BookList(controller: c)
+                    else
                     GridView.count(
                       key: const Key('guildGrid'),
                       crossAxisCount: 3,
@@ -263,7 +295,8 @@ class _GuildScreenState extends State<GuildScreen> {
                 ),
               ),
               // 아래 판 (화면 아래 고정)
-              if (sel != null && main != null) _bottom(sel, main, sub, open20, pad.bottom),
+              if (!_books && sel != null && main != null) _bottom(sel, main, sub, open20, pad.bottom),
+              if (_books) SizedBox(height: pad.bottom),
             ]);
           },
         ),
@@ -752,5 +785,104 @@ class _Bubble extends StatelessWidget {
                     color: AppColors.text, fontSize: 16, height: 1.45)),
           ],
         ),
+      );
+}
+
+
+/// 묶음 86 #425: 조합 「스킬북」 — 책 카드 (이름 · 효과 · 값 · 「사기」, 산 책은 「배움」)
+class _BookList extends StatelessWidget {
+  const _BookList({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final gold = c.player.gold;
+    return Column(key: const Key('guildBooks'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const KText('스킬북을 사면 그 스킬을 Lv.1로 배워요. 스킬 포인트로 단계를 올리고, 직업을 바꿔도 남아요.',
+          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      const SizedBox(height: 8),
+      for (final (s, price) in JobRules.books)
+        Builder(builder: (context) {
+          final info = JobRules.skill(s);
+          final has = c.hasBook(s);
+          final short = price - gold;
+          return Container(
+            key: Key('book_${s.name}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+            decoration: BoxDecoration(
+              color: const Color(0xE61F1C40),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: has ? AppColors.gold : const Color(0xFF3A3468), width: 1.4),
+            ),
+            child: Row(children: [
+              SkillArt.jobIcon(s, size: 40),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(info.name, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w800)),
+                    _BookTag(info.isBattle ? '액티브 · 전투' : '패시브 · 생활', active: info.isBattle),
+                  ]),
+                  const SizedBox(height: 2),
+                  KText(info.text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  if (!has && short > 0)
+                    Text('금화가 ${comma(short)} 더 필요해요',
+                        key: Key('bookShort_${s.name}'),
+                        style: const TextStyle(color: AppColors.danger, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              if (has)
+                Container(
+                  key: Key('bookOwned_${s.name}'),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.gold),
+                  ),
+                  child: const Text('배움', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w900)),
+                )
+              else
+                SizedBox(
+                  width: 92,
+                  child: GoldButton(
+                    key: Key('bookBuy_${s.name}'),
+                    label: '사기 · ${comma(price)}',
+                    height: 38,
+                    onPressed: short > 0
+                        ? null
+                        : () async {
+                            final ok = await c.buyBook(s);
+                            if (!context.mounted) return;
+                            showTopNotice(context, ok ? '「${info.name}」${josa(info.name, '을/를').substring(info.name.length)} 배웠어요' : '살 수 없어요',
+                                icon: ok ? Icons.menu_book_rounded : Icons.info_outline_rounded);
+                          },
+                  ),
+                ),
+            ]),
+          );
+        }),
+    ]);
+  }
+}
+
+class _BookTag extends StatelessWidget {
+  const _BookTag(this.text, {required this.active});
+  final String text;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFE3B95A) : const Color(0xFF2E7A62),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                color: active ? const Color(0xFF2A1D05) : const Color(0xFFE6FFF3), fontSize: 10.5, fontWeight: FontWeight.w800)),
       );
 }

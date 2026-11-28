@@ -192,13 +192,10 @@ void main() {
       await _shot(tester, '${n}_12_고유_펼침_MAX');
       await _page(tester, SkillScreen(key: ObjectKey('s3$n'), controller: c, tab: 2));
       await _shot(tester, '${n}_20_숙련_여럿오름');
-      await tester.ensureVisible(find.byKey(const Key('masteryRow_combat')));
-      await _settle(tester, 1);
-      await tester.tap(find.byKey(const Key('masteryRow_combat')));
+      // 묶음 86 #433: 숙련은 펼침 없이 카드 한 장
+      await tester.runAsync(() => Scrollable.ensureVisible(tester.element(find.byKey(const Key('masteryRow_combat'))), alignment: 0.5));
       await _settle(tester, 2);
-      await tester.ensureVisible(find.byKey(const Key('masteryDetail_combat')));
-      await _settle(tester, 2);
-      await _shot(tester, '${n}_21_숙련_숙련된펼침');
+      await _shot(tester, '${n}_21_숙련_숙련된카드');
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 5));
     });

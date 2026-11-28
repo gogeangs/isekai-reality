@@ -44,7 +44,8 @@ test('심사용 계정: 앱 기록 · 길드 Lv.4 회관 ★2 · 영지 + 수비
 test('묶음 69: 심사단 영지는 다른 사람에겐 흑등 연맹처럼 보이고 칠 수 없음 · 영지가 차 있으면 빈 곳으로', async () => {
   const db = new MemDb();
   const guild = new GuildService(db);
-  const siege = new SiegeService(db, { guild });
+  // 공성전이 열리지 않은 날로 (실제 날짜가 공성전 주말이면 「not_siege」 대신 다른 오류가 먼저 나서)
+  const siege = new SiegeService(db, { guild, now: () => Date.UTC(2026, 10, 20, 3) });
   // 다른 길드가 이미 백합 들판을 가짐
   await guild.create('other', { name: '바깥 길드', me: { name: '바깥', level: 30 } });
   const og = (await db.doc('guildOf/other').get()).data().gid;

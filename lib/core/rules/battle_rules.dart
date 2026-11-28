@@ -780,6 +780,9 @@ class Battle {
   /// 해독제·연고를 마신 뒤 다시 안 걸리는 턴
   int immuneTurns = 0;
 
+  /// 묶음 86 #425: 공용 스킬 단계 (스킬북)
+  final Map<JobSkill, int> commonLevels = {};
+
   /// 맑은 눈 물약: 이번 전투 동안 눈부심에 빗나가지 않는다
   bool clearEye = false;
 

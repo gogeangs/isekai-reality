@@ -417,10 +417,11 @@ extension JobOps on AppController {
 
   // ───────────── 직업 스킬 (묶음 31 #195·#196: 트리·포인트·단계)
 
-  /// 배운 단계 (0 = 아직). 얻은 직업의 ① 공격 스킬은 적어도 Lv.1
+  /// 배운 단계 (0 = 아직). 얻은 직업의 ① 공격 스킬은 적어도 Lv.1 · 산 스킬북도 적어도 Lv.1
   int skillLevel(JobSkill s) {
     final lv = _jobs.levelOf(s.name);
     if (lv > 0) return lv;
+    if (JobRules.isCommon(s)) return _jobs.books.contains(s.name) ? 1 : 0;
     if (activePair?.skill == s) return 1; // 묶음 57: 특별 짝 스킬 (포인트 밖)
     final j = JobRules.jobOf(s);
     return _jobs.awakened &&
@@ -431,42 +432,69 @@ extension JobOps on AppController {
         : 0;
   }
 
-  /// 묶음 57: 스킬 포인트는 직업마다 따로 — 어떤 직업이든 내 레벨만큼 (Lv.15부터 레벨마다 2점)
+  /// 묶음 86 #431: 한 주머니 — Lv.15부터 레벨마다 3점. 주 · 보조 · 직업 숙련 · 공용 스킬에 나눠 씀
   int get skillPointsTotal =>
       _jobs.awakened ? JobRules.pointsFor(player.level.level) : 0;
 
-  /// [job] 에 쓴 포인트 (① · 포인트 없이 받은 스킬의 첫 단계는 빼고)
+  /// 배운 단계 중 포인트로 올린 몫 (각 직업 ① · 받은 스킬 · 산 스킬북의 첫 단계는 빼고)
+  int _paidOf(String k, int lv) {
+    final s = JobRules.parseSkill(k);
+    if (s == null || lv <= 0) return 0;
+    final freeFirst = _jobs.free.contains(k) ||
+        (JobRules.isCommon(s) ? _jobs.books.contains(k) : JobRules.firstOf(JobRules.jobOf(s)) == s);
+    return freeFirst ? lv - 1 : lv;
+  }
+
+  /// [job] 에 쓴 포인트 (스킬 + 직업 숙련)
   int skillPointsSpentOn(JobId job) {
     var n = 0;
     _jobs.learned.forEach((k, lv) {
       final s = JobRules.parseSkill(k);
-      if (s == null || lv <= 0 || JobRules.jobOf(s) != job) return;
-      final freeFirst = JobRules.firstOf(job) == s || _jobs.free.contains(k);
-      n += freeFirst ? lv - 1 : lv;
+      if (s == null || JobRules.isCommon(s) || JobRules.jobOf(s) != job) return;
+      n += _paidOf(k, lv);
     });
     return n + _jobs.drillOf(job);
   }
 
-  int skillPointsLeftOn(JobId job) => math.max(0, skillPointsTotal - skillPointsSpentOn(job));
+  /// 공용 스킬에 쓴 포인트
+  int get skillPointsSpentCommon {
+    var n = 0;
+    _jobs.learned.forEach((k, lv) {
+      final s = JobRules.parseSkill(k);
+      if (s != null && JobRules.isCommon(s)) n += _paidOf(k, lv);
+    });
+    return n;
+  }
 
-  /// 주 직업에 쓴 포인트 (예전 이름)
-  int get skillPointsSpent => mainJob == null ? 0 : skillPointsSpentOn(mainJob!);
+  /// 주머니에서 쓴 포인트 모두
+  int get skillPointsSpentAll {
+    var n = 0;
+    _jobs.learned.forEach((k, lv) => n += _paidOf(k, lv));
+    _jobs.drill.forEach((_, v) => n += v);
+    return n;
+  }
 
-  /// 남은 포인트 (주 · 보조 직업 중 남은 것이 있으면 그만큼, 점 표시용)
-  int get skillPointsLeft => [
-        for (final j in [if (mainJob != null) mainJob!, ...subJobs]) skillPointsLeftOn(j),
-        0,
-      ].reduce(math.max);
+  /// 남은 포인트 (한 주머니)
+  int get skillPointsLeft => math.max(0, skillPointsTotal - skillPointsSpentAll);
+
+  /// 예전 이름 — 이제 직업과 상관없이 같은 주머니
+  int skillPointsLeftOn(JobId job) => skillPointsLeft;
+  int get skillPointsSpent => skillPointsSpentAll;
 
   /// 배우거나(0 → 1) 한 단계 올릴 수 있는지 (트리 없이 원하는 순서대로)
   bool canRaiseSkill(JobSkill s) {
     if (!_jobs.awakened) return false;
-    final job = JobRules.jobOf(s);
-    if (!_jobs.ownedJobs.contains(job)) return false;
+    if (JobRules.isCommon(s)) {
+      if (!_jobs.books.contains(s.name)) return false;
+    } else {
+      final job = JobRules.jobOf(s);
+      if (!_jobs.ownedJobs.contains(job)) return false;
+      if (job != mainJob && !subJobs.contains(job)) return false;
+    }
     final lv = skillLevel(s);
     return lv < JobRules.maxSkillLevel &&
         JobRules.levelOpen(lv + 1, player.level.level) &&
-        skillPointsLeftOn(job) > 0;
+        skillPointsLeft > 0;
   }
 
   /// 묶음 85 #414: 다음 단계가 레벨로 잠겨 있으면 열리는 레벨 (아니면 null)
@@ -480,18 +508,20 @@ extension JobOps on AppController {
   int jobDrill(JobId j) => _jobs.drillOf(j);
   double jobDrillPower(JobId j) => 1 + JobRules.drillPer * jobDrill(j);
 
-  /// 그 직업 스킬을 모두 5단계까지 올렸는지 (직업 숙련이 열림)
+  /// 묶음 86 #423: 그 직업 스킬을 내 레벨에서 열린 가장 높은 단계까지 모두 올렸는지 (직업 숙련이 열림)
   bool jobSkillsMaxed(JobId j) {
     final skills = JobRules.info(j).skills;
-    return skills.isNotEmpty && skills.every((s) => skillLevel(s) >= JobRules.maxSkillLevel);
+    final top = JobRules.openMaxLevel(player.level.level);
+    return skills.isNotEmpty && skills.every((s) => skillLevel(s) >= top);
   }
 
   bool canRaiseDrill(JobId j) =>
       _jobs.awakened &&
       _jobs.ownedJobs.contains(j) &&
+      (j == mainJob || subJobs.contains(j)) &&
       jobSkillsMaxed(j) &&
       jobDrill(j) < JobRules.drillMax &&
-      skillPointsLeftOn(j) > 0;
+      skillPointsLeft > 0;
 
   Future<bool> raiseDrill(JobId j) async {
     if (!canRaiseDrill(j)) return false;
@@ -499,10 +529,25 @@ extension JobOps on AppController {
     return true;
   }
 
+  /// 묶음 86 #423: 새 단계가 열렸는데 직업 숙련에 점수가 있으면 한 줄 (Lv.25 · 35). 알림 뒤 null
+  String? takeDrillNotice() {
+    final lv = player.level.level;
+    final top = JobRules.openMaxLevel(lv);
+    if (top <= 3 || _jobs.drill.values.every((v) => v <= 0)) return null;
+    final key = 'drillOpen$top';
+    if ((_jobs.marks[key] ?? 0) > 0) return null;
+    _jobs = _jobs.copyWith(marks: {..._jobs.marks, key: 1});
+    unawaited(_saveJobs(_jobs));
+    return '$top단계가 열렸어요 · 다시 나누기로 옮길 수 있어요';
+  }
+
   /// 묶음 85 #414: 빨간 점 — 스킬을 아직 올릴 수 있을 때만 (직업 숙련 줄은 점을 띄우지 않음)
   bool skillRaisableOn(JobId j) =>
       _jobs.awakened && JobRules.info(j).skills.any(canRaiseSkill);
-  bool get skillRaisable => [if (mainJob != null) mainJob!, ...subJobs].any(skillRaisableOn);
+
+  /// 묶음 86 #431: 주머니에 남은 포인트가 있고 올릴 곳(직업 · 공용 스킬)이 있을 때
+  bool get skillRaisable =>
+      [if (mainJob != null) mainJob!, ...subJobs].any(skillRaisableOn) || commonSkills.any(canRaiseSkill);
 
   /// 포인트 1점으로 배우기·강화
   Future<bool> raiseSkill(JobSkill s) async {
@@ -515,19 +560,58 @@ extension JobOps on AppController {
     return true;
   }
 
-  /// 다시 나누기 (언제든 무료): 쓴 포인트를 모두 돌려받는다. 각 직업 ①·받은 스킬은 Lv.1로 남음
+  /// 처음 상태 (각 직업 ① · 받은 스킬 · 산 스킬북 Lv.1)
+  Map<String, int> get _baseLearned => {
+        for (final j in _jobs.ownedJobs)
+          if (JobRules.info(j).skills.isNotEmpty) JobRules.firstOf(j).name: 1,
+        for (final f in _jobs.free) f: 1,
+        for (final b in _jobs.books) b: 1,
+      };
+
+  /// 다시 나누기 (언제든 무료): 모든 직업 · 직업 숙련 · 공용 스킬에 쓴 포인트를 한꺼번에 돌려받는다
   Future<void> resetSkills() async {
-    final keep = <String, int>{
-      for (final j in _jobs.ownedJobs)
-        if (JobRules.info(j).skills.isNotEmpty) JobRules.firstOf(j).name: 1,
-      for (final f in _jobs.free) f: 1,
-    };
+    final keep = _baseLearned;
     final pending = [
       for (final p in _jobs.pending)
         if (keep.containsKey(p) || JobRules.parseSkill(p) == null) p,
     ];
     await _saveJobs(_jobs.copyWith(learned: keep, pending: pending, drill: const {}));
   }
+
+  /// 묶음 86 #431: 예전 계정(직업마다 따로 받던 포인트)이 주머니보다 많이 썼으면 모두 돌려받은 상태로
+  Future<void> _fitSkillPool() async {
+    if (!_jobs.awakened || skillPointsSpentAll <= skillPointsTotal) return;
+    await resetSkills();
+  }
+
+  // ───────────── 묶음 86 #425: 조합 스킬북 (공용 스킬)
+
+  /// 산 스킬북의 공용 스킬
+  List<JobSkill> get commonSkills => [
+        for (final (s, _) in JobRules.books)
+          if (_jobs.books.contains(s.name)) s,
+      ];
+
+  bool hasBook(JobSkill s) => _jobs.books.contains(s.name);
+
+  /// 스킬북 사기 (Lv.15 각성 뒤 · 한 권 한 번만). 금화가 모자라면 false
+  Future<bool> buyBook(JobSkill s) => _serial(() async {
+        if (!_jobs.awakened || !JobRules.isCommon(s) || hasBook(s)) return false;
+        final price = JobRules.bookPrice(s);
+        if (player.gold < price) return false;
+        final t = await _todayRecord();
+        await _save(t.copyWith(spends: DailyRecord.addCounts(t.spends, {Wallet.gold: price})));
+        await _saveJobs(_jobs.copyWith(
+          books: [..._jobs.books, s.name],
+          learned: {..._jobs.learned, s.name: math.max(1, _jobs.levelOf(s.name))},
+        ));
+        if (JobRules.skill(s).isBattle) await _fillLoadout('job:${s.name}');
+        _notify();
+        return true;
+      });
+
+  /// 공용 생활 스킬 단계 (안 샀으면 0)
+  int commonLevel(JobSkill s) => hasBook(s) ? skillLevel(s) : 0;
 
   /// 지금 쓸 수 있는 스킬 (주·보조 직업에서 배운 것). (스킬, 보조인지)
   List<(JobSkill, bool)> get jobSkills {
@@ -540,6 +624,7 @@ extension JobOps on AppController {
         for (final s in JobRules.info(j).skills)
           if (skillLevel(s) > 0) (s, true),
       if (activePair?.skill case final s?) (s, false),
+      for (final s in commonSkills) (s, false),
     ];
   }
 
@@ -578,7 +663,7 @@ extension JobOps on AppController {
   double skillPower(JobSkill s) =>
       JobRules.levelPower(math.max(1, skillLevel(s))) *
       (1 + MasteryRules.skillPowerMax * skillFrac(s.name)) *
-      jobDrillPower(JobRules.jobOf(s));
+      (JobRules.isCommon(s) ? 1.0 : jobDrillPower(JobRules.jobOf(s)));
 
   bool skillPending(JobSkill s) => _jobs.hasPending(s);
   bool skillTimedOn(JobSkill s) => _jobs.timedOn(s, _clock());
@@ -677,6 +762,7 @@ extension JobOps on AppController {
           case SkillMode.instant:
             await _instantSkill(s);
           case SkillMode.battle:
+          case SkillMode.passive:
             break;
         }
         await _skillUsedOnce(s); // 묶음 75 #325
@@ -965,7 +1051,8 @@ extension JobOps on AppController {
   /// 보조 직업 스킬은 보조 직업의 주 스탯 — 스킬이 속한 직업으로 정해진다
   double jobStatRatio(JobSkill s) => JobRules.statRatio(
       // 묶음 77 #341: 숨은 이명 전용 스킬은 주 직업의 주 스탯
-      JobRules.mainStat(activePair?.skill == s && mainJob != null ? mainJob! : JobRules.jobOf(s)),
+      JobRules.mainStat(
+          (activePair?.skill == s || JobRules.isCommon(s)) && mainJob != null ? mainJob! : JobRules.jobOf(s)),
       level: player.level.level,
       stats: combatStats + gear.stats);
 
@@ -1242,6 +1329,10 @@ extension JobOps on AppController {
   Battle _withJob(Battle b) {
     // 묶음 45 #232: 세라의 방패 문장 → 보스 큰 공격 막기가 조금 쉬워짐
     if (hasRelic(Npc.sera)) b.guardEase = NpcSmallRules.crestGuard;
+    // 묶음 86 #425: 공용 스킬 단계 · 튼튼한 몸 (최대 HP)
+    for (final c in commonSkills) {
+      b.commonLevels[c] = skillLevel(c);
+    }
     // 묶음 31 #198: 전투 칸에 낀 숙련 스킬 (스킬 페이지가 열린 뒤)
     if (_jobs.pageOpen) {
       for (final e in fourSlots ? battleSlots : battleLoadout) {
@@ -1373,6 +1464,9 @@ extension JobOps on AppController {
   Future<int> _jobBuyRefund(int price, {bool potion = false}) async {
     if (!_jobs.awakened || price <= 0) return 0;
     var cut = 0.0;
+    // 묶음 86 #425: 공용 스킬 「흥정」 → 잡화상 값 조금 싸게 (산 값 일부를 돌려받음)
+    final hg = commonLevel(JobSkill.bookHaggle);
+    if (hg > 0) cut += JobRules.haggleCut(hg);
     if (potion) {
       cut += JobRules.potionWholesale * jobTrait(JobId.potionMerchant);
     }

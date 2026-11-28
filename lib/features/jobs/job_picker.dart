@@ -20,6 +20,7 @@ String skillPlaceLabel(SkillPlace p) => switch (p) {
       SkillPlace.smithyEnhance || SkillPlace.smithyCraft || SkillPlace.smithyWork => '대장간',
       SkillPlace.board => '의뢰판',
       SkillPlace.petExpedition || SkillPlace.expeditionSend => '펫 원정',
+      SkillPlace.passive => '늘 켜짐',
     };
 
 /// 묶음 76 #340: Lv.15 「직업 고르기」 한 화면 — 미리보기 카드 · 추천 이유 · 전투/생산 탭 · 3칸 격자 · 스킬 판 · 아래 고정 버튼

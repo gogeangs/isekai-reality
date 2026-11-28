@@ -32,6 +32,7 @@ class JobState {
     this.pairs = const [],
     this.drill = const {},
     this.extra = const [],
+    this.books = const [],
   });
 
   // ───────────── 묶음 57 #249 직업 개편
@@ -54,6 +55,9 @@ class JobState {
 
   /// 묶음 85 #420: 각성 뒤 칸 3 · 4 (강타 · 방어 태세 자리). 비어 있으면 기본값 ('base:bash' · 'base:stance')
   final List<String> extra;
+
+  /// 묶음 86 #425: 산 스킬북 (공용 스킬 이름). 다시 나누기 · 직업 바꾸기에도 Lv.1로 남음
+  final List<String> books;
 
   // ───────────── 묶음 31 #195~#198
 
@@ -167,6 +171,7 @@ class JobState {
     List<String>? pairs,
     Map<String, int>? drill,
     List<String>? extra,
+    List<String>? books,
   }) =>
       JobState(
         awakened: awakened ?? this.awakened,
@@ -198,6 +203,7 @@ class JobState {
         pairs: pairs ?? this.pairs,
         drill: drill ?? this.drill,
         extra: extra ?? this.extra,
+        books: books ?? this.books,
       );
 
   Map<String, dynamic> toJson() => {
@@ -232,6 +238,7 @@ class JobState {
         'pairs': pairs,
         'drill': drill,
         'extra': extra,
+        'books': books,
       };
 
   factory JobState.fromJson(Map<String, dynamic> j) {
@@ -275,6 +282,7 @@ class JobState {
       pairs: strings(j['pairs']),
       drill: ints(j['drill']),
       extra: strings(j['extra']),
+      books: strings(j['books']),
     );
   }
 }

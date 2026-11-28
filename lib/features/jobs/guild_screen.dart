@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'skill_icon.dart';
 import '../village/npc_header.dart';
 import 'package:flutter/material.dart' hide Element;
+import '../../core/format.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
@@ -79,21 +80,34 @@ class _GuildScreenState extends State<GuildScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => c.markJobsSeen());
   }
 
-  /// 바꾸기: 미리보기 → 확인 (묶음 57: 첫 번째 무료, 그 뒤 증표 1 + 금화)
+  /// 묶음 86 #432: 바꾸기 확인 창 — 「○○로 바꿀까요? 금화 ○○ · 보조 직업 △△가 비워지고 스킬 포인트 ○점이 돌아와요」
   Future<void> _change(JobId main, JobId? sub) async {
-    final pv = c.jobPreview(main, sub);
+    final plan = c.planChange(main, sub);
+    final newSub = plan.mainChange ? null : sub;
+    final pv = c.jobPreview(main, newSub);
+    final target = sub != null && !plan.mainChange ? sub : main;
+    final what = sub == null && !plan.mainChange
+        ? '보조 직업 ${josa(JobRules.info(plan.clearedSub ?? main).name, '을/를')} 뺄까요?'
+        : '${josa(JobRules.info(target).name, '으로/로')} 바꿀까요?';
+    final parts = <String>[
+      plan.gold > 0 ? '금화 ${comma(plan.gold)}' : '무료',
+      if (plan.clearedSub != null)
+        '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워지고 스킬 포인트 ${plan.points}점이 돌아와요'
+      else if (plan.points > 0)
+        '스킬 포인트 ${plan.points}점이 돌아와요',
+    ];
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => GameAlert(
         key: const Key('jobPreview'),
-        title: const Text('이렇게 바꿀까요?'),
+        title: Text(what),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             JobEmblem(main, size: 40),
             const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('주 ${JobRules.info(main).name}${sub == null ? '' : ' · 보조 ${JobRules.info(sub).name}'}',
+                Text('주 ${JobRules.info(main).name}${newSub == null ? '' : ' · 보조 ${JobRules.info(newSub).name}'}',
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
                 pv.special
                     ? _Sparkle(child: Text(pv.name, key: const Key('jobPreviewName'), style: AppText.title(19, color: AppColors.goldBright)))
@@ -106,11 +120,8 @@ class _GuildScreenState extends State<GuildScreen> {
             KText('보조 각인 · ${pv.imprint}', style: const TextStyle(color: AppColors.text, fontSize: 13.5)),
           ],
           const SizedBox(height: 10),
-          KText(
-              pv.free
-                  ? '첫 번째 바꾸기는 무료예요. 직업마다 키운 스킬은 그대로 남아요.'
-                  : '전직의 증표 1장과 금화 ${JobPairRules.changeGold}이 들어요. 직업마다 키운 스킬은 그대로 남아요.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          KText(parts.join(' · '),
+              key: const Key('jobChangeCost'), style: const TextStyle(color: AppColors.text, fontSize: 13.5)),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('그만두기')),
@@ -124,10 +135,9 @@ class _GuildScreenState extends State<GuildScreen> {
     switch (r) {
       case JobChange.ok:
         showTopNotice(context, '이제 ${c.pairName ?? JobRules.info(main).name}예요');
-      case JobChange.noToken:
-        showTopNotice(context, '전직의 증표가 없어요. 많이 걷거나 조합 상점에서 구해요', icon: Icons.info_outline_rounded);
       case JobChange.noGold:
-        showTopNotice(context, '금화가 모자라요', icon: Icons.info_outline_rounded);
+        showTopNotice(context, '금화가 ${comma(plan.gold - c.player.gold)} 더 필요해요', icon: Icons.info_outline_rounded);
+      case JobChange.noToken:
       case JobChange.same:
       case JobChange.cannot:
         break;
@@ -137,41 +147,6 @@ class _GuildScreenState extends State<GuildScreen> {
   /// 묶음 77 #356: 고른 칸 (아래 판) · 탭
   JobId? _sel;
   JobGroup? _tab;
-
-  Future<void> _tokenSheet() => showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: AppColors.night,
-        builder: (s) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-            child: ListenableBuilder(
-              listenable: c,
-              builder: (s, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text('전직의 증표 ${c.jobTokens}장', key: const Key('guildTokenCount'), style: AppText.title(17)),
-                const SizedBox(height: 4),
-                KText(
-                    c.jobChangeFree
-                        ? '첫 번째 바꾸기는 무료예요. 그다음부터 증표 1장 + 금화 ${JobPairRules.changeGold}'
-                        : '바꿀 때마다 증표 1장 + 금화 ${JobPairRules.changeGold} · 많이 걸으면 생겨요',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                const SizedBox(height: 10),
-                GoldButton(
-                  key: const Key('guildBuyToken'),
-                  label: c.jobTokenBoughtThisWeek ? '이번 주에 샀어요' : '조합 상점에서 사기 · 금화 ${JobPairRules.tokenShopGold}',
-                  onPressed: c.jobTokenBoughtThisWeek
-                      ? null
-                      : () async {
-                          final ok = await c.buyJobToken();
-                          if (!s.mounted) return;
-                          showTopNotice(s, ok ? '전직의 증표를 샀어요' : '금화가 모자라요',
-                              icon: ok ? Icons.verified_rounded : Icons.info_outline_rounded);
-                        },
-                ),
-              ]),
-            ),
-          ),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -211,27 +186,6 @@ class _GuildScreenState extends State<GuildScreen> {
                     // 위: 뒤로 · 조합 + 증표 칩
                     Row(children: [
                       Expanded(child: OrnateTopBar(title: '조합', onBack: () => Navigator.of(context).maybePop())),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        key: const Key('guildTokenChip'),
-                        onTap: _tokenSheet,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(4, 3, 9, 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xCC14163A),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Image.asset('assets/images/item_jobToken.webp',
-                                width: 22, height: 22,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.verified_rounded, color: AppColors.gold, size: 18)),
-                            const SizedBox(width: 3),
-                            Text(c.jobChangeFree ? '증표 ${c.jobTokens} · 첫 바꾸기 무료' : '증표 ${c.jobTokens}',
-                                style: const TextStyle(color: AppColors.goldBright, fontSize: 11.5, fontWeight: FontWeight.w800)),
-                          ]),
-                        ),
-                      ),
                     ]),
                     const SizedBox(height: 6),
                     // 묶음 80 #366: 다른 시설처럼 위 줄 → 마을 사람 머리줄(세라) (그림 띠 없음)
@@ -447,8 +401,22 @@ class _GuildScreenState extends State<GuildScreen> {
       JobGroup.craft => const Color(0xFF6CC27A),
       _ => AppColors.goldBright,
     };
-    Widget btn(String label, Key key, VoidCallback? onTap) => Expanded(
-          child: GoldButton(key: key, label: label, height: 44, onPressed: onTap),
+    // 묶음 86 #432: 금화가 모자라면 버튼 흐리게 + 「금화가 ○○ 더 필요해요」
+    final gold = c.player.gold;
+    Widget btn(String label, Key key, VoidCallback? onTap, {int cost = 0}) => Expanded(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            GoldButton(key: key, label: label, height: 44, onPressed: cost > gold ? null : onTap),
+            const SizedBox(height: 2),
+            Text(
+                cost <= 0
+                    ? '무료'
+                    : cost > gold
+                        ? '금화가 ${comma(cost - gold)} 더 필요해요'
+                        : '금화 ${comma(cost)}',
+                key: Key('${(key as ValueKey).value}_cost'),
+                style: TextStyle(
+                    color: cost > gold ? AppColors.danger : AppColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ]),
         );
     return Container(
       key: const Key('guildPick'),
@@ -488,8 +456,13 @@ class _GuildScreenState extends State<GuildScreen> {
               style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
         ],
         const SizedBox(height: 8),
+        // 묶음 86 #432: 지금 보조 직업을 골랐으면 「보조 직업 빼기」
+        if (open20 && j == sub)
+          Row(children: [
+            btn('보조 직업 빼기', const Key('jobRemoveSub'), () => _change(main, null), cost: c.subChangeGold),
+          ])
         // 묶음 78 #359: 지금 내 직업(주 · 보조)을 골랐으면 버튼 대신 글
-        if (j == main || (open20 && j == sub))
+        else if (j == main)
           Container(
             key: const Key('guildMine'),
             height: 44,
@@ -503,17 +476,20 @@ class _GuildScreenState extends State<GuildScreen> {
           )
         else if (!open20)
           Row(children: [
-            btn('이 직업으로 바꾸기', const Key('jobAsMain'), () => _change(j, null)),
+            btn('이 직업으로 바꾸기', const Key('jobAsMain'), () => _change(j, null), cost: c.planChange(j, null).gold),
           ])
         else
-          Row(children: [
-            btn('주 직업으로', const Key('jobAsMain'), () => _change(j, sub)),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            btn('주 직업으로', const Key('jobAsMain'), () => _change(j, sub), cost: c.planChange(j, null).gold),
             const SizedBox(width: 8),
-            btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j)),
+            btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j), cost: c.planChange(main, j).gold),
           ]),
-        const SizedBox(height: 4),
-        const Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',
-            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        if (open20 && j != main && j != sub) ...[
+          const SizedBox(height: 2),
+          Text(sub == null ? '주 직업을 바꾸면 보조 칸도 비워져요' : '주 직업을 바꾸면 보조 직업 ${JobRules.info(sub).name}도 비워져요',
+              key: const Key('guildChangeNote'),
+              textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        ],
       ]),
     );
   }

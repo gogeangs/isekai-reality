@@ -94,12 +94,15 @@ class _SkillScreenState extends State<SkillScreen> {
             builder: (context, _) {
               final main = c.jobsOpen ? c.mainJob : null;
               final sub = c.subJobsOpen ? c.subJob : null;
-              return CustomScrollView(
+              // 위 안전 영역 아래에서 스크롤 (붙은 전투 칸이 노치에 가리지 않게)
+              return Padding(
+                padding: EdgeInsets.only(top: top),
+                child: CustomScrollView(
                 key: const Key('skillScroll'),
                 controller: _scroll,
                 slivers: [
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(14, top + 6, 14, 0),
+                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
                     sliver: SliverToBoxAdapter(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                         OrnateTopBar(title: '스킬', onBack: () => Navigator.of(context).maybePop()),
@@ -139,6 +142,7 @@ class _SkillScreenState extends State<SkillScreen> {
                     ),
                   ),
                 ],
+              ),
               );
             },
           ),
@@ -1126,7 +1130,7 @@ class _DrillRow extends StatelessWidget {
                     ? '끝까지 올렸어요'
                     : open
                         ? '남은 포인트를 넣을 수 있어요'
-                        : '스킬을 모두 Lv.${JobRules.maxSkillLevel}까지 올리면 열려요',
+                        : '스킬을 모두 Lv.${JobRules.openMaxLevel(c.player.level.level)}까지 올리면 열려요',
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
           ]),
         ),

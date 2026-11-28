@@ -92,7 +92,9 @@ class _GuildScreenState extends State<GuildScreen> {
     final parts = <String>[
       plan.gold > 0 ? '금화 ${comma(plan.gold)}' : '무료',
       if (plan.clearedSub != null)
-        '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워지고 스킬 포인트 ${plan.points}점이 돌아와요'
+        plan.points > 0
+            ? '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워지고 스킬 포인트 ${plan.points}점이 돌아와요'
+            : '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워져요'
       else if (plan.points > 0)
         '스킬 포인트 ${plan.points}점이 돌아와요',
     ];
@@ -828,6 +830,10 @@ class _BookList extends StatelessWidget {
                   ]),
                   const SizedBox(height: 2),
                   KText(info.text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  if (!has)
+                    Text('금화 ${comma(price)}',
+                        key: Key('bookPrice_${s.name}'),
+                        style: const TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w800)),
                   if (!has && short > 0)
                     Text('금화가 ${comma(short)} 더 필요해요',
                         key: Key('bookShort_${s.name}'),
@@ -847,10 +853,10 @@ class _BookList extends StatelessWidget {
                 )
               else
                 SizedBox(
-                  width: 92,
+                  width: 84,
                   child: GoldButton(
                     key: Key('bookBuy_${s.name}'),
-                    label: '사기 · ${comma(price)}',
+                    label: '사기',
                     height: 38,
                     onPressed: short > 0
                         ? null

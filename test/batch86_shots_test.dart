@@ -304,6 +304,7 @@ void main() {
         await _settle(tester, 2);
       }
       if (open.evaluate().isNotEmpty) {
+        await _mid(tester, open);
         await tester.tap(open);
         await _settle(tester, 4);
       }
@@ -329,11 +330,13 @@ void main() {
       final t = vt0;
       late AppController v;
       await tester.runAsync(() async {
-        v = await startVillage(14, more: {
+        v = await startVillage(14, village: {
+          'seen': ['shelterCard', 'trainingCard', 'gardenCard', 'tavernCard', 'subJobCard', 'chatTour', 'marketIntro', 'v44', 'codexNotice', 'intro'],
+        }, more: {
           'alchemy': {
             'discovered': ['healSmall'],
             'brews': {
-              '0': {'put': ['herb', 'slimeJelly'], 'startedAt': t.subtract(const Duration(minutes: 20)).toIso8601String(), 'readyAt': t.subtract(const Duration(minutes: 1)).toIso8601String()},
+              '0': {'put': ['herb', 'herb', 'slimeJelly'], 'startedAt': t.subtract(const Duration(minutes: 20)).toIso8601String(), 'readyAt': t.subtract(const Duration(minutes: 1)).toIso8601String()},
             },
           },
         });

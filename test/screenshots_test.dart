@@ -588,7 +588,10 @@ void main() {
         i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    await tester.pumpAndSettle();
+    // 묶음 86: 느린 CI 에서 싸움이 덜 끝나면 pumpAndSettle 이 시간을 넘김 → 정해진 만큼만
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     await _shot(tester, '29b_수식어_결과');
     nav.pop();
     await tester.pumpAndSettle();

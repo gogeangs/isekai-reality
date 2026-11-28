@@ -7,7 +7,12 @@ extension SmithyOps on AppController {
   Armory get armory => _armory;
 
   /// 입은 장비의 힘
-  GearBonus get gear => EquipmentRules.bonusOf(_armory.worn);
+  /// 묶음 86 #425: 공용 스킬 「튼튼한 몸」 → 최대 HP 조금 더
+  GearBonus get gear {
+    final g = EquipmentRules.bonusOf(_armory.worn);
+    final lv = commonLevel(JobSkill.bookSturdy);
+    return lv > 0 ? g.withMaxHp(JobRules.sturdyHp(lv)) : g;
+  }
 
   Future<void> _saveArmory(Armory a) async {
     _armory = a;

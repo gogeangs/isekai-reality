@@ -207,6 +207,10 @@ abstract final class JobPairRules {
   static const int tokenShopGold = 300;
   static const int changeGold = 100;
 
+  /// 묶음 86 #432: 주 직업 바꾸기 레벨 × 500 · 보조 바꾸기 · 빼기 레벨 × 250
+  static const int mainChangePerLevel = 500;
+  static const int subChangePerLevel = 250;
+
   /// 히든 조건 (게임엔 보여 주지 않음)
   /// 묶음 77 #345 · #347: 히든 직업은 극소수만 (숨은 값)
   static const int archaeologistRelics = 300;

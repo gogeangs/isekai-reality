@@ -3,6 +3,21 @@ part of '../app_controller.dart';
 /// 직업 바꾸기 결과
 enum JobChange { ok, noToken, noGold, same, cannot }
 
+/// 묶음 86 #432: 바꾸기 미리 셈
+class JobChangePlan {
+  const JobChangePlan({required this.gold, required this.points, this.clearedSub, this.mainChange = false});
+
+  /// 드는 금화 (0이면 무료)
+  final int gold;
+
+  /// 주머니로 돌아오는 스킬 포인트
+  final int points;
+
+  /// 비워지는(빠지는) 보조 직업
+  final JobId? clearedSub;
+  final bool mainChange;
+}
+
 /// 바꾸기 전 미리보기
 class JobPreview {
   const JobPreview(this.name, this.imprint, {this.special = false, this.free = false});
@@ -113,39 +128,104 @@ extension Job57Ops on AppController {
     );
   }
 
-  /// 주 · 보조를 바꾼다 (첫 번째는 무료, 그 뒤엔 증표 1 + 금화 100). 직업마다 키운 것은 그대로
-  Future<JobChange> changeJobs(JobId main, JobId? sub) => _serial(() async {
+  // ───────────── 묶음 86 #432: 직업 바꾸기 — 금화 · 주를 바꾸면 보조가 비워짐 · 쓴 포인트는 주머니로
+
+  /// 주 직업 바꾸기 금화 (레벨 × 500) · 보조 바꾸기 · 빼기 (레벨 × 250)
+  int get mainChangeGold => player.level.level * JobPairRules.mainChangePerLevel;
+  int get subChangeGold => player.level.level * JobPairRules.subChangePerLevel;
+
+  /// 바꾸기 미리 셈: 금화 · 비워지는 보조 · 돌아오는 포인트
+  JobChangePlan planChange(JobId main, JobId? sub) {
+    final oldMain = mainJob, oldSub = subJob;
+    if (main != oldMain) {
+      final back = (oldMain == null ? 0 : skillPointsSpentOn(oldMain)) + (oldSub == null ? 0 : skillPointsSpentOn(oldSub));
+      return JobChangePlan(gold: _jobs.repick ? 0 : mainChangeGold, clearedSub: oldSub, points: back, mainChange: true);
+    }
+    if (sub == oldSub) return const JobChangePlan(gold: 0, points: 0);
+    // 비어 있는 보조 칸에 넣기는 무료
+    if (oldSub == null) return const JobChangePlan(gold: 0, points: 0);
+    return JobChangePlan(gold: subChangeGold, clearedSub: oldSub, points: skillPointsSpentOn(oldSub));
+  }
+
+  /// [j] 의 스킬 · 직업 숙련을 처음 상태로 (① · 받은 스킬 Lv.1)
+  Map<String, int> _learnedWithout(Map<String, int> learned, Iterable<JobId> jobs) {
+    final out = <String, int>{};
+    learned.forEach((k, lv) {
+      final s = JobRules.parseSkill(k);
+      if (s != null && !JobRules.isCommon(s) && jobs.contains(JobRules.jobOf(s))) {
+        final keep = _jobs.free.contains(k) || JobRules.firstOf(JobRules.jobOf(s)) == s;
+        if (keep) out[k] = 1;
+        return;
+      }
+      out[k] = lv;
+    });
+    return out;
+  }
+
+  /// 주 · 보조를 바꾼다. 주를 바꾸면 보조 칸이 비워지고, 예전 주 · 보조에 쓴 포인트는 주머니로.
+  /// 금화: 주 레벨 × 500 · 보조 바꾸기 · 빼기 레벨 × 250 (빈 보조 칸에 넣기 · 처음 고르기는 무료)
+  Future<JobChange> changeJobs(JobId main, JobId? subWant) => _serial(() async {
         if (!_jobs.awakened || _jobs.repick) return JobChange.cannot;
         final open = unlockedJobs;
+        final oldMain = mainJob, oldSub = subJob;
+        final mainChange = main != oldMain;
+        final JobId? sub = mainChange ? null : subWant;
         if (!open.contains(main) || (sub != null && (!open.contains(sub) || sub == main))) {
           return JobChange.cannot;
         }
-        if (main == mainJob && sub == subJob) return JobChange.same;
-        final free = jobChangeFree;
-        if (!free) {
-          if (jobTokens < 1) return JobChange.noToken;
-          if (player.gold < JobPairRules.changeGold) return JobChange.noGold;
+        if (!mainChange && sub == oldSub) return JobChange.same;
+        if (sub != null && subJobSlots <= 0) return JobChange.cannot;
+        final plan = planChange(main, sub);
+        if (player.gold < plan.gold) return JobChange.noGold;
+        if (plan.gold > 0) {
           final today = await _todayRecord();
-          await _save(today.copyWith(
-              spends: DailyRecord.addCounts(today.spends, {Wallet.gold: JobPairRules.changeGold})));
+          await _save(today.copyWith(spends: DailyRecord.addCounts(today.spends, {Wallet.gold: plan.gold})));
         }
+        final reset = <JobId>{
+          if (mainChange && oldMain != null) oldMain,
+          if (oldSub != null && (mainChange || sub != oldSub)) oldSub,
+        };
+        final drill = {..._jobs.drill}..removeWhere((k, _) => reset.any((j) => j.name == k));
         final owned = {..._jobs.owned, main.name, if (sub != null) sub.name};
-        // 전투 칸: 이제 못 쓰는 스킬은 빼고 다시 채움
+        // 전투 칸: 이제 못 쓰는 직업 스킬은 빼고, 빈 칸은 새 주 직업 ① 공격 스킬로 (공용 · 숙련은 그대로)
+        bool stale(String e) {
+          if (!e.startsWith('job:')) return false;
+          final s = JobRules.parseSkill(e.substring(4));
+          if (s == null || JobRules.isCommon(s)) return false;
+          final j = JobRules.jobOf(s);
+          return j != main && j != sub;
+        }
+        final slots = [for (final e in battleSlots) stale(e) ? '' : e];
         await _saveJobs(_jobs.copyWith(
           main: main.name,
           subs: [if (sub != null) sub.name],
           owned: [for (final j in JobPairRules.all) if (owned.contains(j.name)) j.name],
           changes: _jobs.changes + 1,
-          loadout: const [],
-          marks: free
-              ? null
-              : {..._jobs.marks, 'tokensUsed': (_jobs.marks['tokensUsed'] ?? 0) + 1},
+          learned: _learnedWithout(_jobs.learned, reset),
+          drill: drill,
         ));
-        await _fillLoadout();
+        if (fourSlots) {
+          final first = JobRules.info(main).skills.isEmpty ? null : 'job:${JobRules.firstOf(main).name}';
+          if (first != null && !slots.contains(first)) {
+            final at = slots.indexOf('');
+            if (at >= 0) slots[at] = first;
+          }
+          await _saveJobs(_jobs.copyWith(loadout: slots.sublist(0, 2), extra: slots.sublist(2, 4)));
+        } else {
+          await _saveJobs(_jobs.copyWith(loadout: const []));
+          await _fillLoadout();
+        }
         await _checkPair();
         await _npcUse(Npc.sera);
         return JobChange.ok;
       });
+
+  /// 보조 직업 빼기 (레벨 × 250, 그 직업에 쓴 포인트는 주머니로)
+  Future<JobChange> removeSubJob() async {
+    final m = mainJob;
+    if (m == null || subJob == null) return JobChange.cannot;
+    return changeJobs(m, null);
+  }
 
   /// 처음 맞춘 특별 짝: 「새 짝을 찾았어요」 + 칭호
   Future<void> _checkPair() async {

@@ -62,11 +62,12 @@ void main() {
       );
 
   group('#195 #196 고유 스킬 규칙', () {
-    test('포인트: Lv.15부터 레벨마다 2점', () {
+    // 묶음 86 #431: 한 주머니 · 레벨마다 3점
+    test('포인트: Lv.15부터 레벨마다 3점', () {
       expect(JobRules.pointsFor(14), 0);
-      expect(JobRules.pointsFor(15), 2);
-      expect(JobRules.pointsFor(16), 4);
-      expect(JobRules.pointsFor(20), 12);
+      expect(JobRules.pointsFor(15), 3);
+      expect(JobRules.pointsFor(16), 6);
+      expect(JobRules.pointsFor(20), 18);
     });
 
     test('트리: 기본 ① → ②·③, ②나 ③ Lv.2 → ④ / 복합 ① → ②', skip: '묶음 57 직업 개편으로 바뀐 규칙 (batch57_test 에서 확인)', () {

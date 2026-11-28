@@ -28,6 +28,14 @@ class PetScreen extends StatefulWidget {
 class _PetScreenState extends State<PetScreen> {
   AppController get controller => widget.controller;
   final _focusKey = GlobalKey(debugLabel: 'petFocus');
+  final _scroll = ScrollController();
+  String? _lastCompanion;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -51,8 +59,23 @@ class _PetScreenState extends State<PetScreen> {
           listenable: controller,
           builder: (context, _) {
             final c = controller;
-            final pets = c.pets.pets;
+            // 데리고 다니기를 바꾸면 맨 위로 (위로 스크롤)
+            if (_lastCompanion != null && _lastCompanion != c.pets.companion && _scroll.hasClients) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scroll.hasClients) {
+                  _scroll.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+                }
+              });
+            }
+            _lastCompanion = c.pets.companion;
+            // 묶음 86 #426: 데리고 다니는 펫이 맨 위 (나머지는 지금 순서)
+            final comp = c.pets.companion;
+            final pets = [
+              ...c.pets.pets.where((p) => p.uid == comp),
+              ...c.pets.pets.where((p) => p.uid != comp),
+            ];
             return ListView(
+              controller: _scroll,
               padding: EdgeInsets.fromLTRB(14, top + 6, 14, 28),
               children: [
                 OrnateTopBar(

@@ -36,76 +36,70 @@ void _phone(WidgetTester t) {
 
 Widget _host(Widget child) => MaterialApp(builder: (context, c) => TopNoticeHost(child: c!), home: child);
 
+/// 묶음 86: 스킬 화면은 전투 칸이 위에 붙어 있어 가운데로 보이게
+Future<void> showMid(WidgetTester tester, Finder f) async {
+  await tester.runAsync(() => Scrollable.ensureVisible(tester.element(f), alignment: 0.5));
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
 void main() {
+  // 묶음 86 #433: 스킬 화면은 탭 없이 한 화면 — 아래 시험은 새 화면에 맞춤
   group('#363 전투 칸', () {
-    testWidgets('버튼 줄 5칸 · 칸 1 골라짐 · 넣기 한 줄 · 늘 있는 버튼 설명', (tester) async {
+    testWidgets('전투 칸 4개 + 펫 · 「칸에」 → 칸 누르기 · 늘 있는 버튼 설명', (tester) async {
       _phone(tester);
       late AppController c;
       await tester.runAsync(() async => c = await _job('warrior', learned: {'cleave': 1}));
       await tester.pumpWidget(_host(SkillScreen(controller: c)));
       await tester.pump();
-      // 묶음 85 #420: 각성 뒤엔 강타 · 방어 태세 자리가 칸 3 · 4
       for (final k in ['skillSlot_2', 'skillSlot_3', 'skillSlot_0', 'skillSlot_1', 'battleFixed_pet']) {
         expect(find.byKey(Key(k)), findsOneWidget, reason: k);
       }
       expect(find.byKey(const Key('battleSlotHint')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('skillSlot_1')));
-      await tester.pump();
-      expect(find.text('칸 2에 넣을 스킬'), findsOneWidget);
-      // 안 배운 스킬은 「포인트로 열기」
-      expect(find.text('포인트로 열기'), findsWidgets);
       await tester.tap(find.byKey(const Key('battleFixed_pet')));
       await tester.pump();
-      expect(find.byKey(const Key('battleFixedChip')), findsOneWidget);
-      // 칸 1에 내려베기 넣기 (칸 2와 바꿈)
+      expect(find.byKey(const Key('battleSlotToast')), findsOneWidget);
+      // 칸 1에 내려베기 넣기 (다른 칸에 있으면 옮김)
+      await showMid(tester, find.byKey(const Key('skillToSlot_cleave')));
+      await tester.tap(find.byKey(const Key('skillToSlot_cleave')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('skillSlot_0')));
-      await tester.pump();
-      await tester.tap(find.byKey(const Key('battlePick_job:cleave')));
-      await tester.pump();
-      await tester.ensureVisible(find.byKey(const Key('battlePut')));
-      await tester.tap(find.byKey(const Key('battlePut')));
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       for (var i = 0; i < 5; i++) {
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
         await tester.pump(const Duration(milliseconds: 50));
       }
       expect(c.battleLoadout.first, 'job:cleave');
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -800));
-      await tester.pump();
+      expect(c.battleSlots.where((e) => e == 'job:cleave'), hasLength(1));
       expect(find.byKey(const Key('battleSlotToast')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 
   group('#364 고유 스킬', () {
-    testWidgets('남은 포인트 배지 · 바로 강화 한 줄 · 펼침 Lv 칸 · MAX', (tester) async {
+    testWidgets('남은 포인트 · 바로 강화 · 펼침 Lv 칸 · 잠김 「Lv.25에 열려요」', (tester) async {
       _phone(tester);
       late AppController c;
-      // 묶음 85 #414: 5단계까지 (Lv.18이면 3단계에서 「Lv.25에 열려요」)
       await tester.runAsync(() async => c = await _job('warrior', learned: {'cleave': 3, 'ironWall': 1}));
       await tester.pumpWidget(_host(SkillScreen(controller: c, tab: 1)));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.byKey(const Key('skillPointsLeft')), findsOneWidget);
       expect(find.byKey(const Key('skillLocked_cleave')), findsOneWidget);
       expect(find.text('Lv.25에\n열려요'), findsWidgets);
-      final before = c.skillPointsLeftOn(JobId.warrior);
-      await tester.ensureVisible(find.byKey(const Key('skillRaise_ironWall')));
+      final before = c.skillPointsLeft;
+      await showMid(tester, find.byKey(const Key('skillRaise_ironWall')));
       await tester.tap(find.byKey(const Key('skillRaise_ironWall')));
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
       await tester.pump();
       expect(c.skillLevel(JobSkill.ironWall), 2);
-      expect(c.skillPointsLeftOn(JobId.warrior), before - 1);
-      expect(find.byKey(const Key('skillToast')), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const Key('jobSkillTile_cleave')));
+      expect(c.skillPointsLeft, before - 1);
+      await showMid(tester, find.byKey(const Key('jobSkillTile_cleave')));
       await tester.tap(find.byKey(const Key('jobSkillTile_cleave')));
       await tester.pump();
       expect(find.byKey(const Key('skillOpen_cleave')), findsOneWidget);
       expect(find.byKey(const Key('skillToSlot_cleave')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('skillToSlot_cleave')));
-      await tester.pump();
-      expect(find.byKey(const Key('battleBar')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('Lv.15~19는 주/보조 탭 없음 · Lv.20 보조가 있으면 두 칸', (tester) async {
+    testWidgets('보조 직업 칸은 Lv.20 보조가 있을 때만', (tester) async {
       _phone(tester);
       late AppController a;
       late AppController b;
@@ -113,12 +107,14 @@ void main() {
         a = await _job('warrior', level: 18);
         b = await _job('warrior', level: 22, subs: ['mage']);
       });
-      await tester.pumpWidget(_host(SkillScreen(key: const ValueKey('a'), controller: a, tab: 1)));
+      await tester.pumpWidget(_host(SkillScreen(key: const ValueKey('a'), controller: a)));
       await tester.pump();
-      expect(find.byKey(const Key('skillJobView_1')), findsNothing);
-      await tester.pumpWidget(_host(SkillScreen(key: const ValueKey('b'), controller: b, tab: 1)));
+      expect(find.byKey(const Key('skillChip_sub')), findsNothing);
+      await tester.pumpWidget(_host(SkillScreen(key: const ValueKey('b'), controller: b)));
       await tester.pump();
-      expect(find.byKey(const Key('skillJobView_1')), findsOneWidget);
+      expect(find.byKey(const Key('skillChip_sub')), findsOneWidget);
+      expect(find.byKey(const Key('skillTraitHalf')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 
@@ -134,7 +130,7 @@ void main() {
       }
     });
 
-    testWidgets('늘 8줄 · 높은 단계 먼저 · 장인 배지 · 숙련된 줄 「전투 칸에 넣기」', (tester) async {
+    testWidgets('숙련 카드 · 높은 단계 먼저 · 장인 금테 · 숙련된 「칸에」', (tester) async {
       _phone(tester);
       late AppController c;
       await tester.runAsync(() async => c = await _job('warrior', more: {
@@ -147,13 +143,13 @@ void main() {
         expect(find.byKey(Key('masteryRow_${m.name}')), m == Mastery.appraise && !LensRules.lensOn ? findsNothing : findsOneWidget,
             reason: m.name);
       }
-      expect(find.byKey(const Key('masteryBadge_smith')), findsOneWidget);
-      expect(find.byKey(const Key('masteryDetail_smith')), findsOneWidget);
+      // 묶음 86 #433: 숙련은 + 버튼 없이 막대 · 「숙련된」 공격 스킬은 「칸에」
+      expect(find.byKey(const Key('skillMaster_m_smith')), findsOneWidget);
+      expect(find.byKey(const Key('masteryBar_smith')), findsOneWidget);
       expect(find.text('주 직업 숙련 1.5배'), findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('masteryRow_combat')));
-      await tester.tap(find.byKey(const Key('masteryRow_combat')));
-      await tester.pump();
       expect(find.byKey(const Key('masteryToSlot_combat')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
   });
 

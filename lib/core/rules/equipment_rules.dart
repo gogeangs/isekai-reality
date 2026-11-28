@@ -188,6 +188,25 @@ class GearBonus {
   final Stats stats;
 
   static const none = GearBonus();
+
+  /// 묶음 86 #425: 최대 HP만 더 (공용 스킬 「튼튼한 몸」)
+  GearBonus withMaxHp(double more) => more == 0
+      ? this
+      : GearBonus(
+          attack: attack,
+          reduce: reduce,
+          maxHp: maxHp + more,
+          skillFaster: skillFaster,
+          crit: crit,
+          evade: evade,
+          speed: speed,
+          stats: stats,
+          attackElement: attackElement,
+          guardElements: guardElements,
+          attackLevel: attackLevel,
+          guardLevels: guardLevels,
+          sets: sets,
+        );
 }
 
 /// 대장간·장비 규칙 (제안서 5장, 11-10 확정)

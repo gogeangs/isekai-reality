@@ -212,6 +212,10 @@ extension AlchemyOps on AppController {
     return math.max(1, minutes.round());
   }
 
+  /// 묶음 86 #429: 다 끓은 가마솥 · 다 된 변환대가 있는지 (마을 연금술 공방 · 아래 「마을」 빨간 점)
+  bool get alchemyReady =>
+      featureOpen(Feature.alchemy) && (_alc.brews.keys.any(brewReady) || convertReady);
+
   bool brewReady(int slot) {
     final b = _alc.brews[slot];
     return b != null && !_clock().isBefore(b.readyAt);

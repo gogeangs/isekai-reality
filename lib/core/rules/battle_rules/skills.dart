@@ -490,6 +490,41 @@ extension BattleSkills on Battle {
               element: skillElement, useElement: skillElement != null);
         }
         skillCharge = math.min(skillChargeTicks, skillCharge + 2);
+      // 묶음 86 #425: 조합 스킬북 공용 스킬 (단계는 [commonLevels], [p] 에는 스탯 비율이 실림)
+      case JobSkill.bookFirstAid:
+        if (playerHp >= playerMaxHp) return false;
+        _startSkill('응급 처치!');
+        final lv = commonLevels[s] ?? 1;
+        final before = playerHp;
+        playerHp = math.min(playerMaxHp, playerHp + math.max(1, (playerMaxHp * JobRules.firstAidHeal(lv)).round()));
+        _healed(playerHp - before);
+      case JobSkill.bookDoubleSlash:
+        _startSkill('두 번 베기!');
+        final lv = commonLevels[s] ?? 1;
+        _hits(2, JobRules.doubleSlashMult(lv) * p / JobRules.levelPower(lv));
+      case JobSkill.bookPurify:
+        final lv = commonLevels[s] ?? 1;
+        final bad = poisonTurns > 0 || burning || frozen || petrified;
+        if (!bad && JobRules.purifyGuardTurns(lv) <= 0) return false;
+        _startSkill('정화의 빛!');
+        // 하나만 풀기: 굳음 · 얼음 → 화상 · 독
+        if (petrified || frozen) {
+          petrified = false;
+          frozen = false;
+        } else if (poisonTurns > 0) {
+          poisonTurns = 0;
+          burning = false;
+          weakPoisoned = false;
+        }
+        final g = JobRules.purifyGuardTurns(lv);
+        if (g > 0) {
+          immuneTurns = math.max(immuneTurns, g);
+          freezeImmune = math.max(freezeImmune, g);
+        }
+      case JobSkill.bookAimCrit:
+        _startSkill('급소 노리기!');
+        final lv = commonLevels[s] ?? 1;
+        _strike(1.0 * p / JobRules.levelPower(lv) * (1 + JobRules.aimCritBonus(lv)), crit: true);
       default:
         return false;
     }

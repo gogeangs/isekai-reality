@@ -850,11 +850,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
     await _shot(tester, '48b_스킬_전투칸');
-    await tester.tap(find.byKey(const Key('skillTab_1')));
-    await tester.pump(const Duration(milliseconds: 300));
+    // 묶음 86 #433: 탭 없이 한 화면 — 바로가기 칩으로
+    await tester.tap(find.byKey(const Key('skillChip_main')));
+    await tester.pump(const Duration(milliseconds: 500));
     await _shot(tester, '48c_스킬_고유');
-    await tester.tap(find.byKey(const Key('skillTab_2')));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('skillChip_mastery')));
+    await tester.pump(const Duration(milliseconds: 500));
     await _shot(tester, '48d_스킬_숙련');
   });
 

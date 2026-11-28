@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'skill_icon.dart';
 import '../village/npc_header.dart';
 import 'package:flutter/material.dart' hide Element;
+import '../../core/format.dart';
 
 import '../../app_controller.dart';
 import '../../core/rules/rules.dart';
@@ -79,21 +80,36 @@ class _GuildScreenState extends State<GuildScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => c.markJobsSeen());
   }
 
-  /// 바꾸기: 미리보기 → 확인 (묶음 57: 첫 번째 무료, 그 뒤 증표 1 + 금화)
+  /// 묶음 86 #432: 바꾸기 확인 창 — 「○○로 바꿀까요? 금화 ○○ · 보조 직업 △△가 비워지고 스킬 포인트 ○점이 돌아와요」
   Future<void> _change(JobId main, JobId? sub) async {
-    final pv = c.jobPreview(main, sub);
+    final plan = c.planChange(main, sub);
+    final newSub = plan.mainChange ? null : sub;
+    final pv = c.jobPreview(main, newSub);
+    final target = sub != null && !plan.mainChange ? sub : main;
+    final what = sub == null && !plan.mainChange
+        ? '보조 직업 ${josa(JobRules.info(plan.clearedSub ?? main).name, '을/를')} 뺄까요?'
+        : '${josa(JobRules.info(target).name, '으로/로')} 바꿀까요?';
+    final parts = <String>[
+      plan.gold > 0 ? '금화 ${comma(plan.gold)}' : '무료',
+      if (plan.clearedSub != null)
+        plan.points > 0
+            ? '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워지고 스킬 포인트 ${plan.points}점이 돌아와요'
+            : '보조 직업 ${josa(JobRules.info(plan.clearedSub!).name, '이/가')} 비워져요'
+      else if (plan.points > 0)
+        '스킬 포인트 ${plan.points}점이 돌아와요',
+    ];
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => GameAlert(
         key: const Key('jobPreview'),
-        title: const Text('이렇게 바꿀까요?'),
+        title: Text(what),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             JobEmblem(main, size: 40),
             const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('주 ${JobRules.info(main).name}${sub == null ? '' : ' · 보조 ${JobRules.info(sub).name}'}',
+                Text('주 ${JobRules.info(main).name}${newSub == null ? '' : ' · 보조 ${JobRules.info(newSub).name}'}',
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
                 pv.special
                     ? _Sparkle(child: Text(pv.name, key: const Key('jobPreviewName'), style: AppText.title(19, color: AppColors.goldBright)))
@@ -106,11 +122,8 @@ class _GuildScreenState extends State<GuildScreen> {
             KText('보조 각인 · ${pv.imprint}', style: const TextStyle(color: AppColors.text, fontSize: 13.5)),
           ],
           const SizedBox(height: 10),
-          KText(
-              pv.free
-                  ? '첫 번째 바꾸기는 무료예요. 직업마다 키운 스킬은 그대로 남아요.'
-                  : '전직의 증표 1장과 금화 ${JobPairRules.changeGold}이 들어요. 직업마다 키운 스킬은 그대로 남아요.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          KText(parts.join(' · '),
+              key: const Key('jobChangeCost'), style: const TextStyle(color: AppColors.text, fontSize: 13.5)),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('그만두기')),
@@ -124,10 +137,9 @@ class _GuildScreenState extends State<GuildScreen> {
     switch (r) {
       case JobChange.ok:
         showTopNotice(context, '이제 ${c.pairName ?? JobRules.info(main).name}예요');
-      case JobChange.noToken:
-        showTopNotice(context, '전직의 증표가 없어요. 많이 걷거나 조합 상점에서 구해요', icon: Icons.info_outline_rounded);
       case JobChange.noGold:
-        showTopNotice(context, '금화가 모자라요', icon: Icons.info_outline_rounded);
+        showTopNotice(context, '금화가 ${comma(plan.gold - c.player.gold)} 더 필요해요', icon: Icons.info_outline_rounded);
+      case JobChange.noToken:
       case JobChange.same:
       case JobChange.cannot:
         break;
@@ -138,40 +150,8 @@ class _GuildScreenState extends State<GuildScreen> {
   JobId? _sel;
   JobGroup? _tab;
 
-  Future<void> _tokenSheet() => showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: AppColors.night,
-        builder: (s) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-            child: ListenableBuilder(
-              listenable: c,
-              builder: (s, _) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Text('전직의 증표 ${c.jobTokens}장', key: const Key('guildTokenCount'), style: AppText.title(17)),
-                const SizedBox(height: 4),
-                KText(
-                    c.jobChangeFree
-                        ? '첫 번째 바꾸기는 무료예요. 그다음부터 증표 1장 + 금화 ${JobPairRules.changeGold}'
-                        : '바꿀 때마다 증표 1장 + 금화 ${JobPairRules.changeGold} · 많이 걸으면 생겨요',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                const SizedBox(height: 10),
-                GoldButton(
-                  key: const Key('guildBuyToken'),
-                  label: c.jobTokenBoughtThisWeek ? '이번 주에 샀어요' : '조합 상점에서 사기 · 금화 ${JobPairRules.tokenShopGold}',
-                  onPressed: c.jobTokenBoughtThisWeek
-                      ? null
-                      : () async {
-                          final ok = await c.buyJobToken();
-                          if (!s.mounted) return;
-                          showTopNotice(s, ok ? '전직의 증표를 샀어요' : '금화가 모자라요',
-                              icon: ok ? Icons.verified_rounded : Icons.info_outline_rounded);
-                        },
-                ),
-              ]),
-            ),
-          ),
-        ),
-      );
+  /// 묶음 86 #425: 「스킬북」 탭
+  bool _books = false;
 
   @override
   Widget build(BuildContext context) {
@@ -211,27 +191,6 @@ class _GuildScreenState extends State<GuildScreen> {
                     // 위: 뒤로 · 조합 + 증표 칩
                     Row(children: [
                       Expanded(child: OrnateTopBar(title: '조합', onBack: () => Navigator.of(context).maybePop())),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        key: const Key('guildTokenChip'),
-                        onTap: _tokenSheet,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(4, 3, 9, 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xCC14163A),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.6)),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Image.asset('assets/images/item_jobToken.webp',
-                                width: 22, height: 22,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.verified_rounded, color: AppColors.gold, size: 18)),
-                            const SizedBox(width: 3),
-                            Text(c.jobChangeFree ? '증표 ${c.jobTokens} · 첫 바꾸기 무료' : '증표 ${c.jobTokens}',
-                                style: const TextStyle(color: AppColors.goldBright, fontSize: 11.5, fontWeight: FontWeight.w800)),
-                          ]),
-                        ),
-                      ),
                     ]),
                     const SizedBox(height: 6),
                     // 묶음 80 #366: 다른 시설처럼 위 줄 → 마을 사람 머리줄(세라) (그림 띠 없음)
@@ -257,19 +216,22 @@ class _GuildScreenState extends State<GuildScreen> {
                         Expanded(
                           child: GestureDetector(
                             key: Key('guildTab_${g.name}'),
-                            onTap: () => setState(() => _tab = g),
+                            onTap: () => setState(() {
+                              _tab = g;
+                              _books = false;
+                            }),
                             child: Container(
                               height: 44,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                gradient: tab == g ? kGoldGradient : null,
-                                color: tab == g ? null : const Color(0xCC14163A),
+                                gradient: tab == g && !_books ? kGoldGradient : null,
+                                color: tab == g && !_books ? null : const Color(0xCC14163A),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.gold.withValues(alpha: tab == g ? 1 : 0.4)),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: tab == g && !_books ? 1 : 0.4)),
                               ),
                               child: Text('${g.label} $n',
                                   style: TextStyle(
-                                      color: tab == g ? AppColors.goldInk : AppColors.text,
+                                      color: tab == g && !_books ? AppColors.goldInk : AppColors.text,
                                       fontSize: 14.5,
                                       fontWeight: FontWeight.w800)),
                             ),
@@ -277,8 +239,34 @@ class _GuildScreenState extends State<GuildScreen> {
                         ),
                         const SizedBox(width: 6),
                       ],
+                      // 묶음 86 #425: 스킬북 (Lv.15 각성 뒤)
+                      if (c.jobsOpen)
+                        Expanded(
+                          child: GestureDetector(
+                            key: const Key('guildTab_books'),
+                            onTap: () => setState(() => _books = true),
+                            child: Container(
+                              height: 44,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                gradient: _books ? kGoldGradient : null,
+                                color: _books ? null : const Color(0xCC14163A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.gold.withValues(alpha: _books ? 1 : 0.4)),
+                              ),
+                              child: Text('스킬북',
+                                  style: TextStyle(
+                                      color: _books ? AppColors.goldInk : AppColors.text,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w800)),
+                            ),
+                          ),
+                        ),
                     ]),
                     const SizedBox(height: 8),
+                    if (_books)
+                      _BookList(controller: c)
+                    else
                     GridView.count(
                       key: const Key('guildGrid'),
                       crossAxisCount: 3,
@@ -309,7 +297,8 @@ class _GuildScreenState extends State<GuildScreen> {
                 ),
               ),
               // 아래 판 (화면 아래 고정)
-              if (sel != null && main != null) _bottom(sel, main, sub, open20, pad.bottom),
+              if (!_books && sel != null && main != null) _bottom(sel, main, sub, open20, pad.bottom),
+              if (_books) SizedBox(height: pad.bottom),
             ]);
           },
         ),
@@ -447,8 +436,22 @@ class _GuildScreenState extends State<GuildScreen> {
       JobGroup.craft => const Color(0xFF6CC27A),
       _ => AppColors.goldBright,
     };
-    Widget btn(String label, Key key, VoidCallback? onTap) => Expanded(
-          child: GoldButton(key: key, label: label, height: 44, onPressed: onTap),
+    // 묶음 86 #432: 금화가 모자라면 버튼 흐리게 + 「금화가 ○○ 더 필요해요」
+    final gold = c.player.gold;
+    Widget btn(String label, Key key, VoidCallback? onTap, {int cost = 0}) => Expanded(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            GoldButton(key: key, label: label, height: 44, onPressed: cost > gold ? null : onTap),
+            const SizedBox(height: 2),
+            Text(
+                cost <= 0
+                    ? '무료'
+                    : cost > gold
+                        ? '금화가 ${comma(cost - gold)} 더 필요해요'
+                        : '금화 ${comma(cost)}',
+                key: Key('${(key as ValueKey).value}_cost'),
+                style: TextStyle(
+                    color: cost > gold ? AppColors.danger : AppColors.textMuted, fontSize: 11.5, fontWeight: FontWeight.w700)),
+          ]),
         );
     return Container(
       key: const Key('guildPick'),
@@ -488,8 +491,13 @@ class _GuildScreenState extends State<GuildScreen> {
               style: const TextStyle(color: AppColors.text, fontSize: 12.5, fontWeight: FontWeight.w700)),
         ],
         const SizedBox(height: 8),
+        // 묶음 86 #432: 지금 보조 직업을 골랐으면 「보조 직업 빼기」
+        if (open20 && j == sub)
+          Row(children: [
+            btn('보조 직업 빼기', const Key('jobRemoveSub'), () => _change(main, null), cost: c.subChangeGold),
+          ])
         // 묶음 78 #359: 지금 내 직업(주 · 보조)을 골랐으면 버튼 대신 글
-        if (j == main || (open20 && j == sub))
+        else if (j == main)
           Container(
             key: const Key('guildMine'),
             height: 44,
@@ -503,17 +511,20 @@ class _GuildScreenState extends State<GuildScreen> {
           )
         else if (!open20)
           Row(children: [
-            btn('이 직업으로 바꾸기', const Key('jobAsMain'), () => _change(j, null)),
+            btn('이 직업으로 바꾸기', const Key('jobAsMain'), () => _change(j, null), cost: c.planChange(j, null).gold),
           ])
         else
-          Row(children: [
-            btn('주 직업으로', const Key('jobAsMain'), () => _change(j, sub)),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            btn('주 직업으로', const Key('jobAsMain'), () => _change(j, sub), cost: c.planChange(j, null).gold),
             const SizedBox(width: 8),
-            btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j)),
+            btn('보조 직업으로', const Key('jobAsSub'), () => _change(main, j), cost: c.planChange(main, j).gold),
           ]),
-        const SizedBox(height: 4),
-        const Text('바꾸기 · 첫 번째 무료 (그다음 증표 1장 + 금화 ${JobPairRules.changeGold})',
-            textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        if (open20 && j != main && j != sub) ...[
+          const SizedBox(height: 2),
+          Text(sub == null ? '주 직업을 바꾸면 보조 칸도 비워져요' : '주 직업을 바꾸면 보조 직업 ${JobRules.info(sub).name}도 비워져요',
+              key: const Key('guildChangeNote'),
+              textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+        ],
       ]),
     );
   }
@@ -776,5 +787,108 @@ class _Bubble extends StatelessWidget {
                     color: AppColors.text, fontSize: 16, height: 1.45)),
           ],
         ),
+      );
+}
+
+
+/// 묶음 86 #425: 조합 「스킬북」 — 책 카드 (이름 · 효과 · 값 · 「사기」, 산 책은 「배움」)
+class _BookList extends StatelessWidget {
+  const _BookList({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    final gold = c.player.gold;
+    return Column(key: const Key('guildBooks'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const KText('스킬북을 사면 그 스킬을 Lv.1로 배워요. 스킬 포인트로 단계를 올리고, 직업을 바꿔도 남아요.',
+          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+      const SizedBox(height: 8),
+      for (final (s, price) in JobRules.books)
+        Builder(builder: (context) {
+          final info = JobRules.skill(s);
+          final has = c.hasBook(s);
+          final short = price - gold;
+          return Container(
+            key: Key('book_${s.name}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+            decoration: BoxDecoration(
+              color: const Color(0xE61F1C40),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: has ? AppColors.gold : const Color(0xFF3A3468), width: 1.4),
+            ),
+            child: Row(children: [
+              SkillArt.jobIcon(s, size: 40),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                    Text(info.name, style: const TextStyle(color: AppColors.text, fontSize: 14, fontWeight: FontWeight.w800)),
+                    _BookTag(info.isBattle ? '액티브 · 전투' : '패시브 · 생활', active: info.isBattle),
+                  ]),
+                  const SizedBox(height: 2),
+                  KText(info.text, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  if (!has)
+                    Text('금화 ${comma(price)}',
+                        key: Key('bookPrice_${s.name}'),
+                        style: const TextStyle(color: AppColors.goldBright, fontSize: 12, fontWeight: FontWeight.w800)),
+                  if (!has && short > 0)
+                    Text('금화가 ${comma(short)} 더 필요해요',
+                        key: Key('bookShort_${s.name}'),
+                        style: const TextStyle(color: AppColors.danger, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              if (has)
+                Container(
+                  key: Key('bookOwned_${s.name}'),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.gold),
+                  ),
+                  child: const Text('배움', style: TextStyle(color: AppColors.goldBright, fontSize: 13, fontWeight: FontWeight.w900)),
+                )
+              else
+                SizedBox(
+                  width: 84,
+                  child: GoldButton(
+                    key: Key('bookBuy_${s.name}'),
+                    label: '사기',
+                    height: 38,
+                    onPressed: short > 0
+                        ? null
+                        : () async {
+                            final ok = await c.buyBook(s);
+                            if (!context.mounted) return;
+                            showTopNotice(context, ok ? '「${info.name}」${josa(info.name, '을/를').substring(info.name.length)} 배웠어요' : '살 수 없어요',
+                                icon: ok ? Icons.menu_book_rounded : Icons.info_outline_rounded);
+                          },
+                  ),
+                ),
+            ]),
+          );
+        }),
+    ]);
+  }
+}
+
+class _BookTag extends StatelessWidget {
+  const _BookTag(this.text, {required this.active});
+  final String text;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFE3B95A) : const Color(0xFF2E7A62),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                color: active ? const Color(0xFF2A1D05) : const Color(0xFFE6FFF3), fontSize: 10.5, fontWeight: FontWeight.w800)),
       );
 }

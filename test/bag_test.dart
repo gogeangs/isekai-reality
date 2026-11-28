@@ -20,7 +20,8 @@ void main() {
       expect(BagRules.capacity(goldExpansions: 1, singleSlots: 2), 27);
       expect([for (var i = 0; i < 6; i++) BagRules.slotCost(i)],
           [80, 100, 130, 170, 220, 280]);
-      expect(BagRules.slotCost(100), 2000);
+      expect(BagRules.slotCost(20), 2380); // 묶음 86 #427: 상한 없음
+      expect(BagRules.slotCost(80), 33280);
     });
 
     test('99개마다 한 칸, 입은 장비는 칸을 쓰지 않는다', () {

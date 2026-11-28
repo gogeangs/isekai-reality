@@ -219,6 +219,9 @@ enum SkillPlace {
   board,
   expeditionSend,
   anywhere,
+
+  /// 묶음 86 #425: 공용 생활 스킬 (늘 켜짐 · 누르는 곳 없음)
+  passive,
 }
 
 /// 직업 스킬 (이름은 저장 키. 묶음 30 스킬 이름은 그대로 두고 더한다)
@@ -268,6 +271,9 @@ enum JobSkill {
   shieldBash, guard, taunt, lanceCharge, paladinOath, // 기사
   anvilDrop, acidFlask, pollenCloud, dazzleLens, scaleWeight, whistleSignal, // 생산 두 번째 공격
   sproutCare, // 채집가
+  // 묶음 86 #425: 조합 스킬북 공용 스킬 8
+  bookFirstAid, bookDoubleSlash, bookPurify, bookAimCrit, // 전투
+  bookQuickStep, bookGatherKnack, bookHaggle, bookSturdy, // 생활 (늘 켜짐)
 }
 
 /// 스킬이 어떻게 걸리는지
@@ -283,6 +289,9 @@ enum SkillMode {
 
   /// 전투 화면 버튼
   battle,
+
+  /// 묶음 86 #425: 늘 켜짐 (공용 생활 스킬)
+  passive,
 }
 
 class JobSkillInfo {
@@ -362,10 +371,14 @@ class JobRules {
 
   // ───────────── 스킬 포인트·레벨 (#195·#196, 숨은 값)
 
-  /// Lv.15부터 레벨이 오를 때마다 2점 (Lv.15 = 2점)
+  /// 묶음 86 #431: 한 주머니 — Lv.15부터 레벨이 오를 때마다 3점 (Lv.15 = 3점). 주 · 보조 · 직업 숙련 · 공용 스킬에 나눠 씀
   static int pointsFor(int level) =>
-      level >= awakenLevel ? 2 * (level - awakenLevel + 1) : 0;
-  static const int pointsPerLevel = 2;
+      level >= awakenLevel ? pointsPerLevel * (level - awakenLevel + 1) : 0;
+  static const int pointsPerLevel = 3;
+
+  /// 묶음 86 #423: 내 레벨에서 열린 가장 높은 스킬 단계 (Lv.15~24 = 3 · 25~34 = 4 · 35~ = 5)
+  static int openMaxLevel(int playerLevel) =>
+      playerLevel >= levelOpensAt(5) ? 5 : playerLevel >= levelOpensAt(4) ? 4 : 3;
 
   /// 묶음 85 #414: 스킬 단계 5까지 (4단계는 Lv.25, 5단계는 Lv.35에 열림)
   static const int maxSkillLevel = 5;
@@ -914,7 +927,49 @@ class JobRules {
         mode: SkillMode.battle, attack: true),
     JobSkillInfo(JobSkill.sproutCare, '새싹 돌보기', SkillPlace.anywhere,
         '오늘 약초밭이 조금 빨리 자라요', 20, mode: SkillMode.instant),
+    // 묶음 86 #425: 공용 스킬 (스킬북)
+    JobSkillInfo(JobSkill.bookFirstAid, '응급 처치', _b, 'HP를 조금 되찾아요', 15, mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.bookDoubleSlash, '두 번 베기', _b, '빠르게 두 번 베어요', 20,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.bookPurify, '정화의 빛', _b, '상태 이상 하나를 풀어요. 단계가 오르면 잠시 막아 줘요', 15,
+        mode: SkillMode.battle),
+    JobSkillInfo(JobSkill.bookAimCrit, '급소 노리기', _b, '이번 공격은 꼭 치명타예요', 25,
+        mode: SkillMode.battle, attack: true),
+    JobSkillInfo(JobSkill.bookQuickStep, '빠른 발걸음', SkillPlace.passive, '펫 원정이 조금 빨리 끝나요', 0,
+        mode: SkillMode.passive),
+    JobSkillInfo(JobSkill.bookGatherKnack, '채집 요령', SkillPlace.passive, '채집할 때 가끔 하나 더 나와요', 0,
+        mode: SkillMode.passive),
+    JobSkillInfo(JobSkill.bookHaggle, '흥정', SkillPlace.passive, '잡화상에서 조금 싸게 사요', 0,
+        mode: SkillMode.passive),
+    JobSkillInfo(JobSkill.bookSturdy, '튼튼한 몸', SkillPlace.passive, '최대 HP가 조금 늘어요', 0,
+        mode: SkillMode.passive),
   ];
+
+  // ───────────── 묶음 86 #425: 조합 스킬북 (공용 스킬, 숨은 값)
+
+  /// 스킬북 (스킬 · 금화). 한 권 한 번만
+  static const List<(JobSkill, int)> books = [
+    (JobSkill.bookFirstAid, 600),
+    (JobSkill.bookDoubleSlash, 800),
+    (JobSkill.bookPurify, 700),
+    (JobSkill.bookAimCrit, 1000),
+    (JobSkill.bookQuickStep, 900),
+    (JobSkill.bookGatherKnack, 900),
+    (JobSkill.bookHaggle, 700),
+    (JobSkill.bookSturdy, 1200),
+  ];
+  static bool isCommon(JobSkill s) => books.any((b) => b.$1 == s);
+  static int bookPrice(JobSkill s) => books.firstWhere((b) => b.$1 == s).$2;
+
+  /// 공용 스킬 수치 (단계 [lv] = 1~5)
+  static double firstAidHeal(int lv) => 0.20 + 0.05 * (lv - 1);
+  static double doubleSlashMult(int lv) => 0.8 + 0.1 * (lv - 1);
+  static double aimCritBonus(int lv) => 0.10 * (lv - 1);
+  static int purifyGuardTurns(int lv) => lv >= 2 ? 2 : 0;
+  static double quickStepCut(int lv) => 0.05 * lv;
+  static double gatherKnackChance(int lv) => 0.05 * lv;
+  static double haggleCut(int lv) => 0.03 * lv;
+  static double sturdyHp(int lv) => 0.02 * lv;
 
   static final Map<JobSkill, JobSkillInfo> _skillById = {
     for (final s in skills) s.id: s,

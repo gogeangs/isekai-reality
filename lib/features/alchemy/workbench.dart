@@ -826,7 +826,11 @@ class _CauldronPageState extends State<_CauldronPage> with TickerProviderStateMi
                       shape: BoxShape.circle,
                       boxShadow: [BoxShadow(color: Color(0xAAFFE38A), blurRadius: 18, spreadRadius: 2)],
                     ),
-                    child: Icon(Icons.science_rounded, size: pot * 0.26, color: Color.lerp(liquid, Colors.white, 0.25)),
+                    // 묶음 86 #430: 다 끓으면 그 물약 그림 (그림이 없는 물약만 아이콘)
+                    child: switch (BrewForecast.of(c, brewPut)) {
+                      final f when f.exact && f.id != null => PotionIcon(potion: f.id, size: pot * 0.3),
+                      _ => Icon(Icons.science_rounded, size: pot * 0.26, color: Color.lerp(liquid, Colors.white, 0.25)),
+                    },
                   ),
                 ),
               if (brew != null && !ready)

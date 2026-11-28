@@ -582,7 +582,9 @@ extension _GuildHallHall on _GuildHallScreenState {
       GuildShopInfo(icon: final i?) =>
         Image.asset(i, width: 34, errorBuilder: (_, __, ___) => const Icon(Icons.monetization_on_rounded, color: AppColors.gold)),
       _ when s.item == GuildShopItem.matBundle => const MaterialIcon(MaterialId.hardWood, size: 34),
-      _ => const Icon(Icons.badge_rounded, color: AppColors.goldBright, size: 30),
+      // 묶음 86 #428: 모집권 그림
+      _ => Image.asset(Act3Rules.ticketImage,
+          width: 34, height: 34, errorBuilder: (_, __, ___) => const Icon(Icons.badge_rounded, color: AppColors.goldBright, size: 30)),
     };
     return Padding(
       key: Key('guildShopRow_${s.item.name}'),

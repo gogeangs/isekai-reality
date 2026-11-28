@@ -201,6 +201,34 @@ class _CodexScreenState extends State<CodexScreen> {
                       const Text('(가끔)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     ]),
                   ),
+                // 묶음 86 #424: 1단계에만 기대던 레시피 재료도 가끔 (장소 · 수식어 따라)
+                if (LootRules.codexTierRecipeMats(m.id) case final rm when rm.isNotEmpty)
+                  Padding(
+                    key: const Key('codexTierRecipeMats'),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const SizedBox(
+                        width: 72,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Text('그 밖에',
+                              maxLines: 1,
+                              style: TextStyle(color: AppColors.goldBright, fontSize: 14, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                      Expanded(
+                        child: Wrap(spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                          for (final x in rm)
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                              MaterialIcon(x, size: 26),
+                              const SizedBox(width: 3),
+                              Text(Materials.info(x).name, style: const TextStyle(color: AppColors.text, fontSize: 12.5)),
+                            ]),
+                          const Text('(가끔)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        ]),
+                      ),
+                    ]),
+                  ),
                 const SizedBox(height: 12),
                 FrameButton(
                     label: '닫기', onPressed: () => Navigator.of(sheet).pop()),

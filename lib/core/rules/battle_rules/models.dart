@@ -207,6 +207,28 @@ class BattleRules {
     return math.max(1, math.min(want, cap).round());
   }
 
+  /// 묶음 86 #422: 던전만 Lv.11~15 처음 사람 보호를 더 넓게 (고르게 · 장비 없는 사람도 절반 넘게 깸).
+  /// Lv.16부터는 #408 그대로
+  static const int dungeonProtectTo = 15;
+  static double dungeonProtectHits(int level) => 7.5 + dungeonHitStep * (level - 10);
+  static double dungeonProtectTaken(int level) => 1.0 + dungeonTakenStep * (level - 10);
+  static const double dungeonHitStep = 0.25;
+  static const double dungeonTakenStep = 0.015;
+
+  static int dungeonAttack(int level) {
+    final base = expectedAttack(level);
+    if (level <= 10 || level > dungeonProtectTo) return base;
+    final cap = evenAttack(level) * dungeonProtectHits(level) / RuleConstants.fieldHitsToClear;
+    return math.max(1, math.min(base.toDouble(), cap).round());
+  }
+
+  static int dungeonMaxHp(int level) {
+    final base = expectedMaxHp(level);
+    if (level <= 10 || level > dungeonProtectTo) return base;
+    final cap = evenMaxHp(level) * dungeonProtectTaken(level);
+    return math.max(1, math.min(base.toDouble(), cap).round());
+  }
+
   /// 던전 4층: 일반 3층 + 마지막 보스(미궁 문지기).
   /// 미궁 입구에서 열면 일반 층이 모두 미궁 박쥐(장소 전용 몬스터).
   static List<Foe> dungeonFloors({
@@ -215,8 +237,8 @@ class BattleRules {
     required math.Random rng,
     DateTime? day,
   }) {
-    final atk = expectedAttack(level);
-    final hp = expectedMaxHp(level);
+    final atk = dungeonAttack(level);
+    final hp = dungeonMaxHp(level);
     // 묶음 85 #408: 던전은 층이 길어 레벨 배수가 HP · 공격 둘 다에 붙으면 두 번 세진다 → 공격 쪽은 한 번만
     final floorAttack = math.max(
         1, (hp / RuleConstants.dungeonHpBudgetTicks / levelMult(level)).round());

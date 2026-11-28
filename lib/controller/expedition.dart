@@ -435,6 +435,9 @@ extension ExpeditionOps on AppController {
           _wolfTravel(pet); // 묶음 49 #235: 바람과 함께면 다른 펫이 조금 빨리
       base = Duration(seconds: (base.inSeconds * t).round());
     }
+    // 묶음 86 #425: 공용 스킬 「빠른 발걸음」 → 원정 시간 조금 짧게
+    final qs = commonLevel(JobSkill.bookQuickStep);
+    if (qs > 0) base = Duration(seconds: (base.inSeconds * (1 - JobRules.quickStepCut(qs))).round());
     // 묶음 27 #176: 정령술 숙련도 → MP 조금 덜, 시간 조금 짧게 (숨김)
     if (spiritMpFactor < 1) {
       cost = math.max(1, (cost * spiritMpFactor).round());

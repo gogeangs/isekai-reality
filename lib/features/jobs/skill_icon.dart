@@ -94,8 +94,21 @@ class SkillArt {
     JobSkill.cheer, JobSkill.snackPouch, JobSkill.eggWarm,
   };
 
+  /// 묶음 86 #425: 스킬북 공용 스킬 — 그림이 오기 전엔 비슷한 스킬 그림으로 임시
+  static const bookArt = {
+    JobSkill.bookFirstAid: 'skill_firstAid',
+    JobSkill.bookDoubleSlash: 'skill_cleave',
+    JobSkill.bookPurify: 'skill_purify',
+    JobSkill.bookAimCrit: 'skill_vitalStrike',
+    JobSkill.bookQuickStep: 'skill_runTogether',
+    JobSkill.bookGatherKnack: 'skill_bountyTouch',
+    JobSkill.bookHaggle: 'skill_bargain',
+    JobSkill.bookSturdy: 'skill_ironWall',
+  };
+
   static (SkillFrame, String) job(JobSkill s) {
     final info = JobRules.skill(s);
+    if (bookArt[s] case final a?) return (info.isBattle ? SkillFrame.attack : SkillFrame.life, a);
     if (s == JobSkill.windBlade) return (SkillFrame.attack, 'skill_windArrow');
     if (info.attack || _ownArt.contains(s)) return (SkillFrame.attack, 'skill_${s.name}');
     // 묶음 77 #342: 그림이 있는 생활 스킬은 그 그림 + 생활 테

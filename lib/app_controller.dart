@@ -773,6 +773,7 @@ class AppController extends ChangeNotifier {
     // 묶음 31: 스킬 두 갈래·스킬 페이지 (예전 기록 옮기기)
     await _migrateSkills31();
     await _migrateJobs57(); // 묶음 57 #249 직업 개편
+    await _fitSkillPool(); // 묶음 86 #431 한 주머니
     // 묶음 34 2막: 진행 (없으면 처음부터. Lv.12 이상 예전 계정은 분노의 잿빛 틈부터)
     _act2 = await _load(_act2Key, Act2State.fromJson, const Act2State());
     // 묶음 35: 마을 (없으면 처음부터: 소개·마을 사람 첫 한마디를 한 번씩)

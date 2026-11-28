@@ -410,7 +410,13 @@ extension HarvestOps on AppController {
         mats[k] = mats[k]! + 1;
       }
     }
-    var seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
+    // 묶음 86 #425: 공용 스킬 「채집 요령」 → 가끔 하나 더
+    final gk = commonLevel(JobSkill.bookGatherKnack);
+    if (mats.isNotEmpty && gk > 0 && _random.nextDouble() < JobRules.gatherKnackChance(gk)) {
+      final k = mats.keys.first;
+      mats[k] = mats[k]! + 1;
+    }
+        var seed = mats.isNotEmpty ? _rollGatherSeed(s.kind) : null;
     if (seed != null) mats[seed] = (mats[seed] ?? 0) + 1;
     // 묶음 85 #416: 돋보기를 끄면 감정에서만 나오던 것(감정 재료 · 빛나는 씨앗 · 쪽지)을 채집에서 같은 확률로
     // (감정 보상처럼 하루 [LensRules.rewardedPerDay] 번까지)

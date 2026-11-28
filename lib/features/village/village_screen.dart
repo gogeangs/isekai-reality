@@ -270,6 +270,8 @@ class _VillageScreenState extends State<VillageScreen> {
         Facility.shelter => controller.shelterOpen && controller.readyEgg != null,
         // 묶음 48 #230: 다 자란 칸
         Facility.garden => controller.gardenReady > 0,
+        // 묶음 86 #429: 다 끓은 가마솥
+        Facility.alchemy => controller.alchemyReady,
         _ => false,
       };
 

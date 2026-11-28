@@ -16,9 +16,9 @@ class BagRules {
   static const int stackMax = 99;
 
   /// 한 칸씩 열기 (묶음 15 #106): [opened] 칸 연 뒤 다음 한 칸 가격.
-  /// 80 → 100 → 130 → 170 → 220 → 280 … (오름폭이 10씩 커진다), 최대 2,000
-  static int slotCost(int opened) =>
-      math.min(2000, 80 + 5 * opened * opened + 15 * opened);
+  /// 80 → 100 → 130 → 170 → 220 → 280 … (오름폭이 10씩 커진다)
+  /// 묶음 86 #427: 상한 없이 같은 식으로 계속 (최대 칸 수는 그대로)
+  static int slotCost(int opened) => 80 + 5 * opened * opened + 15 * opened;
 
   /// 광고로도 열 수 있는 칸 (한 칸씩 연 것 중 첫째·둘째)
   static const int adSlots = 2;

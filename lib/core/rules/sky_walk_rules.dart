@@ -52,13 +52,13 @@ class SkyWalkRules {
 
   static const List<SkyFloorInfo> floors = [
     SkyFloorInfo(
-        floor: 1, name: '아래 정원', size: 9, wind: 18, crystals: 4, stones: 2,
+        floor: 1, name: '아래 정원', size: 9, wind: 28, crystals: 4, stones: 2,
         springs: 2, soldiers: 2, goalMin: 7, goalMax: 9),
     SkyFloorInfo(
-        floor: 2, name: '무너진 회랑', size: 7, wind: 14, crystals: 4, stones: 2,
+        floor: 2, name: '무너진 회랑', size: 7, wind: 20, crystals: 4, stones: 2,
         springs: 1, soldiers: 3, goalMin: 5, goalMax: 7),
     SkyFloorInfo(
-        floor: 3, name: '꼭대기 제단', size: 5, wind: 10, crystals: 3, stones: 2,
+        floor: 3, name: '꼭대기 제단', size: 5, wind: 13, crystals: 3, stones: 2,
         springs: 1, soldiers: 4, goalMin: 4, goalMax: 99),
   ];
 

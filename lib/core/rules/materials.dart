@@ -807,10 +807,31 @@ class LootRules {
         : const [MaterialId.slimeJelly, MaterialId.waterJelly];
   }
 
+  // ───────────── 묶음 86 #424: 1단계에만 기대던 레시피 재료도 단계 몬스터가 가끔 (물약 재료보다 드물게)
+  static const double tierRecipeChance = 0.15;
+
+  /// 토끼 고기 · 작은 엄니: 숲 · 공원 · 산 / 잠의 가루: 밤 / 황금빛 토끼털: 희귀 · 전설 수식어 (장소 상관없음)
+  static List<MaterialId> tierRecipeMats(MonsterId m, LandKind? land, {bool rareMod = false}) => [
+        if (nightTier(m)) MaterialId.sleepPowder,
+        if (!nightTier(m) && (land == LandKind.forest || land == LandKind.park || land == LandKind.mountain)) ...[
+          MaterialId.rabbitMeat,
+          MaterialId.smallTusk,
+        ],
+        if (rareMod) MaterialId.goldenRabbitFur,
+      ];
+
+  /// 도감 「떨어뜨리는 것」 (가끔): 장소 · 수식어 따라 나오는 것 모두
+  static List<MaterialId> codexTierRecipeMats(MonsterId m) {
+    if (!FieldMonsterRules.isTierMonster(m)) return const [];
+    return nightTier(m)
+        ? const [MaterialId.sleepPowder, MaterialId.goldenRabbitFur]
+        : const [MaterialId.rabbitMeat, MaterialId.smallTusk, MaterialId.goldenRabbitFur];
+  }
+
   /// 필드 몬스터 한 마리: 그 몬스터 재료 1 (+귀한 재료). [rareBonus] 는 행운 보너스.
   /// 묶음 85 #413: 단계 몬스터는 물약 재료 · 장소 속성 젤리도 가끔 ([land] 는 잡은 자리 장소)
   static Map<MaterialId, int> field(MonsterId m, math.Random rng,
-      {double rareBonus = 0, bool early = false, LandKind? land}) {
+      {double rareBonus = 0, bool early = false, LandKind? land, bool rareMod = false}) {
     final d = dropsOf(m);
     var common = d.common[rng.nextInt(d.common.length)];
     // 묶음 16 #129: 처음(Lv.5까지)엔 바로 쓰는 재료만. 속성 젤리 → 슬라임 젤리
@@ -827,6 +848,11 @@ class LootRules {
       if (rng.nextDouble() < elementJellyChance) {
         final j = elementJellyFor(m, land, rng);
         out[j] = (out[j] ?? 0) + 1;
+      }
+      final rm = tierRecipeMats(m, land, rareMod: rareMod);
+      if (rm.isNotEmpty && rng.nextDouble() < tierRecipeChance) {
+        final r = rm[rng.nextInt(rm.length)];
+        out[r] = (out[r] ?? 0) + 1;
       }
     }
     return out;

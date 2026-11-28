@@ -23,11 +23,7 @@ List<int> path(SkyBoard b, Set<int> opened, int target) {
 }
 
 void main() {
-  run(hidden: false);
   run(hidden: true);
-  for (final e in const [[6, 4, 2], [10, 6, 3], [14, 8, 4]]) {
-    run(hidden: true, extra: e);
-  }
 }
 
 void run({required bool hidden, List<int> extra = const [0, 0, 0]}) {

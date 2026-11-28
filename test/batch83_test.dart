@@ -148,7 +148,7 @@ void main() {
       final cl = c.skyClimb!;
       final b = c.skyBoard!;
       expect(cl.floor, 1);
-      expect(cl.wind, 18);
+      expect(cl.wind, 28);
       expect(cl.opened, [b.entrance]);
       // 맞닿지 않은 칸은 안 됨
       final far = b.goal;

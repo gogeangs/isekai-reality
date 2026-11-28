@@ -886,7 +886,9 @@ Future<void> showPartyShop(BuildContext context, AppController c) => showModalBo
                       width: 36,
                       child: switch (it.id) {
                         'bundle' => const MaterialIcon(MaterialId.hardWood, size: 30),
-                        'recruit' => const Icon(Icons.badge_rounded, color: AppColors.goldBright),
+                        // 묶음 86 #428: 모집권 그림
+                        'recruit' => Image.asset(Act3Rules.ticketImage,
+                            width: 30, height: 30, errorBuilder: (_, __, ___) => const Icon(Icons.badge_rounded, color: AppColors.goldBright)),
                         'mana' => Image.asset('assets/images/icon_mana_stone.webp',
                             width: 30, errorBuilder: (_, __, ___) => const Icon(Icons.diamond_rounded, color: AppColors.gold)),
                         _ => Image.asset('assets/images/icon_gold.webp',

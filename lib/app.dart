@@ -609,8 +609,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                           controller.skillPointsLeft != _seenSkillPoints)))
                 tStatus,
               if (_tab != tVillage &&
-                  controller.questRewardsReady > 0 &&
-                  controller.questRewardsReady != _seenRewards)
+                  ((controller.questRewardsReady > 0 &&
+                          controller.questRewardsReady != _seenRewards) ||
+                      controller.alchemyReady))
                 tVillage,
             },
             onTap: (i) {

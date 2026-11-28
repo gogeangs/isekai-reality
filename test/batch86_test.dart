@@ -17,6 +17,12 @@ Future<AppController> job(int level,
         gains: {if (gold > 0) 'gold': gold},
         more: awakened(main: main, owned: owned, extra: {'subs': subs}));
 
+/// 묶음 86: 스킬 화면은 전투 칸이 위에 붙어 있어 가운데로 보이게
+Future<void> showMid(WidgetTester tester, Finder f) async {
+  await tester.runAsync(() => Scrollable.ensureVisible(tester.element(f), alignment: 0.5));
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
 void main() {
   group('A 밸런스', () {
     test('#421 하이랜드 바람 28 · 20 · 13', () {
@@ -198,6 +204,7 @@ void main() {
       // 공용 칸으로 가서 「칸에」 → 칸 1
       await tester.tap(find.byKey(const Key('skillChip_common')));
       await tester.pump(const Duration(milliseconds: 500));
+      await showMid(tester, find.byKey(const Key('skillToSlot_bookDoubleSlash')));
       await tester.tap(find.byKey(const Key('skillToSlot_bookDoubleSlash')));
       await tester.pump();
       await tester.tap(find.byKey(const Key('skillSlot_0')));

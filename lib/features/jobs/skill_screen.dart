@@ -128,8 +128,9 @@ class _SkillScreenState extends State<SkillScreen> {
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(14, 6, 14, 40),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
+                    // 칸이 많지 않아 한 번에 그림 (바로가기 칩이 화면 밖 칸으로도 갈 수 있게)
+                    sliver: SliverToBoxAdapter(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                         if (main != null) ..._mainSection(main),
                         if (sub != null) ..._subSection(sub),
                         if (c.jobsOpen) ..._commonSection(),
@@ -198,7 +199,12 @@ class _SkillScreenState extends State<SkillScreen> {
         name: name,
         sub: '늘 있음',
         dim: true,
-        onTap: () => setState(() => _toast = f == _Fixed.pet ? '펫 버튼은 늘 있어요 · 함께 있는 펫을 바꾸면 바뀌어요' : '$name은 늘 있어요'),
+        onTap: () => setState(() {
+          final w = id == null ? null : MasteryRules.skillStageWord(c.skillStageOf(id));
+          _toast = f == _Fixed.pet
+              ? '펫 버튼은 늘 있어요 · 함께 있는 펫을 바꾸면 바뀌어요'
+              : '$name${w == null ? '' : ' · 스킬 숙련 $w'} · 늘 있어요';
+        }),
       );
       return id == null ? cell : SkillMasterFrame(id: id, stage: c.skillStageOf(id), child: cell);
     }

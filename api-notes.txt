@@ -1,0 +1,5 @@
+== /home/runner/.pub-cache/hosted/pub.dev/camera-0.11.4
+== /home/runner/.pub-cache/hosted/pub.dev/google_mlkit_face_detection-0.15.1
+== /home/runner/.pub-cache/hosted/pub.dev/google_mlkit_commons-0.13.0
+== /home/runner/.pub-cache/hosted/pub.dev/gal-2.3.3
+== /home/runner/.pub-cache/hosted/pub.dev/share_plus-11.1.0
